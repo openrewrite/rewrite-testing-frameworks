@@ -1,0 +1,5 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.spring.boot.UpgradeDependencies
+visitors:
+  - 'org.openrewrite.java.testing.junit5.*'
