@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.AutoConfigure;
-import org.openrewrite.java.AddAnnotation;
 import org.openrewrite.java.AutoFormat;
 import org.openrewrite.java.JavaRefactorVisitor;
 import org.openrewrite.java.tree.Expression;
@@ -81,7 +80,7 @@ public class CategoryToTag extends JavaRefactorVisitor {
                                 return categories
                                         .map(arg -> {
                                             J.Annotation annotation =
-                                                    AddAnnotation.buildAnnotation(
+                                                    J.Annotation.buildAnnotation(
                                                             annot.getFormatting(),
                                                             tagType,
                                                             Collections.singletonList(arg.withPrefix(""))
@@ -125,7 +124,7 @@ public class CategoryToTag extends JavaRefactorVisitor {
                                 return categories
                                         .map(arg -> {
                                             J.Annotation annotation =
-                                                    AddAnnotation.buildAnnotation(
+                                                    J.Annotation.buildAnnotation(
                                                             annot.getFormatting(),
                                                             tagType,
                                                             Collections.singletonList(arg.withPrefix(""))
