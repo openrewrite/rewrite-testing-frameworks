@@ -231,4 +231,22 @@ class MockitoUpgrade1To3Tests : RefactorVisitorTestForParser<J.CompilationUnit> 
                 }
             """
     )
+
+    @Test
+    fun replacesMockitoJUnitRunner() = assertRefactored(
+            before = """
+                import org.junit.runner.RunWith;
+                import org.mockito.runners.MockitoJUnitRunner;
+                
+                @RunWith(MockitoJUnitRunner.class)
+                public class ExampleTest { }
+            """,
+            after = """
+                import org.junit.runner.RunWith;
+                import org.mockito.junit.MockitoJUnitRunner;
+                
+                @RunWith(MockitoJUnitRunner.class)
+                public class ExampleTest { }
+            """
+    )
 }

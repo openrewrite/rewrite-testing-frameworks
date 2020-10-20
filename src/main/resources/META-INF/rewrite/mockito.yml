@@ -38,6 +38,13 @@ visitors:
       method: org.mockito.invocation.InvocationOnMock getArgumentAt(int, java.lang.Class)
       name: getArgument
 ---
+type: specs.openrewrite.org/v1beta/visitor
+name: org.openrewrite.java.testing.mockito.MockitoJUnitRunner
+visitors:
+  - org.openrewrite.java.ChangeType:
+      type: org.mockito.runners.MockitoJUnitRunner
+      targetType: org.mockito.junit.MockitoJUnitRunner
+---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.Mockito
 include:
