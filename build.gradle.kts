@@ -68,6 +68,7 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-test:latest.integration")
 
     testImplementation("org.assertj:assertj-core:latest.release")
+    testRuntimeOnly("org.mockito:mockito-all:1.10.19")
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {
