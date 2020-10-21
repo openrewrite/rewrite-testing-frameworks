@@ -35,7 +35,7 @@ apply(plugin = "license")
 apply(plugin = "nebula.maven-resolved-dependencies")
 apply(plugin = "io.spring.publishing")
 
-group = "org.openrewrite.recipes"
+group = "org.openrewrite.recipe"
 
 repositories {
     mavenLocal()
