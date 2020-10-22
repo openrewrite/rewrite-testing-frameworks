@@ -36,6 +36,7 @@ apply(plugin = "nebula.maven-resolved-dependencies")
 apply(plugin = "io.spring.publishing")
 
 group = "org.openrewrite.recipe"
+description = "A rewrite module automating best practices and major version migrations for popular Java test frameworks like JUnit and Mockito "
 
 repositories {
     mavenLocal()
