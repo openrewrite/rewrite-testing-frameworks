@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.java.AddImport;
 import org.openrewrite.java.AutoFormat;
 import org.openrewrite.java.ChangeType;
+import org.openrewrite.java.JavaIsoRefactorVisitor;
 import org.openrewrite.java.JavaRefactorVisitor;
 import org.openrewrite.java.tree.*;
 
@@ -31,13 +32,13 @@ import static org.openrewrite.Formatting.EMPTY;
 import static org.openrewrite.Formatting.format;
 import static org.openrewrite.Tree.randomId;
 
-public class ChangeTestAnnotation extends JavaRefactorVisitor {
+public class ChangeTestAnnotation extends JavaIsoRefactorVisitor {
     public ChangeTestAnnotation() {
         setCursoringOn();
     }
 
     @Override
-    public J visitCompilationUnit(J.CompilationUnit cu) {
+    public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu) {
         ChangeType changeType = new ChangeType();
         changeType.setType("org.junit.Test");
         changeType.setTargetType("org.junit.jupiter.api.Test");
@@ -47,8 +48,8 @@ public class ChangeTestAnnotation extends JavaRefactorVisitor {
     }
 
     @Override
-    public J visitMethod(J.MethodDecl method) {
-        J.MethodDecl m = refactor(method, super::visitMethod);
+    public J.MethodDecl visitMethod(J.MethodDecl method) {
+        J.MethodDecl m = super.visitMethod(method);
 
         boolean changed = false;
         List<J.Annotation> annotations = new ArrayList<>(m.getAnnotations());
