@@ -44,6 +44,11 @@ repositories {
     mavenCentral()
 }
 
+sourceSets {
+    create("before")
+    create("after")
+}
+
 configurations.all {
     resolutionStrategy {
         cacheChangingModulesFor(0, TimeUnit.SECONDS)
@@ -58,10 +63,14 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
     testImplementation("junit:junit:latest.release")
+    "beforeImplementation"("junit:junit:latest.release")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    "afterImplementation"("org.junit.jupiter:junit-jupiter-api:latest.release")
+    "afterImplementation"("org.junit.jupiter:junit-jupiter-params:latest.release")
+    "afterRuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:latest.release")
 
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
 

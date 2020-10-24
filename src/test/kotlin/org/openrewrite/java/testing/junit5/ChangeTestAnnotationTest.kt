@@ -35,6 +35,7 @@ class ChangeTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 import org.junit.Test;
                 
                 public class A {
+                
                     @Test(expected = IllegalArgumentException.class)
                     public void test() {
                         throw new IllegalArgumentException("boom");
@@ -47,11 +48,88 @@ class ChangeTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 import static org.junit.jupiter.api.Assertions.assertThrows;
                 
                 public class A {
+                
                     @Test
                     public void test() {
                         assertThrows(IllegalArgumentException.class, () -> throw new IllegalArgumentException("boom"));
                     }
                 }
             """.trimIndent()
+    )
+
+    @Test
+    fun noTestAnnotationValues() = assertRefactored(
+            before = """
+                import org.junit.Test;
+                
+                public class A {
+                
+                    @Test
+                    public void test() { }
+                }
+            """,
+            after = """
+                import org.junit.jupiter.api.Test;
+                
+                public class A {
+                
+                    @Test
+                    public void test() { }
+                }
+            """
+    )
+
+    @Test
+    fun testAnnotationWithTimeout() = assertRefactored(
+            before = """
+                import org.junit.Test;
+                
+                public class A {
+                
+                    @Test(timeout = 500)
+                    public void test() { }
+                }
+            """,
+            after = """
+                import org.junit.jupiter.api.Test;
+                import org.junit.jupiter.api.Timeout;
+                
+                public class A {
+                
+                    @Test
+                    @Timeout(500)
+                    public void test() { }
+                }
+            """
+    )
+
+    @Test
+    fun testAnnotationWithTimeoutAndException() = assertRefactored(
+            before = """
+                import org.junit.Test;
+                
+                public class A {
+                
+                    @Test(expected = IllegalArgumentException.class, timeout = 500)
+                    public void test() {
+                        throw new IllegalArgumentException("boom");
+                    }
+                }
+            """,
+            after = """
+                import org.junit.jupiter.api.Test;
+                import org.junit.jupiter.api.Timeout;
+                
+                import static org.junit.jupiter.api.Assertions.assertThrows;
+                
+                public class A {
+                
+                    @Test
+                    @Timeout(500)
+                    public void test() {
+                        assertThrows(IllegalArgumentException.class, () -> throw new IllegalArgumentException("boom"));
+                    }
+                }
+            """
     )
 }

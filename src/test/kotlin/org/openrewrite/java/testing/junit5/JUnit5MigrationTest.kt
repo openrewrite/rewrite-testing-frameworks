@@ -20,13 +20,13 @@ import org.openrewrite.RefactorVisitor
 import org.openrewrite.RefactorVisitorTestForParser
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
-import org.openrewrite.loadVisitors
+import org.openrewrite.loadVisitorsForTest
 
 class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
-    override val visitors: Iterable<RefactorVisitor<*>> = loadVisitors("org.openrewrite.java.testing.junit5.migration")
+    override val visitors: Iterable<RefactorVisitor<*>> = loadVisitorsForTest("org.openrewrite.java.testing.junit5.migration")
 
     @Test
     fun changeBeforeToBeforeEach() = assertRefactored(
