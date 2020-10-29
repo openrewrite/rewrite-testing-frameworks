@@ -22,6 +22,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 
+import java.io.File;
+import java.io.IOException;
+
 public class ExampleJunitTestClass {
 
     @Rule
@@ -37,7 +40,13 @@ public class ExampleJunitTestClass {
     public static void afterClass() {}
 
     @Test(expected = RuntimeException.class)
-    public void foo() {
+    public void foo() throws IOException {
+        File tempFile = folder.newFile();
+        File tempFile2 = folder.newFile("filename");
+        File tempDir = folder.getRoot();
+        File tempDir2 = folder.newFolder("parent", "child");
+        File tempDir3 = folder.newFolder("subdir");
+        File tempDir4 = folder.newFolder();
         String foo = "foo";
         throw new RuntimeException(foo);
     }
