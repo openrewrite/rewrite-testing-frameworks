@@ -1,9 +1,25 @@
+/*
+ * Copyright 2020 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.openrewrite.java.testing.junit5;
 
+import org.openrewrite.AutoConfigure;
 import org.openrewrite.Formatting;
-import org.openrewrite.Incubating;
 import org.openrewrite.java.AutoFormat;
 import org.openrewrite.java.JavaIsoRefactorVisitor;
+import org.openrewrite.java.JavaRefactorVisitor;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -20,9 +36,7 @@ import static org.openrewrite.Tree.randomId;
 /**
  * Translates JUnit4's org.junit.rules.TemporaryFolder into JUnit 5's org.junit.jupiter.api.io.TempDir
  */
-@Incubating(since = "0.1.2")
-// Keeping this commented out until this class is finished
-//@AutoConfigure
+@AutoConfigure
 public class TemporaryFolderToTempDir extends JavaIsoRefactorVisitor {
 
     private static final String RuleFqn = "org.junit.Rule";
@@ -31,6 +45,8 @@ public class TemporaryFolderToTempDir extends JavaIsoRefactorVisitor {
     private static final J.Ident TempDirIdent = J.Ident.build(randomId(), "TempDir", TempDirType, Formatting.EMPTY);
     private static final JavaType.Class FileType = JavaType.Class.build("java.io.File");
     private static final J.Ident FileIdent = J.Ident.build(randomId(), "File", FileType, Formatting.EMPTY);
+    private static final JavaType.Class PathType = JavaType.Class.build("java.nio.file.Path");
+    private static final JavaType.Class FilesType = JavaType.Class.build("java.nio.file.Files");
     private static final String IOExceptionFqn = "java.io.IOException";
     private static final JavaType.Class IOExceptionType = JavaType.Class.build(IOExceptionFqn);
     private static final JavaType.Class StringType = JavaType.Class.build("java.lang.String");
@@ -109,19 +125,16 @@ public class TemporaryFolderToTempDir extends JavaIsoRefactorVisitor {
     }
 
     /**
-     * This visitor replaces these methods from TemporaryFolder with a JUnit5-compatible alternative:
+     * This visitor replaces these methods from TemporaryFolder with JUnit5-compatible alternatives:
      *
+     * File getRoot()
      * File newFile()
      * File newFile(String fileName)
-     *
-     * When complete it will also replace these TemporaryFolder methods:
-     * File getRoot()
      * File newFolder()
      * File newFolder(String... folderNames)
      * File newFolder(String folder)
-     *
      */
-    private static class ReplaceTemporaryFolderMethods extends JavaIsoRefactorVisitor {
+    private static class ReplaceTemporaryFolderMethods extends JavaRefactorVisitor {
         private final String fieldName;
         ReplaceTemporaryFolderMethods(String fieldName) {
             this.fieldName = fieldName;
@@ -129,8 +142,8 @@ public class TemporaryFolderToTempDir extends JavaIsoRefactorVisitor {
         }
 
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method) {
-            J.MethodInvocation m = super.visitMethodInvocation(method);
+        public J visitMethodInvocation(J.MethodInvocation method) {
+            J.MethodInvocation m =  refactor(method, super::visitMethodInvocation);
             if(!(m.getSelect() instanceof J.Ident)) {
                 return m;
             }
@@ -142,32 +155,62 @@ public class TemporaryFolderToTempDir extends JavaIsoRefactorVisitor {
                 assert getCursor().getParent() != null;
                 List<Expression> args = m.getArgs().getArgs();
                 // handle TemporaryFolder.newFile() and TemporaryFolder.newFile(String)
-                if(m.getName().getSimpleName().equals("newFile")) {
-                    if(args.size() == 1 && args.get(0) instanceof J.Empty) {
-                        m = treeBuilder.buildSnippet(
-                                getCursor().getParent(),
-                                "File.createTempFile(\"junit\", null, " + fieldName + ");",
-                                FileType
-                        ).get(0).withFormatting(Formatting.format(" "));
-                    } else {
-                        andThen(new AddNewFileFunction());
-                        m = treeBuilder.buildSnippet(
-                                getCursor().getParent(),
-                                "newFile(" + fieldName + ", "+ args.get(0).printTrimmed() +")",
-                                FileType, args.get(0).getType()
-                        ).get(0).withFormatting(Formatting.format(" "));
-                    }
+                switch (m.getName().getSimpleName()) {
+                    case "newFile":
+                        if (args.size() == 1 && args.get(0) instanceof J.Empty) {
+                            m = treeBuilder.buildSnippet(
+                                    getCursor().getParent(),
+                                    "File.createTempFile(\"junit\", null, " + fieldName + ");",
+                                    FileType
+                            ).get(0).withFormatting(Formatting.format(" "));
+                        } else {
+                            andThen(new AddNewFileFunction());
+                            m = treeBuilder.buildSnippet(
+                                    getCursor().getParent(),
+                                    "newFile(" + fieldName + ", " + args.get(0).printTrimmed() + ");",
+                                    FileType, args.get(0).getType()
+                            ).get(0).withFormatting(Formatting.format(" "));
+                        }
+                        break;
+                    case "getRoot":
+                        return J.Ident.build(randomId(), fieldName, FileType, m.getFormatting());
+                    case "newFolder":
+                        if (args.size() == 1 && args.get(0) instanceof J.Empty) {
+                            m = treeBuilder.buildSnippet(
+                                    getCursor().getParent(),
+                                    "Files.createTempDirectory(" + fieldName + ".toPath(), \"junit\").toFile();",
+                                    FileType, FilesType, PathType
+                            ).get(0).withFormatting(Formatting.format(" "));
+                            maybeAddImport(FilesType);
+                        } else {
+                            andThen(new AddNewFolderFunction());
+                            String argsString = printArgs(m.getArgs().getArgs());
+                            m = treeBuilder.buildSnippet(
+                                    getCursor().getParent(),
+                                    "newFolder(" + fieldName + ", " + argsString + ");",
+                                    FileType
+                            ).get(0).withFormatting(Formatting.format(" "));
+                        }
+                        break;
                 }
 
             }
             return m;
         }
+
+        /**
+         * As of rewrite 5.5.0, J.MethodInvocation.Arguments.print() returns an empty String
+         * Roll our own good-enough print() method here
+         */
+        private static String printArgs(List<Expression> args) {
+            return args.stream().map(J::print).collect(Collectors.joining(","));
+        }
     }
 
     /**
      * Adds a method like this one to the target class:
-     * private File newFile(File dir, String fileName) throws IOException {
-     *     File file = new File(getRoot(), fileName);
+     * private File newFile(File root, String fileName) throws IOException {
+     *     File file = new File(root, fileName);
      *     file.createNewFile();
      *     return file;
      * }
@@ -176,8 +219,7 @@ public class TemporaryFolderToTempDir extends JavaIsoRefactorVisitor {
      */
     private static class AddNewFileFunction extends JavaIsoRefactorVisitor {
         @Override
-        public J.ClassDecl visitClassDecl(J.ClassDecl classDecl) {
-            J.ClassDecl cd = super.visitClassDecl(classDecl);
+        public J.ClassDecl visitClassDecl(J.ClassDecl cd) {
             boolean methodAlreadyExists = cd.getMethods().stream()
                     .filter(m -> {
                                 List<Statement> params = m.getParams().getParams();
@@ -192,16 +234,67 @@ public class TemporaryFolderToTempDir extends JavaIsoRefactorVisitor {
                 List<J> statements = new ArrayList<>(cd.getBody().getStatements());
                 J.MethodDecl newFileMethod = treeBuilder.buildMethodDeclaration(
                         cd,
-                        "private File newFile(File dir, String fileName) throws IOException {\n" +
-                        "    File file = new File(getRoot(), fileName);\n" +
+                        "private static File newFile(File root, String fileName) throws IOException {\n" +
+                        "    File file = new File(root, fileName);\n" +
                         "    file.createNewFile();\n" +
                         "    return file;\n" +
                         "}\n",
                         FileType,
                         IOExceptionType);
                 statements.add(newFileMethod);
+                maybeAddImport(FileType);
+                maybeAddImport(IOExceptionType);
                 cd = cd.withBody(cd.getBody().withStatements(statements));
                 andThen(new AutoFormat(newFileMethod));
+            }
+            return cd;
+        }
+    }
+
+    /**
+     * Adds a method like this one to the target class:
+     *
+     * private static File newFolder(File root, String ... folders) throws IOException {
+     *     File result = new File(root, String.join("/", folders));
+     *     if(!result.mkdirs()) {
+     *         throw new IOException("Couldn't create folders " + root);
+     *     }
+     *     return result;
+     * }
+     */
+    private static class AddNewFolderFunction extends JavaIsoRefactorVisitor {
+        @Override
+        public J.ClassDecl visitClassDecl(J.ClassDecl cd) {
+            boolean methodAlreadyExists = cd.getMethods().stream()
+                    .filter(m -> {
+                        List<Statement> params = m.getParams().getParams();
+
+                        return m.getSimpleName().equals("newFolder")
+                                && params.size() == 2
+                                && params.get(0).hasClassType(FileType)
+                                && params.get(1).hasClassType(StringType)
+                                && params.get(1) instanceof J.VariableDecls
+                                && ((J.VariableDecls) params.get(1)).getVarargs() != null;
+                    })
+                    .findAny().isPresent();
+            if(!methodAlreadyExists) {
+                List<J> statements = new ArrayList<>(cd.getBody().getStatements());
+                J.MethodDecl newFolderMethod = treeBuilder.buildMethodDeclaration(
+                        cd,
+                        "private static File newFolder(File root, String ... folders) throws IOException {\n" +
+                                "    File result = new File(root, String.join(\"/\", folders));\n" +
+                                "    if(!result.mkdirs()) {\n" +
+                                "        throw new IOException(\"Couldn't create folders \" + root);\n" +
+                                "    }\n" +
+                                "    return result;\n" +
+                                "}",
+                        FileType,
+                        IOExceptionType);
+                statements.add(newFolderMethod);
+                maybeAddImport(FileType);
+                maybeAddImport(IOExceptionType);
+                cd = cd.withBody(cd.getBody().withStatements(statements));
+                andThen(new AutoFormat(newFolderMethod));
             }
             return cd;
         }

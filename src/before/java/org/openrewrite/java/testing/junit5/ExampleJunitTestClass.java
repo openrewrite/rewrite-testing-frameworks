@@ -20,15 +20,14 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.rules.Timeout;
 
 import java.io.File;
 import java.io.IOException;
 
 public class ExampleJunitTestClass {
 
-    @Rule
-    public Timeout globalTimeout = new Timeout(500);
+//    @Rule
+//    public Timeout globalTimeout = new Timeout(500);
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -53,4 +52,12 @@ public class ExampleJunitTestClass {
 
     @Test(timeout = 500)
     public void bar() { }
+
+private File newFolder(File root, String ... folders) throws IOException {
+    File result = new File(root, String.join("/", folders));
+    if(!result.mkdirs()) {
+        throw new IOException("Couldn't create folders " + root);
+    }
+    return result;
+}
 }
