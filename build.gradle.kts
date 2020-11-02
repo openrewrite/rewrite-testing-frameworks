@@ -68,6 +68,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    testRuntimeOnly("org.springframework:spring-test:latest.release")
     "afterImplementation"("org.junit.jupiter:junit-jupiter-api:latest.release")
     "afterImplementation"("org.junit.jupiter:junit-jupiter-params:latest.release")
     "afterRuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:latest.release")
