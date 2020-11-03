@@ -26,7 +26,7 @@ class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
-    override val visitors: Iterable<RefactorVisitor<*>> = loadVisitorsForTest("org.openrewrite.java.testing.junit5.migration")
+    override val visitors: Iterable<RefactorVisitor<*>> = loadVisitorsForTest("org.openrewrite.java.testing.JUnit5Migration")
 
     @Test
     fun changeBeforeToBeforeEach() = assertRefactored(

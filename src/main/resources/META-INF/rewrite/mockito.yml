@@ -46,6 +46,6 @@ visitors:
       targetType: org.mockito.junit.MockitoJUnitRunner
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.Mockito
+name: org.openrewrite.java.testing.Mockito1to3Migration
 include:
   - 'org.openrewrite.java.testing.mockito.*'
