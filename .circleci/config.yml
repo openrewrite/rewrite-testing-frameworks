@@ -2,13 +2,13 @@ version: 2.1
 
 executors:
   circle-jdk-executor:
-    working_directory: ~/rewrite-checkstyle
+    working_directory: ~/rewrite-testing-frameworks
     environment:
       GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError"'
     docker:
       - image: cimg/openjdk:11.0
   machine-executor:
-    working_directory: ~/rewrite-checkstyle
+    working_directory: ~/rewrite-testing-frameworks
     machine:
       image: ubuntu-1604:201903-01
 
@@ -37,12 +37,12 @@ commands:
           name: collect test reports
           when: always
           command: |
-            mkdir -p ~/rewrite-checkstyle/test-results/junit/
-            find . -type f -regex ".*/build/test-results/.*xml" -exec cp {} ~/rewrite-checkstyle/test-results/junit/ \;
+            mkdir -p ~/rewrite-testing-frameworks/test-results/junit/
+            find . -type f -regex ".*/build/test-results/.*xml" -exec cp {} ~/rewrite-testing-frameworks/test-results/junit/ \;
       - store_test_results:
-          path: ~/rewrite-checkstyle/test-results/
+          path: ~/rewrite-testing-frameworks/test-results/
       - store_artifacts:
-          path: ~/rewrite-checkstyle/test-results/
+          path: ~/rewrite-testing-frameworks/test-results/
 
 jobs:
   build:
@@ -100,16 +100,9 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+(-rc\.\d+)?$/
-      - staging-approval:
-          type: approval
-          requires:
-            - deploy
-          filters:
-            tags:
-              only: /^v\d+\.\d+\.\d+(-rc\.\d+)?$/
       - maven-central-sync:
           requires:
-            - staging-approval
+            - deploy
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+(-rc\.\d+)?$/

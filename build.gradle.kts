@@ -35,12 +35,18 @@ apply(plugin = "license")
 apply(plugin = "nebula.maven-resolved-dependencies")
 apply(plugin = "io.spring.publishing")
 
-group = "org.openrewrite.recipes"
+group = "org.openrewrite.recipe"
+description = "A rewrite module automating best practices and major version migrations for popular Java test frameworks like JUnit and Mockito "
 
 repositories {
     mavenLocal()
     maven { url = uri("https://dl.bintray.com/openrewrite/maven") }
     mavenCentral()
+}
+
+sourceSets {
+    create("before")
+    create("after")
 }
 
 configurations.all {
@@ -57,10 +63,15 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
     testImplementation("junit:junit:latest.release")
+    "beforeImplementation"("junit:junit:latest.release")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    testRuntimeOnly("org.springframework:spring-test:latest.release")
+    "afterImplementation"("org.junit.jupiter:junit-jupiter-api:latest.release")
+    "afterImplementation"("org.junit.jupiter:junit-jupiter-params:latest.release")
+    "afterRuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:latest.release")
 
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
 
@@ -68,6 +79,7 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-test:latest.integration")
 
     testImplementation("org.assertj:assertj-core:latest.release")
+    testRuntimeOnly("org.mockito:mockito-all:1.10.19")
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {

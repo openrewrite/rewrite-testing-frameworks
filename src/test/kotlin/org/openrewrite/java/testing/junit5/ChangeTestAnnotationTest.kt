@@ -1,3 +1,18 @@
+/*
+ * Copyright 2020 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
@@ -20,6 +35,7 @@ class ChangeTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 import org.junit.Test;
                 
                 public class A {
+                
                     @Test(expected = IllegalArgumentException.class)
                     public void test() {
                         throw new IllegalArgumentException("boom");
@@ -32,11 +48,88 @@ class ChangeTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 import static org.junit.jupiter.api.Assertions.assertThrows;
                 
                 public class A {
+                
                     @Test
                     public void test() {
                         assertThrows(IllegalArgumentException.class, () -> throw new IllegalArgumentException("boom"));
                     }
                 }
             """.trimIndent()
+    )
+
+    @Test
+    fun noTestAnnotationValues() = assertRefactored(
+            before = """
+                import org.junit.Test;
+                
+                public class A {
+                
+                    @Test
+                    public void test() { }
+                }
+            """,
+            after = """
+                import org.junit.jupiter.api.Test;
+                
+                public class A {
+                
+                    @Test
+                    public void test() { }
+                }
+            """
+    )
+
+    @Test
+    fun testAnnotationWithTimeout() = assertRefactored(
+            before = """
+                import org.junit.Test;
+                
+                public class A {
+                
+                    @Test(timeout = 500)
+                    public void test() { }
+                }
+            """,
+            after = """
+                import org.junit.jupiter.api.Test;
+                import org.junit.jupiter.api.Timeout;
+                
+                public class A {
+                
+                    @Test
+                    @Timeout(500)
+                    public void test() { }
+                }
+            """
+    )
+
+    @Test
+    fun testAnnotationWithTimeoutAndException() = assertRefactored(
+            before = """
+                import org.junit.Test;
+                
+                public class A {
+                
+                    @Test(expected = IllegalArgumentException.class, timeout = 500)
+                    public void test() {
+                        throw new IllegalArgumentException("boom");
+                    }
+                }
+            """,
+            after = """
+                import org.junit.jupiter.api.Test;
+                import org.junit.jupiter.api.Timeout;
+                
+                import static org.junit.jupiter.api.Assertions.assertThrows;
+                
+                public class A {
+                
+                    @Test
+                    @Timeout(500)
+                    public void test() {
+                        assertThrows(IllegalArgumentException.class, () -> throw new IllegalArgumentException("boom"));
+                    }
+                }
+            """
     )
 }
