@@ -40,8 +40,6 @@ visitors:
       type: org.junit.Assume
       targetType: org.junit.jupiter.api.Assumptions
 ---
-
----
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.JUnit5Migration
 include:

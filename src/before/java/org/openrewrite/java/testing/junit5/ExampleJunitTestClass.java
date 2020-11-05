@@ -58,11 +58,14 @@ public class ExampleJunitTestClass {
 
     @Test
     public void assertsStuff() {
-        Assert.assertEquals(1, 1);
-        Assert.assertArrayEquals(new int[]{}, new int[]{});
-        Assert.assertNotEquals(1, 2);
-        Assert.assertFalse(false);
-        Assert.assertTrue(true);
+        Assert.assertEquals("One is one", 1, 1);
+        Assert.assertArrayEquals("Empty is empty", new int[]{}, new int[]{});
+        Assert.assertNotEquals("one is not two", 1, 2);
+        Assert.assertFalse("false is false", false);
+        Assert.assertTrue("true is true", true);
+        Assert.assertEquals("foo is foo", "foo", "foo");
+        Assert.assertNull("null is null", null);
+        Assert.fail("fail");
     }
 
     @Test
