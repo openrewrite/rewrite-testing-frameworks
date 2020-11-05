@@ -51,10 +51,74 @@ class ChangeTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 
                     @Test
                     public void test() {
-                        assertThrows(IllegalArgumentException.class, () -> throw new IllegalArgumentException("boom"));
+                        assertThrows(IllegalArgumentException.class, () -> {
+                            throw new IllegalArgumentException("boom");
+                        });
                     }
                 }
             """.trimIndent()
+    )
+
+    @Test
+    fun assertThrowsSingleStatement() = assertRefactored(
+            before = """
+                import org.junit.Test;
+                
+                public class A {
+                
+                    @Test(expected = IndexOutOfBoundsException.class)
+                    public void test() {
+                        int arr = new int[]{}[0];
+                    }
+                }
+            """,
+            after = """
+                import org.junit.jupiter.api.Test;
+                
+                import static org.junit.jupiter.api.Assertions.assertThrows;
+                
+                public class A {
+                
+                    @Test
+                    public void test() {
+                        assertThrows(IndexOutOfBoundsException.class, () -> {
+                            int arr = new int[]{}[0];
+                        });
+                    }
+                }
+            """
+    )
+
+    @Test
+    fun assertThrowsMultiLine() = assertRefactored(
+            before = """
+                import org.junit.Test;
+                
+                public class A {
+                
+                    @Test(expected = IllegalArgumentException.class)
+                    public void test() {
+                        String foo = "foo";
+                        throw new IllegalArgumentException("boom");
+                    }
+                }
+            """,
+            after = """
+                import org.junit.jupiter.api.Test;
+                
+                import static org.junit.jupiter.api.Assertions.assertThrows;
+                
+                public class A {
+                
+                    @Test
+                    public void test() {
+                        assertThrows(IllegalArgumentException.class, () -> {
+                            String foo = "foo";
+                            throw new IllegalArgumentException("boom");
+                        });
+                    }
+                }
+            """
     )
 
     @Test
@@ -127,7 +191,9 @@ class ChangeTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                     @Test
                     @Timeout(500)
                     public void test() {
-                        assertThrows(IllegalArgumentException.class, () -> throw new IllegalArgumentException("boom"));
+                        assertThrows(IllegalArgumentException.class, () -> {
+                            throw new IllegalArgumentException("boom");
+                        });
                     }
                 }
             """

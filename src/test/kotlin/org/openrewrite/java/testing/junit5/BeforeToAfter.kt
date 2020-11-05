@@ -30,7 +30,7 @@ fun main(args: Array<String>) {
             .classpath("mockito-all", "junit")
             .build()
 
-    val visitors = loadVisitorsForTest("org.openrewrite.java.testing.Mockito", "org.openrewrite.java.testing.junit5.migration")
+    val visitors = loadVisitorsForTest("org.openrewrite.java.testing.JUnit5Migration", "org.openrewrite.java.testing.Mockito1to3Migration")
     val sources = parser.parse(listJavaSources(beforeDir), beforeDir)
     val changes = Refactor(true)
             .visit(visitors)

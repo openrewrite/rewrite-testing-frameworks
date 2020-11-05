@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,14 +51,25 @@ public class ExampleJunitTestClass {
         throw new RuntimeException(foo);
     }
 
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void foo2() {
+        int arr = new int[]{}[0];
+    }
+
+    @Test
+    public void assertsStuff() {
+        Assert.assertEquals(1, 1);
+        Assert.assertArrayEquals(new int[]{}, new int[]{});
+        Assert.assertNotEquals(1, 2);
+        Assert.assertFalse(false);
+        Assert.assertTrue(true);
+    }
+
+    @Test
+    public void lambdaThrow() {
+
+    }
+
     @Test(timeout = 500)
     public void bar() { }
-
-private File newFolder(File root, String ... folders) throws IOException {
-    File result = new File(root, String.join("/", folders));
-    if(!result.mkdirs()) {
-        throw new IOException("Couldn't create folders " + root);
-    }
-    return result;
-}
 }

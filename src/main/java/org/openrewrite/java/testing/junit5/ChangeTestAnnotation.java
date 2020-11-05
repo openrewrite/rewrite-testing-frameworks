@@ -75,15 +75,21 @@ public class ChangeTestAnnotation extends JavaIsoRefactorVisitor {
                         if(assignParamName.equals("expected")) {
                             List<Statement> statements = m.getBody().getStatements();
 
-                            Statement assertBlock = statements.size() == 1 ?
-                                    statements.get(0).withPrefix(" ") :
-                                    new J.Block<>(
-                                            randomId(),
-                                            null,
-                                            statements,
-                                            format(" "),
-                                            new J.Block.End(randomId(), format("\n"))
-                                    );
+                            // The Java 11 Specification says that lambda bodies can be either a single expression
+                            // or a block. So put a block around anything that isn't exactly one expression.
+                            boolean isSingleExpression = statements.size() == 1 && statements.get(0) instanceof Expression;
+                            Statement assertBlock;
+                            if(isSingleExpression) {
+                                assertBlock = statements.get(0).withPrefix(" ");
+                            } else {
+                                assertBlock = new J.Block<>(
+                                        randomId(),
+                                        null,
+                                        statements,
+                                        format(" "),
+                                        new J.Block.End(randomId(), format("\n"))
+                                );
+                            }
 
                             J.MethodInvocation assertThrows = new J.MethodInvocation(
                                     randomId(),
