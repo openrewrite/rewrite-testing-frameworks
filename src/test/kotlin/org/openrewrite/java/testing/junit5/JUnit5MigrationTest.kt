@@ -32,14 +32,18 @@ class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     fun changeBeforeToBeforeEach() = assertRefactored(
             before = """
                 import org.junit.Before;
+                import org.junit.runner.RunWith;
 
+                @RunWith(Something.class)
                 public class Example {
                     @Before public void initialize() {}
                 }
             """,
             after = """
                 import org.junit.jupiter.api.BeforeEach;
+                import org.junit.jupiter.api.extension.ExtendWith;
 
+                @ExtendWith(Something.class)
                 public class Example {
                     @BeforeEach public void initialize() {}
                 }

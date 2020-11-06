@@ -35,7 +35,7 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
             before = """
                 import org.junit.experimental.categories.Category;
 
-                @Category({SlowTests.class,FastTests.class})
+                @Category({FastTests.class, SlowTests.class})
                 public class B {
 
                 }
@@ -43,8 +43,8 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
             after = """
                 import org.junit.jupiter.api.Tag;
 
-                @Tag(SlowTests.class)
                 @Tag(FastTests.class)
+                @Tag(SlowTests.class)
                 public class B {
 
                 }
@@ -108,7 +108,7 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
                 import java.lang.annotation.Documented;
                 
                 @Documented
-                @Category({SlowTests.class,FastTests.class})
+                @Category({FastTests.class, SlowTests.class})
                 @Data
                 public class B {
 
@@ -121,8 +121,8 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
                 import java.lang.annotation.Documented;
                 
                 @Documented
-                @Tag(SlowTests.class)
                 @Tag(FastTests.class)
+                @Tag(SlowTests.class)
                 @Data
                 public class B {
                 
@@ -142,7 +142,7 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
 
 
 
-                @Category({SlowTests.class,FastTests.class})
+                @Category({FastTests.class, SlowTests.class})
                 public class B {
                 
                 }
@@ -152,8 +152,8 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
 
 
 
-                @Tag(SlowTests.class)
                 @Tag(FastTests.class)
+                @Tag(SlowTests.class)
                 public class B {
 
                 }
