@@ -17,13 +17,20 @@ package org.openrewrite.java.testing.junit5;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.Timeout;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+
+import static org.mockito.Mockito.*;
 
 public class ExampleJunitTestClass {
 
@@ -33,11 +40,29 @@ public class ExampleJunitTestClass {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    @BeforeClass
-    public static void beforeClass() { }
+    @Before
+    public void beforeClass() {
+        MockitoAnnotations.initMocks(this);
+    }
 
     @AfterClass
-    public static void afterClass() {}
+    public static void afterClass() { }
+
+    @Mock
+    List<String> mockedList;
+
+    public void initMocks() {
+        MockitoAnnotations.initMocks(this);
+    }
+
+    @Test
+    public void usingAnnotationBasedMock() {
+        mockedList.add("one");
+        mockedList.clear();
+
+        verify(mockedList).add("one");
+        verify(mockedList).clear();
+    }
 
     @Test(expected = RuntimeException.class)
     public void foo() throws IOException {

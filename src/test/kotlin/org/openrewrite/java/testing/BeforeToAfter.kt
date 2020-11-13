@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junit5
+package org.openrewrite.java.testing
 
 import org.openrewrite.Refactor
 import org.openrewrite.loadVisitorsForTest

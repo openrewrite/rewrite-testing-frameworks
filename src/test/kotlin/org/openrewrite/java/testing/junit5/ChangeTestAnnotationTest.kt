@@ -198,4 +198,23 @@ class ChangeTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 }
             """
     )
+
+    @Test
+    fun foo() {
+        val cu = parser.parse("""
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            import org.junit.jupiter.api.*;
+            
+            class A {
+                @Test
+                public void foo2() {
+                    assertThrows(IndexOutOfBoundsException.class, () -> {
+                        int arr = new int[]{}[0];
+                    });
+                }
+            }
+        """).first()
+
+        cu
+    }
 }

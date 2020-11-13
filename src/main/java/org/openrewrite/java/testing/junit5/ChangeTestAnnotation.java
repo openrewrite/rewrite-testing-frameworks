@@ -27,7 +27,9 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static java.util.Collections.singletonList;
 import static org.openrewrite.Formatting.EMPTY;
@@ -115,7 +117,16 @@ public class ChangeTestAnnotation extends JavaIsoRefactorVisitor {
                                             ),
                                             EMPTY
                                     ),
-                                    null,
+                                    JavaType.Method.build(
+                                            JavaType.Class.build("org.junit.jupiter.api.Assertions"),
+                                            "assertThrows",
+                                            null,
+                                            new JavaType.Method.Signature(
+                                                    new JavaType.GenericTypeVariable("T", JavaType.Class.build("java.lang.Throwable")),
+                                                    Arrays.asList(JavaType.Class.build("java.lang.Class"), JavaType.Class.build("org.junit.jupiter.api.function.Executable"))),
+                                            Arrays.asList("arg0", "arg1"),
+                                            new HashSet<>(Arrays.asList(Flag.Public, Flag.Static))
+                                            ),
                                     format("\n")
                             );
 

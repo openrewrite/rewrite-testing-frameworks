@@ -18,39 +18,45 @@ package org.openrewrite.java.testing.mockito
 import org.junit.jupiter.api.Test
 import org.openrewrite.*
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.OrderImports
 import org.openrewrite.java.tree.J
 
 /**
  * Validates the recipes related to upgrading from Mockito 1 to Mockito 3
  */
-class MockitoUpgrade1To3Tests : RefactorVisitorTestForParser<J.CompilationUnit> {
+class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("mockito-all", "junit")
             .build()
-    override val visitors: Iterable<RefactorVisitor<*>> = loadVisitorsForTest("org.openrewrite.java.testing.Mockito1to3Migration")
-
+    override val visitors: Iterable<RefactorVisitor<*>> = //loadVisitorsForTest("org.openrewrite.java.testing.JUnit5Migration", "org.openrewrite.java.testing.Mockito1to3Migration")
+        listOf(OrderImports().apply { setRemoveUnused(true) })
     /**
      * Replace org.mockito.MockitoAnnotations.Mock with org.mockito.Mock
      */
     @Test
     fun replaceMockAnnotation() = assertRefactored(
             before = """
-                package mockito.example;
-    
+                package org.openrewrite.java.testing.junit5;
+                
+                import org.junit.Before;
+                import org.junit.Test;
+                import org.mockito.Mock;
                 import org.mockito.MockitoAnnotations;
+                
                 import java.util.List;
+                
                 import static org.mockito.Mockito.verify;
-                import static org.mockito.MockitoAnnotations.Mock;
                 
                 public class MockitoTests {
-                
                     @Mock
                     List<String> mockedList;
-    
+                
+                    @Before
                     public void initMocks() {
                         MockitoAnnotations.initMocks(this);
                     }
                 
+                    @Test
                     public void usingAnnotationBasedMock() {
                 
                         mockedList.add("one");
@@ -62,24 +68,27 @@ class MockitoUpgrade1To3Tests : RefactorVisitorTestForParser<J.CompilationUnit> 
                 }
             """,
             after = """
-                package mockito.example;
-
+                package org.openrewrite.java.testing.junit5;
+                
+                import org.junit.jupiter.api.BeforeEach;
+                import org.junit.jupiter.api.Test;
                 import org.mockito.Mock;
                 import org.mockito.MockitoAnnotations;
                 
                 import java.util.List;
                 
-                import static org.mockito.*;
+                import static org.mockito.Mockito.verify;
                 
                 public class MockitoTests {
-                
                     @Mock
                     List<String> mockedList;
                 
+                    @BeforeEach
                     public void initMocks() {
                         MockitoAnnotations.initMocks(this);
                     }
                 
+                    @Test
                     public void usingAnnotationBasedMock() {
                 
                         mockedList.add("one");
@@ -96,37 +105,12 @@ class MockitoUpgrade1To3Tests : RefactorVisitorTestForParser<J.CompilationUnit> 
      * Replaces org.mockito.Matchers with org.mockito.ArgumentMatchers
      */
     @Test
-    fun replacesMatchers() = assertRefactored(
+    fun replacesMatchers() = assertUnchanged(
             before = """
                 package mockito.example;
-    
-                import java.util.List;
-    
-                import static org.mockito.Matchers.*;
-                import static org.mockito.Mockito.*;
                 
-                public class MockitoArgumentMatchersTest {
-                    static class Foo {
-                        boolean bool(String str, int i, Object obj) { return false; }
-                        int in(boolean b, List<String> strs) { return 0; }
-                        int bar(byte[] bytes, String[] s, int i) { return 0; }
-                        boolean baz(String ... strings) { return true; }
-                    }
-    
-                    public void usesMatchers() {
-                        Foo mockFoo = mock(Foo.class);
-                        when(mockFoo.bool(anyString(), anyInt(), any(Object.class))).thenReturn(true);
-                        when(mockFoo.bool(eq("false"), anyInt(), any(Object.class))).thenReturn(false);
-                        when(mockFoo.in(anyBoolean(), anyList())).thenReturn(10);
-                    }
-                }
-            """,
-            after = """
-                package mockito.example;
-    
                 import java.util.List;
                 
-                import static org.mockito.ArgumentMatchers.*;
                 import static org.mockito.Mockito.*;
                 
                 public class MockitoArgumentMatchersTest {
