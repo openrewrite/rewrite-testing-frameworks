@@ -86,7 +86,7 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
                     @Test
                     public void b() {
                     }
-                     
+                    
                     @Test
                     public void d() {
                     }
@@ -121,41 +121,11 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
                 import java.lang.annotation.Documented;
                 
                 @Documented
-                @Tag(FastTests.class)
-                @Tag(SlowTests.class)
                 @Data
-                public class B {
-                
-                }
-            """
-    )
-
-    @Test
-    fun maintainsCategoryFormattingOnOnlyFirstTag() = assertRefactored(
-            visitors = listOf (CategoryToTag()),
-            dependencies = listOf(
-                    "public interface FastTests {}",
-                    "public interface SlowTests {}",
-            ),
-            before = """
-                import org.junit.experimental.categories.Category;
-
-
-
-                @Category({FastTests.class, SlowTests.class})
-                public class B {
-                
-                }
-            """,
-            after = """
-                import org.junit.jupiter.api.Tag;
-
-
-
                 @Tag(FastTests.class)
                 @Tag(SlowTests.class)
                 public class B {
-
+                
                 }
             """
     )
