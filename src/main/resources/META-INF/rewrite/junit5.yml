@@ -32,9 +32,6 @@ visitors:
   - org.openrewrite.java.ChangeType:
       type: org.junit.Ignore
       targetType: org.junit.jupiter.api.Disabled
-  - org.openrewrite.java.ChangeType:
-      type: org.junit.runner.RunWith
-      targetType: org.junit.jupiter.api.extension.ExtendWith
 ---
 type: specs.openrewrite.org/v1beta/visitor
 name: org.openrewrite.java.testing.junit5.AssumeToAssumptions
