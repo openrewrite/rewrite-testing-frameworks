@@ -24,7 +24,7 @@ import org.openrewrite.java.tree.J
 
 class ChangeAssertTrueTest: RefactorVisitorTestForParser<J.CompilationUnit> {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-            .classpath("junit")
+            .classpath("junit", "assertj-core")
             .build()
 
     override val visitors: Iterable<RefactorVisitor<*>> = listOf(ChangeAssertTrue())
@@ -107,4 +107,45 @@ class ChangeAssertTrueTest: RefactorVisitorTestForParser<J.CompilationUnit> {
             """.trimIndent()
     )
 
+    @Test
+    fun mixedReference() = assertRefactored(
+            before = """
+                import org.junit.Test;
+                
+                import static org.assertj.core.api.Assertions.*;
+                
+                public class A {
+                
+                    @Test
+                    public void test() {
+                        org.junit.Assert.assertTrue(notification() != null && notification() > 0);
+                        org.junit.Assert.assertTrue("This should be true.", notification() != null && notification() > 0);
+                        assertThat(notification() != null && notification() > 0).isTrue();
+                    }
+
+                    private Integer notification() {
+                        return 1;
+                    }
+                }
+            """.trimIndent(),
+            after = """
+                import org.junit.Test;
+
+                import static org.assertj.core.api.Assertions.*;
+
+                public class A {
+                
+                    @Test
+                    public void test() {
+                        assertThat(notification() != null && notification() > 0).isTrue();
+                        assertThat(notification() != null && notification() > 0).as("This should be true.").isTrue();
+                        assertThat(notification() != null && notification() > 0).isTrue();
+                    }
+
+                    private Integer notification() {
+                        return 1;
+                    }
+                }
+            """.trimIndent()
+    )
 }
