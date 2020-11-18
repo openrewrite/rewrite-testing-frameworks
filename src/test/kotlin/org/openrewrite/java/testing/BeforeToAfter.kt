@@ -18,6 +18,7 @@ package org.openrewrite.java.testing
 import org.openrewrite.Refactor
 import org.openrewrite.loadVisitorsForTest
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.OrderImports
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -30,7 +31,11 @@ fun main(args: Array<String>) {
             .classpath("mockito-all", "junit")
             .build()
 
-    val visitors = loadVisitorsForTest("org.openrewrite.java.testing.JUnit5Migration", "org.openrewrite.java.testing.Mockito1to3Migration")
+    val visitors = loadVisitorsForTest(
+            "org.openrewrite.java.testing.JUnit5Migration",
+            "org.openrewrite.java.testing.Mockito1to3Migration"
+    )
+
     val sources = parser.parse(listJavaSources(beforeDir), beforeDir)
     val changes = Refactor(true)
             .visit(visitors)

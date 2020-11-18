@@ -100,4 +100,10 @@ public class ExampleJunitTestClass {
 
     @Test(timeout = 500)
     public void bar() { }
+
+    @Test
+    public void aTest() {
+        String foo = mock(String.class);
+        when(foo.concat(any())).then(invocation -> invocation.getArgumentAt(0, String.class));
+    }
 }

@@ -28,8 +28,8 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("mockito-all", "junit")
             .build()
-    override val visitors: Iterable<RefactorVisitor<*>> = //loadVisitorsForTest("org.openrewrite.java.testing.JUnit5Migration", "org.openrewrite.java.testing.Mockito1to3Migration")
-        listOf(OrderImports().apply { setRemoveUnused(true) })
+    override val visitors: Iterable<RefactorVisitor<*>> = loadVisitorsForTest("org.openrewrite.java.testing.JUnit5Migration", "org.openrewrite.java.testing.Mockito1to3Migration")
+
     /**
      * Replace org.mockito.MockitoAnnotations.Mock with org.mockito.Mock
      */
