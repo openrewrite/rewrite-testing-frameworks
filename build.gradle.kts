@@ -61,6 +61,7 @@ dependencies {
 
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    testImplementation("org.assertj:assertj-core:3.18.1")
 
     testImplementation("junit:junit:latest.release")
     "beforeImplementation"("junit:junit:latest.release")

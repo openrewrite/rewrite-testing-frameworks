@@ -1,14 +1,18 @@
 package org.openrewrite.java.testing.junit4toassertj;
 
-import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.AutoConfigure;
 import org.openrewrite.java.*;
+import org.openrewrite.java.search.FindReferencedTypes;
+import org.openrewrite.java.search.FindType;
 import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.openrewrite.Formatting.EMPTY;
 import static org.openrewrite.Formatting.format;
@@ -17,13 +21,30 @@ import static org.openrewrite.Tree.randomId;
 /**
  * This is a refactoring visitor that will convert JUnit-style assertTrue() to assertJ asserts:
  *
- * assertTrue("This should be true", EXPRESSION) -> assert(EXPRESSION).with("This should be true").isTrue()
+ * <PRE>
+ * assertTrue("This should be true", EXPRESSION) -> assertThat(EXPRESSION).as("This should be true").isTrue()
  * assertTrue(EXPRESSION) -> assert(EXPRESSION).isTrue()
- *
+ * </PRE>
  */
+@AutoConfigure
 public class ChangeAssertTrue extends JavaIsoRefactorVisitor {
 
+    private static final String FULLY_QUALIFIED_ASSERTIONS = "org.assertj.core.api.Assertions";
+    private static final String FULLY_QULIFIED_ABSTRACT_BOOLEAN_ASSERT = "org.assertj.core.api.AbstractBooleanAssert";
+
     private static final MethodMatcher assertTrueMatcher = new MethodMatcher("org.junit.Assert assertTrue(..)");
+    private static final JavaType.Method assertThatMethodDeclaration;
+
+    static {
+        JavaType.Method.Signature booleanAssertThatMethod = new JavaType.Method.Signature(JavaType.Class.build(FULLY_QULIFIED_ABSTRACT_BOOLEAN_ASSERT), Collections.singletonList(JavaType.Primitive.Boolean));
+        assertThatMethodDeclaration = JavaType.Method.build(
+                JavaType.Class.build(FULLY_QUALIFIED_ASSERTIONS),
+                "assertThat",
+                booleanAssertThatMethod,
+                booleanAssertThatMethod,
+                Collections.singletonList("arg1"),
+                Stream.of(Flag.Public,Flag.Static).collect(Collectors.toSet()));
+    }
 
     public ChangeAssertTrue() {
         setCursoringOn();
@@ -48,7 +69,6 @@ public class ChangeAssertTrue extends JavaIsoRefactorVisitor {
 
         List<Expression> originalArgs = original.getArgs().getArgs();
         Expression assertExpression = originalArgs.size() == 1 ? originalArgs.get(0) : originalArgs.get(1);
-
         //This create the `assertThat(<EXPRESSION>)` method invocation.
         J.MethodInvocation assertSelect = new J.MethodInvocation(
                 randomId(),
@@ -60,13 +80,13 @@ public class ChangeAssertTrue extends JavaIsoRefactorVisitor {
                         Collections.singletonList(assertExpression.withPrefix("")),
                         EMPTY
                 ),
-                null,
+                assertThatMethodDeclaration,
                 EMPTY
         );
 
         if (originalArgs.size() == 2) {
             //If the assertTrue is the two-argument variant, we need to maintain the message via a chained method call to "as".
-            //This means the initial method invocation witll be the select into an "as" method: "assertThat(<EXRPESSION>).as(<MESSAGE>)"
+            //This means the initial method invocation will be the select into an "as" method: "assertThat(<EXPRESSION>).as(<MESSAGE>)"
             assertSelect = new J.MethodInvocation(
                     randomId(),
                     assertSelect,
@@ -99,7 +119,7 @@ public class ChangeAssertTrue extends JavaIsoRefactorVisitor {
                 format("\n")
         );
 
-        //Make sure there is a static import for "org.assertj.core.api.Assertions.asserThat"
+        //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat"
         maybeAddStaticImport("org.assertj.core.api.Assertions", "assertThat");
 
         //Format the replacement method invocation in the context of where it is called.
@@ -117,7 +137,6 @@ public class ChangeAssertTrue extends JavaIsoRefactorVisitor {
         AddImport op = new AddImport();
         op.setType(fullyQualifiedName);
         op.setStaticMethod(method);
-        op.setOnlyIfReferenced(false);
         andThen(op);
     }
 }
