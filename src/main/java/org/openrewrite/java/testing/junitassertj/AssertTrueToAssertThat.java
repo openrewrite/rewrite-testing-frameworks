@@ -29,7 +29,7 @@ import static org.openrewrite.Tree.randomId;
  *
  * Note: There are three additional method signatures in JUnit that use a BooleanSupplier for the condition. Attempts
  *       to map these signatures into assertJ's model obfuscates the original assertion. It would be possible to use a
- *       shem method to support these method signatures, however, those shems would need to exist on each compilation
+ *       shim method to support these method signatures, however, those shims would need to exist on each compilation
  *       unit or in a shared testing utilities library.
  */
 @AutoConfigure
