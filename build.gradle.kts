@@ -56,34 +56,35 @@ configurations.all {
     }
 }
 
-val mockito1Version = "1.10.19";
+val mockito1Version = "1.10.19"
+val assertJVersion = "3.18.1"
 
 dependencies {
     implementation("org.openrewrite:rewrite-java:latest.integration")
 
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-
     testImplementation("junit:junit:latest.release")
-    "beforeImplementation"("junit:junit:latest.release")
-    "beforeImplementation"("org.mockito:mockito-all:$mockito1Version")
+    testImplementation("org.openrewrite:rewrite-java-11:latest.integration")
+    testImplementation("org.openrewrite:rewrite-test:latest.integration")
+    testImplementation("org.assertj:assertj-core:latest.release")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
     testRuntimeOnly("org.springframework:spring-test:latest.release")
+    testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
+    testRuntimeOnly("org.mockito:mockito-all:$mockito1Version")
+    testRuntimeOnly("org.assertj:assertj-core:$assertJVersion")
+
+    "beforeImplementation"("junit:junit:latest.release")
+    "beforeImplementation"("org.mockito:mockito-all:$mockito1Version")
     "afterImplementation"("org.junit.jupiter:junit-jupiter-api:latest.release")
     "afterImplementation"("org.junit.jupiter:junit-jupiter-params:latest.release")
     "afterImplementation"("org.mockito:mockito-core:latest.release")
     "afterRuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:latest.release")
 
-    testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
 
-    testImplementation("org.openrewrite:rewrite-java-11:latest.integration")
-    testImplementation("org.openrewrite:rewrite-test:latest.integration")
-
-    testImplementation("org.assertj:assertj-core:latest.release")
-    testRuntimeOnly("org.mockito:mockito-all:$mockito1Version")
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {
