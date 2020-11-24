@@ -3,7 +3,7 @@
 
 [![Build Status](https://circleci.com/gh/openrewrite/rewrite-testing-frameworks.svg?style=shield)](https://circleci.com/gh/openrewrite/rewrite-testing-frameworks)
 [![Apache 2.0](https://img.shields.io/github/license/openrewrite/rewrite-testing-frameworks.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Maven Central](https://img.shields.io/maven-central/v/org.openrewrite.plan/rewrite-testing-frameworks.svg)](https://mvnrepository.com/artifact/org.openrewrite.recipe/rewrite-testing-frameworks)
+[![Maven Central](https://img.shields.io/maven-central/v/org.openrewrite.recipe/rewrite-testing-frameworks.svg)](https://mvnrepository.com/artifact/org.openrewrite.recipe/rewrite-testing-frameworks)
 
 ### What is this?
 
