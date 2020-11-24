@@ -16,9 +16,8 @@
 package org.openrewrite.java.testing
 
 import org.openrewrite.Refactor
-import org.openrewrite.loadVisitorsForTest
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.OrderImports
+import org.openrewrite.loadVisitorsForTest
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -45,7 +44,7 @@ fun main(args: Array<String>) {
             .filter { change -> change.fixed != null }
             .map { change -> change.fixed!! }
             .forEach { fixed ->
-                val file = afterDir.resolve(fixed.sourcePath).toFile()
+                val file = afterDir.resolve(fixed.sourcePath.toString()).toFile()
                 if(!file.parentFile.exists()) {
                     file.parentFile.mkdirs()
                 }
