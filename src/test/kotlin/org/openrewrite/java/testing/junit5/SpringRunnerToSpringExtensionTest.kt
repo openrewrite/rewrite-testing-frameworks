@@ -28,7 +28,7 @@ class SpringRunnerToSpringExtensionTest : RefactorVisitorTestForParser<J.Compila
     override val visitors = listOf(SpringRunnerToSpringExtension())
 
     @Test
-    fun basicRunnerToExtension() = assertRefactored(
+    fun springRunnerToExtension() = assertRefactored(
             before = """
                 import org.junit.runner.RunWith;
                 import org.springframework.test.context.junit4.SpringRunner;
@@ -44,6 +44,25 @@ class SpringRunnerToSpringExtensionTest : RefactorVisitorTestForParser<J.Compila
                 class A {}
             """
     )
+
+    @Test
+    fun springJUnit4ClassRunnerRunnerToExtension() = assertRefactored(
+            before = """
+                import org.junit.runner.RunWith;
+                import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+                @RunWith(SpringJUnit4ClassRunner.class)
+                class A {}
+            """,
+            after = """
+                import org.junit.jupiter.api.extension.ExtendWith;
+                import org.springframework.test.context.junit.jupiter.SpringExtension;
+                
+                @ExtendWith(SpringExtension.class)
+                class A {}
+            """
+    )
+
 
     @Test
     fun leavesOtherRunnersAlone() = assertUnchanged(

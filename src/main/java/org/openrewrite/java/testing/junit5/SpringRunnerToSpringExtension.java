@@ -47,9 +47,8 @@ public class SpringRunnerToSpringExtension extends JavaIsoRefactorVisitor {
             extendWithType,
             EMPTY
     );
-    private static final JavaType.Class springExtensionType = JavaType.Class.build("org.springframework.test.context.junit.jupiter.SpringExtension");
-
-
+    private static final JavaType.Class springExtensionType =
+            JavaType.Class.build("org.springframework.test.context.junit.jupiter.SpringExtension");
     // Reference @RunWith(SpringRunner.class) annotation for semantically equal to compare against
     private static final J.Annotation runWithSpringRunnerAnnotation = new J.Annotation(
             randomId(),
@@ -63,6 +62,33 @@ public class SpringRunnerToSpringExtension extends JavaIsoRefactorVisitor {
                                             randomId(),
                                             "SpringRunner",
                                             springRunnerType,
+                                            EMPTY
+                                    ),
+                                    J.Ident.build(randomId(), "class", null, EMPTY),
+                                    JavaType.Class.build("java.lang.Class"),
+                                    EMPTY
+                            )
+                    ),
+                    EMPTY
+            ),
+            EMPTY
+    );
+
+    private static final JavaType.Class springJUnit4ClassRunnerType =
+            JavaType.Class.build("org.springframework.test.context.junit4.SpringJUnit4ClassRunner");
+    // Reference @RunWith(SpringJUnit4ClassRunner.class) annotation for semantically equal to compare against
+    private static final J.Annotation runWithSpringJUnit4ClassRunnerAnnotation = new J.Annotation(
+            randomId(),
+            runWithIdent,
+            new J.Annotation.Arguments(
+                    randomId(),
+                    Collections.singletonList(
+                            new J.FieldAccess(
+                                    randomId(),
+                                    J.Ident.build(
+                                            randomId(),
+                                            "SpringJUnit4ClassRunner",
+                                            springJUnit4ClassRunnerType,
                                             EMPTY
                                     ),
                                     J.Ident.build(randomId(), "class", null, EMPTY),
@@ -105,15 +131,18 @@ public class SpringRunnerToSpringExtension extends JavaIsoRefactorVisitor {
 
     @Override
     public J.ClassDecl visitClassDecl(J.ClassDecl cd) {
-        List<J.Annotation> annotations = cd.getAnnotations().stream()
-                .map(this::springRunnerToSpringExtension)
-                .collect(Collectors.toList());
+        if(cd.getAnnotations().stream().filter(this::shouldReplaceAnnotation).findAny().isPresent()) {
+            List<J.Annotation> annotations = cd.getAnnotations().stream()
+                    .map(this::springRunnerToSpringExtension)
+                    .collect(Collectors.toList());
 
-        return cd.withAnnotations(annotations);
+            return cd.withAnnotations(annotations);
+        }
+        return cd;
     }
 
     /**
-     * Converts annotations like @RunWith(SpringRunner.class) into @ExtendWith(SpringExtension.class)
+     * Converts annotations like @RunWith(SpringRunner.class) and @RunWith(SpringJUnit4ClassRunner.class) into @ExtendWith(SpringExtension.class)
      * Leaves other annotations untouched and returns as-is.
      *
      * NOT a pure function. Side effects include:
@@ -121,7 +150,7 @@ public class SpringRunnerToSpringExtension extends JavaIsoRefactorVisitor {
      *      Removing imports for RunWith and SpringRunner
      */
     private J.Annotation springRunnerToSpringExtension(J.Annotation maybeSpringRunner) {
-        if(!new SemanticallyEqual(runWithSpringRunnerAnnotation).visit(maybeSpringRunner)) {
+        if(!(new SemanticallyEqual(runWithSpringRunnerAnnotation).visit(maybeSpringRunner) || new SemanticallyEqual(runWithSpringJUnit4ClassRunnerAnnotation).visit(maybeSpringRunner))) {
             return maybeSpringRunner;
         }
         Formatting originalFormatting = maybeSpringRunner.getFormatting();
@@ -131,8 +160,14 @@ public class SpringRunnerToSpringExtension extends JavaIsoRefactorVisitor {
         maybeAddImport(extendWithType);
         maybeAddImport(springExtensionType);
         maybeRemoveImport(springRunnerType);
+        maybeRemoveImport(springJUnit4ClassRunnerType);
         maybeRemoveImport(runWithType);
 
         return extendWithSpringExtension;
+    }
+
+    private boolean shouldReplaceAnnotation(J.Annotation maybeSpringRunner) {
+        return new SemanticallyEqual(runWithSpringRunnerAnnotation).visit(maybeSpringRunner)
+                || new SemanticallyEqual(runWithSpringJUnit4ClassRunnerAnnotation).visit(maybeSpringRunner);
     }
 }
