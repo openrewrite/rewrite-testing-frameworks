@@ -61,6 +61,7 @@ val assertJVersion = "3.18.1"
 
 dependencies {
     implementation("org.openrewrite:rewrite-java:latest.integration")
+    implementation("org.openrewrite:rewrite-maven:latest.integration")
 
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
