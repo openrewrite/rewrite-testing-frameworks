@@ -39,14 +39,12 @@ visitors:
   - org.openrewrite.java.ChangeType:
       type: org.junit.Assume
       targetType: org.junit.jupiter.api.Assumptions
-# Uncomment once a version of rewrite core libs has been published containing this commit:
-# https://github.com/openrewrite/rewrite/commit/8fe84fa49e6233882014d08e99c5793d5e02b36a
-#---
-#type: specs.openrewrite.org/v1beta/visitor
-#name: org.openrewrite.java.testing.junit5.RemoveUnusedImports
-#visitors:
-#  - org.openrewrite.java.OrderImports:
-#      removeUnused: true
+---
+type: specs.openrewrite.org/v1beta/visitor
+name: org.openrewrite.java.testing.junit5.RemoveUnusedImports
+visitors:
+  - org.openrewrite.java.OrderImports:
+      removeUnused: true
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.JUnit5Migration
