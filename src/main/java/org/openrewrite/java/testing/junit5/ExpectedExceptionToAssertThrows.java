@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.openrewrite.AutoConfigure;
 import org.openrewrite.java.AddImport;
 import org.openrewrite.java.AutoFormat;
 import org.openrewrite.java.JavaIsoRefactorVisitor;
@@ -36,6 +37,7 @@ import static java.util.Collections.singletonList;
  * Migrating the other methods of ExpectedException is not yet implemented.
  *
  */
+@AutoConfigure
 public class ExpectedExceptionToAssertThrows extends JavaIsoRefactorVisitor {
 
     private static final String ExpectedExceptionFqn = "org.junit.rules.ExpectedException";

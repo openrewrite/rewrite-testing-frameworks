@@ -21,6 +21,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 import org.mockito.Mock;
@@ -79,6 +81,15 @@ public class ExampleJunitTestClass {
     @Test(expected = IndexOutOfBoundsException.class)
     public void foo2() {
         int arr = new int[]{}[0];
+    }
+
+    @Rule
+    public ExpectedException throwz = ExpectedException.none();
+
+    @Test
+    public void foo3() {
+        throwz.expect(RuntimeException.class);
+        throw new RuntimeException();
     }
 
     @Test

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.openrewrite.AutoConfigure;
 import org.openrewrite.Formatting;
 import org.openrewrite.java.JavaIsoRefactorVisitor;
 import org.openrewrite.java.search.SemanticallyEqual;
@@ -32,6 +33,7 @@ import static org.openrewrite.Tree.randomId;
  * JUnit4 Spring test classes are annotated with @RunWith(SpringRunner.class)
  * Turn this into the JUnit5-compatible @ExtendsWith(SpringExtension.class)
  */
+@AutoConfigure
 public class SpringRunnerToSpringExtension extends JavaIsoRefactorVisitor {
     private static final JavaType.Class runWithType = JavaType.Class.build("org.junit.runner.RunWith");
     private static final J.Ident runWithIdent = J.Ident.build(
