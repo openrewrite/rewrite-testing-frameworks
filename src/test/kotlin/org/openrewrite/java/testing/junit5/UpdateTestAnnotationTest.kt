@@ -22,12 +22,12 @@ import org.openrewrite.RefactorVisitorTestForParser
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class ChangeTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> {
+class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(ChangeTestAnnotation())
+    override val visitors: Iterable<RefactorVisitor<*>> = listOf(UpdateTestAnnotation())
 
     @Test
     fun assertThrowsSingleLine() = assertRefactored(

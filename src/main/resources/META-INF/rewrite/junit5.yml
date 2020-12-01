@@ -49,16 +49,16 @@ visitors:
 type: specs.openrewrite.org/v1beta/visitor
 name: org.openrewrite.java.testing.junit5.RemoveJUnit4Dependency
 visitors:
-  - org.openrewrite.maven.RemoveDependency
-    groupId: junit
-    artifactId: junit
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: junit
+      artifactId: junit
 ---
 type: specs.openrewrite.org/v1beta/visitor
 name: org.openrewrite.java.testing.junit5.ExcludeJUnitVintageEngine
 visitors:
-  - org.openrewrite.maven.ExcludeDependency
-    groupId: org.junit.vintage
-    artifactId: junit-vintage-engine
+  - org.openrewrite.maven.ExcludeDependency:
+      groupId: org.junit.vintage
+      artifactId: junit-vintage-engine
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.JUnit5Migration

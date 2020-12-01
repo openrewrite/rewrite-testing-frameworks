@@ -37,8 +37,8 @@ import static org.openrewrite.Formatting.format;
 import static org.openrewrite.Tree.randomId;
 
 @AutoConfigure
-public class ChangeTestAnnotation extends JavaIsoRefactorVisitor {
-    public ChangeTestAnnotation() {
+public class UpdateTestAnnotation extends JavaIsoRefactorVisitor {
+    public UpdateTestAnnotation() {
         setCursoringOn();
     }
 
@@ -76,68 +76,14 @@ public class ChangeTestAnnotation extends JavaIsoRefactorVisitor {
                         }
                         if(assignParamName.equals("expected")) {
                             List<Statement> statements = m.getBody().getStatements();
-
-                            // The Java 11 Specification says that lambda bodies can be either a single expression
-                            // or a block. So put a block around anything that isn't exactly one expression.
-                            boolean isSingleExpression = statements.size() == 1 && statements.get(0) instanceof Expression;
-                            Statement assertBlock;
-                            if(isSingleExpression) {
-                                assertBlock = statements.get(0).withPrefix(" ");
-                            } else {
-                                assertBlock = new J.Block<>(
-                                        randomId(),
-                                        null,
-                                        statements,
-                                        format(" "),
-                                        new J.Block.End(randomId(), format("\n"))
-                                );
-                            }
-
-                            J.MethodInvocation assertThrows = new J.MethodInvocation(
-                                    randomId(),
-                                    null,
-                                    null,
-                                    J.Ident.build(randomId(), "assertThrows", JavaType.Primitive.Void, EMPTY),
-                                    new J.MethodInvocation.Arguments(
-                                            randomId(),
-                                            Arrays.asList(
-                                                    e.withFormatting(EMPTY),
-                                                    new J.Lambda(
-                                                            randomId(),
-                                                            new J.Lambda.Parameters(
-                                                                    randomId(),
-                                                                    true,
-                                                                    Collections.emptyList()
-                                                            ),
-                                                            new J.Lambda.Arrow(randomId(), format(" ")),
-                                                            assertBlock,
-                                                            JavaType.Primitive.Void,
-                                                            format(" ")
-                                                    )
-                                            ),
-                                            EMPTY
-                                    ),
-                                    JavaType.Method.build(
-                                            JavaType.Class.build("org.junit.jupiter.api.Assertions"),
-                                            "assertThrows",
-                                            null,
-                                            new JavaType.Method.Signature(
-                                                    new JavaType.GenericTypeVariable("T", JavaType.Class.build("java.lang.Throwable")),
-                                                    Arrays.asList(JavaType.Class.build("java.lang.Class"), JavaType.Class.build("org.junit.jupiter.api.function.Executable"))),
-                                            Arrays.asList("arg0", "arg1"),
-                                            new HashSet<>(Arrays.asList(Flag.Public, Flag.Static))
-                                            ),
-                                    format("\n")
-                            );
+                            J.MethodInvocation assertThrows = AssertionsBuilder.assertThrows(e, statements);
 
                             AddImport addAssertThrows = new AddImport();
                             addAssertThrows.setType("org.junit.jupiter.api.Assertions");
                             addAssertThrows.setStaticMethod("assertThrows");
                             addAssertThrows.setOnlyIfReferenced(false);
                             andThen(addAssertThrows);
-
                             andThen(new AutoFormat(assertThrows));
-                            andThen(new AutoFormat(assertBlock));
 
                             m = method.withBody(m.getBody().withStatements(singletonList(assertThrows)));
                         } else if (assignParamName.equals("timeout")) {
