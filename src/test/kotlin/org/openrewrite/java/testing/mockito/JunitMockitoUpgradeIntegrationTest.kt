@@ -239,12 +239,6 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
             """
     )
 
-    val unitTestCategory = """
-        package org.openrewrite.java.testing.statik;
-        
-        public interface UnitTest{}
-    """.trimIndent()
-
     val exampleJunitBefore = """
         package org.openrewrite.java.testing.junit5;
         
@@ -255,13 +249,11 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
         import org.junit.Rule;
         import org.junit.Test;
         import org.junit.Test;
-        import org.junit.experimental.categories.Category;
         import org.junit.rules.ExpectedException;
         import org.junit.rules.TemporaryFolder;
         import org.junit.rules.Timeout;
         import org.mockito.Mock;
         import org.mockito.MockitoAnnotations;
-        import org.openrewrite.java.testing.statik.UnitTest;
         
         import java.io.File;
         import java.io.IOException;
@@ -269,7 +261,6 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
         
         import static org.mockito.Mockito.*;
         
-        @Category(UnitTest.class)
         public class ExampleJunitTestClass {
         
         //    @Rule
@@ -345,11 +336,8 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
         
             @Test
             public void aTest() {
-                List<Integer> foo = mock(List.class);
-        
-                when(foo.get(any())).then(invocation -> invocation.getArgumentAt(0, Integer.class));
-                int one = foo.get(1);
-                Assert.assertEquals(1, one);
+                String foo = mock(String.class);
+                when(foo.concat(any())).then(invocation -> invocation.getArgumentAt(0, String.class));
             }
         }
         """.trimIndent()
@@ -368,7 +356,6 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
         import static org.junit.jupiter.api.Assertions.assertThrows;
         import static org.mockito.Mockito.*;
         
-        @Tag("UnitTest")
         public class ExampleJunitTestClass {
         
         //    @Rule
@@ -447,11 +434,8 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
         
             @Test
             public void aTest() {
-                List<Integer> foo = mock(List.class);
-        
-                when(foo.get(any())).then(invocation -> invocation.getArgument(0, Integer.class));
-                int one = foo.get(1);
-                Assertions.assertEquals(1, one);
+                String foo = mock(String.class);
+                when(foo.concat(any())).then(invocation -> invocation.getArgument(0, String.class));
             }
         
             private static File newFile(File root, String fileName) throws IOException {
@@ -473,7 +457,7 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
     @Test
     fun theBigOne() {
         val sources: List<SourceFile> =
-                parser.parse(unitTestCategory, exampleJunitBefore) +
+                parser.parse(exampleJunitBefore) +
                 MavenParser.builder().build().parse("""
                     <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
                         <modelVersion>4.0.0</modelVersion>
