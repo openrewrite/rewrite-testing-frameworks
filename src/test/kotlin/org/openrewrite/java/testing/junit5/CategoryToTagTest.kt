@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
+import org.openrewrite.RefactorVisitor
 import org.openrewrite.RefactorVisitorTestForParser
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
@@ -25,9 +26,10 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
             .classpath("junit")
             .build()
 
+    override val visitors = listOf(CategoryToTag())
+
     @Test
     fun multipleCategoriesToTags() = assertRefactored(
-            visitors = listOf (CategoryToTag()),
             dependencies = listOf(
                     "public interface FastTests {}",
                     "public interface SlowTests {}"
@@ -43,8 +45,8 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
             after = """
                 import org.junit.jupiter.api.Tag;
 
-                @Tag(FastTests.class)
-                @Tag(SlowTests.class)
+                @Tag("FastTests")
+                @Tag("SlowTests")
                 public class B {
 
                 }
@@ -53,7 +55,6 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
 
     @Test
     fun changeCategoryToTagOnClassAndMethod() = assertRefactored(
-            visitors = listOf(CategoryToTag()),
             dependencies = listOf(
                     "public interface FastTests {}",
                     "public interface SlowTests {}"
@@ -69,7 +70,7 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
                     @Test
                     public void b() {
                     }
-                     
+                    
                     @Test
                     public void d() {
                     }
@@ -79,10 +80,10 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
                 import org.junit.Test;
                 import org.junit.jupiter.api.Tag;
 
-                @Tag(SlowTests.class)
+                @Tag("SlowTests")
                 public class B {
 
-                    @Tag(FastTests.class)
+                    @Tag("FastTests")
                     @Test
                     public void b() {
                     }
@@ -96,10 +97,9 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
 
     @Test
     fun maintainAnnotationPositionAmongOtherAnnotations() = assertRefactored(
-            visitors = listOf (CategoryToTag()),
             dependencies = listOf(
                     "public interface FastTests {}",
-                    "public interface SlowTests {}"
+                    "public interface SlowTests {}",
             ),
             before = """
                 import lombok.Data;
@@ -121,12 +121,38 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
                 import java.lang.annotation.Documented;
                 
                 @Documented
+                @Tag("FastTests")
+                @Tag("SlowTests")
                 @Data
-                @Tag(FastTests.class)
-                @Tag(SlowTests.class)
                 public class B {
                 
                 }
+            """
+    )
+
+    @Test
+    fun removesDefunctImport() = assertRefactored(
+            dependencies = listOf("""
+                package a;
+                
+                public interface FastTests {}
+                """),
+            before = """
+                package b;
+                
+                import a.FastTests;
+                import org.junit.experimental.categories.Category;
+                
+                @Category({FastTests.class})
+                public class B {}
+            """,
+            after = """
+                package b;
+                
+                import org.junit.jupiter.api.Tag;
+                
+                @Tag("FastTests")
+                public class B {}
             """
     )
 }

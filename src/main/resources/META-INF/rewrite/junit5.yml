@@ -52,30 +52,13 @@ visitors:
   - org.openrewrite.maven.RemoveDependency:
       groupId: junit
       artifactId: junit
-# Uncomment when a version of rewrite-maven has been published that has the fix for this issue:
-# https://github.com/openrewrite/rewrite/issues/92
-#---
-#type: specs.openrewrite.org/v1beta/visitor
-#name: org.openrewrite.java.testing.junit5.ExcludeJUnitVintageEngine
-#visitors:
-#  - org.openrewrite.maven.ExcludeDependency:
-#      groupId: org.junit.vintage
-#      artifactId: junit-vintage-engine
-#---
-#type: specs.openrewrite.org/v1beta/visitor
-#name: org.openrewrite.java.testing.junit5.AddJunit5Dependency
-#visitors:
-#  - org.openrewrite.maven.AddDependency:
-#      groupId: org.junit.jupiter
-#      artifactId: junit-jupiter-api
-#      version: 5.7.0
-#      scope: test
-#      skipIfPresent: true
-#  - org.openrewrite.maven.AddDependency:
-#      groupId: org.junit.jupiter
-#      artifactId: junit-jupiter-engine
-#      version: 5.x
-#      scope: test
+---
+type: specs.openrewrite.org/v1beta/visitor
+name: org.openrewrite.java.testing.junit5.ExcludeJUnitVintageEngine
+visitors:
+  - org.openrewrite.maven.ExcludeDependency:
+      groupId: org.junit.vintage
+      artifactId: junit-vintage-engine
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.JUnit5Migration

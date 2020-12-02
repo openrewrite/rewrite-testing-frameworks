@@ -22,11 +22,13 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.openrewrite.java.testing.statik.UnitTest;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +36,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.*;
 
+@Category(UnitTest.class)
 public class ExampleJunitTestClass {
 
 //    @Rule
@@ -104,17 +107,15 @@ public class ExampleJunitTestClass {
         Assert.fail("fail");
     }
 
-    @Test
-    public void lambdaThrow() {
-
-    }
-
     @Test(timeout = 500)
     public void bar() { }
 
     @Test
     public void aTest() {
-        String foo = mock(String.class);
-        when(foo.concat(any())).then(invocation -> invocation.getArgumentAt(0, String.class));
+        List<Integer> foo = mock(List.class);
+
+        when(foo.get(any())).then(invocation -> invocation.getArgumentAt(0, Integer.class));
+        int one = foo.get(1);
+        Assert.assertEquals(1, one);
     }
 }
