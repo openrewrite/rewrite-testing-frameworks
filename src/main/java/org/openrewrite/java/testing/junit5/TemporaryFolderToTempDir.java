@@ -252,7 +252,9 @@ public class TemporaryFolderToTempDir extends JavaIsoRefactorVisitor {
     }
 
     /**
-     * Adds a method like this one to the target class:
+     * JUnit4 TemporaryFolder has a method called newFolder which returns a new folder located within a particular root directory.
+     * There is no direct JUnit5 analogue for TemporaryFolder or its newFolder method.
+     * This visitor adds a function called newFolder() to the test class it visits which provides the same functionality:
      *
      * private static File newFolder(File root, String ... folders) throws IOException {
      *     File result = new File(root, String.join("/", folders));

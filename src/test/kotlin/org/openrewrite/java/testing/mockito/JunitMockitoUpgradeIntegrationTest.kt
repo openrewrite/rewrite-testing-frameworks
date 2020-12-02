@@ -15,11 +15,13 @@
  */
 package org.openrewrite.java.testing.mockito
 
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.*
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.OrderImports
 import org.openrewrite.java.tree.J
+import org.openrewrite.maven.MavenParser
 
 /**
  * Validates the recipes related to upgrading from Mockito 1 to Mockito 3
@@ -454,4 +456,94 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
                 }
             """
     )
+
+    @Disabled("https://github.com/openrewrite/rewrite/issues/92")
+    @Test
+    fun upgradesPom() {
+        val pom = MavenParser.builder().build().parse("""
+            <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+                <modelVersion>4.0.0</modelVersion>
+            
+                <groupId>org.openrewrite.example</groupId>
+                <artifactId>integration-testing</artifactId>
+                <version>1.0</version>
+                <name>integration-testing</name>
+            
+                <properties>
+                    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+                    <java.version>1.8</java.version>
+                </properties>
+            
+                <dependencies>
+                    <dependency>
+                        <groupId>junit</groupId>
+                        <artifactId>junit</artifactId>
+                        <version>4.12</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+            
+                <build>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-surefire-plugin</artifactId>
+                            <version>3.0.0-M5</version>
+                        </plugin>
+                    </plugins>
+                </build>
+            </project>
+        """.trimIndent())
+
+        val fixed = Refactor(true)
+                .visit(visitors)
+                .fix(pom)
+                .first()
+                .fixed!!
+                .printTrimmed()
+
+        val expected = """
+            <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+                <modelVersion>4.0.0</modelVersion>
+            
+                <groupId>org.openrewrite.example</groupId>
+                <artifactId>integration-testing</artifactId>
+                <version>1.0</version>
+                <name>integration-testing</name>
+            
+                <properties>
+                    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+                    <java.version>1.8</java.version>
+                </properties>
+            
+                <dependencies>
+                    <dependency>
+                        <groupId>org.junit.jupiter</groupId>
+                        <artifactId>junit-jupiter-api</artifactId>
+                        <version>5.7.0</version>
+                        <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.junit.jupiter</groupId>
+                        <artifactId>junit-jupiter-engine</artifactId>
+                        <version>5.7.0</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+            
+                <build>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-surefire-plugin</artifactId>
+                            <version>3.0.0-M5</version>
+                        </plugin>
+                    </plugins>
+                </build>
+            </project>
+        """.trimIndent()
+
+        assertEquals(expected, fixed)
+    }
+
 }
