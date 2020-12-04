@@ -22,25 +22,25 @@ import org.openrewrite.RefactorVisitorTestForParser
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit> {
+class AssertFalseToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit> {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
             .classpath("junit", "assertj-core", "apiguardian-api")
             .build()
 
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertTrueToAssertThat())
+    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertFalseToAssertThat())
 
     @Test
     fun singleStaticMethodNoMessage() = assertRefactored(
             before = """
                 import org.junit.Test;
-                
-                import static org.junit.jupiter.api.Assertions.assertTrue;
-                
+
+                import static org.junit.jupiter.api.Assertions.assertFalse;
+
                 public class A {
-                
+ 
                     @Test
                     public void test() {
-                        assertTrue(notification() != null && notification() > 0);
+                        assertFalse(notification() != null && notification() > 0);
                     }
                     private Integer notification() {
                         return 1;
@@ -49,14 +49,14 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
             """,
             after = """
                 import org.junit.Test;
-                
+
                 import static org.assertj.core.api.Assertions.assertThat;
-                
+
                 public class A {
-                
+
                     @Test
                     public void test() {
-                        assertThat(notification() != null && notification() > 0).isTrue();
+                        assertThat(notification() != null && notification() > 0).isFalse();
                     }
                     private Integer notification() {
                         return 1;
@@ -69,14 +69,14 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
     fun singleStaticMethodWithMessageString() = assertRefactored(
             before = """
                 import org.junit.Test;
-                
+
                 import static org.junit.jupiter.api.Assertions.*;
-                
+
                 public class A {
-                
+
                     @Test
                     public void test() {
-                        assertTrue(notification() != null && notification() > 0, "The notification should be positive");
+                        assertFalse(notification() != null && notification() > 0, "The notification should be negative");
                     }
                     private Integer notification() {
                         return 1;
@@ -85,14 +85,14 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
             """,
             after = """
                 import org.junit.Test;
-                
+
                 import static org.assertj.core.api.Assertions.assertThat;
-                
+
                 public class A {
-                
+
                     @Test
                     public void test() {
-                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be positive").isTrue();
+                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be negative").isFalse();
                     }
                     private Integer notification() {
                         return 1;
@@ -105,14 +105,14 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
     fun singleStaticMethodWithMessageSupplier() = assertRefactored(
             before = """
                 import org.junit.Test;
-                
+
                 import static org.junit.jupiter.api.Assertions.*;
-                
+
                 public class A {
-                
+
                     @Test
                     public void test() {
-                        assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
+                        assertFalse(notification() != null && notification() > 0, () -> "The notification should be negative");
                     }
                     private Integer notification() {
                         return 1;
@@ -121,14 +121,14 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
             """,
             after = """
                 import org.junit.Test;
-                
+
                 import static org.assertj.core.api.Assertions.assertThat;
-                
+
                 public class A {
-                
+
                     @Test
                     public void test() {
-                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
+                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be negative").isFalse();
                     }
                     private Integer notification() {
                         return 1;
@@ -143,12 +143,12 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
                 import org.junit.Test;
  
                 public class A {
-                
+
                     @Test
                     public void test() {
-                        org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0);
-                        org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0, "The notification should be positive");
-                        org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
+                        org.junit.jupiter.api.Assertions.assertFalse(notification() != null && notification() > 0);
+                        org.junit.jupiter.api.Assertions.assertFalse(notification() != null && notification() > 0, "The notification should be negative");
+                        org.junit.jupiter.api.Assertions.assertFalse(notification() != null && notification() > 0, () -> "The notification should be negative");
                     }
                     private Integer notification() {
                         return 1;
@@ -157,16 +157,16 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
             """,
             after = """
                 import org.junit.Test;
-                
+
                 import static org.assertj.core.api.Assertions.assertThat;
-                
+
                 public class A {
                 
                     @Test
                     public void test() {
-                        assertThat(notification() != null && notification() > 0).isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be positive").isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
+                        assertThat(notification() != null && notification() > 0).isFalse();
+                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be negative").isFalse();
+                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be negative").isFalse();
                     }
                     private Integer notification() {
                         return 1;
@@ -179,17 +179,17 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
     fun mixedReferences() = assertRefactored(
             before = """
                 import org.junit.Test;
-                
+
                 import static org.assertj.core.api.Assertions.*;
-                import static org.junit.jupiter.api.Assertions.assertTrue;
-                
+                import static org.junit.jupiter.api.Assertions.assertFalse;
+
                 public class A {
-                
+
                     @Test
                     public void test() {
-                        assertTrue(notification() != null && notification() > 0);
-                        org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0, "The notification should be positive");
-                        assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
+                        assertFalse(notification() != null && notification() > 0);
+                        org.junit.jupiter.api.Assertions.assertFalse(notification() != null && notification() > 0, "The notification should be negative");
+                        assertFalse(notification() != null && notification() > 0, () -> "The notification should be negative");
                     }
                     private Integer notification() {
                         return 1;
@@ -198,16 +198,16 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
             """,
             after = """
                 import org.junit.Test;
-                
+
                 import static org.assertj.core.api.Assertions.*;
-                
+
                 public class A {
-                
+
                     @Test
                     public void test() {
-                        assertThat(notification() != null && notification() > 0).isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be positive").isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
+                        assertThat(notification() != null && notification() > 0).isFalse();
+                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be negative").isFalse();
+                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be negative").isFalse();
                     }
                     private Integer notification() {
                         return 1;
@@ -220,20 +220,19 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
     fun leaveBooleanSuppliersAlone() = assertRefactored(
             before = """
                 import org.junit.Test;
-                
-                import static org.junit.jupiter.api.Assertions.assertTrue;
-                
+
+                import static org.junit.jupiter.api.Assertions.assertFalse;
+
                 public class A {
-                
+
                     @Test
                     public void test() {
-                        assertTrue(notification() != null && notification() > 0);
-                        assertTrue(notification() != null && notification() > 0, "The notification should be positive");
-                        assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
-                        assertTrue(() -> notification() != null && notification() > 0);
-                        assertTrue(() -> notification() != null && notification() > 0, "The notification should be positive");
-                        assertTrue(() -> notification() != null && notification() > 0, () -> "The notification should be positive");
-
+                        assertFalse(notification() != null && notification() > 0);
+                        assertFalse(notification() != null && notification() > 0, "The notification should be negative");
+                        assertFalse(notification() != null && notification() > 0, () -> "The notification should be negative");
+                        assertFalse(() -> notification() != null && notification() > 0);
+                        assertFalse(() -> notification() != null && notification() > 0, "The notification should be negative");
+                        assertFalse(() -> notification() != null && notification() > 0, () -> "The notification should be negative");
                     }
                     private Integer notification() {
                         return 1;
@@ -242,21 +241,20 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
             """,
             after = """
                 import org.junit.Test;
-                
+
                 import static org.assertj.core.api.Assertions.assertThat;
-                import static org.junit.jupiter.api.Assertions.assertTrue;
-                
+                import static org.junit.jupiter.api.Assertions.assertFalse;
+
                 public class A {
-                
+
                     @Test
                     public void test() {
-                        assertThat(notification() != null && notification() > 0).isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be positive").isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
-                        assertTrue(() -> notification() != null && notification() > 0);
-                        assertTrue(() -> notification() != null && notification() > 0, "The notification should be positive");
-                        assertTrue(() -> notification() != null && notification() > 0, () -> "The notification should be positive");
-
+                        assertThat(notification() != null && notification() > 0).isFalse();
+                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be negative").isFalse();
+                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be negative").isFalse();
+                        assertFalse(() -> notification() != null && notification() > 0);
+                        assertFalse(() -> notification() != null && notification() > 0, "The notification should be negative");
+                        assertFalse(() -> notification() != null && notification() > 0, () -> "The notification should be negative");
                     }
                     private Integer notification() {
                         return 1;
@@ -264,5 +262,4 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
                 }
             """
     )
-
 }
