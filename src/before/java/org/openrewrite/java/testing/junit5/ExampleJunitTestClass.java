@@ -26,8 +26,11 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.runners.MockitoJUnit44Runner;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.openrewrite.java.testing.statik.UnitTest;
 
 import java.io.File;
