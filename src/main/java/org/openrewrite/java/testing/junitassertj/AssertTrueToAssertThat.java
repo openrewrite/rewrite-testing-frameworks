@@ -28,7 +28,7 @@ import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
 
 /**
- * This is a refactoring visitor that will convert JUnit-style assertTrue() to assertJ's assertThat().isTrue().
+ * This is a refactoring visitor that will convert JUnit-style assertTrue() to assertJ's  assertThat().isTrue().
  *
  * This visitor only supports the migration of the following JUnit 5 assertTrue() methods:
  *

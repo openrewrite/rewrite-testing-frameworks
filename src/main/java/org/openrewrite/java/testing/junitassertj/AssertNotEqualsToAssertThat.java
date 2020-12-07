@@ -27,7 +27,7 @@ import java.util.List;
 import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
 
 /**
- * This is a refactoring visitor that will convert JUnit-style assertNotEquals() to assertJ's assertThat().isNotEqualTo().
+ * This is a refactoring visitor that will convert JUnit-style assertNotEquals() to assertJ's  assertThat().isNotEqualTo().
  *
  * This visitor has to convert a surprisingly large number (93 methods) of JUnit's assertEquals to assertThat().
  *

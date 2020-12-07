@@ -30,7 +30,7 @@ import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
 
 /**
- * This is a refactoring visitor that will convert JUnit-style assertFalse() to assertJ's assertThat().isFalse().
+ * This is a refactoring visitor that will convert JUnit-style assertFalse() to assertJ's  assertThat().isFalse().
  *
  * This visitor only supports the migration of the following JUnit 5 assertFalse() methods:
  *
