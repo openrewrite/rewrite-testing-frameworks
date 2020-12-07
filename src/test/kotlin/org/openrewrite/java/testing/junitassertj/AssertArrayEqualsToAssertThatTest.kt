@@ -22,28 +22,29 @@ import org.openrewrite.RefactorVisitorTestForParser
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit> {
+class AssertArrayEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit> {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
             .classpath("junit", "assertj-core", "apiguardian-api")
             .build()
 
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertEqualsToAssertThat())
+    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertArrayEqualsToAssertThat())
 
     @Test
     fun singleStaticMethodNoMessage() = assertRefactored(
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(1, notification());
+                        Integer[] expected = new Integer[] {1, 2, 3};
+                        assertArrayEquals(expected, notification());
                     }
-                    private Integer notification() {
-                        return 1;
+                    private Integer[] notification() {
+                        return new Integer[] {1, 2, 3};        
                     }
                 }
             """,
@@ -56,30 +57,31 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).isEqualTo(1);
+                        Integer[] expected = new Integer[] {1, 2, 3};
+                        assertThat(notification()).containsExactly(expected);
                     }
-                    private Integer notification() {
-                        return 1;
+                    private Integer[] notification() {
+                        return new Integer[] {1, 2, 3};        
                     }
                 }
             """
     )
 
     @Test
-    fun singleStaticMethodWithMessage() = assertRefactored(
+    fun singleStaticMethodWithMessageLambda() = assertRefactored(
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals("fred", notification(), () -> "These should be equal");
+                        assertArrayEquals(new int[] {1, 2, 3}, notification(), () -> "These arrays should be equal");
                     }
-                    private String notification() {
-                        return "fred";
+                    private int[] notification() {
+                        return new int[] {1, 2, 3};        
                     }
                 }
             """,
@@ -92,30 +94,30 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).withFailMessage(() -> "These should be equal").isEqualTo("fred");
+                        assertThat(notification()).withFailMessage(() -> "These arrays should be equal").containsExactly(new int[] {1, 2, 3});
                     }
-                    private String notification() {
-                        return "fred";
+                    private int[] notification() {
+                        return new int[] {1, 2, 3};        
                     }
                 }
             """
     )
 
     @Test
-    fun doubleCloseToWithNoMessage() = assertRefactored(
+    fun doublesWithinNoMessage() = assertRefactored(
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(0.0d, notification(), 0.2d);
+                        assertArrayEquals(new double[] {1.0d, 2.0d, 3.0d}, notification(), .2d);
                     }
-                    private Double notification() {
-                        return 0.1d;
+                    private double[] notification() {
+                        return new double[] {1.1d, 2.1d, 3.1d};
                     }
                 }
             """,
@@ -129,30 +131,30 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).isCloseTo(0.0d, within(0.2d));
+                        assertThat(notification()).containsExactly(new double[] {1.0d, 2.0d, 3.0d}, within(.2d));
                     }
-                    private Double notification() {
-                        return 0.1d;
+                    private double[] notification() {
+                        return new double[] {1.1d, 2.1d, 3.1d};
                     }
                 }
             """
     )
 
     @Test
-    fun doubleCloseToWithMessage() = assertRefactored(
+    fun doublesWithinAndWithMessage() = assertRefactored(
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(0.0d, notification(), 0.2d, "These should be close.");
+                        assertArrayEquals(new double[] {1.0d, 2.0d, 3.0d}, notification(), .2d, "These should be close");
                     }
-                    private double notification() {
-                        return 0.1d;
+                    private double[] notification() {
+                        return new double[] {1.1d, 2.1d, 3.1d};
                     }
                 }
             """,
@@ -166,30 +168,30 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("These should be close.").isCloseTo(0.0d, within(0.2d));
+                        assertThat(notification()).as("These should be close").containsExactly(new double[] {1.0d, 2.0d, 3.0d}, within(.2d));
                     }
-                    private double notification() {
-                        return 0.1d;
+                    private double[] notification() {
+                        return new double[] {1.1d, 2.1d, 3.1d};
                     }
                 }
             """
     )
 
     @Test
-    fun doubleObjectsCloseToWithMessage() = assertRefactored(
+    fun doublesObjectsWithMessage() = assertRefactored(
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(Double.valueOf(0.0d), notification(), Double.valueOf(0.2d), () -> "These should be close.");
+                        assertArrayEquals(new Double[] {1.0d, 2.0d, 3.0d}, notification(), "These arrays should be equal");
                     }
-                    private double notification() {
-                        return Double.valueOf(0.1d);
+                    private Double[] notification() {
+                        return new Double[] {1.0d, 2.0d, 3.0d};
                     }
                 }
             """,
@@ -197,16 +199,15 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
                 import org.junit.Test;
 
                 import static org.assertj.core.api.Assertions.assertThat;
-                import static org.assertj.core.api.Assertions.within;
 
                 public class A {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).withFailMessage(() -> "These should be close.").isCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
+                        assertThat(notification()).as("These arrays should be equal").containsExactly(new Double[] {1.0d, 2.0d, 3.0d});
                     }
-                    private double notification() {
-                        return Double.valueOf(0.1d);
+                    private Double[] notification() {
+                        return new Double[] {1.0d, 2.0d, 3.0d};
                     }
                 }
             """
@@ -217,16 +218,16 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(0.0f, notification(), 0.2f);
+                        assertArrayEquals(new float[] {1.0f, 2.0f, 3.0f}, notification(), .2f);
                     }
-                    private Float notification() {
-                        return 0.1f;
+                    private float[] notification() {
+                        return new float[] {1.1f, 2.1f, 3.1f};
                     }
                 }
             """,
@@ -240,10 +241,10 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).isCloseTo(0.0f, within(0.2f));
+                        assertThat(notification()).containsExactly(new float[] {1.0f, 2.0f, 3.0f}, within(.2f));
                     }
-                    private Float notification() {
-                        return 0.1f;
+                    private float[] notification() {
+                        return new float[] {1.1f, 2.1f, 3.1f};
                     }
                 }
             """
@@ -254,16 +255,16 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(0.0f, notification(), 0.2f, "These should be close.");
+                        assertArrayEquals(new float[] {1.0f, 2.0f, 3.0f}, notification(), .2f, () -> "These should be close");
                     }
-                    private float notification() {
-                        return 0.1f;
+                    private float[] notification() {
+                        return new float[] {1.1f, 2.1f, 3.1f};
                     }
                 }
             """,
@@ -277,10 +278,10 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("These should be close.").isCloseTo(0.0f, within(0.2f));
+                        assertThat(notification()).withFailMessage(() -> "These should be close").containsExactly(new float[] {1.0f, 2.0f, 3.0f}, within(.2f));
                     }
-                    private float notification() {
-                        return 0.1f;
+                    private float[] notification() {
+                        return new float[] {1.1f, 2.1f, 3.1f};
                     }
                 }
             """
@@ -289,24 +290,22 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
     @Test
     fun fullyQualifiedMethodWithMessage() = assertRefactored(
             before = """
-                import java.io.File;
                 import org.junit.Test;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        org.junit.jupiter.api.Assertions.assertEquals(new File("someFile"), notification(), "These should be equal");
+                        String[] expected = new String[] {"Fred", "Alice", "Mary"};
+                        org.junit.jupiter.api.Assertions.assertArrayEquals(expected, notification(), () -> "These should be close");
                     }
-                    private File notification() {
-                        return new File("someFile");
+                    private String[] notification() {
+                        return new String[] {"Fred", "Alice", "Mary"};        
                     }
                 }
             """,
             after = """
                 import org.junit.Test;
-
-                import java.io.File;
 
                 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -314,13 +313,13 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("These should be equal").isEqualTo(new File("someFile"));
+                        String[] expected = new String[] {"Fred", "Alice", "Mary"};
+                        assertThat(notification()).withFailMessage(() -> "These should be close").containsExactly(expected);
                     }
-                    private File notification() {
-                        return new File("someFile");
+                    private String[] notification() {
+                        return new String[] {"Fred", "Alice", "Mary"};        
                     }
                 }
             """
     )
-
 }

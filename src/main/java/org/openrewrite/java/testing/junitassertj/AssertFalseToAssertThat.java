@@ -19,10 +19,7 @@ import org.openrewrite.AutoConfigure;
 import org.openrewrite.java.AutoFormat;
 import org.openrewrite.java.JavaIsoRefactorVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.Flag;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -39,7 +36,7 @@ import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
  *
  * <PRE>
  *     assertFalse(boolean condition) -> assertThat(condition).isFalse()
- *     assertFalse(boolean condition, String message) -> assertThat(condition).withFailMessage(message).isFalse();
+ *     assertFalse(boolean condition, String message) -> assertThat(condition).as(message).isFalse();
  *     assertFalse(boolean condition, Supplier<String> messageSupplier) -> assertThat(condition).withFailMessage(messageSupplier).isFalse();
  * </PRE>
  *
@@ -51,15 +48,15 @@ import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
 @AutoConfigure
 public class AssertFalseToAssertThat extends JavaIsoRefactorVisitor {
 
-    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS = "org.junit.jupiter.api.Assertions";
+    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
     private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
     private static final String ASSERTJ_ASSERT_THAT_METHOD_NAME = "assertThat";
 
     /**
-     * This matcher uses a pointcut expression to find the matching junit methods that will be migrated by this visitor
+     * This matcher finds the junit methods that will be migrated by this visitor.
      */
     private static final MethodMatcher JUNIT_ASSERT_FALSE_MATCHER = new MethodMatcher(
-            JUNIT_QUALIFIED_ASSERTIONS_CLASS + " assertFalse(boolean, ..)"
+            JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertFalse(boolean, ..)"
     );
 
     private static final JavaType.Method ASSERTJ_ASSERT_THAT_METHOD_TYPE = newMethodType()
@@ -69,14 +66,6 @@ public class AssertFalseToAssertThat extends JavaIsoRefactorVisitor {
             .name(ASSERTJ_ASSERT_THAT_METHOD_NAME)
             .parameter(JavaType.Primitive.Boolean, "arg1")
             .build();
-
-
-    @Override
-    public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu) {
-
-        maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS);
-        return super.visitCompilationUnit(cu);
-    }
 
     @Override
     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method) {
@@ -104,10 +93,27 @@ public class AssertFalseToAssertThat extends JavaIsoRefactorVisitor {
                 ASSERTJ_ASSERT_THAT_METHOD_TYPE,
                 EMPTY
         );
-        if (message != null) {
-            //If the assertFalse is the two-argument variant, we need to maintain the message via a chained method
-            //call to "withFailMessage". The message may be a String or Supplier<String> and withFailMessage has
-            //overloads for both types.
+
+        // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
+        // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
+        if (message != null && TypeUtils.isString(message.getType())) {
+            //If this is the three-argument variant and the third argument is a string, chain an ".as(message)"
+            assertSelect = new J.MethodInvocation(
+                    randomId(),
+                    assertSelect, //assertThat is the select for this method.
+                    null,
+                    J.Ident.build(randomId(), "as", null, EMPTY),
+                    new J.MethodInvocation.Arguments(
+                            randomId(),
+                            Collections.singletonList(message.withPrefix("")),
+                            EMPTY
+                    ),
+                    null,
+                    EMPTY
+            );
+        } else if (message != null) {
+            //If this is the three-argument variant and the third argument is a string supplier, chain the
+            //message ".withFailMessage(message)". "as" does not support passing a string supplier (at this time)
             assertSelect = new J.MethodInvocation(
                     randomId(),
                     assertSelect, //assertThat is the select for this method.
@@ -142,6 +148,9 @@ public class AssertFalseToAssertThat extends JavaIsoRefactorVisitor {
 
         //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat"
         maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_ASSERT_THAT_METHOD_NAME);
+
+        //And if there are no longer references to the JUnit assertions class, we can remove the import.
+        maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
 
         //Format the replacement method invocation in the context of where it is called.
         andThen(new AutoFormat(replacement));
