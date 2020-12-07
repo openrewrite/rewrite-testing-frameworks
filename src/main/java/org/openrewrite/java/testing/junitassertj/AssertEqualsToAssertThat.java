@@ -35,9 +35,13 @@ import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
  *
  *  assertEquals(expected,actual) -> assertThat(actual).isEqualTo(expected)
  *
- *  Three parameter variant where the third argument is either a String or String Supplier:
+ *  Three parameter variant where the third argument is a String:
  *
- *  assertEquals(expected, actual, "message") -> assertThat(actual).withFailureMessage("message").isEqualTo(expected)
+ *  assertEquals(expected, actual, "message") -> assertThat(actual).as("message").isEqualTo(expected)
+ *
+ *  Three parameter variant where the third argument is a String supplier:
+ *
+ *  assertEquals(expected, actual, () -> "message") -> assertThat(actual).withFailureMessage("message").isEqualTo(expected)
  *
  *  Three parameter variant where args are all floating point numbers.
  *
@@ -127,7 +131,7 @@ public class AssertEqualsToAssertThat extends JavaIsoRefactorVisitor {
 
     private J.MethodInvocation assertWithMessage(Expression actual, Expression expected, Expression message) {
 
-        //If the message is a string use "as", if it is a supplier we use "withFailMessage"
+        //If the message is a string use "as", if it is a supplier use "withFailMessage"
         String messageAs = TypeUtils.isString(message.getType())?"as":"withFailMessage";
 
         List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
@@ -150,7 +154,7 @@ public class AssertEqualsToAssertThat extends JavaIsoRefactorVisitor {
     private J.MethodInvocation assertFloatingPointDeltaWithMessage(Expression actual, Expression expected,
             Expression delta, Expression message) {
 
-        //If the message is a string use "as", if it is a supplier we use "withFailMessage"
+        //If the message is a string use "as", if it is a supplier use "withFailMessage"
         String messageAs = TypeUtils.isString(message.getType())?"as":"withFailMessage";
 
         List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),

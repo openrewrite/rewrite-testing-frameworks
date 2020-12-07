@@ -132,7 +132,7 @@ public class AssertNotEqualsToAssertThat extends JavaIsoRefactorVisitor {
 
     private J.MethodInvocation assertWithMessage(Expression actual, Expression expected, Expression message) {
 
-        //If the message is a string use "as", if it is a supplier we use "withFailMessage"
+        //If the message is a string use "as", if it is a supplier use "withFailMessage"
         String messageAs = TypeUtils.isString(message.getType())?"as":"withFailMessage";
 
         List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
@@ -155,7 +155,7 @@ public class AssertNotEqualsToAssertThat extends JavaIsoRefactorVisitor {
     private J.MethodInvocation assertFloatingPointDeltaWithMessage(Expression actual, Expression expected,
             Expression delta, Expression message) {
 
-        //If the message is a string use "as", if it is a supplier we use "withFailMessage"
+        //If the message is a string use "as", if it is a supplier use "withFailMessage"
         String messageAs = TypeUtils.isString(message.getType())?"as":"withFailMessage";
 
         List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
