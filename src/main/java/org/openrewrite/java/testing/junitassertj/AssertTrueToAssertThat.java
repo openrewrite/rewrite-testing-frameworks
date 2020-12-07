@@ -17,10 +17,7 @@ package org.openrewrite.java.testing.junitassertj;
 
 import org.openrewrite.AutoConfigure;
 import org.openrewrite.java.*;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.Flag;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +46,7 @@ import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
 @AutoConfigure
 public class AssertTrueToAssertThat extends JavaIsoRefactorVisitor {
 
-    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS = "org.junit.jupiter.api.Assertions";
+    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
     private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
     private static final String ASSERTJ_ASSERT_THAT_METHOD_NAME = "assertThat";
 
@@ -57,7 +54,7 @@ public class AssertTrueToAssertThat extends JavaIsoRefactorVisitor {
      * This matcher uses a pointcut expression to find the matching junit methods that will be migrated by this visitor
      */
     private static final MethodMatcher JUNIT_ASSERT_TRUE_MATCHER = new MethodMatcher(
-            JUNIT_QUALIFIED_ASSERTIONS_CLASS + " assertTrue(boolean, ..)"
+            JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertTrue(boolean, ..)"
     );
 
     private static final JavaType.Method assertThatMethodType = newMethodType()
@@ -71,7 +68,7 @@ public class AssertTrueToAssertThat extends JavaIsoRefactorVisitor {
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu) {
 
-        maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS);
+        maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
         return super.visitCompilationUnit(cu);
     }
 
@@ -81,7 +78,6 @@ public class AssertTrueToAssertThat extends JavaIsoRefactorVisitor {
         if (!JUNIT_ASSERT_TRUE_MATCHER.matches(method)) {
             return original;
         }
-
 
         List<Expression> originalArgs = original.getArgs().getArgs();
         Expression condition = originalArgs.get(0);
@@ -102,10 +98,25 @@ public class AssertTrueToAssertThat extends JavaIsoRefactorVisitor {
                 assertThatMethodType,
                 EMPTY
         );
-        if (message != null) {
-            //If the assertTrue is the two-argument variant, we need to maintain the message via a chained method
-            //call to "withFailMessage". There message may be a String or Supplier<String> and withFailMessage has
-            //overloads for both types.
+
+        if (message != null && TypeUtils.isString(message.getType())) {
+            //If this is the three-argument variant and the third argument is a string, chain an ".as(message)"
+            assertSelect = new J.MethodInvocation(
+                    randomId(),
+                    assertSelect, //assertThat is the select for this method.
+                    null,
+                    J.Ident.build(randomId(), "as", null, EMPTY),
+                    new J.MethodInvocation.Arguments(
+                            randomId(),
+                            Collections.singletonList(message.withPrefix("")),
+                            EMPTY
+                    ),
+                    null,
+                    EMPTY
+            );
+        } else if (message != null) {
+            //If this is the three-argument variant and the third argument is a string supplier, chain the
+            //message ".withFailMessage(message)". "as" does not support passing a string supplier (at this time)
             assertSelect = new J.MethodInvocation(
                     randomId(),
                     assertSelect, //assertThat is the select for this method.
