@@ -45,12 +45,6 @@ visitors:
       type: org.mockito.runners.MockitoJUnitRunner
       targetType: org.mockito.junit.MockitoJUnitRunner
 ---
-type: specs.openrewrite.org/v1beta/visitor
-name: org.openrewrite.java.testing.mockito.RemoveUnusedImports
-visitors:
-  - org.openrewrite.java.OrderImports:
-      removeUnused: true
----
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.Mockito1to3Migration
 include:
