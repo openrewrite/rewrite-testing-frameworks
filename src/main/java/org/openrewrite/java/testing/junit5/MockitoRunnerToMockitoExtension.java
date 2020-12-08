@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.AutoConfigure;
 import org.openrewrite.CompositeRefactorVisitor;
 import org.openrewrite.Formatting;
-import org.openrewrite.Tree;
 import org.openrewrite.java.JavaIsoRefactorVisitor;
 import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.tree.J;
@@ -27,10 +26,8 @@ import org.openrewrite.maven.AddDependency;
 import org.openrewrite.maven.MavenRefactorVisitor;
 import org.openrewrite.maven.tree.Maven;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -70,32 +67,30 @@ public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
                 .collect(toList());
 
         private static final List<J.Annotation> runWithMockitoAnnotations = runWithMockitoAnnotationTypes.stream()
-                .map(type -> {
-                            String simpleName = type.getFullyQualifiedName().substring(type.getFullyQualifiedName().lastIndexOf(".") + 1);
-                            return new J.Annotation(
-                                    randomId(),
-                                    runWithIdent,
-                                    new J.Annotation.Arguments(
-                                            randomId(),
-                                            Collections.singletonList(
-                                                    new J.FieldAccess(
-                                                            randomId(),
-                                                            J.Ident.build(
-                                                                    randomId(),
-                                                                    simpleName,
-                                                                    type,
-                                                                    EMPTY
-                                                            ),
-                                                            J.Ident.build(randomId(), "class", null, EMPTY),
-                                                            JavaType.Class.build("java.lang.Class"),
-                                                            EMPTY
-                                                    )
-                                            ),
-                                            EMPTY
-                                    ),
-                                    EMPTY
-                            );
-                        })
+                .map(type -> new J.Annotation(
+                                randomId(),
+                                runWithIdent,
+                                new J.Annotation.Arguments(
+                                        randomId(),
+                                        Collections.singletonList(
+                                                new J.FieldAccess(
+                                                        randomId(),
+                                                        J.Ident.build(
+                                                                randomId(),
+                                                                type.getClassName(),
+                                                                type,
+                                                                EMPTY
+                                                        ),
+                                                        J.Ident.build(randomId(), "class", null, EMPTY),
+                                                        JavaType.Class.build("java.lang.Class"),
+                                                        EMPTY
+                                                )
+                                        ),
+                                        EMPTY
+                                ),
+                                EMPTY
+                        )
+                )
                 .collect(toList());
 
         private static final JavaType.Class mockitoExtensionType = JavaType.Class.build("org.mockito.junit.jupiter.MockitoExtension");
@@ -123,9 +118,14 @@ public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
                 EMPTY
         );
 
-        private boolean didRefactor = false;
-        public boolean getDidRefactor() {
-            return didRefactor;
+        private boolean performedRefactor = false;
+        public boolean getPerformedRefactor() {
+            return performedRefactor;
+        }
+
+        @Override
+        public void nextCycle() {
+            performedRefactor = false;
         }
 
         public AnnotationUpdate() {
@@ -134,17 +134,10 @@ public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
 
         @Override
         public J.ClassDecl visitClassDecl(J.ClassDecl cd) {
-
-            boolean shouldRefactor = cd.getAnnotations().stream()
-                    .filter(this::shouldReplaceAnnotation)
-                    .findAny()
-                    .isPresent();
-            if(shouldRefactor) {
-                List<J.Annotation> annotations = cd.getAnnotations().stream()
-                        .map(this::mockitoRunnerToMockitoExtension)
-                        .collect(toList());
-
-                didRefactor = true;
+            List<J.Annotation> annotations = cd.getAnnotations().stream()
+                    .map(this::mockitoRunnerToMockitoExtension)
+                    .collect(toList());
+            if(performedRefactor) {
                 return cd.withAnnotations(annotations);
             }
             return cd;
@@ -154,6 +147,7 @@ public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
             if(!shouldReplaceAnnotation(maybeMockitoAnnotation)) {
                 return maybeMockitoAnnotation;
             }
+            performedRefactor = true;
             Formatting originalFormatting = maybeMockitoAnnotation.getFormatting();
 
             J.Annotation extendWithSpringExtension = extendWithMockitoExtensionAnnotation.withFormatting(originalFormatting);
@@ -183,7 +177,7 @@ public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
 
         @Override
         public Maven visitMaven(Maven maven) {
-            if(annotationUpdate.getDidRefactor()) {
+            if(annotationUpdate.getPerformedRefactor()) {
                 AddDependency addMockitoJunitJupiterDependency = new AddDependency();
                 addMockitoJunitJupiterDependency.setGroupId("org.mockito");
                 addMockitoJunitJupiterDependency.setArtifactId("mockito-junit-jupiter");
