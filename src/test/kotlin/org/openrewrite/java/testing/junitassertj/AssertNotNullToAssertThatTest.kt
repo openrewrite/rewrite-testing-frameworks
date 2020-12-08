@@ -22,28 +22,28 @@ import org.openrewrite.RefactorVisitorTestForParser
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class AssertNotNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
         .classpath("junit", "assertj-core", "apiguardian-api")
         .build()
 
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertNullToAssertThat())
+    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertNotNullToAssertThat())
 
     @Test
     fun singleStaticMethodNoMessage() = assertRefactored(
         before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNull;
+                import static org.junit.jupiter.api.Assertions.assertNotNull;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNull(notification());
+                        assertNotNull(notification());
                     }
                     private String notification() {
-                        return null;
+                        return "";
                     }
                 }
             """,
@@ -56,10 +56,10 @@ class AssertNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
 
                     @Test
                     public void test() {
-                        assertThat(notification()).isNull();
+                        assertThat(notification()).isNotNull();
                     }
                     private String notification() {
-                        return null;
+                        return "";
                     }
                 }
             """
@@ -70,16 +70,16 @@ class AssertNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
         before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNull;
+                import static org.junit.jupiter.api.Assertions.assertNotNull;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNull(notification(), "Should be null");
+                        assertNotNull(notification(), "Should not be null");
                     }
                     private String notification() {
-                        return null;
+                        return "";
                     }
                 }
             """,
@@ -92,10 +92,10 @@ class AssertNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("Should be null").isNull();
+                        assertThat(notification()).as("Should not be null").isNotNull();
                     }
                     private String notification() {
-                        return null;
+                        return "";
                     }
                 }
             """
@@ -106,16 +106,16 @@ class AssertNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
         before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNull;
+                import static org.junit.jupiter.api.Assertions.assertNotNull;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNull(notification(), () -> "Should be null");
+                        assertNotNull(notification(), () -> "Should not be null");
                     }
                     private String notification() {
-                        return null;
+                        return "";
                     }
                 }
             """,
@@ -128,10 +128,10 @@ class AssertNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
 
                     @Test
                     public void test() {
-                        assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
+                        assertThat(notification()).withFailMessage(() -> "Should not be null").isNotNull();
                     }
                     private String notification() {
-                        return null;
+                        return "";
                     }
                 }
             """
@@ -146,12 +146,12 @@ class AssertNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                 
                     @Test
                     public void test() {
-                        org.junit.jupiter.api.Assertions.assertNull(notification());
-                        org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
-                        org.junit.jupiter.api.Assertions.assertNull(notification(), () -> "Should be null");
+                        org.junit.jupiter.api.Assertions.assertNotNull(notification());
+                        org.junit.jupiter.api.Assertions.assertNotNull(notification(), "Should not be null");
+                        org.junit.jupiter.api.Assertions.assertNotNull(notification(), () -> "Should not be null");
                     }
                     private String notification() {
-                        return null;
+                        return "";
                     }
                 }
             """,
@@ -164,12 +164,12 @@ class AssertNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                 
                     @Test
                     public void test() {
-                        assertThat(notification()).isNull();
-                        assertThat(notification()).as("Should be null").isNull();
-                        assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
+                        assertThat(notification()).isNotNull();
+                        assertThat(notification()).as("Should not be null").isNotNull();
+                        assertThat(notification()).withFailMessage(() -> "Should not be null").isNotNull();
                     }
                     private String notification() {
-                        return null;
+                        return "";
                     }
                 }
             """
@@ -181,18 +181,18 @@ class AssertNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                 import org.junit.Test;
                 
                 import static org.assertj.core.api.Assertions.*;
-                import static org.junit.jupiter.api.Assertions.assertNull;
+                import static org.junit.jupiter.api.Assertions.assertNotNull;
                 
                 public class A {
                 
                     @Test
                     public void test() {
-                        assertNull(notification());
-                        org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
-                        assertNull(notification(), () -> "Should be null");
+                        assertNotNull(notification());
+                        org.junit.jupiter.api.Assertions.assertNotNull(notification(), "Should not be null");
+                        assertNotNull(notification(), () -> "Should not be null");
                     }
                     private String notification() {
-                        return null;
+                        return "";
                     }
                 }
             """,
@@ -205,12 +205,12 @@ class AssertNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                 
                     @Test
                     public void test() {
-                        assertThat(notification()).isNull();
-                        assertThat(notification()).as("Should be null").isNull();
-                        assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
+                        assertThat(notification()).isNotNull();
+                        assertThat(notification()).as("Should not be null").isNotNull();
+                        assertThat(notification()).withFailMessage(() -> "Should not be null").isNotNull();
                     }
                     private String notification() {
-                        return null;
+                        return "";
                     }
                 }
             """

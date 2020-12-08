@@ -28,18 +28,18 @@ import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
 
 /**
- * This is a refactoring visitor that will convert JUnit-style assertNull() to assertJ's assertThat().isNull().
+ * This is a refactoring visitor that will convert JUnit-style assertNotNull() to assertJ's assertThat().isNotNull().
  *
- * This visitor only supports the migration of the following JUnit 5 assertNull() methods:
+ * This visitor only supports the migration of the following JUnit 5 assertNotNull() methods:
  *
  * <PRE>
- *     assertNull(Object actual) -> assertThat(condition).isNull()
- *     assertNull(Object actual, String message) -> assertThat(condition).as(message).isNull();
- *     assertNull(Object actual, Supplier<String> messageSupplier) -> assertThat(condition).withFailMessage(messageSupplier).isNull();
+ *     assertNotNull(Object actual) -> assertThat(condition).isNotNull()
+ *     assertNotNull(Object actual, String message) -> assertThat(condition).as(message).isNotNull();
+ *     assertNotNull(Object actual, Supplier<String> messageSupplier) -> assertThat(condition).withFailMessage(messageSupplier).isNotNull();
  * </PRE>
  */
 @AutoConfigure
-public class AssertNullToAssertThat extends JavaIsoRefactorVisitor {
+public class AssertNotNullToAssertThat extends JavaIsoRefactorVisitor {
 
     private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS = "org.junit.jupiter.api.Assertions";
     private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
@@ -49,7 +49,7 @@ public class AssertNullToAssertThat extends JavaIsoRefactorVisitor {
      * This matcher uses a pointcut expression to find the matching junit methods that will be migrated by this visitor.
      */
     private static final MethodMatcher JUNIT_ASSERT_TRUE_MATCHER = new MethodMatcher(
-            JUNIT_QUALIFIED_ASSERTIONS_CLASS + " assertNull(..)"
+            JUNIT_QUALIFIED_ASSERTIONS_CLASS + " assertNotNull(..)"
     );
 
     private static final JavaType.Method assertThatMethodType = newMethodType()
@@ -94,7 +94,7 @@ public class AssertNullToAssertThat extends JavaIsoRefactorVisitor {
                 EMPTY
         );
 
-        // If the assertNull is the two-argument variant, we need to maintain the message via a chained method
+        // If the assertNotNull is the two-argument variant, we need to maintain the message via a chained method
         // call to "as"/"withFailMessage". The message may be a String or Supplier<String>.
         if (message != null) {
             // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
@@ -116,12 +116,12 @@ public class AssertNullToAssertThat extends JavaIsoRefactorVisitor {
             );
         }
 
-        // This will always return the "isNull()" method using assertSelect as the select.
+        // This will always return the "isNotNull()" method using assertSelect as the select.
         J.MethodInvocation replacement = new J.MethodInvocation(
                 randomId(),
                 assertSelect,
                 null,
-                J.Ident.build(randomId(), "isNull", JavaType.Primitive.Boolean, EMPTY),
+                J.Ident.build(randomId(), "isNotNull", JavaType.Primitive.Boolean, EMPTY),
                 new J.MethodInvocation.Arguments(
                         randomId(),
                         Collections.emptyList(),
@@ -131,7 +131,7 @@ public class AssertNullToAssertThat extends JavaIsoRefactorVisitor {
                 format("\n")
         );
 
-        // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat".
+        // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat"
         maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_ASSERT_THAT_METHOD_NAME);
 
         // Format the replacement method invocation in the context of where it is called.
