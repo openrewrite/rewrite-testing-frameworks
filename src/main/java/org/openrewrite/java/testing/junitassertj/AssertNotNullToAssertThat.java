@@ -41,15 +41,15 @@ import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
 @AutoConfigure
 public class AssertNotNullToAssertThat extends JavaIsoRefactorVisitor {
 
-    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS = "org.junit.jupiter.api.Assertions";
+    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
     private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
     private static final String ASSERTJ_ASSERT_THAT_METHOD_NAME = "assertThat";
 
     /**
-     * This matcher uses a pointcut expression to find the matching junit methods that will be migrated by this visitor.
+     * This matcher finds the junit methods that will be migrated by this visitor.
      */
-    private static final MethodMatcher JUNIT_ASSERT_TRUE_MATCHER = new MethodMatcher(
-            JUNIT_QUALIFIED_ASSERTIONS_CLASS + " assertNotNull(..)"
+    private static final MethodMatcher JUNIT_ASSERT_NOT_NULL_MATCHER = new MethodMatcher(
+            JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertNotNull(..)"
     );
 
     private static final JavaType.Method assertThatMethodType = newMethodType()
@@ -61,15 +61,9 @@ public class AssertNotNullToAssertThat extends JavaIsoRefactorVisitor {
             .build();
 
     @Override
-    public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu) {
-        maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS);
-        return super.visitCompilationUnit(cu);
-    }
-
-    @Override
     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method) {
         J.MethodInvocation original = super.visitMethodInvocation(method);
-        if (!JUNIT_ASSERT_TRUE_MATCHER.matches(method)) {
+        if (!JUNIT_ASSERT_NOT_NULL_MATCHER.matches(method)) {
             return original;
         }
 
@@ -130,6 +124,9 @@ public class AssertNotNullToAssertThat extends JavaIsoRefactorVisitor {
                 null,
                 format("\n")
         );
+
+        // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
+        maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
 
         // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat"
         maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_ASSERT_THAT_METHOD_NAME);
