@@ -22,28 +22,28 @@ import org.openrewrite.RefactorVisitorTestForParser
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit> {
+class AssertNotEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit> {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
             .classpath("junit", "assertj-core", "apiguardian-api")
             .build()
 
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertEqualsToAssertThat())
+    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertNotEqualsToAssertThat())
 
     @Test
     fun singleStaticMethodNoMessage() = assertRefactored(
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(1, notification());
+                        assertNotEquals(1, notification());
                     }
                     private Integer notification() {
-                        return 1;
+                        return 2;
                     }
                 }
             """,
@@ -56,10 +56,10 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).isEqualTo(1);
+                        assertThat(notification()).isNotEqualTo(1);
                     }
                     private Integer notification() {
-                        return 1;
+                        return 2;
                     }
                 }
             """
@@ -70,16 +70,16 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals("fred", notification(), () -> "These should be equal");
+                        assertNotEquals("fred", notification(), () -> "These should not be equal");
                     }
                     private String notification() {
-                        return "fred";
+                        return "joe";
                     }
                 }
             """,
@@ -92,10 +92,10 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).withFailMessage(() -> "These should be equal").isEqualTo("fred");
+                        assertThat(notification()).withFailMessage(() -> "These should not be equal").isNotEqualTo("fred");
                     }
                     private String notification() {
-                        return "fred";
+                        return "joe";
                     }
                 }
             """
@@ -106,16 +106,16 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(0.0d, notification(), 0.2d);
+                        assertNotEquals(0.0d, notification(), 0.2d);
                     }
                     private Double notification() {
-                        return 0.1d;
+                        return 1.1d;
                     }
                 }
             """,
@@ -129,10 +129,10 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).isCloseTo(0.0d, within(0.2d));
+                        assertThat(notification()).isNotCloseTo(0.0d, within(0.2d));
                     }
                     private Double notification() {
-                        return 0.1d;
+                        return 1.1d;
                     }
                 }
             """
@@ -143,13 +143,13 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(0.0d, notification(), 0.2d, "These should be close.");
+                        assertNotEquals(2.0d, notification(), 0.2d, "These should not be close.");
                     }
                     private double notification() {
                         return 0.1d;
@@ -166,7 +166,7 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("These should be close.").isCloseTo(0.0d, within(0.2d));
+                        assertThat(notification()).as("These should not be close.").isNotCloseTo(2.0d, within(0.2d));
                     }
                     private double notification() {
                         return 0.1d;
@@ -180,16 +180,16 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(Double.valueOf(0.0d), notification(), Double.valueOf(0.2d), () -> "These should be close.");
+                        assertNotEquals(Double.valueOf(0.0d), notification(), Double.valueOf(0.2d), () -> "These should not be close.");
                     }
                     private double notification() {
-                        return Double.valueOf(0.1d);
+                        return Double.valueOf(1.1d);
                     }
                 }
             """,
@@ -203,10 +203,10 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).withFailMessage(() -> "These should be close.").isCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
+                        assertThat(notification()).withFailMessage(() -> "These should not be close.").isNotCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
                     }
                     private double notification() {
-                        return Double.valueOf(0.1d);
+                        return Double.valueOf(1.1d);
                     }
                 }
             """
@@ -217,13 +217,13 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(0.0f, notification(), 0.2f);
+                        assertNotEquals(2.0f, notification(), 0.2f);
                     }
                     private Float notification() {
                         return 0.1f;
@@ -240,7 +240,7 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).isCloseTo(0.0f, within(0.2f));
+                        assertThat(notification()).isNotCloseTo(2.0f, within(0.2f));
                     }
                     private Float notification() {
                         return 0.1f;
@@ -254,13 +254,13 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+                import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertEquals(0.0f, notification(), 0.2f, "These should be close.");
+                        assertNotEquals(2.0f, notification(), 0.2f, "These should not be close.");
                     }
                     private float notification() {
                         return 0.1f;
@@ -277,7 +277,7 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("These should be close.").isCloseTo(0.0f, within(0.2f));
+                        assertThat(notification()).as("These should not be close.").isNotCloseTo(2.0f, within(0.2f));
                     }
                     private float notification() {
                         return 0.1f;
@@ -296,7 +296,7 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
  
                     @Test
                     public void test() {
-                        org.junit.jupiter.api.Assertions.assertEquals(new File("someFile"), notification(), "These should be equal");
+                        org.junit.jupiter.api.Assertions.assertNotEquals(new File("otherFile"), notification(), "These should not be equal");
                     }
                     private File notification() {
                         return new File("someFile");
@@ -314,7 +314,7 @@ class AssertEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUn
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("These should be equal").isEqualTo(new File("someFile"));
+                        assertThat(notification()).as("These should not be equal").isNotEqualTo(new File("otherFile"));
                     }
                     private File notification() {
                         return new File("someFile");

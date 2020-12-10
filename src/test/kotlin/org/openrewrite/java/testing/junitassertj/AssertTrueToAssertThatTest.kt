@@ -92,7 +92,7 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
                 
                     @Test
                     public void test() {
-                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be positive").isTrue();
+                        assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
                     }
                     private Integer notification() {
                         return 1;
@@ -165,7 +165,7 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
                     @Test
                     public void test() {
                         assertThat(notification() != null && notification() > 0).isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be positive").isTrue();
+                        assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
                         assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
                     }
                     private Integer notification() {
@@ -206,7 +206,7 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
                     @Test
                     public void test() {
                         assertThat(notification() != null && notification() > 0).isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be positive").isTrue();
+                        assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
                         assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
                     }
                     private Integer notification() {
@@ -251,7 +251,7 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
                     @Test
                     public void test() {
                         assertThat(notification() != null && notification() > 0).isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage("The notification should be positive").isTrue();
+                        assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
                         assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
                         assertTrue(() -> notification() != null && notification() > 0);
                         assertTrue(() -> notification() != null && notification() > 0, "The notification should be positive");

@@ -26,35 +26,35 @@ import java.util.List;
 import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
 
 /**
- * This is a refactoring visitor that will convert JUnit-style assertEquals() to assertJ's assertThat().isEqualTo().
+ * This is a refactoring visitor that will convert JUnit-style assertArrayEquals() to assertJ's assertThat().containsExactly().
  *
- * This visitor has to convert a surprisingly large number (93 methods) of JUnit's assertEquals to assertThat().
+ * This visitor will handle the following JUnit 5 method signatures:
  *
  * <PRE>
  *  Two parameter variants:
  *
- *  assertEquals(expected,actual) -> assertThat(actual).isEqualTo(expected)
+ *  assertArrayEquals(expected,actual) -> assertThat(actual).containsExactly(expected)
  *
  *  Three parameter variant where the third argument is a String:
  *
- *  assertEquals(expected, actual, "message") -> assertThat(actual).as("message").isEqualTo(expected)
+ *  assertArrayEquals(expected, actual, "message") -> assertThat(actual).as("message").containsExactly(expected)
  *
  *  Three parameter variant where the third argument is a String supplier:
  *
- *  assertEquals(expected, actual, () -> "message") -> assertThat(actual).withFailureMessage("message").isEqualTo(expected)
+ *  assertArrayEquals(expected, actual, () -> "message") -> assertThat(actual).withFailureMessage("message").containsExactly(expected)
  *
  *  Three parameter variant where args are all floating point numbers.
  *
- *  assertEquals(expected, actual, delta) -> assertThat(actual).isCloseTo(expected, within(delta));
+ *  assertArrayEquals(expected, actual, delta) -> assertThat(actual).containsExactly(expected, within(delta));
  *
  *  Four parameter variant when comparing floating point numbers with a delta and a message:
  *
- *  assertEquals(expected, actual, delta, "message") -> assertThat(actual).withFailureMessage("message").isCloseTo(expected, within(delta));
+ *  assertArrayEquals(expected, actual, delta, "message") -> assertThat(actual).withFailureMessage("message").containsExactly(expected, within(delta));
  *
  * </PRE>
  */
 @AutoConfigure
-public class AssertEqualsToAssertThat extends JavaIsoRefactorVisitor {
+public class AssertArrayEqualsToAssertThat extends JavaIsoRefactorVisitor {
 
     private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
 
@@ -66,7 +66,7 @@ public class AssertEqualsToAssertThat extends JavaIsoRefactorVisitor {
      * This matcher finds the junit methods that will be migrated by this visitor.
      */
     private static final MethodMatcher JUNIT_ASSERT_EQUALS_MATCHER = new MethodMatcher(
-            JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertEquals(..)"
+            JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertArrayEquals(..)"
     );
 
     private static final JavaType ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT = newMethodType()
@@ -75,7 +75,7 @@ public class AssertEqualsToAssertThat extends JavaIsoRefactorVisitor {
             .name("*")
             .build();
 
-    public AssertEqualsToAssertThat() {
+    public AssertArrayEqualsToAssertThat() {
         setCursoringOn();
     }
 
@@ -83,6 +83,7 @@ public class AssertEqualsToAssertThat extends JavaIsoRefactorVisitor {
     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method) {
 
         J.MethodInvocation original = super.visitMethodInvocation(method);
+
         if (!JUNIT_ASSERT_EQUALS_MATCHER.matches(method)) {
             return original;
         }
@@ -97,7 +98,7 @@ public class AssertEqualsToAssertThat extends JavaIsoRefactorVisitor {
             //assertThat(actual).isEqualTo(expected)
             replacement = assertSimple(actual, expected);
         } else if (originalArgs.size() == 3 && !isFloatingPointType(originalArgs.get(2))) {
-            //assertThat(actual).withFailureMessage(message).isEqualTo(expected)
+            //assertThat(actual).as(message).isEqualTo(expected)
             replacement = assertWithMessage(actual, expected, originalArgs.get(2));
         } else if (originalArgs.size() == 3) {
             //assert is using floating points with a delta and no message.
@@ -123,7 +124,7 @@ public class AssertEqualsToAssertThat extends JavaIsoRefactorVisitor {
     private J.MethodInvocation assertSimple(Expression actual, Expression expected) {
 
         List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                String.format("assertThat(%s).isEqualTo(%s);", actual.printTrimmed(), expected.printTrimmed()),
+                String.format("assertThat(%s).containsExactly(%s);", actual.printTrimmed(), expected.printTrimmed()),
                 ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
         );
         return statements.get(0);
@@ -136,7 +137,7 @@ public class AssertEqualsToAssertThat extends JavaIsoRefactorVisitor {
         String messageAs = TypeUtils.isString(message.getType())?"as":"withFailMessage";
 
         List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                String.format("assertThat(%s).%s(%s).isEqualTo(%s);",
+                String.format("assertThat(%s).%s(%s).containsExactly(%s);",
                         actual.printTrimmed(), messageAs, message.printTrimmed(), expected.printTrimmed()),
                 ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
         );
@@ -145,7 +146,7 @@ public class AssertEqualsToAssertThat extends JavaIsoRefactorVisitor {
 
     private J.MethodInvocation assertFloatingPointDelta(Expression actual, Expression expected, Expression delta) {
         List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                String.format("assertThat(%s).isCloseTo(%s, within(%s));",
+                String.format("assertThat(%s).containsExactly(%s, within(%s));",
                         actual.printTrimmed(), expected.printTrimmed(), delta.printTrimmed()),
                 ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
         );
@@ -159,7 +160,7 @@ public class AssertEqualsToAssertThat extends JavaIsoRefactorVisitor {
         String messageAs = TypeUtils.isString(message.getType())?"as":"withFailMessage";
 
         List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                String.format("assertThat(%s).%s(%s).isCloseTo(%s, within(%s));",
+                String.format("assertThat(%s).%s(%s).containsExactly(%s, within(%s));",
                         actual.printTrimmed(), messageAs, message.printTrimmed(), expected.printTrimmed(), delta.printTrimmed()),
                 ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
         );
