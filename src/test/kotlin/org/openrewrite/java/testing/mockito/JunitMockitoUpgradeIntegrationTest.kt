@@ -231,10 +231,10 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
                 public class ExampleTest { }
             """,
             after = """
-                import org.junit.runner.RunWith;
-                import org.mockito.junit.MockitoJUnitRunner;
-                
-                @RunWith(MockitoJUnitRunner.class)
+                import org.junit.jupiter.api.extension.ExtendWith;
+                import org.mockito.junit.jupiter.MockitoExtension;
+            
+                @ExtendWith(MockitoExtension.class)
                 public class ExampleTest { }
             """
     )

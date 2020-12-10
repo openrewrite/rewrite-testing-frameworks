@@ -28,6 +28,10 @@ import java.util.stream.Collectors;
 
 import static org.openrewrite.Formatting.EMPTY;
 import static org.openrewrite.Tree.randomId;
+import static org.openrewrite.java.testing.junit5.FrameworkTypes.extendWithIdent;
+import static org.openrewrite.java.testing.junit5.FrameworkTypes.extendWithType;
+import static org.openrewrite.java.testing.junit5.FrameworkTypes.runWithIdent;
+import static org.openrewrite.java.testing.junit5.FrameworkTypes.runWithType;
 
 /**
  * JUnit4 Spring test classes are annotated with @RunWith(SpringRunner.class)
@@ -35,22 +39,10 @@ import static org.openrewrite.Tree.randomId;
  */
 @AutoConfigure
 public class SpringRunnerToSpringExtension extends JavaIsoRefactorVisitor {
-    private static final JavaType.Class runWithType = JavaType.Class.build("org.junit.runner.RunWith");
-    private static final J.Ident runWithIdent = J.Ident.build(
-            randomId(),
-            "RunWith",
-            runWithType,
-            EMPTY);
-    private static final JavaType.Class springRunnerType = JavaType.Class.build("org.springframework.test.context.junit4.SpringRunner");
-    private static final JavaType.Class extendWithType = JavaType.Class.build("org.junit.jupiter.api.extension.ExtendWith");
-    private static final J.Ident extendWithIdent = J.Ident.build(
-            randomId(),
-            "ExtendWith",
-            extendWithType,
-            EMPTY
-    );
     private static final JavaType.Class springExtensionType =
             JavaType.Class.build("org.springframework.test.context.junit.jupiter.SpringExtension");
+    private static final JavaType.Class springRunnerType =
+            JavaType.Class.build("org.springframework.test.context.junit4.SpringRunner");
     // Reference @RunWith(SpringRunner.class) annotation for semantically equal to compare against
     private static final J.Annotation runWithSpringRunnerAnnotation = new J.Annotation(
             randomId(),
@@ -152,7 +144,7 @@ public class SpringRunnerToSpringExtension extends JavaIsoRefactorVisitor {
      *      Removing imports for RunWith and SpringRunner
      */
     private J.Annotation springRunnerToSpringExtension(J.Annotation maybeSpringRunner) {
-        if(!(new SemanticallyEqual(runWithSpringRunnerAnnotation).visit(maybeSpringRunner) || new SemanticallyEqual(runWithSpringJUnit4ClassRunnerAnnotation).visit(maybeSpringRunner))) {
+        if(!shouldReplaceAnnotation(maybeSpringRunner)) {
             return maybeSpringRunner;
         }
         Formatting originalFormatting = maybeSpringRunner.getFormatting();

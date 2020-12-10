@@ -27,7 +27,7 @@ buildscript {
 
 plugins {
     `java-library`
-    id("org.jetbrains.kotlin.jvm") version "1.4.0"
+    id("org.jetbrains.kotlin.jvm") version "1.4.20"
     id("io.spring.release") version "0.20.1"
 }
 
@@ -62,6 +62,7 @@ val assertJVersion = "3.18.1"
 dependencies {
     implementation("org.openrewrite:rewrite-java:latest.release")
     implementation("org.openrewrite:rewrite-maven:latest.release")
+    runtimeOnly("com.fasterxml.jackson.core:jackson-core:latest.release")
 
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
