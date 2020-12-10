@@ -104,7 +104,7 @@ public class ExpectedExceptionToAssertThrows extends JavaIsoRefactorVisitor {
 
             AddImport addAssertThrows = new AddImport();
             addAssertThrows.setType("org.junit.jupiter.api.Assertions");
-            addAssertThrows.setStaticMethod("assertThrows");
+            addAssertThrows.setStatic("assertThrows");
             addAssertThrows.setOnlyIfReferenced(false);
             andThen(addAssertThrows);
 
