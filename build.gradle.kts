@@ -60,14 +60,14 @@ val mockito1Version = "1.10.19"
 val assertJVersion = "3.18.1"
 
 dependencies {
-    implementation("org.openrewrite:rewrite-java:latest.integration")
-    implementation("org.openrewrite:rewrite-maven:latest.integration")
+    implementation("org.openrewrite:rewrite-java:latest.release")
+    implementation("org.openrewrite:rewrite-maven:latest.release")
 
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testImplementation("junit:junit:latest.release")
-    testImplementation("org.openrewrite:rewrite-java-11:latest.integration")
-    testImplementation("org.openrewrite:rewrite-test:latest.integration")
+    testImplementation("org.openrewrite:rewrite-java-11:latest.release")
+    testImplementation("org.openrewrite:rewrite-test:latest.release")
     testImplementation("org.assertj:assertj-core:latest.release")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
