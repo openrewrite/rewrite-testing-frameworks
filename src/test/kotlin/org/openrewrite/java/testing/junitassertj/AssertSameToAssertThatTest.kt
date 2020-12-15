@@ -79,7 +79,7 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     @Test
                     public void test() {
                         String str = "string";
-                        assertSame(notification(), str, "Should be null");
+                        assertSame(notification(), str, "Should be the same");
                     }
                     private String notification() {
                         return "String";
@@ -96,7 +96,7 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     @Test
                     public void test() {
                         String str = "string";
-                        assertThat(str).as("Should be null").isSameAs(notification());
+                        assertThat(str).as("Should be the same").isSameAs(notification());
                     }
                     private String notification() {
                         return "String";
@@ -117,7 +117,7 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     @Test
                     public void test() {
                         String str = "string";
-                        assertSame(notification(), str, () -> "Should be null");
+                        assertSame(notification(), str, () -> "Should be the same");
                     }
                     private String notification() {
                         return "String";
@@ -134,7 +134,7 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     @Test
                     public void test() {
                         String str = "string";
-                        assertThat(str).withFailMessage(() -> "Should be null").isSameAs(notification());
+                        assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
                     }
                     private String notification() {
                         return "String";
@@ -154,8 +154,8 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     public void test() {
                         String str = "string";
                         org.junit.jupiter.api.Assertions.assertSame(notification(), str);
-                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be null");
-                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, () -> "Should be null");
+                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be the same");
+                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, () -> "Should be the same");
                     }
                     private String notification() {
                         return "String";
@@ -173,8 +173,8 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     public void test() {
                         String str = "string";
                         assertThat(str).isSameAs(notification());
-                        assertThat(str).as("Should be null").isSameAs(notification());
-                        assertThat(str).withFailMessage(() -> "Should be null").isSameAs(notification());
+                        assertThat(str).as("Should be the same").isSameAs(notification());
+                        assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
                     }
                     private String notification() {
                         return "String";
@@ -197,8 +197,8 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     public void test() {
                         String str = "string";
                         assertSame(notification(), str);
-                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be null");
-                        assertSame(notification(), str, () -> "Should be null");
+                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be the same");
+                        assertSame(notification(), str, () -> "Should be the same");
                     }
                     private String notification() {
                         return "String";
@@ -216,8 +216,8 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     public void test() {
                         String str = "string";
                         assertThat(str).isSameAs(notification());
-                        assertThat(str).as("Should be null").isSameAs(notification());
-                        assertThat(str).withFailMessage(() -> "Should be null").isSameAs(notification());
+                        assertThat(str).as("Should be the same").isSameAs(notification());
+                        assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
                     }
                     private String notification() {
                         return "String";
