@@ -29,9 +29,7 @@ public class CleanupJUnitImports extends JavaIsoRefactorVisitor {
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu) {
         boolean shouldCleanup = cu.getImports().stream()
-                .filter(impert -> impert.getPackageName().startsWith("org.junit"))
-                .findAny()
-                .isPresent();
+                .anyMatch(impert -> impert.getPackageName().startsWith("org.junit"));
         if(shouldCleanup) {
             OrderImports orderImports = new OrderImports();
             orderImports.setRemoveUnused(true);

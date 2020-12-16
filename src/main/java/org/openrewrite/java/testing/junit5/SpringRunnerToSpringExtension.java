@@ -125,7 +125,7 @@ public class SpringRunnerToSpringExtension extends JavaIsoRefactorVisitor {
 
     @Override
     public J.ClassDecl visitClassDecl(J.ClassDecl cd) {
-        if(cd.getAnnotations().stream().filter(this::shouldReplaceAnnotation).findAny().isPresent()) {
+        if(cd.getAnnotations().stream().anyMatch(this::shouldReplaceAnnotation)) {
             List<J.Annotation> annotations = cd.getAnnotations().stream()
                     .map(this::springRunnerToSpringExtension)
                     .collect(Collectors.toList());

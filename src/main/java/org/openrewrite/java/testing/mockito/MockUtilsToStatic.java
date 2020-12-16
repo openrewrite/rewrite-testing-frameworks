@@ -39,8 +39,8 @@ import java.util.Optional;
  */
 @AutoConfigure
 public class MockUtilsToStatic extends JavaRefactorVisitor {
-    private MethodMatcher methodMatcher = new MethodMatcher("org.mockito.internal.util.MockUtil MockUtil()");
-    private ChangeMethodTargetToStatic changeMethodTargetToStatic = new ChangeMethodTargetToStatic();
+    private final MethodMatcher methodMatcher = new MethodMatcher("org.mockito.internal.util.MockUtil MockUtil()");
+    private final ChangeMethodTargetToStatic changeMethodTargetToStatic = new ChangeMethodTargetToStatic();
 
     public MockUtilsToStatic() {
         setCursoringOn();

@@ -134,11 +134,8 @@ public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
 
         @Override
         public J.ClassDecl visitClassDecl(J.ClassDecl cd) {
-            boolean shouldReplaceAnnotation = cd.getAnnotations()
-                    .stream()
-                    .filter(this::shouldReplaceAnnotation)
-                    .findAny()
-                    .isPresent();
+            boolean shouldReplaceAnnotation = cd.getAnnotations().stream()
+                    .anyMatch(this::shouldReplaceAnnotation);
             if(shouldReplaceAnnotation) {
                 performedRefactor = true;
                 List<J.Annotation> annotations = cd.getAnnotations().stream()
@@ -159,8 +156,7 @@ public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
             J.Annotation extendWithSpringExtension = extendWithMockitoExtensionAnnotation.withFormatting(originalFormatting);
             maybeAddImport(extendWithType);
             maybeAddImport(mockitoExtensionType);
-            runWithMockitoAnnotationTypes.stream()
-                    .forEach(this::maybeRemoveImport);
+            runWithMockitoAnnotationTypes.forEach(this::maybeRemoveImport);
             maybeRemoveImport(runWithType);
 
             return extendWithSpringExtension;
@@ -168,9 +164,7 @@ public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
 
         private boolean shouldReplaceAnnotation(J.Annotation maybeMockitoRunner) {
             return runWithMockitoAnnotations.stream()
-                    .filter(mockitoRunnerAnnotation -> new SemanticallyEqual(mockitoRunnerAnnotation).visit(maybeMockitoRunner))
-                    .findAny()
-                    .isPresent();
+                    .anyMatch(mockitoRunnerAnnotation -> new SemanticallyEqual(mockitoRunnerAnnotation).visit(maybeMockitoRunner));
         }
     }
 

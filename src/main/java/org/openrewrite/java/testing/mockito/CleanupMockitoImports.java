@@ -28,11 +28,7 @@ public class CleanupMockitoImports extends JavaIsoRefactorVisitor {
 
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu) {
-        boolean shouldCleanup = cu.getImports().stream()
-                .filter(impert -> impert.getPackageName().startsWith("org.mockito"))
-                .findAny()
-                .isPresent();
-        if(shouldCleanup) {
+        if(cu.getImports().stream().anyMatch(impert -> impert.getPackageName().startsWith("org.mockito"))) {
             OrderImports orderImports = new OrderImports();
             orderImports.setRemoveUnused(true);
             andThen(orderImports);
