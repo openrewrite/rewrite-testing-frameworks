@@ -15,20 +15,8 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/visitor
-name: org.openrewrite.java.testing.junit5.ReplaceAnnotations
+name: org.openrewrite.java.testing.junit5.ReplaceIgnoreAnnotations
 visitors:
-  - org.openrewrite.java.ChangeType:
-      type: org.junit.Before
-      targetType: org.junit.jupiter.api.BeforeEach
-  - org.openrewrite.java.ChangeType:
-      type: org.junit.After
-      targetType: org.junit.jupiter.api.AfterEach
-  - org.openrewrite.java.ChangeType:
-      type: org.junit.BeforeClass
-      targetType: org.junit.jupiter.api.BeforeAll
-  - org.openrewrite.java.ChangeType:
-      type: org.junit.AfterClass
-      targetType: org.junit.jupiter.api.AfterAll
   - org.openrewrite.java.ChangeType:
       type: org.junit.Ignore
       targetType: org.junit.jupiter.api.Disabled

@@ -59,8 +59,13 @@ public class UpdateTestAnnotation extends JavaIsoRefactorVisitor {
         boolean changed = false;
         List<J.Annotation> annotations = new ArrayList<>(m.getAnnotations());
         for (int i = 0, annotationsSize = annotations.size(); i < annotationsSize; i++) {
+
             J.Annotation a = annotations.get(i);
             if (TypeUtils.isOfClassType(a.getType(), "org.junit.Test")) {
+                //If we found the annotation, we change the visibility of the method to package. Because the
+                m = m.withModifiers(J.Modifier.withVisibility(m.getModifiers(), "package"));
+                andThen(new AutoFormat(m));
+
                 annotations.set(i, a.withArgs(null));
                 if(a.getArgs() == null) {
                     continue;
@@ -85,7 +90,7 @@ public class UpdateTestAnnotation extends JavaIsoRefactorVisitor {
                             andThen(addAssertThrows);
                             andThen(new AutoFormat(assertThrows));
 
-                            m = method.withBody(m.getBody().withStatements(singletonList(assertThrows)));
+                            m = m.withBody(m.getBody().withStatements(singletonList(assertThrows)));
                         } else if (assignParamName.equals("timeout")) {
                             AddAnnotation.Scoped aa = new AddAnnotation.Scoped(m, "org.junit.jupiter.api.Timeout", e.withFormatting(EMPTY));
                             andThen(aa);
@@ -100,7 +105,6 @@ public class UpdateTestAnnotation extends JavaIsoRefactorVisitor {
         if (changed) {
             m = m.withAnnotations(annotations);
         }
-
         return m;
     }
 }
