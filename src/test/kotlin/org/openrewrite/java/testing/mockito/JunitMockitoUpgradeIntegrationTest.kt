@@ -89,12 +89,12 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
                     List<String> mockedList;
                 
                     @BeforeEach
-                    public void initMocks() {
+                    void initMocks() {
                         MockitoAnnotations.initMocks(this);
                     }
                 
                     @Test
-                    public void usingAnnotationBasedMock() {
+                    void usingAnnotationBasedMock() {
                 
                         mockedList.add("one");
                         mockedList.clear();
@@ -343,6 +343,7 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
         """.trimIndent()
     val exampleJunitAfter = """
         package org.openrewrite.java.testing.junit5;
+
         import org.junit.jupiter.api.*;
         import org.junit.jupiter.api.io.TempDir;
         import org.mockito.Mock;
@@ -365,12 +366,12 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
             public File folder;
         
             @BeforeEach
-            public void beforeClass() {
+            void beforeClass() {
                 MockitoAnnotations.initMocks(this);
             }
         
             @AfterAll
-            public static void afterClass() { }
+            static void afterClass() { }
         
             @Mock
             List<String> mockedList;
@@ -380,7 +381,7 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
             }
         
             @Test
-            public void usingAnnotationBasedMock() {
+            void usingAnnotationBasedMock() {
                 mockedList.add("one");
                 mockedList.clear();
         
@@ -389,7 +390,7 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
             }
         
             @Test
-            public void foo() throws IOException {
+            void foo() throws IOException {
                 assertThrows(RuntimeException.class, () -> {
                     File tempFile = File.createTempFile("junit", null, folder);
                     File tempFile2 = newFile(folder, "filename");
@@ -403,21 +404,21 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
             }
         
             @Test
-            public void foo2() {
+            void foo2() {
                 assertThrows(IndexOutOfBoundsException.class, () -> {
                     int arr = new int[]{}[0];
                 });
             }
         
             @Test
-            public void foo3() {
+            void foo3() {
                 assertThrows(RuntimeException.class, () -> {
                     throw new RuntimeException();
                 });
             }
         
             @Test
-            public void assertsStuff() {
+            void assertsStuff() {
                 Assertions.assertEquals(1, 1, "One is one");
                 Assertions.assertArrayEquals(new int[]{}, new int[]{}, "Empty is empty");
                 Assertions.assertNotEquals(1, 2, "one is not two");
@@ -430,10 +431,10 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
         
             @Test
             @Timeout(500)
-            public void bar() { }
+            void bar() { }
         
             @Test
-            public void aTest() {
+            void aTest() {
                 String foo = mock(String.class);
                 when(foo.concat(any())).then(invocation -> invocation.getArgument(0, String.class));
             }
