@@ -50,7 +50,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 public class A {
                 
                     @Test
-                    public void test() {
+                    void test() {
                         assertThrows(IllegalArgumentException.class, () -> {
                             throw new IllegalArgumentException("boom");
                         });
@@ -80,7 +80,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 public class A {
                 
                     @Test
-                    public void test() {
+                    void test() {
                         assertThrows(IndexOutOfBoundsException.class, () -> {
                             int arr = new int[]{}[0];
                         });
@@ -111,7 +111,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 public class A {
                 
                     @Test
-                    public void test() {
+                    void test() {
                         assertThrows(IllegalArgumentException.class, () -> {
                             String foo = "foo";
                             throw new IllegalArgumentException("boom");
@@ -138,7 +138,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 public class A {
                 
                     @Test
-                    public void test() { }
+                    void test() { }
                 }
             """
     )
@@ -162,7 +162,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 
                     @Test
                     @Timeout(500)
-                    public void test() { }
+                    void test() { }
                 }
             """
     )
@@ -190,7 +190,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
                 
                     @Test
                     @Timeout(500)
-                    public void test() {
+                    void test() {
                         assertThrows(IllegalArgumentException.class, () -> {
                             throw new IllegalArgumentException("boom");
                         });
@@ -200,21 +200,56 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
     )
 
     @Test
-    fun foo() {
-        val cu = parser.parse("""
-            import static org.junit.jupiter.api.Assertions.assertThrows;
-            import org.junit.jupiter.api.*;
-            
-            class A {
-                @Test
-                public void foo2() {
-                    assertThrows(IndexOutOfBoundsException.class, () -> {
-                        int arr = new int[]{}[0];
-                    });
-                }
-            }
-        """).first()
+    fun protectedToPackageVisibility() = assertRefactored(
+        //An existing test method with protected visibility would not be executed by JUnit 4. This refactor will actual
+        //fix this use case when moving to JUnit 5.
 
-        cu
-    }
+        before = """
+                import org.junit.Test;
+
+                public class A {
+                
+                    @Test
+                    protected void test() {
+                    }
+                }
+            """.trimIndent(),
+        after = """
+                import org.junit.jupiter.api.Test;
+
+                public class A {
+
+                    @Test
+                    void test() {
+                    }
+                }
+            """.trimIndent()
+    )
+
+    @Test
+    fun privateToPackageVisibility() = assertRefactored(
+        //An existing test method with private visibility would not be executed by JUnit 4. This refactor will actual
+        //fix this use case when moving to JUnit 5.
+        before = """
+                import org.junit.Test;
+                
+                public class A {
+                
+                    @Test
+                    private void test() {
+                    }
+                }
+            """.trimIndent(),
+        after = """
+                import org.junit.jupiter.api.Test;
+                
+                public class A {
+                
+                    @Test
+                    void test() {
+                    }
+                }
+            """.trimIndent()
+    )
+
 }

@@ -41,7 +41,9 @@ class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
                 import org.junit.jupiter.api.BeforeEach;
 
                 public class Example {
-                    @BeforeEach public void initialize() {}
+
+                    @BeforeEach
+                    void initialize() {}
                 }
             """
     )
@@ -59,7 +61,9 @@ class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
                 import org.junit.jupiter.api.AfterEach;
 
                 public class Example {
-                    @AfterEach public void initialize() {}
+
+                    @AfterEach
+                    void initialize() {}
                 }
             """
     )
@@ -70,14 +74,17 @@ class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
                 import org.junit.BeforeClass;
 
                 public class Example {
-                    @BeforeClass public void initialize() {}
+                    @BeforeClass
+                    void initialize() {}
                 }
             """,
             after = """
                 import org.junit.jupiter.api.BeforeAll;
 
                 public class Example {
-                    @BeforeAll public void initialize() {}
+
+                    @BeforeAll
+                    void initialize() {}
                 }
             """
     )
@@ -95,7 +102,9 @@ class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
                 import org.junit.jupiter.api.AfterAll;
 
                 public class Example {
-                    @AfterAll public void initialize() {}
+
+                    @AfterAll
+                    void initialize() {}
                 }
             """
     )
