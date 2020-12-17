@@ -15,7 +15,7 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/visitor
-name: org.openrewrite.java.testing.junit5.ReplaceIngoreAnnotations
+name: org.openrewrite.java.testing.junit5.ReplaceIgnoreAnnotations
 visitors:
   - org.openrewrite.java.ChangeType:
       type: org.junit.Ignore
