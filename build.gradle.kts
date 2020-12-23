@@ -27,7 +27,7 @@ buildscript {
 
 plugins {
     `java-library`
-    id("org.jetbrains.kotlin.jvm") version "1.4.20"
+    id("org.jetbrains.kotlin.jvm") version "1.4.21"
     id("io.spring.release") version "0.20.1"
 }
 
@@ -73,7 +73,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
-    testImplementation(enforcedPlatform("com.fasterxml.jackson:jackson-bom:latest.release"))
+    testImplementation(platform("com.fasterxml.jackson:jackson-bom:latest.release"))
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
     testRuntimeOnly("org.springframework:spring-test:latest.release")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
