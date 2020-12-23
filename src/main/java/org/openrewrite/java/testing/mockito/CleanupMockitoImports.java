@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.mockito;
 import org.openrewrite.AutoConfigure;
 import org.openrewrite.java.JavaIsoRefactorVisitor;
 import org.openrewrite.java.OrderImports;
+import org.openrewrite.java.RemoveUnusedImports;
 import org.openrewrite.java.tree.J;
 
 /**
@@ -29,9 +30,8 @@ public class CleanupMockitoImports extends JavaIsoRefactorVisitor {
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu) {
         if(cu.getImports().stream().anyMatch(impert -> impert.getPackageName().startsWith("org.mockito"))) {
-            OrderImports orderImports = new OrderImports();
-            orderImports.setRemoveUnused(true);
-            andThen(orderImports);
+            RemoveUnusedImports removeImports = new RemoveUnusedImports();
+            andThen(removeImports);
         }
         return cu;
     }

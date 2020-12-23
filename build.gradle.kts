@@ -73,6 +73,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
+    testImplementation(enforcedPlatform("com.fasterxml.jackson:jackson-bom:latest.release"))
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
     testRuntimeOnly("org.springframework:spring-test:latest.release")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")

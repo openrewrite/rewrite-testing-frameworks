@@ -18,10 +18,11 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.AutoConfigure;
 import org.openrewrite.java.JavaIsoRefactorVisitor;
 import org.openrewrite.java.OrderImports;
+import org.openrewrite.java.RemoveUnusedImports;
 import org.openrewrite.java.tree.J;
 
 /**
- * Orders imports and removes unused imports from classes which import symbols from the "org.junit" package.
+ * Removes unused imports from classes which import symbols from the "org.junit" package.
  */
 @AutoConfigure
 public class CleanupJUnitImports extends JavaIsoRefactorVisitor {
@@ -31,9 +32,8 @@ public class CleanupJUnitImports extends JavaIsoRefactorVisitor {
         boolean shouldCleanup = cu.getImports().stream()
                 .anyMatch(impert -> impert.getPackageName().startsWith("org.junit"));
         if(shouldCleanup) {
-            OrderImports orderImports = new OrderImports();
-            orderImports.setRemoveUnused(true);
-            andThen(orderImports);
+            RemoveUnusedImports removeImports = new RemoveUnusedImports();
+            andThen(removeImports);
         }
         return cu;
     }
