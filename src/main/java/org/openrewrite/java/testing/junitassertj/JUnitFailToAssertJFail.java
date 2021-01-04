@@ -57,7 +57,7 @@ public class JUnitFailToAssertJFail extends JavaIsoRefactorVisitor {
 
     @Override
     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method) {
-        J.MethodInvocation original = super.visitMethodInvocation(method);
+        J.MethodInvocation original = method;
         if (!JUNIT_FAIL_MATCHER.matches(method)) {
             return original;
         }
