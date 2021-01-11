@@ -54,6 +54,13 @@ configurations.all {
         cacheChangingModulesFor(0, TimeUnit.SECONDS)
         cacheDynamicVersionsFor(0, TimeUnit.SECONDS)
     }
+    
+    // We use kotlin exclusively for tests
+    // The kotlin plugin adds kotlin-stdlib dependencies to the main sourceSet, even if it doesn't use any kotlin
+    // To avoid shipping dependencies we don't actually need, exclude them from the main sourceSet classpath but add them _back_ in for the test source sets
+    if (name == "compileClasspath" || name == "runtimeClasspath") {
+        exclude(group = "org.jetbrains.kotlin")
+    }
 }
 
 val mockito1Version = "1.10.19"
@@ -81,12 +88,11 @@ dependencies {
 
     "beforeImplementation"("junit:junit:latest.release")
     "beforeImplementation"("org.mockito:mockito-all:$mockito1Version")
+    "beforeImplementation"("org.assertj:assertj-core:3.18.1")
     "afterImplementation"("org.junit.jupiter:junit-jupiter-api:latest.release")
     "afterImplementation"("org.junit.jupiter:junit-jupiter-params:latest.release")
     "afterImplementation"("org.mockito:mockito-core:latest.release")
     "afterRuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:latest.release")
-
-
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {
@@ -137,7 +143,7 @@ configure<PublishingExtension> {
                         while (i < length) {
                             (dependencyList.item(i) as org.w3c.dom.Element).let { dependency ->
                                 if ((dependency.getElementsByTagName("scope")
-                                                .item(0) as org.w3c.dom.Element).textContent == "provided") {
+                                        .item(0) as org.w3c.dom.Element).textContent == "provided") {
                                     dependencies.removeChild(dependency)
                                     i--
                                     length--
@@ -161,9 +167,9 @@ project.withConvention(ArtifactoryPluginConvention::class) {
     setContextUrl("https://oss.jfrog.org/artifactory")
     publisherConfig.let {
         val repository: PublisherConfig.Repository = it.javaClass
-                .getDeclaredField("repository")
-                .apply { isAccessible = true }
-                .get(it) as PublisherConfig.Repository
+            .getDeclaredField("repository")
+            .apply { isAccessible = true }
+            .get(it) as PublisherConfig.Repository
 
         repository.setRepoKey("oss-snapshot-local")
         repository.setUsername(project.findProperty("bintrayUser"))
@@ -175,7 +181,7 @@ tasks.withType<GenerateMavenPom> {
     doLast {
         // because pom.withXml adds blank lines
         destination.writeText(
-                destination.readLines().filter { it.isNotBlank() }.joinToString("\n")
+            destination.readLines().filter { it.isNotBlank() }.joinToString("\n")
         )
     }
 
@@ -191,28 +197,28 @@ tasks.withType<GenerateMavenPom> {
         }
 
         fun reduceDependenciesAtIndent(indent: Int):
-                (List<String>, ResolvedDependency) -> List<String> =
-                { dependenciesAsList: List<String>, dep: ResolvedDependency ->
-                    dependenciesAsList + listOf(" ".repeat(indent) + dep.module.id.toString()) + (
-                            if (observedDependencies.add(dep)) {
-                                dep.children
-                                        .sortedBy(gav)
-                                        .fold(emptyList(), reduceDependenciesAtIndent(indent + 2))
-                            } else {
-                                // this dependency subtree has already been printed, so skip it
-                                emptyList()
-                            }
-                            )
-                }
+                    (List<String>, ResolvedDependency) -> List<String> =
+            { dependenciesAsList: List<String>, dep: ResolvedDependency ->
+                dependenciesAsList + listOf(" ".repeat(indent) + dep.module.id.toString()) + (
+                        if (observedDependencies.add(dep)) {
+                            dep.children
+                                .sortedBy(gav)
+                                .fold(emptyList(), reduceDependenciesAtIndent(indent + 2))
+                        } else {
+                            // this dependency subtree has already been printed, so skip it
+                            emptyList()
+                        }
+                        )
+            }
 
         project.plugins.withType<InfoBrokerPlugin> {
             add("Resolved-Dependencies", runtimeClasspath
-                    .resolvedConfiguration
-                    .lenientConfiguration
-                    .firstLevelModuleDependencies
-                    .sortedBy(gav)
-                    .fold(emptyList(), reduceDependenciesAtIndent(6))
-                    .joinToString("\n", "\n", "\n" + " ".repeat(4)))
+                .resolvedConfiguration
+                .lenientConfiguration
+                .firstLevelModuleDependencies
+                .sortedBy(gav)
+                .fold(emptyList(), reduceDependenciesAtIndent(6))
+                .joinToString("\n", "\n", "\n" + " ".repeat(4)))
         }
     }
 }
