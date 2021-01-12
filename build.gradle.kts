@@ -54,11 +54,10 @@ configurations.all {
         cacheChangingModulesFor(0, TimeUnit.SECONDS)
         cacheDynamicVersionsFor(0, TimeUnit.SECONDS)
     }
-
     // We use kotlin exclusively for tests
     // The kotlin plugin adds kotlin-stdlib dependencies to the main sourceSet, even if it doesn't use any kotlin
     // To avoid shipping dependencies we don't actually need, exclude them from the main sourceSet classpath but add them _back_ in for the test source sets
-    if (name == "compileClasspath" || name == "runtimeClasspath" || name == "api") {
+    if (name == "compileClasspath" || name == "runtimeClasspath") {
         exclude(group = "org.jetbrains.kotlin")
     }
 }
@@ -80,6 +79,8 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
+    testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
     testRuntimeOnly("org.springframework:spring-test:latest.release")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
