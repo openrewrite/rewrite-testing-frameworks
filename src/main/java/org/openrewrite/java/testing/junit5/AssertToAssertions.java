@@ -15,11 +15,12 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.AutoConfigure;
-import org.openrewrite.Formatting;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeType;
-import org.openrewrite.java.JavaIsoRefactorVisitor;
-import org.openrewrite.java.search.SemanticallyEqual;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -28,69 +29,60 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * Change JUnit4's org.junit.Assert into JUnit5's org.junit.jupiter.api.Assertions
- * The most significant difference between these classes is that in JUnit4 the optional String message is the first
- * parameter, and the JUnit5 versions have the optional message as the final parameter
- */
-@AutoConfigure
-public class AssertToAssertions extends JavaIsoRefactorVisitor {
-
+public class AssertToAssertions extends Recipe {
     @Override
-    public J.ClassDecl visitClassDecl(J.ClassDecl classDecl) {
-        ChangeType ct = new ChangeType();
-        ct.setType("org.junit.Assert");
-        ct.setTargetType("org.junit.jupiter.api.Assertions");
-        andThen(ct);
-        return super.visitClassDecl(classDecl);
+    protected JavaIsoVisitor<ExecutionContext> getVisitor() {
+        return new AssertToAssertionsVisitor();
     }
 
-    @Override
-    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method) {
-        J.MethodInvocation m = super.visitMethodInvocation(method);
-        if(!isJunitAssertMethod(m)) {
+    public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
+        @Override
+        public J.ClassDecl visitClassDecl(J.ClassDecl classDecl, ExecutionContext context) {
+            doAfterVisit(new ChangeType("org.junit.Assert", "org.junit.jupiter.api.Assertions"));
+            return super.visitClassDecl(classDecl, context);
+        }
+
+        @Override
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext context) {
+            J.MethodInvocation m = super.visitMethodInvocation(method, context);
+            if(!isJunitAssertMethod(m)) {
+                return m;
+            }
+            List<Expression> args = m.getArgs();
+            Expression firstArg = args.get(0);
+            // Suppress arg-switching for Assertions.assertEquals(String, String)
+            if(args.size() == 2 && isString(firstArg.getType()) && isString(args.get(1).getType())) {
+                return m;
+            }
+            if(isString(firstArg.getType())) {
+                // Move the first argument to be the last argument
+                List<Expression> newArgs = Stream.concat(
+                        args.stream().skip(1),
+                        Stream.of(firstArg)
+                ).collect(Collectors.toList());
+
+                m = m.withArgs(newArgs);
+                m = (J.MethodInvocation) new AutoFormatVisitor<>().visitMethodInvocation(m, context);
+            }
+
             return m;
         }
-        List<Expression> args = m.getArgs().getArgs();
-        Expression firstArg = args.get(0);
-        // Suppress arg-switching for Assertions.assertEquals(String, String)
-        if(args.size() == 2 && isString(firstArg.getType()) && isString(args.get(1).getType())) {
-            return m;
-        }
-        if(isString(firstArg.getType())) {
-            // Move the first arg to be the last argument, then switch the formatting of the first and last arguments
-            Formatting firstFormatting = firstArg.getFormatting();
-            Formatting lastFormatting = args.get(args.size() - 1).getFormatting();
 
-            List<Expression> newArgs = Stream.concat(
-                 args.stream().skip(1),
-                 Stream.of(firstArg)
-            ).collect(Collectors.toList());
-
-            int lastIndex = newArgs.size() - 1;
-            newArgs.set(0, newArgs.get(0).withFormatting(firstFormatting));
-            newArgs.set(lastIndex, newArgs.get(lastIndex).withFormatting(lastFormatting));
-
-            m = m.withArgs(m.getArgs().withArgs(newArgs));
+        private boolean isJunitAssertMethod(J.MethodInvocation method) {
+            if(!(method.getSelect() instanceof J.Ident)) {
+                return false;
+            }
+            J.Ident receiver = (J.Ident) method.getSelect();
+            if(!(receiver.getType() instanceof JavaType.FullyQualified)) {
+                return false;
+            }
+            JavaType.FullyQualified receiverType = (JavaType.FullyQualified) receiver.getType();
+            return receiverType.getFullyQualifiedName().equals("org.junit.Assert");
         }
 
-        return m;
-    }
-
-    private boolean isJunitAssertMethod(J.MethodInvocation method) {
-        if(!(method.getSelect() instanceof J.Ident)) {
-            return false;
+        private boolean isString(@Nullable JavaType type) {
+            return type instanceof JavaType.Primitive
+                    && ((JavaType.Primitive)type).name().equals("String");
         }
-        J.Ident receiver = (J.Ident) method.getSelect();
-        if(!(receiver.getType() instanceof JavaType.FullyQualified)) {
-            return false;
-        }
-        JavaType.FullyQualified receiverType = (JavaType.FullyQualified) receiver.getType();
-        return receiverType.getFullyQualifiedName().equals("org.junit.Assert");
-    }
-
-    private boolean isString(JavaType type) {
-        return type instanceof JavaType.Primitive
-                && ((JavaType.Primitive)type).name().equals("String");
     }
 }

@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 @NonNullApi
+@NonNullFields
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.internal.lang.NonNullApi;
+import org.openrewrite.internal.lang.NonNullFields;
