@@ -32,23 +32,23 @@ import static org.openrewrite.Tree.randomId;
 
 class AssertionsBuilder {
     /**
-     * Produces a method invocation of Assertions.assertThrows(Class<T> expectedType, Executable executable)
+     * Produces a method invocation of Assertions.assertThrows(Class<T> expectedType, executable executable)
      *
      * @param expectedTypeExpression an expression that is expected, but not verified, to evaluate to a Class<T extends Throwable>
-     * @param Executable the list of statements used to create the body of the lambda that is expected to produce a particular type of expression
+     * @param executable the list of statements used to create the body of the lambda that is expected to produce a particular type of expression
      */
-    public static J.MethodInvocation assertThrows(Expression expectedTypeExpression, List<Statement> Executable) {
+    public static J.MethodInvocation assertThrows(Expression expectedTypeExpression, List<Statement> executable) {
         // The Java 11 Specification says that lambda bodies can be either a single expression or a block.
         // So put a block around anything that isn't exactly one expression.
-        boolean isSingleExpression = Executable.size() == 1 && Executable.get(0) instanceof Expression;
+        boolean isSingleExpression = executable.size() == 1 && executable.get(0) instanceof Expression;
         Statement assertBlock;
         if(isSingleExpression) {
-            assertBlock = Executable.get(0).withPrefix(" ");
+            assertBlock = executable.get(0).withPrefix(" ");
         } else {
             assertBlock = new J.Block<>(
                     randomId(),
                     null,
-                    Executable,
+                    executable,
                     format(" "),
                     new J.Block.End(randomId(), format("\n"))
             );
@@ -84,7 +84,7 @@ class AssertionsBuilder {
                         null,
                         new JavaType.Method.Signature(
                                 new JavaType.GenericTypeVariable("T", JavaType.Class.build("java.lang.Throwable")),
-                                Arrays.asList(JavaType.Class.build("java.lang.Class"), JavaType.Class.build("org.junit.jupiter.api.function.Executable"))),
+                                Arrays.asList(JavaType.Class.build("java.lang.Class"), JavaType.Class.build("org.junit.jupiter.api.function.executable"))),
                         Arrays.asList("arg0", "arg1"),
                         new HashSet<>(Arrays.asList(Flag.Public, Flag.Static))
                 ),

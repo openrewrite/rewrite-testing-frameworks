@@ -15,30 +15,32 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.AutoConfigure;
-import org.openrewrite.CompositeRefactorVisitor;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.Validated;
-import org.openrewrite.java.JavaRefactorVisitor;
+import org.openrewrite.internal.lang.NonNull;
+import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.search.FindTypes;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.maven.AddDependency;
-import org.openrewrite.maven.MavenRefactorVisitor;
+import org.openrewrite.maven.MavenVisitor;
 import org.openrewrite.maven.tree.Maven;
 
 import static org.openrewrite.Validated.required;
 
-@AutoConfigure
-public class MaybeAddJUnit5Dependencies extends CompositeRefactorVisitor {
+public class MaybeAddJUnit5Dependencies extends Recipe {
+
+    @NonNull
     private String version = "5.x";
-
-    private boolean junitReferencesExist = false;
-
-    public MaybeAddJUnit5Dependencies() {
-        addVisitor(new FindJUnit());
-        addVisitor(new AddDependencies());
-    }
 
     public void setVersion(String version) {
         this.version = version;
+    }
+
+    @Override
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new FindJUnitVisitor();
     }
 
     @Override
@@ -46,35 +48,39 @@ public class MaybeAddJUnit5Dependencies extends CompositeRefactorVisitor {
         return required("version", version);
     }
 
-    private class FindJUnit extends JavaRefactorVisitor {
+    private class FindJUnitVisitor extends JavaVisitor<ExecutionContext> {
         @Override
-        public J visitCompilationUnit(J.CompilationUnit cu) {
-            junitReferencesExist = cu.hasType("junit.framework.Test") ||
-                    cu.hasType("org.junit.jupiter.api.Test");
+        public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            boolean junitReferencesExist =
+                    !FindTypes.find(cu, "junit.framework.Test").isEmpty()
+                    || !FindTypes.find(cu, "org.junit.jupiter.api.Test").isEmpty();
+            if (junitReferencesExist) {
+                doAfterVisit(new AddDependencies());
+            }
             return cu;
         }
     }
 
-    private class AddDependencies extends MavenRefactorVisitor {
+    private class AddDependencies extends Recipe {
+
         @Override
-        public Maven visitMaven(Maven maven) {
-            if (junitReferencesExist) {
-                AddDependency addJunitApi = new AddDependency();
-                addJunitApi.setGroupId("org.junit.jupiter");
-                addJunitApi.setArtifactId("junit-jupiter-api");
-                addJunitApi.setVersion(version);
+        protected TreeVisitor<?, ExecutionContext> getVisitor() {
+            return new AddDependenciesVisitor();
+        }
+
+        private class AddDependenciesVisitor extends MavenVisitor<ExecutionContext> {
+            @Override
+            public Maven visitMaven(Maven maven, ExecutionContext ctx) {
+                AddDependency addJunitApi = new AddDependency("org.junit.jupiter", "junit-jupiter-api", version);
                 addJunitApi.setScope("test");
-                andThen(addJunitApi);
+                doAfterVisit(addJunitApi);
 
-                AddDependency addJunitJupiterEngine = new AddDependency();
-                addJunitJupiterEngine.setGroupId("org.junit.jupiter");
-                addJunitJupiterEngine.setArtifactId("junit-jupiter-engine");
-                addJunitJupiterEngine.setVersion(version);
+                AddDependency addJunitJupiterEngine = new AddDependency("org.junit.jupiter", "junit-jupiter-engine", version);
                 addJunitJupiterEngine.setScope("test");
-                andThen(addJunitJupiterEngine);
-            }
+                doAfterVisit(addJunitJupiterEngine);
 
-            return super.visitMaven(maven);
+                return super.visitMaven(maven, ctx);
+            }
         }
     }
 }

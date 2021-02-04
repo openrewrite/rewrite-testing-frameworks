@@ -15,15 +15,15 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.AutoConfigure;
-import org.openrewrite.CompositeRefactorVisitor;
-import org.openrewrite.Formatting;
-import org.openrewrite.java.JavaIsoRefactorVisitor;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.SemanticallyEqual;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markers;
 import org.openrewrite.maven.AddDependency;
-import org.openrewrite.maven.MavenRefactorVisitor;
+import org.openrewrite.maven.MavenVisitor;
 import org.openrewrite.maven.tree.Maven;
 
 import java.util.Collections;
@@ -31,32 +31,25 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
-import static org.openrewrite.Formatting.EMPTY;
 import static org.openrewrite.Tree.randomId;
-import static org.openrewrite.java.testing.junit5.FrameworkTypes.extendWithIdent;
-import static org.openrewrite.java.testing.junit5.FrameworkTypes.extendWithType;
-import static org.openrewrite.java.testing.junit5.FrameworkTypes.runWithIdent;
-import static org.openrewrite.java.testing.junit5.FrameworkTypes.runWithType;
+import static org.openrewrite.java.testing.junit5.FrameworkTypes.*;
 
 /**
  * Convert @RunWith(MockitoJUnitRunner.class) and @RunWith(MockitoJUnit44Runner.class) to @ExtendWith(MockitoExtension.class)
  * MockitoJUnitRunner was part of the core library, but the MockitoExtension is in its own module.
  * So this will attempt to add a dependency on mockito-junit-jupiter so that MockitoExtension can be on the classpath.
- *
+ * <p>
  * This is part of the JUnit5 upgrade rather than the Mockito upgrade because you'd only need this if you were adopting JUnit5.
  * Mockito can be upgraded from 1 to 3 without this on JUnit 4.
  */
-@AutoConfigure
-public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
+public class MockitoRunnerToMockitoExtension extends Recipe {
 
-    public MockitoRunnerToMockitoExtension() {
-        AnnotationUpdate annotationUpdate = new AnnotationUpdate();
-        DependencyUpdate dependencyUpdate = new DependencyUpdate(annotationUpdate);
-        addVisitor(annotationUpdate);
-        addVisitor(dependencyUpdate);
+    @Override
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new AnnotationUpdateVisitor();
     }
 
-    private static class AnnotationUpdate extends JavaIsoRefactorVisitor {
+    private static class AnnotationUpdateVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final List<JavaType.Class> runWithMockitoAnnotationTypes = Stream.of(
                 "org.mockito.runners.MockitoJUnitRunner",
                 "org.mockito.junit.MockitoJUnitRunner",
@@ -69,26 +62,28 @@ public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
         private static final List<J.Annotation> runWithMockitoAnnotations = runWithMockitoAnnotationTypes.stream()
                 .map(type -> new J.Annotation(
                                 randomId(),
+                                Space.EMPTY,
+                                Markers.EMPTY,
                                 runWithIdent,
-                                new J.Annotation.Arguments(
-                                        randomId(),
+                                JContainer.build(
                                         Collections.singletonList(
-                                                new J.FieldAccess(
-                                                        randomId(),
-                                                        J.Ident.build(
+                                                JRightPadded.build(
+                                                        new J.FieldAccess(
                                                                 randomId(),
-                                                                type.getClassName(),
-                                                                type,
-                                                                EMPTY
-                                                        ),
-                                                        J.Ident.build(randomId(), "class", null, EMPTY),
-                                                        JavaType.Class.build("java.lang.Class"),
-                                                        EMPTY
-                                                )
-                                        ),
-                                        EMPTY
-                                ),
-                                EMPTY
+                                                                Space.EMPTY,
+                                                                Markers.EMPTY,
+                                                                J.Ident.build(randomId(), type.getClassName(), type),
+                                                                JLeftPadded.build(
+                                                                        J.Ident.build(
+                                                                                randomId(),
+                                                                                "class",
+                                                                                null
+                                                                        )
+                                                                ),
+                                                                JavaType.Class.build("java.lang.Class")
+                                                        ))
+                                        )
+                                )
                         )
                 )
                 .collect(toList());
@@ -96,48 +91,33 @@ public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
         private static final JavaType.Class mockitoExtensionType = JavaType.Class.build("org.mockito.junit.jupiter.MockitoExtension");
         private static final J.Annotation extendWithMockitoExtensionAnnotation = new J.Annotation(
                 randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
                 extendWithIdent,
-                new J.Annotation.Arguments(
-                        randomId(),
-                        Collections.singletonList(
+                JContainer.build(Collections.singletonList(
+                        JRightPadded.build(
                                 new J.FieldAccess(
                                         randomId(),
-                                        J.Ident.build(
-                                                randomId(),
-                                                "MockitoExtension",
-                                                mockitoExtensionType,
-                                                EMPTY
-                                        ),
-                                        J.Ident.build(randomId(), "class", null, EMPTY),
-                                        JavaType.Class.build("java.lang.Class"),
-                                        EMPTY
+                                        Space.EMPTY,
+                                        Markers.EMPTY,
+                                        J.Ident.build(randomId(), "MockitoExtension", mockitoExtensionType),
+                                        JLeftPadded.build(J.Ident.build(randomId(), Space.EMPTY, Markers.EMPTY, "class", null)),
+                                        JavaType.Class.build("java.lang.Class")
                                 )
-                        ),
-                        EMPTY
-                ),
-                EMPTY
+                        ))
+                )
         );
 
-        private boolean performedRefactor = false;
-        public boolean getPerformedRefactor() {
-            return performedRefactor;
-        }
-
-        @Override
-        public void nextCycle() {
-            performedRefactor = false;
-        }
-
-        public AnnotationUpdate() {
+        public AnnotationUpdateVisitor() {
             setCursoringOn();
         }
 
         @Override
-        public J.ClassDecl visitClassDecl(J.ClassDecl cd) {
+        public J.ClassDecl visitClassDecl(J.ClassDecl cd, ExecutionContext ctx) {
             boolean shouldReplaceAnnotation = cd.getAnnotations().stream()
                     .anyMatch(this::shouldReplaceAnnotation);
-            if(shouldReplaceAnnotation) {
-                performedRefactor = true;
+            if (shouldReplaceAnnotation) {
+                doAfterVisit(new DependencyUpdate());
                 List<J.Annotation> annotations = cd.getAnnotations().stream()
                         .map(this::mockitoRunnerToMockitoExtension)
                         .collect(toList());
@@ -147,47 +127,41 @@ public class MockitoRunnerToMockitoExtension extends CompositeRefactorVisitor {
         }
 
         private J.Annotation mockitoRunnerToMockitoExtension(J.Annotation maybeMockitoAnnotation) {
-            if(!shouldReplaceAnnotation(maybeMockitoAnnotation)) {
+            if (!shouldReplaceAnnotation(maybeMockitoAnnotation)) {
                 return maybeMockitoAnnotation;
             }
 
-            Formatting originalFormatting = maybeMockitoAnnotation.getFormatting();
-
-            J.Annotation extendWithSpringExtension = extendWithMockitoExtensionAnnotation.withFormatting(originalFormatting);
             maybeAddImport(extendWithType);
             maybeAddImport(mockitoExtensionType);
             runWithMockitoAnnotationTypes.forEach(this::maybeRemoveImport);
             maybeRemoveImport(runWithType);
 
-            return extendWithSpringExtension;
+            return extendWithMockitoExtensionAnnotation;
         }
 
         private boolean shouldReplaceAnnotation(J.Annotation maybeMockitoRunner) {
             return runWithMockitoAnnotations.stream()
-                    .anyMatch(mockitoRunnerAnnotation -> new SemanticallyEqual(mockitoRunnerAnnotation).visit(maybeMockitoRunner));
+                    .anyMatch(mockitoRunnerAnnotation -> SemanticallyEqual.areEqual(mockitoRunnerAnnotation, maybeMockitoRunner));
         }
     }
 
-    private static class DependencyUpdate extends MavenRefactorVisitor {
-        final AnnotationUpdate annotationUpdate;
-
-        private DependencyUpdate(AnnotationUpdate annotationUpdate) {
-            this.annotationUpdate = annotationUpdate;
-        }
+    private static class DependencyUpdate extends Recipe {
 
         @Override
-        public Maven visitMaven(Maven maven) {
-            if(annotationUpdate.getPerformedRefactor()) {
-                AddDependency addMockitoJunitJupiterDependency = new AddDependency();
-                addMockitoJunitJupiterDependency.setGroupId("org.mockito");
-                addMockitoJunitJupiterDependency.setArtifactId("mockito-junit-jupiter");
-                addMockitoJunitJupiterDependency.setVersion("3.x");
+        protected TreeVisitor<?, ExecutionContext> getVisitor() {
+            return new DependencyUpdateVisitor();
+        }
+
+        private static class DependencyUpdateVisitor extends MavenVisitor<ExecutionContext> {
+
+            @Override
+            public Maven visitMaven(Maven maven, ExecutionContext ctx) {
+                AddDependency addMockitoJunitJupiterDependency = new AddDependency("org.mockito", "mockito-junit-jupiter", "3.x");
                 addMockitoJunitJupiterDependency.setScope("test");
-                if (!andThen().contains(addMockitoJunitJupiterDependency)) {
-                    andThen(addMockitoJunitJupiterDependency);
-                }
+                doAfterVisit(addMockitoJunitJupiterDependency);
+                return super.visitMaven(maven, ctx);
             }
-            return super.visitMaven(maven);
         }
     }
+
 }

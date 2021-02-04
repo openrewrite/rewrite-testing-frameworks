@@ -15,24 +15,31 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.openrewrite.AutoConfigure;
-import org.openrewrite.java.JavaIsoRefactorVisitor;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.OrderImports;
 import org.openrewrite.java.tree.J;
 
 /**
  * Orders imports and removes unused imports from classes which import symbols from the "org.mockito" package.
  */
-@AutoConfigure
-public class CleanupMockitoImports extends JavaIsoRefactorVisitor {
+public class CleanupMockitoImports extends Recipe {
 
     @Override
-    public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu) {
-        if(cu.getImports().stream().anyMatch(impert -> impert.getPackageName().startsWith("org.mockito"))) {
-            OrderImports orderImports = new OrderImports();
-            orderImports.setRemoveUnused(true);
-            andThen(orderImports);
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new CleanupMockitoImportsVisitor();
+    }
+
+    public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
+
+        @Override
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            if (cu.getImports().stream().anyMatch(impoort -> impoort.getPackageName().startsWith("org.mockito"))) {
+                doAfterVisit(new OrderImports(true));
+            }
+            return cu;
         }
-        return cu;
     }
 }

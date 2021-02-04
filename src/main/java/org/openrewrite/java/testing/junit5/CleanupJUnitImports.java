@@ -15,26 +15,33 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.AutoConfigure;
-import org.openrewrite.java.JavaIsoRefactorVisitor;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.OrderImports;
 import org.openrewrite.java.tree.J;
 
 /**
  * Orders imports and removes unused imports from classes which import symbols from the "org.junit" package.
  */
-@AutoConfigure
-public class CleanupJUnitImports extends JavaIsoRefactorVisitor {
+public class CleanupJUnitImports extends Recipe {
 
     @Override
-    public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu) {
-        boolean shouldCleanup = cu.getImports().stream()
-                .anyMatch(impert -> impert.getPackageName().startsWith("org.junit"));
-        if(shouldCleanup) {
-            OrderImports orderImports = new OrderImports();
-            orderImports.setRemoveUnused(true);
-            andThen(orderImports);
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new CleanupJUnitImportsVisitor();
+    }
+
+    public static class CleanupJUnitImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
+
+        @Override
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            boolean shouldCleanup = cu.getImports().stream()
+                    .anyMatch(impert -> impert.getPackageName().startsWith("org.junit"));
+            if (shouldCleanup) {
+                doAfterVisit(new OrderImports(true));
+            }
+            return cu;
         }
-        return cu;
     }
 }

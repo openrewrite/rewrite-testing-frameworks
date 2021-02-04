@@ -15,136 +15,110 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.AutoConfigure;
-import org.openrewrite.Formatting;
-import org.openrewrite.java.AddAnnotation;
-import org.openrewrite.java.AutoFormat;
-import org.openrewrite.java.JavaIsoRefactorVisitor;
-import org.openrewrite.java.JavaRefactorVisitor;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.search.FindAnnotations;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markers;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Collections;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
 
 /**
  * Transforms the Junit4 @Category, which can list multiple categories, into one @Tag annotation per category listed
  */
-@AutoConfigure
-public class CategoryToTag extends JavaIsoRefactorVisitor {
-    private static final String categoryAnnotation = "org.junit.experimental.categories.Category";
-    private static final JavaType.Class tagType = JavaType.Class.build("org.junit.jupiter.api.Tag");
+public class CategoryToTag extends Recipe {
 
     @Override
-    public J.ClassDecl visitClassDecl(J.ClassDecl classDecl) {
-        J.ClassDecl cd = super.visitClassDecl(classDecl);
-        List<J.Annotation> categoryAnnotations = cd.findAnnotationsOnClass("@" + categoryAnnotation);
-        if(!categoryAnnotations.isEmpty()) {
-            andThen(new Scoped(cd));
-        }
-        return cd;
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new CategoryToTagVisitor();
     }
 
-    @Override
-    public J.MethodDecl visitMethod(J.MethodDecl method) {
-        J.MethodDecl m = super.visitMethod(method);
-        List<J.Annotation> categoryAnnotations = m.findAnnotations("@" + categoryAnnotation);
-        if(!categoryAnnotations.isEmpty()) {
-            andThen(new Scoped(m));
-        }
-        return m;
-    }
+    public static class CategoryToTagVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-    public static class Scoped extends JavaIsoRefactorVisitor {
-        final J scope;
-        public Scoped(J scope) {
-            this.scope = scope;
-        }
+        private static final String categoryAnnotation = "org.junit.experimental.categories.Category";
+        private static final JavaType.Class tagType = JavaType.Class.build("org.junit.jupiter.api.Tag");
 
         @Override
-        public J.ClassDecl visitClassDecl(J.ClassDecl classDecl) {
-            J.ClassDecl c = super.visitClassDecl(classDecl);
-            if (scope.isScope(classDecl)) {
-                AtomicInteger index = new AtomicInteger(0);
-                c = c.withAnnotations(c.getAnnotations().stream()
+        public J.ClassDecl visitClassDecl(J.ClassDecl classDecl, ExecutionContext ctx) {
+            J.ClassDecl cd = super.visitClassDecl(classDecl, ctx);
+            Set<J.Annotation> categoryAnnotations = FindAnnotations.find(cd, "@" + categoryAnnotation);
+            if (!categoryAnnotations.isEmpty()) {
+                cd = cd.withAnnotations(cd.getAnnotations().stream()
                         .flatMap(this::categoryAnnotationToTagAnnotations)
-                        .map(annotation -> {
-                            andThen(new AutoFormat(annotation));
-                            if (index.getAndIncrement() != 0) {
-                                return annotation.withPrefix("\n");
-                            } else {
-                                return annotation;
-                            }
-                        })
                         .collect(Collectors.toList()));
-
                 maybeRemoveImport(categoryAnnotation);
                 maybeAddImport(tagType);
             }
-
-            return c;
+            cd = maybeAutoFormat(classDecl, cd, ctx);
+            return cd;
         }
 
         @Override
-        public J.MethodDecl visitMethod(J.MethodDecl m) {
-            if (scope.isScope(m)) {
-                AtomicInteger index = new AtomicInteger(0);
+        public J.MethodDecl visitMethod(J.MethodDecl method, ExecutionContext ctx) {
+            J.MethodDecl m = super.visitMethod(method, ctx);
+            Set<J.Annotation> categoryAnnotations = FindAnnotations.find(m, "@" + categoryAnnotation);
+            if (!categoryAnnotations.isEmpty()) {
                 m = m.withAnnotations(m.getAnnotations().stream()
                         .flatMap(this::categoryAnnotationToTagAnnotations)
-                        .map(annotation -> {
-                            andThen(new AutoFormat(annotation));
-                            if (index.getAndIncrement() != 0) {
-                                return annotation.withPrefix("\n");
-                            } else {
-                                return annotation;
-                            }
-                        })
                         .collect(Collectors.toList()));
 
                 maybeRemoveImport(categoryAnnotation);
                 maybeAddImport(tagType);
             }
+            m = maybeAutoFormat(method, m, ctx);
             return m;
         }
 
         private Stream<J.Annotation> categoryAnnotationToTagAnnotations(J.Annotation maybeCategory) {
-                if(TypeUtils.isOfClassType(maybeCategory.getAnnotationType().getType(), categoryAnnotation)) {
-                    Expression annotationArgument = maybeCategory.getArgs().getArgs().iterator().next();
+            if (TypeUtils.isOfClassType(maybeCategory.getAnnotationType().getType(), categoryAnnotation)) {
+                Expression annotationArgument = maybeCategory.getArgs().iterator().next();
 
-                    Stream<J.FieldAccess> categories;
-                    if (annotationArgument instanceof J.NewArray) {
-                        categories = ((J.NewArray) annotationArgument).getInitializer().getElements().stream()
-                                .map(J.FieldAccess.class::cast);
-                    } else {
-                        categories = Stream.of((J.FieldAccess) annotationArgument);
-                    }
-
-                    return categories.map(category -> {
-                            String targetName = ((J.Ident) category.getTarget()).getSimpleName();
-                            J.Literal tagValue = new J.Literal(
-                                    randomId(),
-                                    targetName,
-                                    "\"" + targetName + "\"",
-                                    JavaType.Primitive.String,
-                                    Formatting.EMPTY);
-                            J.Annotation tagAnnotation = J.Annotation.buildAnnotation(
-                                    maybeCategory.getFormatting(),
-                                    tagType,
-                                    Collections.singletonList(tagValue)
-                            );
-                            maybeRemoveImport(TypeUtils.asFullyQualified(category.getTarget().getType()));
-                            return tagAnnotation;
-                    });
+                Stream<J.FieldAccess> categories;
+                if (annotationArgument instanceof J.NewArray) {
+                    categories = ((J.NewArray) annotationArgument).getInitializer().stream()
+                            .map(J.FieldAccess.class::cast);
                 } else {
-                    return Stream.of(maybeCategory);
+                    categories = Stream.of((J.FieldAccess) annotationArgument);
                 }
+
+                return categories.map(category -> {
+                    String targetName = ((J.Ident) category.getTarget()).getSimpleName();
+                    J.Annotation tagAnnotation = new J.Annotation(
+                            randomId(),
+                            Space.EMPTY,
+                            Markers.EMPTY,
+                            J.Ident.build(randomId(), Space.EMPTY, Markers.EMPTY, tagType.getClassName(), tagType),
+                            JContainer.build(Space.EMPTY,
+                                    Collections.singletonList(
+                                            new JRightPadded<>(
+                                                    new J.Literal(
+                                                            randomId(),
+                                                            Space.EMPTY,
+                                                            Markers.EMPTY,
+                                                            targetName,
+                                                            "\"" + targetName + "\"",
+                                                            JavaType.Primitive.String
+                                                    ),
+                                                    Space.EMPTY,
+                                                    Markers.EMPTY
+                                            )
+                                    ),
+                                    Markers.EMPTY
+                            )
+                    );
+                    maybeRemoveImport(TypeUtils.asFullyQualified(category.getTarget().getType()));
+                    return tagAnnotation;
+                });
+            } else {
+                return Stream.of(maybeCategory);
+            }
         }
     }
 }

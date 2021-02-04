@@ -15,18 +15,17 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.AutoConfigure;
-import org.openrewrite.java.AddImport;
-import org.openrewrite.java.AutoFormat;
-import org.openrewrite.java.JavaIsoRefactorVisitor;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Statement;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.format.AutoFormatVisitor;
+import org.openrewrite.java.search.FindFields;
+import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static java.util.Collections.singletonList;
 
@@ -37,62 +36,62 @@ import static java.util.Collections.singletonList;
  * Migrating the other methods of ExpectedException is not yet implemented.
  *
  */
-@AutoConfigure
-public class ExpectedExceptionToAssertThrows extends JavaIsoRefactorVisitor {
-
-    private static final String ExpectedExceptionFqn = "org.junit.rules.ExpectedException";
-
-    public ExpectedExceptionToAssertThrows() {
-        setCursoringOn();
-    }
+public class ExpectedExceptionToAssertThrows extends Recipe {
 
     @Override
-    public J.ClassDecl visitClassDecl(J.ClassDecl classDecl) {
-        J.ClassDecl cd = super.visitClassDecl(classDecl);
-        List<J.VariableDecls> expectedExceptionFields = classDecl.findFields(ExpectedExceptionFqn);
-        if(expectedExceptionFields.size() > 0) {
-            // Remove the ExpectedException fields
-            List<J> statements = new ArrayList<>(classDecl.getBody().getStatements());
-            statements.removeAll(expectedExceptionFields);
-            cd = cd.withBody(classDecl.getBody().withStatements(statements));
-        }
-        return cd;
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new ExpectedExceptionToAssertThrowsVisitor();
     }
 
-    @Override
-    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method) {
-        if(method.getType() != null && method.getType().getDeclaringType().getFullyQualifiedName().equals(ExpectedExceptionFqn)) {
-            J.MethodDecl enclosing = getCursor().firstEnclosing(J.MethodDecl.class);
-            if(enclosing != null) {
-                andThen(new Scoped(enclosing, method));
-            }
-        }
-        return super.visitMethodInvocation(method);
-    }
+    public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-    private static class Scoped extends JavaIsoRefactorVisitor {
-        private final J.MethodDecl enclosingMethodDecl;
-        private final J.MethodInvocation expectedExceptionMethod;
+        private static final String EXPECTED_EXCEPTION_FQN = "org.junit.rules.ExpectedException";
+        private static final String EXPECTED_EXCEPTION_METHOD_MESSAGE_KEY = "expectedExceptionMethod";
 
-        private Scoped(J.MethodDecl enclosingMethodDecl, J.MethodInvocation expectedExceptionMethod) {
-            this.enclosingMethodDecl = enclosingMethodDecl;
-            this.expectedExceptionMethod = expectedExceptionMethod;
+        public ExpectedExceptionToAssertThrowsVisitor() {
+            setCursoringOn();
         }
 
         @Override
-        public J.MethodDecl visitMethod(J.MethodDecl m) {
-            if(!(enclosingMethodDecl.isScope(m) && m.getBody() != null)) {
+        public J.ClassDecl visitClassDecl(J.ClassDecl classDecl, ExecutionContext ctx) {
+            J.ClassDecl cd = super.visitClassDecl(classDecl, ctx);
+            Set<J.VariableDecls> expectedExceptionFields = FindFields.find(classDecl, EXPECTED_EXCEPTION_FQN);
+            if (expectedExceptionFields.size() > 0) {
+                // Remove the ExpectedException fields
+                List<Statement> statements = new ArrayList<>(classDecl.getBody().getStatements());
+                statements.removeAll(expectedExceptionFields);
+                cd = cd.withBody(classDecl.getBody().withStatements(statements));
+            }
+            return cd;
+        }
+
+        @Override
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            if (method.getType() != null && method.getType().getDeclaringType().getFullyQualifiedName().equals(EXPECTED_EXCEPTION_FQN)) {
+                J.MethodDecl enclosing = getCursor().firstEnclosing(J.MethodDecl.class);
+                if (enclosing != null) {
+                    getCursor().putMessageOnFirstEnclosing(J.MethodDecl.class, EXPECTED_EXCEPTION_METHOD_MESSAGE_KEY, method);
+                }
+            }
+            return super.visitMethodInvocation(method, ctx);
+        }
+
+        @Override
+        public J.MethodDecl visitMethod(J.MethodDecl m, ExecutionContext ctx) {
+
+            J.MethodInvocation expectedExceptionMethod = getCursor().pollMessage(EXPECTED_EXCEPTION_METHOD_MESSAGE_KEY);
+            if (expectedExceptionMethod == null) {
                 return m;
             }
 
-            List<Expression> args = expectedExceptionMethod.getArgs().getArgs();
-            if(args.size() != 1) {
+            List<Expression> args = expectedExceptionMethod.getArgs();
+            if (args.size() != 1) {
                 return m;
             }
 
             Expression expectedException = args.get(0);
             JavaType.FullyQualified argType = TypeUtils.asFullyQualified(expectedException.getType());
-            if(argType == null || !argType.getFullyQualifiedName().equals("java.lang.Class")) {
+            if (argType == null || !argType.getFullyQualifiedName().equals("java.lang.Class")) {
                 return m;
             }
 
@@ -102,13 +101,8 @@ public class ExpectedExceptionToAssertThrows extends JavaIsoRefactorVisitor {
 
             J.MethodInvocation assertThrows = AssertionsBuilder.assertThrows(expectedException, statements);
 
-            AddImport addAssertThrows = new AddImport();
-            addAssertThrows.setType("org.junit.jupiter.api.Assertions");
-            addAssertThrows.setStatic("assertThrows");
-            addAssertThrows.setOnlyIfReferenced(false);
-            andThen(addAssertThrows);
-
-            andThen(new AutoFormat(assertThrows));
+            maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
+            assertThrows = (J.MethodInvocation) new AutoFormatVisitor<ExecutionContext>().visit(assertThrows, ctx);
             maybeRemoveImport("org.junit.Rule");
             maybeRemoveImport("org.junit.rules.ExpectedException");
 

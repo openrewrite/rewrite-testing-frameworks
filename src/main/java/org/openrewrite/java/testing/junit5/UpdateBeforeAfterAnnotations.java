@@ -15,8 +15,13 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.AutoConfigure;
-import org.openrewrite.java.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.ChangeType;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
@@ -29,62 +34,59 @@ import java.util.List;
  * to "package" to comply with JUnit 5 best practices.
  *
  * <PRE>
- *  org.junit.Before --> org.junit.jupiter.api.BeforeEach
- *  org.junit.After --> org.junit.jupiter.api.AfterEach
- *  org.junit.BeforeClass --> org.junit.jupiter.api.BeforeAll
- *  org.junit.AfterClass --> org.junit.jupiter.api.AfterAll
+ * org.junit.Before --> org.junit.jupiter.api.BeforeEach
+ * org.junit.After --> org.junit.jupiter.api.AfterEach
+ * org.junit.BeforeClass --> org.junit.jupiter.api.BeforeAll
+ * org.junit.AfterClass --> org.junit.jupiter.api.AfterAll
  * </PRE>
  */
-@AutoConfigure
-public class UpdateBeforeAfterAnnotations extends JavaIsoRefactorVisitor {
+public class UpdateBeforeAfterAnnotations extends Recipe {
 
     @Override
-    public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu) {
-        //This visitor handles changing the method visibility for any method annotated with one of the four before/after
-        //annotations. It registers visitors that will sweep behind it making the type changes.
-        ChangeType changeType = new ChangeType();
-        changeType.setType("org.junit.Before");
-        changeType.setTargetType("org.junit.jupiter.api.BeforeEach");
-        andThen(changeType);
-
-        changeType = new ChangeType();
-        changeType.setType("org.junit.After");
-        changeType.setTargetType("org.junit.jupiter.api.AfterEach");
-        andThen(changeType);
-
-        changeType = new ChangeType();
-        changeType.setType("org.junit.BeforeClass");
-        changeType.setTargetType("org.junit.jupiter.api.BeforeAll");
-        andThen(changeType);
-
-        changeType = new ChangeType();
-        changeType.setType("org.junit.AfterClass");
-        changeType.setTargetType("org.junit.jupiter.api.AfterAll");
-        andThen(changeType);
-
-        return super.visitCompilationUnit(cu);
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new UpdateBeforeAfterAnnotationsVisitor();
     }
 
-    @Override
-    public J.MethodDecl visitMethod(J.MethodDecl method) {
-        J.MethodDecl m = super.visitMethod(method);
+    public static class UpdateBeforeAfterAnnotationsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        boolean changed = false;
-        List<J.Annotation> annotations = new ArrayList<>(m.getAnnotations());
-        for (J.Annotation a : annotations) {
+        @Override
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            //This visitor handles changing the method visibility for any method annotated with one of the four before/after
+            //annotations. It registers visitors that will sweep behind it making the type changes.
+            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach"));
+            doAfterVisit(new ChangeType("org.junit.After", "org.junit.jupiter.api.AfterEach"));
+            doAfterVisit(new ChangeType("org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll"));
+            doAfterVisit(new ChangeType("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll"));
 
-            if (TypeUtils.isOfClassType(a.getType(), "org.junit.Before") ||
-                    TypeUtils.isOfClassType(a.getType(), "org.junit.After") ||
-                    TypeUtils.isOfClassType(a.getType(), "org.junit.BeforeClass") ||
-                    TypeUtils.isOfClassType(a.getType(), "org.junit.AfterClass")) {
-
-                //If we found the annotation, we change the visibility of the method to package. Also need to format
-                //the method declaration because the previous visibility likely had formatting that is removed.
-                m = m.withModifiers(J.Modifier.withVisibility(m.getModifiers(), "package"));
-                andThen(new AutoFormat(m));
-                break;
-            }
+            return super.visitCompilationUnit(cu, ctx);
         }
-        return m;
+
+        @Override
+        public J.MethodDecl visitMethod(J.MethodDecl method, ExecutionContext ctx) {
+            J.MethodDecl m = super.visitMethod(method, ctx);
+
+            boolean changed = false;
+            List<J.Annotation> annotations = new ArrayList<>(m.getAnnotations());
+            for (J.Annotation a : annotations) {
+
+                if (TypeUtils.isOfClassType(a.getType(), "org.junit.Before") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.After") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.BeforeClass") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.AfterClass")) {
+
+                    //If we found the annotation, we change the visibility of the method to package. Also need to format
+                    //the method declaration because the previous visibility likely had formatting that is removed.
+                    m = m.withModifiers(
+                            ListUtils.map(m.getModifiers(),
+                                    modifier -> (modifier.getType() == J.Modifier.Type.Private ||
+                                            modifier.getType() == J.Modifier.Type.Public ||
+                                            modifier.getType() == J.Modifier.Type.Protected) ? null : modifier)
+                    );
+                    m = (J.MethodDecl) new AutoFormatVisitor<>().visit(m, ctx, getCursor());
+                    break;
+                }
+            }
+            return m;
+        }
     }
 }
