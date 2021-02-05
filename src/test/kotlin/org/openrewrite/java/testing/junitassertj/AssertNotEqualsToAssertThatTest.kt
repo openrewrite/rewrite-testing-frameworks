@@ -17,20 +17,21 @@ package org.openrewrite.java.testing.junitassertj
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
-import org.openrewrite.RefactorVisitor
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertNotEqualsToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit> {
+class AssertNotEqualsToAssertThatTest : RecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
             .classpath("junit", "assertj-core", "apiguardian-api")
             .build()
 
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertNotEqualsToAssertThat())
+    override val recipe: Recipe
+        get() = AssertNotEqualsToAssertThat()
 
     @Test
-    fun singleStaticMethodNoMessage() = assertRefactored(
+    fun singleStaticMethodNoMessage() = assertChanged(
             before = """
                 import org.junit.Test;
 
@@ -66,7 +67,7 @@ class AssertNotEqualsToAssertThatTest: RefactorVisitorTestForParser<J.Compilatio
     )
 
     @Test
-    fun singleStaticMethodWithMessage() = assertRefactored(
+    fun singleStaticMethodWithMessage() = assertChanged(
             before = """
                 import org.junit.Test;
 
@@ -102,7 +103,7 @@ class AssertNotEqualsToAssertThatTest: RefactorVisitorTestForParser<J.Compilatio
     )
 
     @Test
-    fun doubleCloseToWithNoMessage() = assertRefactored(
+    fun doubleCloseToWithNoMessage() = assertChanged(
             before = """
                 import org.junit.Test;
 
@@ -139,7 +140,7 @@ class AssertNotEqualsToAssertThatTest: RefactorVisitorTestForParser<J.Compilatio
     )
 
     @Test
-    fun doubleCloseToWithMessage() = assertRefactored(
+    fun doubleCloseToWithMessage() = assertChanged(
             before = """
                 import org.junit.Test;
 
@@ -176,7 +177,7 @@ class AssertNotEqualsToAssertThatTest: RefactorVisitorTestForParser<J.Compilatio
     )
 
     @Test
-    fun doubleObjectsCloseToWithMessage() = assertRefactored(
+    fun doubleObjectsCloseToWithMessage() = assertChanged(
             before = """
                 import org.junit.Test;
 
@@ -213,7 +214,7 @@ class AssertNotEqualsToAssertThatTest: RefactorVisitorTestForParser<J.Compilatio
     )
 
     @Test
-    fun floatCloseToWithNoMessage() = assertRefactored(
+    fun floatCloseToWithNoMessage() = assertChanged(
             before = """
                 import org.junit.Test;
 
@@ -250,7 +251,7 @@ class AssertNotEqualsToAssertThatTest: RefactorVisitorTestForParser<J.Compilatio
     )
 
     @Test
-    fun floatCloseToWithMessage() = assertRefactored(
+    fun floatCloseToWithMessage() = assertChanged(
             before = """
                 import org.junit.Test;
 
@@ -287,7 +288,7 @@ class AssertNotEqualsToAssertThatTest: RefactorVisitorTestForParser<J.Compilatio
     )
 
     @Test
-    fun fullyQualifiedMethodWithMessage() = assertRefactored(
+    fun fullyQualifiedMethodWithMessage() = assertChanged(
             before = """
                 import java.io.File;
                 import org.junit.Test;

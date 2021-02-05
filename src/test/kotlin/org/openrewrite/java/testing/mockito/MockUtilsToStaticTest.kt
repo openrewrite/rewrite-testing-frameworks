@@ -16,20 +16,21 @@
 package org.openrewrite.java.testing.mockito
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.RefactorVisitor
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.tree.J
 
-class MockUtilsToStaticTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class MockUtilsToStaticTest : RecipeTest {
 
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("mockito-all")
             .build()
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(MockUtilsToStatic())
+
+    override val recipe: Recipe
+        get() = MockUtilsToStatic()
 
     @Test
-    fun basicInstanceToStaticSwap() = assertRefactored(
+    fun basicInstanceToStaticSwap() = assertChanged(
             before = """
                 package mockito.example;
     
@@ -55,7 +56,7 @@ class MockUtilsToStaticTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     )
 
     @Test
-    fun mockUtilsVariableToStatic() = assertRefactored(
+    fun mockUtilsVariableToStatic() = assertChanged(
             before = """
                 package mockito.example;
     
@@ -82,7 +83,7 @@ class MockUtilsToStaticTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     )
 
     @Test
-    fun mockUtilsFieldToStatic() = assertRefactored(
+    fun mockUtilsFieldToStatic() = assertChanged(
             before = """
                 package mockito.example;
     

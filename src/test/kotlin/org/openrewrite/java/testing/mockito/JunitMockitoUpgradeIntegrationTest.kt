@@ -15,31 +15,35 @@
  */
 package org.openrewrite.java.testing.mockito
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.openrewrite.*
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
+import org.openrewrite.SourceFile
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.tree.J
+import org.openrewrite.loadRecipeFromClasspath
 import org.openrewrite.maven.MavenParser
 import org.openrewrite.maven.tree.Maven
 
 /**
  * Validates the recipes related to upgrading from Mockito 1 to Mockito 3
  */
-class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class JunitMockitoUpgradeIntegrationTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("mockito-all", "junit", "hamcrest")
             .build()
-    override val visitors: Iterable<RefactorVisitor<*>> = loadVisitorsForTest(
-            "org.openrewrite.java.testing.JUnit5Migration",
-            "org.openrewrite.java.testing.Mockito1to3Migration")
+
+    override val recipe: Recipe
+        get() = loadRecipeFromClasspath("org.openrewrite.java.testing.JUnit5Migration",
+                    "org.openrewrite.java.testing.Mockito1to3Migration")
 
     /**
      * Replace org.mockito.MockitoAnnotations.Mock with org.mockito.Mock
      */
     @Test
-    fun replaceMockAnnotation() = assertRefactored(
+    fun replaceMockAnnotation() = assertChanged(
             before = """
                 package org.openrewrite.java.testing.junit5;
                 
@@ -141,7 +145,7 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
      * Mockito 2+ uses Matchers.any() to match anything including the arguments to a variadic function.
      */
     @Test
-    fun replacesAnyVararg() = assertRefactored(
+    fun replacesAnyVararg() = assertChanged(
             before = """
                 package mockito.example;
     
@@ -184,7 +188,7 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
      * swap 'em
      */
     @Test
-    fun replacesGetArgumentAt() = assertRefactored(
+    fun replacesGetArgumentAt() = assertChanged(
             before = """
                 package mockito.example;
 
@@ -222,7 +226,7 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
     )
 
     @Test
-    fun replacesMockitoJUnitRunner() = assertRefactored(
+    fun replacesMockitoJUnitRunner() = assertChanged(
             before = """
                 import org.junit.runner.RunWith;
                 import org.mockito.runners.MockitoJUnitRunner;
@@ -457,9 +461,8 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
 
     @Test
     fun theBigOne() {
-        val sources: List<SourceFile> =
-                parser.parse(exampleJunitBefore) +
-                MavenParser.builder().build().parse("""
+        val javaSource = parser.parse(exampleJunitBefore)
+        val mavenSource = MavenParser.builder().build().parse("""
                     <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
                         <modelVersion>4.0.0</modelVersion>
                     
@@ -484,12 +487,13 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
                     </project>
                 """.trimIndent())
 
-        val fixed = Refactor(true)
-                .visit(visitors)
-                .fix(sources)
+        val sources: List<SourceFile> = javaSource + mavenSource
 
-        val mavenChange = fixed.find { it -> it.fixed is Maven }!!
-        val actualPom = (mavenChange.fixed as Maven)
+        val results = recipe.run(sources)
+
+        val mavenResult = results.find { it.before === mavenSource }
+        assertThat(mavenResult).isNotNull
+        val actualPom = mavenResult!!.after as Maven
         val deps = actualPom.model.dependencies
         assertEquals(2, deps.size,
                 "With junit removed and junit-jupiter-engine and junit-jupiter-api added there should be exactly 2 dependencies remaining")
@@ -497,8 +501,10 @@ class JunitMockitoUpgradeIntegrationTest : RefactorVisitorTestForParser<J.Compil
                 "There should be a junit-jupiter-engine dependency of major version 5")
         assertTrue(deps.find { it.artifactId == "junit-jupiter-api" }!!.version.startsWith("5"),
                 "There should be a junit-jupiter-api dependency of major version 5")
-        val actualJunit = fixed.find { it -> it.fixed is J.CompilationUnit }!!
-        assertEquals(exampleJunitAfter, actualJunit.fixed!!.printTrimmed())
+
+        val javaResult = results.find { it.before === javaSource }
+        assertThat(javaResult).isNotNull
+        assertThat(javaResult!!.after!!.printTrimmed()).isEqualTo(exampleJunitAfter)
     }
 
 }

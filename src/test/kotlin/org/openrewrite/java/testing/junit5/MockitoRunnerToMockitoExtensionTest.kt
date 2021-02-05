@@ -15,28 +15,25 @@
  */
 package org.openrewrite.java.testing.junit5
 
+import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import org.openrewrite.*
+import org.openrewrite.ExecutionContext
+import org.openrewrite.Issue
+import org.openrewrite.SourceFile
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.tree.J
 import org.openrewrite.maven.MavenParser
-import org.openrewrite.maven.tree.Maven
 
-class MockitoRunnerToMockitoExtensionTest: RefactorVisitorTestForParser<J.CompilationUnit> {
+class MockitoRunnerToMockitoExtensionTest {
 
-    override val parser= JavaParser.fromJavaVersion()
-        .classpath("junit", "mockito")
-        .build()
+    private val javaParser = JavaParser.fromJavaVersion().classpath(
+            JavaParser.dependenciesFromClasspath("junit-jupiter-api", "apiguardian-api")).build()
 
-    override val visitors = listOf(MockitoRunnerToMockitoExtension())
+    private val mavenParser = MavenParser.builder().build()
 
     @Test
     fun replacesAnnotationAddsDependency() {
-        val mp = MavenParser.builder().build()
-        val sources: List<SourceFile> = parser.parse("""
+        val javaSource = javaParser.parse("""
             package org.openrewrite.java.testing.junit5;
 
             import org.junit.Test;
@@ -57,7 +54,9 @@ class MockitoRunnerToMockitoExtensionTest: RefactorVisitorTestForParser<J.Compil
                     list.add(100);
                 }
             }
-        """.trimIndent()) + mp.parse("""
+        """.trimIndent())
+
+        val mavenSource = mavenParser.parse("""
             <project>
               <modelVersion>4.0.0</modelVersion>
               <groupId>com.mycompany.app</groupId>
@@ -66,13 +65,23 @@ class MockitoRunnerToMockitoExtensionTest: RefactorVisitorTestForParser<J.Compil
             </project>
         """.trimIndent())
 
-        val changes = Refactor()
-                .visit(visitors)
-                .fix(sources)
+        val sources: List<SourceFile> = javaSource + mavenSource
 
+        val results = MockitoRunnerToMockitoExtension().run(sources,
+                ExecutionContext.builder()
+                        .maxCycles(2)
+                        .doOnError { t: Throwable? -> Assertions.fail<Any>("Recipe threw an exception", t) }
+                        .build())
 
-        val actualClass = changes.find { it.fixed is J.CompilationUnit }!!.fixed as J.CompilationUnit
-        val expectedClass = """
+        assertThat(results).`as`("Recipe must make changes").isNotEmpty
+        assertThat(results).hasSize(2)
+        val javaResult = results.find { it.before === javaSource }
+        val mavenResult = results.find { it.before === mavenSource }
+
+        assertThat(javaResult).isNotNull
+        assertThat(javaResult!!.after).isNotNull
+        assertThat(javaResult.after!!.printTrimmed())
+                .isEqualTo("""
             package org.openrewrite.java.testing.junit5;
 
             import org.junit.Test;
@@ -93,13 +102,26 @@ class MockitoRunnerToMockitoExtensionTest: RefactorVisitorTestForParser<J.Compil
                     list.add(100);
                 }
             }
-        """.trimIndent()
+        """.trimIndent())
 
-        assertEquals(expectedClass, actualClass.printTrimmed())
-
-        val actualPom = changes.find { it.fixed is Maven }!!.fixed as Maven
-        val mockitoJunitJupiterDep = actualPom.model.dependencies.find { it.artifactId == "mockito-junit-jupiter" }
-        assertNotNull(mockitoJunitJupiterDep)
+        assertThat(mavenResult).isNotNull
+        assertThat(mavenResult!!.after).isNotNull
+        assertThat(mavenResult.after!!.printTrimmed())
+                .isEqualTo("""
+                    <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <groupId>com.mycompany.app</groupId>
+                      <artifactId>my-app</artifactId>
+                      <version>1</version>
+                      <dependencies>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-junit-jupiter</artifactId>
+                            <version>3.x</version>
+                        </dependency>
+                      </dependencies>
+                    </project>
+                """.trimIndent())
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/22")
@@ -146,7 +168,19 @@ class MockitoRunnerToMockitoExtensionTest: RefactorVisitorTestForParser<J.Compil
                 }
             }
         """.trimIndent()
-        val expectedShouldBeRefactored = """
+
+        val sources = javaParser.parse(shouldBeRefactored, shouldBeLeftAlone)
+
+        val results = MockitoRunnerToMockitoExtension().run(sources,
+                ExecutionContext.builder()
+                        .maxCycles(2)
+                        .doOnError { t: Throwable? -> Assertions.fail<Any>("Recipe threw an exception", t) }
+                        .build())
+
+        assertThat(results.size).`as`("There should be exactly one change, made to class \"ShouldBeRefactored\"").isEqualTo(1)
+        assertThat(results[0].before === sources[0])
+
+        assertThat(results[0].after!!.printTrimmed()).isEqualTo("""
             package org.openrewrite.java.testing.junit5;
             
             import org.junit.Test;
@@ -167,14 +201,7 @@ class MockitoRunnerToMockitoExtensionTest: RefactorVisitorTestForParser<J.Compil
                     list.add(100);
                 }
             }
-        """.trimIndent()
+        """.trimIndent())
 
-        val changes = Refactor()
-            .visit(listOf(MockitoRunnerToMockitoExtension()))
-            .fix(parser.parse(shouldBeRefactored, shouldBeLeftAlone))
-
-        assertThat(changes.size).`as`("There should be exactly one change, made to class \"ShouldBeRefactored\"").isEqualTo(1)
-        val actualShouldBeRefactored = changes.first().fixed!! as J.CompilationUnit
-        assertThat(actualShouldBeRefactored.printTrimmed()).isEqualTo(expectedShouldBeRefactored)
     }
 }

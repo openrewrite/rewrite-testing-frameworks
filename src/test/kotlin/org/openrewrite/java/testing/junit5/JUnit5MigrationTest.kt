@@ -16,20 +16,21 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.RefactorVisitor
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.tree.J
-import org.openrewrite.loadVisitorsForTest
+import org.openrewrite.loadRecipeFromClasspath
 
-class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class JUnit5MigrationTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
-    override val visitors = loadVisitorsForTest("org.openrewrite.java.testing.JUnit5Migration")
+
+    override val recipe: Recipe
+        get() = loadRecipeFromClasspath("org.openrewrite.java.testing.JUnit5Migration")
 
     @Test
-    fun changeBeforeToBeforeEach() = assertRefactored(
+    fun changeBeforeToBeforeEach() = assertChanged(
             before = """
                 import org.junit.Before;
 
@@ -49,7 +50,7 @@ class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     )
 
     @Test
-    fun changeAfterToAfterEach() = assertRefactored(
+    fun changeAfterToAfterEach() = assertChanged(
             before = """
                 import org.junit.After;
 
@@ -69,7 +70,7 @@ class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     )
 
     @Test
-    fun changeBeforeClassToBeforeAll() = assertRefactored(
+    fun changeBeforeClassToBeforeAll() = assertChanged(
             before = """
                 import org.junit.BeforeClass;
 
@@ -90,7 +91,7 @@ class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     )
 
     @Test
-    fun changeAfterClassToAfterAll() = assertRefactored(
+    fun changeAfterClassToAfterAll() = assertChanged(
             before = """
                 import org.junit.AfterClass;
 
@@ -110,7 +111,7 @@ class JUnit5MigrationTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     )
 
     @Test
-    fun changeIgnoreToDisabled() = assertRefactored(
+    fun changeIgnoreToDisabled() = assertChanged(
             before = """
                 import org.junit.Ignore;
 

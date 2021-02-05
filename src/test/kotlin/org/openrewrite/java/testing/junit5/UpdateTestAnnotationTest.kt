@@ -17,20 +17,21 @@ package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
-import org.openrewrite.RefactorVisitor
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> {
+class UpdateTestAnnotationTest: RecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(UpdateTestAnnotation())
+    override val recipe: Recipe
+        get() = UpdateTestAnnotation()
 
     @Test
-    fun assertThrowsSingleLine() = assertRefactored(
+    fun assertThrowsSingleLine() = assertChanged(
             before = """
                 import org.junit.Test;
                 
@@ -60,7 +61,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
     )
 
     @Test
-    fun assertThrowsSingleStatement() = assertRefactored(
+    fun assertThrowsSingleStatement() = assertChanged(
             before = """
                 import org.junit.Test;
                 
@@ -90,7 +91,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
     )
 
     @Test
-    fun assertThrowsMultiLine() = assertRefactored(
+    fun assertThrowsMultiLine() = assertChanged(
             before = """
                 import org.junit.Test;
                 
@@ -122,7 +123,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
     )
 
     @Test
-    fun noTestAnnotationValues() = assertRefactored(
+    fun noTestAnnotationValues() = assertChanged(
             before = """
                 import org.junit.Test;
                 
@@ -144,7 +145,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
     )
 
     @Test
-    fun testAnnotationWithTimeout() = assertRefactored(
+    fun testAnnotationWithTimeout() = assertChanged(
             before = """
                 import org.junit.Test;
                 
@@ -168,7 +169,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
     )
 
     @Test
-    fun testAnnotationWithTimeoutAndException() = assertRefactored(
+    fun testAnnotationWithTimeoutAndException() = assertChanged(
             before = """
                 import org.junit.Test;
                 
@@ -200,7 +201,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
     )
 
     @Test
-    fun protectedToPackageVisibility() = assertRefactored(
+    fun protectedToPackageVisibility() = assertChanged(
         //An existing test method with protected visibility would not be executed by JUnit 4. This refactor will actual
         //fix this use case when moving to JUnit 5.
 
@@ -227,7 +228,7 @@ class UpdateTestAnnotationTest: RefactorVisitorTestForParser<J.CompilationUnit> 
     )
 
     @Test
-    fun privateToPackageVisibility() = assertRefactored(
+    fun privateToPackageVisibility() = assertChanged(
         //An existing test method with private visibility would not be executed by JUnit 4. This refactor will actual
         //fix this use case when moving to JUnit 5.
         before = """

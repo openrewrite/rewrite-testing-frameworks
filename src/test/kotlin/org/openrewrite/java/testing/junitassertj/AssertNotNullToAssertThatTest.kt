@@ -17,21 +17,22 @@ package org.openrewrite.java.testing.junitassertj
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
-import org.openrewrite.RefactorVisitor
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertNotNullToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class AssertNotNullToAssertThatTest : RecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-        .classpath("junit", "assertj-core", "apiguardian-api")
-        .build()
+            .classpath("junit", "assertj-core", "apiguardian-api")
+            .build()
 
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertNotNullToAssertThat())
+    override val recipe: Recipe
+        get() = AssertNotNullToAssertThat()
 
     @Test
-    fun singleStaticMethodNoMessage() = assertRefactored(
-        before = """
+    fun singleStaticMethodNoMessage() = assertChanged(
+            before = """
                 import org.junit.Test;
 
                 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -47,7 +48,7 @@ class AssertNotNullToAssertThatTest : RefactorVisitorTestForParser<J.Compilation
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.Test;
 
                 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,8 +67,8 @@ class AssertNotNullToAssertThatTest : RefactorVisitorTestForParser<J.Compilation
     )
 
     @Test
-    fun singleStaticMethodWithMessageString() = assertRefactored(
-        before = """
+    fun singleStaticMethodWithMessageString() = assertChanged(
+            before = """
                 import org.junit.Test;
 
                 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -83,7 +84,7 @@ class AssertNotNullToAssertThatTest : RefactorVisitorTestForParser<J.Compilation
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.Test;
 
                 import static org.assertj.core.api.Assertions.assertThat;
@@ -102,8 +103,8 @@ class AssertNotNullToAssertThatTest : RefactorVisitorTestForParser<J.Compilation
     )
 
     @Test
-    fun singleStaticMethodWithMessageSupplier() = assertRefactored(
-        before = """
+    fun singleStaticMethodWithMessageSupplier() = assertChanged(
+            before = """
                 import org.junit.Test;
 
                 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -119,7 +120,7 @@ class AssertNotNullToAssertThatTest : RefactorVisitorTestForParser<J.Compilation
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.Test;
 
                 import static org.assertj.core.api.Assertions.assertThat;
@@ -138,8 +139,8 @@ class AssertNotNullToAssertThatTest : RefactorVisitorTestForParser<J.Compilation
     )
 
     @Test
-    fun inlineReference() = assertRefactored(
-        before = """
+    fun inlineReference() = assertChanged(
+            before = """
                 import org.junit.Test;
  
                 public class A {
@@ -155,7 +156,7 @@ class AssertNotNullToAssertThatTest : RefactorVisitorTestForParser<J.Compilation
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.Test;
                 
                 import static org.assertj.core.api.Assertions.assertThat;
@@ -176,8 +177,8 @@ class AssertNotNullToAssertThatTest : RefactorVisitorTestForParser<J.Compilation
     )
 
     @Test
-    fun mixedReferences() = assertRefactored(
-        before = """
+    fun mixedReferences() = assertChanged(
+            before = """
                 import org.junit.Test;
                 
                 import static org.assertj.core.api.Assertions.*;
@@ -196,7 +197,7 @@ class AssertNotNullToAssertThatTest : RefactorVisitorTestForParser<J.Compilation
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.Test;
                 
                 import static org.assertj.core.api.Assertions.*;

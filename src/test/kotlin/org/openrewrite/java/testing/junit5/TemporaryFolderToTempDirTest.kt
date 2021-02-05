@@ -16,19 +16,20 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.tree.J
 
-class TemporaryFolderToTempDirTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class TemporaryFolderToTempDirTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
-    override val visitors = listOf(TemporaryFolderToTempDir())
+    override val recipe: Recipe
+        get() = TemporaryFolderToTempDir()
 
     @Test
-    fun basicReplace() = assertRefactored(
+    fun basicReplace() = assertChanged(
             before = """
                 import org.junit.Rule;
                 import org.junit.rules.TemporaryFolder;
@@ -53,7 +54,7 @@ class TemporaryFolderToTempDirTest : RefactorVisitorTestForParser<J.CompilationU
     )
 
     @Test
-    fun newFile() = assertRefactored(
+    fun newFile() = assertChanged(
             before = """
                 import org.junit.Rule;
                 import org.junit.rules.TemporaryFolder;
@@ -106,7 +107,7 @@ class TemporaryFolderToTempDirTest : RefactorVisitorTestForParser<J.CompilationU
     )
 
     @Test
-    fun getRoot() = assertRefactored (
+    fun getRoot() = assertChanged (
             before = """
                 import org.junit.Rule;
                 import org.junit.rules.TemporaryFolder;
@@ -141,7 +142,7 @@ class TemporaryFolderToTempDirTest : RefactorVisitorTestForParser<J.CompilationU
     )
 
     @Test
-    fun newFolder() = assertRefactored(
+    fun newFolder() = assertChanged(
             before = """
                 import org.junit.Rule;
                 import org.junit.rules.TemporaryFolder;
@@ -179,7 +180,7 @@ class TemporaryFolderToTempDirTest : RefactorVisitorTestForParser<J.CompilationU
     )
 
     @Test
-    fun newFolderWithArgs() = assertRefactored(
+    fun newFolderWithArgs() = assertChanged(
             before = """
                 import org.junit.Rule;
                 import org.junit.rules.TemporaryFolder;

@@ -15,9 +15,8 @@
  */
 package org.openrewrite.java.testing
 
-import org.openrewrite.Refactor
 import org.openrewrite.java.JavaParser
-import org.openrewrite.loadVisitorsForTest
+import org.openrewrite.loadRecipeFromClasspath
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -30,26 +29,19 @@ fun main(args: Array<String>) {
             .classpath("mockito-all", "junit")
             .build()
 
-    val visitors = loadVisitorsForTest(
+    val recipe = loadRecipeFromClasspath(
             "org.openrewrite.java.testing.JUnit5Migration",
             "org.openrewrite.java.testing.Mockito1to3Migration"
     )
 
     val sources = parser.parse(listJavaSources(beforeDir), beforeDir)
-    val changes = Refactor(true)
-            .visit(visitors)
-            .fix(sources)
-
-    changes.asSequence()
-            .filter { change -> change.fixed != null }
-            .map { change -> change.fixed!! }
-            .forEach { fixed ->
-                val file = afterDir.resolve(fixed.sourcePath.toString()).toFile()
-                if(!file.parentFile.exists()) {
-                    file.parentFile.mkdirs()
-                }
-                file.writeText(fixed.printTrimmed())
-            }
+    recipe.run(sources).map {
+        val outputFile = afterDir.resolve(it.after!!.sourcePath.toString()).toFile()
+        if (!outputFile.parentFile.exists()) {
+            outputFile.parentFile.mkdirs()
+        }
+        outputFile.writeText(it.after!!.printTrimmed())
+    }
 }
 
 private fun listJavaSources(sourceDirectory: Path): List<Path> {

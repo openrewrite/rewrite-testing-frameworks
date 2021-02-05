@@ -16,21 +16,21 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.RefactorVisitor
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.tree.J
 
-class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class CategoryToTagTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
-    override val visitors = listOf(CategoryToTag())
+    override val recipe: Recipe
+        get() = CategoryToTag()
 
     @Test
-    fun multipleCategoriesToTags() = assertRefactored(
-            dependencies = listOf(
+    fun multipleCategoriesToTags() = assertChanged(
+            dependsOn = arrayOf(
                     "public interface FastTests {}",
                     "public interface SlowTests {}"
             ),
@@ -54,8 +54,8 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     )
 
     @Test
-    fun changeCategoryToTagOnClassAndMethod() = assertRefactored(
-            dependencies = listOf(
+    fun changeCategoryToTagOnClassAndMethod() = assertChanged(
+            dependsOn = arrayOf(
                     "public interface FastTests {}",
                     "public interface SlowTests {}"
             ),
@@ -96,8 +96,8 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     )
 
     @Test
-    fun maintainAnnotationPositionAmongOtherAnnotations() = assertRefactored(
-            dependencies = listOf(
+    fun maintainAnnotationPositionAmongOtherAnnotations() = assertChanged(
+            dependsOn = arrayOf(
                     "public interface FastTests {}",
                     "public interface SlowTests {}",
             ),
@@ -131,8 +131,8 @@ class CategoryToTagTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     )
 
     @Test
-    fun removesDefunctImport() = assertRefactored(
-            dependencies = listOf("""
+    fun removesDefunctImport() = assertChanged(
+            dependsOn = arrayOf("""
                 package a;
                 
                 public interface FastTests {}

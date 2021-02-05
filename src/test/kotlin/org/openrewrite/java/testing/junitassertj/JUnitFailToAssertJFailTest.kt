@@ -17,21 +17,22 @@ package org.openrewrite.java.testing.junitassertj
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
-import org.openrewrite.RefactorVisitor
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class JUnitFailToAssertJFailTest : RecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-        .classpath("junit", "assertj-core", "apiguardian-api")
-        .build()
+            .classpath("junit", "assertj-core", "apiguardian-api")
+            .build()
 
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(JUnitFailToAssertJFail())
+    override val recipe: Recipe
+        get() = JUnitFailToAssertJFail()
 
     @Test
-    fun singleStaticMethodNoMessage() = assertRefactored(
-        before = """
+    fun singleStaticMethodNoMessage() = assertChanged(
+            before = """
                 import org.junit.Test;
 
                 import static org.junit.jupiter.api.Assertions.fail;
@@ -44,7 +45,7 @@ class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUni
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.Test;
 
                 import static org.assertj.core.api.Assertions.fail;
@@ -60,8 +61,8 @@ class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUni
     )
 
     @Test
-    fun singleStaticMethodWithMessage() = assertRefactored(
-        before = """
+    fun singleStaticMethodWithMessage() = assertChanged(
+            before = """
                 import org.junit.Test;
 
                 import static org.junit.jupiter.api.Assertions.fail;
@@ -74,7 +75,7 @@ class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUni
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.Test;
 
                 import static org.assertj.core.api.Assertions.fail;
@@ -90,8 +91,8 @@ class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUni
     )
 
     @Test
-    fun singleStaticMethodWithMessageAndCause() = assertRefactored(
-        before = """
+    fun singleStaticMethodWithMessageAndCause() = assertChanged(
+            before = """
                 import org.junit.Test;
 
                 import static org.junit.jupiter.api.Assertions.fail;
@@ -105,7 +106,7 @@ class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUni
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.Test;
 
                 import static org.assertj.core.api.Assertions.fail;
@@ -122,8 +123,8 @@ class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUni
     )
 
     @Test
-    fun singleStaticMethodWithCause() = assertRefactored(
-        before = """
+    fun singleStaticMethodWithCause() = assertChanged(
+            before = """
                 import org.junit.Test;
 
                 import static org.junit.jupiter.api.Assertions.fail;
@@ -138,7 +139,7 @@ class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUni
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.Test;
 
                 import static org.assertj.core.api.Assertions.fail;
@@ -156,8 +157,8 @@ class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUni
     )
 
     @Test
-    fun inlineReference() = assertRefactored(
-        before = """
+    fun inlineReference() = assertChanged(
+            before = """
                 import org.junit.Test;
  
                 public class A {
@@ -171,7 +172,7 @@ class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUni
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.Test;
 
                 import static org.assertj.core.api.Assertions.fail;
@@ -190,8 +191,8 @@ class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUni
     )
 
     @Test
-    fun mixedReferences() = assertRefactored(
-        before = """
+    fun mixedReferences() = assertChanged(
+            before = """
                 import org.junit.Test;
                 
                 import static org.junit.jupiter.api.Assertions.fail;
@@ -207,7 +208,7 @@ class JUnitFailToAssertJFailTest : RefactorVisitorTestForParser<J.CompilationUni
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.Test;
 
                 import static org.assertj.core.api.Assertions.fail;

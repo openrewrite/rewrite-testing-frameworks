@@ -16,19 +16,20 @@
 package org.openrewrite.java.testing.mockito
 
 import org.junit.Test
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.tree.J
 
-class CleanupMockitoImportsTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class CleanupMockitoImportsTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("mockito")
             .build()
 
-    override val visitors = listOf(CleanupMockitoImports())
+    override val recipe: Recipe
+        get() = CleanupMockitoImports()
 
     @Test
-    fun removesUnusedImport() = assertRefactored(
+    fun removesUnusedImport() = assertChanged(
             before = """
                 import org.mockito.Mock;
                 

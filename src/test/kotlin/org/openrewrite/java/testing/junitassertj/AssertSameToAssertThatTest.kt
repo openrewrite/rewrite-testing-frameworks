@@ -17,21 +17,22 @@ package org.openrewrite.java.testing.junitassertj
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
-import org.openrewrite.RefactorVisitor
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class AssertSameToAssertThatTest : RecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-        .classpath("junit-jupiter-api", "assertj-core", "apiguardian-api")
-        .build()
+            .classpath("junit-jupiter-api", "assertj-core", "apiguardian-api")
+            .build()
 
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertSameToAssertThat())
+    override val recipe: Recipe
+        get() = AssertSameToAssertThat()
 
     @Test
-    fun singleStaticMethodNoMessage() = assertRefactored(
-        before = """
+    fun singleStaticMethodNoMessage() = assertChanged(
+            before = """
                 import org.junit.jupiter.api.Test;
                 
                 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -48,7 +49,7 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.jupiter.api.Test;
 
                 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,8 +69,8 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
     )
 
     @Test
-    fun singleStaticMethodWithMessageString() = assertRefactored(
-        before = """
+    fun singleStaticMethodWithMessageString() = assertChanged(
+            before = """
                 import org.junit.jupiter.api.Test;
 
                 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -86,7 +87,7 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.jupiter.api.Test;
 
                 import static org.assertj.core.api.Assertions.assertThat;
@@ -106,8 +107,8 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
     )
 
     @Test
-    fun singleStaticMethodWithMessageSupplier() = assertRefactored(
-        before = """
+    fun singleStaticMethodWithMessageSupplier() = assertChanged(
+            before = """
                 import org.junit.jupiter.api.Test;
 
                 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -124,7 +125,7 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.jupiter.api.Test;
 
                 import static org.assertj.core.api.Assertions.assertThat;
@@ -144,8 +145,8 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
     )
 
     @Test
-    fun inlineReference() = assertRefactored(
-        before = """
+    fun inlineReference() = assertChanged(
+            before = """
                 import org.junit.jupiter.api.Test;
  
                 public class A {
@@ -162,7 +163,7 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.jupiter.api.Test;
                 
                 import static org.assertj.core.api.Assertions.assertThat;
@@ -184,8 +185,8 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
     )
 
     @Test
-    fun mixedReferences() = assertRefactored(
-        before = """
+    fun mixedReferences() = assertChanged(
+            before = """
                 import org.junit.jupiter.api.Test;
                 
                 import static org.assertj.core.api.Assertions.*;
@@ -205,7 +206,7 @@ class AssertSameToAssertThatTest : RefactorVisitorTestForParser<J.CompilationUni
                     }
                 }
             """,
-        after = """
+            after = """
                 import org.junit.jupiter.api.Test;
                 
                 import static org.assertj.core.api.Assertions.*;

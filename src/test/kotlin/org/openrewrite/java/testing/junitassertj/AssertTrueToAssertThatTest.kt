@@ -17,20 +17,21 @@ package org.openrewrite.java.testing.junitassertj
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
-import org.openrewrite.RefactorVisitor
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit> {
+class AssertTrueToAssertThatTest : RecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
             .classpath("junit", "assertj-core", "apiguardian-api")
             .build()
 
-    override val visitors: Iterable<RefactorVisitor<*>> = listOf(AssertTrueToAssertThat())
+    override val recipe: Recipe
+        get() = AssertTrueToAssertThat()
 
     @Test
-    fun singleStaticMethodNoMessage() = assertRefactored(
+    fun singleStaticMethodNoMessage() = assertChanged(
             before = """
                 import org.junit.Test;
                 
@@ -66,7 +67,7 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
     )
 
     @Test
-    fun singleStaticMethodWithMessageString() = assertRefactored(
+    fun singleStaticMethodWithMessageString() = assertChanged(
             before = """
                 import org.junit.Test;
                 
@@ -102,7 +103,7 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
     )
 
     @Test
-    fun singleStaticMethodWithMessageSupplier() = assertRefactored(
+    fun singleStaticMethodWithMessageSupplier() = assertChanged(
             before = """
                 import org.junit.Test;
                 
@@ -138,7 +139,7 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
     )
 
     @Test
-    fun inlineReference() = assertRefactored(
+    fun inlineReference() = assertChanged(
             before = """
                 import org.junit.Test;
  
@@ -176,7 +177,7 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
     )
 
     @Test
-    fun mixedReferences() = assertRefactored(
+    fun mixedReferences() = assertChanged(
             before = """
                 import org.junit.Test;
                 
@@ -217,7 +218,7 @@ class AssertTrueToAssertThatTest: RefactorVisitorTestForParser<J.CompilationUnit
     )
 
     @Test
-    fun leaveBooleanSuppliersAlone() = assertRefactored(
+    fun leaveBooleanSuppliersAlone() = assertChanged(
             before = """
                 import org.junit.Test;
                 

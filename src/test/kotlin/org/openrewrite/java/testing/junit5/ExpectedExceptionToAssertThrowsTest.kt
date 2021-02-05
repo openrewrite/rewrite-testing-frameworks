@@ -16,19 +16,20 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.tree.J
 
-class ExpectedExceptionToAssertThrowsTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class ExpectedExceptionToAssertThrowsTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit", "hamcrest")
             .build()
 
-    override val visitors = listOf(ExpectedExceptionToAssertThrows())
+    override val recipe: Recipe
+        get() = ExpectedExceptionToAssertThrows()
 
     @Test
-    fun expectClass() = assertRefactored(
+    fun expectClass() = assertChanged(
             before = """
                 package org.openrewrite.java.testing.junit5;
 

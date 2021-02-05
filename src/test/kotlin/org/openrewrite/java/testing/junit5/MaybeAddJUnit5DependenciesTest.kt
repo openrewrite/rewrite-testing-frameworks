@@ -15,41 +15,52 @@
  */
 package org.openrewrite.java.testing.junit5
 
+import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.openrewrite.Refactor
-import org.openrewrite.RefactorVisitorTest
+import org.openrewrite.*
 import org.openrewrite.java.JavaParser
 import org.openrewrite.maven.MavenParser
 
-class MaybeAddJUnit5DependenciesTest : RefactorVisitorTest {
+class MaybeAddJUnit5DependenciesTest {
+
+    private val javaParser = JavaParser.fromJavaVersion().classpath(
+            JavaParser.dependenciesFromClasspath("junit-jupiter-api", "apiguardian-api")).build()
+
+    private val mavenParser = MavenParser.builder().build()
+
     @Test
     fun addDependenciesWhenJUnitTestsExist() {
-        val java = JavaParser.fromJavaVersion()
-                .classpath(JavaParser.dependenciesFromClasspath("junit-jupiter-api", "apiguardian-api"))
-                .build().parse("""
+        val javaSource = javaParser.parse("""
                     import org.junit.jupiter.api.Test;                   
                     class MyTest {
                         @Test
                         void test() {
                         }
                     }
-                """.trimIndent())
+                """)[0]
 
-        val maven = MavenParser.builder().build().parse("""
+        val mavenSource = mavenParser.parse("""
             <project>
               <groupId>com.mycompany.app</groupId>
               <artifactId>my-app</artifactId>
               <version>1</version>
             </project>
-        """.trimIndent())
+        """.trimIndent())[0]
 
-        val changes = Refactor()
-                .visit(MaybeAddJUnit5Dependencies())
-                .fix(maven + java)
+        val results = MaybeAddJUnit5Dependencies().run(listOf<SourceFile>(javaSource, mavenSource),
+                ExecutionContext.builder()
+                        .maxCycles(2)
+                        .doOnError { t: Throwable? -> Assertions.fail<Any>("Recipe threw an exception", t) }
+                        .build())
+        assertThat(results).`as`("Recipe must make changes").isNotEmpty
+        assertThat(results).hasSize(1)
+        val result = results[0]
+        assertThat(result!!.before === mavenSource)
 
-        assertThat(changes).hasSize(1)
-        assertThat(changes.first()?.fixed?.printTrimmed()).isEqualTo("""
+        assertThat(result!!.after).isNotNull
+        assertThat(result.after!!.printTrimmed())
+                .isEqualTo("""
             <project>
               <groupId>com.mycompany.app</groupId>
               <artifactId>my-app</artifactId>
@@ -69,6 +80,6 @@ class MaybeAddJUnit5DependenciesTest : RefactorVisitorTest {
                 </dependency>
               </dependencies>
             </project>
-        """.trimIndent())
+        """)
     }
 }

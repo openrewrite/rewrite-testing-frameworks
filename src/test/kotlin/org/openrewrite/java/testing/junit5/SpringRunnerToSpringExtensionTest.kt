@@ -16,19 +16,20 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.tree.J
 
-class SpringRunnerToSpringExtensionTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class SpringRunnerToSpringExtensionTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit", "spring-test")
             .build()
 
-    override val visitors = listOf(SpringRunnerToSpringExtension())
+    override val recipe: Recipe
+        get() = SpringRunnerToSpringExtension()
 
     @Test
-    fun springRunnerToExtension() = assertRefactored(
+    fun springRunnerToExtension() = assertChanged(
             before = """
                 import org.junit.runner.RunWith;
                 import org.springframework.test.context.junit4.SpringRunner;
@@ -46,7 +47,7 @@ class SpringRunnerToSpringExtensionTest : RefactorVisitorTestForParser<J.Compila
     )
 
     @Test
-    fun springJUnit4ClassRunnerRunnerToExtension() = assertRefactored(
+    fun springJUnit4ClassRunnerRunnerToExtension() = assertChanged(
             before = """
                 import org.junit.runner.RunWith;
                 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -74,7 +75,7 @@ class SpringRunnerToSpringExtensionTest : RefactorVisitorTestForParser<J.Compila
                 @RunWith(B.class)
                 class A {}
             """,
-            dependencies = listOf(
+            dependsOn = arrayOf(
                     """
                         package a;
                         
