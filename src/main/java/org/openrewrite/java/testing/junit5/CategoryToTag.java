@@ -19,11 +19,11 @@ public class CategoryToTag extends Recipe {
 
     public static class CategoryToTagVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
-        public J.ClassDecl visitClassDecl(J.ClassDecl classDecl, ExecutionContext context) {
-            J.ClassDecl cd = super.visitClassDecl(classDecl, context);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext context) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, context);
             Set<J.Annotation> categoryAnnotations = FindAnnotations.find(cd, "org.junit.experimental.categories.Category");
             if(!categoryAnnotations.isEmpty()) {
-                
+
             }
             return cd;
         }
