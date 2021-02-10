@@ -75,7 +75,7 @@ public class AssertNotNullToAssertThat extends Recipe {
                 return original;
             }
 
-            List<Expression> originalArgs = original.getArgs();
+            List<Expression> originalArgs = original.getArguments();
             Expression objToCheck = originalArgs.get(0);
             Expression message = originalArgs.size() == 2 ? originalArgs.get(1) : null;
 
@@ -88,7 +88,7 @@ public class AssertNotNullToAssertThat extends Recipe {
                     Markers.EMPTY,
                     null,
                     null,
-                    J.Ident.build(randomId(), ASSERTJ_ASSERT_THAT_METHOD_NAME, JavaType.Primitive.Void),
+                    J.Identifier.build(randomId(), ASSERTJ_ASSERT_THAT_METHOD_NAME, JavaType.Primitive.Void),
                     JContainer.build(
                             Collections.singletonList(JRightPadded.build(objToCheck))
                     ),
@@ -108,7 +108,7 @@ public class AssertNotNullToAssertThat extends Recipe {
                         Markers.EMPTY,
                         JRightPadded.build(assertSelect), // assertThat is the select for this method.
                         null,
-                        J.Ident.build(randomId(), messageAs, null),
+                        J.Identifier.build(randomId(), messageAs, null),
                         JContainer.build(
                                 Collections.singletonList(JRightPadded.build(message))
                         ),
@@ -123,7 +123,7 @@ public class AssertNotNullToAssertThat extends Recipe {
                     Markers.EMPTY,
                     JRightPadded.build(assertSelect),
                     null,
-                    J.Ident.build(randomId(), "isNotNull", JavaType.Primitive.Boolean),
+                    J.Identifier.build(randomId(), "isNotNull", JavaType.Primitive.Boolean),
                     JContainer.build(
                             Collections.emptyList()
                     ),

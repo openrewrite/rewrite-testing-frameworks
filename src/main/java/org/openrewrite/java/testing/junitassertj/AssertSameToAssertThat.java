@@ -75,7 +75,7 @@ public class AssertSameToAssertThat extends Recipe {
                 return original;
             }
 
-            List<Expression> originalArgs = original.getArgs();
+            List<Expression> originalArgs = original.getArguments();
             Expression expected = originalArgs.get(0);
             Expression actual = originalArgs.get(1);
             Expression message = originalArgs.size() == 3 ? originalArgs.get(2) : null;
@@ -89,7 +89,7 @@ public class AssertSameToAssertThat extends Recipe {
                     Markers.EMPTY,
                     null,
                     null,
-                    J.Ident.build(randomId(), ASSERTJ_ASSERT_THAT_METHOD_NAME, JavaType.Primitive.Void),
+                    J.Identifier.build(randomId(), ASSERTJ_ASSERT_THAT_METHOD_NAME, JavaType.Primitive.Void),
                     JContainer.build(
                             Collections.singletonList(JRightPadded.build(actual))
                     ),
@@ -109,7 +109,7 @@ public class AssertSameToAssertThat extends Recipe {
                         Markers.EMPTY,
                         JRightPadded.build(assertSelect), // assertThat is the select for this method.
                         null,
-                        J.Ident.build(randomId(), messageAs, null),
+                        J.Identifier.build(randomId(), messageAs, null),
                         JContainer.build(
                                 Collections.singletonList(JRightPadded.build(message))
                         ),
@@ -124,7 +124,7 @@ public class AssertSameToAssertThat extends Recipe {
                     Markers.EMPTY,
                     JRightPadded.build(assertSelect),
                     null,
-                    J.Ident.build(randomId(), "isSameAs", JavaType.Primitive.Boolean),
+                    J.Identifier.build(randomId(), "isSameAs", JavaType.Primitive.Boolean),
                     JContainer.build(
                             Collections.singletonList(JRightPadded.build(expected))
                     ),

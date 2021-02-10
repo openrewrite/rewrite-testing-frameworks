@@ -43,9 +43,9 @@ public class AssertToAssertions extends Recipe {
     public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
-        public J.ClassDecl visitClassDecl(J.ClassDecl classDecl, ExecutionContext ctx) {
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             doAfterVisit(new ChangeType("org.junit.Assert", "org.junit.jupiter.api.Assertions"));
-            return super.visitClassDecl(classDecl, ctx);
+            return super.visitClassDeclaration(classDecl, ctx);
         }
 
         @Override
@@ -54,7 +54,7 @@ public class AssertToAssertions extends Recipe {
             if (!isJunitAssertMethod(m)) {
                 return m;
             }
-            List<Expression> args = m.getArgs();
+            List<Expression> args = m.getArguments();
             Expression firstArg = args.get(0);
             // Suppress arg-switching for Assertions.assertEquals(String, String)
             if (args.size() == 2 && isString(firstArg.getType()) && isString(args.get(1).getType())) {
@@ -67,7 +67,7 @@ public class AssertToAssertions extends Recipe {
                         args.stream().skip(1),
                         Stream.of(firstArg)
                 ).collect(Collectors.toList());
-                m = m.withArgs(newArgs);
+                m = m.withArguments(newArgs);
             }
             m = maybeAutoFormat(method, m, ctx);
 
@@ -75,10 +75,10 @@ public class AssertToAssertions extends Recipe {
         }
 
         private boolean isJunitAssertMethod(J.MethodInvocation method) {
-            if (!(method.getSelect() instanceof J.Ident)) {
+            if (!(method.getSelect() instanceof J.Identifier)) {
                 return false;
             }
-            J.Ident receiver = (J.Ident) method.getSelect();
+            J.Identifier receiver = (J.Identifier) method.getSelect();
             if (!(receiver.getType() instanceof JavaType.FullyQualified)) {
                 return false;
             }

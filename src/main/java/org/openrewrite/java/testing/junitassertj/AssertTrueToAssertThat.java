@@ -15,20 +15,19 @@
  */
 package org.openrewrite.java.testing.junitassertj;
 
-import org.openrewrite.AutoConfigure;
+
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.*;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
-import org.openrewrite.xml.AutoFormatVisitor;
 
 import java.util.Collections;
 import java.util.List;
 
-import static org.openrewrite.Formatting.EMPTY;
-import static org.openrewrite.Formatting.format;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
 
@@ -83,7 +82,7 @@ public class AssertTrueToAssertThat extends Recipe {
                 return original;
             }
 
-            List<Expression> originalArgs = original.getArgs();
+            List<Expression> originalArgs = original.getArguments();
             Expression condition = originalArgs.get(0);
             Expression message = originalArgs.size() == 2 ? originalArgs.get(1) : null;
 
@@ -95,7 +94,7 @@ public class AssertTrueToAssertThat extends Recipe {
                     Markers.EMPTY,
                     null,
                     null,
-                    J.Ident.build(randomId(), ASSERTJ_ASSERT_THAT_METHOD_NAME, JavaType.Primitive.Void),
+                    J.Identifier.build(randomId(), ASSERTJ_ASSERT_THAT_METHOD_NAME, JavaType.Primitive.Void),
                     JContainer.build(
                             Collections.singletonList(JRightPadded.build(condition))
                     ),
@@ -112,7 +111,7 @@ public class AssertTrueToAssertThat extends Recipe {
                         Markers.EMPTY,
                         JRightPadded.build(assertSelect), //assertThat is the select for this method.
                         null,
-                        J.Ident.build(randomId(), "as", null),
+                        J.Identifier.build(randomId(), "as", null),
                         JContainer.build(
                                 Collections.singletonList(JRightPadded.build(message))
                         ),
@@ -126,7 +125,7 @@ public class AssertTrueToAssertThat extends Recipe {
                         Markers.EMPTY,
                         JRightPadded.build(assertSelect), //assertThat is the select for this method.
                         null,
-                        J.Ident.build(randomId(), "withFailMessage", null),
+                        J.Identifier.build(randomId(), "withFailMessage", null),
                         JContainer.build(
                                 Collections.singletonList(JRightPadded.build(message))
                         ),
@@ -143,7 +142,7 @@ public class AssertTrueToAssertThat extends Recipe {
                     Markers.EMPTY,
                     JRightPadded.build(assertSelect),
                     null,
-                    J.Ident.build(randomId(), "isTrue", JavaType.Primitive.Boolean),
+                    J.Identifier.build(randomId(), "isTrue", JavaType.Primitive.Boolean),
                     JContainer.build(
                             Collections.emptyList()
                     ),

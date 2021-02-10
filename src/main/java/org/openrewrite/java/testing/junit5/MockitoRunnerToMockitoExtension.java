@@ -72,9 +72,9 @@ public class MockitoRunnerToMockitoExtension extends Recipe {
                                                                 randomId(),
                                                                 Space.EMPTY,
                                                                 Markers.EMPTY,
-                                                                J.Ident.build(randomId(), type.getClassName(), type),
+                                                                J.Identifier.build(randomId(), type.getClassName(), type),
                                                                 JLeftPadded.build(
-                                                                        J.Ident.build(
+                                                                        J.Identifier.build(
                                                                                 randomId(),
                                                                                 "class",
                                                                                 null
@@ -100,8 +100,8 @@ public class MockitoRunnerToMockitoExtension extends Recipe {
                                         randomId(),
                                         Space.EMPTY,
                                         Markers.EMPTY,
-                                        J.Ident.build(randomId(), "MockitoExtension", mockitoExtensionType),
-                                        JLeftPadded.build(J.Ident.build(randomId(), Space.EMPTY, Markers.EMPTY, "class", null)),
+                                        J.Identifier.build(randomId(), "MockitoExtension", mockitoExtensionType),
+                                        JLeftPadded.build(J.Identifier.build(randomId(), Space.EMPTY, Markers.EMPTY, "class", null)),
                                         JavaType.Class.build("java.lang.Class")
                                 )
                         ))
@@ -113,7 +113,7 @@ public class MockitoRunnerToMockitoExtension extends Recipe {
         }
 
         @Override
-        public J.ClassDecl visitClassDecl(J.ClassDecl cd, ExecutionContext ctx) {
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
             boolean shouldReplaceAnnotation = cd.getAnnotations().stream()
                     .anyMatch(this::shouldReplaceAnnotation);
             if (shouldReplaceAnnotation) {

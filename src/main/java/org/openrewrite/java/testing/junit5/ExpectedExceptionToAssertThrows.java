@@ -53,9 +53,9 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         }
 
         @Override
-        public J.ClassDecl visitClassDecl(J.ClassDecl classDecl, ExecutionContext ctx) {
-            J.ClassDecl cd = super.visitClassDecl(classDecl, ctx);
-            Set<J.VariableDecls> expectedExceptionFields = FindFields.find(classDecl, EXPECTED_EXCEPTION_FQN);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+            Set<J.VariableDeclarations> expectedExceptionFields = FindFields.find(classDecl, EXPECTED_EXCEPTION_FQN);
             if (expectedExceptionFields.size() > 0) {
                 // Remove the ExpectedException fields
                 List<Statement> statements = new ArrayList<>(classDecl.getBody().getStatements());
@@ -68,23 +68,23 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (method.getType() != null && method.getType().getDeclaringType().getFullyQualifiedName().equals(EXPECTED_EXCEPTION_FQN)) {
-                J.MethodDecl enclosing = getCursor().firstEnclosing(J.MethodDecl.class);
+                J.MethodDeclaration enclosing = getCursor().firstEnclosing(J.MethodDeclaration.class);
                 if (enclosing != null) {
-                    getCursor().putMessageOnFirstEnclosing(J.MethodDecl.class, EXPECTED_EXCEPTION_METHOD_MESSAGE_KEY, method);
+                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECTED_EXCEPTION_METHOD_MESSAGE_KEY, method);
                 }
             }
             return super.visitMethodInvocation(method, ctx);
         }
 
         @Override
-        public J.MethodDecl visitMethod(J.MethodDecl m, ExecutionContext ctx) {
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration m, ExecutionContext ctx) {
 
             J.MethodInvocation expectedExceptionMethod = getCursor().pollMessage(EXPECTED_EXCEPTION_METHOD_MESSAGE_KEY);
             if (expectedExceptionMethod == null) {
                 return m;
             }
 
-            List<Expression> args = expectedExceptionMethod.getArgs();
+            List<Expression> args = expectedExceptionMethod.getArguments();
             if (args.size() != 1) {
                 return m;
             }

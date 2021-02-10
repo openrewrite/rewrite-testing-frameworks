@@ -46,8 +46,8 @@ public class CategoryToTag extends Recipe {
         private static final JavaType.Class tagType = JavaType.Class.build("org.junit.jupiter.api.Tag");
 
         @Override
-        public J.ClassDecl visitClassDecl(J.ClassDecl classDecl, ExecutionContext ctx) {
-            J.ClassDecl cd = super.visitClassDecl(classDecl, ctx);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             Set<J.Annotation> categoryAnnotations = FindAnnotations.find(cd, "@" + categoryAnnotation);
             if (!categoryAnnotations.isEmpty()) {
                 cd = cd.withAnnotations(cd.getAnnotations().stream()
@@ -61,8 +61,8 @@ public class CategoryToTag extends Recipe {
         }
 
         @Override
-        public J.MethodDecl visitMethod(J.MethodDecl method, ExecutionContext ctx) {
-            J.MethodDecl m = super.visitMethod(method, ctx);
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             Set<J.Annotation> categoryAnnotations = FindAnnotations.find(m, "@" + categoryAnnotation);
             if (!categoryAnnotations.isEmpty()) {
                 m = m.withAnnotations(m.getAnnotations().stream()
@@ -78,7 +78,7 @@ public class CategoryToTag extends Recipe {
 
         private Stream<J.Annotation> categoryAnnotationToTagAnnotations(J.Annotation maybeCategory) {
             if (TypeUtils.isOfClassType(maybeCategory.getAnnotationType().getType(), categoryAnnotation)) {
-                Expression annotationArgument = maybeCategory.getArgs().iterator().next();
+                Expression annotationArgument = maybeCategory.getArguments().iterator().next();
 
                 Stream<J.FieldAccess> categories;
                 if (annotationArgument instanceof J.NewArray) {
@@ -89,12 +89,12 @@ public class CategoryToTag extends Recipe {
                 }
 
                 return categories.map(category -> {
-                    String targetName = ((J.Ident) category.getTarget()).getSimpleName();
+                    String targetName = ((J.Identifier) category.getTarget()).getSimpleName();
                     J.Annotation tagAnnotation = new J.Annotation(
                             randomId(),
                             Space.EMPTY,
                             Markers.EMPTY,
-                            J.Ident.build(randomId(), Space.EMPTY, Markers.EMPTY, tagType.getClassName(), tagType),
+                            J.Identifier.build(randomId(), Space.EMPTY, Markers.EMPTY, tagType.getClassName(), tagType),
                             JContainer.build(Space.EMPTY,
                                     Collections.singletonList(
                                             new JRightPadded<>(

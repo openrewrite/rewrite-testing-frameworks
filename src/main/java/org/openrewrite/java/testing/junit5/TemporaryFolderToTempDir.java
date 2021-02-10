@@ -46,9 +46,9 @@ public class TemporaryFolderToTempDir extends Recipe {
         private static final String RuleFqn = "org.junit.Rule";
         private static final String TemporaryFolderFqn = "org.junit.rules.TemporaryFolder";
         private static final JavaType.Class TempDirType = JavaType.Class.build("org.junit.jupiter.api.io.TempDir");
-        private static final J.Ident TempDirIdent = J.Ident.build(randomId(), "TempDir", TempDirType);
+        private static final J.Identifier TempDirIdent = J.Identifier.build(randomId(), "TempDir", TempDirType);
         private static final JavaType.Class FileType = JavaType.Class.build("java.io.File");
-        private static final J.Ident FileIdent = J.Ident.build(randomId(), "File", FileType);
+        private static final J.Identifier FileIdent = J.Identifier.build(randomId(), "File", FileType);
         private static final JavaType.Class PathType = JavaType.Class.build("java.nio.file.Path");
         private static final JavaType.Class FilesType = JavaType.Class.build("java.nio.file.Files");
         private static final String IOExceptionFqn = "java.io.IOException";
@@ -56,12 +56,12 @@ public class TemporaryFolderToTempDir extends Recipe {
         private static final JavaType.Class StringType = JavaType.Class.build("java.lang.String");
 
         @Override
-        public J.ClassDecl visitClassDecl(J.ClassDecl classDecl, ExecutionContext ctx) {
-            J.ClassDecl cd = super.visitClassDecl(classDecl, ctx);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-            List<J.VariableDecls> fields = cd.getBody().getStatements().stream()
-                    .filter(J.VariableDecls.class::isInstance)
-                    .map(J.VariableDecls.class::cast)
+            List<J.VariableDeclarations> fields = cd.getBody().getStatements().stream()
+                    .filter(J.VariableDeclarations.class::isInstance)
+                    .map(J.VariableDeclarations.class::cast)
                     .collect(Collectors.toList());
             if (fields.stream().anyMatch(it -> TypeUtils.hasElementType(it.getTypeAsClass(), TemporaryFolderFqn))) {
                 List<Statement> newStatements = cd.getBody().getStatements().stream()
@@ -94,10 +94,10 @@ public class TemporaryFolderToTempDir extends Recipe {
          * Scheduling visitors to update method invocations
          */
         private Statement convertTempFolderField(Statement statement) {
-            if (!(statement instanceof J.VariableDecls)) {
+            if (!(statement instanceof J.VariableDeclarations)) {
                 return statement;
             }
-            J.VariableDecls field = (J.VariableDecls) statement;
+            J.VariableDeclarations field = (J.VariableDeclarations) statement;
             if (field.getTypeAsClass() == null || !field.getTypeAsClass().getFullyQualifiedName().equals(TemporaryFolderFqn)) {
                 return field;
             }
@@ -111,10 +111,10 @@ public class TemporaryFolderToTempDir extends Recipe {
             field = field.withAnnotations(newAnnotations);
 
             // Remove the initializing expression for "new TemporaryFolder()"
-            List<J.VariableDecls.NamedVar> newVars = field.getVars().stream()
+            List<J.VariableDeclarations.NamedVariable> newVars = field.getVariables().stream()
                     .map(it -> it.withInitializer(null))
                     .collect(Collectors.toList());
-            field = field.withVars(newVars);
+            field = field.withVariables(newVars);
 
             maybeAddImport(FileType);
             maybeAddImport(TempDirType);
@@ -146,16 +146,16 @@ public class TemporaryFolderToTempDir extends Recipe {
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (!(m.getSelect() instanceof J.Ident)) {
+                if (!(m.getSelect() instanceof J.Identifier)) {
                     return m;
                 }
-                J.Ident receiver = (J.Ident) m.getSelect();
+                J.Identifier receiver = (J.Identifier) m.getSelect();
                 if (receiver.getSimpleName().equals(fieldName) &&
                         m.getType() != null &&
                         TypeUtils.hasElementType(m.getType().getDeclaringType(), TemporaryFolderFqn)
                 ) {
                     assert getCursor().getParent() != null;
-                    List<Expression> args = m.getArgs();
+                    List<Expression> args = m.getArguments();
                     // handle TemporaryFolder.newFile() and TemporaryFolder.newFile(String)
                     switch (m.getName().getSimpleName()) {
                         case "newFile":
@@ -175,7 +175,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                             }
                             break;
                         case "getRoot":
-                            return J.Ident.build(randomId(), fieldName, FileType, m.getFormatting());
+                            return J.Identifier.build(randomId(), fieldName, FileType, m.getFormatting());
                         case "newFolder":
                             if (args.size() == 1 && args.get(0) instanceof J.Empty) {
                                 m = treeBuilder.buildSnippet(
@@ -186,7 +186,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                                 maybeAddImport(FilesType);
                             } else {
                                 doAfterVisit(new AddNewFolderFunctionVisitor());
-                                String argsString = printArgs(m.getArgs());
+                                String argsString = printArgs(m.getArguments());
                                 m = treeBuilder.buildSnippet(
                                         getCursor().getParent(),
                                         "newFolder(" + fieldName + ", " + argsString + ");",
@@ -222,13 +222,13 @@ public class TemporaryFolderToTempDir extends Recipe {
         private static class AddNewFileFunctionVisitor extends JavaIsoVisitor<ExecutionContext> {
 
             @Override
-            public J.ClassDecl visitClassDecl(J.ClassDecl cd, ExecutionContext ctx) {
-                Stream<J.MethodDecl> methods = cd.getBody().getStatements().stream()
-                        .filter(J.MethodDecl.class::isInstance)
-                        .map(J.MethodDecl.class::cast);
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
+                Stream<J.MethodDeclaration> methods = cd.getBody().getStatements().stream()
+                        .filter(J.MethodDeclaration.class::isInstance)
+                        .map(J.MethodDeclaration.class::cast);
                 boolean methodAlreadyExists = methods
                         .anyMatch(m -> {
-                            List<Statement> params = m.getParams();
+                            List<Statement> params = m.getParameters();
 
                             return m.getSimpleName().equals("newFile")
                                     && params.size() == 2
@@ -237,7 +237,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                         });
                 if (!methodAlreadyExists) {
                     List<Statement> statements = new ArrayList<>(cd.getBody().getStatements());
-                    J.MethodDecl newFileMethod = treeBuilder.buildMethodDeclaration(
+                    J.MethodDeclaration newFileMethod = treeBuilder.buildMethodDeclaration(
                             cd,
                             "private static File newFile(File root, String fileName) throws IOException {\n" +
                                     "    File file = new File(root, fileName);\n" +
@@ -246,7 +246,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                                     "}\n",
                             FileType,
                             IOExceptionType);
-                    newFileMethod = (J.MethodDecl) new AutoFormatVisitor<>().visit(newFileMethod, ctx, getCursor());
+                    newFileMethod = (J.MethodDeclaration) new AutoFormatVisitor<>().visit(newFileMethod, ctx, getCursor());
                     statements.add(newFileMethod);
                     maybeAddImport(FileType);
                     maybeAddImport(IOExceptionType);
@@ -271,24 +271,24 @@ public class TemporaryFolderToTempDir extends Recipe {
          */
         private static class AddNewFolderFunctionVisitor extends JavaIsoVisitor<ExecutionContext> {
             @Override
-            public J.ClassDecl visitClassDecl(J.ClassDecl cd, ExecutionContext ctx) {
-                Stream<J.MethodDecl> methods = cd.getBody().getStatements().stream()
-                        .filter(J.MethodDecl.class::isInstance)
-                        .map(J.MethodDecl.class::cast);
+            public J.ClassDeclaration visitClassDecl(J.ClassDeclaration cd, ExecutionContext ctx) {
+                Stream<J.MethodDeclaration> methods = cd.getBody().getStatements().stream()
+                        .filter(J.MethodDeclaration.class::isInstance)
+                        .map(J.MethodDeclaration.class::cast);
                 boolean methodAlreadyExists = methods
                         .anyMatch(m -> {
-                            List<Statement> params = m.getParams();
+                            List<Statement> params = m.getParameters();
 
                             return m.getSimpleName().equals("newFolder")
                                     && params.size() == 2
                                     && params.get(0).hasClassType(FileType)
                                     && params.get(1).hasClassType(StringType)
-                                    && params.get(1) instanceof J.VariableDecls
-                                    && ((J.VariableDecls) params.get(1)).getVarargs() != null;
+                                    && params.get(1) instanceof J.VariableDeclarations
+                                    && ((J.VariableDeclarations) params.get(1)).getVarargs() != null;
                         });
                 if (!methodAlreadyExists) {
                     List<Statement> statements = new ArrayList<>(cd.getBody().getStatements());
-                    J.MethodDecl newFolderMethod = treeBuilder.buildMethodDeclaration(
+                    J.MethodDeclaration newFolderMethod = treeBuilder.buildMethodDeclaration(
                             cd,
                             "private static File newFolder(File root, String ... folders) throws IOException {\n" +
                                     "    File result = new File(root, String.join(\"/\", folders));\n" +
@@ -299,7 +299,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                                     "}",
                             FileType,
                             IOExceptionType);
-                    newFolderMethod = (J.MethodDecl) new AutoFormatVisitor<>().visit(newFolderMethod, ctx, getCursor());
+                    newFolderMethod = (J.MethodDeclaration) new AutoFormatVisitor<>().visit(newFolderMethod, ctx, getCursor());
                     statements.add(newFolderMethod);
                     maybeAddImport(FileType);
                     maybeAddImport(IOExceptionType);

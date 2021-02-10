@@ -73,11 +73,11 @@ public class MockUtilsToStatic extends Recipe {
 
                 // TODO this is probably not right, now that cursors contain padding
                 Optional.ofNullable(getCursor().getParent())
-                        .filter(it -> it.getValue() instanceof J.VariableDecls.NamedVar)
+                        .filter(it -> it.getValue() instanceof J.VariableDeclarations.NamedVariable)
                         .map(Cursor::getParent)
                         .map(Cursor::getValue)
-                        .filter(it -> it instanceof J.VariableDecls.VariableDecls)
-                        .ifPresent(namedVar -> doAfterVisit(new DeleteStatement<>((J.VariableDecls) namedVar)));
+                        .filter(it -> it instanceof J.VariableDeclarations.VariableDeclarations)
+                        .ifPresent(namedVar -> doAfterVisit(new DeleteStatement<>((J.VariableDeclarations) namedVar)));
             }
             return super.visitNewClass(newClass, ctx);
         }

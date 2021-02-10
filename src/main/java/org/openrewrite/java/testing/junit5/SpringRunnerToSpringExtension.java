@@ -60,12 +60,12 @@ public class SpringRunnerToSpringExtension extends Recipe {
                                                 randomId(),
                                                 Space.EMPTY,
                                                 Markers.EMPTY,
-                                                J.Ident.build(
+                                                J.Identifier.build(
                                                         randomId(),
                                                         "SpringRunner",
                                                         springRunnerType
                                                 ),
-                                                JLeftPadded.build(J.Ident.build(randomId(), "class", null)),
+                                                JLeftPadded.build(J.Identifier.build(randomId(), "class", null)),
                                                 JavaType.Class.build("java.lang.Class")
                                         )
                                 )
@@ -89,12 +89,12 @@ public class SpringRunnerToSpringExtension extends Recipe {
                                                 randomId(),
                                                 Space.EMPTY,
                                                 Markers.EMPTY,
-                                                J.Ident.build(
+                                                J.Identifier.build(
                                                         randomId(),
                                                         "SpringJUnit4ClassRunner",
                                                         springJUnit4ClassRunnerType
                                                 ),
-                                                JLeftPadded.build(J.Ident.build(randomId(), "class", null)),
+                                                JLeftPadded.build(J.Identifier.build(randomId(), "class", null)),
                                                 JavaType.Class.build("java.lang.Class")
                                         )
                                 )
@@ -114,12 +114,12 @@ public class SpringRunnerToSpringExtension extends Recipe {
                                                 randomId(),
                                                 Space.EMPTY,
                                                 Markers.EMPTY,
-                                                J.Ident.build(
+                                                J.Identifier.build(
                                                         randomId(),
                                                         "SpringExtension",
                                                         springExtensionType
                                                 ),
-                                                JLeftPadded.build(J.Ident.build(randomId(), "class", null)),
+                                                JLeftPadded.build(J.Identifier.build(randomId(), "class", null)),
                                                 JavaType.Class.build("java.lang.Class")
                                         )
                                 )
@@ -132,7 +132,7 @@ public class SpringRunnerToSpringExtension extends Recipe {
         }
 
         @Override
-        public J.ClassDecl visitClassDecl(J.ClassDecl cd, ExecutionContext ctx) {
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
             if (cd.getAnnotations().stream().anyMatch(this::shouldReplaceAnnotation)) {
                 List<J.Annotation> annotations = cd.getAnnotations().stream()
                         .map(this::springRunnerToSpringExtension)
@@ -155,7 +155,7 @@ public class SpringRunnerToSpringExtension extends Recipe {
             if (!shouldReplaceAnnotation(maybeSpringRunner)) {
                 return maybeSpringRunner;
             }
-            J.ClassDecl parent = getCursor().firstEnclosing(J.ClassDecl.class);
+            J.ClassDeclaration parent = getCursor().firstEnclosing(J.ClassDeclaration.class);
             assert parent != null;
             maybeAddImport(extendWithType);
             maybeAddImport(springExtensionType);

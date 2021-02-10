@@ -80,7 +80,7 @@ public class AssertFalseToAssertThat extends Recipe {
                 return original;
             }
 
-            List<Expression> originalArgs = original.getArgs();
+            List<Expression> originalArgs = original.getArguments();
             Expression condition = originalArgs.get(0);
             Expression message = originalArgs.size() == 2 ? originalArgs.get(1) : null;
 
@@ -92,7 +92,7 @@ public class AssertFalseToAssertThat extends Recipe {
                     Markers.EMPTY,
                     null,
                     null,
-                    J.Ident.build(randomId(), ASSERTJ_ASSERT_THAT_METHOD_NAME, JavaType.Primitive.Void),
+                    J.Identifier.build(randomId(), ASSERTJ_ASSERT_THAT_METHOD_NAME, JavaType.Primitive.Void),
                     JContainer.build(
                             Collections.singletonList(JRightPadded.build(condition))
                     ),
@@ -109,7 +109,7 @@ public class AssertFalseToAssertThat extends Recipe {
                         Markers.EMPTY,
                         JRightPadded.build(assertSelect), //assertThat is the select for this method.
                         null,
-                        J.Ident.build(randomId(), "as", null),
+                        J.Identifier.build(randomId(), "as", null),
                         JContainer.build(
                                 Collections.singletonList(JRightPadded.build(message))
                         ),
@@ -124,7 +124,7 @@ public class AssertFalseToAssertThat extends Recipe {
                         Markers.EMPTY,
                         JRightPadded.build(assertSelect), //assertThat is the select for this method.
                         null,
-                        J.Ident.build(randomId(), "withFailMessage", null),
+                        J.Identifier.build(randomId(), "withFailMessage", null),
                         JContainer.build(
                                 Collections.singletonList(JRightPadded.build(message))
                         ),
@@ -141,7 +141,7 @@ public class AssertFalseToAssertThat extends Recipe {
                     Markers.EMPTY,
                     JRightPadded.build(assertSelect),
                     null,
-                    J.Ident.build(randomId(), "isFalse", JavaType.Primitive.Boolean),
+                    J.Identifier.build(randomId(), "isFalse", JavaType.Primitive.Boolean),
                     JContainer.build(Collections.emptyList()),
                     null
             );

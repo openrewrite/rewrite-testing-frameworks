@@ -90,15 +90,15 @@ public class AssertArrayEqualsToAssertThat extends Recipe {
         }
 
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method) {
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
 
-            J.MethodInvocation original = super.visitMethodInvocation(method);
+            J.MethodInvocation original = super.visitMethodInvocation(method, ctx);
 
             if (!JUNIT_ASSERT_EQUALS_MATCHER.matches(method)) {
                 return original;
             }
 
-            List<Expression> originalArgs = original.getArgs();
+            List<Expression> originalArgs = original.getArguments();
 
             Expression expected = originalArgs.get(0);
             Expression actual = originalArgs.get(1);

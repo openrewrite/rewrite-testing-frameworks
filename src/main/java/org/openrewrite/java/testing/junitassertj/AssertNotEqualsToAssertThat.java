@@ -93,7 +93,7 @@ public class AssertNotEqualsToAssertThat extends Recipe {
                 return original;
             }
 
-            List<Expression> originalArgs = original.getArgs();
+            List<Expression> originalArgs = original.getArguments();
 
             Expression expected = originalArgs.get(0);
             Expression actual = originalArgs.get(1);

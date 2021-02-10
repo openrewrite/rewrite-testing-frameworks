@@ -83,7 +83,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                     )
                     .name("fail");
 
-            List<Expression> originalArgs = original.getArgs();
+            List<Expression> originalArgs = original.getArguments();
             List<Expression> newArgs = new ArrayList<>();
 
             if(originalArgs.get(0) instanceof J.Literal) {
@@ -110,7 +110,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                     Markers.EMPTY,
                     null,
                     null,
-                    J.Ident.build(randomId(), "fail", JavaType.Primitive.Void),
+                    J.Identifier.build(randomId(), "fail", JavaType.Primitive.Void),
                     JContainer.build(
                             newArgs.stream().map(JRightPadded::build).collect(Collectors.toList())
                     ),

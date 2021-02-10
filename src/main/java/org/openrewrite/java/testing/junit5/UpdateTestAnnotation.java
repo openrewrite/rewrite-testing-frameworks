@@ -15,31 +15,20 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.AutoConfigure;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Formatting;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.java.AddAnnotation;
-import org.openrewrite.java.AddImport;
-import org.openrewrite.java.AutoFormat;
-import org.openrewrite.java.ChangeType;
-import org.openrewrite.java.JavaIsoRefactorVisitor;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.*;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import static java.util.Collections.singletonList;
-import static org.openrewrite.Formatting.EMPTY;
-import static org.openrewrite.Formatting.format;
-import static org.openrewrite.Tree.randomId;
 
 public class UpdateTestAnnotation extends Recipe {
 
@@ -61,8 +50,8 @@ public class UpdateTestAnnotation extends Recipe {
         }
 
         @Override
-        public J.MethodDecl visitMethod(J.MethodDecl method, ExecutionContext ctx) {
-            J.MethodDecl m = super.visitMethod(method, ctx);
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
             boolean changed = false;
             List<J.Annotation> annotations = new ArrayList<>(m.getAnnotations());
@@ -77,15 +66,15 @@ public class UpdateTestAnnotation extends Recipe {
                             }));
                     m = maybeAutoFormat(method, m, ctx);
 
-                    annotations.set(i, a.withArgs(null));
-                    if(a.getArgs() == null) {
+                    annotations.set(i, a.withArguments(null));
+                    if(a.getArguments() == null) {
                         continue;
                     }
-                    List<Expression> args = a.getArgs();
+                    List<Expression> args = a.getArguments();
                     for (Expression arg : args) {
-                        if (arg instanceof J.Assign) {
-                            J.Assign assign = (J.Assign) arg;
-                            String assignParamName = ((J.Ident) assign.getVariable()).getSimpleName();
+                        if (arg instanceof J.Assignment) {
+                            J.Assignment assign = (J.Assignment) arg;
+                            String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
                             Expression e = assign.getAssignment();
                             if(m.getBody() == null) {
                                 continue;

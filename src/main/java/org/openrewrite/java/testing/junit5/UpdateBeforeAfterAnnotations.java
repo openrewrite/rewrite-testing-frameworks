@@ -62,8 +62,8 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         }
 
         @Override
-        public J.MethodDecl visitMethod(J.MethodDecl method, ExecutionContext ctx) {
-            J.MethodDecl m = super.visitMethod(method, ctx);
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
             boolean changed = false;
             List<J.Annotation> annotations = new ArrayList<>(m.getAnnotations());
@@ -82,7 +82,7 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
                                             modifier.getType() == J.Modifier.Type.Public ||
                                             modifier.getType() == J.Modifier.Type.Protected) ? null : modifier)
                     );
-                    m = (J.MethodDecl) new AutoFormatVisitor<>().visit(m, ctx, getCursor());
+                    m = (J.MethodDeclaration) new AutoFormatVisitor<>().visit(m, ctx, getCursor());
                     break;
                 }
             }
