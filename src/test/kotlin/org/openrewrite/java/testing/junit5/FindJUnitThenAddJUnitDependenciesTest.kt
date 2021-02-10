@@ -22,7 +22,7 @@ import org.openrewrite.*
 import org.openrewrite.java.JavaParser
 import org.openrewrite.maven.MavenParser
 
-class MaybeAddJUnit5DependenciesTest {
+class FindJUnitThenAddJUnitDependenciesTest {
 
     private val javaParser = JavaParser.fromJavaVersion().classpath(
             JavaParser.dependenciesFromClasspath("junit-jupiter-api", "apiguardian-api")).build()
@@ -48,16 +48,17 @@ class MaybeAddJUnit5DependenciesTest {
             </project>
         """.trimIndent())[0]
 
-        val results = MaybeAddJUnit5Dependencies().run(listOf<SourceFile>(javaSource, mavenSource),
+        val recipe = FindJUnit().doNext(AddJUnitDependencies().apply { setVersion("5.7.1") })
+
+        val results = recipe.run(listOf<SourceFile>(javaSource, mavenSource),
                 ExecutionContext.builder()
                         .maxCycles(2)
                         .doOnError { t: Throwable? -> Assertions.fail<Any>("Recipe threw an exception", t) }
                         .build())
         assertThat(results).`as`("Recipe must make changes").isNotEmpty
         assertThat(results).hasSize(1)
-        val result = results[0]
-        assertThat(result!!.before === mavenSource)
-
+        val result = results.find { it -> it.before === mavenSource }
+        assertThat(result).`as`("Recipe must make changes").isNotNull
         assertThat(result!!.after).isNotNull
         assertThat(result.after!!.printTrimmed())
                 .isEqualTo("""
@@ -69,17 +70,17 @@ class MaybeAddJUnit5DependenciesTest {
                 <dependency>
                   <groupId>org.junit.jupiter</groupId>
                   <artifactId>junit-jupiter-api</artifactId>
-                  <version>5.7.0</version>
+                  <version>5.7.1</version>
                   <scope>test</scope>
                 </dependency>
                 <dependency>
                   <groupId>org.junit.jupiter</groupId>
                   <artifactId>junit-jupiter-engine</artifactId>
-                  <version>5.7.0</version>
+                  <version>5.7.1</version>
                   <scope>test</scope>
                 </dependency>
               </dependencies>
             </project>
-        """)
+        """.trimIndent())
     }
 }

@@ -112,7 +112,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 m = m.withBody(
                         m.getBody().withTemplate(
                                 template("{ assertThrows(#{}, () -> { #{} }); }")
-//                                        .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
+                                        .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                         .build(),
                                 m.getBody().getCoordinates().replace(),
                                 expectedException, printedStatements.toString())
@@ -121,8 +121,6 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 maybeRemoveImport("org.junit.Rule");
                 maybeRemoveImport("org.junit.rules.ExpectedException");
 
-                // TODO remove this in favor of template builder static imports (commented out above) once working
-                // https://github.com/openrewrite/rewrite/issues/256
                 doAfterVisit(new AddImport<>("org.junit.jupiter.api.Assertions", "assertThrows", false));
 
                 m = m.withBody((J.Block) new AutoFormatVisitor<ExecutionContext>().visit(m.getBody(), ctx, getCursor()));
