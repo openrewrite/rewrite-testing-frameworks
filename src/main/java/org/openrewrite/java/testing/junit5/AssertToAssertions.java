@@ -42,6 +42,10 @@ public class AssertToAssertions extends Recipe {
 
     public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
+        public AssertToAssertionsVisitor() {
+            setCursoringOn();
+        }
+
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             doAfterVisit(new ChangeType("org.junit.Assert", "org.junit.jupiter.api.Assertions"));
@@ -69,7 +73,7 @@ public class AssertToAssertions extends Recipe {
                 ).collect(Collectors.toList());
                 m = m.withArguments(newArgs);
             }
-            m = maybeAutoFormat(method, m, ctx);
+            m = maybeAutoFormat(method, m, ctx, getCursor().dropParentUntil(it -> it instanceof J));
 
             return m;
         }
