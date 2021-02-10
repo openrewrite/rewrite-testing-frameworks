@@ -16,19 +16,20 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.tree.J
 
-class AssertToAssertionsTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class AssertToAssertionsTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
-    override val visitors = listOf(AssertToAssertions())
+    override val recipe: Recipe
+        get() = AssertToAssertions()
 
     @Test
-    fun assertWithoutMessage() = assertRefactored(
+    fun assertWithoutMessage() = assertChanged(
             before = """
                 import org.junit.Assert;
                 
@@ -66,7 +67,7 @@ class AssertToAssertionsTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     )
 
     @Test
-    fun staticAssertWithoutMessage() = assertRefactored(
+    fun staticAssertWithoutMessage() = assertChanged(
             before = """
                 import static org.junit.Assert.*;
                 
@@ -104,7 +105,7 @@ class AssertToAssertionsTest : RefactorVisitorTestForParser<J.CompilationUnit> {
     )
 
     @Test
-    fun assertWithMessage() = assertRefactored(
+    fun assertWithMessage() = assertChanged(
             before = """
                 import org.junit.Assert;
                 

@@ -16,26 +16,26 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.RefactorVisitorTestForParser
+import org.openrewrite.Recipe
+import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.tree.J
 
-class CleanupJUnitImportsTest : RefactorVisitorTestForParser<J.CompilationUnit> {
+class CleanupJUnitImportsTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
-    override val visitors = listOf(CleanupJUnitImports())
+    override val recipe: Recipe
+        get() = CleanupJUnitImports()
 
     @Test
-    fun removesUnusedImport() = assertRefactored(
+    fun removesUnusedImport() = assertChanged(
             before = """
                 import org.junit.Test;
                 
                 public class A {}
             """,
             after = """
-                
                 public class A {}
             """
     )

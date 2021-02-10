@@ -14,38 +14,23 @@
 # limitations under the License.
 #
 ---
-type: specs.openrewrite.org/v1beta/visitor
-name: org.openrewrite.java.testing.mockito.MockAsOuterClass
-visitors:
-  - org.openrewrite.java.ChangeType:
-      type: org.mockito.MockitoAnnotations.Mock
-      targetType: org.mockito.Mock
----
-type: specs.openrewrite.org/v1beta/visitor
-name: org.openrewrite.java.testing.mockito.ArgumentMatchersAny
-visitors:
-  - org.openrewrite.java.ChangeMethodName:
-      method: org.mockito.Matchers anyVararg()
-      name: any
-  - org.openrewrite.java.ChangeType:
-      type: org.mockito.Matchers
-      targetType: org.mockito.ArgumentMatchers
----
-type: specs.openrewrite.org/v1beta/visitor
-name: org.openrewrite.java.testing.mockito.InvocationOnMockGetArgument
-visitors:
-  - org.openrewrite.java.ChangeMethodName:
-      method: org.mockito.invocation.InvocationOnMock getArgumentAt(int, java.lang.Class)
-      name: getArgument
----
-type: specs.openrewrite.org/v1beta/visitor
-name: org.openrewrite.java.testing.mockito.MockitoJUnitRunner
-visitors:
-  - org.openrewrite.java.ChangeType:
-      type: org.mockito.runners.MockitoJUnitRunner
-      targetType: org.mockito.junit.MockitoJUnitRunner
----
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.Mockito1to3Migration
-include:
-  - 'org.openrewrite.java.testing.mockito.*'
+name: org.openrewrite.java.testing.mockito.MockAsOuterClass
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.mockito.MockitoAnnotations.Mock
+      newFullyQualifiedTypeName: org.mockito.Mock
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.Matchers anyVararg()
+      newMethodName: any
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.mockito.Matchers
+      newFullyQualifiedTypeName: org.mockito.ArgumentMatchers
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.invocation.InvocationOnMock getArgumentAt(int, java.lang.Class)
+      newMethodName: getArgument
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.mockito.runners.MockitoJUnitRunner
+      newFullyQualifiedTypeName: org.mockito.junit.MockitoJUnitRunner
+  - org.openrewrite.java.testing.mockito.CleanupMockitoImports
+  - org.openrewrite.java.testing.mockito.MockUtilsToStatic

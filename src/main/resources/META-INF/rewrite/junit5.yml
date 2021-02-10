@@ -14,35 +14,28 @@
 # limitations under the License.
 #
 ---
-type: specs.openrewrite.org/v1beta/visitor
-name: org.openrewrite.java.testing.junit5.ReplaceIgnoreAnnotations
-visitors:
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.JUnit5Migration
+recipeList:
   - org.openrewrite.java.ChangeType:
-      type: org.junit.Ignore
-      targetType: org.junit.jupiter.api.Disabled
----
-type: specs.openrewrite.org/v1beta/visitor
-name: org.openrewrite.java.testing.junit5.AssumeToAssumptions
-visitors:
+      oldFullyQualifiedTypeName: org.junit.Ignore
+      newFullyQualifiedTypeName: org.junit.jupiter.api.Disabled
   - org.openrewrite.java.ChangeType:
-      type: org.junit.Assume
-      targetType: org.junit.jupiter.api.Assumptions
----
-type: specs.openrewrite.org/v1beta/visitor
-name: org.openrewrite.java.testing.junit5.RemoveJUnit4Dependency
-visitors:
+      oldFullyQualifiedTypeName: org.junit.Assume
+      newFullyQualifiedTypeName: org.junit.jupiter.api.Assumptions
   - org.openrewrite.maven.RemoveDependency:
       groupId: junit
       artifactId: junit
----
-type: specs.openrewrite.org/v1beta/visitor
-name: org.openrewrite.java.testing.junit5.ExcludeJUnitVintageEngine
-visitors:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.JUnit5Migration
-include:
-  - 'org.openrewrite.java.testing.junit5.*'
+  - org.openrewrite.java.testing.junit5.AssertToAssertions
+  - org.openrewrite.java.testing.junit5.CategoryToTag
+  - org.openrewrite.java.testing.junit5.CleanupJUnitImports
+  - org.openrewrite.java.testing.junit5.ExpectedExceptionToAsertThrows
+  - org.openrewrite.java.testing.junit5.MaybeAddJUnit5Dependencies
+  - org.openrewrite.java.testing.junit5.MockitoRunnerToMockitoExtension
+  - org.openrewrite.java.testing.junit5.SpringRunnerToSpringExtension
+  - org.openrewrite.java.testing.junit5.TemporaryFolderToTempDir
+  - org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
+  - org.openrewrite.java.testing.junit5.UpdateTestAnnotation
