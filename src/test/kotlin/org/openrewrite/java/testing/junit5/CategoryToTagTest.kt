@@ -70,7 +70,7 @@ class CategoryToTagTest : RecipeTest {
                     @Test
                     public void b() {
                     }
-                    
+                
                     @Test
                     public void d() {
                     }
@@ -87,7 +87,7 @@ class CategoryToTagTest : RecipeTest {
                     @Test
                     public void b() {
                     }
-                    
+                
                     @Test
                     public void d() {
                     }
@@ -144,7 +144,8 @@ class CategoryToTagTest : RecipeTest {
                 import org.junit.experimental.categories.Category;
                 
                 @Category({FastTests.class})
-                public class B {}
+                public class B {
+                }
             """,
             after = """
                 package b;
@@ -152,7 +153,8 @@ class CategoryToTagTest : RecipeTest {
                 import org.junit.jupiter.api.Tag;
                 
                 @Tag("FastTests")
-                public class B {}
+                public class B {
+                }
             """
     )
 }
