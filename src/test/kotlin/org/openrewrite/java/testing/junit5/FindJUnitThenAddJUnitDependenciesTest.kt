@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit5
 
 import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import org.openrewrite.*
 import org.openrewrite.java.JavaParser
@@ -51,10 +52,8 @@ class FindJUnitThenAddJUnitDependenciesTest {
         val recipe = FindJUnit().doNext(AddJUnitDependencies().apply { setVersion("5.7.1") })
 
         val results = recipe.run(listOf<SourceFile>(javaSource, mavenSource),
-                ExecutionContext.builder()
-                        .maxCycles(2)
-                        .doOnError { t: Throwable? -> Assertions.fail<Any>("Recipe threw an exception", t) }
-                        .build())
+                InMemoryExecutionContext { t: Throwable? -> fail<Any>("Recipe threw an exception", t) },
+        )
         assertThat(results).`as`("Recipe must make changes").isNotEmpty
         assertThat(results).hasSize(1)
         val result = results.find { it -> it.before === mavenSource }

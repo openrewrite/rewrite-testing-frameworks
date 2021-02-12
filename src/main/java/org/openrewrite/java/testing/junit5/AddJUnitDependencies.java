@@ -21,7 +21,7 @@ public class AddJUnitDependencies extends Recipe {
         return new AddJUnitDependenciesVisitor();
     }
 
-    private class AddJUnitDependenciesVisitor extends MavenVisitor<ExecutionContext> {
+    private class AddJUnitDependenciesVisitor extends MavenVisitor {
         @Override
         public Maven visitMaven(Maven maven, ExecutionContext ctx) {
             if (Boolean.TRUE.equals(ctx.pollMessage(FindJUnit.JUNIT_REFS_EXIST_KEY))) {

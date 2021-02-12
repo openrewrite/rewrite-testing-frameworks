@@ -44,6 +44,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
     public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private static final String EXPECTED_EXCEPTION_FQN = "org.junit.rules.ExpectedException";
+        private static final String EXPECTED_EXCEPTION_METHOD_INVOCATION_KEY = "expectedExceptionMethodInvocation";
 
         public ExpectedExceptionToAssertThrowsVisitor() {
             setCursoringOn();
@@ -52,45 +53,24 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-            Set<J.VariableDeclarations> expectedExceptionFields = FindFields.find(classDecl, EXPECTED_EXCEPTION_FQN);
+            Set<J.VariableDeclarations> expectedExceptionFields = FindFields.find(cd, EXPECTED_EXCEPTION_FQN);
             if (expectedExceptionFields.size() > 0) {
                 // Remove the ExpectedException fields
-                List<Statement> statements = new ArrayList<>(classDecl.getBody().getStatements());
+                List<Statement> statements = new ArrayList<>(cd.getBody().getStatements());
                 statements.removeAll(expectedExceptionFields);
-                cd = cd.withBody(classDecl.getBody().withStatements(statements));
+                cd = cd.withBody(cd.getBody().withStatements(statements));
             }
             return cd;
         }
 
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (method.getType() != null && method.getType().getDeclaringType().getFullyQualifiedName().equals(EXPECTED_EXCEPTION_FQN)) {
-                J.MethodDeclaration enclosing = getCursor().firstEnclosing(J.MethodDeclaration.class);
-                if (enclosing != null) {
-                    doAfterVisit(new Scoped(enclosing, method));
-                }
-            }
-            return super.visitMethodInvocation(method, ctx);
-        }
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
 
-        private static class Scoped extends JavaIsoVisitor<ExecutionContext> {
+            J.MethodDeclaration m = super.visitMethodDeclaration(methodDecl, ctx);
 
-            private final J.MethodDeclaration scope;
-            private final J.MethodInvocation methodInvocation;
-
-            private Scoped(J.MethodDeclaration scope, J.MethodInvocation methodInvocation) {
-                this.scope = scope;
-                this.methodInvocation = methodInvocation;
-                setCursoringOn();
-            }
-
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration m, ExecutionContext ctx) {
-                if (!(scope.isScope(m) && m.getBody() != null)) {
-                    return m;
-                }
-
-                List<Expression> args = methodInvocation.getArguments();
+            J.MethodInvocation expectedExceptionMethodInvocation = getCursor().pollMessage(EXPECTED_EXCEPTION_METHOD_INVOCATION_KEY);
+            if (expectedExceptionMethodInvocation != null) {
+                List<Expression> args = expectedExceptionMethodInvocation.getArguments();
                 if (args.size() != 1) {
                     return m;
                 }
@@ -103,7 +83,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
                 // Remove the ExpectedException.expect() invocation, use the remaining statements as the lambda body for Assertions.assertThrows()
                 List<Statement> statements = new ArrayList<>(m.getBody().getStatements());
-                statements.remove(methodInvocation);
+                statements.remove(expectedExceptionMethodInvocation);
                 StringBuilder printedStatements = new StringBuilder();
                 for (Statement stmt : statements) {
                     printedStatements.append(stmt.print()).append(';');
@@ -124,10 +104,16 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 doAfterVisit(new AddImport<>("org.junit.jupiter.api.Assertions", "assertThrows", false));
 
                 m = m.withBody((J.Block) new AutoFormatVisitor<ExecutionContext>().visit(m.getBody(), ctx, getCursor()));
-                return m;
             }
+            return m;
         }
 
-
+        @Override
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            if (method.getType() != null && method.getType().getDeclaringType().getFullyQualifiedName().equals(EXPECTED_EXCEPTION_FQN)) {
+                getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECTED_EXCEPTION_METHOD_INVOCATION_KEY, method);
+            }
+            return super.visitMethodInvocation(method, ctx);
+        }
     }
 }
