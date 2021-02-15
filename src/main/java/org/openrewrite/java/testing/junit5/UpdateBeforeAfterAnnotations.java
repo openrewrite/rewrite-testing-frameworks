@@ -49,6 +49,10 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
 
     public static class UpdateBeforeAfterAnnotationsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
+        public UpdateBeforeAfterAnnotationsVisitor() {
+            setCursoringOn();
+        }
+
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             //This visitor handles changing the method visibility for any method annotated with one of the four before/after
@@ -64,8 +68,7 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-
-            boolean changed = false;
+            
             List<J.Annotation> annotations = new ArrayList<>(m.getAnnotations());
             for (J.Annotation a : annotations) {
 
@@ -82,7 +85,7 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
                                             modifier.getType() == J.Modifier.Type.Public ||
                                             modifier.getType() == J.Modifier.Type.Protected) ? null : modifier)
                     );
-                    m = (J.MethodDeclaration) new AutoFormatVisitor<>().visit(m, ctx, getCursor());
+                    m = (J.MethodDeclaration) new AutoFormatVisitor<>().visit(m, ctx, getCursor().dropParentUntil(it -> it instanceof J));
                     break;
                 }
             }
