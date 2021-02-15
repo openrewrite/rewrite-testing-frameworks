@@ -139,7 +139,8 @@ class UpdateTestAnnotationTest: RecipeTest {
                 public class A {
                 
                     @Test
-                    void test() { }
+                    void test() {
+                    }
                 }
             """
     )
@@ -163,7 +164,8 @@ class UpdateTestAnnotationTest: RecipeTest {
                 
                     @Test
                     @Timeout(500)
-                    void test() { }
+                    void test() {
+                    }
                 }
             """
     )

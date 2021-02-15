@@ -49,10 +49,6 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
 
     public static class UpdateBeforeAfterAnnotationsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        public UpdateBeforeAfterAnnotationsVisitor() {
-            setCursoringOn();
-        }
-
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             //This visitor handles changing the method visibility for any method annotated with one of the four before/after

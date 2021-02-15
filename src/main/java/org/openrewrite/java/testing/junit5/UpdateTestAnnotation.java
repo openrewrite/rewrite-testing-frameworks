@@ -26,9 +26,9 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-
-import static java.util.Collections.singletonList;
+import java.util.stream.Collectors;
 
 public class UpdateTestAnnotation extends Recipe {
 
@@ -38,10 +38,6 @@ public class UpdateTestAnnotation extends Recipe {
     }
 
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        public UpdateTestAnnotationVisitor() {
-            setCursoringOn();
-        }
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
@@ -61,13 +57,14 @@ public class UpdateTestAnnotation extends Recipe {
                 if (TypeUtils.isOfClassType(a.getType(), "org.junit.Test")) {
                     //If we found the annotation, we change the visibility of the method to package. Because the
                     m = m.withModifiers(ListUtils.map(m.getModifiers(), mod -> {
-                                J.Modifier.Type modifierType = mod.getType();
-                                return (modifierType == J.Modifier.Type.Protected || modifierType == J.Modifier.Type.Private || modifierType == J.Modifier.Type.Public) ? null : mod;
-                            }));
-                    m = maybeAutoFormat(method, m, ctx);
+                        J.Modifier.Type modifierType = mod.getType();
+                        return (modifierType == J.Modifier.Type.Protected || modifierType == J.Modifier.Type.Private ||
+                                modifierType == J.Modifier.Type.Public) ? null : mod;
+                    }));
+                    m = maybeAutoFormat(method, m, ctx, getCursor().dropParentUntil(it -> it instanceof J));
 
                     annotations.set(i, a.withArguments(null));
-                    if(a.getArguments() == null) {
+                    if (a.getArguments() == null) {
                         continue;
                     }
                     List<Expression> args = a.getArguments();
@@ -76,22 +73,24 @@ public class UpdateTestAnnotation extends Recipe {
                             J.Assignment assign = (J.Assignment) arg;
                             String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
                             Expression e = assign.getAssignment();
-                            if(m.getBody() == null) {
+                            if (m.getBody() == null) {
                                 continue;
                             }
-                            if(assignParamName.equals("expected")) {
+                            if (assignParamName.equals("expected")) {
                                 List<Statement> statements = m.getBody().getStatements();
-                                J.MethodInvocation assertThrows = AssertionsBuilder.assertThrows(e, statements);
-
-                                AddImport<ExecutionContext> addAssertThrows = new AddImport<>("org.junit.jupiter.api.Assertions", "assertThrows", false);
-                                doAfterVisit(addAssertThrows);
-                                andThen(new AutoFormat(assertThrows));
-
-                                m = m.withBody(m.getBody().withStatements(singletonList(assertThrows)));
+                                String strStatements = statements.stream().map(Statement::print)
+                                        .collect(Collectors.joining(";")) + ";";
+                                m = m.withTemplate(
+                                        template("{ assertThrows(#{}, () -> {#{}}); }")
+                                                .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
+                                                .build(),
+                                        m.getCoordinates().replaceBody(),
+                                        e,
+                                        strStatements
+                                );
+                                maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                             } else if (assignParamName.equals("timeout")) {
-                                AddAnnotation.Scoped aa = new AddAnnotation.Scoped(m, "org.junit.jupiter.api.Timeout", e.withFormatting(EMPTY));
-                                andThen(aa);
-                                andThen(new AutoFormat(m));
+                                doAfterVisit(new AddTimeoutAnnotation(e));
                             }
                         }
                         changed = true;
@@ -103,6 +102,28 @@ public class UpdateTestAnnotation extends Recipe {
                 m = m.withAnnotations(annotations);
             }
             return m;
+        }
+
+        private static class AddTimeoutAnnotation extends JavaIsoVisitor<ExecutionContext> {
+
+            private final Expression expression;
+
+            public AddTimeoutAnnotation(Expression expression) {
+                this.expression = expression;
+            }
+
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+                method = method.withTemplate(
+                        template("@Timeout(#{})")
+                                .imports("org.junit.jupiter.api.Timeout")
+                                .build(),
+                        method.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
+                        expression
+                );
+                maybeAddImport("org.junit.jupiter.api.Timeout");
+                return method;
+            }
         }
     }
 }

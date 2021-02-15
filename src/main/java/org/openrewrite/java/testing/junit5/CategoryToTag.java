@@ -42,10 +42,6 @@ public class CategoryToTag extends Recipe {
 
     public static class CategoryToTagVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        public CategoryToTagVisitor() {
-            setCursoringOn();
-        }
-
         private static final String categoryAnnotation = "org.junit.experimental.categories.Category";
         private static final JavaType.Class tagType = JavaType.Class.build("org.junit.jupiter.api.Tag");
 

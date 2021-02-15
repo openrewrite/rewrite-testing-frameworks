@@ -50,10 +50,6 @@ public class TemporaryFolderToTempDir extends Recipe {
         private static final String IO_EXCEPTION_FQN = "java.io.IOException";
         private static final JavaType.Class STRING_TYPE = JavaType.Class.build("java.lang.String");
 
-        public TemporaryFolderToTempDirVisitor() {
-            setCursoringOn();
-        }
-
         @Override
         public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
 
@@ -119,7 +115,6 @@ public class TemporaryFolderToTempDir extends Recipe {
 
             private ReplaceTemporaryFolderMethods(Set<J.VariableDeclarations> tempDirFields) {
                 this.tempDirFields = tempDirFields;
-                setCursoringOn();
             }
 
             @Override
@@ -154,8 +149,6 @@ public class TemporaryFolderToTempDir extends Recipe {
                                 case "newFolder":
                                     if (args.size() == 1 && args.get(0) instanceof J.Empty) {
                                         m = m.withTemplate(template("Files.createTempDirectory(#{}.toPath(), \"junit\").toFile();").imports(FILES_FQN, FILE_FQN)
-                                                .doBeforeParseTemplate(System.out::println)
-                                                .doAfterVariableSubstitution(System.out::println)
                                                 .build(), m.getCoordinates().replace(), fieldName);
                                         maybeAddImport(FILES_FQN);
                                     } else {
@@ -180,7 +173,6 @@ public class TemporaryFolderToTempDir extends Recipe {
             private AddNewFileMethod(String fieldName, J.MethodInvocation methodInvocation) {
                 this.fieldName = fieldName;
                 this.methodInvocation = methodInvocation;
-                setCursoringOn();
             }
 
             @Override
@@ -215,10 +207,6 @@ public class TemporaryFolderToTempDir extends Recipe {
 
             private class TranslateNewFileMethodInvocation extends JavaIsoVisitor<ExecutionContext> {
 
-                private TranslateNewFileMethodInvocation() {
-                    setCursoringOn();
-                }
-
                 @Override
                 public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                     if (method.isScope(methodInvocation)) {
@@ -239,7 +227,6 @@ public class TemporaryFolderToTempDir extends Recipe {
             private AddNewFolderMethod(String fieldName, J.MethodInvocation methodInvocation) {
                 this.fieldName = fieldName;
                 this.methodInvocation = methodInvocation;
-                setCursoringOn();
             }
 
             @Override
@@ -279,16 +266,10 @@ public class TemporaryFolderToTempDir extends Recipe {
 
             private class TranslateNewFolderMethodInvocation extends JavaIsoVisitor<ExecutionContext> {
 
-                private TranslateNewFolderMethodInvocation() {
-                    setCursoringOn();
-                }
-
                 @Override
                 public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                     if (method.isScope(methodInvocation)) {
                         return method.withTemplate(template("newFolder(#{}, #{});")
-                                .doBeforeParseTemplate(s -> System.out.println("Before parse template: " + s))
-                                .doAfterVariableSubstitution(s -> System.out.println("After var substitution: " + s))
                                 .build(), method.getCoordinates().replace(), fieldName, printArgs(method.getArguments()));
                     }
                     return super.visitMethodInvocation(method, executionContext);

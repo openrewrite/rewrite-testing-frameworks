@@ -107,10 +107,6 @@ public class SpringRunnerToSpringExtension extends Recipe {
                 )
         );
 
-        public SpringRunnerToSpringExtensionVisitor() {
-            setCursoringOn();
-        }
-
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
             List<J.Annotation> keepAnnotations = cd.getAnnotations().stream().filter(

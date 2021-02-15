@@ -42,10 +42,6 @@ public class AssertToAssertions extends Recipe {
 
     public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        public AssertToAssertionsVisitor() {
-            setCursoringOn();
-        }
-
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             doAfterVisit(new ChangeType("org.junit.Assert", "org.junit.jupiter.api.Assertions"));

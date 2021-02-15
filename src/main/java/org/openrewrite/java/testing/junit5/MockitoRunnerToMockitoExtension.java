@@ -93,10 +93,6 @@ public class MockitoRunnerToMockitoExtension extends Recipe {
                 )
                 .collect(Collectors.toList());
 
-        public AnnotationUpdateVisitor() {
-            setCursoringOn();
-        }
-
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
 

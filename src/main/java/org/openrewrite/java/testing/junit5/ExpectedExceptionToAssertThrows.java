@@ -46,10 +46,6 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         private static final String EXPECTED_EXCEPTION_FQN = "org.junit.rules.ExpectedException";
         private static final String EXPECTED_EXCEPTION_METHOD_INVOCATION_KEY = "expectedExceptionMethodInvocation";
 
-        public ExpectedExceptionToAssertThrowsVisitor() {
-            setCursoringOn();
-        }
-
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
