@@ -20,8 +20,10 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.format.AutoFormatVisitor;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
@@ -75,44 +77,72 @@ public class AssertNotEqualsToAssertThat extends Recipe {
                 JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertNotEquals(..)"
         );
 
-        private static final JavaType ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT = newMethodType()
-                .declaringClass("org.assertj.core.api.Assertions")
-                .flags(Flag.Public, Flag.Static)
-                .name("*")
-                .build();
-
-        public AssertNotEqualsToAssertThatVisitor() {
-            setCursoringOn();
-        }
-
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
 
-            J.MethodInvocation original = super.visitMethodInvocation(method, ctx);
             if (!JUNIT_ASSERT_EQUALS_MATCHER.matches(method)) {
-                return original;
+                return method;
             }
 
-            List<Expression> originalArgs = original.getArguments();
+            List<Expression> args = method.getArguments();
 
-            Expression expected = originalArgs.get(0);
-            Expression actual = originalArgs.get(1);
+            Expression expected = args.get(0);
+            Expression actual = args.get(1);
 
-            J.MethodInvocation replacement;
-            if (originalArgs.size() == 2) {
-                //assertThat(actual).isNotEqualTo(expected)
-                replacement = assertSimple(actual, expected);
-            } else if (originalArgs.size() == 3 && !isFloatingPointType(originalArgs.get(2))) {
-                //assertThat(actual).as(message).isNotEqualTo(expected)
-                replacement = assertWithMessage(actual, expected, originalArgs.get(2));
-            } else if (originalArgs.size() == 3) {
-                //assertThat(actual).isNotCloseTo(expected, within(delta))
-                replacement = assertFloatingPointDelta(actual, expected, originalArgs.get(2));
+            if (args.size() == 2) {
+                method = method.withTemplate(
+                        template("assertThat(#{}).isNotEqualTo(#{});")
+                                .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                .build(),
+                        method.getCoordinates().replace(),
+                        actual,
+                        expected
+                );
+            } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
+                Expression message = args.get(2);
+                // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
+                // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
+                String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
+                method = method.withTemplate(
+                        template("assertThat(#{}).#{}(#{}).isNotEqualTo(#{});")
+                                .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                .build(),
+                        method.getCoordinates().replace(),
+                        actual,
+                        messageAs,
+                        message,
+                        expected
+                );
+            } else if (args.size() == 3) {
+                method = method.withTemplate(
+                        template("assertThat(#{}).isNotCloseTo(#{}, within(#{}));")
+                                .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
+                                .doAfterVariableSubstitution(s -> System.out.println("After var subst: " + s))
+                                .doBeforeParseTemplate(s -> System.out.println("Before parse: " + s))
+                                .build(),
+                        method.getCoordinates().replace(),
+                        actual,
+                        expected,
+                        args.get(2)
+                );
                 maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_WITHIN_METHOD_NAME);
-
             } else {
-                //assertThat(actual).as(message).isNotCloseTo(expected, within(delta))
-                replacement = assertFloatingPointDeltaWithMessage(actual, expected, originalArgs.get(2), originalArgs.get(3));
+                Expression message = args.get(3);
+                //If the message is a string use "as", if it is a supplier use "withFailMessage"
+                String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
+
+                method = method.withTemplate(
+                        template("assertThat(#{}).#{}(#{}).isNotCloseTo(#{}, within(#{}));")
+                                .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
+                                .build(),
+                        method.getCoordinates().replace(),
+                        actual,
+                        messageAs,
+                        message,
+                        expected,
+                        args.get(2)
+                );
+
                 maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_WITHIN_METHOD_NAME);
             }
 
@@ -121,54 +151,7 @@ public class AssertNotEqualsToAssertThat extends Recipe {
             //And if there are no longer references to the JUnit assertions class, we can remove the import.
             maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
 
-            //Format the replacement method invocation in the context of where it is called.
-            return (J.MethodInvocation) new AutoFormatVisitor<ExecutionContext>().visit(replacement, ctx, getCursor());
-        }
-
-        private J.MethodInvocation assertSimple(Expression actual, Expression expected) {
-
-            List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                    String.format("assertThat(%s).isNotEqualTo(%s);", actual.printTrimmed(), expected.printTrimmed()),
-                    ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
-            );
-            return statements.get(0);
-        }
-
-        private J.MethodInvocation assertWithMessage(Expression actual, Expression expected, Expression message) {
-
-            // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
-            // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
-            String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
-
-            List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                    String.format("assertThat(%s).%s(%s).isNotEqualTo(%s);",
-                            actual.printTrimmed(), messageAs, message.printTrimmed(), expected.printTrimmed()),
-                    ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
-            );
-            return statements.get(0);
-        }
-
-        private J.MethodInvocation assertFloatingPointDelta(Expression actual, Expression expected, Expression delta) {
-            List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                    String.format("assertThat(%s).isNotCloseTo(%s, within(%s));",
-                            actual.printTrimmed(), expected.printTrimmed(), delta.printTrimmed()),
-                    ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
-            );
-            return statements.get(0);
-        }
-
-        private J.MethodInvocation assertFloatingPointDeltaWithMessage(Expression actual, Expression expected,
-                                                                       Expression delta, Expression message) {
-
-            //If the message is a string use "as", if it is a supplier use "withFailMessage"
-            String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
-
-            List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                    String.format("assertThat(%s).%s(%s).isNotCloseTo(%s, within(%s));",
-                            actual.printTrimmed(), messageAs, message.printTrimmed(), expected.printTrimmed(), delta.printTrimmed()),
-                    ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
-            );
-            return statements.get(0);
+            return method;
         }
 
         /**

@@ -15,19 +15,17 @@
  */
 package org.openrewrite.java.testing.junitassertj;
 
-import org.openrewrite.AutoConfigure;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.AutoFormat;
-import org.openrewrite.java.JavaIsoRefactorVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
-
-import static org.openrewrite.java.tree.MethodTypeBuilder.newMethodType;
 
 /**
  * This is a refactoring visitor that will convert JUnit-style assertArrayEquals() to assertJ's assertThat().containsExactly().
@@ -79,45 +77,72 @@ public class AssertArrayEqualsToAssertThat extends Recipe {
                 JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertArrayEquals(..)"
         );
 
-        private static final JavaType ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT = newMethodType()
-                .declaringClass("org.assertj.core.api.Assertions")
-                .flags(Flag.Public, Flag.Static)
-                .name("*")
-                .build();
-
-        public AssertArrayEqualsToAssertThatVisitor() {
-            setCursoringOn();
-        }
-
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
 
-            J.MethodInvocation original = super.visitMethodInvocation(method, ctx);
-
             if (!JUNIT_ASSERT_EQUALS_MATCHER.matches(method)) {
-                return original;
+                return method;
             }
 
-            List<Expression> originalArgs = original.getArguments();
+            List<Expression> args = method.getArguments();
 
-            Expression expected = originalArgs.get(0);
-            Expression actual = originalArgs.get(1);
+            Expression expected = args.get(0);
+            Expression actual = args.get(1);
 
-            J.MethodInvocation replacement;
-            if (originalArgs.size() == 2) {
-                //assertThat(actual).isEqualTo(expected)
-                replacement = assertSimple(actual, expected);
-            } else if (originalArgs.size() == 3 && !isFloatingPointType(originalArgs.get(2))) {
-                //assertThat(actual).as(message).isEqualTo(expected)
-                replacement = assertWithMessage(actual, expected, originalArgs.get(2));
-            } else if (originalArgs.size() == 3) {
+            if (args.size() == 2) {
+                method = method.withTemplate(
+                        template("assertThat(#{}).containsExactly(#{});")
+                                .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                .build(),
+                        method.getCoordinates().replace(),
+                        actual,
+                        expected
+                );
+            } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
+                // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
+                // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
+                Expression message = args.get(2);
+                String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
+
+                method = method.withTemplate(
+                        template("assertThat(#{}).#{}(#{}).containsExactly(#{});")
+                                .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                .build(),
+                        method.getCoordinates().replace(),
+                        actual,
+                        messageAs,
+                        message,
+                        expected
+                );
+            } else if (args.size() == 3) {
                 //assert is using floating points with a delta and no message.
-                replacement = assertFloatingPointDelta(actual, expected, originalArgs.get(2));
+                method = method.withTemplate(
+                        template("assertThat(#{}).containsExactly(#{}, within(#{}));")
+                                .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
+                                .build(),
+                        method.getCoordinates().replace(),
+                        actual,
+                        expected,
+                        args.get(2)
+                );
                 maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_WITHIN_METHOD_NAME);
 
             } else {
                 //The assertEquals is using a floating point with a delta argument and a message.
-                replacement = assertFloatingPointDeltaWithMessage(actual, expected, originalArgs.get(2), originalArgs.get(3));
+                //If the message is a string use "as", if it is a supplier use "withFailMessage"
+                Expression message = args.get(3);
+                String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
+                method = method.withTemplate(
+                        template("assertThat(#{}).#{}(#{}).containsExactly(#{}, within(#{}));")
+                                .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
+                                .build(),
+                        method.getCoordinates().replace(),
+                        actual,
+                        messageAs,
+                        message,
+                        expected,
+                        args.get(2)
+                );
                 maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_WITHIN_METHOD_NAME);
             }
 
@@ -126,55 +151,7 @@ public class AssertArrayEqualsToAssertThat extends Recipe {
             //And if there are no longer references to the JUnit assertions class, we can remove the import.
             maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
 
-            //Format the replacement method invocation in the context of where it is called.
-            andThen(new AutoFormat(replacement));
-            return replacement;
-        }
-
-        private J.MethodInvocation assertSimple(Expression actual, Expression expected) {
-
-            List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                    String.format("assertThat(%s).containsExactly(%s);", actual.printTrimmed(), expected.printTrimmed()),
-                    ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
-            );
-            return statements.get(0);
-        }
-
-        private J.MethodInvocation assertWithMessage(Expression actual, Expression expected, Expression message) {
-
-            // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
-            // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
-            String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
-
-            List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                    String.format("assertThat(%s).%s(%s).containsExactly(%s);",
-                            actual.printTrimmed(), messageAs, message.printTrimmed(), expected.printTrimmed()),
-                    ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
-            );
-            return statements.get(0);
-        }
-
-        private J.MethodInvocation assertFloatingPointDelta(Expression actual, Expression expected, Expression delta) {
-            List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                    String.format("assertThat(%s).containsExactly(%s, within(%s));",
-                            actual.printTrimmed(), expected.printTrimmed(), delta.printTrimmed()),
-                    ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
-            );
-            return statements.get(0);
-        }
-
-        private J.MethodInvocation assertFloatingPointDeltaWithMessage(Expression actual, Expression expected,
-                                                                       Expression delta, Expression message) {
-
-            //If the message is a string use "as", if it is a supplier use "withFailMessage"
-            String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
-
-            List<J.MethodInvocation> statements = treeBuilder.buildSnippet(getCursor(),
-                    String.format("assertThat(%s).%s(%s).containsExactly(%s, within(%s));",
-                            actual.printTrimmed(), messageAs, message.printTrimmed(), expected.printTrimmed(), delta.printTrimmed()),
-                    ASSERTJ_ASSERTIONS_WILDCARD_STATIC_IMPORT
-            );
-            return statements.get(0);
+            return method;
         }
 
         /**

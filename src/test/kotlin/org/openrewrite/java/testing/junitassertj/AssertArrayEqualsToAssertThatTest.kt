@@ -79,10 +79,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
  
                     @Test
                     public void test() {
-                        assertArrayEquals(new int[] {1, 2, 3}, notification(), () -> "These arrays should be equal");
+                        assertArrayEquals(new int[]{1, 2, 3}, notification(), () -> "These arrays should be equal");
                     }
                     private int[] notification() {
-                        return new int[] {1, 2, 3};        
+                        return new int[]{1, 2, 3};        
                     }
                 }
             """,
@@ -95,10 +95,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).withFailMessage(() -> "These arrays should be equal").containsExactly(new int[] {1, 2, 3});
+                        assertThat(notification()).withFailMessage(() -> "These arrays should be equal").containsExactly(new int[]{1, 2, 3});
                     }
                     private int[] notification() {
-                        return new int[] {1, 2, 3};        
+                        return new int[]{1, 2, 3};        
                     }
                 }
             """
@@ -115,10 +115,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
  
                     @Test
                     public void test() {
-                        assertArrayEquals(new double[] {1.0d, 2.0d, 3.0d}, notification(), .2d);
+                        assertArrayEquals(new double[]{1.0d, 2.0d, 3.0d}, notification(), .2d);
                     }
                     private double[] notification() {
-                        return new double[] {1.1d, 2.1d, 3.1d};
+                        return new double[]{1.1d, 2.1d, 3.1d};
                     }
                 }
             """,
@@ -132,10 +132,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).containsExactly(new double[] {1.0d, 2.0d, 3.0d}, within(.2d));
+                        assertThat(notification()).containsExactly(new double[]{1.0d, 2.0d, 3.0d}, within(.2d));
                     }
                     private double[] notification() {
-                        return new double[] {1.1d, 2.1d, 3.1d};
+                        return new double[]{1.1d, 2.1d, 3.1d};
                     }
                 }
             """
@@ -152,10 +152,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
  
                     @Test
                     public void test() {
-                        assertArrayEquals(new double[] {1.0d, 2.0d, 3.0d}, notification(), .2d, "These should be close");
+                        assertArrayEquals(new double[]{1.0d, 2.0d, 3.0d}, notification(), .2d, "These should be close");
                     }
                     private double[] notification() {
-                        return new double[] {1.1d, 2.1d, 3.1d};
+                        return new double[]{1.1d, 2.1d, 3.1d};
                     }
                 }
             """,
@@ -169,10 +169,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("These should be close").containsExactly(new double[] {1.0d, 2.0d, 3.0d}, within(.2d));
+                        assertThat(notification()).as("These should be close").containsExactly(new double[]{1.0d, 2.0d, 3.0d}, within(.2d));
                     }
                     private double[] notification() {
-                        return new double[] {1.1d, 2.1d, 3.1d};
+                        return new double[]{1.1d, 2.1d, 3.1d};
                     }
                 }
             """
@@ -189,10 +189,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
  
                     @Test
                     public void test() {
-                        assertArrayEquals(new Double[] {1.0d, 2.0d, 3.0d}, notification(), "These arrays should be equal");
+                        assertArrayEquals(new Double[]{1.0d, 2.0d, 3.0d}, notification(), "These arrays should be equal");
                     }
                     private Double[] notification() {
-                        return new Double[] {1.0d, 2.0d, 3.0d};
+                        return new Double[]{1.0d, 2.0d, 3.0d};
                     }
                 }
             """,
@@ -205,10 +205,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("These arrays should be equal").containsExactly(new Double[] {1.0d, 2.0d, 3.0d});
+                        assertThat(notification()).as("These arrays should be equal").containsExactly(new Double[]{1.0d, 2.0d, 3.0d});
                     }
                     private Double[] notification() {
-                        return new Double[] {1.0d, 2.0d, 3.0d};
+                        return new Double[]{1.0d, 2.0d, 3.0d};
                     }
                 }
             """
@@ -225,10 +225,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
  
                     @Test
                     public void test() {
-                        assertArrayEquals(new float[] {1.0f, 2.0f, 3.0f}, notification(), .2f);
+                        assertArrayEquals(new float[]{1.0f, 2.0f, 3.0f}, notification(), .2f);
                     }
                     private float[] notification() {
-                        return new float[] {1.1f, 2.1f, 3.1f};
+                        return new float[]{1.1f, 2.1f, 3.1f};
                     }
                 }
             """,
@@ -242,10 +242,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).containsExactly(new float[] {1.0f, 2.0f, 3.0f}, within(.2f));
+                        assertThat(notification()).containsExactly(new float[]{1.0f, 2.0f, 3.0f}, within(.2f));
                     }
                     private float[] notification() {
-                        return new float[] {1.1f, 2.1f, 3.1f};
+                        return new float[]{1.1f, 2.1f, 3.1f};
                     }
                 }
             """
@@ -262,10 +262,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
  
                     @Test
                     public void test() {
-                        assertArrayEquals(new float[] {1.0f, 2.0f, 3.0f}, notification(), .2f, () -> "These should be close");
+                        assertArrayEquals(new float[]{1.0f, 2.0f, 3.0f}, notification(), .2f, () -> "These should be close");
                     }
                     private float[] notification() {
-                        return new float[] {1.1f, 2.1f, 3.1f};
+                        return new float[]{1.1f, 2.1f, 3.1f};
                     }
                 }
             """,
@@ -279,10 +279,10 @@ class AssertArrayEqualsToAssertThatTest : RecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).withFailMessage(() -> "These should be close").containsExactly(new float[] {1.0f, 2.0f, 3.0f}, within(.2f));
+                        assertThat(notification()).withFailMessage(() -> "These should be close").containsExactly(new float[]{1.0f, 2.0f, 3.0f}, within(.2f));
                     }
                     private float[] notification() {
-                        return new float[] {1.1f, 2.1f, 3.1f};
+                        return new float[]{1.1f, 2.1f, 3.1f};
                     }
                 }
             """

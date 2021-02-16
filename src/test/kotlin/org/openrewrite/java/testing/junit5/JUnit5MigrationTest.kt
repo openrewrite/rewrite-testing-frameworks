@@ -20,6 +20,7 @@ import org.openrewrite.Recipe
 import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.loadRecipeFromClasspath
+import org.openrewrite.loadYamlRecipe
 
 class JUnit5MigrationTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
@@ -27,7 +28,7 @@ class JUnit5MigrationTest : RecipeTest {
             .build()
 
     override val recipe: Recipe
-        get() = loadRecipeFromClasspath("org.openrewrite.java.testing.JUnit5Migration")
+        get() = loadYamlRecipe(this.javaClass.getResourceAsStream("/META-INF/rewrite/junit5.yml"), "org.openrewrite.java.testing.JUnit5Migration")
 
     @Test
     fun changeBeforeToBeforeEach() = assertChanged(
@@ -35,7 +36,8 @@ class JUnit5MigrationTest : RecipeTest {
                 import org.junit.Before;
 
                 public class Example {
-                    @Before public void initialize() {}
+                    @Before public void initialize() {
+                    }
                 }
             """,
             after = """
@@ -44,7 +46,8 @@ class JUnit5MigrationTest : RecipeTest {
                 public class Example {
 
                     @BeforeEach
-                    void initialize() {}
+                    void initialize() {
+                    }
                 }
             """
     )
@@ -55,7 +58,8 @@ class JUnit5MigrationTest : RecipeTest {
                 import org.junit.After;
 
                 public class Example {
-                    @After public void initialize() {}
+                    @After public void initialize() {
+                    }
                 }
             """,
             after = """
@@ -64,7 +68,8 @@ class JUnit5MigrationTest : RecipeTest {
                 public class Example {
 
                     @AfterEach
-                    void initialize() {}
+                    void initialize() {
+                    }
                 }
             """
     )
@@ -76,7 +81,8 @@ class JUnit5MigrationTest : RecipeTest {
 
                 public class Example {
                     @BeforeClass
-                    void initialize() {}
+                    void initialize() {
+                    }
                 }
             """,
             after = """
@@ -85,7 +91,8 @@ class JUnit5MigrationTest : RecipeTest {
                 public class Example {
 
                     @BeforeAll
-                    void initialize() {}
+                    void initialize() {
+                    }
                 }
             """
     )
@@ -96,7 +103,8 @@ class JUnit5MigrationTest : RecipeTest {
                 import org.junit.AfterClass;
 
                 public class Example {
-                    @AfterClass public void initialize() {}
+                    @AfterClass public void initialize() {
+                    }
                 }
             """,
             after = """
@@ -105,7 +113,8 @@ class JUnit5MigrationTest : RecipeTest {
                 public class Example {
 
                     @AfterAll
-                    void initialize() {}
+                    void initialize() {
+                    }
                 }
             """
     )
