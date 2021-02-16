@@ -18,18 +18,17 @@ package org.openrewrite.java.testing.mockito
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.openrewrite.Recipe
-import org.openrewrite.RecipeTest
-import org.openrewrite.SourceFile
+import org.openrewrite.*
 import org.openrewrite.java.JavaParser
-import org.openrewrite.loadRecipeFromClasspath
 import org.openrewrite.maven.MavenParser
 import org.openrewrite.maven.tree.Maven
 
 /**
  * Validates the recipes related to upgrading from Mockito 1 to Mockito 3
  */
+@Disabled("ClasspathScanningLoader not working")
 class JunitMockitoUpgradeIntegrationTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("mockito-all", "junit", "hamcrest")
@@ -37,7 +36,7 @@ class JunitMockitoUpgradeIntegrationTest : RecipeTest {
 
     override val recipe: Recipe
         get() = loadRecipeFromClasspath("org.openrewrite.java.testing.JUnit5Migration",
-                    "org.openrewrite.java.testing.Mockito1to3Migration")
+                "org.openrewrite.java.testing.Mockito1to3Migration")
 
     /**
      * Replace org.mockito.MockitoAnnotations.Mock with org.mockito.Mock

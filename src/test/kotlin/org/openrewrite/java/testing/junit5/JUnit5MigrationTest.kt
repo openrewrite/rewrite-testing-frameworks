@@ -15,20 +15,21 @@
  */
 package org.openrewrite.java.testing.junit5
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
 import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.loadRecipeFromClasspath
-import org.openrewrite.loadYamlRecipe
 
+@Disabled("ClasspathScanningLoader not working")
 class JUnit5MigrationTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
     override val recipe: Recipe
-        get() = loadYamlRecipe(this.javaClass.getResourceAsStream("/META-INF/rewrite/junit5.yml"), "org.openrewrite.java.testing.JUnit5Migration")
+        get() = loadRecipeFromClasspath("org.openrewrite.java.testing.JUnit5Migration")
 
     @Test
     fun changeBeforeToBeforeEach() = assertChanged(

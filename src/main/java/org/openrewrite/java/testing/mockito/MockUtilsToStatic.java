@@ -54,10 +54,6 @@ public class MockUtilsToStatic extends Recipe {
                 "org.mockito.internal.util.MockUtil"
         );
 
-        public MockUtilsToStaticVisitor() {
-            setCursoringOn();
-        }
-
         @Override
         public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             doAfterVisit(changeMethodTargetToStatic);
@@ -71,10 +67,9 @@ public class MockUtilsToStatic extends Recipe {
                 // MockUtil util = new MockUtil();
                 // If it is, then we'll get rid of it
 
-                // TODO this is probably not right, now that cursors contain padding
-                Optional.ofNullable(getCursor().getParent())
+                Optional.of(getCursor().dropParentUntil(it -> it instanceof J))
                         .filter(it -> it.getValue() instanceof J.VariableDeclarations.NamedVariable)
-                        .map(Cursor::getParent)
+                        .map(cur -> cur.dropParentUntil(it -> it instanceof J))
                         .map(Cursor::getValue)
                         .filter(it -> it instanceof J.VariableDeclarations.VariableDeclarations)
                         .ifPresent(namedVar -> doAfterVisit(new DeleteStatement<>((J.VariableDeclarations) namedVar)));
