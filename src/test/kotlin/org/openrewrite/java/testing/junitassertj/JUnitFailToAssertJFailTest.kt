@@ -149,8 +149,8 @@ class JUnitFailToAssertJFailTest : RecipeTest {
                     @Test
                     public void test() {
                         Throwable t = new Throwable();
-                        fail("",t);
-                        fail("",new Throwable());
+                        fail("", t);
+                        fail("", new Throwable());
                     }
                 }
             """
@@ -184,7 +184,7 @@ class JUnitFailToAssertJFailTest : RecipeTest {
                         fail("");
                         fail("This should fail");
                         fail("This should fail", new Throwable());
-                        fail("",new Throwable());
+                        fail("", new Throwable());
                     }
                 }
             """
@@ -220,7 +220,7 @@ class JUnitFailToAssertJFailTest : RecipeTest {
                         fail("");
                         fail("This should fail");
                         fail("This should fail", new Throwable());
-                        fail("",new Throwable());
+                        fail("", new Throwable());
                     }
                 }
             """
