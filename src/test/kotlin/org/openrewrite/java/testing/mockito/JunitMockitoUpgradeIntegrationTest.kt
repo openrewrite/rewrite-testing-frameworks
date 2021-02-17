@@ -16,22 +16,17 @@
 package org.openrewrite.java.testing.mockito
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.*
 import org.openrewrite.java.JavaParser
 import org.openrewrite.maven.MavenParser
-import org.openrewrite.maven.tree.Maven
 
 /**
  * Validates the recipes related to upgrading from Mockito 1 to Mockito 3
  */
-@Disabled("ClasspathScanningLoader not working")
 class JunitMockitoUpgradeIntegrationTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-            .classpath("mockito-all", "junit", "hamcrest")
+            .classpath("mockito-all", "mockito-junit-jupiter", "junit-jupiter-api", "junit", "hamcrest")
             .build()
 
     override val recipe: Recipe
@@ -249,7 +244,6 @@ class JunitMockitoUpgradeIntegrationTest : RecipeTest {
         import org.junit.Assert;
         import org.junit.Before;
         import org.junit.BeforeClass;
-        import org.junit.Rule;
         import org.junit.Test;
         import org.junit.Test;
         import org.junit.rules.ExpectedException;
@@ -265,9 +259,6 @@ class JunitMockitoUpgradeIntegrationTest : RecipeTest {
         import static org.mockito.Mockito.*;
         
         public class ExampleJunitTestClass {
-        
-        //    @Rule
-        //    public Timeout globalTimeout = new Timeout(500);
         
             @Rule
             public TemporaryFolder folder = new TemporaryFolder();
@@ -347,7 +338,10 @@ class JunitMockitoUpgradeIntegrationTest : RecipeTest {
     val exampleJunitAfter = """
         package org.openrewrite.java.testing.junit5;
 
-        import org.junit.jupiter.api.*;
+        import org.junit.jupiter.api.AfterAll;
+        import org.junit.jupiter.api.Assertions;
+        import org.junit.jupiter.api.BeforeEach;
+        import org.junit.jupiter.api.Test;
         import org.junit.jupiter.api.io.TempDir;
         import org.mockito.Mock;
         import org.mockito.MockitoAnnotations;
@@ -362,11 +356,8 @@ class JunitMockitoUpgradeIntegrationTest : RecipeTest {
         
         public class ExampleJunitTestClass {
         
-        //    @Rule
-        //    public Timeout globalTimeout = new Timeout(500);
-        
             @TempDir
-            public File folder;
+            File folder;
         
             @BeforeEach
             void beforeClass() {
@@ -374,7 +365,8 @@ class JunitMockitoUpgradeIntegrationTest : RecipeTest {
             }
         
             @AfterAll
-            static void afterClass() { }
+            static void afterClass() {
+            }
         
             @Mock
             List<String> mockedList;
@@ -434,7 +426,8 @@ class JunitMockitoUpgradeIntegrationTest : RecipeTest {
         
             @Test
             @Timeout(500)
-            void bar() { }
+            void bar() {
+            }
         
             @Test
             void aTest() {
@@ -450,7 +443,7 @@ class JunitMockitoUpgradeIntegrationTest : RecipeTest {
         
             private static File newFolder(File root, String ... folders) throws IOException {
                 File result = new File(root, String.join("/", folders));
-                if(!result.mkdirs()) {
+                if (!result.mkdirs()) {
                     throw new IOException("Couldn't create folders " + root);
                 }
                 return result;
@@ -460,7 +453,7 @@ class JunitMockitoUpgradeIntegrationTest : RecipeTest {
 
     @Test
     fun theBigOne() {
-        val javaSource = parser.parse(exampleJunitBefore)
+        val javaSource = parser.parse(exampleJunitBefore)[0]
         val mavenSource = MavenParser.builder().build().parse("""
                     <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
                         <modelVersion>4.0.0</modelVersion>
@@ -484,22 +477,44 @@ class JunitMockitoUpgradeIntegrationTest : RecipeTest {
                             </dependency>
                         </dependencies>
                     </project>
-                """.trimIndent())
+                """.trimIndent())[0]
 
-        val sources: List<SourceFile> = javaSource + mavenSource
+        val sources: List<SourceFile> = listOf(javaSource, mavenSource)
 
-        val results = recipe.run(sources)
+        val results = recipe.run(sources, InMemoryExecutionContext { error: Throwable -> throw error })
 
         val mavenResult = results.find { it.before === mavenSource }
         assertThat(mavenResult).isNotNull
-        val actualPom = mavenResult!!.after as Maven
-        val deps = actualPom.model.dependencies
-        assertEquals(2, deps.size,
-                "With junit removed and junit-jupiter-engine and junit-jupiter-api added there should be exactly 2 dependencies remaining")
-        assertTrue(deps.find { it.artifactId == "junit-jupiter-engine" }!!.version.startsWith("5"),
-                "There should be a junit-jupiter-engine dependency of major version 5")
-        assertTrue(deps.find { it.artifactId == "junit-jupiter-api" }!!.version.startsWith("5"),
-                "There should be a junit-jupiter-api dependency of major version 5")
+
+        assertThat(mavenResult?.after?.print()).isEqualTo("""
+            <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+                <modelVersion>4.0.0</modelVersion>
+
+                <groupId>org.openrewrite.example</groupId>
+                <artifactId>integration-testing</artifactId>
+                <version>1.0</version>
+                <name>integration-testing</name>
+
+                <properties>
+                    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+                    <java.version>1.8</java.version>
+                </properties>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.junit.jupiter</groupId>
+                        <artifactId>junit-jupiter-api</artifactId>
+                        <version>5.7.1</version>
+                        <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.junit.jupiter</groupId>
+                        <artifactId>junit-jupiter-engine</artifactId>
+                        <version>5.7.1</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+            </project>
+        """.trimIndent())
 
         val javaResult = results.find { it.before === javaSource }
         assertThat(javaResult).isNotNull

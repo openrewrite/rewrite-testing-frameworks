@@ -32,7 +32,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.AssertToAssertions
   - org.openrewrite.java.testing.junit5.CategoryToTag
   - org.openrewrite.java.testing.junit5.CleanupJUnitImports
-  - org.openrewrite.java.testing.junit5.ExpectedExceptionToAsertThrows
+  - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
   - org.openrewrite.java.testing.junit5.FindJUnit
   - org.openrewrite.java.testing.junit5.AddJUnitDependencies
   - org.openrewrite.java.testing.junit5.MockitoRunnerToMockitoExtension

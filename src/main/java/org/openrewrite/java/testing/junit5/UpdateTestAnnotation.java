@@ -20,6 +20,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
+import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
@@ -90,7 +91,7 @@ public class UpdateTestAnnotation extends Recipe {
                                 );
                                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                             } else if (assignParamName.equals("timeout")) {
-                                doAfterVisit(new AddTimeoutAnnotation(e));
+                                doAfterVisit(new AddTimeoutAnnotation(m, e));
                             }
                         }
                         changed = true;
@@ -106,14 +107,19 @@ public class UpdateTestAnnotation extends Recipe {
 
         private static class AddTimeoutAnnotation extends JavaIsoVisitor<ExecutionContext> {
 
+            private final J.MethodDeclaration methodDeclaration;
             private final Expression expression;
 
-            public AddTimeoutAnnotation(Expression expression) {
+            public AddTimeoutAnnotation(J.MethodDeclaration methodDeclaration, Expression expression) {
+                this.methodDeclaration = methodDeclaration;
                 this.expression = expression;
             }
 
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+                if (!method.isScope(this.methodDeclaration)) {
+                    return method;
+                }
                 method = method.withTemplate(
                         template("@Timeout(#{})")
                                 .imports("org.junit.jupiter.api.Timeout")
@@ -122,6 +128,7 @@ public class UpdateTestAnnotation extends Recipe {
                         expression
                 );
                 maybeAddImport("org.junit.jupiter.api.Timeout");
+                method = (J.MethodDeclaration) new AutoFormatVisitor<>().visit(method, executionContext, getCursor().dropParentUntil(it -> it instanceof J));
                 return method;
             }
         }

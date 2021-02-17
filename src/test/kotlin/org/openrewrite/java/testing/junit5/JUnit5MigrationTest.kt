@@ -15,14 +15,12 @@
  */
 package org.openrewrite.java.testing.junit5
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
 import org.openrewrite.RecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.loadRecipeFromClasspath
 
-@Disabled("ClasspathScanningLoader not working")
 class JUnit5MigrationTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit")
