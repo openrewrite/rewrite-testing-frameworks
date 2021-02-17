@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.Recipe
 import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
 
@@ -25,8 +24,7 @@ class CleanupJUnitImportsTest : JavaRecipeTest {
             .classpath("junit")
             .build()
 
-    override val recipe: Recipe
-        get() = CleanupJUnitImports()
+    override val recipe = CleanupJUnitImports()
 
     @Test
     fun removesUnusedImport() = assertChanged(

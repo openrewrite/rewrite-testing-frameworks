@@ -476,6 +476,11 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
                                 <version>4.12</version>
                                 <scope>test</scope>
                             </dependency>
+                            <dependency>
+                                <groupId>com.googlecode.json-simple</groupId>
+                                <artifactId>json-simple</artifactId>
+                                <version>1.1.1</version>
+                            </dependency>
                         </dependencies>
                     </project>
                 """.trimIndent())[0]
@@ -512,6 +517,17 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
                         <artifactId>junit-jupiter-engine</artifactId>
                         <version>5.7.1</version>
                         <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.googlecode.json-simple</groupId>
+                        <artifactId>json-simple</artifactId>
+                        <version>1.1.1</version>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>junit</groupId>
+                                <artifactId>junit</artifactId>
+                            </exclusion>
+                        </exclusions>
                     </dependency>
                 </dependencies>
             </project>

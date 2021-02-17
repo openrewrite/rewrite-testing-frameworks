@@ -29,6 +29,9 @@ recipeList:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
+  - org.openrewrite.maven.ExcludeDependency:
+      groupId: junit
+      artifactId: junit
   - org.openrewrite.java.testing.junit5.AssertToAssertions
   - org.openrewrite.java.testing.junit5.CategoryToTag
   - org.openrewrite.java.testing.junit5.CleanupJUnitImports
