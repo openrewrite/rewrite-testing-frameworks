@@ -17,10 +17,10 @@ package org.openrewrite.java.testing.mockito
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
-import org.openrewrite.RecipeTest
+import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
 
-class CleanupMockitoImportsTest : RecipeTest {
+class CleanupMockitoImportsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("mockito")
             .build()

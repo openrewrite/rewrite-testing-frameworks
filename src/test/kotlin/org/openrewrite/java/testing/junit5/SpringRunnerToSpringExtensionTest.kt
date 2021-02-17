@@ -17,10 +17,10 @@ package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
-import org.openrewrite.RecipeTest
+import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
 
-class SpringRunnerToSpringExtensionTest : RecipeTest {
+class SpringRunnerToSpringExtensionTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit", "spring-test")
             .build()

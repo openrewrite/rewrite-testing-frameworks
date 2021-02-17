@@ -19,12 +19,13 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.openrewrite.*
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.maven.MavenParser
 
 /**
  * Validates the recipes related to upgrading from Mockito 1 to Mockito 3
  */
-class JunitMockitoUpgradeIntegrationTest : RecipeTest {
+class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("mockito-all", "mockito-junit-jupiter", "junit-jupiter-api", "junit", "hamcrest")
             .build()

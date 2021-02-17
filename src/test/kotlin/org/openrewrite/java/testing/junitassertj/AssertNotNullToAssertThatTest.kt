@@ -18,11 +18,11 @@ package org.openrewrite.java.testing.junitassertj
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
 import org.openrewrite.Recipe
-import org.openrewrite.RecipeTest
+import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertNotNullToAssertThatTest : RecipeTest {
+class AssertNotNullToAssertThatTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
             .classpath("junit", "assertj-core", "apiguardian-api")
             .build()
