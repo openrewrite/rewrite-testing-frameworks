@@ -128,7 +128,6 @@ public class UpdateTestAnnotation extends Recipe {
                         expression
                 );
                 maybeAddImport("org.junit.jupiter.api.Timeout");
-                method = (J.MethodDeclaration) new AutoFormatVisitor<>().visit(method, executionContext, getCursor().dropParentUntil(it -> it instanceof J));
                 return method;
             }
         }
