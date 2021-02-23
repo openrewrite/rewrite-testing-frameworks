@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -26,9 +27,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class UpdateTestAnnotation extends Recipe {
@@ -83,6 +82,25 @@ public class UpdateTestAnnotation extends Recipe {
                                         .collect(Collectors.joining(";")) + ";";
                                 m = m.withTemplate(
                                         template("{ assertThrows(#{}, () -> {#{}}); }")
+                                                .javaParser(
+                                                        (JavaParser) JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
+                                                                Parser.Input.fromString(
+                                                                        "package org.junit.jupiter.api.function;\n" +
+                                                                        "public interface Executable {\n" +
+                                                                        "    void execute() throws Throwable;\n" +
+                                                                        "}"),
+                                                                Parser.Input.fromString(
+                                                                        "package org.junit.jupiter.api;\n" +
+                                                                        "import org.junit.jupiter.api.function.Executable;\n" +
+                                                                        "public class Assertions {\n" +
+                                                                        "    public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {\n" +
+                                                                        "        return null;\n" +
+                                                                        "    }\n" +
+                                                                        "}")
+                                                                )
+                                                        )
+                                                            .build()
+                                                )
                                                 .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                                 .build(),
                                         m.getCoordinates().replaceBody(),

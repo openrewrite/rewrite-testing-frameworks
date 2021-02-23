@@ -22,7 +22,7 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.FindTypes;
 import org.openrewrite.java.tree.J;
 
-public class FindJUnit extends Recipe {
+public class FindJUnit5 extends Recipe {
 
     public static final String JUNIT_REFS_EXIST_KEY = "junitReferencesExist";
 
@@ -35,8 +35,7 @@ public class FindJUnit extends Recipe {
         @Override
         public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             boolean junitReferencesExist =
-                    !FindTypes.find(cu, "junit.framework.Test").isEmpty()
-                            || !FindTypes.find(cu, "org.junit.jupiter.api.Test").isEmpty();
+                            !FindTypes.find(cu, "org.junit.jupiter.api.Test").isEmpty();
             ctx.putMessage(JUNIT_REFS_EXIST_KEY, junitReferencesExist);
             return cu;
         }

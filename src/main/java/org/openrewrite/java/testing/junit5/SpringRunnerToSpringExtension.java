@@ -25,6 +25,7 @@ import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -124,12 +125,17 @@ public class SpringRunnerToSpringExtension extends Recipe {
                 cd = cd.withTemplate(
                         template("@ExtendWith(SpringExtension.class)")
                                 .imports("org.junit.jupiter.api.extension.ExtendWith", springExtensionType)
-                                .javaParser( JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
+                                .javaParser( JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
                                         Parser.Input.fromString(
+                                                "package org.junit.jupiter.api.extension;\n" +
                                                 "@Target({ ElementType.TYPE, ElementType.METHOD })\n" +
                                                 "public @interface ExtendWith {\n" +
                                                 "Class<? extends Extension>[] value();\n" +
-                                                "}"))).build())
+                                                "}"),
+                                        Parser.Input.fromString(
+                                                "package org.springframework.test.context.junit.jupiter;\n" +
+                                                "public class SpringExtension {}"
+                                        ))).build())
                                 .build(),
                         cd.getCoordinates().addAnnotation(
                                 // TODO should this use some configuration (similar to styles) for annotation ordering?
