@@ -57,13 +57,6 @@ public class MockitoRunnerToMockitoExtension extends Recipe {
                 "org.mockito.junit.MockitoJUnit44Runner"
         };
 
-        private static final AnnotationMatcher[] annotationMatchers = new AnnotationMatcher[]{
-                new AnnotationMatcher("org.mockito.runners.MockitoJUnitRunner"),
-                new AnnotationMatcher("org.mockito.junit.MockitoJUnitRunner"),
-                new AnnotationMatcher("org.mockito.runners.MockitoJUnit44Runner"),
-                new AnnotationMatcher("org.mockito.junit.MockitoJUnit44Runner")
-        };
-
         private static final List<JavaType.Class> mockitoRunnerAnnotationTypes = Stream.of(
                 mockitoRunnerAnnotationClassNames
         )
@@ -133,9 +126,8 @@ public class MockitoRunnerToMockitoExtension extends Recipe {
         }
 
         private boolean shouldReplaceAnnotation(J.Annotation maybeMockitoRunner) {
-            return Arrays.stream(annotationMatchers).anyMatch(annotationMatcher -> annotationMatcher.matches(maybeMockitoRunner));
-//            return runWithMockitoAnnotations.stream()
-//                    .anyMatch(mockitoRunnerAnnotation -> SemanticallyEqual.areEqual(mockitoRunnerAnnotation, maybeMockitoRunner));
+            return runWithMockitoAnnotations.stream()
+                    .anyMatch(mockitoRunnerAnnotation -> SemanticallyEqual.areEqual(mockitoRunnerAnnotation, maybeMockitoRunner));
         }
     }
 }
