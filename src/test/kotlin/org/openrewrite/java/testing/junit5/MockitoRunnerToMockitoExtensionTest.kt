@@ -203,4 +203,5 @@ class MockitoRunnerToMockitoExtensionTest {
         """.trimIndent())
 
     }
+
 }

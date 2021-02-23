@@ -51,7 +51,7 @@ public class UpdateTestAnnotation extends Recipe {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
             boolean changed = false;
-            List<J.Annotation> annotations = new ArrayList<>(m.getAnnotations());
+            List<J.Annotation> annotations = new ArrayList<>(m.getLeadingAnnotations());
             for (int i = 0, annotationsSize = annotations.size(); i < annotationsSize; i++) {
 
                 J.Annotation a = annotations.get(i);
@@ -100,7 +100,7 @@ public class UpdateTestAnnotation extends Recipe {
             }
 
             if (changed) {
-                m = m.withAnnotations(annotations);
+                m = m.withLeadingAnnotations(annotations);
             }
             return m;
         }

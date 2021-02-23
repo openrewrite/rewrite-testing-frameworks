@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AddImport;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.tree.*;
@@ -54,6 +55,13 @@ public class MockitoRunnerToMockitoExtension extends Recipe {
                 "org.mockito.junit.MockitoJUnitRunner",
                 "org.mockito.runners.MockitoJUnit44Runner",
                 "org.mockito.junit.MockitoJUnit44Runner"
+        };
+
+        private static final AnnotationMatcher[] annotationMatchers = new AnnotationMatcher[]{
+                new AnnotationMatcher("org.mockito.runners.MockitoJUnitRunner"),
+                new AnnotationMatcher("org.mockito.junit.MockitoJUnitRunner"),
+                new AnnotationMatcher("org.mockito.runners.MockitoJUnit44Runner"),
+                new AnnotationMatcher("org.mockito.junit.MockitoJUnit44Runner")
         };
 
         private static final List<JavaType.Class> mockitoRunnerAnnotationTypes = Stream.of(
@@ -96,10 +104,10 @@ public class MockitoRunnerToMockitoExtension extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
 
-            List<J.Annotation> keepAnnotations = cd.getAnnotations().stream().filter(
+            List<J.Annotation> keepAnnotations = cd.getLeadingAnnotations().stream().filter(
                     a -> !shouldReplaceAnnotation(a)
             ).collect(Collectors.toList());
-            if (keepAnnotations.size() != cd.getAnnotations().size()) {
+            if (keepAnnotations.size() != cd.getLeadingAnnotations().size()) {
                 ctx.putMessage(MOCKITO_ANNOTATION_REPLACED_KEY, true);
                 maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                 AddImport<ExecutionContext> op = new AddImport<>("org.mockito.junit.jupiter.MockitoExtension", null, false);
@@ -108,7 +116,7 @@ public class MockitoRunnerToMockitoExtension extends Recipe {
                 }
                 Stream.of(mockitoRunnerAnnotationClassNames).forEach(this::maybeRemoveImport);
                 maybeRemoveImport(FrameworkTypes.runWithType);
-                cd = cd.withAnnotations(keepAnnotations);
+                cd = cd.withLeadingAnnotations(keepAnnotations);
                 cd = cd.withTemplate(
                         template("@ExtendWith(MockitoExtension.class)")
                                 .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
@@ -125,8 +133,9 @@ public class MockitoRunnerToMockitoExtension extends Recipe {
         }
 
         private boolean shouldReplaceAnnotation(J.Annotation maybeMockitoRunner) {
-            return runWithMockitoAnnotations.stream()
-                    .anyMatch(mockitoRunnerAnnotation -> SemanticallyEqual.areEqual(mockitoRunnerAnnotation, maybeMockitoRunner));
+            return Arrays.stream(annotationMatchers).anyMatch(annotationMatcher -> annotationMatcher.matches(maybeMockitoRunner));
+//            return runWithMockitoAnnotations.stream()
+//                    .anyMatch(mockitoRunnerAnnotation -> SemanticallyEqual.areEqual(mockitoRunnerAnnotation, maybeMockitoRunner));
         }
     }
 }

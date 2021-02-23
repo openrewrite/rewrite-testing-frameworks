@@ -50,7 +50,7 @@ public class CategoryToTag extends Recipe {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             Set<J.Annotation> categoryAnnotations = FindAnnotations.find(cd, "@" + categoryAnnotation);
             if (!categoryAnnotations.isEmpty()) {
-                cd = cd.withAnnotations(cd.getAnnotations().stream()
+                cd = cd.withLeadingAnnotations(cd.getLeadingAnnotations().stream()
                         .flatMap(this::categoryAnnotationToTagAnnotations)
                         .collect(Collectors.toList()));
                 maybeRemoveImport(categoryAnnotation);
@@ -65,7 +65,7 @@ public class CategoryToTag extends Recipe {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             Set<J.Annotation> categoryAnnotations = FindAnnotations.find(m, "@" + categoryAnnotation);
             if (!categoryAnnotations.isEmpty()) {
-                m = m.withAnnotations(m.getAnnotations().stream()
+                m = m.withLeadingAnnotations(m.getLeadingAnnotations().stream()
                         .flatMap(this::categoryAnnotationToTagAnnotations)
                         .collect(Collectors.toList()));
 

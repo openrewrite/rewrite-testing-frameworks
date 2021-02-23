@@ -65,7 +65,7 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             
-            List<J.Annotation> annotations = new ArrayList<>(m.getAnnotations());
+            List<J.Annotation> annotations = new ArrayList<>(m.getLeadingAnnotations());
             for (J.Annotation a : annotations) {
 
                 if (TypeUtils.isOfClassType(a.getType(), "org.junit.Before") ||
