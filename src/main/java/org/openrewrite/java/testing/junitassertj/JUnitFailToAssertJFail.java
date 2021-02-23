@@ -15,11 +15,9 @@
  */
 package org.openrewrite.java.testing.junitassertj;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.Tree;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.RemoveUnusedImports;
 import org.openrewrite.java.tree.Expression;
@@ -61,6 +59,10 @@ public class JUnitFailToAssertJFail extends Recipe {
                 JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " fail(..)"
         );
 
+        private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
+                Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+        ).build();
+
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (!JUNIT_FAIL_MATCHER.matches(method)) {
@@ -74,12 +76,14 @@ public class JUnitFailToAssertJFail extends Recipe {
                 if (args.get(0) instanceof J.Empty) {
                     method = method.withTemplate(
                             template("org.assertj.core.api.Assertions.fail(\"\");")
+                                    .javaParser(ASSERTJ_JAVA_PARSER)
                                     .build(),
                             method.getCoordinates().replace()
                     );
                 } else if (args.get(0) instanceof J.Literal) {
                     method = method.withTemplate(
                             template("org.assertj.core.api.Assertions.fail(#{});")
+                                    .javaParser(ASSERTJ_JAVA_PARSER)
                                     .build(),
                             method.getCoordinates().replace(),
                             args.get(0)
@@ -87,6 +91,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                 } else {
                     method = method.withTemplate(
                             template("org.assertj.core.api.Assertions.fail(\"\", #{});")
+                                    .javaParser(ASSERTJ_JAVA_PARSER)
                                     .build(),
                             method.getCoordinates().replace(),
                             args.get(0)
@@ -96,6 +101,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                 // fail(String, Throwable)
                 method = method.withTemplate(
                         template("org.assertj.core.api.Assertions.fail(#{});")
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
                         args.stream().map(Tree::print).collect(Collectors.joining(","))
@@ -122,6 +128,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                 method = method.withTemplate(
                         template("fail(#{});")
                                 .staticImports(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME + ".fail")
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .doAfterVariableSubstitution(s -> System.out.println("after vars: " + s))
                                 .doBeforeParseTemplate(s -> System.out.println("before parse: " + s))
                                 .build(),

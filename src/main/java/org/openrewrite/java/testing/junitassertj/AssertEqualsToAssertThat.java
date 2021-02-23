@@ -79,6 +79,10 @@ public class AssertEqualsToAssertThat extends Recipe {
                 JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertEquals(..)"
         );
 
+        private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
+                Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+        ).build();
+
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
 
@@ -95,9 +99,7 @@ public class AssertEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isEqualTo(#{});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
-                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-                                ).build())
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -112,9 +114,7 @@ public class AssertEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isEqualTo(#{});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
-                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-                                ).build())
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -126,9 +126,7 @@ public class AssertEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isCloseTo(#{}, within(#{}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
-                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-                                ).build())
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -147,9 +145,7 @@ public class AssertEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isCloseTo(#{}, within(#{}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
-                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-                                ).build())
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,

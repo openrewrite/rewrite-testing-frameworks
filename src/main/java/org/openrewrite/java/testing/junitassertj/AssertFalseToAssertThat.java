@@ -64,6 +64,10 @@ public class AssertFalseToAssertThat extends Recipe {
                 JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertFalse(boolean, ..)"
         );
 
+        private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
+                Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+        ).build();
+
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (!JUNIT_ASSERT_FALSE_MATCHER.matches(method)) {
@@ -77,9 +81,7 @@ public class AssertFalseToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isFalse();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
-                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-                                ).build())
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual
@@ -91,9 +93,7 @@ public class AssertFalseToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isFalse();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
-                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-                                ).build())
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
