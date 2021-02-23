@@ -127,9 +127,6 @@ public class SpringRunnerToSpringExtension extends Recipe {
                                 .javaParser( JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
                                         Parser.Input.fromString(
                                                 "@Target({ ElementType.TYPE, ElementType.METHOD })\n" +
-                                                "@Inherited\n" +
-                                                "@Repeatable(Extensions.class)\n" +
-                                                "@API(status = STABLE, since = \"5.0\")\n" +
                                                 "public @interface ExtendWith {\n" +
                                                 "Class<? extends Extension>[] value();\n" +
                                                 "}"))).build())

@@ -16,9 +16,11 @@
 package org.openrewrite.java.testing.junitassertj;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -93,6 +95,9 @@ public class AssertNotEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isNotEqualTo(#{});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
+                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+                                ).build())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -106,6 +111,9 @@ public class AssertNotEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isNotEqualTo(#{});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
+                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+                                ).build())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -119,6 +127,9 @@ public class AssertNotEqualsToAssertThat extends Recipe {
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                                 .doAfterVariableSubstitution(s -> System.out.println("After var subst: " + s))
                                 .doBeforeParseTemplate(s -> System.out.println("Before parse: " + s))
+                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
+                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+                                ).build())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -134,6 +145,9 @@ public class AssertNotEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isNotCloseTo(#{}, within(#{}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
+                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
+                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+                                ).build())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,

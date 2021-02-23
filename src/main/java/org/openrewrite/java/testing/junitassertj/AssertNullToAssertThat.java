@@ -16,9 +16,11 @@
 package org.openrewrite.java.testing.junitassertj;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -69,6 +71,9 @@ public class AssertNullToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isNull();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
+                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+                                ).build())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual
@@ -79,6 +84,10 @@ public class AssertNullToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isNull();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
+                                        Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+                                ).build())
+
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
