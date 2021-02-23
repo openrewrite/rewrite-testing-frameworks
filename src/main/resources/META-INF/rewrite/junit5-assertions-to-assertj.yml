@@ -26,5 +26,3 @@ recipeList:
   - org.openrewrite.java.testing.junitassertj.AssertSameToAssertThat
   - org.openrewrite.java.testing.junitassertj.AssertTrueToAssertThat
   - org.openrewrite.java.testing.junitassertj.JUnitFailToAssertJFail
-  - org.openrewrite.java.UseStaticImport:
-      methodPattern: "org.assertj.core.api.Assertions *(..)"
