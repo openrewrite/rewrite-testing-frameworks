@@ -16,13 +16,16 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -109,19 +112,30 @@ public class SpringRunnerToSpringExtension extends Recipe {
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
-            List<J.Annotation> keepAnnotations = cd.getAnnotations().stream().filter(
+            List<J.Annotation> keepAnnotations = cd.getLeadingAnnotations().stream().filter(
                     a -> !shouldReplaceAnnotation(a)
             ).collect(Collectors.toList());
-            if (keepAnnotations.size() != cd.getAnnotations().size()) {
+            if (keepAnnotations.size() != cd.getLeadingAnnotations().size()) {
                 maybeAddImport(extendWithType);
                 maybeAddImport(springExtensionType);
                 maybeRemoveImport(springRunnerType);
                 maybeRemoveImport(springJUnit4ClassRunnerType);
                 maybeRemoveImport(runWithType);
-                cd = cd.withAnnotations(keepAnnotations);
+                cd = cd.withLeadingAnnotations(keepAnnotations);
                 cd = cd.withTemplate(
                         template("@ExtendWith(SpringExtension.class)")
                                 .imports("org.junit.jupiter.api.extension.ExtendWith", springExtensionType)
+                                .javaParser( JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
+                                        Parser.Input.fromString(
+                                                "package org.junit.jupiter.api.extension;\n" +
+                                                "@Target({ ElementType.TYPE, ElementType.METHOD })\n" +
+                                                "public @interface ExtendWith {\n" +
+                                                "Class<? extends Extension>[] value();\n" +
+                                                "}"),
+                                        Parser.Input.fromString(
+                                                "package org.springframework.test.context.junit.jupiter;\n" +
+                                                "public class SpringExtension {}"
+                                        ))).build())
                                 .build(),
                         cd.getCoordinates().addAnnotation(
                                 // TODO should this use some configuration (similar to styles) for annotation ordering?

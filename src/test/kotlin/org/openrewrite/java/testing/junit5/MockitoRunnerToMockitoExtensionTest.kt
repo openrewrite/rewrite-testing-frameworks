@@ -117,7 +117,7 @@ class MockitoRunnerToMockitoExtensionTest {
                         <dependency>
                           <groupId>org.mockito</groupId>
                           <artifactId>mockito-junit-jupiter</artifactId>
-                          <version>3.7.7</version>
+                          <version>3.8.0</version>
                           <scope>test</scope>
                         </dependency>
                       </dependencies>
@@ -203,4 +203,5 @@ class MockitoRunnerToMockitoExtensionTest {
         """.trimIndent())
 
     }
+
 }

@@ -16,17 +16,17 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AddImport;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.FindFields;
 import org.openrewrite.java.tree.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.assertThrows
@@ -88,6 +88,21 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 m = m.withBody(
                         m.getBody().withTemplate(
                                 template("{ assertThrows(#{}, () -> { #{} }); }")
+                                        .javaParser(JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
+                                                Parser.Input.fromString("" +
+                                                        "package org.junit.jupiter.api;" +
+                                                        "import java.util.function.Supplier;" +
+                                                        "import org.junit.jupiter.api.function.Executable;" +
+                                                        "class AssertThrows {\n" +
+                                                        "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,Supplier<String> messageSupplier){}" +
+                                                        "}"),
+                                                Parser.Input.fromString(
+                                                    "package org.junit.jupiter.api.function;" +
+                                                    "public interface Executable {\n" +
+                                                        "void execute() throws Throwable;\n" +
+                                                    "}"
+                                                )
+                                        )).build())
                                         .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                         .build(),
                                 m.getBody().getCoordinates().replace(),
@@ -97,7 +112,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 maybeRemoveImport("org.junit.Rule");
                 maybeRemoveImport("org.junit.rules.ExpectedException");
 
-                doAfterVisit(new AddImport<>("org.junit.jupiter.api.Assertions", "assertThrows", false));
+                maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
 
                 m = m.withBody((J.Block) new AutoFormatVisitor<ExecutionContext>().visit(m.getBody(), ctx, getCursor()));
             }

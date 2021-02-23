@@ -16,13 +16,16 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -85,6 +88,11 @@ public class TemporaryFolderToTempDir extends Recipe {
                                             field = field.withTemplate(
                                                     template("@TempDir\nFile#{};")
                                                             .imports("java.io.File", "org.junit.jupiter.api.io.TempDir")
+                                                            .javaParser(JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
+                                                                    Parser.Input.fromString("" +
+                                                                            "package org.junit.jupiter.api.io;\n" +
+                                                                            "public @interface TempDir {}")
+                                                            )).build())
                                                             .build(),
                                                     field.getCoordinates().replace(), fieldVars);
                                             tempDirFields.add(field);

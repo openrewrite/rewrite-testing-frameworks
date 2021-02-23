@@ -81,12 +81,9 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
 
     testRuntimeOnly("junit:junit:latest.release")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
-    testRuntimeOnly("org.springframework:spring-test:latest.release")
+    testRuntimeOnly("org.springframework:spring-test:4.+")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
     testRuntimeOnly("org.mockito:mockito-all:$mockito1Version")
-    testRuntimeOnly("org.assertj:assertj-core:$assertJVersion")
-    testRuntimeOnly("org.mockito:mockito-junit-jupiter:latest.release")
 
     "beforeImplementation"("junit:junit:latest.release")
     "beforeImplementation"("org.mockito:mockito-all:$mockito1Version")

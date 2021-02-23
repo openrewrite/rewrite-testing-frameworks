@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5
 
-import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.Test
@@ -23,7 +22,7 @@ import org.openrewrite.*
 import org.openrewrite.java.JavaParser
 import org.openrewrite.maven.MavenParser
 
-class FindJUnitThenAddJUnitDependenciesTest {
+class FindJUnitThenAddJUnit5DependenciesTest {
 
     private val javaParser = JavaParser.fromJavaVersion().classpath(
             JavaParser.dependenciesFromClasspath("junit-jupiter-api", "apiguardian-api")).build()
@@ -49,7 +48,7 @@ class FindJUnitThenAddJUnitDependenciesTest {
             </project>
         """.trimIndent())[0]
 
-        val recipe = FindJUnit().doNext(AddJUnitDependencies().apply { setVersion("5.7.1") })
+        val recipe = FindJUnit5().doNext(AddJUnitDependencies().apply { setVersion("5.7.1") })
 
         val results = recipe.run(listOf<SourceFile>(javaSource, mavenSource),
                 InMemoryExecutionContext { t: Throwable? -> fail<Any>("Recipe threw an exception", t) },

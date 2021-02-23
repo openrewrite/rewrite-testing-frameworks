@@ -16,9 +16,11 @@
 package org.openrewrite.java.testing.junitassertj;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -57,6 +59,10 @@ public class AssertNotNullToAssertThat extends Recipe {
                 JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertNotNull(..)"
         );
 
+        private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
+                Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+        ).build();
+
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (!JUNIT_ASSERT_NOT_NULL_MATCHER.matches(method)) {
@@ -71,6 +77,7 @@ public class AssertNotNullToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isNotNull();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual
@@ -84,6 +91,7 @@ public class AssertNotNullToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isNotNull();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,

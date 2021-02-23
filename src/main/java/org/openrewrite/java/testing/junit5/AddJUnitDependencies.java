@@ -39,7 +39,7 @@ public class AddJUnitDependencies extends Recipe {
     private class AddJUnitDependenciesVisitor extends MavenVisitor {
         @Override
         public Maven visitMaven(Maven maven, ExecutionContext ctx) {
-            if (Boolean.TRUE.equals(ctx.pollMessage(FindJUnit.JUNIT_REFS_EXIST_KEY))) {
+            if (Boolean.TRUE.equals(ctx.pollMessage(FindJUnit5.JUNIT_REFS_EXIST_KEY))) {
                 maybeAddDependency(
                         "org.junit.jupiter",
                         "junit-jupiter-api",
