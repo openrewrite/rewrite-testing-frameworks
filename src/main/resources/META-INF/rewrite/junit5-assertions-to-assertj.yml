@@ -28,3 +28,9 @@ recipeList:
   - org.openrewrite.java.testing.junitassertj.JUnitFailToAssertJFail
   - org.openrewrite.java.UseStaticImport:
       methodPattern: "org.assertj.core.api.Assertions *(..)"
+  - org.openrewrite.java.ChangeMethodTargetToStatic
+      methodPattern: "org.assertj.core.api.AssertionsForClassTypes.assertThat *(..)"
+      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions.assertThat"
+  - org.openrewrite.java.ChangeMethodTargetToStatic
+    methodPattern: "org.assertj.core.api.AssertionsForInterfaceTypes.assertThat *(..)"
+    fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions.assertThat"
