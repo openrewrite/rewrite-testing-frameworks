@@ -50,7 +50,7 @@ public class UpdateTestAnnotation extends Recipe {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
             boolean changed = false;
-            List<J.Annotation> annotations = new ArrayList<>(m.getLeadingAnnotations());
+            List<J.Annotation> annotations = new ArrayList<>(m.getAllAnnotations());
             for (int i = 0, annotationsSize = annotations.size(); i < annotationsSize; i++) {
 
                 J.Annotation a = annotations.get(i);
@@ -83,7 +83,7 @@ public class UpdateTestAnnotation extends Recipe {
                                 m = m.withTemplate(
                                         template("{ assertThrows(#{}, () -> {#{}}); }")
                                                 .javaParser(
-                                                        (JavaParser) JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
+                                                        JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
                                                                 Parser.Input.fromString(
                                                                         "package org.junit.jupiter.api.function;\n" +
                                                                         "public interface Executable {\n" +
