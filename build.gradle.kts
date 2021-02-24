@@ -106,7 +106,7 @@ tasks.withType(KotlinCompile::class.java).configureEach {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
-    jvmArgs = listOf("-XX:+UnlockDiagnosticVMOptions", "-XX:+ShowHiddenFrames")
+    jvmArgs = listOf("-Xmx1g", "-XX:+UnlockDiagnosticVMOptions", "-XX:+ShowHiddenFrames")
 }
 
 tasks.named<JavaCompile>("compileJava") {

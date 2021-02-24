@@ -125,8 +125,6 @@ public class AssertNotEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isNotCloseTo(#{}, within(#{}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .doAfterVariableSubstitution(s -> System.out.println("After var subst: " + s))
-                                .doBeforeParseTemplate(s -> System.out.println("Before parse: " + s))
                                 .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
