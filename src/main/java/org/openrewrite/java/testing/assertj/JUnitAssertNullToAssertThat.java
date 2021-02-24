@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junitassertj;
-
+package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
@@ -30,30 +29,24 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.List;
 
 /**
- * This is a refactoring visitor that will convert JUnit-style assertTrue() to assertJ's assertThat().isTrue().
+ * This is a refactoring visitor that will convert JUnit-style assertNull() to assertJ's assertThat().isNull().
  * <p>
- * This visitor only supports the migration of the following JUnit 5 assertTrue() methods:
+ * This visitor only supports the migration of the following JUnit 5 assertNull() methods:
  *
  * <PRE>
- * assertTrue(boolean condition) -> assertThat(condition).isTrue()
- * assertTrue(boolean condition, String message) -> assertThat(condition).withFailMessage(message).isTrue();
- * assertTrue(boolean condition, Supplier<String> messageSupplier) -> assertThat(condition).withFailMessage(messageSupplier).isTrue();
+ * assertNull(Object actual) -> assertThat(condition).isNull()
+ * assertNull(Object actual, String message) -> assertThat(condition).as(message).isNull();
+ * assertNull(Object actual, Supplier<String> messageSupplier) -> assertThat(condition).withFailMessage(messageSupplier).isNull();
  * </PRE>
- * <p>
- * Note: There are three additional method signatures in JUnit that use a BooleanSupplier for the condition. Attempts
- * to map these signatures into assertJ's model obfuscates the original assertion. It would be possible to use a
- * shim method to support these method signatures, however, those shims would need to exist on each compilation
- * unit or in a shared testing utilities library.
  */
-public class AssertTrueToAssertThat extends Recipe {
+public class JUnitAssertNullToAssertThat extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new AssertTrueToAssertThatVisitor();
+        return new AssertNullToAssertThatVisitor();
     }
 
-    public static class AssertTrueToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-
+    public static class AssertNullToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
         private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
         private static final String ASSERTJ_ASSERT_THAT_METHOD_NAME = "assertThat";
@@ -61,8 +54,8 @@ public class AssertTrueToAssertThat extends Recipe {
         /**
          * This matcher finds the junit methods that will be migrated by this visitor.
          */
-        private static final MethodMatcher JUNIT_ASSERT_TRUE_MATCHER = new MethodMatcher(
-                JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertTrue(boolean, ..)"
+        private static final MethodMatcher JUNIT_ASSERT_NULL_MATCHER = new MethodMatcher(
+                JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertNull(..)"
         );
 
         private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
@@ -71,7 +64,7 @@ public class AssertTrueToAssertThat extends Recipe {
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (!JUNIT_ASSERT_TRUE_MATCHER.matches(method)) {
+            if (!JUNIT_ASSERT_NULL_MATCHER.matches(method)) {
                 return method;
             }
 
@@ -80,7 +73,7 @@ public class AssertTrueToAssertThat extends Recipe {
 
             if (args.size() == 1) {
                 method = method.withTemplate(
-                        template("assertThat(#{}).isTrue();")
+                        template("assertThat(#{}).isNull();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
@@ -89,15 +82,12 @@ public class AssertTrueToAssertThat extends Recipe {
                 );
             } else {
                 Expression message = args.get(1);
-
-                // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
-                // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
                 String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
-
                 method = method.withTemplate(
-                        template("assertThat(#{}).#{}(#{}).isTrue();")
+                        template("assertThat(#{}).#{}(#{}).isNull();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(ASSERTJ_JAVA_PARSER)
+
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -106,11 +96,11 @@ public class AssertTrueToAssertThat extends Recipe {
                 );
             }
 
-            //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat"
-            maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_ASSERT_THAT_METHOD_NAME);
-
-            //And if there are no longer references to the JUnit assertions class, we can remove the import.
+            // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
             maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
+
+            // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat".
+            maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_ASSERT_THAT_METHOD_NAME);
 
             return method;
         }

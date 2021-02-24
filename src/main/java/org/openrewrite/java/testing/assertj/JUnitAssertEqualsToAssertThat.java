@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junitassertj;
+package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
@@ -30,22 +30,22 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.List;
 
 /**
- * This is a refactoring visitor that will convert JUnit-style assertNotEquals() to assertJ's assertThat().isNotEqualTo().
+ * This is a refactoring visitor that will convert JUnit-style assertEquals() to assertJ's assertThat().isEqualTo().
  * <p>
  * This visitor has to convert a surprisingly large number (93 methods) of JUnit's assertEquals to assertThat().
  *
  * <PRE>
  * Two parameter variants:
  * <p>
- * assertNotEquals(expected,actual) -> assertThat(actual).isNotEqualTo(expected)
+ * assertEquals(expected,actual) -> assertThat(actual).isEqualTo(expected)
  * <p>
  * Three parameter variant where the third argument is a String:
  * <p>
- * assertNotEquals(expected, actual, "message") -> assertThat(actual).as("message").isNotEqualTo(expected)
+ * assertEquals(expected, actual, "message") -> assertThat(actual).as("message").isEqualTo(expected)
  * <p>
- * Three parameter variant where the third argument is a String Supplier (there is no overloaded "as" method that takes a supplier):
+ * Three parameter variant where the third argument is a String supplier:
  * <p>
- * assertNotEquals(expected, actual, "message") -> assertThat(actual).withFailMessage("message").isNotEqualTo(expected)
+ * assertEquals(expected, actual, () -> "message") -> assertThat(actual).withFailureMessage("message").isEqualTo(expected)
  * <p>
  * Three parameter variant where args are all floating point numbers.
  * <p>
@@ -57,14 +57,14 @@ import java.util.List;
  *
  * </PRE>
  */
-public class AssertNotEqualsToAssertThat extends Recipe {
+public class JUnitAssertEqualsToAssertThat extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new AssertNotEqualsToAssertThatVisitor();
+        return new AssertEqualsToAssertThatVisitor();
     }
 
-    public static class AssertNotEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
+    public static class AssertEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
 
@@ -76,7 +76,7 @@ public class AssertNotEqualsToAssertThat extends Recipe {
          * This matcher finds the junit methods that will be migrated by this visitor.
          */
         private static final MethodMatcher JUNIT_ASSERT_EQUALS_MATCHER = new MethodMatcher(
-                JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertNotEquals(..)"
+                JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertEquals(..)"
         );
 
         private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
@@ -97,7 +97,7 @@ public class AssertNotEqualsToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = method.withTemplate(
-                        template("assertThat(#{}).isNotEqualTo(#{});")
+                        template("assertThat(#{}).isEqualTo(#{});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
@@ -110,8 +110,9 @@ public class AssertNotEqualsToAssertThat extends Recipe {
                 // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
                 // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
                 String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
+
                 method = method.withTemplate(
-                        template("assertThat(#{}).#{}(#{}).isNotEqualTo(#{});")
+                        template("assertThat(#{}).#{}(#{}).isEqualTo(#{});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
@@ -123,10 +124,8 @@ public class AssertNotEqualsToAssertThat extends Recipe {
                 );
             } else if (args.size() == 3) {
                 method = method.withTemplate(
-                        template("assertThat(#{}).isNotCloseTo(#{}, within(#{}));")
+                        template("assertThat(#{}).isCloseTo(#{}, within(#{}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .doAfterVariableSubstitution(s -> System.out.println("After var subst: " + s))
-                                .doBeforeParseTemplate(s -> System.out.println("Before parse: " + s))
                                 .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
@@ -135,13 +134,16 @@ public class AssertNotEqualsToAssertThat extends Recipe {
                         args.get(2)
                 );
                 maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_WITHIN_METHOD_NAME);
+
             } else {
+                //The assertEquals is using a floating point with a delta argument and a message.
                 Expression message = args.get(3);
+
                 //If the message is a string use "as", if it is a supplier use "withFailMessage"
                 String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
 
                 method = method.withTemplate(
-                        template("assertThat(#{}).#{}(#{}).isNotCloseTo(#{}, within(#{}));")
+                        template("assertThat(#{}).#{}(#{}).isCloseTo(#{}, within(#{}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                                 .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
@@ -152,7 +154,6 @@ public class AssertNotEqualsToAssertThat extends Recipe {
                         expected,
                         args.get(2)
                 );
-
                 maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_WITHIN_METHOD_NAME);
             }
 
@@ -181,6 +182,5 @@ public class AssertNotEqualsToAssertThat extends Recipe {
             JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
             return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
         }
-
     }
 }

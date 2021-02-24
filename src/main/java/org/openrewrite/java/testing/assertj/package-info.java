@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 @NonNullApi
-package org.openrewrite.java.testing.junitassertj;
+package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.internal.lang.NonNullApi;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junitassertj;
+package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
@@ -39,7 +39,7 @@ import java.util.List;
  * assertNotNull(Object actual, Supplier<String> messageSupplier) -> assertThat(condition).withFailMessage(messageSupplier).isNotNull();
  * </PRE>
  */
-public class AssertNotNullToAssertThat extends Recipe {
+public class JUnitAssertNotNullToAssertThat extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {

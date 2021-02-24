@@ -15,7 +15,13 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.AssertJUseAssertThatFromAssertionsPackage
+name: org.openrewrite.java.testing.assertj.Assertj
+recipeList:
+  - org.openrewrite.java.testing.assertj.StaticImports
+  - org.openrewrite.java.testing.assertj.JUnitToAssertj
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.assertj.StaticImports
 recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: "org.assertj.core.api.AssertionsForClassTypes assertThat(..)"
@@ -23,3 +29,18 @@ recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: "org.assertj.core.api.AssertionsForInterfaceTypes assertThat(..)"
       fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
+  - org.openrewrite.java.UseStaticImport:
+      methodPattern: "org.assertj.core.api.Assertions *(..)"
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.assertj.JUnitToAssertj
+recipeList:
+  - org.openrewrite.java.testing.assertj.JUnitAssertArrayEqualsToAssertThat
+  - org.openrewrite.java.testing.assertj.JUnitAssertEqualsToAssertThat
+  - org.openrewrite.java.testing.assertj.JUnitAssertFalseToAssertThat
+  - org.openrewrite.java.testing.assertj.JUnitAssertNotEqualsToAssertThat
+  - org.openrewrite.java.testing.assertj.JUnitAssertNotNullToAssertThat
+  - org.openrewrite.java.testing.assertj.JUnitAssertNullToAssertThat
+  - org.openrewrite.java.testing.assertj.JUnitAssertSameToAssertThat
+  - org.openrewrite.java.testing.assertj.JUnitAssertTrueToAssertThat
+  - org.openrewrite.java.testing.assertj.JUnitJUnitFailToAssertJFail

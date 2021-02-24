@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junitassertj
+package org.openrewrite.java.testing.assertj
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
@@ -22,135 +22,117 @@ import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class JUnitFailToAssertJFailTest : JavaRecipeTest {
+class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
     override val recipe: Recipe
-        get() = JUnitFailToAssertJFail()
+        get() = JUnitAssertNullToAssertThat()
 
     @Test
     fun singleStaticMethodNoMessage() = assertChanged(
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.fail;
+                import static org.junit.jupiter.api.Assertions.assertNull;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        fail();
+                        assertNull(notification());
+                    }
+                    private String notification() {
+                        return null;
                     }
                 }
             """,
             after = """
                 import org.junit.Test;
 
-                import static org.assertj.core.api.Assertions.fail;
+                import static org.assertj.core.api.Assertions.assertThat;
 
                 public class A {
 
                     @Test
                     public void test() {
-                        fail("");
+                        assertThat(notification()).isNull();
+                    }
+                    private String notification() {
+                        return null;
                     }
                 }
             """
     )
 
     @Test
-    fun singleStaticMethodWithMessage() = assertChanged(
+    fun singleStaticMethodWithMessageString() = assertChanged(
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.fail;
+                import static org.junit.jupiter.api.Assertions.assertNull;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        fail("This should fail");
+                        assertNull(notification(), "Should be null");
+                    }
+                    private String notification() {
+                        return null;
                     }
                 }
             """,
             after = """
                 import org.junit.Test;
 
-                import static org.assertj.core.api.Assertions.fail;
+                import static org.assertj.core.api.Assertions.assertThat;
 
                 public class A {
 
                     @Test
                     public void test() {
-                        fail("This should fail");
+                        assertThat(notification()).as("Should be null").isNull();
+                    }
+                    private String notification() {
+                        return null;
                     }
                 }
             """
     )
 
     @Test
-    fun singleStaticMethodWithMessageAndCause() = assertChanged(
+    fun singleStaticMethodWithMessageSupplier() = assertChanged(
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.fail;
+                import static org.junit.jupiter.api.Assertions.assertNull;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        Throwable t = new Throwable();
-                        fail("This should fail", t);
+                        assertNull(notification(), () -> "Should be null");
+                    }
+                    private String notification() {
+                        return null;
                     }
                 }
             """,
             after = """
                 import org.junit.Test;
 
-                import static org.assertj.core.api.Assertions.fail;
+                import static org.assertj.core.api.Assertions.assertThat;
 
                 public class A {
 
                     @Test
                     public void test() {
-                        Throwable t = new Throwable();
-                        fail("This should fail", t);
+                        assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
                     }
-                }
-            """
-    )
-
-    @Test
-    fun singleStaticMethodWithCause() = assertChanged(
-            before = """
-                import org.junit.Test;
-
-                import static org.junit.jupiter.api.Assertions.fail;
-
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        Throwable t = new Throwable();
-                        fail(t);
-                        fail(new Throwable());
-                    }
-                }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.fail;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        Throwable t = new Throwable();
-                        fail("", t);
-                        fail("", new Throwable());
+                    private String notification() {
+                        return null;
                     }
                 }
             """
@@ -165,26 +147,30 @@ class JUnitFailToAssertJFailTest : JavaRecipeTest {
                 
                     @Test
                     public void test() {
-                        org.junit.jupiter.api.Assertions.fail();
-                        org.junit.jupiter.api.Assertions.fail("This should fail");
-                        org.junit.jupiter.api.Assertions.fail("This should fail", new Throwable());
-                        org.junit.jupiter.api.Assertions.fail(new Throwable());
+                        org.junit.jupiter.api.Assertions.assertNull(notification());
+                        org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
+                        org.junit.jupiter.api.Assertions.assertNull(notification(), () -> "Should be null");
+                    }
+                    private String notification() {
+                        return null;
                     }
                 }
             """,
             after = """
                 import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.fail;
+                
+                import static org.assertj.core.api.Assertions.assertThat;
                 
                 public class A {
                 
                     @Test
                     public void test() {
-                        fail("");
-                        fail("This should fail");
-                        fail("This should fail", new Throwable());
-                        fail("", new Throwable());
+                        assertThat(notification()).isNull();
+                        assertThat(notification()).as("Should be null").isNull();
+                        assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
+                    }
+                    private String notification() {
+                        return null;
                     }
                 }
             """
@@ -195,32 +181,37 @@ class JUnitFailToAssertJFailTest : JavaRecipeTest {
             before = """
                 import org.junit.Test;
                 
-                import static org.junit.jupiter.api.Assertions.fail;
+                import static org.assertj.core.api.Assertions.*;
+                import static org.junit.jupiter.api.Assertions.assertNull;
                 
                 public class A {
                 
                     @Test
                     public void test() {
-                        fail();
-                        org.junit.jupiter.api.Assertions.fail("This should fail");
-                        fail("This should fail", new Throwable());
-                        org.junit.jupiter.api.Assertions.fail(new Throwable());
+                        assertNull(notification());
+                        org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
+                        assertNull(notification(), () -> "Should be null");
+                    }
+                    private String notification() {
+                        return null;
                     }
                 }
             """,
             after = """
                 import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.fail;
+                
+                import static org.assertj.core.api.Assertions.*;
                 
                 public class A {
                 
                     @Test
                     public void test() {
-                        fail("");
-                        fail("This should fail");
-                        fail("This should fail", new Throwable());
-                        fail("", new Throwable());
+                        assertThat(notification()).isNull();
+                        assertThat(notification()).as("Should be null").isNull();
+                        assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
+                    }
+                    private String notification() {
+                        return null;
                     }
                 }
             """
