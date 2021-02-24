@@ -505,7 +505,19 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
                     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
                     <java.version>1.8</java.version>
                 </properties>
+            
                 <dependencies>
+                    <dependency>
+                        <groupId>com.googlecode.json-simple</groupId>
+                        <artifactId>json-simple</artifactId>
+                        <version>1.1.1</version>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>junit</groupId>
+                                <artifactId>junit</artifactId>
+                            </exclusion>
+                        </exclusions>
+                    </dependency>
                     <dependency>
                         <groupId>org.junit.jupiter</groupId>
                         <artifactId>junit-jupiter-api</artifactId>
@@ -517,17 +529,6 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
                         <artifactId>junit-jupiter-engine</artifactId>
                         <version>5.7.1</version>
                         <scope>test</scope>
-                    </dependency>
-                    <dependency>
-                        <groupId>com.googlecode.json-simple</groupId>
-                        <artifactId>json-simple</artifactId>
-                        <version>1.1.1</version>
-                        <exclusions>
-                            <exclusion>
-                                <groupId>junit</groupId>
-                                <artifactId>junit</artifactId>
-                            </exclusion>
-                        </exclusions>
                     </dependency>
                 </dependencies>
             </project>
