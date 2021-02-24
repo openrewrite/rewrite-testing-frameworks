@@ -15,6 +15,13 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.JUnit5
+recipeList:
+  - org.openrewrite.java.UseStaticImport:
+      methodPattern: "org.junit.jupiter.api.Assertions *(..)"
+  - org.openrewrite.java.testing.JUnit5Migration
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.JUnit5Migration
 recipeList:
   - org.openrewrite.java.ChangeType:
@@ -36,10 +43,10 @@ recipeList:
   - org.openrewrite.java.testing.junit5.CategoryToTag
   - org.openrewrite.java.testing.junit5.CleanupJUnitImports
   - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
-  - org.openrewrite.java.testing.junit5.FindJUnit5
-  - org.openrewrite.java.testing.junit5.AddJUnitDependencies
   - org.openrewrite.java.testing.junit5.MockitoRunnerToMockitoExtension
   - org.openrewrite.java.testing.junit5.AddMockitoDependency
   - org.openrewrite.java.testing.junit5.TemporaryFolderToTempDir
   - org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
   - org.openrewrite.java.testing.junit5.UpdateTestAnnotation
+  - org.openrewrite.java.testing.junit5.FindJUnit5
+  - org.openrewrite.java.testing.junit5.AddJUnitDependencies
