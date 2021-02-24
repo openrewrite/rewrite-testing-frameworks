@@ -15,7 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
