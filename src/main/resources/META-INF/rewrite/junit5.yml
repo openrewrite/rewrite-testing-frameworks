@@ -40,7 +40,6 @@ recipeList:
   - org.openrewrite.java.testing.junit5.AddJUnitDependencies
   - org.openrewrite.java.testing.junit5.MockitoRunnerToMockitoExtension
   - org.openrewrite.java.testing.junit5.AddMockitoDependency
-  - org.openrewrite.java.testing.junit5.SpringRunnerToSpringExtension
   - org.openrewrite.java.testing.junit5.TemporaryFolderToTempDir
   - org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
   - org.openrewrite.java.testing.junit5.UpdateTestAnnotation
