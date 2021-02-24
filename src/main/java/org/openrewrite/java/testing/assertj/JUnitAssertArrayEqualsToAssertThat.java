@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junitassertj;
+package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
@@ -57,7 +57,7 @@ import java.util.List;
  *
  * </PRE>
  */
-public class AssertArrayEqualsToAssertThat extends Recipe {
+public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {

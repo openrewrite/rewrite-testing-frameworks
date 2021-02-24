@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junitassertj
+package org.openrewrite.java.testing.assertj
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
@@ -22,13 +22,13 @@ import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertArrayEqualsToAssertThatTest : JavaRecipeTest {
+class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
     override val recipe: Recipe
-        get() = AssertArrayEqualsToAssertThat()
+        get() = JUnitAssertArrayEqualsToAssertThat()
 
     @Test
     fun singleStaticMethodNoMessage() = assertChanged(

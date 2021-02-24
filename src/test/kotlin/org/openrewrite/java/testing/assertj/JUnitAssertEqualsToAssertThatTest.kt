@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junitassertj
+package org.openrewrite.java.testing.assertj
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
@@ -22,29 +22,29 @@ import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
+class JUnitAssertEqualsToAssertThatTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
     override val recipe: Recipe
-        get() = AssertNotEqualsToAssertThat()
+        get() = JUnitAssertEqualsToAssertThat()
 
     @Test
     fun singleStaticMethodNoMessage() = assertChanged(
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNotEquals;
+                import static org.junit.jupiter.api.Assertions.assertEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNotEquals(1, notification());
+                        assertEquals(1, notification());
                     }
                     private Integer notification() {
-                        return 2;
+                        return 1;
                     }
                 }
             """,
@@ -57,10 +57,10 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).isNotEqualTo(1);
+                        assertThat(notification()).isEqualTo(1);
                     }
                     private Integer notification() {
-                        return 2;
+                        return 1;
                     }
                 }
             """
@@ -71,16 +71,16 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNotEquals;
+                import static org.junit.jupiter.api.Assertions.assertEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNotEquals("fred", notification(), () -> "These should not be equal");
+                        assertEquals("fred", notification(), () -> "These should be equal");
                     }
                     private String notification() {
-                        return "joe";
+                        return "fred";
                     }
                 }
             """,
@@ -93,10 +93,10 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).withFailMessage(() -> "These should not be equal").isNotEqualTo("fred");
+                        assertThat(notification()).withFailMessage(() -> "These should be equal").isEqualTo("fred");
                     }
                     private String notification() {
-                        return "joe";
+                        return "fred";
                     }
                 }
             """
@@ -107,16 +107,16 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNotEquals;
+                import static org.junit.jupiter.api.Assertions.assertEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNotEquals(0.0d, notification(), 0.2d);
+                        assertEquals(0.0d, notification(), 0.2d);
                     }
                     private Double notification() {
-                        return 1.1d;
+                        return 0.1d;
                     }
                 }
             """,
@@ -130,10 +130,10 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).isNotCloseTo(0.0d, within(0.2d));
+                        assertThat(notification()).isCloseTo(0.0d, within(0.2d));
                     }
                     private Double notification() {
-                        return 1.1d;
+                        return 0.1d;
                     }
                 }
             """
@@ -144,13 +144,13 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNotEquals;
+                import static org.junit.jupiter.api.Assertions.assertEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNotEquals(2.0d, notification(), 0.2d, "These should not be close.");
+                        assertEquals(0.0d, notification(), 0.2d, "These should be close.");
                     }
                     private double notification() {
                         return 0.1d;
@@ -167,7 +167,7 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("These should not be close.").isNotCloseTo(2.0d, within(0.2d));
+                        assertThat(notification()).as("These should be close.").isCloseTo(0.0d, within(0.2d));
                     }
                     private double notification() {
                         return 0.1d;
@@ -181,16 +181,16 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNotEquals;
+                import static org.junit.jupiter.api.Assertions.assertEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNotEquals(Double.valueOf(0.0d), notification(), Double.valueOf(0.2d), () -> "These should not be close.");
+                        assertEquals(Double.valueOf(0.0d), notification(), Double.valueOf(0.2d), () -> "These should be close.");
                     }
                     private double notification() {
-                        return Double.valueOf(1.1d);
+                        return Double.valueOf(0.1d);
                     }
                 }
             """,
@@ -204,10 +204,10 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).withFailMessage(() -> "These should not be close.").isNotCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
+                        assertThat(notification()).withFailMessage(() -> "These should be close.").isCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
                     }
                     private double notification() {
-                        return Double.valueOf(1.1d);
+                        return Double.valueOf(0.1d);
                     }
                 }
             """
@@ -218,13 +218,13 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNotEquals;
+                import static org.junit.jupiter.api.Assertions.assertEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNotEquals(2.0f, notification(), 0.2f);
+                        assertEquals(0.0f, notification(), 0.2f);
                     }
                     private Float notification() {
                         return 0.1f;
@@ -241,7 +241,7 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).isNotCloseTo(2.0f, within(0.2f));
+                        assertThat(notification()).isCloseTo(0.0f, within(0.2f));
                     }
                     private Float notification() {
                         return 0.1f;
@@ -255,13 +255,13 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
             before = """
                 import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNotEquals;
+                import static org.junit.jupiter.api.Assertions.assertEquals;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNotEquals(2.0f, notification(), 0.2f, "These should not be close.");
+                        assertEquals(0.0f, notification(), 0.2f, "These should be close.");
                     }
                     private float notification() {
                         return 0.1f;
@@ -278,7 +278,7 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("These should not be close.").isNotCloseTo(2.0f, within(0.2f));
+                        assertThat(notification()).as("These should be close.").isCloseTo(0.0f, within(0.2f));
                     }
                     private float notification() {
                         return 0.1f;
@@ -297,7 +297,7 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
  
                     @Test
                     public void test() {
-                        org.junit.jupiter.api.Assertions.assertNotEquals(new File("otherFile"), notification(), "These should not be equal");
+                        org.junit.jupiter.api.Assertions.assertEquals(new File("someFile"), notification(), "These should be equal");
                     }
                     private File notification() {
                         return new File("someFile");
@@ -315,7 +315,7 @@ class AssertNotEqualsToAssertThatTest : JavaRecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("These should not be equal").isNotEqualTo(new File("otherFile"));
+                        assertThat(notification()).as("These should be equal").isEqualTo(new File("someFile"));
                     }
                     private File notification() {
                         return new File("someFile");

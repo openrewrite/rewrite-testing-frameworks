@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junitassertj
+package org.openrewrite.java.testing.assertj
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
@@ -22,34 +22,35 @@ import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.tree.J
 
-class AssertNotNullToAssertThatTest : JavaRecipeTest {
+class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-            .classpath("junit")
+            .classpath("junit-jupiter-api")
             .build()
 
     override val recipe: Recipe
-        get() = AssertNotNullToAssertThat()
+        get() = JUnitAssertSameToAssertThat()
 
     @Test
     fun singleStaticMethodNoMessage() = assertChanged(
             before = """
-                import org.junit.Test;
-
-                import static org.junit.jupiter.api.Assertions.assertNotNull;
+                import org.junit.jupiter.api.Test;
+                
+                import static org.junit.jupiter.api.Assertions.assertSame;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNotNull(notification());
+                        String str = "String";
+                        assertSame(notification(), str);
                     }
                     private String notification() {
-                        return "";
+                        return "String";
                     }
                 }
             """,
             after = """
-                import org.junit.Test;
+                import org.junit.jupiter.api.Test;
 
                 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -57,10 +58,11 @@ class AssertNotNullToAssertThatTest : JavaRecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).isNotNull();
+                        String str = "String";
+                        assertThat(str).isSameAs(notification());
                     }
                     private String notification() {
-                        return "";
+                        return "String";
                     }
                 }
             """
@@ -69,23 +71,24 @@ class AssertNotNullToAssertThatTest : JavaRecipeTest {
     @Test
     fun singleStaticMethodWithMessageString() = assertChanged(
             before = """
-                import org.junit.Test;
+                import org.junit.jupiter.api.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNotNull;
+                import static org.junit.jupiter.api.Assertions.assertSame;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNotNull(notification(), "Should not be null");
+                        String str = "string";
+                        assertSame(notification(), str, "Should be the same");
                     }
                     private String notification() {
-                        return "";
+                        return "String";
                     }
                 }
             """,
             after = """
-                import org.junit.Test;
+                import org.junit.jupiter.api.Test;
 
                 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -93,10 +96,11 @@ class AssertNotNullToAssertThatTest : JavaRecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).as("Should not be null").isNotNull();
+                        String str = "string";
+                        assertThat(str).as("Should be the same").isSameAs(notification());
                     }
                     private String notification() {
-                        return "";
+                        return "String";
                     }
                 }
             """
@@ -105,23 +109,24 @@ class AssertNotNullToAssertThatTest : JavaRecipeTest {
     @Test
     fun singleStaticMethodWithMessageSupplier() = assertChanged(
             before = """
-                import org.junit.Test;
+                import org.junit.jupiter.api.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNotNull;
+                import static org.junit.jupiter.api.Assertions.assertSame;
 
                 public class A {
  
                     @Test
                     public void test() {
-                        assertNotNull(notification(), () -> "Should not be null");
+                        String str = "string";
+                        assertSame(notification(), str, () -> "Should be the same");
                     }
                     private String notification() {
-                        return "";
+                        return "String";
                     }
                 }
             """,
             after = """
-                import org.junit.Test;
+                import org.junit.jupiter.api.Test;
 
                 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -129,10 +134,11 @@ class AssertNotNullToAssertThatTest : JavaRecipeTest {
 
                     @Test
                     public void test() {
-                        assertThat(notification()).withFailMessage(() -> "Should not be null").isNotNull();
+                        String str = "string";
+                        assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
                     }
                     private String notification() {
-                        return "";
+                        return "String";
                     }
                 }
             """
@@ -141,23 +147,24 @@ class AssertNotNullToAssertThatTest : JavaRecipeTest {
     @Test
     fun inlineReference() = assertChanged(
             before = """
-                import org.junit.Test;
+                import org.junit.jupiter.api.Test;
  
                 public class A {
                 
                     @Test
                     public void test() {
-                        org.junit.jupiter.api.Assertions.assertNotNull(notification());
-                        org.junit.jupiter.api.Assertions.assertNotNull(notification(), "Should not be null");
-                        org.junit.jupiter.api.Assertions.assertNotNull(notification(), () -> "Should not be null");
+                        String str = "string";
+                        org.junit.jupiter.api.Assertions.assertSame(notification(), str);
+                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be the same");
+                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, () -> "Should be the same");
                     }
                     private String notification() {
-                        return "";
+                        return "String";
                     }
                 }
             """,
             after = """
-                import org.junit.Test;
+                import org.junit.jupiter.api.Test;
                 
                 import static org.assertj.core.api.Assertions.assertThat;
                 
@@ -165,12 +172,13 @@ class AssertNotNullToAssertThatTest : JavaRecipeTest {
                 
                     @Test
                     public void test() {
-                        assertThat(notification()).isNotNull();
-                        assertThat(notification()).as("Should not be null").isNotNull();
-                        assertThat(notification()).withFailMessage(() -> "Should not be null").isNotNull();
+                        String str = "string";
+                        assertThat(str).isSameAs(notification());
+                        assertThat(str).as("Should be the same").isSameAs(notification());
+                        assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
                     }
                     private String notification() {
-                        return "";
+                        return "String";
                     }
                 }
             """
@@ -179,26 +187,27 @@ class AssertNotNullToAssertThatTest : JavaRecipeTest {
     @Test
     fun mixedReferences() = assertChanged(
             before = """
-                import org.junit.Test;
+                import org.junit.jupiter.api.Test;
                 
                 import static org.assertj.core.api.Assertions.*;
-                import static org.junit.jupiter.api.Assertions.assertNotNull;
+                import static org.junit.jupiter.api.Assertions.assertSame;
                 
                 public class A {
                 
                     @Test
                     public void test() {
-                        assertNotNull(notification());
-                        org.junit.jupiter.api.Assertions.assertNotNull(notification(), "Should not be null");
-                        assertNotNull(notification(), () -> "Should not be null");
+                        String str = "string";
+                        assertSame(notification(), str);
+                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be the same");
+                        assertSame(notification(), str, () -> "Should be the same");
                     }
                     private String notification() {
-                        return "";
+                        return "String";
                     }
                 }
             """,
             after = """
-                import org.junit.Test;
+                import org.junit.jupiter.api.Test;
                 
                 import static org.assertj.core.api.Assertions.*;
                 
@@ -206,12 +215,13 @@ class AssertNotNullToAssertThatTest : JavaRecipeTest {
                 
                     @Test
                     public void test() {
-                        assertThat(notification()).isNotNull();
-                        assertThat(notification()).as("Should not be null").isNotNull();
-                        assertThat(notification()).withFailMessage(() -> "Should not be null").isNotNull();
+                        String str = "string";
+                        assertThat(str).isSameAs(notification());
+                        assertThat(str).as("Should be the same").isSameAs(notification());
+                        assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
                     }
                     private String notification() {
-                        return "";
+                        return "String";
                     }
                 }
             """
