@@ -24,8 +24,8 @@ import org.openrewrite.maven.MavenParser
 
 class FindJUnitThenAddJUnit5DependenciesTest {
 
-    private val javaParser = JavaParser.fromJavaVersion().classpath(
-            JavaParser.dependenciesFromClasspath("junit-jupiter-api", "apiguardian-api")).build()
+    private val javaParser = JavaParser.fromJavaVersion()
+            .build()
 
     private val mavenParser = MavenParser.builder().build()
 

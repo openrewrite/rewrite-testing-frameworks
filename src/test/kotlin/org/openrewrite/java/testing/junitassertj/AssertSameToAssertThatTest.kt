@@ -24,7 +24,7 @@ import org.openrewrite.java.tree.J
 
 class AssertSameToAssertThatTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-            .classpath("junit-jupiter-api", "assertj-core", "apiguardian-api")
+            .classpath("junit-jupiter-api")
             .build()
 
     override val recipe: Recipe

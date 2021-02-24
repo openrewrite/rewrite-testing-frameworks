@@ -80,6 +80,10 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
 
+    // needed for tests in this project
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+
+    // "Before" framework dependencies
     testRuntimeOnly("junit:junit:latest.release")
     testRuntimeOnly("org.springframework:spring-test:4.+")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")

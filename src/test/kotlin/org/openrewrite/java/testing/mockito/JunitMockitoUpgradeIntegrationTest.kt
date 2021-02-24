@@ -27,7 +27,7 @@ import org.openrewrite.maven.MavenParser
  */
 class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-            .classpath("mockito-all", "mockito-junit-jupiter", "junit-jupiter-api", "junit", "hamcrest")
+            .classpath("mockito-all", "junit", "hamcrest")
             .build()
 
     override val recipe: Recipe
