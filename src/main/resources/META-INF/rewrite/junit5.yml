@@ -16,6 +16,8 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.JUnit5
+displayName: JUnit Jupiter best practices
+description: Migrates JUnit 4.x tests to JUnit Jupiter and applies best practices to tests.
 recipeList:
   - org.openrewrite.java.UseStaticImport:
       methodPattern: "org.junit.jupiter.api.Assertions *(..)"
@@ -23,6 +25,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.JUnit5Migration
+displayName: JUnit Jupiter migration from JUnit 4.x
+description: Migrates JUnit 4.x tests to JUnit Jupiter.
 recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junit.Ignore
