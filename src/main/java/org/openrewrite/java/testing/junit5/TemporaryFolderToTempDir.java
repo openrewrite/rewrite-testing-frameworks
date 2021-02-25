@@ -38,6 +38,16 @@ import java.util.stream.Stream;
 public class TemporaryFolderToTempDir extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "TemporaryFolder to TempDir";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Translates JUnit4's org.junit.rules.TemporaryFolder into JUnit 5's org.junit.jupiter.api.io.TempDir";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new TemporaryFolderToTempDirVisitor();
     }

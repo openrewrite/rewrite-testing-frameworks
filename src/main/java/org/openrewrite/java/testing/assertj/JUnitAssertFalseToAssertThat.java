@@ -47,6 +47,16 @@ import java.util.List;
 public class JUnitAssertFalseToAssertThat extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "JUnit AssertFalse to AssertThat";
+    }
+
+    @Override
+    public String getDescription() {
+        return "convert JUnit-style assertFalse() to assertJ's assertThat().isFalse()";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AssertFalseToAssertThatVisitor();
     }

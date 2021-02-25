@@ -42,6 +42,16 @@ import java.util.List;
 public class JUnitAssertSameToAssertThat extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "JUnit AssertSame to AssertThat";
+    }
+
+    @Override
+    public String getDescription() {
+        return "convert JUnit-style assertSame() to assertJ's assertThat().isSameAs()";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AssertSameToAssertThatVisitor();
     }

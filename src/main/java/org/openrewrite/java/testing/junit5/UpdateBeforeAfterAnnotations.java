@@ -41,6 +41,15 @@ import java.util.List;
  * </PRE>
  */
 public class UpdateBeforeAfterAnnotations extends Recipe {
+    @Override
+    public String getDisplayName() {
+        return "Update Before After Annotations";
+    }
+
+    @Override
+    public String getDescription() {
+        return "replace JUnit 4's \"Before\", \"BeforeClass\", \"After\", and \"AfterClass\" annotations with their JUnit 5 equivalents.";
+    }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {

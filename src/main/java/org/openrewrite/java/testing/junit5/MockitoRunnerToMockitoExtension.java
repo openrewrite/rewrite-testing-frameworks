@@ -46,6 +46,16 @@ public class MockitoRunnerToMockitoExtension extends Recipe {
     public static final String MOCKITO_ANNOTATION_REPLACED_KEY = "mockitoAnnotationReplaced";
 
     @Override
+    public String getDisplayName() {
+        return "MockitoRunner To MockitoExtension";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Convert @RunWith(MockitoJUnitRunner.class) and @RunWith(MockitoJUnit44Runner.class) to @ExtendWith(MockitoExtension.class)";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AnnotationUpdateVisitor();
     }

@@ -36,6 +36,16 @@ import static org.openrewrite.Tree.randomId;
 public class CategoryToTag extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "Category To Tag";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Transforms the Junit4 @Category, which can list multiple categories, into one @Tag annotation per category listed";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new CategoryToTagVisitor();
     }

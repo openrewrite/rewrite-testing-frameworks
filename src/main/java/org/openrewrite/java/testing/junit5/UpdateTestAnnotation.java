@@ -33,6 +33,16 @@ import java.util.stream.Collectors;
 public class UpdateTestAnnotation extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "Update Test Annotation";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Change org.junit.Test to org.junit.jupiter.api.Test";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new UpdateTestAnnotationVisitor();
     }

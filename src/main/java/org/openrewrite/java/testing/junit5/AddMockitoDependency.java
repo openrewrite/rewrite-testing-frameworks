@@ -24,6 +24,16 @@ import org.openrewrite.maven.tree.Maven;
 public class AddMockitoDependency extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "Add Mockito Dependency";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Adds Mockito Dependency";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AddMockitoDependencyVisitor();
     }

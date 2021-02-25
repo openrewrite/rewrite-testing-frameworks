@@ -36,6 +36,16 @@ import java.util.stream.Stream;
 public class AssertToAssertions extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "Assert To Assertions";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Change JUnit4's org.junit.Assert into JUnit5's org.junit.jupiter.api.Assertions";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AssertToAssertionsVisitor();
     }
