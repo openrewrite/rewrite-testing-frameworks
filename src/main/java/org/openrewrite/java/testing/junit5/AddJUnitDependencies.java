@@ -32,6 +32,16 @@ public class AddJUnitDependencies extends Recipe {
     }
 
     @Override
+    public String getDisplayName() {
+        return "Add JUnit Dependencies";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Adds Junit Dependencies";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AddJUnitDependenciesVisitor();
     }

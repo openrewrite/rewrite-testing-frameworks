@@ -42,6 +42,16 @@ import java.util.Optional;
 public class MockUtilsToStatic extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "MockUtils To Static";
+    }
+
+    @Override
+    public String getDescription() {
+        return "best-effort attempt to remove MockUtil instances";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new MockUtilsToStaticVisitor();
     }

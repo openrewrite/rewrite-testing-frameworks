@@ -37,6 +37,16 @@ import java.util.*;
 public class ExpectedExceptionToAssertThrows extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "ExpectedException To AssertThrows";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.assertThrows";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new ExpectedExceptionToAssertThrowsVisitor();
     }

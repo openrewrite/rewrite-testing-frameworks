@@ -27,6 +27,16 @@ public class FindJUnit5 extends Recipe {
     public static final String JUNIT_REFS_EXIST_KEY = "junitReferencesExist";
 
     @Override
+    public String getDisplayName() {
+        return "Find JUnit 5";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Find JUnit 5 References";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new FindJUnitVisitor();
     }

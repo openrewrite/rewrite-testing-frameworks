@@ -42,6 +42,16 @@ import java.util.List;
 public class JUnitAssertNotNullToAssertThat extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "JUnit AssertNotNull to AssertThat";
+    }
+
+    @Override
+    public String getDescription() {
+        return "convert JUnit-style assertNotNull() to assertJ's assertThat().isNotNull()";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AssertNotNullToAssertThatVisitor();
     }

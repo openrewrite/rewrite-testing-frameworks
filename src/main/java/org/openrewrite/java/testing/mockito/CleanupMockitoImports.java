@@ -26,6 +26,15 @@ import org.openrewrite.java.tree.J;
  * Orders imports and removes unused imports from classes which import symbols from the "org.mockito" package.
  */
 public class CleanupMockitoImports extends Recipe {
+    @Override
+    public String getDisplayName() {
+        return "Cleanup Mockito Imports";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Orders imports and removes unused imports org.mockito import symbols";
+    }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {

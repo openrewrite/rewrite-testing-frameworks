@@ -60,6 +60,16 @@ import java.util.List;
 public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "JUnitAssertArrayEquals To AssertThat";
+    }
+
+    @Override
+    public String getDescription() {
+        return "convert JUnit-style assertArrayEquals() to assertJ's assertThat().contains...";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AssertArrayEqualsToAssertThatVisitor();
     }

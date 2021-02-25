@@ -44,6 +44,16 @@ import java.util.stream.Collectors;
 public class JUnitFailToAssertJFail extends Recipe {
 
     @Override
+    public String getDisplayName() {
+        return "JUnitFailToAssert to AssertJFail";
+    }
+
+    @Override
+    public String getDescription() {
+        return "convert JUnit-style fail() to assertJ's fail()";
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JUnitFailToAssertJFailVisitor();
     }
