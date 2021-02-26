@@ -15,17 +15,31 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.OrderImports;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JRightPadded;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.marker.Markers;
+
+import java.util.Collections;
+import java.util.List;
+
+import static org.openrewrite.Tree.randomId;
 
 /**
  * Orders imports and removes unused imports from classes which import symbols from the "org.junit" package.
  */
 public class CleanupJUnitImports extends Recipe {
+    private static final J.Block EMPTY_BODY = new J.Block(randomId(), Space.EMPTY, Markers.EMPTY,
+            new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
+            Collections.emptyList(), Space.EMPTY);
+
     @Override
     public String getDisplayName() {
         return "Cleanup JUnit Imports";
@@ -42,15 +56,32 @@ public class CleanupJUnitImports extends Recipe {
     }
 
     public static class CleanupJUnitImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
-
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            boolean shouldCleanup = cu.getImports().stream()
-                    .anyMatch(impert -> impert.getPackageName().startsWith("org.junit"));
-            if (shouldCleanup) {
-                doAfterVisit(new OrderImports(true));
+            J.CompilationUnit c = cu;
+
+            List<J.Import> imports = ListUtils.map(c.getImports(), im -> {
+                String packageName = im.getPackageName();
+                if (packageName.startsWith("org.junit") && !packageName.contains("jupiter")) {
+                    return null;
+                }
+                if (packageName.startsWith("junit")) {
+                    return null;
+                }
+                return im;
+            });
+
+            //noinspection NewObjectEquality
+            if (imports != c.getImports()) {
+                c = c.withImports(imports);
+                Cursor cursor = new Cursor(null, c);
+                c = c.withPackageDeclaration(autoFormat(c.getPackageDeclaration(), ctx, cursor));
+                c = c.withClasses(ListUtils.mapFirst(c.getClasses(), cd ->
+                        autoFormat(cd.withBody(EMPTY_BODY), ctx, cursor).withBody(cd.getBody())));
+                doAfterVisit(new OrderImports(false));
             }
-            return cu;
+
+            return c;
         }
     }
 }
