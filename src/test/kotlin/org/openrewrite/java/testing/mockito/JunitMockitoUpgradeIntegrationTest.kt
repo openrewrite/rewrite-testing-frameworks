@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.*
 import org.openrewrite.java.JavaParser
@@ -25,6 +26,8 @@ import org.openrewrite.maven.MavenParser
 /**
  * Validates the recipes related to upgrading from Mockito 1 to Mockito 3
  */
+@Issue("https://github.com/openrewrite/rewrite/issues/343")
+@Disabled
 class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("mockito-all", "junit", "hamcrest")
