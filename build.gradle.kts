@@ -1,47 +1,64 @@
-import io.spring.gradle.bintray.SpringBintrayExtension
+// import com.github.jk1.license.LicenseReportExtension
 import nebula.plugin.contacts.Contact
 import nebula.plugin.contacts.ContactsExtension
 import nebula.plugin.info.InfoBrokerPlugin
 import nl.javadude.gradle.plugins.license.LicenseExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.jfrog.gradle.plugin.artifactory.dsl.ArtifactoryPluginConvention
-import org.jfrog.gradle.plugin.artifactory.dsl.PublisherConfig
 import java.util.*
 
 buildscript {
     repositories {
-        jcenter()
         gradlePluginPortal()
-    }
-
-    dependencies {
-        classpath("io.spring.gradle:spring-release-plugin:0.20.1")
-
-        constraints {
-            classpath("org.jfrog.buildinfo:build-info-extractor-gradle:4.13.0") {
-                because("Need recent version for Gradle 6+ compatibility")
-            }
-        }
     }
 }
 
 plugins {
     `java-library`
-    id("org.jetbrains.kotlin.jvm") version "1.4.20"
-    id("io.spring.release") version "0.20.1"
-}
+    `maven-publish`
+    signing
 
-apply(plugin = "license")
-apply(plugin = "nebula.maven-resolved-dependencies")
-apply(plugin = "io.spring.publishing")
+    id("nebula.maven-resolved-dependencies") version "17.3.2"
+    id("nebula.release") version "15.3.1"
+    id("io.github.gradle-nexus.publish-plugin") version "1.0.0"
+
+    id("com.github.hierynomus.license") version "0.15.0"
+    id("org.jetbrains.kotlin.jvm") version "1.4.21"
+    id("com.github.jk1.dependency-license-report") version "1.16"
+
+    id("nebula.maven-publish") version "17.3.2"
+    id("nebula.contacts") version "5.1.0"
+    id("nebula.info") version "9.3.0"
+
+    id("nebula.javadoc-jar") version "17.3.2"
+    id("nebula.source-jar") version "17.3.2"
+    id("nebula.maven-apache-license") version "17.3.2"
+}
 
 group = "org.openrewrite.recipe"
 description = "A rewrite module automating best practices and major version migrations for popular Java test frameworks like JUnit and Mockito "
 
 repositories {
     mavenLocal()
-    maven { url = uri("https://dl.bintray.com/openrewrite/maven") }
     mavenCentral()
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            username.set(project.findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME"))
+            password.set(project.findProperty("ossrhToken") as String? ?: System.getenv("OSSRH_TOKEN"))
+        }
+    }
+}
+
+signing {
+    setRequired({
+        !project.hasProperty("skipSigning")
+    })
+    val signingKey = project.findProperty("signingKey") as String? ?: System.getenv("SIGNING_KEY")
+    val signingPassword = project.findProperty("signingPassword") as String? ?: System.getenv("SIGNING_PASSWORD")
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign(publishing.publications["nebula"])
 }
 
 sourceSets {
@@ -163,25 +180,6 @@ configure<PublishingExtension> {
     }
 }
 
-configure<SpringBintrayExtension> {
-    org = "openrewrite"
-    repo = "maven"
-}
-
-project.withConvention(ArtifactoryPluginConvention::class) {
-    setContextUrl("https://oss.jfrog.org/artifactory")
-    publisherConfig.let {
-        val repository: PublisherConfig.Repository = it.javaClass
-            .getDeclaredField("repository")
-            .apply { isAccessible = true }
-            .get(it) as PublisherConfig.Repository
-
-        repository.setRepoKey("oss-snapshot-local")
-        repository.setUsername(project.findProperty("bintrayUser"))
-        repository.setPassword(project.findProperty("bintrayKey"))
-    }
-}
-
 tasks.withType<GenerateMavenPom> {
     doLast {
         // because pom.withXml adds blank lines
@@ -226,4 +224,11 @@ tasks.withType<GenerateMavenPom> {
                 .joinToString("\n", "\n", "\n" + " ".repeat(4)))
         }
     }
+}
+
+tasks.withType<Javadoc> {
+    // assertTrue(boolean condition) -> assertThat(condition).isTrue()
+    // warning - invalid usage of tag >
+    // see also: https://blog.joda.org/2014/02/turning-off-doclint-in-jdk-8-javadoc.html
+    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
 }
