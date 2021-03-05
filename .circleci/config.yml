@@ -21,6 +21,15 @@ commands:
         default: 'check test'
     steps:
       - checkout
+      - restore_cache:
+          key: gradle-dependencies-{{ checksum "build.gradle.kts" }}
+      - run:
+          name: downloadDependencies
+          command: ./gradlew downloadDependencies
+      - save_cache:
+          key: gradle-dependencies-{{ checksum "build.gradle.kts" }}
+          paths:
+            - ~/.gradle
       - run:
           name: run gradle command
           command: ./gradlew << parameters.command >>
