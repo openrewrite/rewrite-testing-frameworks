@@ -15,7 +15,7 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.JUnit5
+name: org.openrewrite.java.testing.JUnit5BestPractices
 displayName: JUnit Jupiter best practices
 description: Migrates JUnit 4.x tests to JUnit Jupiter and applies best practices to tests.
 tags:
@@ -27,7 +27,7 @@ recipeList:
   - org.openrewrite.java.testing.JUnit5Migration
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.JUnit5Migration
+name: org.openrewrite.java.testing.JUnit4to5Migration
 displayName: JUnit Jupiter migration from JUnit 4.x
 description: Migrates JUnit 4.x tests to JUnit Jupiter.
 tags:
