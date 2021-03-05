@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
+import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
 import org.openrewrite.loadRecipeFromClasspath
@@ -26,9 +27,10 @@ class JUnit5MigrationTest : JavaRecipeTest {
             .classpath("junit")
             .build()
 
-    // Remove the "recipeList.first()" once https://github.com/openrewrite/rewrite/issues/343 is fixed
-    override val recipe: Recipe
-        get() = loadRecipeFromClasspath("org.openrewrite.java.testing.JUnit5Migration").recipeList.first()
+    override val recipe = Environment.builder()
+        .scanClasspath(emptyList())
+        .build()
+        .activateRecipes("org.openrewrite.java.testing.JUnit4to5Migration")
 
     @Test
     fun changeBeforeToBeforeEach() = assertChanged(

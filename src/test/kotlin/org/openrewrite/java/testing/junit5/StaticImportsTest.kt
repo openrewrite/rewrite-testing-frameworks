@@ -27,8 +27,7 @@ class StaticImportsTest: JavaRecipeTest {
         recipe = Environment.builder()
             .scanClasspath(emptyList())
             .build()
-            // Remove the "recipeList.first()" once https://github.com/openrewrite/rewrite/issues/343 is fixed
-            .activateRecipes("org.openrewrite.java.testing.JUnit5").recipeList.first(),
+            .activateRecipes("org.openrewrite.java.testing.JUnit5BestPractices"),
         before = """
             import org.junit.jupiter.api.Assertions;
 

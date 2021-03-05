@@ -28,8 +28,7 @@ class StaticImportsTest: JavaRecipeTest {
         recipe = Environment.builder()
             .scanClasspath(emptyList())
             .build()
-            // Remove the "recipeList.first()" once https://github.com/openrewrite/rewrite/issues/343 is fixed
-            .activateRecipes("org.openrewrite.java.testing.assertj.StaticImports").recipeList.first(),
+            .activateRecipes("org.openrewrite.java.testing.assertj.StaticImports"),
         before = """
             import java.util.List;
             import org.assertj.core.api.AssertionsForClassTypes;
