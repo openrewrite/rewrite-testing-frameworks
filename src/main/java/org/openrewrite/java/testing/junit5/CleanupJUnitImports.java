@@ -21,7 +21,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.OrderImports;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.Space;
@@ -73,12 +72,11 @@ public class CleanupJUnitImports extends Recipe {
 
             //noinspection NewObjectEquality
             if (imports != c.getImports()) {
-                c = c.withImports(imports);
+                c = maybeAutoFormat(c, c.withImports(imports), ctx);
                 Cursor cursor = new Cursor(null, c);
                 c = c.withPackageDeclaration(autoFormat(c.getPackageDeclaration(), ctx, cursor));
                 c = c.withClasses(ListUtils.mapFirst(c.getClasses(), cd ->
                         autoFormat(cd.withBody(EMPTY_BODY), ctx, cursor).withBody(cd.getBody())));
-                doAfterVisit(new OrderImports(false));
             }
 
             return c;

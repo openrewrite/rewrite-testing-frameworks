@@ -136,9 +136,15 @@ class JUnit5MigrationTest : JavaRecipeTest {
                 import org.junit.jupiter.api.Disabled;
 
                 public class Example {
-                    @Disabled @Test public void something() {}
-                    
-                    @Disabled("not ready yet") @Test public void somethingElse() {}
+                    @Disabled
+                    @Test
+                    public void something() {
+                    }
+                
+                    @Disabled("not ready yet")
+                    @Test
+                    public void somethingElse() {
+                    }
                 }
             """
     )

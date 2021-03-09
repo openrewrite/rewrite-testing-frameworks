@@ -34,7 +34,8 @@ class CleanupJUnitImportsTest : JavaRecipeTest {
                 public class A {}
             """,
             after = """
-                public class A {}
+                public class A {
+                }
             """
     )
 
@@ -45,7 +46,8 @@ class CleanupJUnitImportsTest : JavaRecipeTest {
                 import java.util.Collections;
                 import java.util.HashSet;
                 
-                public class A {}
+                public class A {
+                }
             """
     )
 }
