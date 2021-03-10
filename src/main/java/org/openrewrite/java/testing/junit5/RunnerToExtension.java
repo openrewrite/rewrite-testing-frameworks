@@ -65,7 +65,6 @@ public class RunnerToExtension extends Recipe {
         private final JavaType.Class extensionType = JavaType.Class.build(extension);
 
         private final JavaTemplate extendWithTemplate = template("@ExtendWith(" + extensionType.getClassName() + ".class)")
-                .doBeforeParseTemplate(System.out::println)
                 .javaParser(JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
                         fromString("package org.junit.jupiter.api.extension;\n" +
                                 "public @interface ExtendWith {\n" +

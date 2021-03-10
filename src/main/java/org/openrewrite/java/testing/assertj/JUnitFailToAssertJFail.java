@@ -139,8 +139,6 @@ public class JUnitFailToAssertJFail extends Recipe {
                         template("fail(#{});")
                                 .staticImports(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME + ".fail")
                                 .javaParser(ASSERTJ_JAVA_PARSER)
-                                .doAfterVariableSubstitution(s -> System.out.println("after vars: " + s))
-                                .doBeforeParseTemplate(s -> System.out.println("before parse: " + s))
                                 .build(),
                         method.getCoordinates().replace(),
                         args
