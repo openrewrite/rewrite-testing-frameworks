@@ -27,7 +27,7 @@ class StaticImportsTest: JavaRecipeTest {
         recipe = Environment.builder()
             .scanClasspath(emptyList())
             .build()
-            .activateRecipes("org.openrewrite.java.testing.JUnit5BestPractices"),
+            .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices"),
         before = """
             import org.junit.jupiter.api.Assertions;
 

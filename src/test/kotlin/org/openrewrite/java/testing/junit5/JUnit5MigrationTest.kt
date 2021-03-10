@@ -30,7 +30,7 @@ class JUnit5MigrationTest : JavaRecipeTest {
     override val recipe = Environment.builder()
         .scanClasspath(emptyList())
         .build()
-        .activateRecipes("org.openrewrite.java.testing.JUnit4to5Migration")
+        .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices")
 
     @Test
     fun changeBeforeToBeforeEach() = assertChanged(

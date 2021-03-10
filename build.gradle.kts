@@ -79,6 +79,9 @@ dependencies {
     implementation("org.openrewrite:rewrite-maven:latest.integration")
     runtimeOnly("com.fasterxml.jackson.core:jackson-core:latest.release")
 
+    compileOnly("org.projectlombok:lombok:latest.release")
+    annotationProcessor("org.projectlombok:lombok:latest.release")
+
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testImplementation("org.openrewrite:rewrite-java-11:latest.integration")
@@ -176,4 +179,9 @@ tasks.withType<Javadoc> {
     // warning - invalid usage of tag >
     // see also: https://blog.joda.org/2014/02/turning-off-doclint-in-jdk-8-javadoc.html
     (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
+}
+
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
+    options.compilerArgs.add("-parameters")
 }

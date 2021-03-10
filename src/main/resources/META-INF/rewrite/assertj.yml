@@ -18,6 +18,9 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.Assertj
 displayName: AssertJ best practices
 description: Migrates JUnit asserts to AssertJ and applies best practices to assertions.
+tags:
+  - testing
+  - assertj
 recipeList:
   - org.openrewrite.java.testing.assertj.StaticImports
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
@@ -26,6 +29,9 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.StaticImports
 displayName: Statically import AssertJ's `assertThat`
 description: Consistently use a static import rather than inlining the `Assertions` class name in tests.
+tags:
+  - testing
+  - assertj
 recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: "org.assertj.core.api.AssertionsForClassTypes assertThat(..)"
@@ -40,6 +46,9 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.JUnitToAssertj
 displayName: Migration JUnit asserts to AssertJ
 description: AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability.
+tags:
+  - testing
+  - assertj
 recipeList:
   - org.openrewrite.java.testing.assertj.JUnitAssertArrayEqualsToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitAssertEqualsToAssertThat

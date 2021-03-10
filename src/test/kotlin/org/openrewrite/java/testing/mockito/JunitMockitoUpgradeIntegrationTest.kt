@@ -35,7 +35,7 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
 
     override val recipe: Recipe
         get() = loadRecipeFromClasspath("org.openrewrite.java.testing.JUnit5Migration",
-                "org.openrewrite.java.testing.Mockito1to3Migration")
+                "org.openrewrite.java.testing.mockito.Mockito1to3Migration")
 
     /**
      * Replace org.mockito.MockitoAnnotations.Mock with org.mockito.Mock

@@ -15,9 +15,12 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.Mockito1to3Migration
+name: org.openrewrite.java.testing.mockito.Mockito1to3Migration
 displayName: Mockito 3.x migration from 1.x
 description: Spring Boot 2.x requires upgrading from Mockito 1.x to 3.x.
+tags:
+  - testing
+  - mockito
 recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.mockito.MockitoAnnotations.Mock
@@ -36,3 +39,9 @@ recipeList:
       newFullyQualifiedTypeName: org.mockito.junit.MockitoJUnitRunner
   - org.openrewrite.java.testing.mockito.CleanupMockitoImports
   - org.openrewrite.java.testing.mockito.MockUtilsToStatic
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.mockito
+      artifactId: mockito-junit-jupiter
+      version: 3.x
+      onlyIfUsing:
+        - org.mockito.junit.jupiter.MockitoExtension

@@ -15,23 +15,23 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.JUnit5BestPractices
+name: org.openrewrite.java.testing.junit5.JUnit5BestPractices
 displayName: JUnit Jupiter best practices
 description: Migrates JUnit 4.x tests to JUnit Jupiter and applies best practices to tests.
 tags:
-  - testing frameworks
+  - testing
   - junit
 recipeList:
   - org.openrewrite.java.UseStaticImport:
       methodPattern: "org.junit.jupiter.api.Assertions *(..)"
-  - org.openrewrite.java.testing.JUnit5Migration
+  - org.openrewrite.java.testing.junit5.JUnit4to5Migration
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.JUnit4to5Migration
+name: org.openrewrite.java.testing.junit5.JUnit4to5Migration
 displayName: JUnit Jupiter migration from JUnit 4.x
 description: Migrates JUnit 4.x tests to JUnit Jupiter.
 tags:
-  - testing frameworks
+  - testing
   - junit
 recipeList:
   - org.openrewrite.java.ChangeType:
@@ -49,14 +49,43 @@ recipeList:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: junit
       artifactId: junit
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.junit.jupiter
+      artifactId: junit-jupiter-api
+      version: 5.x
+      scope: test
+      onlyIfUsing:
+        - org.junit.jupiter.api.Test
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.junit.jupiter
+      artifactId: junit-jupiter-engine
+      version: 5.x
+      scope: test
+      onlyIfUsing:
+        - org.junit.jupiter.api.Test
+  - org.openrewrite.java.tesitng.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.junit5.AssertToAssertions
   - org.openrewrite.java.testing.junit5.CategoryToTag
   - org.openrewrite.java.testing.junit5.CleanupJUnitImports
   - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
-  - org.openrewrite.java.testing.junit5.MockitoRunnerToMockitoExtension
   - org.openrewrite.java.testing.junit5.AddMockitoDependency
   - org.openrewrite.java.testing.junit5.TemporaryFolderToTempDir
   - org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
   - org.openrewrite.java.testing.junit5.UpdateTestAnnotation
-  - org.openrewrite.java.testing.junit5.FindJUnit5
-  - org.openrewrite.java.testing.junit5.AddJUnitDependencies
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.UseMockitoExtension
+displayName: Use Mockito JUnit Jupiter extension
+description: Migrate uses of `@RunWith(MockitoJUnitRunner.class)` (and similar annotations) to `@ExtendWith(MockitoExtension.class)`.
+tags:
+  - testing
+  - junit
+  - mockito
+recipeList:
+  - org.openrewrite.java.testing.junit5.RunnerToExtension:
+    runners:
+      - org.mockito.runners.MockitoJUnitRunner
+      - org.mockito.junit.MockitoJUnitRunner
+      - org.mockito.runners.MockitoJUnit44Runner
+      - org.mockito.junit.MockitoJUnit44Runner
+    extension: org.mockito.junit.jupiter.MockitoExtension

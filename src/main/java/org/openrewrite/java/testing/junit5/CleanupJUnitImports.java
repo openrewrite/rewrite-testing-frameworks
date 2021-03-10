@@ -74,7 +74,9 @@ public class CleanupJUnitImports extends Recipe {
             if (imports != c.getImports()) {
                 c = maybeAutoFormat(c, c.withImports(imports), ctx);
                 Cursor cursor = new Cursor(null, c);
-                c = c.withPackageDeclaration(autoFormat(c.getPackageDeclaration(), ctx, cursor));
+                if(c.getPackageDeclaration() != null) {
+                    c = c.withPackageDeclaration(autoFormat(c.getPackageDeclaration(), ctx, cursor));
+                }
                 c = c.withClasses(ListUtils.mapFirst(c.getClasses(), cd ->
                         autoFormat(cd.withBody(EMPTY_BODY), ctx, cursor).withBody(cd.getBody())));
             }
