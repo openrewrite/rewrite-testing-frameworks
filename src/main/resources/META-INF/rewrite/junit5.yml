@@ -83,9 +83,9 @@ tags:
   - mockito
 recipeList:
   - org.openrewrite.java.testing.junit5.RunnerToExtension:
-    runners:
-      - org.mockito.runners.MockitoJUnitRunner
-      - org.mockito.junit.MockitoJUnitRunner
-      - org.mockito.runners.MockitoJUnit44Runner
-      - org.mockito.junit.MockitoJUnit44Runner
-    extension: org.mockito.junit.jupiter.MockitoExtension
+      runners:
+        - org.mockito.runners.MockitoJUnitRunner
+        - org.mockito.junit.MockitoJUnitRunner
+        - org.mockito.runners.MockitoJUnit44Runner
+        - org.mockito.junit.MockitoJUnit44Runner
+      extension: org.mockito.junit.jupiter.MockitoExtension
