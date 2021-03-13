@@ -16,7 +16,9 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
+import org.openrewrite.Issue
 import org.openrewrite.Recipe
+import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
@@ -140,5 +142,33 @@ class AssertToAssertionsTest : JavaRecipeTest {
                     }
                 }
             """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/58")
+    @Test
+    fun staticallyImportAssertions() = assertChanged(
+        recipe = Environment.builder()
+            .scanClasspath(emptyList())
+            .build()
+            .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices"),
+        before = """
+                import org.junit.Assert;
+                
+                class Test {
+                    void test() {
+                        Assert.assertEquals("One is one", 1, 1);
+                    }
+                }
+            """,
+        after = """
+                import static org.junit.jupiter.api.Assertions.assertEquals;
+                
+                class Test {
+                    void test() {
+                        assertEquals(1, 1, "One is one");
+                    }
+                }
+            """,
+        cycles = 2
     )
 }

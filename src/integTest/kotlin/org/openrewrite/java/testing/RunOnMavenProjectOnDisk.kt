@@ -8,7 +8,6 @@ import org.openrewrite.Recipe
 import org.openrewrite.SourceFile
 import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.search.FindMethods
 import org.openrewrite.java.search.FindTypes
 import org.openrewrite.marker.SearchResult
 import org.openrewrite.maven.MavenParser
@@ -89,6 +88,7 @@ class RunOnMavenProjectOnDisk {
             .scanClasspath(emptyList())
             .build()
             .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices")
+
         runRecipe(recipe)
     }
 
