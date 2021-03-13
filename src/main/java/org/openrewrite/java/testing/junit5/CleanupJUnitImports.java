@@ -72,7 +72,9 @@ public class CleanupJUnitImports extends Recipe {
 
             //noinspection NewObjectEquality
             if (imports != c.getImports()) {
-                c = maybeAutoFormat(c, c.withImports(imports), ctx);
+                J.CompilationUnit temp = c.withClasses(Collections.emptyList());
+                c = maybeAutoFormat(temp, temp.withImports(imports), ctx).withClasses(c.getClasses());
+
                 Cursor cursor = new Cursor(null, c);
                 if(c.getPackageDeclaration() != null) {
                     c = c.withPackageDeclaration(autoFormat(c.getPackageDeclaration(), ctx, cursor));

@@ -30,7 +30,11 @@ plugins {
     id("nebula.javadoc-jar") version "17.3.2"
     id("nebula.source-jar") version "17.3.2"
     id("nebula.maven-apache-license") version "17.3.2"
+
+    id("nebula.integtest") version "7.0.9" apply false
 }
+
+apply(plugin = "nebula.integtest-standalone")
 
 configure<nebula.plugin.release.git.base.ReleasePluginExtension> {
     defaultVersionStrategy = nebula.plugin.release.NetflixOssStrategies.SNAPSHOT(project)
@@ -109,6 +113,11 @@ dependencies {
     "afterImplementation"("org.junit.jupiter:junit-jupiter-params:latest.release")
     "afterImplementation"("org.mockito:mockito-core:latest.release")
     "afterRuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:latest.release")
+
+    "integTestImplementation"("org.mapdb:mapdb:latest.release")
+    "integTestImplementation"("org.openrewrite:rewrite-yaml:latest.integration")
+    "integTestImplementation"("org.openrewrite:rewrite-properties:latest.integration")
+    "integTestImplementation"("org.openrewrite:rewrite-xml:latest.integration")
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {
