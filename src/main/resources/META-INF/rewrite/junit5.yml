@@ -37,6 +37,14 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junit.Ignore
       newFullyQualifiedTypeName: org.junit.jupiter.api.Disabled
+  - org.openrewrite.java.ReorderMethodArguments:
+      methodPattern: org.junit.Assume assume*(String, boolean)
+      oldParameterNames:
+        - message
+        - b
+      newParameterNames:
+        - b
+        - message
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junit.Assume
       newFullyQualifiedTypeName: org.junit.jupiter.api.Assumptions
