@@ -171,4 +171,27 @@ class AssertToAssertionsTest : JavaRecipeTest {
             """,
         cycles = 2
     )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/56")
+    @Test
+    fun swapAssertTrueArgumentsWhenMessageIsBinaryExpression() = assertChanged(
+        before = """
+                import org.junit.Assert;
+                
+                class Test {
+                    void test() {
+                        Assert.assertTrue("one" + "one", true);
+                    }
+                }
+            """,
+        after = """
+                import org.junit.jupiter.api.Assertions;
+                
+                class Test {
+                    void test() {
+                        Assertions.assertTrue(true, "one" + "one");
+                    }
+                }
+            """
+    )
 }

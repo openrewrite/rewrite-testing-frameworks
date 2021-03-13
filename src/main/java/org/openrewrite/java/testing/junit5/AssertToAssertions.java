@@ -23,6 +23,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -67,10 +68,10 @@ public class AssertToAssertions extends Recipe {
             List<Expression> args = m.getArguments();
             Expression firstArg = args.get(0);
             // Suppress arg-switching for Assertions.assertEquals(String, String)
-            if (args.size() == 2 && isString(firstArg.getType()) && isString(args.get(1).getType())) {
+            if (args.size() == 2 && TypeUtils.isString(firstArg.getType()) && TypeUtils.isString(args.get(1).getType())) {
                 return m;
             }
-            if (isString(firstArg.getType())) {
+            if (TypeUtils.isString(firstArg.getType())) {
                 // Move the first arg to be the last argument
 
                 List<Expression> newArgs = Stream.concat(
@@ -94,11 +95,6 @@ public class AssertToAssertions extends Recipe {
             }
             JavaType.FullyQualified receiverType = (JavaType.FullyQualified) receiver.getType();
             return receiverType.getFullyQualifiedName().equals("org.junit.Assert");
-        }
-
-        private boolean isString(JavaType type) {
-            return type instanceof JavaType.Primitive
-                    && ((JavaType.Primitive) type).name().equals("String");
         }
     }
 }
