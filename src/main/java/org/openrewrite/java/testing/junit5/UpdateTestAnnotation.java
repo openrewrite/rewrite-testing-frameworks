@@ -20,14 +20,14 @@ import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.java.*;
-import org.openrewrite.java.format.AutoFormatVisitor;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Statement;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.ChangeType;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.tree.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class UpdateTestAnnotation extends Recipe {
@@ -65,7 +65,7 @@ public class UpdateTestAnnotation extends Recipe {
 
                 J.Annotation a = annotations.get(i);
                 if (TypeUtils.isOfClassType(a.getType(), "org.junit.Test")) {
-                    //If we found the annotation, we change the visibility of the method to package. Because the
+                    //If we found the annotation, we change the visibility of the method to package.
                     m = m.withModifiers(ListUtils.map(m.getModifiers(), mod -> {
                         J.Modifier.Type modifierType = mod.getType();
                         return (modifierType == J.Modifier.Type.Protected || modifierType == J.Modifier.Type.Private ||
@@ -87,29 +87,30 @@ public class UpdateTestAnnotation extends Recipe {
                                 continue;
                             }
                             if (assignParamName.equals("expected")) {
+                                assert e instanceof J.FieldAccess;
+
                                 List<Statement> statements = m.getBody().getStatements();
                                 String strStatements = statements.stream().map(Statement::print)
                                         .collect(Collectors.joining(";")) + ";";
                                 m = m.withTemplate(
                                         template("{ assertThrows(#{}, () -> {#{}}); }")
+                                                .doBeforeParseTemplate(System.out::println)
                                                 .javaParser(
-                                                        JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
-                                                                Parser.Input.fromString(
-                                                                        "package org.junit.jupiter.api.function;\n" +
-                                                                        "public interface Executable {\n" +
-                                                                        "    void execute() throws Throwable;\n" +
-                                                                        "}"),
-                                                                Parser.Input.fromString(
-                                                                        "package org.junit.jupiter.api;\n" +
-                                                                        "import org.junit.jupiter.api.function.Executable;\n" +
-                                                                        "public class Assertions {\n" +
-                                                                        "    public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {\n" +
-                                                                        "        return null;\n" +
-                                                                        "    }\n" +
-                                                                        "}")
-                                                                )
-                                                        )
-                                                            .build()
+                                                        (JavaParser) JavaParser.fromJavaVersion()
+                                                                .logCompilationWarningsAndErrors(true)
+                                                                .dependsOn(assertThrowsDependsOn(e))
+                                                                .doOnParse(new Parser.Listener() {
+                                                                    @Override
+                                                                    public void onWarn(String message) {
+                                                                        System.out.println(message);
+                                                                    }
+
+                                                                    @Override
+                                                                    public void onWarn(String message, Throwable t) {
+                                                                        System.out.println(message);
+                                                                    }
+                                                                })
+                                                                .build()
                                                 )
                                                 .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                                 .build(),
@@ -159,5 +160,33 @@ public class UpdateTestAnnotation extends Recipe {
                 return method;
             }
         }
+    }
+
+    private static List<Parser.Input> assertThrowsDependsOn(Expression e) {
+        List<Parser.Input> dependsOn = new ArrayList<>(3);
+
+        dependsOn.add(Parser.Input.fromString("package org.junit.jupiter.api.function;\n" +
+                "public interface Executable {\n" +
+                "    void execute() throws Throwable;\n" +
+                "}"));
+
+        dependsOn.add(Parser.Input.fromString("package org.junit.jupiter.api;\n" +
+                "import org.junit.jupiter.api.function.Executable;\n" +
+                "public class Assertions {\n" +
+                "    public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {\n" +
+                "        return null;\n" +
+                "    }\n" +
+                "}"));
+
+        if (e instanceof J.FieldAccess) {
+            JavaType.Class type = TypeUtils.asClass(((J.FieldAccess) e).getTarget().getType());
+            if (type != null) {
+                String source = (type.getPackageName().isEmpty() ? "" : "package " + type.getPackageName() + ";\n") +
+                        "public class " + type.getClassName() + " extends Exception {}";
+                dependsOn.add(Parser.Input.fromString(source));
+            }
+        }
+
+        return dependsOn;
     }
 }
