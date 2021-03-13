@@ -118,6 +118,7 @@ dependencies {
     "integTestImplementation"("org.openrewrite:rewrite-yaml:latest.integration")
     "integTestImplementation"("org.openrewrite:rewrite-properties:latest.integration")
     "integTestImplementation"("org.openrewrite:rewrite-xml:latest.integration")
+    "integTestImplementation"("org.hamcrest:hamcrest:latest.release")
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {
