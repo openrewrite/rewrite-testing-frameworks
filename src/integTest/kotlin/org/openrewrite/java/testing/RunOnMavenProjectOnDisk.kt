@@ -1,11 +1,16 @@
 package org.openrewrite.java.testing
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import org.openrewrite.InMemoryExecutionContext
 import org.openrewrite.Parser
+import org.openrewrite.Recipe
+import org.openrewrite.SourceFile
 import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.search.FindTypes
+import org.openrewrite.marker.SearchResult
 import org.openrewrite.maven.MavenParser
 import org.openrewrite.maven.cache.LocalMavenArtifactCache
 import org.openrewrite.maven.cache.MapdbMavenPomCache
@@ -18,14 +23,10 @@ import java.nio.file.Paths
 import java.util.function.Consumer
 
 class RunOnMavenProjectOnDisk {
-    @Test
-    @EnabledIfEnvironmentVariable(named = "rewrite.project", matches = ".*")
-    fun junitBestPractices() {
-        val recipe = Environment.builder()
-            .scanClasspath(emptyList())
-            .build()
-            .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices")
+    private var sources: List<SourceFile> = emptyList()
 
+    @BeforeEach
+    fun before() {
         val projectDir = Paths.get(System.getenv("rewrite.project"))
 
         val errorConsumer = Consumer<Throwable> { t ->
@@ -73,13 +74,32 @@ class RunOnMavenProjectOnDisk {
             InMemoryExecutionContext(errorConsumer)
         )
 
-        val sources = parser.parse(projectDir)
-        val results = recipe.run(sources)
+        this.sources = parser.parse(projectDir)
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "rewrite.project", matches = ".*")
+    fun junitBestPractices() {
+        val recipe = Environment.builder()
+            .scanClasspath(emptyList())
+            .build()
+            .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices")
+        runRecipe(recipe)
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "rewrite.project", matches = ".*")
+    fun findJunit4Tests() {
+        runRecipe(FindTypes("org.junit.Test"))
+    }
+
+    private fun runRecipe(recipe: Recipe) {
+        val results = recipe.run(sources.filter { it.sourcePath.toString().contains("src/test/java") })
 
         for (result in results) {
             println(result.before!!.sourcePath)
             println("-----------------------------------------")
-            println(result.diff())
+            println(result.diff(SearchResult.PRINTER))
         }
     }
 }
