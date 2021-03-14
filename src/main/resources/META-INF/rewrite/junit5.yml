@@ -71,6 +71,7 @@ recipeList:
       scope: test
       onlyIfUsing:
         - org.junit.jupiter.api.Test
+  - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.tesitng.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.junit5.AssertToAssertions
   - org.openrewrite.java.testing.junit5.CategoryToTag
@@ -81,6 +82,21 @@ recipeList:
   - org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
   - org.openrewrite.java.testing.junit5.UpdateTestAnnotation
   - org.openrewrite.java.testing.hamcrest.UseHamcrestCore
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
+displayName: Use `MatcherAssert#assertThat(..)` from `hamcrest-core` instead of JUnit 4's `Assert#assertThat(..)`.
+description: This method was deprecated in JUnit 4 and removed in JUnit Jupiter.
+tags:
+  - testing
+  - junit
+  - hamcrest
+recipeList:
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.junit.Assert assertThat(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.MatcherAssert
+  - org.openrewrite.java.UseStaticImport:
+      methodPattern: org.hamcrest.MatcherAssert assertThat(..)
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseMockitoExtension
