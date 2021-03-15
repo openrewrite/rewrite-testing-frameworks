@@ -34,9 +34,9 @@ import java.util.List;
  * This visitor only supports the migration of the following JUnit 5 assertSame() methods:
  *
  * <PRE>
- * assertSame(Object expected, Object actual) -> assertThat(actual).isSameAs(expected)
- * assertSame(Object expected, Object actual, String message) -> assertThat(actual).as(message).isSameAs(expected)
- * assertSame(Object expected, Object actual, Supplier<String> messageSupplier) -> assertThat(actual).withFailMessage(messageSupplier).isSameAs(expected);
+ * assertSame(Object expected, Object actual) == assertThat(actual).isSameAs(expected)
+ * assertSame(Object expected, Object actual, String message) == assertThat(actual).as(message).isSameAs(expected)
+ * assertSame(Object expected, Object actual, Supplier<String> messageSupplier) == assertThat(actual).withFailMessage(messageSupplier).isSameAs(expected);
  * </PRE>
  */
 public class JUnitAssertSameToAssertThat extends Recipe {

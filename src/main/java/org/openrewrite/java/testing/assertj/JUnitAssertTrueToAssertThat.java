@@ -35,9 +35,9 @@ import java.util.List;
  * This visitor only supports the migration of the following JUnit 5 assertTrue() methods:
  *
  * <PRE>
- * assertTrue(boolean condition) -> assertThat(condition).isTrue()
- * assertTrue(boolean condition, String message) -> assertThat(condition).withFailMessage(message).isTrue();
- * assertTrue(boolean condition, Supplier<String> messageSupplier) -> assertThat(condition).withFailMessage(messageSupplier).isTrue();
+ * assertTrue(boolean condition) == assertThat(condition).isTrue()
+ * assertTrue(boolean condition, String message) == assertThat(condition).withFailMessage(message).isTrue();
+ * assertTrue(boolean condition, Supplier<String> messageSupplier) == assertThat(condition).withFailMessage(messageSupplier).isTrue();
  * </PRE>
  * <p>
  * Note: There are three additional method signatures in JUnit that use a BooleanSupplier for the condition. Attempts

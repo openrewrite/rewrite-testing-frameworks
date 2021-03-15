@@ -37,23 +37,23 @@ import java.util.List;
  * <PRE>
  * Two parameter variants:
  * <p>
- * assertNotEquals(expected,actual) -> assertThat(actual).isNotEqualTo(expected)
+ * assertNotEquals(expected,actual) == assertThat(actual).isNotEqualTo(expected)
  * <p>
  * Three parameter variant where the third argument is a String:
  * <p>
- * assertNotEquals(expected, actual, "message") -> assertThat(actual).as("message").isNotEqualTo(expected)
+ * assertNotEquals(expected, actual, "message") == assertThat(actual).as("message").isNotEqualTo(expected)
  * <p>
  * Three parameter variant where the third argument is a String Supplier (there is no overloaded "as" method that takes a supplier):
  * <p>
- * assertNotEquals(expected, actual, "message") -> assertThat(actual).withFailMessage("message").isNotEqualTo(expected)
+ * assertNotEquals(expected, actual, "message") == assertThat(actual).withFailMessage("message").isNotEqualTo(expected)
  * <p>
  * Three parameter variant where args are all floating point numbers.
  * <p>
- * assertEquals(expected, actual, delta) -> assertThat(actual).isCloseTo(expected, within(delta));
+ * assertEquals(expected, actual, delta) == assertThat(actual).isCloseTo(expected, within(delta));
  * <p>
  * Four parameter variant when comparing floating point numbers with a delta and a message:
  * <p>
- * assertEquals(expected, actual, delta, "message") -> assertThat(actual).withFailureMessage("message").isCloseTo(expected, within(delta));
+ * assertEquals(expected, actual, delta, "message") == assertThat(actual).withFailureMessage("message").isCloseTo(expected, within(delta));
  *
  * </PRE>
  */

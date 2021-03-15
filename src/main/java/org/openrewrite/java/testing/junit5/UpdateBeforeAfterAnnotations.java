@@ -34,10 +34,10 @@ import java.util.List;
  * to "package" to comply with JUnit 5 best practices.
  *
  * <PRE>
- * org.junit.Before --> org.junit.jupiter.api.BeforeEach
- * org.junit.After --> org.junit.jupiter.api.AfterEach
- * org.junit.BeforeClass --> org.junit.jupiter.api.BeforeAll
- * org.junit.AfterClass --> org.junit.jupiter.api.AfterAll
+ * org.junit.Before == org.junit.jupiter.api.BeforeEach
+ * org.junit.After == org.junit.jupiter.api.AfterEach
+ * org.junit.BeforeClass == org.junit.jupiter.api.BeforeAll
+ * org.junit.AfterClass == org.junit.jupiter.api.AfterAll
  * </PRE>
  */
 public class UpdateBeforeAfterAnnotations extends Recipe {

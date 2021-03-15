@@ -34,9 +34,9 @@ import java.util.List;
  * This visitor only supports the migration of the following JUnit 5 assertNull() methods:
  *
  * <PRE>
- * assertNull(Object actual) -> assertThat(condition).isNull()
- * assertNull(Object actual, String message) -> assertThat(condition).as(message).isNull();
- * assertNull(Object actual, Supplier<String> messageSupplier) -> assertThat(condition).withFailMessage(messageSupplier).isNull();
+ * assertNull(Object actual) == assertThat(condition).isNull()
+ * assertNull(Object actual, String message) == assertThat(condition).as(message).isNull();
+ * assertNull(Object actual, Supplier<String> messageSupplier) == assertThat(condition).withFailMessage(messageSupplier).isNull();
  * </PRE>
  */
 public class JUnitAssertNullToAssertThat extends Recipe {

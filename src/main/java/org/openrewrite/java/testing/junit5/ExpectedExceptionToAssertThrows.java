@@ -19,20 +19,19 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.AddImport;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.FindFields;
 import org.openrewrite.java.tree.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.assertThrows
- * <p>
- * Currently only supports migration of this method from ExpectedException: void expect(Class<? extends Throwable> type)
- * Migrating the other methods of ExpectedException is not yet implemented.
  */
 public class ExpectedExceptionToAssertThrows extends Recipe {
 

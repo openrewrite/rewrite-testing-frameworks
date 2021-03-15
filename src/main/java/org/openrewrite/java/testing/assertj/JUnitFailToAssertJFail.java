@@ -32,10 +32,10 @@ import java.util.stream.Collectors;
  * This visitor only supports the migration of the following JUnit 5 fail() methods:
  *
  * <PRE>
- * fail()                                  ->   fail("")
- * fail(String message)                    ->   fail(String message)
- * fail(String message, Throwable cause)   ->   fail(String message, Throwable cause)
- * fail(Throwable cause)                   ->   fail("", Throwable cause)
+ * fail()                                  ==   fail("")
+ * fail(String message)                    ==   fail(String message)
+ * fail(String message, Throwable cause)   ==   fail(String message, Throwable cause)
+ * fail(Throwable cause)                   ==   fail("", Throwable cause)
  * </PRE>
  * <p>
  * Note: There is an additional method signature in JUnit that accepts a StringSupplier as an argument. Attempts

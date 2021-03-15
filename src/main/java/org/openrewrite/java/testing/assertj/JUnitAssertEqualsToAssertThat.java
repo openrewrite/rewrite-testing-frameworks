@@ -37,23 +37,23 @@ import java.util.List;
  * <PRE>
  * Two parameter variants:
  * <p>
- * assertEquals(expected,actual) -> assertThat(actual).isEqualTo(expected)
+ * assertEquals(expected,actual) == assertThat(actual).isEqualTo(expected)
  * <p>
  * Three parameter variant where the third argument is a String:
  * <p>
- * assertEquals(expected, actual, "message") -> assertThat(actual).as("message").isEqualTo(expected)
+ * assertEquals(expected, actual, "message") == assertThat(actual).as("message").isEqualTo(expected)
  * <p>
  * Three parameter variant where the third argument is a String supplier:
  * <p>
- * assertEquals(expected, actual, () -> "message") -> assertThat(actual).withFailureMessage("message").isEqualTo(expected)
+ * assertEquals(expected, actual, () == "message") == assertThat(actual).withFailureMessage("message").isEqualTo(expected)
  * <p>
  * Three parameter variant where args are all floating point numbers.
  * <p>
- * assertEquals(expected, actual, delta) -> assertThat(actual).isCloseTo(expected, within(delta));
+ * assertEquals(expected, actual, delta) == assertThat(actual).isCloseTo(expected, within(delta));
  * <p>
  * Four parameter variant when comparing floating point numbers with a delta and a message:
  * <p>
- * assertEquals(expected, actual, delta, "message") -> assertThat(actual).withFailureMessage("message").isCloseTo(expected, within(delta));
+ * assertEquals(expected, actual, delta, "message") == assertThat(actual).withFailureMessage("message").isCloseTo(expected, within(delta));
  *
  * </PRE>
  */

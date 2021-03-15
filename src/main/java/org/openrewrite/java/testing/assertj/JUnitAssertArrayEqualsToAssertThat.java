@@ -37,23 +37,23 @@ import java.util.List;
  * <PRE>
  * Two parameter variants:
  * <p>
- * assertArrayEquals(expected,actual) -> assertThat(actual).containsExactly(expected)
+ * assertArrayEquals(expected,actual) == assertThat(actual).containsExactly(expected)
  * <p>
  * Three parameter variant where the third argument is a String:
  * <p>
- * assertArrayEquals(expected, actual, "message") -> assertThat(actual).as("message").containsExactly(expected)
+ * assertArrayEquals(expected, actual, "message") == assertThat(actual).as("message").containsExactly(expected)
  * <p>
  * Three parameter variant where the third argument is a String supplier:
  * <p>
- * assertArrayEquals(expected, actual, () -> "message") -> assertThat(actual).withFailureMessage("message").containsExactly(expected)
+ * assertArrayEquals(expected, actual, () == "message") == assertThat(actual).withFailureMessage("message").containsExactly(expected)
  * <p>
  * Three parameter variant where args are all floating point numbers.
  * <p>
- * assertArrayEquals(expected, actual, delta) -> assertThat(actual).containsExactly(expected, within(delta));
+ * assertArrayEquals(expected, actual, delta) == assertThat(actual).containsExactly(expected, within(delta));
  * <p>
  * Four parameter variant when comparing floating point numbers with a delta and a message:
  * <p>
- * assertArrayEquals(expected, actual, delta, "message") -> assertThat(actual).withFailureMessage("message").containsExactly(expected, within(delta));
+ * assertArrayEquals(expected, actual, delta, "message") == assertThat(actual).withFailureMessage("message").containsExactly(expected, within(delta));
  *
  * </PRE>
  */

@@ -34,9 +34,9 @@ import java.util.List;
  * This visitor only supports the migration of the following JUnit 5 assertFalse() methods:
  *
  * <PRE>
- * assertFalse(boolean condition) -> assertThat(condition).isFalse()
- * assertFalse(boolean condition, String message) -> assertThat(condition).as(message).isFalse();
- * assertFalse(boolean condition, Supplier<String> messageSupplier) -> assertThat(condition).withFailMessage(messageSupplier).isFalse();
+ * assertFalse(boolean condition) == assertThat(condition).isFalse()
+ * assertFalse(boolean condition, String message) == assertThat(condition).as(message).isFalse();
+ * assertFalse(boolean condition, Supplier<String> messageSupplier) == assertThat(condition).withFailMessage(messageSupplier).isFalse();
  * </PRE>
  * <p>
  * Note: There are three additional method signatures in JUnit that use a BooleanSupplier for the condition. Attempts
