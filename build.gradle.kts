@@ -45,6 +45,9 @@ description = "A rewrite module automating best practices and major version migr
 
 repositories {
     mavenLocal()
+    maven {
+        url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+    }
     mavenCentral()
 }
 
