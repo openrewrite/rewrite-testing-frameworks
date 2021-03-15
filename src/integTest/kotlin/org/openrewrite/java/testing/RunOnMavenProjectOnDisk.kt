@@ -1,9 +1,23 @@
+/*
+ * Copyright 2020 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.openrewrite.java.testing
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import org.openrewrite.InMemoryExecutionContext
-import org.openrewrite.Parser
 import org.openrewrite.Recipe
 import org.openrewrite.SourceFile
 import org.openrewrite.config.Environment
@@ -39,17 +53,6 @@ class RunOnMavenProjectOnDisk {
             }
         }
 
-        val onParse = object : Parser.Listener {
-            var n = 1
-            override fun onParseSucceeded(sourcePath: Path) {
-                println("${n++} SUCCESS - $sourcePath")
-            }
-
-            override fun onParseFailed(sourcePath: Path) {
-                println("${n++} FAILED - $sourcePath")
-            }
-        }
-
         val downloader = MavenArtifactDownloader(
             ReadOnlyLocalMavenArtifactCache.MAVEN_LOCAL.orElse(
                 LocalMavenArtifactCache(Paths.get(System.getProperty("user.home"), ".rewrite-cache", "artifacts"))
@@ -64,7 +67,6 @@ class RunOnMavenProjectOnDisk {
         )
 
         val mavenParserBuilder = MavenParser.builder()
-            .doOnParse(onParse)
             .cache(pomCache)
             .resolveOptional(false)
             .mavenConfig(projectDir.resolve(".mvn/maven.config"))

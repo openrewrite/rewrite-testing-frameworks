@@ -21,33 +21,32 @@ import org.openrewrite.java.JavaParser
 
 class CleanupJUnitImportsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .build()
+        .classpath("junit")
+        .build()
 
     override val recipe = CleanupJUnitImports()
 
     @Test
     fun removesUnusedImport() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                public class A {}
-            """,
-            after = """
-                public class A {
-                }
-            """
+        before = """
+            import org.junit.Test;
+            
+            public class A {}
+        """,
+        after = """
+            public class A {}
+        """
     )
 
     @Test
     fun leavesOtherImportsAlone() = assertUnchanged(
-            before = """
-                import java.util.Arrays;
-                import java.util.Collections;
-                import java.util.HashSet;
-                
-                public class A {
-                }
-            """
+        before = """
+            import java.util.Arrays;
+            import java.util.Collections;
+            import java.util.HashSet;
+            
+            public class A {
+            }
+        """
     )
 }

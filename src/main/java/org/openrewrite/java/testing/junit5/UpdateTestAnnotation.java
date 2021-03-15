@@ -95,23 +95,9 @@ public class UpdateTestAnnotation extends Recipe {
                                 m = m.withTemplate(
                                         template("{ assertThrows(#{}, () -> {#{}}); }")
                                                 .doBeforeParseTemplate(System.out::println)
-                                                .javaParser(
-                                                        (JavaParser) JavaParser.fromJavaVersion()
-                                                                .logCompilationWarningsAndErrors(true)
-                                                                .dependsOn(assertThrowsDependsOn(e))
-                                                                .doOnParse(new Parser.Listener() {
-                                                                    @Override
-                                                                    public void onWarn(String message) {
-                                                                        System.out.println(message);
-                                                                    }
-
-                                                                    @Override
-                                                                    public void onWarn(String message, Throwable t) {
-                                                                        System.out.println(message);
-                                                                    }
-                                                                })
-                                                                .build()
-                                                )
+                                                .javaParser(JavaParser.fromJavaVersion()
+                                                        .dependsOn(assertThrowsDependsOn(e))
+                                                        .build())
                                                 .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                                 .build(),
                                         m.getCoordinates().replaceBody(),

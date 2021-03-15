@@ -18,16 +18,15 @@ package org.openrewrite.java.testing.junit5
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
 import org.openrewrite.config.Environment
-import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
-import org.openrewrite.loadRecipeFromClasspath
+import org.openrewrite.java.JavaRecipeTest
 
 class JUnit5MigrationTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
-    override val recipe = Environment.builder()
+    override val recipe: Recipe = Environment.builder()
         .scanClasspath(emptyList())
         .build()
         .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices")
@@ -83,7 +82,7 @@ class JUnit5MigrationTest : JavaRecipeTest {
 
                 public class Example {
                     @BeforeClass
-                    void initialize() {
+                    public static void initialize() {
                     }
                 }
             """,
@@ -93,7 +92,7 @@ class JUnit5MigrationTest : JavaRecipeTest {
                 public class Example {
 
                     @BeforeAll
-                    void initialize() {
+                    static void initialize() {
                     }
                 }
             """
@@ -105,7 +104,7 @@ class JUnit5MigrationTest : JavaRecipeTest {
                 import org.junit.AfterClass;
 
                 public class Example {
-                    @AfterClass public void initialize() {
+                    @AfterClass public static void initialize() {
                     }
                 }
             """,
@@ -115,7 +114,7 @@ class JUnit5MigrationTest : JavaRecipeTest {
                 public class Example {
 
                     @AfterAll
-                    void initialize() {
+                    static void initialize() {
                     }
                 }
             """
@@ -128,7 +127,7 @@ class JUnit5MigrationTest : JavaRecipeTest {
 
                 public class Example {
                     @Ignore @Test public void something() {}
-                    
+                
                     @Ignore("not ready yet") @Test public void somethingElse() {}
                 }
             """,
@@ -136,15 +135,9 @@ class JUnit5MigrationTest : JavaRecipeTest {
                 import org.junit.jupiter.api.Disabled;
 
                 public class Example {
-                    @Disabled
-                    @Test
-                    public void something() {
-                    }
+                    @Disabled @Test public void something() {}
                 
-                    @Disabled("not ready yet")
-                    @Test
-                    public void somethingElse() {
-                    }
+                    @Disabled("not ready yet") @Test public void somethingElse() {}
                 }
             """
     )
