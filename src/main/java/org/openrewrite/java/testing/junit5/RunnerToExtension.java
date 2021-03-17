@@ -42,7 +42,7 @@ public class RunnerToExtension extends Recipe {
     List<String> runners;
 
     @Option(displayName = "Extension",
-            description = "The f8ully qualified class names of the JUnit Jupiter extension.",
+            description = "The fully qualified class names of the JUnit Jupiter extension.",
             example = "org.springframework.test.context.junit.jupiter.SpringExtension")
     String extension;
 
