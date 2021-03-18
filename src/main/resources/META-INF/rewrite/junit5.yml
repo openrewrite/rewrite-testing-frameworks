@@ -73,6 +73,7 @@ recipeList:
         - org.junit.jupiter.api.Test
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.tesitng.junit5.UseMockitoExtension
+  - org.openrewrite.java.testing.junit5.UseTestMethodOrder
   - org.openrewrite.java.testing.junit5.AssertToAssertions
   - org.openrewrite.java.testing.junit5.CategoryToTag
   - org.openrewrite.java.testing.junit5.CleanupJUnitImports
