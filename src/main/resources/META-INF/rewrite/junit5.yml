@@ -17,7 +17,7 @@
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.JUnit5BestPractices
 displayName: JUnit Jupiter best practices
-description: Migrates JUnit 4.x tests to JUnit Jupiter and applies best practices to tests.
+description: Applies best practices to tests.
 tags:
   - testing
   - junit
