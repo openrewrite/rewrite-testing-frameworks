@@ -18,20 +18,12 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-import org.junit.rules.Timeout;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.runners.MockitoJUnit44Runner;
-import org.mockito.runners.MockitoJUnitRunner;
-import org.openrewrite.java.testing.statik.UnitTest;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,11 +31,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.*;
 
-@Category(UnitTest.class)
 public class ExampleJunitTestClass {
-
-//    @Rule
-//    public Timeout globalTimeout = new Timeout(500);
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -115,10 +103,7 @@ public class ExampleJunitTestClass {
 
     @Test
     public void aTest() {
-        List<Integer> foo = mock(List.class);
-
-        when(foo.get(any())).then(invocation -> invocation.getArgumentAt(0, Integer.class));
-        int one = foo.get(1);
-        Assert.assertEquals(1, one);
+        String foo = mock(String.class);
+        when(foo.concat(any())).then(invocation -> invocation.getArgumentAt(0, String.class));
     }
 }

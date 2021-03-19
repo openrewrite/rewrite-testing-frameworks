@@ -68,7 +68,6 @@ class RunOnMavenProjectOnDisk {
 
         val mavenParserBuilder = MavenParser.builder()
             .cache(pomCache)
-            .resolveOptional(false)
             .mavenConfig(projectDir.resolve(".mvn/maven.config"))
 
         val parser = MavenProjectParser(

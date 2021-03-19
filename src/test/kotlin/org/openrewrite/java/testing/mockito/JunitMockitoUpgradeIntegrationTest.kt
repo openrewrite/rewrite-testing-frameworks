@@ -19,6 +19,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.*
+import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.maven.MavenParser
@@ -26,15 +27,16 @@ import org.openrewrite.maven.MavenParser
 /**
  * Validates the recipes related to upgrading from Mockito 1 to Mockito 3
  */
-@Issue("https://github.com/openrewrite/rewrite/issues/343")
-@Disabled
 class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-            .classpath("mockito-all", "junit", "hamcrest")
-            .build()
+        .logCompilationWarningsAndErrors(true)
+        .classpath("mockito-all", "junit", "hamcrest")
+        .build()
 
-    override val recipe: Recipe
-        get() = loadRecipeFromClasspath("org.openrewrite.java.testing.JUnit5Migration",
+    override val recipe: Recipe = Environment.builder()
+        .scanClasspath(emptyList())
+        .build()
+        .activateRecipes("org.openrewrite.java.testing.junit5.JUnit4to5Migration",
                 "org.openrewrite.java.testing.mockito.Mockito1to3Migration")
 
     /**
@@ -342,10 +344,7 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
     val exampleJunitAfter = """
         package org.openrewrite.java.testing.junit5;
 
-        import org.junit.jupiter.api.AfterAll;
-        import org.junit.jupiter.api.Assertions;
-        import org.junit.jupiter.api.BeforeEach;
-        import org.junit.jupiter.api.Test;
+        import org.junit.jupiter.api.*;
         import org.junit.jupiter.api.io.TempDir;
         import org.mockito.Mock;
         import org.mockito.MockitoAnnotations;
