@@ -194,4 +194,27 @@ class AssertToAssertionsTest : JavaRecipeTest {
                 }
             """
     )
+
+    @Issue("#76")
+    @Test
+    fun isJUnitAssertMethodChecksDeclaringType() = assertChanged(
+        before = """
+            import static org.junit.Assert.assertNotNull;
+            class A {
+                Long l = 1L;
+                void testNestedPartitionStepStepReference() throws Throwable {
+                    assertNotNull("message", l);
+                }
+            }
+        """,
+        after = """
+            import static org.junit.jupiter.api.Assertions.assertNotNull;
+            class A {
+                Long l = 1L;
+                void testNestedPartitionStepStepReference() throws Throwable {
+                    assertNotNull(l, "message");
+                }
+            }
+        """
+    )
 }

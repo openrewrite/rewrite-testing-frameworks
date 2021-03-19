@@ -53,6 +53,8 @@ public class AssertToAssertions extends Recipe {
 
     public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
+        private static JavaType ASSERTION_TYPE = JavaType.buildType("org.junit.Assert");
+
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             doAfterVisit(new ChangeType("org.junit.Assert", "org.junit.jupiter.api.Assertions"));
@@ -86,6 +88,9 @@ public class AssertToAssertions extends Recipe {
         }
 
         private boolean isJunitAssertMethod(J.MethodInvocation method) {
+            if (method.getType() != null && TypeUtils.isAssignableTo(ASSERTION_TYPE, method.getType().getDeclaringType())) {
+                return true;
+            }
             if (!(method.getSelect() instanceof J.Identifier)) {
                 return false;
             }
