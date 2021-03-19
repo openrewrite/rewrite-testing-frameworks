@@ -35,6 +35,7 @@ plugins {
 }
 
 apply(plugin = "nebula.integtest-standalone")
+apply(plugin = "nebula.publish-verification")
 
 configure<nebula.plugin.release.git.base.ReleasePluginExtension> {
     defaultVersionStrategy = nebula.plugin.release.NetflixOssStrategies.SNAPSHOT(project)
@@ -82,9 +83,10 @@ configurations.all {
 val mockito1Version = "1.10.19"
 val assertJVersion = "3.18.1"
 
+val rewriteVersion = "latest.release"
 dependencies {
-    implementation("org.openrewrite:rewrite-java:latest.integration")
-    implementation("org.openrewrite:rewrite-maven:latest.integration")
+    implementation("org.openrewrite:rewrite-java:$rewriteVersion")
+    implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
     runtimeOnly("com.fasterxml.jackson.core:jackson-core:latest.release")
 
     compileOnly("org.projectlombok:lombok:latest.release")
@@ -92,8 +94,8 @@ dependencies {
 
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    testImplementation("org.openrewrite:rewrite-java-11:latest.integration")
-    testImplementation("org.openrewrite:rewrite-test:latest.integration")
+    testImplementation("org.openrewrite:rewrite-java-11:$rewriteVersion")
+    testImplementation("org.openrewrite:rewrite-test:$rewriteVersion")
     testImplementation("org.assertj:assertj-core:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
