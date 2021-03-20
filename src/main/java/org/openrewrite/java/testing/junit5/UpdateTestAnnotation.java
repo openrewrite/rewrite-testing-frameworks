@@ -94,7 +94,6 @@ public class UpdateTestAnnotation extends Recipe {
                                         .collect(Collectors.joining(";")) + ";";
                                 m = m.withTemplate(
                                         template("{ assertThrows(#{}, () -> {#{}}); }")
-                                                .doBeforeParseTemplate(System.out::println)
                                                 .javaParser(JavaParser.fromJavaVersion()
                                                         .dependsOn(assertThrowsDependsOn(e))
                                                         .build())
