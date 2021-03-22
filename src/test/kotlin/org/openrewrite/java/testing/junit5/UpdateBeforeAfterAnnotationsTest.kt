@@ -132,7 +132,7 @@ class UpdateBeforeAfterAnnotationsTest : JavaRecipeTest {
                 
                 class Test {
                 
-                    @Before
+                    @Before // comments
                     public void before() {
                     }
                 }
@@ -142,6 +142,7 @@ class UpdateBeforeAfterAnnotationsTest : JavaRecipeTest {
                 
                 class Test {
                 
+                    // comments
                     @BeforeEach
                     void before() {
                     }

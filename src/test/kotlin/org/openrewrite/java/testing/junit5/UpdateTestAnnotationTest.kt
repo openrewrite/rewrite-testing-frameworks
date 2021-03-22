@@ -42,7 +42,7 @@ class UpdateTestAnnotationTest: JavaRecipeTest {
                         throw new IllegalArgumentException("boom");
                     }
                 }
-            """.trimIndent(),
+            """,
             after = """
                 import org.junit.jupiter.api.Test;
                 
@@ -57,7 +57,7 @@ class UpdateTestAnnotationTest: JavaRecipeTest {
                         });
                     }
                 }
-            """.trimIndent()
+            """
     )
 
     @Test
@@ -146,6 +146,51 @@ class UpdateTestAnnotationTest: JavaRecipeTest {
     )
 
     @Test
+    fun testMethodMofierHasComments() = assertChanged(
+        before = """
+                import org.junit.Test;import org.openrewrite.Issue;
+                
+                public class A {
+                
+                    // some comments
+                    @Issue("some issue")
+                    @Test
+                    public void test() { }
+                    
+                    // some comments
+                    @Test
+                    public void test1() { }
+                    
+                    @Test
+                    // some comments
+                    public void test2() { }
+                }
+            """,
+        after = """
+                import org.junit.jupiter.api.Test;import org.openrewrite.Issue;
+                
+                public class A {
+                
+                    // some comments
+                    @Issue("some issue")
+                    @Test
+                    void test() {
+                    }
+                
+                    // some comments
+                    @Test
+                    void test1() {
+                    }
+                
+                    // some comments
+                    @Test
+                    void test2() {
+                    }
+                }
+            """
+    )
+
+    @Test
     fun testAnnotationWithTimeout() = assertChanged(
             before = """
                 import org.junit.Test;
@@ -216,7 +261,7 @@ class UpdateTestAnnotationTest: JavaRecipeTest {
                     protected void test() {
                     }
                 }
-            """.trimIndent(),
+            """,
         after = """
                 import org.junit.jupiter.api.Test;
 
@@ -226,7 +271,7 @@ class UpdateTestAnnotationTest: JavaRecipeTest {
                     void test() {
                     }
                 }
-            """.trimIndent()
+            """
     )
 
     @Test
@@ -242,7 +287,7 @@ class UpdateTestAnnotationTest: JavaRecipeTest {
                     private void test() {
                     }
                 }
-            """.trimIndent(),
+            """,
         after = """
                 import org.junit.jupiter.api.Test;
                 
@@ -252,7 +297,7 @@ class UpdateTestAnnotationTest: JavaRecipeTest {
                     void test() {
                     }
                 }
-            """.trimIndent()
+            """
     )
 
 }

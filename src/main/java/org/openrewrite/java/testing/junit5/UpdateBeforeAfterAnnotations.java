@@ -21,7 +21,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.format.AutoFormatVisitor;
+import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
@@ -82,15 +82,25 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
                         TypeUtils.isOfClassType(a.getType(), "org.junit.BeforeClass") ||
                         TypeUtils.isOfClassType(a.getType(), "org.junit.AfterClass")) {
 
-                    //If we found the annotation, we change the visibility of the method to package. Also need to format
-                    //the method declaration because the previous visibility likely had formatting that is removed.
-                    m = m.withModifiers(
-                            ListUtils.map(m.getModifiers(),
-                                    modifier -> (modifier.getType() == J.Modifier.Type.Private ||
-                                            modifier.getType() == J.Modifier.Type.Public ||
-                                            modifier.getType() == J.Modifier.Type.Protected) ? null : modifier)
-                    );
-                    m = (J.MethodDeclaration) new AutoFormatVisitor<>().visit(m, ctx, getCursor().dropParentUntil(it -> it instanceof J));
+                    //If we found the annotation, we change the visibility of the method to package and copy any comments to the method.
+                    // Also need to format the method declaration because the previous visibility likely had formatting that is removed.
+                    final List<Comment> modifierComments = new ArrayList<>();
+                    List<J.Modifier> modifiers = ListUtils.map(m.getModifiers(), modifier -> {
+                                if (modifier.getType() == J.Modifier.Type.Private ||
+                                        modifier.getType() == J.Modifier.Type.Public ||
+                                        modifier.getType() == J.Modifier.Type.Protected) {
+                                    modifierComments.addAll(modifier.getComments());
+                                    return null;
+                                } else {
+                                    return modifier;
+                                }
+                            });
+                    if (!modifierComments.isEmpty()) {
+                        m = m.withComments(ListUtils.concatAll(m.getComments(), modifierComments));
+                    }
+                    if (m.getModifiers() != modifiers) {
+                        m = maybeAutoFormat(m, m.withModifiers(modifiers), ctx, getCursor().dropParentUntil(it -> it instanceof J));
+                    }
                     break;
                 }
             }

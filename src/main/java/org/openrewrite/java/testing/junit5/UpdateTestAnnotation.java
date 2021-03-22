@@ -65,13 +65,23 @@ public class UpdateTestAnnotation extends Recipe {
 
                 J.Annotation a = annotations.get(i);
                 if (TypeUtils.isOfClassType(a.getType(), "org.junit.Test")) {
-                    //If we found the annotation, we change the visibility of the method to package.
-                    m = m.withModifiers(ListUtils.map(m.getModifiers(), mod -> {
+                    //If we found the annotation, we change the visibility of the method to package, any associated modifier comments are copied to the method
+                    final List<Comment> modifierComments = new ArrayList<>();
+                    List<J.Modifier> modifiers = ListUtils.map(m.getModifiers(), mod -> {
                         J.Modifier.Type modifierType = mod.getType();
-                        return (modifierType == J.Modifier.Type.Protected || modifierType == J.Modifier.Type.Private ||
-                                modifierType == J.Modifier.Type.Public) ? null : mod;
-                    }));
-                    m = maybeAutoFormat(method, m, ctx, getCursor().dropParentUntil(it -> it instanceof J));
+                        if (modifierType == J.Modifier.Type.Protected || modifierType == J.Modifier.Type.Private ||
+                                modifierType == J.Modifier.Type.Public) {
+                            modifierComments.addAll(mod.getComments());
+                            return null;
+                        }
+                        return mod;
+                    });
+                    if (!modifierComments.isEmpty()) {
+                        m = m.withComments(ListUtils.concatAll(m.getComments(), modifierComments));
+                    }
+                    if (m.getModifiers() != modifiers) {
+                        m = maybeAutoFormat(m, m.withModifiers(modifiers), ctx, getCursor().dropParentUntil(it -> it instanceof J));
+                    }
 
                     annotations.set(i, a.withArguments(null));
                     if (a.getArguments() == null) {
