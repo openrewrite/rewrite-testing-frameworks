@@ -41,6 +41,12 @@ import java.util.List;
  */
 public class JUnitAssertNullToAssertThat extends Recipe {
 
+    private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
+            JavaParser.fromJavaVersion().dependsOn(
+                    Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+            ).build()
+    );
+
     @Override
     public String getDisplayName() {
         return "JUnit AssertNull to AssertThat";
@@ -68,10 +74,6 @@ public class JUnitAssertNullToAssertThat extends Recipe {
                 JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertNull(..)"
         );
 
-        private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
-                Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-        ).build();
-
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (!JUNIT_ASSERT_NULL_MATCHER.matches(method)) {
@@ -85,7 +87,7 @@ public class JUnitAssertNullToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isNull();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(ASSERTJ_JAVA_PARSER.get())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual
@@ -96,7 +98,7 @@ public class JUnitAssertNullToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isNull();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(ASSERTJ_JAVA_PARSER.get())
 
                                 .build(),
                         method.getCoordinates().replace(),

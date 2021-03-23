@@ -53,7 +53,7 @@ public class AssertToAssertions extends Recipe {
 
     public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        private static JavaType ASSERTION_TYPE = JavaType.buildType("org.junit.Assert");
+        private static final JavaType ASSERTION_TYPE = JavaType.buildType("org.junit.Assert");
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {

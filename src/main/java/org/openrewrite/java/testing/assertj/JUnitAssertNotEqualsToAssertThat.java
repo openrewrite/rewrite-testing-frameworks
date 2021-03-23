@@ -59,6 +59,12 @@ import java.util.List;
  */
 public class JUnitAssertNotEqualsToAssertThat extends Recipe {
 
+    private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
+            JavaParser.fromJavaVersion().dependsOn(
+                    Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+            ).build()
+    );
+
     @Override
     public String getDisplayName() {
         return "JUnit AssertNotEquals to AssertThat";
@@ -89,10 +95,6 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertNotEquals(..)"
         );
 
-        private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
-                Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-        ).build();
-
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
 
@@ -109,7 +111,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isNotEqualTo(#{});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(ASSERTJ_JAVA_PARSER.get())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -123,7 +125,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isNotEqualTo(#{});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(ASSERTJ_JAVA_PARSER.get())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -135,7 +137,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isNotCloseTo(#{}, within(#{}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(ASSERTJ_JAVA_PARSER.get())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -151,7 +153,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isNotCloseTo(#{}, within(#{}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(ASSERTJ_JAVA_PARSER.get())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,

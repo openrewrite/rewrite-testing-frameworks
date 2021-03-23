@@ -46,6 +46,12 @@ import java.util.List;
  */
 public class JUnitAssertFalseToAssertThat extends Recipe {
 
+    private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
+            JavaParser.fromJavaVersion().dependsOn(
+                    Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+            ).build()
+    );
+
     @Override
     public String getDisplayName() {
         return "JUnit AssertFalse to AssertThat";
@@ -74,10 +80,6 @@ public class JUnitAssertFalseToAssertThat extends Recipe {
                 JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertFalse(boolean, ..)"
         );
 
-        private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
-                Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-        ).build();
-
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (!JUNIT_ASSERT_FALSE_MATCHER.matches(method)) {
@@ -91,7 +93,7 @@ public class JUnitAssertFalseToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isFalse();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(ASSERTJ_JAVA_PARSER.get())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual
@@ -103,7 +105,7 @@ public class JUnitAssertFalseToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isFalse();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(ASSERTJ_JAVA_PARSER.get())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,

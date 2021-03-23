@@ -59,6 +59,10 @@ import java.util.List;
  */
 public class JUnitAssertEqualsToAssertThat extends Recipe {
 
+    private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
+            Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+    ).build();
+
     @Override
     public String getDisplayName() {
         return "JUnitAssertEquals To AssertThat";
@@ -88,10 +92,6 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
         private static final MethodMatcher JUNIT_ASSERT_EQUALS_MATCHER = new MethodMatcher(
                 JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertEquals(..)"
         );
-
-        private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
-                Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-        ).build();
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {

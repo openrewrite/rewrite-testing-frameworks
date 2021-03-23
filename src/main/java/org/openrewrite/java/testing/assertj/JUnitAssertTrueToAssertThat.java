@@ -47,6 +47,12 @@ import java.util.List;
  */
 public class JUnitAssertTrueToAssertThat extends Recipe {
 
+    private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
+            JavaParser.fromJavaVersion().dependsOn(
+                    Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
+            ).build()
+    );
+
     @Override
     public String getDisplayName() {
         return "JUnit AssertTrue to AssertThat";
@@ -75,10 +81,6 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
                 JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertTrue(boolean, ..)"
         );
 
-        private static final JavaParser ASSERTJ_JAVA_PARSER = JavaParser.fromJavaVersion().dependsOn(
-                Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-        ).build();
-
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (!JUNIT_ASSERT_TRUE_MATCHER.matches(method)) {
@@ -92,7 +94,7 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).isTrue();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(ASSERTJ_JAVA_PARSER.get())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual
@@ -107,7 +109,7 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
                 method = method.withTemplate(
                         template("assertThat(#{}).#{}(#{}).isTrue();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(ASSERTJ_JAVA_PARSER.get())
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,

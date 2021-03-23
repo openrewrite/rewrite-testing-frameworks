@@ -64,6 +64,7 @@ public class RunnerToExtension extends Recipe {
         return "Replace runners with the JUnit Jupiter extension equivalent.";
     }
 
+    @EqualsAndHashCode.Exclude
     AtomicReference<JavaTemplate> extendWithTemplate = new AtomicReference<>();
 
     @Override
