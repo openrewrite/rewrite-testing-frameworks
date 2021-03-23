@@ -35,6 +35,23 @@ import java.util.stream.Collectors;
  * Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.assertThrows
  */
 public class ExpectedExceptionToAssertThrows extends Recipe {
+    private static final JavaParser ASSERTIONS_PARSER = JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
+            Parser.Input.fromString("" +
+                    "package org.junit.jupiter.api;" +
+                    "import java.util.function.Supplier;" +
+                    "import org.junit.jupiter.api.function.Executable;" +
+                    "class AssertThrows {\n" +
+                    "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,Supplier<String> messageSupplier){}" +
+                    "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,String message){}" +
+                    "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable){}" +
+                    "}"),
+            Parser.Input.fromString(
+                    "package org.junit.jupiter.api.function;" +
+                            "public interface Executable {\n" +
+                            "void execute() throws Throwable;\n" +
+                            "}"
+            )
+    )).build();
 
     @Override
     public String getDisplayName() {
@@ -56,24 +73,6 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         private static final String EXPECTED_EXCEPTION_FQN = "org.junit.rules.ExpectedException";
         private static final String EXPECT_INVOCATION_KEY = "expectedExceptionMethodInvocation";
         private static final String EXPECT_MESSAGE_INVOCATION_KEY = "expectMessageMethodInvocation";
-
-        private final JavaParser parser = JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
-                Parser.Input.fromString("" +
-                        "package org.junit.jupiter.api;" +
-                        "import java.util.function.Supplier;" +
-                        "import org.junit.jupiter.api.function.Executable;" +
-                        "class AssertThrows {\n" +
-                        "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,Supplier<String> messageSupplier){}" +
-                        "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,String message){}" +
-                        "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable){}" +
-                        "}"),
-                Parser.Input.fromString(
-                        "package org.junit.jupiter.api.function;" +
-                                "public interface Executable {\n" +
-                                "void execute() throws Throwable;\n" +
-                                "}"
-                )
-        )).build();
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -121,7 +120,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     m = m.withBody(
                             m.getBody().withTemplate(
                                     template("{ assertThrows(#{}, () -> { #{} }); }")
-                                            .javaParser(parser)
+                                            .javaParser(ASSERTIONS_PARSER)
                                             .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                             .build(),
                                     m.getBody().getCoordinates().replace(),
@@ -132,7 +131,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     m = m.withBody(
                             m.getBody().withTemplate(
                                     template("{ assertThrows(#{}, () -> { #{} }, #{}); }")
-                                            .javaParser(parser)
+                                            .javaParser(ASSERTIONS_PARSER)
                                             .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                             .build(),
                                     m.getBody().getCoordinates().replace(),

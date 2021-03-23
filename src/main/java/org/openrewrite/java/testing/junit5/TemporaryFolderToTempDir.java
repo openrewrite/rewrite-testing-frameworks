@@ -36,6 +36,11 @@ import java.util.stream.Stream;
  * Translates JUnit4's org.junit.rules.TemporaryFolder into JUnit 5's org.junit.jupiter.api.io.TempDir
  */
 public class TemporaryFolderToTempDir extends Recipe {
+    private static final JavaParser TEMPDIR_PARSER = JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
+            Parser.Input.fromString("" +
+                    "package org.junit.jupiter.api.io;\n" +
+                    "public @interface TempDir {}")
+    )).build();
 
     @Override
     public String getDisplayName() {
@@ -98,11 +103,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                                             field = field.withTemplate(
                                                     template("@TempDir\nFile#{};")
                                                             .imports("java.io.File", "org.junit.jupiter.api.io.TempDir")
-                                                            .javaParser(JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
-                                                                    Parser.Input.fromString("" +
-                                                                            "package org.junit.jupiter.api.io;\n" +
-                                                                            "public @interface TempDir {}")
-                                                            )).build())
+                                                            .javaParser(TEMPDIR_PARSER)
                                                             .build(),
                                                     field.getCoordinates().replace(), fieldVars);
                                             tempDirFields.add(field);

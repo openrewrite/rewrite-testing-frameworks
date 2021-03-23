@@ -15,8 +15,10 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.EqualsAndHashCode;
-import lombok.Value;
+import lombok.Getter;
+import lombok.ToString;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
@@ -33,18 +35,28 @@ import java.util.List;
 
 import static org.openrewrite.Parser.Input.fromString;
 
-@Value
+@Getter
+@ToString
 @EqualsAndHashCode(callSuper = true)
 public class RunnerToExtension extends Recipe {
     @Option(displayName = "Runners",
             description = "The fully qualified class names of the JUnit4 runners to replace. Sometimes several runners are replaced by a single JUnit Jupiter extension.",
             example = "org.springframework.test.context.junit4.SpringRunner")
-    List<String> runners;
+    private final List<String> runners;
 
     @Option(displayName = "Extension",
             description = "The fully qualified class names of the JUnit Jupiter extension.",
             example = "org.springframework.test.context.junit.jupiter.SpringExtension")
-    String extension;
+    private final String extension;
+
+    private JavaType.Class extensionType;
+    private JavaParser extendWithParser;
+
+    @JsonCreator
+    public RunnerToExtension(List<String> runners, String extension) {
+        this.runners = runners;
+        this.extension = extension;
+    }
 
     @Override
     public String getDisplayName() {
@@ -58,56 +70,60 @@ public class RunnerToExtension extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new RunnerToExtensionVisitor();
+        initExtendWithParser();
+        return new JavaIsoVisitor<ExecutionContext>() {
+            private final JavaTemplate extendWithTemplate = template("@ExtendWith(" + extensionType.getClassName() + ".class)")
+                    .javaParser(extendWithParser)
+                    .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
+                    .build();
+
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+
+                for (String runner : runners) {
+                    for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
+                        cd = cd.withTemplate(extendWithTemplate, runWith.getCoordinates().replace());
+                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
+                        maybeAddImport(extension);
+                        maybeRemoveImport("org.junit.runner.RunWith");
+                        maybeRemoveImport(runner);
+                    }
+                }
+
+                return cd;
+            }
+
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
+
+                for (String runner : runners) {
+                    for (J.Annotation runWith : FindAnnotations.find(method.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
+                        md = md.withTemplate(extendWithTemplate, runWith.getCoordinates().replace());
+                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
+                        maybeAddImport(extension);
+                        maybeRemoveImport("org.junit.runner.RunWith");
+                        maybeRemoveImport(runner);
+                    }
+                }
+
+                return md;
+            }
+        };
     }
 
-    private class RunnerToExtensionVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final JavaType.Class extensionType = JavaType.Class.build(extension);
-
-        private final JavaTemplate extendWithTemplate = template("@ExtendWith(" + extensionType.getClassName() + ".class)")
-                .javaParser(JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
-                        fromString("package org.junit.jupiter.api.extension;\n" +
-                                "public @interface ExtendWith {\n" +
-                                "   Class<? extends Extension>[] value();\n" +
-                                "}"),
-                        fromString("package " + extensionType.getPackageName() + ";\n" +
-                                "public class " + extensionType.getClassName() + " {}"
-                        ))).build())
-                .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
-                .build();
-
-        @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-
-            for (String runner : runners) {
-                for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                    cd = cd.withTemplate(extendWithTemplate, runWith.getCoordinates().replace());
-                    maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
-                    maybeAddImport(extension);
-                    maybeRemoveImport("org.junit.runner.RunWith");
-                    maybeRemoveImport(runner);
-                }
-            }
-
-            return cd;
-        }
-
-        @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-            J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-
-            for (String runner : runners) {
-                for (J.Annotation runWith : FindAnnotations.find(method.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                    md = md.withTemplate(extendWithTemplate, runWith.getCoordinates().replace());
-                    maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
-                    maybeAddImport(extension);
-                    maybeRemoveImport("org.junit.runner.RunWith");
-                    maybeRemoveImport(runner);
-                }
-            }
-
-            return md;
+    private void initExtendWithParser() {
+        if(extensionType == null || extendWithParser == null) {
+            extensionType = JavaType.Class.build(extension);
+            extendWithParser = JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
+                    fromString("package org.junit.jupiter.api.extension;\n" +
+                            "public @interface ExtendWith {\n" +
+                            "   Class<? extends Extension>[] value();\n" +
+                            "}"),
+                    fromString("package " + extensionType.getPackageName() + ";\n" +
+                            "public class " + extensionType.getClassName() + " {}"
+                    ))).build();
         }
     }
 }

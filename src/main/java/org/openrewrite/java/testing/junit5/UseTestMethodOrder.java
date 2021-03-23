@@ -40,6 +40,18 @@ public class UseTestMethodOrder extends Recipe {
             Markers.EMPTY, new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
             Collections.emptyList(), Space.EMPTY);
 
+    private static final JavaParser TEST_METHOD_ORDER_PARSER = JavaParser.fromJavaVersion()
+            .dependsOn(Arrays.asList(
+                    Parser.Input.fromString("package org.junit.jupiter.api;\n" +
+                            "public interface MethodOrderer {\n" +
+                            "  public class MethodName {}\n" +
+                            "  public class Alphanumeric {}\n" +
+                            "}"),
+                    Parser.Input.fromString("package org.junit.jupiter.api;\n" +
+                            "public @interface TestMethodOrder {}")
+            ))
+            .build();
+
     @Override
     public String getDisplayName() {
         return "Use `@TestMethodOrder` rather than `@FixedMethodOrder`";
@@ -53,21 +65,9 @@ public class UseTestMethodOrder extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final JavaParser testMethodOrderParser = JavaParser.fromJavaVersion()
-                    .dependsOn(Arrays.asList(
-                            Parser.Input.fromString("package org.junit.jupiter.api;\n" +
-                                    "public interface MethodOrderer {\n" +
-                                    "  public class MethodName {}\n" +
-                                    "  public class Alphanumeric {}\n" +
-                                    "}"),
-                            Parser.Input.fromString("package org.junit.jupiter.api;\n" +
-                                    "public @interface TestMethodOrder {}")
-                    ))
-                    .build();
-
             private final JavaTemplate.Builder testMethodOrder =
                     template("@TestMethodOrder(#{}.class)")
-                            .javaParser(testMethodOrderParser)
+                            .javaParser(TEST_METHOD_ORDER_PARSER)
                             .imports("org.junit.jupiter.api.TestMethodOrder",
                                     "org.junit.jupiter.api.MethodOrderer.*");
 

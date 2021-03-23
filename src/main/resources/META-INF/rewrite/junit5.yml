@@ -22,9 +22,19 @@ tags:
   - testing
   - junit
 recipeList:
+  - org.openrewrite.java.testing.junit5.StaticImports
+  - org.openrewrite.java.testing.junit5.JUnit4to5Migration
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.StaticImports
+displayName: Statically import JUnit Jupiter assertions
+description: Always use a static import for assertion methods.
+tags:
+  - testing
+  - junit
+recipeList:
   - org.openrewrite.java.UseStaticImport:
       methodPattern: "org.junit.jupiter.api.Assertions *(..)"
-  - org.openrewrite.java.testing.junit5.JUnit4to5Migration
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.JUnit4to5Migration
@@ -34,9 +44,7 @@ tags:
   - testing
   - junit
 recipeList:
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.junit.Ignore
-      newFullyQualifiedTypeName: org.junit.jupiter.api.Disabled
+  - org.openrewrite.java.testing.junit5.IgnoreToDisabled
   - org.openrewrite.java.ReorderMethodArguments:
       methodPattern: org.junit.Assume assume*(String, boolean)
       oldParameterNames:
@@ -115,3 +123,15 @@ recipeList:
         - org.mockito.runners.MockitoJUnit44Runner
         - org.mockito.junit.MockitoJUnit44Runner
       extension: org.mockito.junit.jupiter.MockitoExtension
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.IgnoreToDisabled
+displayName: Use JUnit Jupiter `@Disabled`
+description: Migrates JUnit 4.x `@Ignore` to JUnit Jupiter `@Disabled`.
+tags:
+  - testing
+  - junit
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junit.Ignore
+      newFullyQualifiedTypeName: org.junit.jupiter.api.Disabled
