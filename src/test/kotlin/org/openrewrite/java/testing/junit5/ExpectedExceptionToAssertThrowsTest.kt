@@ -17,71 +17,70 @@ package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
-import org.openrewrite.Recipe
-import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.JavaRecipeTest
 
 class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-            .classpath("junit", "hamcrest")
-            .build()
+        .classpath("junit", "hamcrest")
+        .build()
 
     override val recipe = ExpectedExceptionToAssertThrows()
 
     @Test
     fun expectClass() = assertChanged(
-            before = """
-                package org.openrewrite.java.testing.junit5;
+        before = """
+            package org.openrewrite.java.testing.junit5;
 
-                import org.junit.Rule;
-                import org.junit.rules.ExpectedException;
-                
-                public class SimpleExpectedExceptionTest {
-                    @Rule
-                    public ExpectedException thrown = ExpectedException.none();
-                
-                    public void throwsNothing() {
-                        // no exception expected, none thrown: passes.
-                    }
-                
-                    public void throwsExceptionWithSpecificType() {
-                        thrown.expect(NullPointerException.class);
+            import org.junit.Rule;
+            import org.junit.rules.ExpectedException;
+            
+            public class SimpleExpectedExceptionTest {
+                @Rule
+                public ExpectedException thrown = ExpectedException.none();
+            
+                public void throwsNothing() {
+                    // no exception expected, none thrown: passes.
+                }
+            
+                public void throwsExceptionWithSpecificType() {
+                    thrown.expect(NullPointerException.class);
+                    throw new NullPointerException();
+                }
+            }
+        """,
+        after = """
+            package org.openrewrite.java.testing.junit5;
+            
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            
+            public class SimpleExpectedExceptionTest {
+            
+                public void throwsNothing() {
+                    // no exception expected, none thrown: passes.
+                }
+            
+                public void throwsExceptionWithSpecificType() {
+                    assertThrows(NullPointerException.class, () -> {
                         throw new NullPointerException();
-                    }
+                    });
                 }
-            """,
-            after = """
-                package org.openrewrite.java.testing.junit5;
-                
-                import static org.junit.jupiter.api.Assertions.assertThrows;
-                
-                public class SimpleExpectedExceptionTest {
-                
-                    public void throwsNothing() {
-                        // no exception expected, none thrown: passes.
-                    }
-                
-                    public void throwsExceptionWithSpecificType() {
-                        assertThrows(NullPointerException.class, () -> {
-                            throw new NullPointerException();
-                        });
-                    }
-                }
-            """
+            }
+        """
     )
 
     @Test
     fun leavesOtherRulesAlone() = assertUnchanged(
-            before = """
-                import org.junit.Rule;
-                import org.junit.rules.TemporaryFolder;
-                
-                class A {
-                
-                    @Rule
-                    TemporaryFolder tempDir = new TemporaryFolder();
-                }
-            """
+        before = """
+            import org.junit.Rule;
+            import org.junit.rules.TemporaryFolder;
+            
+            class A {
+            
+                @Rule
+                TemporaryFolder tempDir = new TemporaryFolder();
+            }
+        """
     )
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/77")
