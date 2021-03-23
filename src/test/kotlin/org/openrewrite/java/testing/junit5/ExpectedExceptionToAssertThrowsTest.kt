@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
+import org.openrewrite.Issue
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
@@ -25,8 +26,7 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
             .classpath("junit", "hamcrest")
             .build()
 
-    override val recipe: Recipe
-        get() = ExpectedExceptionToAssertThrows()
+    override val recipe = ExpectedExceptionToAssertThrows()
 
     @Test
     fun expectClass() = assertChanged(
@@ -82,5 +82,43 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
                     TemporaryFolder tempDir = new TemporaryFolder();
                 }
             """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/77")
+    @Test
+    fun handlesExpectMessage() = assertChanged(
+        before = """
+            package org.openrewrite.java.testing.junit5;
+            
+            import org.junit.Rule;
+            import org.junit.rules.ExpectedException;
+            
+            public class SimpleExpectedExceptionTest {
+                @Rule
+                public ExpectedException thrown = ExpectedException.none();
+            
+                public void statementsBeforeExpected() {
+                    int[] a = new int[] { 1 };
+                    thrown.expect(IndexOutOfBoundsException.class);
+                    thrown.expectMessage("Index 1 out of bounds for length 1");
+                    int b = a[1];
+                }
+            }
+        """,
+        after = """
+            package org.openrewrite.java.testing.junit5;
+            
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            
+            public class SimpleExpectedExceptionTest {
+            
+                public void statementsBeforeExpected() {
+                    assertThrows(IndexOutOfBoundsException.class, () -> {
+                        int[] a = new int[]{1};
+                        int b = a[1];
+                    }, "Index 1 out of bounds for length 1");
+                }
+            }
+        """
     )
 }

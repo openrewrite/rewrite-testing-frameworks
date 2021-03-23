@@ -112,7 +112,7 @@ dependencies {
     testRuntimeOnly("org.mockito:mockito-all:$mockito1Version")
 
     "beforeImplementation"("junit:junit:latest.release")
-    "beforeImplementation"("org.mockito:mockito-all:$mockito1Version")
+    "beforeImplementation"("org.mockito:mockito-core:$mockito1Version")
     "beforeImplementation"("org.assertj:assertj-core:3.18.1")
     "afterImplementation"("org.junit.jupiter:junit-jupiter-api:latest.release")
     "afterImplementation"("org.junit.jupiter:junit-jupiter-params:latest.release")

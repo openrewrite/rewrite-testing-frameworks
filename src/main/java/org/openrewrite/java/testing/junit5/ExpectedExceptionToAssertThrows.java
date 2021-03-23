@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.assertThrows
@@ -53,7 +54,26 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
     public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private static final String EXPECTED_EXCEPTION_FQN = "org.junit.rules.ExpectedException";
-        private static final String EXPECTED_EXCEPTION_METHOD_INVOCATION_KEY = "expectedExceptionMethodInvocation";
+        private static final String EXPECT_INVOCATION_KEY = "expectedExceptionMethodInvocation";
+        private static final String EXPECT_MESSAGE_INVOCATION_KEY = "expectMessageMethodInvocation";
+
+        private final JavaParser parser = JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
+                Parser.Input.fromString("" +
+                        "package org.junit.jupiter.api;" +
+                        "import java.util.function.Supplier;" +
+                        "import org.junit.jupiter.api.function.Executable;" +
+                        "class AssertThrows {\n" +
+                        "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,Supplier<String> messageSupplier){}" +
+                        "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,String message){}" +
+                        "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable){}" +
+                        "}"),
+                Parser.Input.fromString(
+                        "package org.junit.jupiter.api.function;" +
+                                "public interface Executable {\n" +
+                                "void execute() throws Throwable;\n" +
+                                "}"
+                )
+        )).build();
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -73,7 +93,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
             J.MethodDeclaration m = super.visitMethodDeclaration(methodDecl, ctx);
 
-            J.MethodInvocation expectedExceptionMethodInvocation = getCursor().pollMessage(EXPECTED_EXCEPTION_METHOD_INVOCATION_KEY);
+            J.MethodInvocation expectedExceptionMethodInvocation = getCursor().pollMessage(EXPECT_INVOCATION_KEY);
             if (expectedExceptionMethodInvocation != null) {
                 List<Expression> args = expectedExceptionMethodInvocation.getArguments();
                 if (args.size() != 1) {
@@ -86,37 +106,38 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     return m;
                 }
 
-                // Remove the ExpectedException.expect() invocation, use the remaining statements as the lambda body for Assertions.assertThrows()
-                List<Statement> statements = new ArrayList<>(m.getBody().getStatements());
-                statements.remove(expectedExceptionMethodInvocation);
+                // Remove the ExpectedException invocations, use the remaining statements as the lambda body for Assertions.assertThrows()
+                assert m.getBody() != null;
+                List<Statement> statements = m.getBody().getStatements().stream()
+                        .filter(it -> !isExpectedExceptionMethodInvocation(it))
+                        .collect(Collectors.toList());
+
                 StringBuilder printedStatements = new StringBuilder();
                 for (Statement stmt : statements) {
                     printedStatements.append(stmt.print()).append(';');
                 }
-
-                m = m.withBody(
-                        m.getBody().withTemplate(
-                                template("{ assertThrows(#{}, () -> { #{} }); }")
-                                        .javaParser(JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
-                                                Parser.Input.fromString("" +
-                                                        "package org.junit.jupiter.api;" +
-                                                        "import java.util.function.Supplier;" +
-                                                        "import org.junit.jupiter.api.function.Executable;" +
-                                                        "class AssertThrows {\n" +
-                                                        "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,Supplier<String> messageSupplier){}" +
-                                                        "}"),
-                                                Parser.Input.fromString(
-                                                    "package org.junit.jupiter.api.function;" +
-                                                    "public interface Executable {\n" +
-                                                        "void execute() throws Throwable;\n" +
-                                                    "}"
-                                                )
-                                        )).build())
-                                        .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
-                                        .build(),
-                                m.getBody().getCoordinates().replace(),
-                                expectedException, printedStatements.toString())
-                );
+                J.MethodInvocation expectedMessageMethodInvocation = getCursor().pollMessage(EXPECT_MESSAGE_INVOCATION_KEY);
+                if(expectedMessageMethodInvocation == null) {
+                    m = m.withBody(
+                            m.getBody().withTemplate(
+                                    template("{ assertThrows(#{}, () -> { #{} }); }")
+                                            .javaParser(parser)
+                                            .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
+                                            .build(),
+                                    m.getBody().getCoordinates().replace(),
+                                    expectedException, printedStatements.toString())
+                    );
+                } else {
+                    String expectedMessage = expectedMessageMethodInvocation.getArguments().get(0).print();
+                    m = m.withBody(
+                            m.getBody().withTemplate(
+                                    template("{ assertThrows(#{}, () -> { #{} }, #{}); }")
+                                            .javaParser(parser)
+                                            .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
+                                            .build(),
+                                    m.getBody().getCoordinates().replace(),
+                                    expectedException, printedStatements.toString(), expectedMessage));
+                }
 
                 maybeRemoveImport("org.junit.Rule");
                 maybeRemoveImport("org.junit.rules.ExpectedException");
@@ -131,9 +152,25 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (method.getType() != null && method.getType().getDeclaringType().getFullyQualifiedName().equals(EXPECTED_EXCEPTION_FQN)) {
-                getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECTED_EXCEPTION_METHOD_INVOCATION_KEY, method);
+                if(method.getSimpleName().equals("expect")) {
+                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECT_INVOCATION_KEY, method);
+                } else if(method.getSimpleName().equals("expectMessage")) {
+                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECT_MESSAGE_INVOCATION_KEY, method);
+                }
             }
-            return super.visitMethodInvocation(method, ctx);
+            return method;
+        }
+
+        private static boolean isExpectedExceptionMethodInvocation(Statement statement) {
+            if(!(statement instanceof J.MethodInvocation)) {
+                return false;
+            }
+            J.MethodInvocation m = (J.MethodInvocation) statement;
+            if(m.getType() == null) {
+                return false;
+            }
+
+            return TypeUtils.isOfClassType(m.getType().getDeclaringType(), EXPECTED_EXCEPTION_FQN);
         }
     }
 }

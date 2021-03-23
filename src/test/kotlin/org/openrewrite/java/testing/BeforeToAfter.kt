@@ -31,8 +31,8 @@ fun main(args: Array<String>) {
             .build()
 
     val recipe = loadRecipeFromClasspath(
-            "org.openrewrite.java.testing.JUnit5Migration",
-            "org.openrewrite.java.testing.Mockito1to3Migration"
+            "org.openrewrite.java.testing.junit5.JUnit4to5Migration",
+            "org.openrewrite.java.testing.mockito.Mockito1to3Migration"
     )
 
     val sources = parser.parse(listJavaSources(beforeDir), beforeDir, InMemoryExecutionContext())
