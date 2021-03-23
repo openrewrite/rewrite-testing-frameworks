@@ -35,23 +35,24 @@ import java.util.stream.Collectors;
  * Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.assertThrows
  */
 public class ExpectedExceptionToAssertThrows extends Recipe {
-    private static final JavaParser ASSERTIONS_PARSER = JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
-            Parser.Input.fromString("" +
-                    "package org.junit.jupiter.api;" +
-                    "import java.util.function.Supplier;" +
-                    "import org.junit.jupiter.api.function.Executable;" +
-                    "class AssertThrows {\n" +
-                    "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,Supplier<String> messageSupplier){}" +
-                    "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,String message){}" +
-                    "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable){}" +
-                    "}"),
-            Parser.Input.fromString(
-                    "package org.junit.jupiter.api.function;" +
-                            "public interface Executable {\n" +
-                            "void execute() throws Throwable;\n" +
-                            "}"
-            )
-    )).build();
+    private static final ThreadLocal<JavaParser> ASSERTIONS_PARSER = ThreadLocal.withInitial(() ->
+            JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
+                    Parser.Input.fromString("" +
+                            "package org.junit.jupiter.api;" +
+                            "import java.util.function.Supplier;" +
+                            "import org.junit.jupiter.api.function.Executable;" +
+                            "class AssertThrows {\n" +
+                            "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,Supplier<String> messageSupplier){}" +
+                            "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,String message){}" +
+                            "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable){}" +
+                            "}"),
+                    Parser.Input.fromString(
+                            "package org.junit.jupiter.api.function;" +
+                                    "public interface Executable {\n" +
+                                    "void execute() throws Throwable;\n" +
+                                    "}"
+                    )
+            )).build());
 
     @Override
     public String getDisplayName() {
@@ -116,11 +117,11 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     printedStatements.append(stmt.print()).append(';');
                 }
                 J.MethodInvocation expectedMessageMethodInvocation = getCursor().pollMessage(EXPECT_MESSAGE_INVOCATION_KEY);
-                if(expectedMessageMethodInvocation == null) {
+                if (expectedMessageMethodInvocation == null) {
                     m = m.withBody(
                             m.getBody().withTemplate(
                                     template("{ assertThrows(#{}, () -> { #{} }); }")
-                                            .javaParser(ASSERTIONS_PARSER)
+                                            .javaParser(ASSERTIONS_PARSER.get())
                                             .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                             .build(),
                                     m.getBody().getCoordinates().replace(),
@@ -131,7 +132,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     m = m.withBody(
                             m.getBody().withTemplate(
                                     template("{ assertThrows(#{}, () -> { #{} }, #{}); }")
-                                            .javaParser(ASSERTIONS_PARSER)
+                                            .javaParser(ASSERTIONS_PARSER.get())
                                             .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                             .build(),
                                     m.getBody().getCoordinates().replace(),
@@ -151,9 +152,9 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (method.getType() != null && method.getType().getDeclaringType().getFullyQualifiedName().equals(EXPECTED_EXCEPTION_FQN)) {
-                if(method.getSimpleName().equals("expect")) {
+                if (method.getSimpleName().equals("expect")) {
                     getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECT_INVOCATION_KEY, method);
-                } else if(method.getSimpleName().equals("expectMessage")) {
+                } else if (method.getSimpleName().equals("expectMessage")) {
                     getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECT_MESSAGE_INVOCATION_KEY, method);
                 }
             }
@@ -161,11 +162,11 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         }
 
         private static boolean isExpectedExceptionMethodInvocation(Statement statement) {
-            if(!(statement instanceof J.MethodInvocation)) {
+            if (!(statement instanceof J.MethodInvocation)) {
                 return false;
             }
             J.MethodInvocation m = (J.MethodInvocation) statement;
-            if(m.getType() == null) {
+            if (m.getType() == null) {
                 return false;
             }
 
