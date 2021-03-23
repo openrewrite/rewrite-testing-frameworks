@@ -94,8 +94,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
-displayName: Use `MatcherAssert#assertThat(..)` from `hamcrest-core` instead of JUnit 4's `Assert#assertThat(..)`.
-description: This method was deprecated in JUnit 4 and removed in JUnit Jupiter.
+displayName: Use `MatcherAssert#assertThat(..)`
+description: JUnit 4's `Assert#assertThat(..)` This method was deprecated in JUnit 4 and removed in JUnit Jupiter.
 tags:
   - testing
   - junit
