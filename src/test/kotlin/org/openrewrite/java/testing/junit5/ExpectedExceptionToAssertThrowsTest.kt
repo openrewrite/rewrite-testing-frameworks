@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.java.JavaParser
@@ -120,4 +121,47 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
             }
         """
     )
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
+    @Disabled
+    fun handlesExpectMessageWithMatchers() = assertChanged(
+        before = """
+            package org.openrewrite.java.testing.junit5;
+    
+            import org.junit.Rule;
+            import org.junit.rules.ExpectedException;
+            import static org.hamcrest.Matchers.containsString;
+            
+            public class ExampleTests {
+                @Rule
+                public ExpectedException thrown = ExpectedException.none();
+            
+                public void test() {
+                    this.thrown.expectMessage(containsString("no proper implementation found"));
+                    throw new NullPointerException();
+                }
+            }
+        """,
+        after = """
+            package org.openrewrite.java.testing.junit5;
+            
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            import static org.junit.jupiter.api.Assertions.assertTrue;
+            import static org.hamcrest.Matchers.containsString;
+            
+            public class ExampleTests {
+                
+                // something to this effect
+                public void test() {
+                    Exception exception = assertThrows(NullPointerException.class, () -> {
+                        throw new NullPointerException();
+                    });
+                    
+                    assertTrue(exception.getMessage(), containsString("no proper implementation found"));
+                }
+            }
+        """
+    )
+
 }
