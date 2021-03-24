@@ -46,7 +46,6 @@ public class UseTestMethodOrder extends Recipe {
                             Parser.Input.fromString("package org.junit.jupiter.api;\n" +
                                     "public interface MethodOrderer {\n" +
                                     "  public class MethodName {}\n" +
-                                    "  public class Alphanumeric {}\n" +
                                     "}"),
                             Parser.Input.fromString("package org.junit.jupiter.api;\n" +
                                     "public @interface TestMethodOrder {}")
@@ -56,22 +55,23 @@ public class UseTestMethodOrder extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Use `@TestMethodOrder` rather than `@FixedMethodOrder`";
+        return "Migrate from JUnit4 `@FixedMethodOrder` to JUnit5 `@TestMethodOrder`";
     }
 
     @Override
     public String getDescription() {
-        return "JUnit5 has expanded on the method ordering capabilities of JUnit 4.";
+        return "JUnit optionally allows test method execution order to be specified. This Recipe replaces JUnit4 test execution ordering annotations with JUnit5 replacements.";
     }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final JavaTemplate.Builder testMethodOrder =
+            private final JavaTemplate testMethodOrder =
                     template("@TestMethodOrder(#{}.class)")
                             .javaParser(TEST_METHOD_ORDER_PARSER.get())
                             .imports("org.junit.jupiter.api.TestMethodOrder",
-                                    "org.junit.jupiter.api.MethodOrderer.*");
+                                    "org.junit.jupiter.api.MethodOrderer.*")
+                            .build();
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -81,24 +81,14 @@ public class UseTestMethodOrder extends Recipe {
                         "@org.junit.FixMethodOrder");
 
                 if (!methodOrders.isEmpty()) {
-                    J.Annotation methodOrder = methodOrders.iterator().next();
-
-                    String order = methodOrder.getArguments() == null || methodOrder.getArguments().isEmpty() ?
-                            null : methodOrder.getArguments().get(0).printTrimmed();
-
-                    JavaCoordinates replace = methodOrder.getCoordinates().replace();
-
                     maybeAddImport("org.junit.jupiter.api.TestMethodOrder");
                     maybeRemoveImport("org.junit.FixMethodOrder");
                     maybeRemoveImport("org.junit.runners.MethodSorters");
 
-                    if (order == null || order.contains("DEFAULT")) {
-                        c = c.withTemplate(testMethodOrder.build(), replace, "Alphanumeric");
-                        maybeAddImport("org.junit.jupiter.api.MethodOrderer.Alphanumeric");
-                    } else if (order.contains("NAME_ASCENDING")) {
-                        c = c.withTemplate(testMethodOrder.build(), replace, "MethodName");
-                        maybeAddImport("org.junit.jupiter.api.MethodOrderer.MethodName");
-                    }
+                    c = c.withTemplate(testMethodOrder,
+                            methodOrders.iterator().next().getCoordinates().replace(),
+                            "MethodName");
+                    maybeAddImport("org.junit.jupiter.api.MethodOrderer.MethodName");
                 }
 
                 return super.visitClassDeclaration(c, ctx);

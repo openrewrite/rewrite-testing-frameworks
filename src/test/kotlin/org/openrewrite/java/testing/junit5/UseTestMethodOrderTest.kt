@@ -22,13 +22,11 @@ import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 class UseTestMethodOrderTest : JavaRecipeTest {
-    override val parser: JavaParser
-        get() = JavaParser.fromJavaVersion()
+    override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("junit")
             .build()
 
-    override val recipe: Recipe
-        get() = UseTestMethodOrder()
+    override val recipe = UseTestMethodOrder()
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/62")
     @Test
@@ -53,7 +51,7 @@ class UseTestMethodOrderTest : JavaRecipeTest {
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/62")
     @Test
-    fun deterministic() = assertChanged(
+    fun defaultAndOmitted() = assertChanged(
         before = """
             import org.junit.FixMethodOrder;
             import org.junit.runners.MethodSorters;
@@ -67,15 +65,36 @@ class UseTestMethodOrderTest : JavaRecipeTest {
             }
         """,
         after = """
-            import org.junit.jupiter.api.MethodOrderer.Alphanumeric;
+            import org.junit.jupiter.api.MethodOrderer.MethodName;
             import org.junit.jupiter.api.TestMethodOrder;
             
-            @TestMethodOrder(Alphanumeric.class)
+            @TestMethodOrder(MethodName.class)
             class Test {
             }
             
-            @TestMethodOrder(Alphanumeric.class)
+            @TestMethodOrder(MethodName.class)
             class Test2 {
+            }
+        """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/80")
+    @Test
+    fun jvmOrder() = assertChanged(
+        before = """
+            import org.junit.FixMethodOrder;
+            import org.junit.runners.MethodSorters;
+            
+            @FixMethodOrder(MethodSorters.JVM)
+            class Test {
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.MethodOrderer.MethodName;
+            import org.junit.jupiter.api.TestMethodOrder;
+            
+            @TestMethodOrder(MethodName.class)
+            class Test {
             }
         """
     )
