@@ -226,6 +226,23 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
     )
 
     @Test
+    fun removesRunWithJunit4() = assertChanged(
+        before = """
+            import org.junit.runner.RunWith;
+            import org.junit.runners.JUnit4;
+            
+            @RunWith(JUnit4.class)
+            public class Foo {
+            }
+        """,
+        after = """
+            
+            public class Foo {
+            }
+        """
+    )
+
+    @Test
     fun replacesMockitoJUnitRunner() = assertChanged(
             before = """
                 import org.junit.runner.RunWith;
