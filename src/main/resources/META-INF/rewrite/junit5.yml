@@ -91,6 +91,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
   - org.openrewrite.java.testing.junit5.UpdateTestAnnotation
   - org.openrewrite.java.testing.junit5.RemoveObsoleteRunners
+  - org.openrewrite.java.testing.junit5.ParameterizedRunnerToParameterized
   - org.openrewrite.java.testing.hamcrest.UseHamcrestCore
 ---
 type: specs.openrewrite.org/v1beta/recipe
