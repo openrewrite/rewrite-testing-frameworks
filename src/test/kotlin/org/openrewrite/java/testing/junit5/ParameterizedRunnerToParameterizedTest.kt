@@ -69,6 +69,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.MethodSource;
         
+        
+        
             public class VetTests {
             
                 private String firstName;
@@ -91,6 +93,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     vet.setId(id);
                 }
             
+                
                 public static List<Object[]> parameters() {
                     return Arrays.asList(
                         new Object[] { "Otis", "TheDog", 124 },
@@ -140,6 +143,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.MethodSource;
         
+        
+        
             public class VetTests {
             
                 private String firstName;
@@ -162,6 +167,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     vet.setId(id);
                 }
             
+                
                 public static List<Object[]> parameters() {
                     return Arrays.asList(
                         new Object[] { "Otis", "TheDog", 124 },
