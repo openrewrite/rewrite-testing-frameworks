@@ -40,7 +40,7 @@ public class UpdateTestAnnotation extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Update JUnit4's org.junit.Test to JUnit5's org.junit.jupiter.api.Test annotation.";
+        return "Update usages of JUnit4's `@org.junit.Test` annotation to JUnit5's `org.junit.jupiter.api.Test` annotation.";
     }
 
     @Override
