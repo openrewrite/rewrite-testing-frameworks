@@ -35,7 +35,7 @@ public class UpdateTestAnnotation extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Update Test Annotation";
+        return "Migrate JUnit4 `@Test` annotations to JUnit5";
     }
 
     @Override
