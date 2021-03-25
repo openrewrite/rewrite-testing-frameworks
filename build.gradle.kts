@@ -118,6 +118,7 @@ dependencies {
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
     testRuntimeOnly("org.mockito:mockito-all:$mockito1Version")
     testRuntimeOnly("org.hamcrest:hamcrest:latest.release")
+    testRuntimeOnly("pl.pragmatists:JUnitParams:1.+")
 
     "beforeImplementation"("junit:junit:latest.release")
     "beforeImplementation"("org.mockito:mockito-core:$mockito1Version")
