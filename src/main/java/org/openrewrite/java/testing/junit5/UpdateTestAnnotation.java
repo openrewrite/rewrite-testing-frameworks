@@ -23,6 +23,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.search.FindTypes;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
@@ -51,8 +52,11 @@ public class UpdateTestAnnotation extends Recipe {
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
-            return super.visitCompilationUnit(cu, ctx);
+            if (!FindTypes.find(cu, "org.junit.Test").isEmpty()) {
+                doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
+                return super.visitCompilationUnit(cu, ctx);
+            }
+            return cu;
         }
 
         @Override
