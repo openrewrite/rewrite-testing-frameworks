@@ -39,7 +39,7 @@ public class UpdateTestAnnotation extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Change org.junit.Test to org.junit.jupiter.api.Test";
+        return "Update JUnit4's org.junit.Test to JUnit5's org.junit.jupiter.api.Test annotation.";
     }
 
     @Override
@@ -80,7 +80,7 @@ public class UpdateTestAnnotation extends Recipe {
                         m = m.withComments(ListUtils.concatAll(m.getComments(), modifierComments));
                     }
                     if (m.getModifiers() != modifiers) {
-                        m = maybeAutoFormat(m, m.withModifiers(modifiers), ctx, getCursor().dropParentUntil(it -> it instanceof J));
+                        m = maybeAutoFormat(m, m.withModifiers(modifiers), ctx, getCursor().dropParentUntil(J.class::isInstance));
                     }
 
                     annotations.set(i, a.withArguments(null));
@@ -101,7 +101,7 @@ public class UpdateTestAnnotation extends Recipe {
 
                                 List<Statement> statements = m.getBody().getStatements();
                                 String strStatements = statements.stream().map(Statement::print)
-                                        .collect(Collectors.joining(";")) + ";";
+                                        .collect(Collectors.joining(";", "", ";"));
                                 m = m.withTemplate(
                                         template("{ assertThrows(#{}, () -> {#{}}); }")
                                                 .javaParser(JavaParser.fromJavaVersion()
@@ -130,7 +130,6 @@ public class UpdateTestAnnotation extends Recipe {
         }
 
         private static class AddTimeoutAnnotation extends JavaIsoVisitor<ExecutionContext> {
-
             private final J.MethodDeclaration methodDeclaration;
             private final Expression expression;
 
@@ -140,7 +139,7 @@ public class UpdateTestAnnotation extends Recipe {
             }
 
             @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 if (!method.isScope(this.methodDeclaration)) {
                     return method;
                 }
