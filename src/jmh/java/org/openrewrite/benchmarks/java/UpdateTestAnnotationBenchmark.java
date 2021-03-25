@@ -22,6 +22,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openrewrite.java.testing.junit5.UpdateTestAnnotation;
+import org.openrewrite.java.testing.junit5.UpdateTestAnnotationOriginal;
 
 import java.util.concurrent.TimeUnit;
 
@@ -44,6 +45,11 @@ public class UpdateTestAnnotationBenchmark {
     @Benchmark
     public void updateTestAnnotation(JavaCompilationUnitState state) {
         new UpdateTestAnnotation().run(state.getSourceFiles());
+    }
+
+    @Benchmark
+    public void updateTestAnnotationOriginal(JavaCompilationUnitState state) {
+        new UpdateTestAnnotationOriginal().run(state.getSourceFiles());
     }
 
 }
