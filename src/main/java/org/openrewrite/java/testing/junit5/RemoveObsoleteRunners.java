@@ -15,7 +15,10 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.EqualsAndHashCode;
+import lombok.Value;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -26,16 +29,24 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+@Value
+@EqualsAndHashCode(callSuper = true)
 public class RemoveObsoleteRunners extends Recipe {
+
+    @Option(displayName = "Obsolete Runners",
+            description = "The fully qualified class names of the JUnit4 runners to be removed",
+            example = "org.junit.runners.JUnit4")
+    List<String> obsoleteRunners;
+
     @Override
     public String getDisplayName() {
-        return "Remove JUnit4 @RunWith annotations with no JUnit5 equivalent";
+        return "Remove JUnit4 @RunWith annotations that do not require an @ExtendsWith replacement.";
     }
 
     @Override
     public String getDescription() {
         return "Some JUnit4 @RunWith() annotations do not require replacement with an equivalent JUnit 5 @ExtendsWith() annotation. " +
-        "This removes @RunWith(JUnit4.class) and @RunWith(BlockJUnit4ClassRunner.class) annotations as part of JUnit 4 to 5 migration.";
+        "This can be used to remove those runners that either do not have a JUnit5 equivalent or do not require a replacement as part of JUnit 4 to 5 migration.";
     }
 
     @Override
@@ -43,9 +54,7 @@ public class RemoveObsoleteRunners extends Recipe {
         return new RemoveObsoleteRunnersVisitor();
     }
 
-    public static class RemoveObsoleteRunnersVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final List<String> obsoleteRunners = Arrays.asList(
-                "org.junit.runners.JUnit4", "org.junit.runners.BlockJUnit4ClassRunner");
+    public class RemoveObsoleteRunnersVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {

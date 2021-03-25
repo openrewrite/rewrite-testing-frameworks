@@ -79,6 +79,10 @@ recipeList:
       scope: test
       onlyIfUsing:
         - org.junit.jupiter.api.Test
+  - org.openrewrite.java.testing.junit5.RemoveObsoleteRunners:
+      obsoleteRunners:
+        - org.junit.runners.JUnit4
+        - org.junit.runners.BlockJUnit4ClassRunner
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.junit5.UseTestMethodOrder
@@ -90,7 +94,6 @@ recipeList:
   - org.openrewrite.java.testing.junit5.TemporaryFolderToTempDir
   - org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
   - org.openrewrite.java.testing.junit5.UpdateTestAnnotation
-  - org.openrewrite.java.testing.junit5.RemoveObsoleteRunners
   - org.openrewrite.java.testing.junit5.ParameterizedRunnerToParameterized
   - org.openrewrite.java.testing.hamcrest.UseHamcrestCore
 ---
