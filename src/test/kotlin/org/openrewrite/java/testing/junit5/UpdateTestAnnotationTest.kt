@@ -18,286 +18,285 @@ package org.openrewrite.java.testing.junit5
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
 import org.openrewrite.Recipe
-import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.tree.J
 
-class UpdateTestAnnotationTest: JavaRecipeTest {
+class UpdateTestAnnotationTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .build()
+        .classpath("junit")
+        .build()
 
     override val recipe: Recipe
         get() = UpdateTestAnnotation()
 
     @Test
     fun assertThrowsSingleLine() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                public class A {
-                
-                    @Test(expected = IllegalArgumentException.class)
-                    public void test() {
+        before = """
+            import org.junit.Test;
+            
+            public class A {
+            
+                @Test(expected = IllegalArgumentException.class)
+                public void test() {
+                    throw new IllegalArgumentException("boom");
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+            
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            
+            public class A {
+            
+                @Test
+                void test() {
+                    assertThrows(IllegalArgumentException.class, () -> {
                         throw new IllegalArgumentException("boom");
-                    }
+                    });
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.Test;
-                
-                import static org.junit.jupiter.api.Assertions.assertThrows;
-                
-                public class A {
-                
-                    @Test
-                    void test() {
-                        assertThrows(IllegalArgumentException.class, () -> {
-                            throw new IllegalArgumentException("boom");
-                        });
-                    }
-                }
-            """
+            }
+        """
     )
 
     @Test
     fun assertThrowsSingleStatement() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                public class A {
-                
-                    @Test(expected = IndexOutOfBoundsException.class)
-                    public void test() {
+        before = """
+            import org.junit.Test;
+            
+            public class A {
+            
+                @Test(expected = IndexOutOfBoundsException.class)
+                public void test() {
+                    int arr = new int[]{}[0];
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+            
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            
+            public class A {
+            
+                @Test
+                void test() {
+                    assertThrows(IndexOutOfBoundsException.class, () -> {
                         int arr = new int[]{}[0];
-                    }
+                    });
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.Test;
-                
-                import static org.junit.jupiter.api.Assertions.assertThrows;
-                
-                public class A {
-                
-                    @Test
-                    void test() {
-                        assertThrows(IndexOutOfBoundsException.class, () -> {
-                            int arr = new int[]{}[0];
-                        });
-                    }
-                }
-            """
+            }
+        """
     )
 
     @Test
     fun assertThrowsMultiLine() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                public class A {
-                
-                    @Test(expected = IllegalArgumentException.class)
-                    public void test() {
+        before = """
+            import org.junit.Test;
+            
+            public class A {
+            
+                @Test(expected = IllegalArgumentException.class)
+                public void test() {
+                    String foo = "foo";
+                    throw new IllegalArgumentException("boom");
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+            
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            
+            public class A {
+            
+                @Test
+                void test() {
+                    assertThrows(IllegalArgumentException.class, () -> {
                         String foo = "foo";
                         throw new IllegalArgumentException("boom");
-                    }
+                    });
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.Test;
-                
-                import static org.junit.jupiter.api.Assertions.assertThrows;
-                
-                public class A {
-                
-                    @Test
-                    void test() {
-                        assertThrows(IllegalArgumentException.class, () -> {
-                            String foo = "foo";
-                            throw new IllegalArgumentException("boom");
-                        });
-                    }
-                }
-            """
+            }
+        """
     )
 
     @Test
     fun noTestAnnotationValues() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                public class A {
-                
-                    @Test
-                    public void test() { }
+        before = """
+            import org.junit.Test;
+            
+            public class A {
+            
+                @Test
+                public void test() { }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+            
+            public class A {
+            
+                @Test
+                void test() {
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.Test;
-                
-                public class A {
-                
-                    @Test
-                    void test() {
-                    }
-                }
-            """
+            }
+        """
     )
 
     @Test
     fun testMethodMofierHasComments() = assertChanged(
         before = """
-                import org.junit.Test;import org.openrewrite.Issue;
+            import org.junit.Test;import org.openrewrite.Issue;
+            
+            public class A {
+            
+                // some comments
+                @Issue("some issue")
+                @Test
+                public void test() { }
                 
-                public class A {
+                // some comments
+                @Test
+                public void test1() { }
                 
-                    // some comments
-                    @Issue("some issue")
-                    @Test
-                    public void test() { }
-                    
-                    // some comments
-                    @Test
-                    public void test1() { }
-                    
-                    @Test
-                    // some comments
-                    public void test2() { }
-                }
-            """,
+                @Test
+                // some comments
+                public void test2() { }
+            }
+        """,
         after = """
-                import org.junit.jupiter.api.Test;import org.openrewrite.Issue;
-                
-                public class A {
-                
-                    // some comments
-                    @Issue("some issue")
-                    @Test
-                    void test() {
-                    }
-                
-                    // some comments
-                    @Test
-                    void test1() {
-                    }
-                
-                    // some comments
-                    @Test
-                    void test2() {
-                    }
+            import org.junit.jupiter.api.Test;import org.openrewrite.Issue;
+            
+            public class A {
+            
+                // some comments
+                @Issue("some issue")
+                @Test
+                void test() {
                 }
-            """
+            
+                // some comments
+                @Test
+                void test1() {
+                }
+            
+                // some comments
+                @Test
+                void test2() {
+                }
+            }
+        """
     )
 
     @Test
     fun testAnnotationWithTimeout() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                public class A {
-                
-                    @Test(timeout = 500)
-                    public void test() { }
+        before = """
+            import org.junit.Test;
+            
+            public class A {
+            
+                @Test(timeout = 500)
+                public void test() { }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+            import org.junit.jupiter.api.Timeout;
+            
+            public class A {
+            
+                @Test
+                @Timeout(500)
+                void test() {
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.Test;
-                import org.junit.jupiter.api.Timeout;
-                
-                public class A {
-                
-                    @Test
-                    @Timeout(500)
-                    void test() {
-                    }
-                }
-            """
+            }
+        """
     )
 
     @Test
     fun testAnnotationWithTimeoutAndException() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                public class A {
-                
-                    @Test(expected = IllegalArgumentException.class, timeout = 500)
-                    public void test() {
+        before = """
+            import org.junit.Test;
+            
+            public class A {
+            
+                @Test(expected = IllegalArgumentException.class, timeout = 500)
+                public void test() {
+                    throw new IllegalArgumentException("boom");
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+            import org.junit.jupiter.api.Timeout;
+            
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            
+            public class A {
+            
+                @Test
+                @Timeout(500)
+                void test() {
+                    assertThrows(IllegalArgumentException.class, () -> {
                         throw new IllegalArgumentException("boom");
-                    }
+                    });
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.Test;
-                import org.junit.jupiter.api.Timeout;
-                
-                import static org.junit.jupiter.api.Assertions.assertThrows;
-                
-                public class A {
-                
-                    @Test
-                    @Timeout(500)
-                    void test() {
-                        assertThrows(IllegalArgumentException.class, () -> {
-                            throw new IllegalArgumentException("boom");
-                        });
-                    }
-                }
-            """
+            }
+        """
     )
 
     @Test
     fun protectedToPackageVisibility() = assertChanged(
-        //An existing test method with protected visibility would not be executed by JUnit 4. This refactor will actual
-        //fix this use case when moving to JUnit 5.
-
+        // An existing test method with protected visibility would not be executed by JUnit 4. This refactor will actual
+        // fix this use case when moving to JUnit 5.
         before = """
-                import org.junit.Test;
+            import org.junit.Test;
 
-                public class A {
-                
-                    @Test
-                    protected void test() {
-                    }
+            public class A {
+            
+                @Test
+                protected void test() {
                 }
-            """,
+            }
+        """,
         after = """
-                import org.junit.jupiter.api.Test;
+            import org.junit.jupiter.api.Test;
 
-                public class A {
+            public class A {
 
-                    @Test
-                    void test() {
-                    }
+                @Test
+                void test() {
                 }
-            """
+            }
+        """
     )
 
     @Test
     fun privateToPackageVisibility() = assertChanged(
-        //An existing test method with private visibility would not be executed by JUnit 4. This refactor will actual
-        //fix this use case when moving to JUnit 5.
+        // An existing test method with private visibility would not be executed by JUnit 4. This refactor will actual
+        // fix this use case when moving to JUnit 5.
         before = """
-                import org.junit.Test;
-                
-                public class A {
-                
-                    @Test
-                    private void test() {
-                    }
+            import org.junit.Test;
+            
+            public class A {
+            
+                @Test
+                private void test() {
                 }
-            """,
+            }
+        """,
         after = """
-                import org.junit.jupiter.api.Test;
-                
-                public class A {
-                
-                    @Test
-                    void test() {
-                    }
+            import org.junit.jupiter.api.Test;
+            
+            public class A {
+            
+                @Test
+                void test() {
                 }
-            """
+            }
+        """
     )
 
 }
