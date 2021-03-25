@@ -269,6 +269,7 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
         import org.junit.BeforeClass;
         import org.junit.Test;
         import org.junit.Test;
+        import org.junit.Rule;
         import org.junit.rules.ExpectedException;
         import org.junit.rules.TemporaryFolder;
         import org.junit.rules.Timeout;
