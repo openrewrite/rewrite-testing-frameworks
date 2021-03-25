@@ -47,15 +47,15 @@ public class JavaCompilationUnitState {
                 rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/junit5/TemporaryFolderToTempDir.java"),
                 rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/junit5/UpdateBeforeAfterAnnotations.java"),
                 rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/junit5/UpdateTestAnnotation.java"),
-                rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/junit5/UseTestMethodOrder.java")
+                rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/junit5/UseTestMethodOrder.java"),
+                rewriteRoot.resolve("src/before/java/org/openrewrite/java/testing/junit5/ExampleJunitTestClass.java")
                 // rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/assertj/JUnitAssertArrayEqualsToAssertThat.java"),
                 // rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/mockito/CleanupMockitoImports.java")
         );
 
         sourceFiles = JavaParser.fromJavaVersion()
-                .classpath("jsr305", "classgraph", "jackson-annotations", "micrometer-core", "slf4j-api",
-                        "org.eclipse.jgit")
-//                .logCompilationWarningsAndErrors(true)
+                .classpath("lombok", "jackson-annotations", "micrometer-core", "slf4j-api", "mockito-all", "junit", "rewrite-core", "rewrite-java")
+                .logCompilationWarningsAndErrors(true)
                 .build()
                 .parse(inputs, null, new InMemoryExecutionContext(Throwable::printStackTrace));
     }

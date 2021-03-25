@@ -43,7 +43,8 @@ configure<nebula.plugin.release.git.base.ReleasePluginExtension> {
 }
 
 group = "org.openrewrite.recipe"
-description = "A rewrite module automating best practices and major version migrations for popular Java test frameworks like JUnit and Mockito"
+description =
+    "A rewrite module automating best practices and major version migrations for popular Java test frameworks like JUnit and Mockito"
 
 repositories {
     mavenLocal()
@@ -127,6 +128,8 @@ dependencies {
     "integTestImplementation"("org.hamcrest:hamcrest:latest.release")
 
     // jmh benchmarking dependencies
+    jmh("org.projectlombok:lombok:latest.release")
+    jmh("junit:junit:latest.release")
     jmh("org.openjdk.jmh:jmh-core:latest.release")
     // Nebula doesn't like having jmhAnnotationProcessor without jmh so we just add it twice.
     jmh("org.openjdk.jmh:jmh-generator-annprocess:latest.release")
