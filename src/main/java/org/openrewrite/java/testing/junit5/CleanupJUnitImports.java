@@ -20,22 +20,11 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JRightPadded;
-import org.openrewrite.java.tree.Space;
-import org.openrewrite.marker.Markers;
-
-import java.util.Collections;
-
-import static org.openrewrite.Tree.randomId;
 
 /**
  * Orders imports and removes unused imports from classes which import symbols from the "org.junit" package.
  */
 public class CleanupJUnitImports extends Recipe {
-    private static final J.Block EMPTY_BODY = new J.Block(randomId(), Space.EMPTY, Markers.EMPTY,
-            new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
-            Collections.emptyList(), Space.EMPTY);
-
     @Override
     public String getDisplayName() {
         return "Cleanup JUnit Imports";

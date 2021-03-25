@@ -54,6 +54,8 @@ public class UpdateTestAnnotation extends Recipe {
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             if (!FindTypes.find(cu, "org.junit.Test").isEmpty()) {
                 doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
+                // Work around https://github.com/openrewrite/rewrite/issues/401
+                ctx.putMessageInSet(JavaType.FOUND_TYPE_CONTEXT_KEY, JavaType.Class.build("org.junit.jupiter.api.Test"));
                 return super.visitCompilationUnit(cu, ctx);
             }
             return cu;

@@ -49,4 +49,16 @@ class CleanupJUnitImportsTest : JavaRecipeTest {
             }
         """
     )
+
+    @Test
+    fun leavesUsedJUnitImportAlone() = assertUnchanged(
+        before = """
+            import org.junit.Test;
+            
+            public class A {
+                @Test 
+                public void foo() {}
+            }
+        """
+    )
 }
