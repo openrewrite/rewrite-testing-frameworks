@@ -54,8 +54,9 @@ public class UpdateTestAnnotation extends Recipe {
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             if (!FindTypes.find(cu, "org.junit.Test").isEmpty()) {
                 doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
+                return super.visitCompilationUnit(cu, ctx);
             }
-            return super.visitCompilationUnit(cu, ctx);
+            return cu;
         }
 
         @Override
