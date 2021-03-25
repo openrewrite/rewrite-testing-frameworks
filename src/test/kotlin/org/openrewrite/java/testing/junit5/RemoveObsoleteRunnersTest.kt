@@ -18,13 +18,15 @@ package org.openrewrite.java.testing.junit5
 import org.junit.jupiter.api.Test
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
+import java.util.*
 
 class RemoveObsoleteRunnersTest: JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
         .build()
 
-    override val recipe = RemoveObsoleteRunners()
+    override val recipe = RemoveObsoleteRunners(
+        Arrays.asList("org.junit.runners.JUnit4", "org.junit.runners.BlockJUnit4ClassRunner"))
 
     @Test
     fun removesRunWithJunit4() = assertChanged(
