@@ -15,12 +15,9 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import lombok.Value;
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JRightPadded;
@@ -28,7 +25,6 @@ import org.openrewrite.java.tree.Space;
 import org.openrewrite.marker.Markers;
 
 import java.util.Collections;
-import java.util.List;
 
 import static org.openrewrite.Tree.randomId;
 
@@ -58,33 +54,13 @@ public class CleanupJUnitImports extends Recipe {
     public static class CleanupJUnitImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            J.CompilationUnit c = cu;
-
-            List<J.Import> imports = ListUtils.map(c.getImports(), im -> {
+            for(J.Import im : cu.getImports()) {
                 String packageName = im.getPackageName();
-                if (packageName.startsWith("org.junit") && !packageName.contains("jupiter")) {
-                    return null;
+                if (packageName.startsWith("junit") || (packageName.startsWith("org.junit") && !packageName.contains("jupiter"))) {
+                    maybeRemoveImport(im.getTypeName());
                 }
-                if (packageName.startsWith("junit")) {
-                    return null;
-                }
-                return im;
-            });
-
-            //noinspection NewObjectEquality
-            if (imports != c.getImports()) {
-                J.CompilationUnit temp = c.withClasses(Collections.emptyList());
-                c = maybeAutoFormat(temp, temp.withImports(imports), ctx).withClasses(c.getClasses());
-
-                Cursor cursor = new Cursor(null, c);
-                if(c.getPackageDeclaration() != null) {
-                    c = c.withPackageDeclaration(autoFormat(c.getPackageDeclaration(), ctx, cursor));
-                }
-                c = c.withClasses(ListUtils.mapFirst(c.getClasses(), cd ->
-                        autoFormat(cd.withBody(EMPTY_BODY), ctx, cursor).withBody(cd.getBody())));
             }
-
-            return c;
+            return cu;
         }
     }
 }
