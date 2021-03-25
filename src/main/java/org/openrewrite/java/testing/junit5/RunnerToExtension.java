@@ -16,10 +16,12 @@
 package org.openrewrite.java.testing.junit5;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
+import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -38,6 +40,7 @@ import static org.openrewrite.Parser.Input.fromString;
 @Value
 @EqualsAndHashCode(callSuper = true)
 public class RunnerToExtension extends Recipe {
+
     @Option(displayName = "Runners",
             description = "The fully qualified class names of the JUnit4 runners to replace. Sometimes several runners are replaced by a single JUnit Jupiter extension.",
             example = "org.springframework.test.context.junit4.SpringRunner")
@@ -48,10 +51,33 @@ public class RunnerToExtension extends Recipe {
             example = "org.springframework.test.context.junit.jupiter.SpringExtension")
     String extension;
 
+    /**
+     * Thread local is not static because it depends on instance variables passed into the recipe.
+     */
+    @JsonIgnore
+    @EqualsAndHashCode.Exclude
+    ThreadLocal<JavaParser> javaParser;
+
     @JsonCreator
     public RunnerToExtension(List<String> runners, String extension) {
         this.runners = runners;
         this.extension = extension;
+        if (extension != null) {
+            //The extension can be null when the framework instantiates an instance for recipe discovery.
+            JavaType.Class extensionType = JavaType.Class.build(extension);
+            this.javaParser = ThreadLocal.withInitial(() ->
+
+                    JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
+                            fromString("package org.junit.jupiter.api.extension;\n" +
+                                    "public @interface ExtendWith {\n" +
+                                    "   Class<? extends Extension>[] value();\n" +
+                                    "}"),
+                            fromString("package " + extensionType.getPackageName() + ";\n" +
+                                    "public class " + extensionType.getClassName() + " {}"
+                            ))).build());
+        } else {
+            javaParser = null;
+        }
     }
 
     @Override
@@ -64,10 +90,6 @@ public class RunnerToExtension extends Recipe {
         return "Replace runners with the JUnit Jupiter extension equivalent.";
     }
 
-    @EqualsAndHashCode.Exclude
-    AtomicReference<JavaTemplate> extendWithTemplate = new AtomicReference<>();
-
-    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             private final JavaType.Class extensionType = JavaType.Class.build(extension);
@@ -107,19 +129,10 @@ public class RunnerToExtension extends Recipe {
             }
 
             private JavaTemplate getTemplate() {
-                return extendWithTemplate.updateAndGet(t -> t != null ? t :
-                        template("@ExtendWith(" + extensionType.getClassName() + ".class)")
-                                .javaParser(JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
-                                        fromString("package org.junit.jupiter.api.extension;\n" +
-                                                "public @interface ExtendWith {\n" +
-                                                "   Class<? extends Extension>[] value();\n" +
-                                                "}"),
-                                        fromString("package " + extensionType.getPackageName() + ";\n" +
-                                                "public class " + extensionType.getClassName() + " {}"
-                                        ))).build())
+                return template("@ExtendWith(" + extensionType.getClassName() + ".class)")
+                                .javaParser(javaParser.get())
                                 .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
-                                .build()
-                );
+                                .build();
             }
         };
     }
