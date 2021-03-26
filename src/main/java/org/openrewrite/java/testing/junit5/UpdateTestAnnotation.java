@@ -20,6 +20,7 @@ import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -29,138 +30,10 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class UpdateTestAnnotation extends Recipe {
-
-    @Override
-    public String getDisplayName() {
-        return "Migrate JUnit4 `@Test` annotations to JUnit5";
-    }
-
-    @Override
-    public String getDescription() {
-        return "Update usages of JUnit4's `@org.junit.Test` annotation to JUnit5's `org.junit.jupiter.api.Test` annotation.";
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new UpdateTestAnnotationVisitor();
-    }
-
-    private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            if (!FindTypes.find(cu, "org.junit.Test").isEmpty()) {
-                doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
-                // Work around https://github.com/openrewrite/rewrite/issues/401
-                ctx.putMessageInSet(JavaType.FOUND_TYPE_CONTEXT_KEY, JavaType.Class.build("org.junit.jupiter.api.Test"));
-                return super.visitCompilationUnit(cu, ctx);
-            }
-            return cu;
-        }
-
-        @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-
-            boolean changed = false;
-            List<J.Annotation> annotations = new ArrayList<>(m.getAllAnnotations());
-            for (int i = 0, annotationsSize = annotations.size(); i < annotationsSize; i++) {
-
-                J.Annotation a = annotations.get(i);
-                if (TypeUtils.isOfClassType(a.getType(), "org.junit.Test")) {
-                    // If we found the annotation, we change the visibility of the method to package, any associated modifier comments are copied to the method
-                    final List<Comment> modifierComments = new ArrayList<>();
-                    List<J.Modifier> modifiers = ListUtils.map(m.getModifiers(), mod -> {
-                        J.Modifier.Type modifierType = mod.getType();
-                        if (modifierType == J.Modifier.Type.Protected || modifierType == J.Modifier.Type.Private ||
-                                modifierType == J.Modifier.Type.Public) {
-                            modifierComments.addAll(mod.getComments());
-                            return null;
-                        }
-                        return mod;
-                    });
-                    if (!modifierComments.isEmpty()) {
-                        m = m.withComments(ListUtils.concatAll(m.getComments(), modifierComments));
-                    }
-                    if (m.getModifiers() != modifiers) {
-                        m = maybeAutoFormat(m, m.withModifiers(modifiers), ctx, getCursor().dropParentUntil(J.class::isInstance));
-                    }
-
-                    annotations.set(i, a.withArguments(null));
-                    if (a.getArguments() == null) {
-                        continue;
-                    }
-                    List<Expression> args = a.getArguments();
-                    for (Expression arg : args) {
-                        if (arg instanceof J.Assignment) {
-                            J.Assignment assign = (J.Assignment) arg;
-                            String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
-                            Expression e = assign.getAssignment();
-                            if (m.getBody() == null) {
-                                continue;
-                            }
-                            if (assignParamName.equals("expected")) {
-                                assert e instanceof J.FieldAccess;
-
-                                List<Statement> statements = m.getBody().getStatements();
-                                String strStatements = statements.stream().map(Statement::print)
-                                        .collect(Collectors.joining(";", "", ";"));
-                                m = m.withTemplate(
-                                        template("{ assertThrows(#{}, () -> {#{}}); }")
-                                                .javaParser(JavaParser.fromJavaVersion()
-                                                        .dependsOn(assertThrowsDependsOn(e))
-                                                        .build())
-                                                .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
-                                                .build(),
-                                        m.getCoordinates().replaceBody(),
-                                        e,
-                                        strStatements
-                                );
-                                maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
-                            } else if (assignParamName.equals("timeout")) {
-                                doAfterVisit(new AddTimeoutAnnotation(m, e));
-                            }
-                        }
-                        changed = true;
-                    }
-                }
-            }
-
-            if (changed) {
-                m = m.withLeadingAnnotations(annotations);
-            }
-            return m;
-        }
-
-        private static class AddTimeoutAnnotation extends JavaIsoVisitor<ExecutionContext> {
-            private final J.MethodDeclaration methodDeclaration;
-            private final Expression expression;
-
-            public AddTimeoutAnnotation(J.MethodDeclaration methodDeclaration, Expression expression) {
-                this.methodDeclaration = methodDeclaration;
-                this.expression = expression;
-            }
-
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                if (!method.isScope(this.methodDeclaration)) {
-                    return method;
-                }
-                method = method.withTemplate(
-                        template("@Timeout(#{})")
-                                .imports("org.junit.jupiter.api.Timeout")
-                                .build(),
-                        method.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
-                        expression
-                );
-                maybeAddImport("org.junit.jupiter.api.Timeout");
-                return method;
-            }
-        }
-    }
 
     private static List<Parser.Input> assertThrowsDependsOn(Expression e) {
         List<Parser.Input> dependsOn = new ArrayList<>(3);
@@ -189,4 +62,175 @@ public class UpdateTestAnnotation extends Recipe {
 
         return dependsOn;
     }
+
+    @Override
+    public String getDisplayName() {
+        return "Migrate JUnit4 `@Test` annotations to JUnit5";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Update usages of JUnit4's `@org.junit.Test` annotation to JUnit5's `org.junit.jupiter.api.Test` annotation.";
+    }
+
+    @Override
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new UpdateTestAnnotationVisitor();
+    }
+
+    private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private static final AnnotationMatcher JUNIT_4_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
+        private static final String JUNIT_4_TEST_ANNOTATION_ARGUMENTS = "junit4TestAnnotationArguments";
+
+        @Override
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            // eval if possible to have this not be necessary and just replace when encountered at visitAnnotation, todo
+            if (!FindTypes.find(cu, "org.junit.Test").isEmpty()) {
+                doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
+                // Work around https://github.com/openrewrite/rewrite/issues/401
+                ctx.putMessageInSet(JavaType.FOUND_TYPE_CONTEXT_KEY, JavaType.Class.build("org.junit.jupiter.api.Test"));
+                return super.visitCompilationUnit(cu, ctx);
+            }
+            return cu;
+        }
+
+        @Override
+        public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
+            J.Annotation ann = super.visitAnnotation(annotation, ctx);
+            if (JUNIT_4_TEST_ANNOTATION_MATCHER.matches(ann)) {
+                getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).putMessage(JUNIT_4_TEST_ANNOTATION_ARGUMENTS, ann.getArguments());
+                ann = ann.withArguments(null);
+            }
+            return ann;
+        }
+
+        @Override
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+            if (m.getLeadingAnnotations().stream().anyMatch(JUNIT_4_TEST_ANNOTATION_MATCHER::matches)) {
+                doAfterVisit(new ChangeTestAccessVisibilityStep(m));
+
+                List<Expression> arguments = getCursor().getMessage(JUNIT_4_TEST_ANNOTATION_ARGUMENTS);
+                if (arguments != null) {
+                    doAfterVisit(new ChangeTestMethodBodyStep(m, arguments));
+                }
+            }
+
+            return m;
+        }
+
+        private static class ChangeTestMethodBodyStep extends JavaIsoVisitor<ExecutionContext> {
+            // consider not have as separate visitor, breaking out for performance eval, todo
+            private final J.MethodDeclaration scope;
+            private final List<Expression> arguments;
+
+            public ChangeTestMethodBodyStep(J.MethodDeclaration scope, List<Expression> arguments) {
+                this.scope = scope;
+                this.arguments = arguments;
+            }
+
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+                if (m.isScope(scope)) {
+                    for (Expression arg : arguments) {
+                        if (arg instanceof J.Assignment) {
+                            J.Assignment assign = (J.Assignment) arg;
+                            String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
+                            Expression e = assign.getAssignment();
+                            if (m.getBody() == null) {
+                                continue;
+                            }
+                            if (assignParamName.equals("expected")) {
+                                assert e instanceof J.FieldAccess;
+
+                                List<Statement> statements = m.getBody().getStatements();
+                                String strStatements = statements.stream().map(Statement::print)
+                                        .collect(Collectors.joining(";", "", ";"));
+                                m = m.withTemplate(
+                                        template("{ assertThrows(#{}, () -> {#{}}); }")
+                                                .javaParser(JavaParser.fromJavaVersion()
+                                                        .dependsOn(assertThrowsDependsOn(e))
+                                                        .build())
+                                                .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
+                                                .build(),
+                                        m.getCoordinates().replaceBody(),
+                                        e,
+                                        strStatements
+                                );
+                                maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
+                            } else if (assignParamName.equals("timeout")) {
+                                doAfterVisit(new AddTimeoutAnnotationStep(m, e));
+                            }
+                        }
+                    }
+                }
+                return m;
+            }
+        }
+
+        private static class ChangeTestAccessVisibilityStep extends JavaIsoVisitor<ExecutionContext> {
+            // consider not have as separate visitor, breaking out for performance eval, todo
+            private static final Predicate<J.Modifier> HAS_ACCESS_MODIFIER = mod -> mod.getType() == J.Modifier.Type.Private || mod.getType() == J.Modifier.Type.Public || mod.getType() == J.Modifier.Type.Protected;
+            private final J.MethodDeclaration scope;
+
+            public ChangeTestAccessVisibilityStep(J.MethodDeclaration scope) {
+                this.scope = scope;
+            }
+
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+                if (m.isScope(scope)) {
+                    // If we found the annotation, we change the visibility of the method to package (no access modifiers) and copy any comments to the method.
+                    // Also need to format the method declaration because the previous visibility likely had formatting that is removed.
+                    final List<Comment> modifierComments = new ArrayList<>();
+                    List<J.Modifier> modifiers = ListUtils.map(m.getModifiers(), modifier -> {
+                        if (HAS_ACCESS_MODIFIER.test(modifier)) {
+                            modifierComments.addAll(modifier.getComments());
+                            return null;
+                        } else {
+                            return modifier;
+                        }
+                    });
+                    if (!modifierComments.isEmpty()) {
+                        m = m.withComments(ListUtils.concatAll(m.getComments(), modifierComments));
+                    }
+                    if (m.getModifiers() != modifiers) {
+                        m = maybeAutoFormat(m, m.withModifiers(modifiers), ctx, getCursor().dropParentUntil(J.class::isInstance));
+                    }
+                }
+                return m;
+            }
+        }
+
+        private static class AddTimeoutAnnotationStep extends JavaIsoVisitor<ExecutionContext> {
+            private final J.MethodDeclaration scope;
+            private final Expression expression;
+
+            public AddTimeoutAnnotationStep(J.MethodDeclaration scope, Expression expression) {
+                this.scope = scope;
+                this.expression = expression;
+            }
+
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                if (method.isScope(this.scope)) {
+                    method = method.withTemplate(
+                            template("@Timeout(#{})")
+                                    .imports("org.junit.jupiter.api.Timeout")
+                                    .build(),
+                            method.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
+                            expression
+                    );
+                    maybeAddImport("org.junit.jupiter.api.Timeout");
+                }
+                return method;
+            }
+        }
+
+    }
+
+
 }
+
