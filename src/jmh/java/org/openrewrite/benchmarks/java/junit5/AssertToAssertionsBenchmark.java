@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.benchmarks.java;
+package org.openrewrite.benchmarks.java.junit5;
 
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.profile.GCProfiler;
@@ -21,7 +21,8 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
-import org.openrewrite.java.testing.junit5.UpdateTestAnnotation;
+import org.openrewrite.benchmarks.java.JavaCompilationUnitState;
+import org.openrewrite.java.testing.junit5.AssertToAssertions;
 
 import java.util.concurrent.TimeUnit;
 
@@ -31,19 +32,19 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.SampleTime)
 @OutputTimeUnit(TimeUnit.SECONDS)
 @Threads(4)
-public class UpdateTestAnnotationBenchmark {
+public class AssertToAssertionsBenchmark {
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
-                .include(UpdateTestAnnotationBenchmark.class.getSimpleName())
+                .include(AssertToAssertionsBenchmark.class.getSimpleName())
                 .addProfiler(GCProfiler.class)
                 .build();
         new Runner(opt).run();
     }
 
     @Benchmark
-    public void updateTestAnnotation(JavaCompilationUnitState state) {
-        new UpdateTestAnnotation().run(state.getSourceFiles());
+    public void assertToAssertions(JavaCompilationUnitState state) {
+        new AssertToAssertions().run(state.getSourceFiles());
     }
 
 }

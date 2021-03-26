@@ -33,7 +33,7 @@ public class JavaCompilationUnitState {
 
     @Setup(Level.Trial)
     public void setup() throws URISyntaxException {
-        Path rewriteRoot = Paths.get(UpdateTestAnnotationBenchmark.class.getResource("./")
+        Path rewriteRoot = Paths.get(JavaCompilationUnitState.class.getResource("./")
                 .toURI()).resolve("../../../../../../../").normalize();
 
         List<Path> inputs = Arrays.asList(
@@ -48,9 +48,9 @@ public class JavaCompilationUnitState {
                 rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/junit5/UpdateBeforeAfterAnnotations.java"),
                 rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/junit5/UpdateTestAnnotation.java"),
                 rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/junit5/UseTestMethodOrder.java"),
-                rewriteRoot.resolve("src/before/java/org/openrewrite/java/testing/junit5/ExampleJunitTestClass.java")
-                // rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/assertj/JUnitAssertArrayEqualsToAssertThat.java"),
-                // rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/mockito/CleanupMockitoImports.java")
+                rewriteRoot.resolve("src/before/java/org/openrewrite/java/testing/junit5/ExampleJunitTestClass.java"),
+                rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/assertj/JUnitAssertArrayEqualsToAssertThat.java"),
+                rewriteRoot.resolve("src/main/java/org/openrewrite/java/testing/mockito/CleanupMockitoImports.java")
         );
 
         sourceFiles = JavaParser.fromJavaVersion()
