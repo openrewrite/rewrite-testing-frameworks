@@ -148,28 +148,28 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
     @Test
     fun junitStarImport() = assertChanged(
         before = """
-                import org.junit.*;
-                
-                public class A {
-                
-                    @Test
-                    public void test() { }
-                }
-            """,
+            import org.junit.*;
+            
+            public class A {
+            
+                @Test
+                public void test() { }
+            }
+        """,
         after = """
-                import org.junit.jupiter.api.Test;
-                
-                public class A {
-                
-                    @Test
-                    void test() {
-                    }
+            import org.junit.jupiter.api.Test;
+            
+            public class A {
+            
+                @Test
+                void test() {
                 }
-            """
+            }
+        """
     )
 
     @Test
-    fun testMethodMofierHasComments() = assertChanged(
+    fun testMethodModifierHasComments() = assertChanged(
         before = """
             import org.junit.Test;import org.openrewrite.Issue;
             
