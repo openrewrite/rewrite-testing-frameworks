@@ -36,6 +36,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.runners.Parameterized;
             import org.junit.runners.Parameterized.Parameters;
         
+            import java.util.List;
+            
             @RunWith(Parameterized.class)
             public class VetTests {
             
@@ -68,6 +70,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
         after = """
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.MethodSource;
+            
+            import java.util.List;
         
         
         
@@ -109,6 +113,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.runner.RunWith;
             import org.junit.runners.Parameterized;
             import org.junit.runners.Parameterized.Parameters;
+            
+            import java.util.List;
         
             @RunWith(Parameterized.class)
             public class VetTests {
@@ -142,6 +148,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
         after = """
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.MethodSource;
+            
+            import java.util.List;
         
         
         
