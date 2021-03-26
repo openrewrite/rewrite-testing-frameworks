@@ -84,6 +84,7 @@ public class UpdateTestAnnotation extends Recipe {
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
+            ctx.putMessageInSet(JavaType.FOUND_TYPE_CONTEXT_KEY, JavaType.Class.build("org.junit.jupiter.api.Test"));
             return super.visitCompilationUnit(cu, ctx);
         }
 
