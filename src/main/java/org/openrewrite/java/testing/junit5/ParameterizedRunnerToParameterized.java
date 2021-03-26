@@ -21,30 +21,30 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.openrewrite.Tree.randomId;
 
 /**
- * Recipe for migrating JUnit4 @RunWith(Parameterized.class) tests to their JUnit 5 Jupiter ParameterizedTest equivalent.
- * <p>
- * Visitor for converting @RunWith(@Parameterized.class) to @ParameterizedTests with @MethodSource
+ * Recipe for migrating JUnit4 @RunWith(Parameterized.class) tests to the JUnit 5 Jupiter ParameterizedTest equivalents.
  * <p>
  * 1. Remove `@RunWith(Parameterized.class)`
  * 2. Replace `@Test` with `@ParameterizedTest` having arguments from `@Parameters` method
- * 3. Add `@MethodSource(...)` with argument equal to `@Parameters` method name to each `@ParameterizedTest`
- * 4. Remove @Parameters annotation
- * 5. Change constructor to an initialization method having a void return type.
- * 6. For each `@ParameterizedTest` Insert statement to Invoke initialization method with test parameters
+ * 3. Add `@MethodSource(...)` with methodName argument equal to `@Parameters` method name to each `@ParameterizedTest`
+ * 4. For constructor injected tests change constructor to an initialization method having a void return type.
+ * 5. For field injected test generate and insert an init-method for class field values
+ * 6. Remove @Parameters and @Parameter annotations
  * 7. Remove imports
  * org.junit.Test;
  * org.junit.runner.RunWith;
  * org.junit.runners.Parameterized;
+ * org.junit.runners.Parameterized.Parameter;
  * org.junit.runners.Parameterized.Parameters;
  * 8. Add imports
  * org.junit.jupiter.params.ParameterizedTest;
@@ -56,12 +56,13 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final AnnotationMatcher JUNIT_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
     private static final AnnotationMatcher JUPITER_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.Test");
     private static final AnnotationMatcher PARAMETERS_MATCHER = new AnnotationMatcher("@org.junit.runners.Parameterized.Parameters");
+    private static final AnnotationMatcher PARAMETER_MATCHER = new AnnotationMatcher("@org.junit.runners.Parameterized.Parameter");
     private static final AnnotationMatcher PARAMETERIZED_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest");
 
-    private static final String PARAMETERIZED_TEST_ANNOTATION_PARAMETERS = "parameterizedTestParameters";
-    private static final String PARAMETERIZED_TEST_METHOD_PARAMETERS = "parameterizedTestMethodParameters";
-    private static final String METHOD_REFERENCE_NAME = "methodReferenceName";
-    private static final String INIT_METHOD_NAME = "initMethodName";
+    private static final String PARAMETERS_ANNOTATION_ARGUMENTS = "parameters-annotation-args";
+    private static final String CONSTRUCTOR_ARGUMENTS = "constructor-args";
+    private static final String FIELD_INJECTION_ARGUMENTS = "field-injection-args";
+    private static final String PARAMETERS_METHOD_NAME = "parameters-method-name";
 
     private static final ThreadLocal<JavaParser> PARAMETERIZED_TEMPLATE_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(Parser.Input.fromResource("/META-INF/rewrite/Parameterized.java", "---")).build()
@@ -85,20 +86,24 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     /**
      * Visitor for collecting Parameterized Test components and then scheduling the appropriate conversion visitor for the next visit
      */
-    protected static class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
-
+    protected class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
 
-            String methodReferenceName = getCursor().getMessage(METHOD_REFERENCE_NAME);
-            String initMethodName = getCursor().getMessage(INIT_METHOD_NAME);
-            List<Expression> testAnnotationParams = getCursor().getMessage(PARAMETERIZED_TEST_ANNOTATION_PARAMETERS);
-            List<Statement> testMethodParams = getCursor().getMessage(PARAMETERIZED_TEST_METHOD_PARAMETERS);
-
-            // Condition for converting to ParameterizedTest with MethodParams
-            if (methodReferenceName != null && testMethodParams != null && initMethodName != null) {
-                doAfterVisit(new ParameterizedTestWithMethodSourceVisitor(methodReferenceName, initMethodName, testAnnotationParams, testMethodParams));
+            String parametersMethodName = getCursor().getMessage(PARAMETERS_METHOD_NAME);
+            List<Expression> parametersAnnotationArguments = getCursor().getMessage(PARAMETERS_ANNOTATION_ARGUMENTS);
+            List<Statement> constructorParams = getCursor().getMessage(CONSTRUCTOR_ARGUMENTS);
+            Map<Integer, Statement> fieldInjectionParams = getCursor().getMessage(FIELD_INJECTION_ARGUMENTS);
+            String initMethodName = "init" + cd.getSimpleName();
+            // Constructor Injected Test
+            if (parametersMethodName != null && constructorParams != null) {
+                doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true));
+            }
+            // Field Injected Test
+            else if (parametersMethodName != null && fieldInjectionParams != null) {
+                List<Statement> fieldParams = new ArrayList<>(fieldInjectionParams.values());
+                doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false));
             }
             return cd;
         }
@@ -109,106 +114,192 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
             m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), annotation -> {
                 if (PARAMETERS_MATCHER.matches(annotation)) {
-                    classDeclCursor.putMessage(PARAMETERIZED_TEST_ANNOTATION_PARAMETERS, annotation.getArguments());
-                    classDeclCursor.putMessage(METHOD_REFERENCE_NAME, method.getSimpleName());
+                    classDeclCursor.putMessage(PARAMETERS_ANNOTATION_ARGUMENTS, annotation.getArguments());
+                    classDeclCursor.putMessage(PARAMETERS_METHOD_NAME, method.getSimpleName());
                 }
                 return annotation;
             }));
             if (m.isConstructor()) {
-                classDeclCursor.putMessage(PARAMETERIZED_TEST_METHOD_PARAMETERS, m.getParameters());
-                classDeclCursor.putMessage(INIT_METHOD_NAME, "init" + m.getSimpleName());
+                classDeclCursor.putMessage(CONSTRUCTOR_ARGUMENTS, m.getParameters());
             }
             return m;
         }
 
-        /**
-         * Visitor for converting Parameterized runner to Parameterized Tests with an associated MethodSource
-         */
-        protected class ParameterizedTestWithMethodSourceVisitor extends JavaIsoVisitor<ExecutionContext> {
-            private final String methodReference;
-            private final String initMethodName;
-            private final List<Statement> parameterizedTestMethodParameters;
-            private final String initStatementParams;
-            private final String parameterizedTestAnnotationTemplate;
+        @Override
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
+            J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, executionContext);
+            Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
+            J.Annotation parameterAnnotation = variableDeclarations.getLeadingAnnotations().stream().filter(PARAMETER_MATCHER::matches).findFirst().orElse(null);
+            if (parameterAnnotation != null) {
+                Map<Integer, Statement> testMethodParams = classDeclCursor.getMessage(FIELD_INJECTION_ARGUMENTS);
+                if (testMethodParams == null) {
+                    testMethodParams = new TreeMap<>();
+                }
+                Integer position = 0;
+                if (parameterAnnotation.getArguments() != null && !parameterAnnotation.getArguments().isEmpty()) {
+                    position = (Integer) ((J.Literal)parameterAnnotation.getArguments().get(0)).getValue();
+                }
+                // the variableDeclaration will be used for a method parameter set the prefix to empty and remove any comments
+                J.VariableDeclarations variableForInitMethod = variableDeclarations.withLeadingAnnotations(new ArrayList<>()).withModifiers(new ArrayList<>()).withPrefix(Space.EMPTY);
+                if (variableForInitMethod.getTypeExpression() != null) {
+                    variableForInitMethod = variableForInitMethod.withTypeExpression(variableForInitMethod.getTypeExpression().withPrefix(Space.EMPTY).withComments(new ArrayList<>()));
+                }
+                testMethodParams.put(position, variableForInitMethod);
+                classDeclCursor.putMessage(FIELD_INJECTION_ARGUMENTS, testMethodParams);
+            }
+            return variableDeclarations;
+        }
+    }
 
-            public ParameterizedTestWithMethodSourceVisitor(String methodReference, String initMethodName, @Nullable List<Expression> parameterizedTestAnnotationParameters, List<Statement> parameterizedTestMethodParameters) {
-                this.methodReference = methodReference;
-                this.initMethodName = initMethodName;
-                this.parameterizedTestMethodParameters = parameterizedTestMethodParameters;
-                this.initStatementParams = parameterizedTestMethodParameters.stream()
+    protected class ParameterizedRunnerToParameterizedTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
+
+        private final String initMethodName;
+        private final List<Statement> parameterizedTestMethodParameters;
+        private final String initStatementParamString;
+
+        private final JavaTemplate parameterizedTestTemplate;
+        private final JavaTemplate methodSourceTemplate;
+        private final JavaTemplate initMethodStatementTemplate;
+        @Nullable
+        private final JavaTemplate initMethodDeclarationTemplate;
+
+        public ParameterizedRunnerToParameterizedTestsVisitor(String parametersMethodName, String initMethodName, @Nullable List<Expression> parameterizedTestAnnotationParameters, List<Statement> parameterizedTestMethodParameters, boolean isConstructorInjection) {
+            this.initMethodName = initMethodName;
+            this.parameterizedTestMethodParameters = parameterizedTestMethodParameters.stream().map(mp -> mp.withPrefix(Space.EMPTY).withComments(new ArrayList<>())).map(Statement.class::cast).collect(Collectors.toList());
+            initStatementParamString = parameterizedTestMethodParameters.stream()
+                    .map(J.VariableDeclarations.class::cast)
+                    .map(v -> v.getVariables().get(0).getSimpleName())
+                    .collect(Collectors.joining(", "));
+
+            // build @ParameterizedTest(#{}) template
+            String parameterizedTestAnnotationTemplate = parameterizedTestAnnotationParameters != null ? "@ParameterizedTest(" + parameterizedTestAnnotationParameters.get(0).print() + ")" : "@ParameterizedTest";
+            this.parameterizedTestTemplate = template(parameterizedTestAnnotationTemplate)
+                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER.get())
+                    .imports("org.junit.jupiter.params.ParameterizedTest").build();
+            // build @MethodSource("...") template
+            this.methodSourceTemplate = template("@MethodSource(\"" + parametersMethodName + "\")")
+                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER.get())
+                    .imports("org.junit.jupiter.params.provider.MethodSource").build();
+            // build init-method with parameters template
+            this.initMethodStatementTemplate = template(initMethodName + "(#{});")
+                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER.get())
+                    .build();
+
+            // If this is not a constructor injected test then build a javaTemplate for a new init-method
+            if (!isConstructorInjection) {
+                StringBuilder initMethodTemplate = new StringBuilder("public void ").append(initMethodName).append("(");
+                List<String> initStatementParams = parameterizedTestMethodParameters.stream()
                         .map(J.VariableDeclarations.class::cast)
+                        .peek(vd -> {
+                            J.Identifier identifier = (J.Identifier)vd.getTypeExpression();
+                            assert identifier != null;
+                            initMethodTemplate.append(((J.Identifier) vd.getTypeExpression()).getSimpleName()).append(" ");
+                            initMethodTemplate.append(vd.getVariables().get(0).getSimpleName()).append(", ");
+                        })
                         .map(n -> n.getVariables().get(0).getSimpleName())
-                        .collect(Collectors.joining(", "));
-                this.parameterizedTestAnnotationTemplate = parameterizedTestAnnotationParameters != null ? "@ParameterizedTest(" + parameterizedTestAnnotationParameters.get(0).print() + ")" : "@ParameterizedTest";
+                        .collect(Collectors.toList());
+                initMethodTemplate.replace(initMethodTemplate.length() - 2, initMethodTemplate.length(), ") {\n");
+                initStatementParams.forEach(p -> initMethodTemplate.append("    this.").append(p).append(" = ").append(p).append(";\n"));
+                initMethodTemplate.append("}");
+                initMethodDeclarationTemplate = template(initMethodTemplate.toString()).javaParser(PARAMETERIZED_TEMPLATE_PARSER.get()).build();
+            } else {
+                initMethodDeclarationTemplate = null;
             }
+        }
 
-            @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
-                // Remove @RunWith(Parameterized.class) annotation
-                cd = cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
-                    if (RUN_WITH_PARAMETERS_ANNOTATION_MATCHER.matches(annotation)) {
-                        return null;
-                    }
-                    return annotation;
-                }));
-
-                // Update Imports
-                maybeRemoveImport("org.junit.Test");
-                maybeRemoveImport("org.junit.runner.RunWith");
-                maybeRemoveImport("org.junit.runners.Parameterized");
-                maybeRemoveImport("org.junit.runners.Parameterized.Parameters");
-                maybeRemoveImport("org.junit.jupiter.api.Test");
-                maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
-                maybeAddImport("org.junit.jupiter.params.provider.MethodSource");
-                return cd;
-            }
-
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-                J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
-
-                // Remove the @Parameters annotation
-                m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), annotation -> {
-                    if (PARAMETERS_MATCHER.matches(annotation)) {
-                        return null;
-                    }
-                    return annotation;
-                }));
-
-                // Replace the @Test with @ParameterizedTest
-                m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), annotation -> {
-                    if (JUPITER_TEST_ANNOTATION_MATCHER.matches(annotation) || JUNIT_TEST_ANNOTATION_MATCHER.matches(annotation)) {
-                        annotation = annotation.withTemplate(template(parameterizedTestAnnotationTemplate)
-                                        .javaParser(PARAMETERIZED_TEMPLATE_PARSER.get())
-                                        .imports("org.junit.jupiter.params.ParameterizedTest").build(),
-                                annotation.getCoordinates().replace());
-                    }
-                    return annotation;
-                }));
-
-                // Add @MethodSource, insert test init statement, add test method parameters
-                if (m.getLeadingAnnotations().stream().anyMatch(PARAMETERIZED_TEST_ANNOTATION_MATCHER::matches)) {
-                    m = m.withTemplate(template("@MethodSource(\"" + methodReference + "\")")
-                                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER.get())
-                                    .imports("org.junit.jupiter.params.provider.MethodSource").build(),
-                            m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
-                    assert m.getBody() != null;
-                    JavaCoordinates newStatementCoordinates = !m.getBody().getStatements().isEmpty() ? m.getBody().getStatements().get(0).getCoordinates().before() : m.getBody().getCoordinates().lastStatement();
-                    m = m.withTemplate(template(initMethodName + "(#{});")
-                            .javaParser(PARAMETERIZED_TEMPLATE_PARSER.get())
-                            .build(), newStatementCoordinates, initStatementParams);
-                    m = m.withParameters(parameterizedTestMethodParameters);
+        @Override
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+            // Remove @RunWith(Parameterized.class) annotation
+            cd = cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
+                if (RUN_WITH_PARAMETERS_ANNOTATION_MATCHER.matches(annotation)) {
+                    return null;
                 }
+                return annotation;
+            }));
 
-                // Change constructor to test init method
-                if (m.isConstructor()) {
-                    m = m.withName(m.getName().withName(initMethodName));
-                    m = maybeAutoFormat(m, m.withReturnTypeExpression(new J.Primitive(randomId(), Space.EMPTY, Markers.EMPTY, JavaType.Primitive.Void)),
-                            executionContext, getCursor().dropParentUntil(J.class::isInstance));
-                }
-                return m;
+            // Update Imports
+            maybeRemoveImport("org.junit.Test");
+            maybeRemoveImport("org.junit.runner.RunWith");
+            maybeRemoveImport("org.junit.runners.Parameterized");
+            maybeRemoveImport("org.junit.runners.Parameterized.Parameters");
+            maybeRemoveImport("org.junit.runners.Parameterized.Parameter");
+            maybeRemoveImport("org.junit.jupiter.api.Test");
+            maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
+            maybeAddImport("org.junit.jupiter.params.provider.MethodSource");
+
+            if (initMethodDeclarationTemplate != null) {
+                cd = maybeAutoFormat(cd, cd.withBody(cd.getBody().withTemplate(initMethodDeclarationTemplate,
+                        cd.getBody().getCoordinates().lastStatement())), executionContext);
             }
+            return cd;
+        }
+
+        @Override
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
+            J.VariableDeclarations vdecls = super.visitVariableDeclarations(multiVariable, executionContext);
+            final AtomicReference<Space> annoPrefix = new AtomicReference<>();
+            vdecls = vdecls.withLeadingAnnotations(ListUtils.map(vdecls.getLeadingAnnotations(), anno -> {
+               if (PARAMETER_MATCHER.matches(anno)){
+                   annoPrefix.set(anno.getPrefix());
+                   return null;
+               }
+               return anno;
+            }));
+            if (annoPrefix.get() != null) {
+                vdecls = vdecls.withPrefix(annoPrefix.get());
+            }
+            if ( !vdecls.getModifiers().isEmpty()) {
+                vdecls = vdecls.withComments(ListUtils.concatAll(multiVariable.getComments(), vdecls.getModifiers().get(0).getComments()));
+            }
+            if (vdecls.getTypeExpression() != null && !vdecls.getTypeExpression().getComments().isEmpty()) {
+                vdecls = vdecls.withComments(ListUtils.concatAll(multiVariable.getComments(), vdecls.getTypeExpression().getComments()));
+            }
+            return vdecls;
+        }
+
+        @Override
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
+
+            // Remove the @Parameters annotation
+            m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), annotation -> {
+                if (PARAMETERS_MATCHER.matches(annotation)) {
+                    return null;
+                }
+                return annotation;
+            }));
+
+            // Replace @Test with @ParameterizedTest
+            m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), annotation -> {
+                if (JUPITER_TEST_ANNOTATION_MATCHER.matches(annotation) || JUNIT_TEST_ANNOTATION_MATCHER.matches(annotation)) {
+                    List<Comment> annoComments = annotation.getComments();
+                    annotation = annotation.withTemplate(parameterizedTestTemplate,
+                            annotation.getCoordinates().replace());
+                    if (!annoComments.isEmpty()) {
+                        annotation = annotation.withComments(annoComments);
+                    }
+                }
+                return annotation;
+            }));
+
+            // Add @MethodSource, insert test init statement, add test method parameters
+            if (m.getLeadingAnnotations().stream().anyMatch(PARAMETERIZED_TEST_ANNOTATION_MATCHER::matches)) {
+                m = m.withTemplate(methodSourceTemplate,
+                        m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                assert m.getBody() != null;
+                JavaCoordinates newStatementCoordinates = !m.getBody().getStatements().isEmpty() ? m.getBody().getStatements().get(0).getCoordinates().before() : m.getBody().getCoordinates().lastStatement();
+                m = m.withTemplate(initMethodStatementTemplate, newStatementCoordinates, initStatementParamString);
+                m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), executionContext, getCursor().dropParentUntil(J.class::isInstance));
+            }
+
+            // Change constructor to test init method
+            if (initMethodDeclarationTemplate == null && m.isConstructor()) {
+                m = m.withName(m.getName().withName(initMethodName));
+                m = maybeAutoFormat(m, m.withReturnTypeExpression(new J.Primitive(randomId(), Space.EMPTY, Markers.EMPTY, JavaType.Primitive.Void)),
+                        executionContext, getCursor().dropParentUntil(J.class::isInstance));
+            }
+            return m;
         }
     }
 }

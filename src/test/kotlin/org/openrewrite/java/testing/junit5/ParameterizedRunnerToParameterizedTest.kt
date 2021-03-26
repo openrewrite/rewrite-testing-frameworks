@@ -36,6 +36,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.runners.Parameterized;
             import org.junit.runners.Parameterized.Parameters;
         
+            import java.util.Arrays;
             import java.util.List;
             
             @RunWith(Parameterized.class)
@@ -71,6 +72,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.MethodSource;
             
+            import java.util.Arrays;
             import java.util.List;
         
         
@@ -114,6 +116,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.runners.Parameterized;
             import org.junit.runners.Parameterized.Parameters;
             
+            import java.util.Arrays;
             import java.util.List;
         
             @RunWith(Parameterized.class)
@@ -149,6 +152,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.MethodSource;
             
+            import java.util.Arrays;
             import java.util.List;
         
         
@@ -180,6 +184,76 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     return Arrays.asList(
                         new Object[] { "Otis", "TheDog", 124 },
                         new Object[] { "Garfield", "TheBoss", 126 });
+                }
+            }
+        """
+    )
+
+    @Test
+    fun parameterizedFieldInjectionToParameterizedTest() = assertChanged(
+        before = """
+            import org.junit.Test;
+            import org.junit.runner.RunWith;
+            import org.junit.runners.Parameterized;
+            import org.junit.runners.Parameterized.Parameter;
+            import org.junit.runners.Parameterized.Parameters;
+
+            import java.util.Arrays;
+            import java.util.List;
+
+            @RunWith(Parameterized.class)
+            public class RewriteTests {
+                // param anno comment
+                @Parameter(1)
+                // vdecl 1 modifier comment
+                public String name;
+                @Parameter(2)
+                // should have modifier test for preserving comments
+                String nickName;
+                @Parameter(0)
+                public Integer id;
+
+                @Parameters(name = "{index}: {0} {1} - {2}")
+                public static List<Object[]> parameters() {
+                    return Arrays.asList(new Object[]{124, "Otis", "TheDog"}, new Object[]{126, "Garfield", "TheBoss"});
+                }
+
+                @Test
+                public void checkName() {
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.params.ParameterizedTest;
+            import org.junit.jupiter.params.provider.MethodSource;
+            
+            import java.util.Arrays;
+            import java.util.List;
+        
+        
+            public class RewriteTests {
+                // param anno comment
+                // vdecl 1 modifier comment
+                public String name;
+                // should have modifier test for preserving comments
+                String nickName;
+                public Integer id;
+            
+            
+                public static List<Object[]> parameters() {
+                    return Arrays.asList(new Object[]{124, "Otis", "TheDog"}, new Object[]{126, "Garfield", "TheBoss"});
+                }
+            
+                @MethodSource("parameters")
+                @ParameterizedTest(name = "{index}: {0} {1} - {2}")
+                public void checkName(Integer id, String name, String nickName) {
+                    initRewriteTests(id, name, nickName);
+                }
+            
+                public void initRewriteTests(Integer id, String name, String nickName) {
+                    this.id = id;
+                    this.name = name;
+                    this.nickName = nickName;
                 }
             }
         """
