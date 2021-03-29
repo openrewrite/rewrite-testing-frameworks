@@ -140,6 +140,7 @@ public class UpdateTestAnnotation extends Recipe {
 
                                 List<Statement> statements = m.getBody().getStatements();
                                 String strStatements = statements.stream().map(Statement::print).collect(Collectors.joining(";", "", ";"));
+
                                 m = m.withTemplate(
                                         template("{ assertThrows(#{}, () -> {#{}}); }")
                                                 .javaParser(JavaParser.fromJavaVersion()
