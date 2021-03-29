@@ -239,6 +239,45 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
     )
 
     @Test
+    fun testAnnotationWithImportedException() = assertChanged(
+        dependsOn = arrayOf(
+            """
+            package com.abc;
+            public class MyException extends Exception {
+            }
+        """.trimIndent()
+        ),
+        before = """
+            import com.abc.MyException;
+            import org.junit.Test;
+            
+            public class A {
+            
+                @Test(expected = MyException.class)
+                public void test() {
+                    throw new MyException("my exception");
+                }
+            }
+        """,
+        after = """
+            import com.abc.MyException;
+            import org.junit.jupiter.api.Test;
+            
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            
+            public class A {
+            
+                @Test
+                void test() {
+                    assertThrows(MyException.class, () -> {
+                        throw new MyException("my exception");
+                    });
+                }
+            }
+        """
+    )
+
+    @Test
     fun testAnnotationWithTimeoutAndException() = assertChanged(
         before = """
             import org.junit.Test;
