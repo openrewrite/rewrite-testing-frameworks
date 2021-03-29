@@ -210,7 +210,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                 @Parameter(2)
                 // should have modifier test for preserving comments
                 String nickName;
-                @Parameter(0)
+                @Parameter()
                 public Integer id;
 
                 @Parameters(name = "{index}: {0} {1} - {2}")

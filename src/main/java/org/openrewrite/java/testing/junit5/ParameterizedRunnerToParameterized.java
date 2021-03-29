@@ -136,7 +136,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     testMethodParams = new TreeMap<>();
                 }
                 Integer position = 0;
-                if (parameterAnnotation.getArguments() != null && !parameterAnnotation.getArguments().isEmpty()) {
+                if (parameterAnnotation.getArguments() != null && !parameterAnnotation.getArguments().isEmpty() && !(parameterAnnotation.getArguments().get(0) instanceof J.Empty)) {
                     position = (Integer) ((J.Literal)parameterAnnotation.getArguments().get(0)).getValue();
                 }
                 // the variableDeclaration will be used for a method parameter set the prefix to empty and remove any comments
