@@ -15,15 +15,13 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.search.FindTypes;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
@@ -84,9 +82,13 @@ public class UpdateTestAnnotation extends Recipe {
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
-            ctx.putMessageInSet(JavaType.FOUND_TYPE_CONTEXT_KEY, JUNIT_JUPITER_TEST);
-            return super.visitCompilationUnit(cu, ctx);
+            if (!FindTypes.find(cu, "org.junit.Test").isEmpty()) {
+                doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
+                // work around https://github.com/openrewrite/rewrite/issues/401
+                ctx.putMessageInSet(JavaType.FOUND_TYPE_CONTEXT_KEY, JUNIT_JUPITER_TEST);
+                return super.visitCompilationUnit(cu, ctx);
+            }
+            return cu;
         }
 
         @Override
@@ -126,23 +128,20 @@ public class UpdateTestAnnotation extends Recipe {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-                if (m.isScope(scope)) {
+                if (m.isScope(scope) && m.getBody() != null) {
                     for (Expression arg : arguments) {
                         if (arg instanceof J.Assignment) {
                             J.Assignment assign = (J.Assignment) arg;
                             String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
                             Expression e = assign.getAssignment();
-                            if (m.getBody() == null) {
-                                continue;
-                            }
                             if (assignParamName.equals("expected")) {
                                 assert e instanceof J.FieldAccess;
 
                                 List<Statement> statements = m.getBody().getStatements();
-                                String strStatements = statements.stream().map(Statement::print).collect(Collectors.joining(";", "", ";"));
+                                String strStatements = statements.stream().map(Tree::print).collect(Collectors.joining(";", "", ";"));
 
                                 m = m.withTemplate(
-                                        template("{ assertThrows(#{}, () -> {#{}}); }")
+                                        template("{ assertThrows(#{}, () -> { #{} }); }")
                                                 .javaParser(JavaParser.fromJavaVersion()
                                                         .dependsOn(assertThrowsDependsOn(e))
                                                         .build())
