@@ -32,15 +32,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: ${{ matrix.java }}
-      - name: setup-cache
-        uses: actions/cache@v2.1.4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
       - name: build
         run: ./gradlew ${GRADLE_SWITCHES} build test
 
@@ -56,15 +47,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: "11"
-      - name: setup-cache
-        uses: actions/cache@v2.1.4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
       - name: publish-snapshots
         if: github.event_name == 'push'
         timeout-minutes: 30
