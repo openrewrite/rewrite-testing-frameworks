@@ -27,12 +27,12 @@ fun main(args: Array<String>) {
     val beforeDir = Paths.get(args[0]).resolve("before")
     val afterDir = Paths.get(args[0]).resolve("after")
     val parser: JavaParser = JavaParser.fromJavaVersion()
-            .classpath("mockito-all", "junit")
-            .build()
+        .classpath("mockito-all", "junit")
+        .build()
 
     val recipe = loadRecipeFromClasspath(
-            "org.openrewrite.java.testing.junit5.JUnit4to5Migration",
-            "org.openrewrite.java.testing.mockito.Mockito1to3Migration"
+        "org.openrewrite.java.testing.junit5.JUnit4to5Migration",
+        "org.openrewrite.java.testing.mockito.Mockito1to3Migration"
     )
 
     val sources = parser.parse(listJavaSources(beforeDir), beforeDir, InMemoryExecutionContext())
@@ -52,6 +52,6 @@ private fun listJavaSources(sourceDirectory: Path): List<Path> {
     }
     val sourceRoot = sourceDirectoryFile.toPath()
     return Files.walk(sourceRoot)
-            .filter { f: Path -> !Files.isDirectory(f) && f.toFile().name.endsWith(".java") }
-            .collect(Collectors.toList())
+        .filter { f: Path -> !Files.isDirectory(f) && f.toFile().name.endsWith(".java") }
+        .collect(Collectors.toList())
 }

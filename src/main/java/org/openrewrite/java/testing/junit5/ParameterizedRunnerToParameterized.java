@@ -137,7 +137,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 }
                 Integer position = 0;
                 if (parameterAnnotation.getArguments() != null && !parameterAnnotation.getArguments().isEmpty() && !(parameterAnnotation.getArguments().get(0) instanceof J.Empty)) {
-                    position = (Integer) ((J.Literal)parameterAnnotation.getArguments().get(0)).getValue();
+                    position = (Integer) ((J.Literal) parameterAnnotation.getArguments().get(0)).getValue();
                 }
                 // the variableDeclaration will be used for a method parameter set the prefix to empty and remove any comments
                 J.VariableDeclarations variableForInitMethod = variableDeclarations.withLeadingAnnotations(new ArrayList<>()).withModifiers(new ArrayList<>()).withPrefix(Space.EMPTY);
@@ -191,7 +191,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 List<String> initStatementParams = parameterizedTestMethodParameters.stream()
                         .map(J.VariableDeclarations.class::cast)
                         .peek(vd -> {
-                            J.Identifier identifier = (J.Identifier)vd.getTypeExpression();
+                            J.Identifier identifier = (J.Identifier) vd.getTypeExpression();
                             assert identifier != null;
                             initMethodTemplate.append(((J.Identifier) vd.getTypeExpression()).getSimpleName()).append(" ");
                             initMethodTemplate.append(vd.getVariables().get(0).getSimpleName()).append(", ");
@@ -240,16 +240,16 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             J.VariableDeclarations vdecls = super.visitVariableDeclarations(multiVariable, executionContext);
             final AtomicReference<Space> annoPrefix = new AtomicReference<>();
             vdecls = vdecls.withLeadingAnnotations(ListUtils.map(vdecls.getLeadingAnnotations(), anno -> {
-               if (PARAMETER_MATCHER.matches(anno)){
-                   annoPrefix.set(anno.getPrefix());
-                   return null;
-               }
-               return anno;
+                if (PARAMETER_MATCHER.matches(anno)) {
+                    annoPrefix.set(anno.getPrefix());
+                    return null;
+                }
+                return anno;
             }));
             if (annoPrefix.get() != null) {
                 vdecls = vdecls.withPrefix(annoPrefix.get());
             }
-            if ( !vdecls.getModifiers().isEmpty()) {
+            if (!vdecls.getModifiers().isEmpty()) {
                 vdecls = vdecls.withComments(ListUtils.concatAll(multiVariable.getComments(), vdecls.getModifiers().get(0).getComments()));
             }
             if (vdecls.getTypeExpression() != null && !vdecls.getTypeExpression().getComments().isEmpty()) {

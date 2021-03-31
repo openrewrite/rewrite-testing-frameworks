@@ -25,7 +25,6 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JRightPadded;
-import org.openrewrite.java.tree.JavaCoordinates;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.marker.Markers;
 

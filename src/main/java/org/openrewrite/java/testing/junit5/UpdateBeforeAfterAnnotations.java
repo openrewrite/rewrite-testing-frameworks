@@ -73,7 +73,7 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-            
+
             List<J.Annotation> annotations = new ArrayList<>(m.getLeadingAnnotations());
             for (J.Annotation a : annotations) {
 
@@ -86,15 +86,15 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
                     // Also need to format the method declaration because the previous visibility likely had formatting that is removed.
                     final List<Comment> modifierComments = new ArrayList<>();
                     List<J.Modifier> modifiers = ListUtils.map(m.getModifiers(), modifier -> {
-                                if (modifier.getType() == J.Modifier.Type.Private ||
-                                        modifier.getType() == J.Modifier.Type.Public ||
-                                        modifier.getType() == J.Modifier.Type.Protected) {
-                                    modifierComments.addAll(modifier.getComments());
-                                    return null;
-                                } else {
-                                    return modifier;
-                                }
-                            });
+                        if (modifier.getType() == J.Modifier.Type.Private ||
+                                modifier.getType() == J.Modifier.Type.Public ||
+                                modifier.getType() == J.Modifier.Type.Protected) {
+                            modifierComments.addAll(modifier.getComments());
+                            return null;
+                        } else {
+                            return modifier;
+                        }
+                    });
                     if (!modifierComments.isEmpty()) {
                         m = m.withComments(ListUtils.concatAll(m.getComments(), modifierComments));
                     }

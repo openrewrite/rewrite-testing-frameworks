@@ -21,7 +21,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -33,7 +32,6 @@ import org.openrewrite.java.tree.JavaType;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.openrewrite.Parser.Input.fromString;
 
@@ -130,9 +128,9 @@ public class RunnerToExtension extends Recipe {
 
             private JavaTemplate getTemplate() {
                 return template("@ExtendWith(" + extensionType.getClassName() + ".class)")
-                                .javaParser(javaParser.get())
-                                .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
-                                .build();
+                        .javaParser(javaParser.get())
+                        .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
+                        .build();
             }
         };
     }
