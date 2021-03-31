@@ -151,7 +151,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
     }
 
-    protected class ParameterizedRunnerToParameterizedTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
+    protected static class ParameterizedRunnerToParameterizedTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private final String initMethodName;
         private final List<Statement> parameterizedTestMethodParameters;
