@@ -21,7 +21,7 @@ import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
-class StaticImportsTest: JavaRecipeTest {
+class StaticImportsTest : JavaRecipeTest {
     @Test
     fun useAssertionsStaticImport() = assertChanged(
         parser = JavaParser.fromJavaVersion().build(),

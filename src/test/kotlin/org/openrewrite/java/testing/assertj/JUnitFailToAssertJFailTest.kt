@@ -18,211 +18,211 @@ package org.openrewrite.java.testing.assertj
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
 import org.openrewrite.Recipe
-import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.tree.J
 
 class JUnitFailToAssertJFailTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .build()
+        .classpath("junit")
+        .build()
 
     override val recipe: Recipe
         get() = JUnitFailToAssertJFail()
 
     @Test
     fun singleStaticMethodNoMessage() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.fail;
+            import static org.junit.jupiter.api.Assertions.fail;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        fail();
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    fail();
                 }
-            """,
-            after = """
-                import org.junit.Test;
+            }
+        """,
+        after = """
+            import org.junit.Test;
 
-                import static org.assertj.core.api.Assertions.fail;
+            import static org.assertj.core.api.Assertions.fail;
 
-                public class A {
+            public class A {
 
-                    @Test
-                    public void test() {
-                        fail("");
-                    }
+                @Test
+                public void test() {
+                    fail("");
                 }
-            """
+            }
+        """
     )
 
     @Test
     fun singleStaticMethodWithMessage() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.fail;
+            import static org.junit.jupiter.api.Assertions.fail;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        fail("This should fail");
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    fail("This should fail");
                 }
-            """,
-            after = """
-                import org.junit.Test;
+            }
+        """,
+        after = """
+            import org.junit.Test;
 
-                import static org.assertj.core.api.Assertions.fail;
+            import static org.assertj.core.api.Assertions.fail;
 
-                public class A {
+            public class A {
 
-                    @Test
-                    public void test() {
-                        fail("This should fail");
-                    }
+                @Test
+                public void test() {
+                    fail("This should fail");
                 }
-            """
+            }
+        """
     )
 
     @Test
     fun singleStaticMethodWithMessageAndCause() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.fail;
+            import static org.junit.jupiter.api.Assertions.fail;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        Throwable t = new Throwable();
-                        fail("This should fail", t);
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    Throwable t = new Throwable();
+                    fail("This should fail", t);
                 }
-            """,
-            after = """
-                import org.junit.Test;
+            }
+        """,
+        after = """
+            import org.junit.Test;
 
-                import static org.assertj.core.api.Assertions.fail;
+            import static org.assertj.core.api.Assertions.fail;
 
-                public class A {
+            public class A {
 
-                    @Test
-                    public void test() {
-                        Throwable t = new Throwable();
-                        fail("This should fail", t);
-                    }
+                @Test
+                public void test() {
+                    Throwable t = new Throwable();
+                    fail("This should fail", t);
                 }
-            """
+            }
+        """
     )
 
     @Test
     fun singleStaticMethodWithCause() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.fail;
+            import static org.junit.jupiter.api.Assertions.fail;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        Throwable t = new Throwable();
-                        fail(t);
-                        fail(new Throwable());
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    Throwable t = new Throwable();
+                    fail(t);
+                    fail(new Throwable());
                 }
-            """,
-            after = """
-                import org.junit.Test;
+            }
+        """,
+        after = """
+            import org.junit.Test;
 
-                import static org.assertj.core.api.Assertions.fail;
+            import static org.assertj.core.api.Assertions.fail;
 
-                public class A {
+            public class A {
 
-                    @Test
-                    public void test() {
-                        Throwable t = new Throwable();
-                        fail("", t);
-                        fail("", new Throwable());
-                    }
+                @Test
+                public void test() {
+                    Throwable t = new Throwable();
+                    fail("", t);
+                    fail("", new Throwable());
                 }
-            """
+            }
+        """
     )
 
     @Test
     fun inlineReference() = assertChanged(
-            before = """
-                import org.junit.Test;
- 
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        org.junit.jupiter.api.Assertions.fail();
-                        org.junit.jupiter.api.Assertions.fail("This should fail");
-                        org.junit.jupiter.api.Assertions.fail("This should fail", new Throwable());
-                        org.junit.jupiter.api.Assertions.fail(new Throwable());
-                    }
-                }
-            """,
-            after = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.assertj.core.api.Assertions.fail;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        fail("");
-                        fail("This should fail");
-                        fail("This should fail", new Throwable());
-                        fail("", new Throwable());
-                    }
+            public class A {
+            
+                @Test
+                public void test() {
+                    org.junit.jupiter.api.Assertions.fail();
+                    org.junit.jupiter.api.Assertions.fail("This should fail");
+                    org.junit.jupiter.api.Assertions.fail("This should fail", new Throwable());
+                    org.junit.jupiter.api.Assertions.fail(new Throwable());
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.assertj.core.api.Assertions.fail;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    fail("");
+                    fail("This should fail");
+                    fail("This should fail", new Throwable());
+                    fail("", new Throwable());
+                }
+            }
+        """
     )
 
     @Test
     fun mixedReferences() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                import static org.junit.jupiter.api.Assertions.fail;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        fail();
-                        org.junit.jupiter.api.Assertions.fail("This should fail");
-                        fail("This should fail", new Throwable());
-                        org.junit.jupiter.api.Assertions.fail(new Throwable());
-                    }
+        before = """
+            import org.junit.Test;
+            
+            import static org.junit.jupiter.api.Assertions.fail;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    fail();
+                    org.junit.jupiter.api.Assertions.fail("This should fail");
+                    fail("This should fail", new Throwable());
+                    org.junit.jupiter.api.Assertions.fail(new Throwable());
                 }
-            """,
-            after = """
-                import org.junit.Test;
+            }
+        """,
+        after = """
+            import org.junit.Test;
 
-                import static org.assertj.core.api.Assertions.fail;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        fail("");
-                        fail("This should fail");
-                        fail("This should fail", new Throwable());
-                        fail("", new Throwable());
-                    }
+            import static org.assertj.core.api.Assertions.fail;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    fail("");
+                    fail("This should fail");
+                    fail("This should fail", new Throwable());
+                    fail("", new Throwable());
                 }
-            """
+            }
+        """
     )
 }

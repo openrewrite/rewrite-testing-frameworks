@@ -18,212 +18,212 @@ package org.openrewrite.java.testing.assertj
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
 import org.openrewrite.Recipe
-import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.tree.J
 
 class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-            .classpath("junit-jupiter-api")
-            .build()
+        .classpath("junit-jupiter-api")
+        .build()
 
     override val recipe: Recipe
         get() = JUnitAssertSameToAssertThat()
 
     @Test
     fun singleStaticMethodNoMessage() = assertChanged(
-            before = """
-                import org.junit.jupiter.api.Test;
-                
-                import static org.junit.jupiter.api.Assertions.assertSame;
+        before = """
+            import org.junit.jupiter.api.Test;
+            
+            import static org.junit.jupiter.api.Assertions.assertSame;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        String str = "String";
-                        assertSame(notification(), str);
-                    }
-                    private String notification() {
-                        return "String";
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    String str = "String";
+                    assertSame(notification(), str);
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        String str = "String";
-                        assertThat(str).isSameAs(notification());
-                    }
-                    private String notification() {
-                        return "String";
-                    }
+                private String notification() {
+                    return "String";
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    String str = "String";
+                    assertThat(str).isSameAs(notification());
+                }
+                private String notification() {
+                    return "String";
+                }
+            }
+        """
     )
 
     @Test
     fun singleStaticMethodWithMessageString() = assertChanged(
-            before = """
-                import org.junit.jupiter.api.Test;
+        before = """
+            import org.junit.jupiter.api.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertSame;
+            import static org.junit.jupiter.api.Assertions.assertSame;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        String str = "string";
-                        assertSame(notification(), str, "Should be the same");
-                    }
-                    private String notification() {
-                        return "String";
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    String str = "string";
+                    assertSame(notification(), str, "Should be the same");
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        String str = "string";
-                        assertThat(str).as("Should be the same").isSameAs(notification());
-                    }
-                    private String notification() {
-                        return "String";
-                    }
+                private String notification() {
+                    return "String";
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    String str = "string";
+                    assertThat(str).as("Should be the same").isSameAs(notification());
+                }
+                private String notification() {
+                    return "String";
+                }
+            }
+        """
     )
 
     @Test
     fun singleStaticMethodWithMessageSupplier() = assertChanged(
-            before = """
-                import org.junit.jupiter.api.Test;
+        before = """
+            import org.junit.jupiter.api.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertSame;
+            import static org.junit.jupiter.api.Assertions.assertSame;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        String str = "string";
-                        assertSame(notification(), str, () -> "Should be the same");
-                    }
-                    private String notification() {
-                        return "String";
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    String str = "string";
+                    assertSame(notification(), str, () -> "Should be the same");
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        String str = "string";
-                        assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
-                    }
-                    private String notification() {
-                        return "String";
-                    }
+                private String notification() {
+                    return "String";
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    String str = "string";
+                    assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
+                }
+                private String notification() {
+                    return "String";
+                }
+            }
+        """
     )
 
     @Test
     fun inlineReference() = assertChanged(
-            before = """
-                import org.junit.jupiter.api.Test;
- 
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        String str = "string";
-                        org.junit.jupiter.api.Assertions.assertSame(notification(), str);
-                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be the same");
-                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, () -> "Should be the same");
-                    }
-                    private String notification() {
-                        return "String";
-                    }
+        before = """
+            import org.junit.jupiter.api.Test;
+
+            public class A {
+            
+                @Test
+                public void test() {
+                    String str = "string";
+                    org.junit.jupiter.api.Assertions.assertSame(notification(), str);
+                    org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be the same");
+                    org.junit.jupiter.api.Assertions.assertSame(notification(), str, () -> "Should be the same");
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        String str = "string";
-                        assertThat(str).isSameAs(notification());
-                        assertThat(str).as("Should be the same").isSameAs(notification());
-                        assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
-                    }
-                    private String notification() {
-                        return "String";
-                    }
+                private String notification() {
+                    return "String";
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+            
+            import static org.assertj.core.api.Assertions.assertThat;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    String str = "string";
+                    assertThat(str).isSameAs(notification());
+                    assertThat(str).as("Should be the same").isSameAs(notification());
+                    assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
+                }
+                private String notification() {
+                    return "String";
+                }
+            }
+        """
     )
 
     @Test
     fun mixedReferences() = assertChanged(
-            before = """
-                import org.junit.jupiter.api.Test;
-                
-                import static org.assertj.core.api.Assertions.*;
-                import static org.junit.jupiter.api.Assertions.assertSame;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        String str = "string";
-                        assertSame(notification(), str);
-                        org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be the same");
-                        assertSame(notification(), str, () -> "Should be the same");
-                    }
-                    private String notification() {
-                        return "String";
-                    }
+        before = """
+            import org.junit.jupiter.api.Test;
+            
+            import static org.assertj.core.api.Assertions.*;
+            import static org.junit.jupiter.api.Assertions.assertSame;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    String str = "string";
+                    assertSame(notification(), str);
+                    org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be the same");
+                    assertSame(notification(), str, () -> "Should be the same");
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.Test;
-                
-                import static org.assertj.core.api.Assertions.*;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        String str = "string";
-                        assertThat(str).isSameAs(notification());
-                        assertThat(str).as("Should be the same").isSameAs(notification());
-                        assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
-                    }
-                    private String notification() {
-                        return "String";
-                    }
+                private String notification() {
+                    return "String";
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+            
+            import static org.assertj.core.api.Assertions.*;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    String str = "string";
+                    assertThat(str).isSameAs(notification());
+                    assertThat(str).as("Should be the same").isSameAs(notification());
+                    assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
+                }
+                private String notification() {
+                    return "String";
+                }
+            }
+        """
     )
 }
