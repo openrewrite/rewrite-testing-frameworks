@@ -26,7 +26,6 @@ import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.tree.J;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Value
@@ -46,7 +45,7 @@ public class RemoveObsoleteRunners extends Recipe {
     @Override
     public String getDescription() {
         return "Some JUnit4 @RunWith() annotations do not require replacement with an equivalent JUnit 5 @ExtendsWith() annotation. " +
-        "This can be used to remove those runners that either do not have a JUnit5 equivalent or do not require a replacement as part of JUnit 4 to 5 migration.";
+                "This can be used to remove those runners that either do not have a JUnit5 equivalent or do not require a replacement as part of JUnit 4 to 5 migration.";
     }
 
     @Override
@@ -61,14 +60,14 @@ public class RemoveObsoleteRunners extends Recipe {
             List<J.Annotation> filteredAnnotations = null;
             for (String runner : obsoleteRunners) {
                 for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                    if(filteredAnnotations == null) {
+                    if (filteredAnnotations == null) {
                         filteredAnnotations = new ArrayList<>(classDecl.getLeadingAnnotations());
                     }
                     filteredAnnotations.remove(runWith);
                     maybeRemoveImport(runner);
                 }
             }
-            if(filteredAnnotations != null) {
+            if (filteredAnnotations != null) {
                 classDecl = classDecl.withLeadingAnnotations(filteredAnnotations);
                 maybeRemoveImport("org.junit.runner.RunWith");
             }

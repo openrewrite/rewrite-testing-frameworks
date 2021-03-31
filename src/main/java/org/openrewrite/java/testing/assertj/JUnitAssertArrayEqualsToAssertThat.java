@@ -79,6 +79,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AssertArrayEqualsToAssertThatVisitor();
     }
+
     public static class AssertArrayEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";

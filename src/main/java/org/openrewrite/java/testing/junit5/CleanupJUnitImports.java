@@ -43,7 +43,7 @@ public class CleanupJUnitImports extends Recipe {
     public static class CleanupJUnitImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            for(J.Import im : cu.getImports()) {
+            for (J.Import im : cu.getImports()) {
                 String packageName = im.getPackageName();
                 if (packageName.startsWith("junit") || (packageName.startsWith("org.junit") && !packageName.contains("jupiter"))) {
                     maybeRemoveImport(im.getTypeName());
