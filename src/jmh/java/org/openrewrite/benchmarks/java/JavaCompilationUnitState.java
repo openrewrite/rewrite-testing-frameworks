@@ -54,8 +54,6 @@ public class JavaCompilationUnitState {
         );
 
         sourceFiles = JavaParser.fromJavaVersion()
-                .classpath("lombok", "jackson-annotations", "micrometer-core", "slf4j-api", "mockito-all", "junit", "rewrite-core", "rewrite-java")
-                // .logCompilationWarningsAndErrors(true)
                 .build()
                 .parse(inputs, null, new InMemoryExecutionContext(Throwable::printStackTrace));
     }
