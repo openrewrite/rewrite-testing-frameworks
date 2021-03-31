@@ -42,7 +42,7 @@ public class CategoryToTag extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Transforms the Junit4 @Category, which can list multiple categories, into one @Tag annotation per category listed";
+        return "Transforms the Junit4 @Category, which can list multiple categories, into one @Tag annotation per category listed.";
     }
 
     @Override

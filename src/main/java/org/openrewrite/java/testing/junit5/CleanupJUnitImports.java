@@ -32,7 +32,7 @@ public class CleanupJUnitImports extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Orders imports and removes unused org.junit import symbols";
+        return "Orders imports and removes unused org.junit import symbols.";
     }
 
     @Override

@@ -43,7 +43,7 @@ public class AssertToAssertions extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Change JUnit4's org.junit.Assert into JUnit5's org.junit.jupiter.api.Assertions";
+        return "Change JUnit4's org.junit.Assert into JUnit5's org.junit.jupiter.api.Assertions.";
     }
 
     @Override
@@ -82,12 +82,12 @@ public class AssertToAssertions extends Recipe {
                 ).collect(Collectors.toList());
                 m = m.withArguments(newArgs);
             }
-            m = maybeAutoFormat(method, m, ctx, getCursor().dropParentUntil(it -> it instanceof J));
+            m = maybeAutoFormat(method, m, ctx, getCursor().dropParentUntil(J.class::isInstance));
 
             return m;
         }
 
-        private boolean isJunitAssertMethod(J.MethodInvocation method) {
+        private static boolean isJunitAssertMethod(J.MethodInvocation method) {
             if (method.getType() != null && TypeUtils.isAssignableTo(ASSERTION_TYPE, method.getType().getDeclaringType())) {
                 return true;
             }

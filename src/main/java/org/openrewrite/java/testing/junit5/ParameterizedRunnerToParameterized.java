@@ -86,7 +86,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     /**
      * Visitor for collecting Parameterized Test components and then scheduling the appropriate conversion visitor for the next visit
      */
-    protected class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
+    protected static class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
@@ -151,7 +151,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
     }
 
-    protected class ParameterizedRunnerToParameterizedTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
+    protected static class ParameterizedRunnerToParameterizedTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private final String initMethodName;
         private final List<Statement> parameterizedTestMethodParameters;

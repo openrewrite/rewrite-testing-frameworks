@@ -72,7 +72,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
 
     @Override
     public String getDescription() {
-        return "convert JUnit-style assertArrayEquals() to assertJ's assertThat().contains...";
+        return "Convert JUnit-style assertArrayEquals() to assertJ's assertThat().contains() equivalents.";
     }
 
     @Override
@@ -183,7 +183,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
          * @param expression The expression parsed from the original AST.
          * @return true if the type is a floating point number.
          */
-        private boolean isFloatingPointType(Expression expression) {
+        private static boolean isFloatingPointType(Expression expression) {
 
             JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
             if (fullyQualified != null) {

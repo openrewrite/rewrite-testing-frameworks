@@ -48,7 +48,7 @@ public class MockUtilsToStatic extends Recipe {
 
     @Override
     public String getDescription() {
-        return "best-effort attempt to remove MockUtil instances";
+        return "Best-effort attempt to remove MockUtil instances.";
     }
 
     @Override
@@ -57,8 +57,7 @@ public class MockUtilsToStatic extends Recipe {
     }
 
     public static class MockUtilsToStaticVisitor extends JavaVisitor<ExecutionContext> {
-
-        private final MethodMatcher methodMatcher = new MethodMatcher("org.mockito.internal.util.MockUtil MockUtil()");
+        private static final MethodMatcher METHOD_MATCHER = new MethodMatcher("org.mockito.internal.util.MockUtil MockUtil()");
         private final ChangeMethodTargetToStatic changeMethodTargetToStatic = new ChangeMethodTargetToStatic(
                 "org.mockito.internal.util.MockUtil *(..)",
                 "org.mockito.internal.util.MockUtil"
@@ -72,16 +71,16 @@ public class MockUtilsToStatic extends Recipe {
 
         @Override
         public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
-            if (methodMatcher.matches(newClass)) {
+            if (METHOD_MATCHER.matches(newClass)) {
                 // Check to see if the new MockUtil() is being assigned to a variable or field, like
                 // MockUtil util = new MockUtil();
                 // If it is, then we'll get rid of it
 
-                Optional.of(getCursor().dropParentUntil(it -> it instanceof J))
+                Optional.of(getCursor().dropParentUntil(J.class::isInstance))
                         .filter(it -> it.getValue() instanceof J.VariableDeclarations.NamedVariable)
-                        .map(cur -> cur.dropParentUntil(it -> it instanceof J))
+                        .map(cur -> cur.dropParentUntil(J.class::isInstance))
                         .map(Cursor::getValue)
-                        .filter(it -> it instanceof J.VariableDeclarations.VariableDeclarations)
+                        .filter(J.VariableDeclarations.VariableDeclarations.class::isInstance)
                         .ifPresent(namedVar -> doAfterVisit(new DeleteStatement<>((J.VariableDeclarations) namedVar)));
             }
             return super.visitNewClass(newClass, ctx);

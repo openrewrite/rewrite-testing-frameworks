@@ -56,7 +56,7 @@ public class JUnitFailToAssertJFail extends Recipe {
 
     @Override
     public String getDescription() {
-        return "convert JUnit-style fail() to assertJ's fail()";
+        return "Convert JUnit-style fail() to assertJ's fail().";
     }
 
     @Override

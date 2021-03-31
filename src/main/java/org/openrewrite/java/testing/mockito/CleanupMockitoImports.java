@@ -33,7 +33,7 @@ public class CleanupMockitoImports extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Orders imports and removes unused imports org.mockito import symbols";
+        return "Orders imports and removes unused imports org.mockito import symbols.";
     }
 
     @Override

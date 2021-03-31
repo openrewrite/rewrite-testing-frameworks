@@ -60,7 +60,7 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
 
     @Override
     public String getDescription() {
-        return "convert JUnit-style assertTrue() to assertJ's assertThat().isTrue()";
+        return "Convert JUnit-style assertTrue() to assertJ's assertThat().isTrue().";
     }
 
     @Override

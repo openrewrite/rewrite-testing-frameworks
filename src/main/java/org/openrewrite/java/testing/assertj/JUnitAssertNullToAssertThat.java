@@ -54,7 +54,7 @@ public class JUnitAssertNullToAssertThat extends Recipe {
 
     @Override
     public String getDescription() {
-        return "convert JUnit-style assertNull() to assertJ's assertThat().isNull()";
+        return "Convert JUnit-style assertNull() to assertJ's assertThat().isNull().";
     }
 
     @Override

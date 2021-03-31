@@ -48,7 +48,7 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
 
     @Override
     public String getDescription() {
-        return "replace JUnit 4's \"Before\", \"BeforeClass\", \"After\", and \"AfterClass\" annotations with their JUnit 5 equivalents.";
+        return "Replace JUnit 4's `@Before`, `@BeforeClass`, `@After`, and `@AfterClass` annotations with their JUnit 5 equivalents.";
     }
 
     @Override
@@ -99,7 +99,7 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
                         m = m.withComments(ListUtils.concatAll(m.getComments(), modifierComments));
                     }
                     if (m.getModifiers() != modifiers) {
-                        m = maybeAutoFormat(m, m.withModifiers(modifiers), ctx, getCursor().dropParentUntil(it -> it instanceof J));
+                        m = maybeAutoFormat(m, m.withModifiers(modifiers), ctx, getCursor().dropParentUntil(J.class::isInstance));
                     }
                     break;
                 }
