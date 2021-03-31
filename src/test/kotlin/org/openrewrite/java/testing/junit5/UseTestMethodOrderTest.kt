@@ -17,14 +17,13 @@ package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
-import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 class UseTestMethodOrderTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .build()
+        .classpath("junit")
+        .build()
 
     override val recipe = UseTestMethodOrder()
 

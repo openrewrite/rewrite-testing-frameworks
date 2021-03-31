@@ -23,8 +23,8 @@ import org.openrewrite.java.JavaRecipeTest
 
 class JUnit5MigrationTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .build()
+        .classpath("junit")
+        .build()
 
     override val recipe: Recipe = Environment.builder()
         .scanClasspath(emptyList())
@@ -33,112 +33,112 @@ class JUnit5MigrationTest : JavaRecipeTest {
 
     @Test
     fun changeBeforeToBeforeEach() = assertChanged(
-            before = """
-                import org.junit.Before;
+        before = """
+            import org.junit.Before;
 
-                public class Example {
-                    @Before public void initialize() {
-                    }
+            public class Example {
+                @Before public void initialize() {
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.BeforeEach;
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.BeforeEach;
 
-                public class Example {
+            public class Example {
 
-                    @BeforeEach
-                    void initialize() {
-                    }
+                @BeforeEach
+                void initialize() {
                 }
-            """
+            }
+        """
     )
 
     @Test
     fun changeAfterToAfterEach() = assertChanged(
-            before = """
-                import org.junit.After;
+        before = """
+            import org.junit.After;
 
-                public class Example {
-                    @After public void initialize() {
-                    }
+            public class Example {
+                @After public void initialize() {
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.AfterEach;
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.AfterEach;
 
-                public class Example {
+            public class Example {
 
-                    @AfterEach
-                    void initialize() {
-                    }
+                @AfterEach
+                void initialize() {
                 }
-            """
+            }
+        """
     )
 
     @Test
     fun changeBeforeClassToBeforeAll() = assertChanged(
-            before = """
-                import org.junit.BeforeClass;
+        before = """
+            import org.junit.BeforeClass;
 
-                public class Example {
-                    @BeforeClass
-                    public static void initialize() {
-                    }
+            public class Example {
+                @BeforeClass
+                public static void initialize() {
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.BeforeAll;
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.BeforeAll;
 
-                public class Example {
+            public class Example {
 
-                    @BeforeAll
-                    static void initialize() {
-                    }
+                @BeforeAll
+                static void initialize() {
                 }
-            """
+            }
+        """
     )
 
     @Test
     fun changeAfterClassToAfterAll() = assertChanged(
-            before = """
-                import org.junit.AfterClass;
+        before = """
+            import org.junit.AfterClass;
 
-                public class Example {
-                    @AfterClass public static void initialize() {
-                    }
+            public class Example {
+                @AfterClass public static void initialize() {
                 }
-            """,
-            after = """
-                import org.junit.jupiter.api.AfterAll;
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.AfterAll;
 
-                public class Example {
+            public class Example {
 
-                    @AfterAll
-                    static void initialize() {
-                    }
+                @AfterAll
+                static void initialize() {
                 }
-            """
+            }
+        """
     )
 
     @Test
     fun changeIgnoreToDisabled() = assertChanged(
-            before = """
-                import org.junit.Ignore;
+        before = """
+            import org.junit.Ignore;
 
-                public class Example {
-                    @Ignore @Test public void something() {}
-                
-                    @Ignore("not ready yet") @Test public void somethingElse() {}
-                }
-            """,
-            after = """
-                import org.junit.jupiter.api.Disabled;
+            public class Example {
+                @Ignore @Test public void something() {}
+            
+                @Ignore("not ready yet") @Test public void somethingElse() {}
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Disabled;
 
-                public class Example {
-                    @Disabled @Test public void something() {}
-                
-                    @Disabled("not ready yet") @Test public void somethingElse() {}
-                }
-            """
+            public class Example {
+                @Disabled @Test public void something() {}
+            
+                @Disabled("not ready yet") @Test public void somethingElse() {}
+            }
+        """
     )
 }
