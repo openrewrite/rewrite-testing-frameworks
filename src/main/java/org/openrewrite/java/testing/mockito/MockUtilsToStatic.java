@@ -81,7 +81,7 @@ public class MockUtilsToStatic extends Recipe {
                         .filter(it -> it.getValue() instanceof J.VariableDeclarations.NamedVariable)
                         .map(cur -> cur.dropParentUntil(J.class::isInstance))
                         .map(Cursor::getValue)
-                        .filter(VariableDeclarations.VariableDeclarations.class::isInstance)
+                        .filter(J.VariableDeclarations.VariableDeclarations.class::isInstance)
                         .ifPresent(namedVar -> doAfterVisit(new DeleteStatement<>((J.VariableDeclarations) namedVar)));
             }
             return super.visitNewClass(newClass, ctx);
