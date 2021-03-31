@@ -17,42 +17,42 @@ package org.openrewrite.java.testing.mockito
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
-import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.JavaRecipeTest
 
 class CleanupMockitoImportsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-            .classpath("mockito")
-            .build()
+        .classpath("mockito")
+        .build()
 
     override val recipe: Recipe
         get() = CleanupMockitoImports()
 
     @Test
     fun removesUnusedImport() = assertChanged(
-            before = """
-                import org.mockito.Mock;
-                
-                public class A {}
-            """,
-            after = """
-                public class A {}
-            """
+        before = """
+            import org.mockito.Mock;
+            
+            public class A {}
+        """,
+        after = """
+            public class A {}
+        """
     )
 
     @Test
     fun leavesOtherImportsAlone() = assertUnchanged(
-            before = """
-                import java.util.Arrays;
-                
-                import java.util.Collections;
-                
-                import java.util.HashSet;
-                
-                import java.util.List;
-                
-                public class A {}
-            """
+        before = """
+            import java.util.Arrays;
+            
+            import java.util.Collections;
+            
+            import java.util.HashSet;
+            
+            import java.util.List;
+            
+            public class A {}
+        """
     )
 }
 
