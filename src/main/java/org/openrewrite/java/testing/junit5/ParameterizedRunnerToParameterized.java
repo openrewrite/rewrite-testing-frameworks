@@ -86,7 +86,17 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     /**
      * Visitor for collecting Parameterized Test components and then scheduling the appropriate conversion visitor for the next visit
      */
-    protected static class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
+    protected class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
+
+        @Override
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+            // Only visit the compilation unit if the test has a Parameterized runner
+            if (cu.getImports().stream().noneMatch(imp -> imp.getPackageName().equals("org.junit.runners") && (imp.getClassName().equals("Parameterized") || imp.getClassName().equals("*")))) {
+                return cu;
+            }
+            return super.visitCompilationUnit(cu, executionContext);
+        }
+
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
@@ -187,17 +197,17 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
             // If this is not a constructor injected test then build a javaTemplate for a new init-method
             if (!isConstructorInjection) {
-                StringBuilder initMethodTemplate = new StringBuilder("public void ").append(initMethodName).append("(");
-                List<String> initStatementParams = parameterizedTestMethodParameters.stream()
-                        .map(J.VariableDeclarations.class::cast)
-                        .peek(vd -> {
-                            J.Identifier identifier = (J.Identifier) vd.getTypeExpression();
-                            assert identifier != null;
-                            initMethodTemplate.append(((J.Identifier) vd.getTypeExpression()).getSimpleName()).append(" ");
-                            initMethodTemplate.append(vd.getVariables().get(0).getSimpleName()).append(", ");
-                        })
-                        .map(n -> n.getVariables().get(0).getSimpleName())
-                        .collect(Collectors.toList());
+                final StringBuilder initMethodTemplate = new StringBuilder("public void ").append(initMethodName).append("(");
+                final List<String> initStatementParams = new ArrayList<>();
+                for (Statement parameterizedTestMethodParameter : parameterizedTestMethodParameters) {
+                    J.VariableDeclarations vd = (J.VariableDeclarations) parameterizedTestMethodParameter;
+                    if (vd.getTypeExpression() != null && vd.getVariables().size() == 1) {
+                        initStatementParams.add(vd.getVariables().get(0).getSimpleName());
+                        initMethodTemplate.append(parameterizedTestMethodParameter.print()).append(", ");
+                    } else {
+                        throw new AssertionError("Expected VariableDeclarations with TypeExpression and single Variable, got [" + parameterizedTestMethodParameter.print() + "]");
+                    }
+                }
                 initMethodTemplate.replace(initMethodTemplate.length() - 2, initMethodTemplate.length(), ") {\n");
                 initStatementParams.forEach(p -> initMethodTemplate.append("    this.").append(p).append(" = ").append(p).append(";\n"));
                 initMethodTemplate.append("}");
@@ -248,12 +258,6 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             }));
             if (annoPrefix.get() != null) {
                 vdecls = vdecls.withPrefix(annoPrefix.get());
-            }
-            if (!vdecls.getModifiers().isEmpty()) {
-                vdecls = vdecls.withComments(ListUtils.concatAll(multiVariable.getComments(), vdecls.getModifiers().get(0).getComments()));
-            }
-            if (vdecls.getTypeExpression() != null && !vdecls.getTypeExpression().getComments().isEmpty()) {
-                vdecls = vdecls.withComments(ListUtils.concatAll(multiVariable.getComments(), vdecls.getTypeExpression().getComments()));
             }
             return vdecls;
         }

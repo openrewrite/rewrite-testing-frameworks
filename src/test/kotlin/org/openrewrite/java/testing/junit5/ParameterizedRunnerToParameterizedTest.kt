@@ -33,7 +33,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
         before = """
             import org.junit.Test;
             import org.junit.runner.RunWith;
-            import org.junit.runners.Parameterized;
+            import org.junit.runners.*;
             import org.junit.runners.Parameterized.Parameters;
         
             import java.util.Arrays;
@@ -200,22 +200,22 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
 
             import java.util.Arrays;
             import java.util.List;
+            import java.util.Map;
 
             @RunWith(Parameterized.class)
             public class RewriteTests {
-                // param anno comment
                 @Parameter(1)
-                // vdecl 1 modifier comment
                 public String name;
                 @Parameter(2)
-                // should have modifier test for preserving comments
-                String nickName;
+                public String nickName;
                 @Parameter()
                 public Integer id;
+                @Parameter(3)
+                public Map<String, String> stuff;
 
-                @Parameters(name = "{index}: {0} {1} - {2}")
+                @Parameterized.Parameters(name = "{index}: {0} {1} - {2}")
                 public static List<Object[]> parameters() {
-                    return Arrays.asList(new Object[]{124, "Otis", "TheDog"}, new Object[]{126, "Garfield", "TheBoss"});
+                    return Arrays.asList(new Object[]{124, "Otis", "TheDog", Map.of("toys", "ball", "treats", "bacon")}, new Object[]{126, "Garfield", "TheBoss", Map.of("toys", "yarn", "treats", "fish")});
                 }
 
                 @Test
@@ -229,31 +229,31 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             
             import java.util.Arrays;
             import java.util.List;
+            import java.util.Map;
         
         
             public class RewriteTests {
-                // param anno comment
-                // vdecl 1 modifier comment
                 public String name;
-                // should have modifier test for preserving comments
-                String nickName;
+                public String nickName;
                 public Integer id;
+                public Map<String, String> stuff;
             
             
                 public static List<Object[]> parameters() {
-                    return Arrays.asList(new Object[]{124, "Otis", "TheDog"}, new Object[]{126, "Garfield", "TheBoss"});
+                    return Arrays.asList(new Object[]{124, "Otis", "TheDog", Map.of("toys", "ball", "treats", "bacon")}, new Object[]{126, "Garfield", "TheBoss", Map.of("toys", "yarn", "treats", "fish")});
                 }
             
                 @MethodSource("parameters")
                 @ParameterizedTest(name = "{index}: {0} {1} - {2}")
-                public void checkName(Integer id, String name, String nickName) {
-                    initRewriteTests(id, name, nickName);
+                public void checkName(Integer id, String name, String nickName, Map<String, String> stuff) {
+                    initRewriteTests(id, name, nickName, stuff);
                 }
             
-                public void initRewriteTests(Integer id, String name, String nickName) {
+                public void initRewriteTests(Integer id, String name, String nickName, Map<String, String> stuff) {
                     this.id = id;
                     this.name = name;
                     this.nickName = nickName;
+                    this.stuff = stuff;
                 }
             }
         """
