@@ -61,7 +61,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.assertThrows";
+        return "Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5's Assertions.assertThrows.";
     }
 
     @Override

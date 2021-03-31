@@ -43,7 +43,7 @@ public class AssertToAssertions extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Change JUnit4's org.junit.Assert into JUnit5's org.junit.jupiter.api.Assertions";
+        return "Change JUnit4's org.junit.Assert into JUnit5's org.junit.jupiter.api.Assertions.";
     }
 
     @Override

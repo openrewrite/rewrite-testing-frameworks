@@ -72,7 +72,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
 
     @Override
     public String getDescription() {
-        return "convert JUnit-style assertNotEquals() to assertJ's assertThat().isNotEqualTo()";
+        return "Convert JUnit-style assertNotEquals() to assertJ's assertThat().isNotEqualTo().";
     }
 
     @Override

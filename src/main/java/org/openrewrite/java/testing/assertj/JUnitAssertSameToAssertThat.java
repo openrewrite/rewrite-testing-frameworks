@@ -54,7 +54,7 @@ public class JUnitAssertSameToAssertThat extends Recipe {
 
     @Override
     public String getDescription() {
-        return "convert JUnit-style assertSame() to assertJ's assertThat().isSameAs()";
+        return "Convert JUnit-style assertSame() to assertJ's assertThat().isSameAs().";
     }
 
     @Override

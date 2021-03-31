@@ -72,7 +72,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
 
     @Override
     public String getDescription() {
-        return "convert JUnit-style assertArrayEquals() to assertJ's assertThat().contains...";
+        return "Convert JUnit-style assertArrayEquals() to assertJ's assertThat().contains() equivalents.";
     }
 
     @Override
