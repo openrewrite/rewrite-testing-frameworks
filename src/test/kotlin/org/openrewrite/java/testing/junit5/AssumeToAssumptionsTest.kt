@@ -21,7 +21,7 @@ import org.openrewrite.RecipeTest
 import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 
-class AssumeToAssumptionsTest: RecipeTest {
+class AssumeToAssumptionsTest : RecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
         .build()
@@ -34,23 +34,23 @@ class AssumeToAssumptionsTest: RecipeTest {
             .build()
             .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices"),
         before = """
-                import org.junit.Assume;
-                
-                class Test {
-                    void test() {
-                        Assume.assumeTrue("One is one", true);
-                    }
+            import org.junit.Assume;
+            
+            class Test {
+                void test() {
+                    Assume.assumeTrue("One is one", true);
                 }
-            """,
+            }
+        """,
         after = """
-                import org.junit.jupiter.api.Assumptions;
-                
-                class Test {
-                    void test() {
-                        Assumptions.assumeTrue(true, "One is one");
-                    }
+            import org.junit.jupiter.api.Assumptions;
+            
+            class Test {
+                void test() {
+                    Assumptions.assumeTrue(true, "One is one");
                 }
-            """,
+            }
+        """,
         cycles = 2
     )
 }

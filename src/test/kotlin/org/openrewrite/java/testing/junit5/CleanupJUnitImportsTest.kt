@@ -16,8 +16,8 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.JavaRecipeTest
 
 class CleanupJUnitImportsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
