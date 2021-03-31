@@ -77,11 +77,11 @@ public class MockUtilsToStatic extends Recipe {
                 // MockUtil util = new MockUtil();
                 // If it is, then we'll get rid of it
 
-                Optional.of(getCursor().dropParentUntil(it -> it instanceof J))
+                Optional.of(getCursor().dropParentUntil(J.class::isInstance))
                         .filter(it -> it.getValue() instanceof J.VariableDeclarations.NamedVariable)
-                        .map(cur -> cur.dropParentUntil(it -> it instanceof J))
+                        .map(cur -> cur.dropParentUntil(J.class::isInstance))
                         .map(Cursor::getValue)
-                        .filter(it -> it instanceof J.VariableDeclarations.VariableDeclarations)
+                        .filter(VariableDeclarations.VariableDeclarations.class::isInstance)
                         .ifPresent(namedVar -> doAfterVisit(new DeleteStatement<>((J.VariableDeclarations) namedVar)));
             }
             return super.visitNewClass(newClass, ctx);

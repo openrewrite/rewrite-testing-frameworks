@@ -82,7 +82,7 @@ public class AssertToAssertions extends Recipe {
                 ).collect(Collectors.toList());
                 m = m.withArguments(newArgs);
             }
-            m = maybeAutoFormat(method, m, ctx, getCursor().dropParentUntil(it -> it instanceof J));
+            m = maybeAutoFormat(method, m, ctx, getCursor().dropParentUntil(J.class::isInstance));
 
             return m;
         }

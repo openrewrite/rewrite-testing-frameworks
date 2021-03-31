@@ -99,7 +99,7 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
                         m = m.withComments(ListUtils.concatAll(m.getComments(), modifierComments));
                     }
                     if (m.getModifiers() != modifiers) {
-                        m = maybeAutoFormat(m, m.withModifiers(modifiers), ctx, getCursor().dropParentUntil(it -> it instanceof J));
+                        m = maybeAutoFormat(m, m.withModifiers(modifiers), ctx, getCursor().dropParentUntil(J.class::isInstance));
                     }
                     break;
                 }
