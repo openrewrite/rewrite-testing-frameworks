@@ -18,7 +18,9 @@ package org.openrewrite.java.testing.mockito
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.openrewrite.*
+import org.openrewrite.InMemoryExecutionContext
+import org.openrewrite.Recipe
+import org.openrewrite.SourceFile
 import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
@@ -36,78 +38,80 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
     override val recipe: Recipe = Environment.builder()
         .scanClasspath(emptyList())
         .build()
-        .activateRecipes("org.openrewrite.java.testing.junit5.JUnit4to5Migration",
-                "org.openrewrite.java.testing.mockito.Mockito1to3Migration")
+        .activateRecipes(
+            "org.openrewrite.java.testing.junit5.JUnit4to5Migration",
+            "org.openrewrite.java.testing.mockito.Mockito1to3Migration"
+        )
 
     /**
      * Replace org.mockito.MockitoAnnotations.Mock with org.mockito.Mock
      */
     @Test
     fun replaceMockAnnotation() = assertChanged(
-            before = """
-                package org.openrewrite.java.testing.junit5;
-                
-                import org.junit.Before;
-                import org.junit.Test;
-                import org.mockito.Mock;
-                import org.mockito.MockitoAnnotations;
-                
-                import java.util.List;
-                
-                import static org.mockito.Mockito.verify;
-                
-                public class MockitoTests {
-                    @Mock
-                    List<String> mockedList;
-                
-                    @Before
-                    public void initMocks() {
-                        MockitoAnnotations.initMocks(this);
-                    }
-                
-                    @Test
-                    public void usingAnnotationBasedMock() {
-                
-                        mockedList.add("one");
-                        mockedList.clear();
-                
-                        verify(mockedList).add("one");
-                        verify(mockedList).clear();
-                    }
+        before = """
+            package org.openrewrite.java.testing.junit5;
+            
+            import org.junit.Before;
+            import org.junit.Test;
+            import org.mockito.Mock;
+            import org.mockito.MockitoAnnotations;
+            
+            import java.util.List;
+            
+            import static org.mockito.Mockito.verify;
+            
+            public class MockitoTests {
+                @Mock
+                List<String> mockedList;
+            
+                @Before
+                public void initMocks() {
+                    MockitoAnnotations.initMocks(this);
                 }
-            """,
-            after = """
-                package org.openrewrite.java.testing.junit5;
-                
-                import org.junit.jupiter.api.BeforeEach;
-                import org.junit.jupiter.api.Test;
-                import org.mockito.Mock;
-                import org.mockito.MockitoAnnotations;
-                
-                import java.util.List;
-                
-                import static org.mockito.Mockito.verify;
-                
-                public class MockitoTests {
-                    @Mock
-                    List<String> mockedList;
-                
-                    @BeforeEach
-                    void initMocks() {
-                        MockitoAnnotations.initMocks(this);
-                    }
-                
-                    @Test
-                    void usingAnnotationBasedMock() {
-                
-                        mockedList.add("one");
-                        mockedList.clear();
-                
-                        verify(mockedList).add("one");
-                        verify(mockedList).clear();
-                    }
+            
+                @Test
+                public void usingAnnotationBasedMock() {
+            
+                    mockedList.add("one");
+                    mockedList.clear();
+            
+                    verify(mockedList).add("one");
+                    verify(mockedList).clear();
                 }
-            """
+            }
+        """,
+        after = """
+            package org.openrewrite.java.testing.junit5;
+            
+            import org.junit.jupiter.api.BeforeEach;
+            import org.junit.jupiter.api.Test;
+            import org.mockito.Mock;
+            import org.mockito.MockitoAnnotations;
+            
+            import java.util.List;
+            
+            import static org.mockito.Mockito.verify;
+            
+            public class MockitoTests {
+                @Mock
+                List<String> mockedList;
+            
+                @BeforeEach
+                void initMocks() {
+                    MockitoAnnotations.initMocks(this);
+                }
+            
+                @Test
+                void usingAnnotationBasedMock() {
+            
+                    mockedList.add("one");
+                    mockedList.clear();
+            
+                    verify(mockedList).add("one");
+                    verify(mockedList).clear();
+                }
+            }
+        """
     )
 
     /**
@@ -115,29 +119,29 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
      */
     @Test
     fun replacesMatchers() = assertUnchanged(
-            before = """
-                package mockito.example;
-                
-                import java.util.List;
-                
-                import static org.mockito.Mockito.*;
-                
-                public class MockitoArgumentMatchersTest {
-                    static class Foo {
-                        boolean bool(String str, int i, Object obj) { return false; }
-                        int in(boolean b, List<String> strs) { return 0; }
-                        int bar(byte[] bytes, String[] s, int i) { return 0; }
-                        boolean baz(String ... strings) { return true; }
-                    }
-                
-                    public void usesMatchers() {
-                        Foo mockFoo = mock(Foo.class);
-                        when(mockFoo.bool(anyString(), anyInt(), any(Object.class))).thenReturn(true);
-                        when(mockFoo.bool(eq("false"), anyInt(), any(Object.class))).thenReturn(false);
-                        when(mockFoo.in(anyBoolean(), anyList())).thenReturn(10);
-                    }
+        before = """
+            package mockito.example;
+            
+            import java.util.List;
+            
+            import static org.mockito.Mockito.*;
+            
+            public class MockitoArgumentMatchersTest {
+                static class Foo {
+                    boolean bool(String str, int i, Object obj) { return false; }
+                    int in(boolean b, List<String> strs) { return 0; }
+                    int bar(byte[] bytes, String[] s, int i) { return 0; }
+                    boolean baz(String ... strings) { return true; }
                 }
-            """
+            
+                public void usesMatchers() {
+                    Foo mockFoo = mock(Foo.class);
+                    when(mockFoo.bool(anyString(), anyInt(), any(Object.class))).thenReturn(true);
+                    when(mockFoo.bool(eq("false"), anyInt(), any(Object.class))).thenReturn(false);
+                    when(mockFoo.in(anyBoolean(), anyList())).thenReturn(10);
+                }
+            }
+        """
     )
 
     /**
@@ -146,40 +150,40 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
      */
     @Test
     fun replacesAnyVararg() = assertChanged(
-            before = """
-                package mockito.example;
-    
-                import static org.mockito.Matchers.anyVararg;
-                import static org.mockito.Mockito.mock;
-                import static org.mockito.Mockito.when;
-                
-                public class MockitoVarargMatcherTest {
-                    public static class Foo {
-                        public boolean acceptsVarargs(String ... strings) { return true; }
-                    }
-                    public void usesVarargMatcher() {
-                        Foo mockFoo = mock(Foo.class);
-                        when(mockFoo.acceptsVarargs(anyVararg())).thenReturn(true);
-                    }
-                }
-            """,
-            after = """
-                package mockito.example;
+        before = """
+            package mockito.example;
 
-                import static org.mockito.ArgumentMatchers.any;
-                import static org.mockito.Mockito.mock;
-                import static org.mockito.Mockito.when;
-                
-                public class MockitoVarargMatcherTest {
-                    public static class Foo {
-                        public boolean acceptsVarargs(String ... strings) { return true; }
-                    }
-                    public void usesVarargMatcher() {
-                        Foo mockFoo = mock(Foo.class);
-                        when(mockFoo.acceptsVarargs(any())).thenReturn(true);
-                    }
+            import static org.mockito.Matchers.anyVararg;
+            import static org.mockito.Mockito.mock;
+            import static org.mockito.Mockito.when;
+            
+            public class MockitoVarargMatcherTest {
+                public static class Foo {
+                    public boolean acceptsVarargs(String ... strings) { return true; }
                 }
-            """
+                public void usesVarargMatcher() {
+                    Foo mockFoo = mock(Foo.class);
+                    when(mockFoo.acceptsVarargs(anyVararg())).thenReturn(true);
+                }
+            }
+        """,
+        after = """
+            package mockito.example;
+
+            import static org.mockito.ArgumentMatchers.any;
+            import static org.mockito.Mockito.mock;
+            import static org.mockito.Mockito.when;
+            
+            public class MockitoVarargMatcherTest {
+                public static class Foo {
+                    public boolean acceptsVarargs(String ... strings) { return true; }
+                }
+                public void usesVarargMatcher() {
+                    Foo mockFoo = mock(Foo.class);
+                    when(mockFoo.acceptsVarargs(any())).thenReturn(true);
+                }
+            }
+        """
     )
 
     /**
@@ -189,40 +193,40 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
      */
     @Test
     fun replacesGetArgumentAt() = assertChanged(
-            before = """
-                package mockito.example;
+        before = """
+            package mockito.example;
 
-                import org.junit.jupiter.api.Test;
-                
-                import static org.mockito.Matchers.any;
-                import static org.mockito.Mockito.mock;
-                import static org.mockito.Mockito.when;
-                
-                public class MockitoDoAnswer {
-                    @Test
-                    public void aTest() {
-                        String foo = mock(String.class);
-                        when(foo.concat(any())).then(invocation -> invocation.getArgumentAt(0, String.class));
-                    }
+            import org.junit.jupiter.api.Test;
+            
+            import static org.mockito.Matchers.any;
+            import static org.mockito.Mockito.mock;
+            import static org.mockito.Mockito.when;
+            
+            public class MockitoDoAnswer {
+                @Test
+                public void aTest() {
+                    String foo = mock(String.class);
+                    when(foo.concat(any())).then(invocation -> invocation.getArgumentAt(0, String.class));
                 }
-            """,
-            after = """
-                package mockito.example;
+            }
+        """,
+        after = """
+            package mockito.example;
 
-                import org.junit.jupiter.api.Test;
-                
-                import static org.mockito.ArgumentMatchers.any;
-                import static org.mockito.Mockito.mock;
-                import static org.mockito.Mockito.when;
-                
-                public class MockitoDoAnswer {
-                    @Test
-                    public void aTest() {
-                        String foo = mock(String.class);
-                        when(foo.concat(any())).then(invocation -> invocation.getArgument(0, String.class));
-                    }
+            import org.junit.jupiter.api.Test;
+            
+            import static org.mockito.ArgumentMatchers.any;
+            import static org.mockito.Mockito.mock;
+            import static org.mockito.Mockito.when;
+            
+            public class MockitoDoAnswer {
+                @Test
+                public void aTest() {
+                    String foo = mock(String.class);
+                    when(foo.concat(any())).then(invocation -> invocation.getArgument(0, String.class));
                 }
-            """
+            }
+        """
     )
 
     @Test
@@ -244,20 +248,20 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
 
     @Test
     fun replacesMockitoJUnitRunner() = assertChanged(
-            before = """
-                import org.junit.runner.RunWith;
-                import org.mockito.runners.MockitoJUnitRunner;
-                
-                @RunWith(MockitoJUnitRunner.class)
-                public class ExampleTest { }
-            """,
-            after = """
-                import org.junit.jupiter.api.extension.ExtendWith;
-                import org.mockito.junit.jupiter.MockitoExtension;
+        before = """
+            import org.junit.runner.RunWith;
+            import org.mockito.runners.MockitoJUnitRunner;
             
-                @ExtendWith(MockitoExtension.class)
-                public class ExampleTest { }
-            """
+            @RunWith(MockitoJUnitRunner.class)
+            public class ExampleTest { }
+        """,
+        after = """
+            import org.junit.jupiter.api.extension.ExtendWith;
+            import org.mockito.junit.jupiter.MockitoExtension;
+        
+            @ExtendWith(MockitoExtension.class)
+            public class ExampleTest { }
+        """
     )
 
     val exampleJunitBefore = """
@@ -477,7 +481,8 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
     @Disabled("spurious CI failures")
     fun theBigOne() {
         val javaSource = parser.parse(exampleJunitBefore)[0]
-        val mavenSource = MavenParser.builder().build().parse("""
+        val mavenSource = MavenParser.builder().build().parse(
+            """
                     <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
                         <modelVersion>4.0.0</modelVersion>
                     
@@ -505,7 +510,8 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
                             </dependency>
                         </dependencies>
                     </project>
-                """.trimIndent())[0]
+                """.trimIndent()
+        )[0]
 
         val sources: List<SourceFile> = listOf(javaSource, mavenSource)
 
@@ -514,7 +520,8 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
         val mavenResult = results.find { it.before === mavenSource }
         assertThat(mavenResult).isNotNull
 
-        assertThat(mavenResult?.after?.print()).isEqualTo("""
+        assertThat(mavenResult?.after?.print()).isEqualTo(
+            """
             <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
                 <modelVersion>4.0.0</modelVersion>
 
@@ -554,7 +561,8 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
                     </dependency>
                 </dependencies>
             </project>
-        """.trimIndent())
+        """.trimIndent()
+        )
 
         val javaResult = results.find { it.before === javaSource }
         assertThat(javaResult).isNotNull
