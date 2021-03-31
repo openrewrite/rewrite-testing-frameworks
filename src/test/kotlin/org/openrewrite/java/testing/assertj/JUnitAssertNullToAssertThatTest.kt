@@ -18,202 +18,202 @@ package org.openrewrite.java.testing.assertj
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
 import org.openrewrite.Recipe
-import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.tree.J
 
 class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .build()
+        .classpath("junit")
+        .build()
 
     override val recipe: Recipe
         get() = JUnitAssertNullToAssertThat()
 
     @Test
     fun singleStaticMethodNoMessage() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNull;
+            import static org.junit.jupiter.api.Assertions.assertNull;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        assertNull(notification());
-                    }
-                    private String notification() {
-                        return null;
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    assertNull(notification());
                 }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        assertThat(notification()).isNull();
-                    }
-                    private String notification() {
-                        return null;
-                    }
+                private String notification() {
+                    return null;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).isNull();
+                }
+                private String notification() {
+                    return null;
+                }
+            }
+        """
     )
 
     @Test
     fun singleStaticMethodWithMessageString() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNull;
+            import static org.junit.jupiter.api.Assertions.assertNull;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        assertNull(notification(), "Should be null");
-                    }
-                    private String notification() {
-                        return null;
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    assertNull(notification(), "Should be null");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        assertThat(notification()).as("Should be null").isNull();
-                    }
-                    private String notification() {
-                        return null;
-                    }
+                private String notification() {
+                    return null;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).as("Should be null").isNull();
+                }
+                private String notification() {
+                    return null;
+                }
+            }
+        """
     )
 
     @Test
     fun singleStaticMethodWithMessageSupplier() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertNull;
+            import static org.junit.jupiter.api.Assertions.assertNull;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        assertNull(notification(), () -> "Should be null");
-                    }
-                    private String notification() {
-                        return null;
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    assertNull(notification(), () -> "Should be null");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
-                    }
-                    private String notification() {
-                        return null;
-                    }
+                private String notification() {
+                    return null;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
+                }
+                private String notification() {
+                    return null;
+                }
+            }
+        """
     )
 
     @Test
     fun inlineReference() = assertChanged(
-            before = """
-                import org.junit.Test;
- 
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        org.junit.jupiter.api.Assertions.assertNull(notification());
-                        org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
-                        org.junit.jupiter.api.Assertions.assertNull(notification(), () -> "Should be null");
-                    }
-                    private String notification() {
-                        return null;
-                    }
+        before = """
+            import org.junit.Test;
+
+            public class A {
+            
+                @Test
+                public void test() {
+                    org.junit.jupiter.api.Assertions.assertNull(notification());
+                    org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
+                    org.junit.jupiter.api.Assertions.assertNull(notification(), () -> "Should be null");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertThat(notification()).isNull();
-                        assertThat(notification()).as("Should be null").isNull();
-                        assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
-                    }
-                    private String notification() {
-                        return null;
-                    }
+                private String notification() {
+                    return null;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            
+            import static org.assertj.core.api.Assertions.assertThat;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertThat(notification()).isNull();
+                    assertThat(notification()).as("Should be null").isNull();
+                    assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
+                }
+                private String notification() {
+                    return null;
+                }
+            }
+        """
     )
 
     @Test
     fun mixedReferences() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                import static org.assertj.core.api.Assertions.*;
-                import static org.junit.jupiter.api.Assertions.assertNull;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertNull(notification());
-                        org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
-                        assertNull(notification(), () -> "Should be null");
-                    }
-                    private String notification() {
-                        return null;
-                    }
+        before = """
+            import org.junit.Test;
+            
+            import static org.assertj.core.api.Assertions.*;
+            import static org.junit.jupiter.api.Assertions.assertNull;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertNull(notification());
+                    org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
+                    assertNull(notification(), () -> "Should be null");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-                
-                import static org.assertj.core.api.Assertions.*;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertThat(notification()).isNull();
-                        assertThat(notification()).as("Should be null").isNull();
-                        assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
-                    }
-                    private String notification() {
-                        return null;
-                    }
+                private String notification() {
+                    return null;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            
+            import static org.assertj.core.api.Assertions.*;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertThat(notification()).isNull();
+                    assertThat(notification()).as("Should be null").isNull();
+                    assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
+                }
+                private String notification() {
+                    return null;
+                }
+            }
+        """
     )
 }

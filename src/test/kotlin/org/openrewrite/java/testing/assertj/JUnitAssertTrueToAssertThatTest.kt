@@ -18,252 +18,252 @@ package org.openrewrite.java.testing.assertj
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
 import org.openrewrite.Recipe
-import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.tree.J
 
 class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .build()
+        .classpath("junit")
+        .build()
 
     override val recipe: Recipe
         get() = JUnitAssertTrueToAssertThat()
 
     @Test
     fun singleStaticMethodNoMessage() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                import static org.junit.jupiter.api.Assertions.assertTrue;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertTrue(notification() != null && notification() > 0);
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+        before = """
+            import org.junit.Test;
+            
+            import static org.junit.jupiter.api.Assertions.assertTrue;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertTrue(notification() != null && notification() > 0);
                 }
-            """,
-            after = """
-                import org.junit.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertThat(notification() != null && notification() > 0).isTrue();
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+                private Integer notification() {
+                    return 1;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            
+            import static org.assertj.core.api.Assertions.assertThat;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertThat(notification() != null && notification() > 0).isTrue();
+                }
+                private Integer notification() {
+                    return 1;
+                }
+            }
+        """
     )
 
     @Test
     fun singleStaticMethodWithMessageString() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                import static org.junit.jupiter.api.Assertions.*;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertTrue(notification() != null && notification() > 0, "The notification should be positive");
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+        before = """
+            import org.junit.Test;
+            
+            import static org.junit.jupiter.api.Assertions.*;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertTrue(notification() != null && notification() > 0, "The notification should be positive");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+                private Integer notification() {
+                    return 1;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            
+            import static org.assertj.core.api.Assertions.assertThat;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
+                }
+                private Integer notification() {
+                    return 1;
+                }
+            }
+        """
     )
 
     @Test
     fun singleStaticMethodWithMessageSupplier() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                import static org.junit.jupiter.api.Assertions.*;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+        before = """
+            import org.junit.Test;
+            
+            import static org.junit.jupiter.api.Assertions.*;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+                private Integer notification() {
+                    return 1;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            
+            import static org.assertj.core.api.Assertions.assertThat;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
+                }
+                private Integer notification() {
+                    return 1;
+                }
+            }
+        """
     )
 
     @Test
     fun inlineReference() = assertChanged(
-            before = """
-                import org.junit.Test;
- 
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0);
-                        org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0, "The notification should be positive");
-                        org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+        before = """
+            import org.junit.Test;
+
+            public class A {
+            
+                @Test
+                public void test() {
+                    org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0);
+                    org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0, "The notification should be positive");
+                    org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertThat(notification() != null && notification() > 0).isTrue();
-                        assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+                private Integer notification() {
+                    return 1;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            
+            import static org.assertj.core.api.Assertions.assertThat;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertThat(notification() != null && notification() > 0).isTrue();
+                    assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
+                    assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
+                }
+                private Integer notification() {
+                    return 1;
+                }
+            }
+        """
     )
 
     @Test
     fun mixedReferences() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                import static org.assertj.core.api.Assertions.*;
-                import static org.junit.jupiter.api.Assertions.assertTrue;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertTrue(notification() != null && notification() > 0);
-                        org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0, "The notification should be positive");
-                        assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+        before = """
+            import org.junit.Test;
+            
+            import static org.assertj.core.api.Assertions.*;
+            import static org.junit.jupiter.api.Assertions.assertTrue;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertTrue(notification() != null && notification() > 0);
+                    org.junit.jupiter.api.Assertions.assertTrue(notification() != null && notification() > 0, "The notification should be positive");
+                    assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-                
-                import static org.assertj.core.api.Assertions.*;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertThat(notification() != null && notification() > 0).isTrue();
-                        assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+                private Integer notification() {
+                    return 1;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            
+            import static org.assertj.core.api.Assertions.*;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertThat(notification() != null && notification() > 0).isTrue();
+                    assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
+                    assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
+                }
+                private Integer notification() {
+                    return 1;
+                }
+            }
+        """
     )
 
     @Test
     fun leaveBooleanSuppliersAlone() = assertChanged(
-            before = """
-                import org.junit.Test;
-                
-                import static org.junit.jupiter.api.Assertions.assertTrue;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertTrue(notification() != null && notification() > 0);
-                        assertTrue(notification() != null && notification() > 0, "The notification should be positive");
-                        assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
-                        assertTrue(() -> notification() != null && notification() > 0);
-                        assertTrue(() -> notification() != null && notification() > 0, "The notification should be positive");
-                        assertTrue(() -> notification() != null && notification() > 0, () -> "The notification should be positive");
+        before = """
+            import org.junit.Test;
+            
+            import static org.junit.jupiter.api.Assertions.assertTrue;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertTrue(notification() != null && notification() > 0);
+                    assertTrue(notification() != null && notification() > 0, "The notification should be positive");
+                    assertTrue(notification() != null && notification() > 0, () -> "The notification should be positive");
+                    assertTrue(() -> notification() != null && notification() > 0);
+                    assertTrue(() -> notification() != null && notification() > 0, "The notification should be positive");
+                    assertTrue(() -> notification() != null && notification() > 0, () -> "The notification should be positive");
 
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
                 }
-            """,
-            after = """
-                import org.junit.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                import static org.junit.jupiter.api.Assertions.assertTrue;
-                
-                public class A {
-                
-                    @Test
-                    public void test() {
-                        assertThat(notification() != null && notification() > 0).isTrue();
-                        assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
-                        assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
-                        assertTrue(() -> notification() != null && notification() > 0);
-                        assertTrue(() -> notification() != null && notification() > 0, "The notification should be positive");
-                        assertTrue(() -> notification() != null && notification() > 0, () -> "The notification should be positive");
+                private Integer notification() {
+                    return 1;
+                }
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            
+            import static org.assertj.core.api.Assertions.assertThat;
+            import static org.junit.jupiter.api.Assertions.assertTrue;
+            
+            public class A {
+            
+                @Test
+                public void test() {
+                    assertThat(notification() != null && notification() > 0).isTrue();
+                    assertThat(notification() != null && notification() > 0).as("The notification should be positive").isTrue();
+                    assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be positive").isTrue();
+                    assertTrue(() -> notification() != null && notification() > 0);
+                    assertTrue(() -> notification() != null && notification() > 0, "The notification should be positive");
+                    assertTrue(() -> notification() != null && notification() > 0, () -> "The notification should be positive");
 
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
                 }
-            """
+                private Integer notification() {
+                    return 1;
+                }
+            }
+        """
     )
 
 }

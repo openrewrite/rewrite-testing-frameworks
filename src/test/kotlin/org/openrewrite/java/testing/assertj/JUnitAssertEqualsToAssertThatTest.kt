@@ -18,310 +18,310 @@ package org.openrewrite.java.testing.assertj
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
 import org.openrewrite.Recipe
-import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.tree.J
 
 class JUnitAssertEqualsToAssertThatTest : JavaRecipeTest {
     override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .build()
+        .classpath("junit")
+        .build()
 
     override val recipe: Recipe
         get() = JUnitAssertEqualsToAssertThat()
 
     @Test
     fun singleStaticMethodNoMessage() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        assertEquals(1, notification());
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    assertEquals(1, notification());
                 }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        assertThat(notification()).isEqualTo(1);
-                    }
-                    private Integer notification() {
-                        return 1;
-                    }
+                private Integer notification() {
+                    return 1;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).isEqualTo(1);
+                }
+                private Integer notification() {
+                    return 1;
+                }
+            }
+        """
     )
 
     @Test
     fun singleStaticMethodWithMessage() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        assertEquals("fred", notification(), () -> "These should be equal");
-                    }
-                    private String notification() {
-                        return "fred";
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    assertEquals("fred", notification(), () -> "These should be equal");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        assertThat(notification()).withFailMessage(() -> "These should be equal").isEqualTo("fred");
-                    }
-                    private String notification() {
-                        return "fred";
-                    }
+                private String notification() {
+                    return "fred";
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).withFailMessage(() -> "These should be equal").isEqualTo("fred");
+                }
+                private String notification() {
+                    return "fred";
+                }
+            }
+        """
     )
 
     @Test
     fun doubleCloseToWithNoMessage() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        assertEquals(0.0d, notification(), 0.2d);
-                    }
-                    private Double notification() {
-                        return 0.1d;
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    assertEquals(0.0d, notification(), 0.2d);
                 }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-                import static org.assertj.core.api.Assertions.within;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        assertThat(notification()).isCloseTo(0.0d, within(0.2d));
-                    }
-                    private Double notification() {
-                        return 0.1d;
-                    }
+                private Double notification() {
+                    return 0.1d;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+            import static org.assertj.core.api.Assertions.within;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).isCloseTo(0.0d, within(0.2d));
+                }
+                private Double notification() {
+                    return 0.1d;
+                }
+            }
+        """
     )
 
     @Test
     fun doubleCloseToWithMessage() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        assertEquals(0.0d, notification(), 0.2d, "These should be close.");
-                    }
-                    private double notification() {
-                        return 0.1d;
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    assertEquals(0.0d, notification(), 0.2d, "These should be close.");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-                import static org.assertj.core.api.Assertions.within;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        assertThat(notification()).as("These should be close.").isCloseTo(0.0d, within(0.2d));
-                    }
-                    private double notification() {
-                        return 0.1d;
-                    }
+                private double notification() {
+                    return 0.1d;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+            import static org.assertj.core.api.Assertions.within;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).as("These should be close.").isCloseTo(0.0d, within(0.2d));
+                }
+                private double notification() {
+                    return 0.1d;
+                }
+            }
+        """
     )
 
     @Test
     fun doubleObjectsCloseToWithMessage() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        assertEquals(Double.valueOf(0.0d), notification(), Double.valueOf(0.2d), () -> "These should be close.");
-                    }
-                    private double notification() {
-                        return Double.valueOf(0.1d);
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    assertEquals(Double.valueOf(0.0d), notification(), Double.valueOf(0.2d), () -> "These should be close.");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-                import static org.assertj.core.api.Assertions.within;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        assertThat(notification()).withFailMessage(() -> "These should be close.").isCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
-                    }
-                    private double notification() {
-                        return Double.valueOf(0.1d);
-                    }
+                private double notification() {
+                    return Double.valueOf(0.1d);
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+            import static org.assertj.core.api.Assertions.within;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).withFailMessage(() -> "These should be close.").isCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
+                }
+                private double notification() {
+                    return Double.valueOf(0.1d);
+                }
+            }
+        """
     )
 
     @Test
     fun floatCloseToWithNoMessage() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        assertEquals(0.0f, notification(), 0.2f);
-                    }
-                    private Float notification() {
-                        return 0.1f;
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    assertEquals(0.0f, notification(), 0.2f);
                 }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-                import static org.assertj.core.api.Assertions.within;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        assertThat(notification()).isCloseTo(0.0f, within(0.2f));
-                    }
-                    private Float notification() {
-                        return 0.1f;
-                    }
+                private Float notification() {
+                    return 0.1f;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+            import static org.assertj.core.api.Assertions.within;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).isCloseTo(0.0f, within(0.2f));
+                }
+                private Float notification() {
+                    return 0.1f;
+                }
+            }
+        """
     )
 
     @Test
     fun floatCloseToWithMessage() = assertChanged(
-            before = """
-                import org.junit.Test;
+        before = """
+            import org.junit.Test;
 
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        assertEquals(0.0f, notification(), 0.2f, "These should be close.");
-                    }
-                    private float notification() {
-                        return 0.1f;
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    assertEquals(0.0f, notification(), 0.2f, "These should be close.");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-                import static org.assertj.core.api.Assertions.within;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        assertThat(notification()).as("These should be close.").isCloseTo(0.0f, within(0.2f));
-                    }
-                    private float notification() {
-                        return 0.1f;
-                    }
+                private float notification() {
+                    return 0.1f;
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+            import static org.assertj.core.api.Assertions.within;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).as("These should be close.").isCloseTo(0.0f, within(0.2f));
+                }
+                private float notification() {
+                    return 0.1f;
+                }
+            }
+        """
     )
 
     @Test
     fun fullyQualifiedMethodWithMessage() = assertChanged(
-            before = """
-                import java.io.File;
-                import org.junit.Test;
+        before = """
+            import java.io.File;
+            import org.junit.Test;
 
-                public class A {
- 
-                    @Test
-                    public void test() {
-                        org.junit.jupiter.api.Assertions.assertEquals(new File("someFile"), notification(), "These should be equal");
-                    }
-                    private File notification() {
-                        return new File("someFile");
-                    }
+            public class A {
+
+                @Test
+                public void test() {
+                    org.junit.jupiter.api.Assertions.assertEquals(new File("someFile"), notification(), "These should be equal");
                 }
-            """,
-            after = """
-                import org.junit.Test;
-
-                import java.io.File;
-
-                import static org.assertj.core.api.Assertions.assertThat;
-
-                public class A {
-
-                    @Test
-                    public void test() {
-                        assertThat(notification()).as("These should be equal").isEqualTo(new File("someFile"));
-                    }
-                    private File notification() {
-                        return new File("someFile");
-                    }
+                private File notification() {
+                    return new File("someFile");
                 }
-            """
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import java.io.File;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).as("These should be equal").isEqualTo(new File("someFile"));
+                }
+                private File notification() {
+                    return new File("someFile");
+                }
+            }
+        """
     )
 
 }
