@@ -79,7 +79,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             Set<J.VariableDeclarations> expectedExceptionFields = FindFields.find(cd, EXPECTED_EXCEPTION_FQN);
-            if (expectedExceptionFields.size() > 0) {
+            if (!expectedExceptionFields.isEmpty()) {
                 // Remove the ExpectedException fields
                 List<Statement> statements = new ArrayList<>(cd.getBody().getStatements());
                 statements.removeAll(expectedExceptionFields);
