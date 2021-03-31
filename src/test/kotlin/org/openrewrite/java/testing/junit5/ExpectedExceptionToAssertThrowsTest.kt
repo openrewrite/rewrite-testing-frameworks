@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.java.JavaParser
@@ -29,7 +28,36 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
     override val recipe = ExpectedExceptionToAssertThrows()
 
     @Test
-    fun expectClass() = assertChanged(
+    fun leavesOtherRulesAlone() = assertChanged(
+        before = """
+            import org.junit.Rule;
+            import org.junit.rules.TemporaryFolder;
+            import org.junit.rules.ExpectedException;
+
+            class A {
+            
+                @Rule
+                TemporaryFolder tempDir = new TemporaryFolder();
+
+                @Rule
+                ExpectedException thrown = ExpectedException.none();
+            }
+        """,
+        after = """
+            import org.junit.Rule;
+            import org.junit.rules.TemporaryFolder;
+
+            class A {
+
+                @Rule
+                TemporaryFolder tempDir = new TemporaryFolder();
+            }
+        """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
+    @Test
+    fun removeExpectedExceptionAndLeaveMethodAlone() = assertChanged(
         before = """
             package org.openrewrite.java.testing.junit5;
 
@@ -40,9 +68,34 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
                 @Rule
                 public ExpectedException thrown = ExpectedException.none();
             
-                public void throwsNothing() {
-                    // no exception expected, none thrown: passes.
+                public void doNotChange() {
+                    final String noChanges = "atAll";
                 }
+            }
+        """,
+        after = """
+            package org.openrewrite.java.testing.junit5;
+
+            public class SimpleExpectedExceptionTest {
+            
+                public void doNotChange() {
+                    final String noChanges = "atAll";
+                }
+            }
+        """
+    )
+
+    @Test
+    fun refactorExceptClass() = assertChanged(
+        before = """
+            package org.openrewrite.java.testing.junit5;
+
+            import org.junit.Rule;
+            import org.junit.rules.ExpectedException;
+            
+            public class SimpleExpectedExceptionTest {
+                @Rule
+                public ExpectedException thrown = ExpectedException.none();
             
                 public void throwsExceptionWithSpecificType() {
                     thrown.expect(NullPointerException.class);
@@ -57,10 +110,6 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
             
             public class SimpleExpectedExceptionTest {
             
-                public void throwsNothing() {
-                    // no exception expected, none thrown: passes.
-                }
-            
                 public void throwsExceptionWithSpecificType() {
                     assertThrows(NullPointerException.class, () -> {
                         throw new NullPointerException();
@@ -70,23 +119,51 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
         """
     )
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
+    @SuppressWarnings( "deprecation" )
     @Test
-    fun leavesOtherRulesAlone() = assertUnchanged(
+    fun refactorExceptWithMatcher() = assertChanged(
         before = """
+            package org.openrewrite.java.testing.junit5;
+
             import org.junit.Rule;
-            import org.junit.rules.TemporaryFolder;
+            import org.junit.rules.ExpectedException;
             
-            class A {
-            
+            import static org.hamcrest.Matchers.isA; 
+
+            public class SimpleExpectedExceptionTest {
                 @Rule
-                TemporaryFolder tempDir = new TemporaryFolder();
+                public ExpectedException thrown = ExpectedException.none();
+            
+                public void throwsExceptionWithSpecificType() {
+                    thrown.expect(isA(NullPointerException.class));
+                    throw new NullPointerException();
+                }
+            }
+        """,
+        after = """
+            package org.openrewrite.java.testing.junit5;
+            
+            import static org.hamcrest.MatcherAssert.assertThat;
+            import static org.hamcrest.Matchers.isA;
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            
+            public class SimpleExpectedExceptionTest {
+            
+                public void throwsExceptionWithSpecificType() {
+                    Exception exception = assertThrows(Exception.class, () -> {
+                        throw new NullPointerException();
+                    });
+                    assertThat(exception, isA(NullPointerException.class));
+                }
             }
         """
     )
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/77")
+    @SuppressWarnings( "deprecation" )
     @Test
-    fun handlesExpectMessage() = assertChanged(
+    fun refactorExpectMessageString() = assertChanged(
         before = """
             package org.openrewrite.java.testing.junit5;
             
@@ -122,46 +199,131 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
         """
     )
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
-    @Disabled
-    fun handlesExpectMessageWithMatchers() = assertChanged(
+    @SuppressWarnings( "deprecation" )
+    @Test
+    fun refactorExpectMessageWithMatcher() = assertChanged(
         before = """
             package org.openrewrite.java.testing.junit5;
-    
+            
             import org.junit.Rule;
             import org.junit.rules.ExpectedException;
+
             import static org.hamcrest.Matchers.containsString;
             
             public class ExampleTests {
                 @Rule
                 public ExpectedException thrown = ExpectedException.none();
             
-                public void test() {
-                    this.thrown.expectMessage(containsString("no proper implementation found"));
-                    throw new NullPointerException();
+                public void expectMessageWithMatcher() {
+                    this.thrown.expectMessage(containsString("rewrite expectMessage"));
+                    throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
                 }
             }
         """,
         after = """
             package org.openrewrite.java.testing.junit5;
             
-            import static org.junit.jupiter.api.Assertions.assertThrows;
-            import static org.junit.jupiter.api.Assertions.assertTrue;
+            import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.containsString;
+            import static org.junit.jupiter.api.Assertions.assertThrows;
             
             public class ExampleTests {
-                
-                // something to this effect
-                public void test() {
-                    Exception exception = assertThrows(NullPointerException.class, () -> {
-                        throw new NullPointerException();
+            
+                public void expectMessageWithMatcher() {
+                    Exception exception = assertThrows(Exception.class, () -> {
+                        throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
                     });
-                    
-                    assertTrue(exception.getMessage(), containsString("no proper implementation found"));
+                    assertThat(exception.getMessage(), containsString("rewrite expectMessage"));
                 }
             }
         """
     )
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
+    @SuppressWarnings( "deprecation" )
+    @Test
+    fun refactorExpectCauseWithMatchers() = assertChanged(
+        before = """
+            package org.openrewrite.java.testing.junit5;
+            
+            import org.junit.Rule;
+            import org.junit.rules.ExpectedException;
+
+            import static org.hamcrest.Matchers.nullValue;
+            
+            public class ExampleTests {
+                @Rule
+                public ExpectedException thrown = ExpectedException.none();
+            
+                public void expectCause() {
+                    this.thrown.expectCause(nullValue());
+                    throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
+                }
+            }
+        """,
+        after = """
+            package org.openrewrite.java.testing.junit5;
+            
+            import static org.hamcrest.MatcherAssert.assertThat;
+            import static org.hamcrest.Matchers.nullValue;
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            
+            public class ExampleTests {
+            
+                public void expectCause() {
+                    Exception exception = assertThrows(Exception.class, () -> {
+                        throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
+                    });
+                    assertThat(exception.getCause(), nullValue());
+                }
+            }
+        """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
+    @SuppressWarnings( "deprecation" )
+    @Test
+    fun refactorExpectException() = assertChanged(
+        before = """
+            package org.openrewrite.java.testing.junit5;
+            
+            import org.junit.Rule;
+            import org.junit.rules.ExpectedException;
+
+            import static org.hamcrest.Matchers.containsString;
+            import static org.hamcrest.Matchers.nullValue;
+            
+            public class ExampleTests {
+                @Rule
+                public ExpectedException thrown = ExpectedException.none();
+            
+                public void expectExceptionUseCases() {
+                    this.thrown.expect(NullPointerException.class);
+                    this.thrown.expectMessage(containsString("rewrite expectMessage"));
+                    this.thrown.expectCause(nullValue());
+                    throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
+                }
+            }
+        """,
+        after = """
+            package org.openrewrite.java.testing.junit5;
+            
+            import static org.hamcrest.MatcherAssert.assertThat;
+            import static org.hamcrest.Matchers.containsString;
+            import static org.hamcrest.Matchers.nullValue;
+            import static org.junit.jupiter.api.Assertions.assertThrows;
+            
+            public class ExampleTests {
+            
+                public void expectExceptionUseCases() {
+                    Exception exception = assertThrows(NullPointerException.class, () -> {
+                        throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
+                    });
+                    assertThat(exception.getMessage(), containsString("rewrite expectMessage"));
+                    assertThat(exception.getCause(), nullValue());
+                }
+            }
+        """
+    )
 }
