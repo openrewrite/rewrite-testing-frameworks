@@ -33,10 +33,15 @@ plugins {
 
     id("nebula.integtest") version "7.0.9" apply false
     id("me.champeau.gradle.jmh") version "0.5.2"
+    id("org.openrewrite.rewrite") version "3.1.0"
 }
 
 apply(plugin = "nebula.integtest-standalone")
 apply(plugin = "nebula.publish-verification")
+
+configure<org.openrewrite.gradle.RewriteExtension> {
+    activeRecipe("org.openrewrite.java.format.AutoFormat")
+}
 
 configure<nebula.plugin.release.git.base.ReleasePluginExtension> {
     defaultVersionStrategy = nebula.plugin.release.NetflixOssStrategies.SNAPSHOT(project)
