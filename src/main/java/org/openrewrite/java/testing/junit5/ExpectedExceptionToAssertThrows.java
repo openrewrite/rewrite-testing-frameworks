@@ -183,9 +183,10 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 }
             }
 
+            final String exceptionName = "exception";
             final String exceptionDeclParam =
                     (isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher) ?
-                            "Exception exception =" : "";
+                            "Exception " + exceptionName + " =" : "";
 
             final String expectedExceptionParam = (expectMethodInvocation == null || isExpectArgAMatcher) ?
                     "Exception.class" : expectMethodInvocation.getArguments().get(0).print();
@@ -197,13 +198,13 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     "" : expectMessageMethodInvocation.getArguments().get(0).print();
 
             final String expectedExceptionAssertThatParam = isExpectArgAMatcher ?
-                    String.format(ASSERT_THAT_FORMAT, "exception", expectMethodInvocation.getArguments().get(0).print()) : "";
+                    String.format(ASSERT_THAT_FORMAT, exceptionName, expectMethodInvocation.getArguments().get(0).print()) : "";
 
             final String expectedMessageAssertThatParam = isExpectMessageArgAMatcher ?
-                    String.format(ASSERT_THAT_FORMAT, "exception.getMessage()", expectMessageMethodInvocation.getArguments().get(0).print()) : "";
+                    String.format(ASSERT_THAT_FORMAT, exceptionName + ".getMessage()", expectMessageMethodInvocation.getArguments().get(0).print()) : "";
 
             final String expectCauseAssertThatParam = isExpectedCauseArgAMatcher ?
-                    String.format(ASSERT_THAT_FORMAT, "exception.getCause()", expectCauseMethodInvocation.getArguments().get(0).print()) : "";
+                    String.format(ASSERT_THAT_FORMAT, exceptionName + ".getCause()", expectCauseMethodInvocation.getArguments().get(0).print()) : "";
 
             /* Code Template;
                 {

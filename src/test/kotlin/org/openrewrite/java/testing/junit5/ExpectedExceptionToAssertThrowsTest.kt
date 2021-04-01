@@ -120,7 +120,6 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
     )
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
-    @SuppressWarnings( "deprecation" )
     @Test
     fun refactorExceptWithMatcher() = assertChanged(
         before = """
@@ -161,7 +160,6 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
     )
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/77")
-    @SuppressWarnings( "deprecation" )
     @Test
     fun refactorExpectMessageString() = assertChanged(
         before = """
@@ -200,7 +198,6 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
     )
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
-    @SuppressWarnings( "deprecation" )
     @Test
     fun refactorExpectMessageWithMatcher() = assertChanged(
         before = """
@@ -241,7 +238,6 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
     )
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
-    @SuppressWarnings( "deprecation" )
     @Test
     fun refactorExpectCauseWithMatchers() = assertChanged(
         before = """
@@ -282,7 +278,6 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
     )
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
-    @SuppressWarnings( "deprecation" )
     @Test
     fun refactorExpectException() = assertChanged(
         before = """
