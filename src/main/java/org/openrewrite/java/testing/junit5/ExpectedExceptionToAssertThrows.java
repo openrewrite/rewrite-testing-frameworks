@@ -35,9 +35,6 @@ import java.util.stream.Collectors;
 /**
  * Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.
  *
- * The recipe refactors of ExpectedException to org.junit.jupiter.api.assertThrows,
- * and org.junit.jupiter.api.assertThrows when applicable.
- *
  * Supported ExpectedException methods:
  *      expect(java.lang.Class)
  *      expect(org.hamcrest.Matcher)
@@ -55,9 +52,9 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                             "import java.util.function.Supplier;" +
                             "import org.junit.jupiter.api.function.Executable;" +
                             "class AssertThrows {" +
-                                "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,Supplier<String> messageSupplier){}" +
-                                "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,String message){}" +
-                                "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable){}" +
+                                "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,Supplier<String> messageSupplier){ return null; }" +
+                                "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,String message){ return null; }" +
+                                "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable){ return null; }" +
                             "}"
                     ),
                     Parser.Input.fromString(
