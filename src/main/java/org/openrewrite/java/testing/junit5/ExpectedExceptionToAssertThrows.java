@@ -19,7 +19,6 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.format.AutoFormatVisitor;
@@ -79,6 +78,13 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         private static final String EXPECT_MESSAGE_INVOCATION_KEY = "expectMessageMethodInvocation";
         private static final String EXPECT_CAUSE_INVOCATION_KEY = "expectCauseMethodInvocation";
 
+        /*
+            {#{exceptionDeclaration} assertThrows(#{expectedException}, () -> {
+                #{printedStatements}
+            } #{expectedMessage});
+
+            #{}#{}#{}}";
+         */
         private static final String CODE_TEMPLATE = "{#{} assertThrows(#{}, () -> { #{} }#{});#{}#{}#{}}";
         private static final String ASSERT_THAT_FORMAT = "assertThat(%s, %s)";
 
@@ -107,86 +113,91 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             J.MethodInvocation expectMethodInvocation = getCursor().pollMessage(EXPECT_INVOCATION_KEY);
             J.MethodInvocation expectMessageMethodInvocation = getCursor().pollMessage(EXPECT_MESSAGE_INVOCATION_KEY);
             J.MethodInvocation expectCauseMethodInvocation = getCursor().pollMessage(EXPECT_CAUSE_INVOCATION_KEY);
-            if (expectMethodInvocation == null && expectMessageMethodInvocation == null && expectCauseMethodInvocation == null) {
+            if (expectMethodInvocation == null &&
+                    expectMessageMethodInvocation == null &&
+                    expectCauseMethodInvocation == null) {
                 return m;
             }
 
-            boolean containsExpectHamcrest = false;
-            boolean containsExpectMessageHamcrest = false;
-            boolean containsExpectCauseHamcrest = false;
-
+            boolean isExpectArgAMatcher = false;
             if (expectMethodInvocation != null) {
                 List<Expression> args = expectMethodInvocation.getArguments();
                 if (args.size() != 1) {
                     return m;
                 }
 
-                Expression expectedException = args.get(0);
-                if (expectedException instanceof J.MethodInvocation) {
-                    containsExpectHamcrest = isHamcrestMatcher((J.MethodInvocation) expectedException);
-                    if (!containsExpectHamcrest) {
+                final Expression expectMethodArg = args.get(0);
+                if (expectMethodArg instanceof J.MethodInvocation) {
+                    isExpectArgAMatcher = isHamcrestMatcher((J.MethodInvocation) expectMethodArg);
+                    if (!isExpectArgAMatcher) {
                         return m;
                     }
                 } else {
-                    JavaType.FullyQualified argType = TypeUtils.asFullyQualified(expectedException.getType());
+                    final JavaType.FullyQualified argType = TypeUtils.asFullyQualified(expectMethodArg.getType());
                     if (argType == null || !argType.getFullyQualifiedName().equals("java.lang.Class")) {
                         return m;
                     }
                 }
             }
 
-            final String expectedExceptionLiteral = (expectMethodInvocation == null || containsExpectHamcrest) ? "Exception.class" : expectMethodInvocation.getArguments().get(0).print();
-            final String expectHamcrestLiteral = !containsExpectHamcrest ? "" : expectMethodInvocation.getArguments().get(0).print();
-
+            boolean isExpectMessageArgAMatcher = false;
             if (expectMessageMethodInvocation != null) {
                 List<Expression> args = expectMessageMethodInvocation.getArguments();
                 if (args.size() != 1) {
                     return m;
                 }
 
-                Expression expectedMessage = args.get(0);
-                if (expectedMessage instanceof J.MethodInvocation) {
-                    containsExpectMessageHamcrest = isHamcrestMatcher((J.MethodInvocation) expectedMessage);
-                    if (!containsExpectMessageHamcrest) {
+                final Expression expectMessageMethodArg = args.get(0);
+                if (expectMessageMethodArg instanceof J.MethodInvocation) {
+                    isExpectMessageArgAMatcher = isHamcrestMatcher((J.MethodInvocation) expectMessageMethodArg);
+                    if (!isExpectMessageArgAMatcher) {
                         return m;
                     }
                 } else {
-                    if (!(expectedMessage instanceof J.Literal && expectedMessage.getType() == JavaType.Primitive.String)) {
+                    if (!(expectMessageMethodArg instanceof J.Literal &&
+                            expectMessageMethodArg.getType() == JavaType.Primitive.String)) {
                         return m;
                     }
                 }
             }
 
-            final String expectedMessageLiteral = (expectMessageMethodInvocation == null || containsExpectMessageHamcrest) ?
-                    "" : expectMessageMethodInvocation.getArguments().get(0).print();
-
-            final String expectMessageHamcrestLiteral =
-                    (expectMessageMethodInvocation == null || !containsExpectMessageHamcrest) ?
-                            "" : expectMessageMethodInvocation.getArguments().get(0).print();
-
+            boolean isExpectedCauseArgAMatcher = false;
             if (expectCauseMethodInvocation != null) {
                 List<Expression> args = expectCauseMethodInvocation.getArguments();
                 if (args.size() != 1) {
                     return m;
                 }
 
-                Expression expectedMessage = args.get(0);
-                if (expectedMessage instanceof J.MethodInvocation) {
-                   containsExpectCauseHamcrest = isHamcrestMatcher((J.MethodInvocation) expectedMessage);
-                   if (!containsExpectCauseHamcrest) {
-                       return m;
-                   }
+                final Expression expectCauseMethodArg = args.get(0);
+                if (expectCauseMethodArg instanceof J.MethodInvocation) {
+                    isExpectedCauseArgAMatcher = isHamcrestMatcher((J.MethodInvocation) expectCauseMethodArg);
+                    if (!isExpectedCauseArgAMatcher) {
+                        return m;
+                    }
                 }
             }
 
-            final String expectCauseHamcrestLiteral =
-                    (expectCauseMethodInvocation == null || !containsExpectCauseHamcrest) ?
-                            "" : expectCauseMethodInvocation.getArguments().get(0).print();
+            final String exceptionDeclParam =
+                    (isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher) ?
+                            "Exception exception =" : "";
+
+            final String expectedExceptionParam = (expectMethodInvocation == null || isExpectArgAMatcher) ?
+                    "Exception.class" : expectMethodInvocation.getArguments().get(0).print();
 
             assert m.getBody() != null;
-            final String printedStatements = getPrintedStatements(m.getBody());
+            final String printedStatementsParam = getPrintedStatements(m.getBody());
 
-            final String exceptionDecl = (containsExpectHamcrest || containsExpectMessageHamcrest || containsExpectCauseHamcrest) ? "Exception exception =" : "";
+            final String expectedMessageParam = (expectMessageMethodInvocation == null || isExpectMessageArgAMatcher) ?
+                    "" : "," + expectMessageMethodInvocation.getArguments().get(0).print();
+
+            final String expectedExceptionAssertThatParam = isExpectArgAMatcher ?
+                    String.format(ASSERT_THAT_FORMAT, "exception", expectMethodInvocation.getArguments().get(0).print()) : "";
+
+            final String expectedMessageAssertThatParam = isExpectMessageArgAMatcher ?
+                    String.format(ASSERT_THAT_FORMAT, "exception.getMessage()", expectMessageMethodInvocation.getArguments().get(0).print()) : "";
+
+            final String expectCauseAssertThatParam = isExpectedCauseArgAMatcher ?
+                    String.format(ASSERT_THAT_FORMAT, "exception.getCause()", expectCauseMethodInvocation.getArguments().get(0).print()) : "";
 
             m = m.withBody(
                     m.getBody().withTemplate(
@@ -196,11 +207,13 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                                     .staticImports("org.hamcrest.MatcherAssert.assertThat")
                                     .build(),
                             m.getBody().getCoordinates().replace(),
-                            exceptionDecl, expectedExceptionLiteral, printedStatements,
-                            StringUtils.isBlank(expectedMessageLiteral) ? expectedMessageLiteral : "," + expectedMessageLiteral,
-                            !containsExpectHamcrest ? "" : String.format(ASSERT_THAT_FORMAT, "exception", expectHamcrestLiteral),
-                            !containsExpectMessageHamcrest ? "" : String.format(ASSERT_THAT_FORMAT, "exception.getMessage()", expectMessageHamcrestLiteral),
-                            !containsExpectCauseHamcrest ? "" : String.format(ASSERT_THAT_FORMAT, "exception.getCause()", expectCauseHamcrestLiteral)
+                            exceptionDeclParam,
+                            expectedExceptionParam,
+                            printedStatementsParam,
+                            expectedMessageParam,
+                            expectedExceptionAssertThatParam,
+                            expectedMessageAssertThatParam,
+                            expectCauseAssertThatParam
                     )
             );
 
