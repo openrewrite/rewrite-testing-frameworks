@@ -291,9 +291,7 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
             import org.junit.Rule;
             import org.junit.rules.ExpectedException;
 
-            import static org.hamcrest.Matchers.containsString;
-            import static org.hamcrest.Matchers.isA; 
-            import static org.hamcrest.Matchers.nullValue;
+            import static org.hamcrest.Matchers.*;
             
             public class ExampleTests {
                 @Rule

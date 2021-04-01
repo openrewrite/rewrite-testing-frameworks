@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.format.AutoFormatVisitor;
@@ -33,6 +34,18 @@ import java.util.stream.Collectors;
 
 /**
  * Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.
+ *
+ * The recipe refactors of ExpectedException to org.junit.jupiter.api.assertThrows,
+ * and org.junit.jupiter.api.assertThrows when applicable.
+ *
+ * Supported ExpectedException methods:
+ *      expect(java.lang.Class)
+ *      expect(org.hamcrest.Matcher)
+ *      expectMessage(java.lang.String)
+ *      expectMessage(org.hamcrest.Matcher)
+ *      expectCause(org.hamcrest.Matcher)
+ *
+ * Does not currently support refactors of ExpectedException.isAnyExceptionExpected().
  */
 public class ExpectedExceptionToAssertThrows extends Recipe {
     private static final ThreadLocal<JavaParser> ASSERTIONS_PARSER = ThreadLocal.withInitial(() ->
@@ -78,15 +91,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         private static final String EXPECT_MESSAGE_INVOCATION_KEY = "expectMessageMethodInvocation";
         private static final String EXPECT_CAUSE_INVOCATION_KEY = "expectCauseMethodInvocation";
 
-        /*
-            {#{exceptionDeclaration} assertThrows(#{expectedException}, () -> {
-                #{printedStatements}
-            } #{expectedMessage});
-
-            #{}#{}#{}}";
-         */
         private static final String CODE_TEMPLATE = "{#{} assertThrows(#{}, () -> { #{} }#{});#{}#{}#{}}";
-        private static final String ASSERT_THAT_FORMAT = "assertThat(%s, %s)";
+        private static final String ASSERT_THAT_FORMAT = "assertThat(%s, %s);";
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -188,7 +194,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             final String printedStatementsParam = getPrintedStatements(m.getBody());
 
             final String expectedMessageParam = (expectMessageMethodInvocation == null || isExpectMessageArgAMatcher) ?
-                    "" : "," + expectMessageMethodInvocation.getArguments().get(0).print();
+                    "" : expectMessageMethodInvocation.getArguments().get(0).print();
 
             final String expectedExceptionAssertThatParam = isExpectArgAMatcher ?
                     String.format(ASSERT_THAT_FORMAT, "exception", expectMethodInvocation.getArguments().get(0).print()) : "";
@@ -199,6 +205,15 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             final String expectCauseAssertThatParam = isExpectedCauseArgAMatcher ?
                     String.format(ASSERT_THAT_FORMAT, "exception.getCause()", expectCauseMethodInvocation.getArguments().get(0).print()) : "";
 
+            /* Code Template;
+                {
+                    #{exceptionDeclaration} assertThrows(#{expectedException}, () -> {
+                        #{printedStatements}
+                    } #{expectedMessage});
+
+                    #{assertThatA}#{assertThatB}#{assertThatC}
+                }"
+            */
             m = m.withBody(
                     m.getBody().withTemplate(
                             template(CODE_TEMPLATE)
@@ -210,7 +225,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                             exceptionDeclParam,
                             expectedExceptionParam,
                             printedStatementsParam,
-                            expectedMessageParam,
+                            !StringUtils.isBlank(expectedMessageParam) ? "," + expectedMessageParam : expectedMessageParam,
                             expectedExceptionAssertThatParam,
                             expectedMessageAssertThatParam,
                             expectCauseAssertThatParam
