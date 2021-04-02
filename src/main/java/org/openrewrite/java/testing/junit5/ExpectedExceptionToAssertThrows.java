@@ -130,16 +130,10 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 }
 
                 final Expression expectMethodArg = args.get(0);
-                if (expectMethodArg instanceof J.MethodInvocation) {
-                    isExpectArgAMatcher = isHamcrestMatcher((J.MethodInvocation) expectMethodArg);
-                    if (!isExpectArgAMatcher) {
-                        return m;
-                    }
-                } else {
-                    final JavaType.FullyQualified argType = TypeUtils.asFullyQualified(expectMethodArg.getType());
-                    if (argType == null || !argType.getFullyQualifiedName().equals("java.lang.Class")) {
-                        return m;
-                    }
+                isExpectArgAMatcher = isHamcrestMatcher(expectMethodArg);
+                final JavaType.FullyQualified argType = TypeUtils.asFullyQualified(expectMethodArg.getType());
+                if (!isExpectArgAMatcher && (argType == null || !argType.getFullyQualifiedName().equals("java.lang.Class"))) {
+                    return m;
                 }
             }
 
@@ -151,16 +145,9 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 }
 
                 final Expression expectMessageMethodArg = args.get(0);
-                if (expectMessageMethodArg instanceof J.MethodInvocation) {
-                    isExpectMessageArgAMatcher = isHamcrestMatcher((J.MethodInvocation) expectMessageMethodArg);
-                    if (!isExpectMessageArgAMatcher) {
-                        return m;
-                    }
-                } else {
-                    if (!(expectMessageMethodArg instanceof J.Literal &&
-                            expectMessageMethodArg.getType() == JavaType.Primitive.String)) {
-                        return m;
-                    }
+                isExpectMessageArgAMatcher = isHamcrestMatcher(expectMessageMethodArg);
+                if (!isExpectMessageArgAMatcher && !TypeUtils.isString(expectMessageMethodArg.getType())) {
+                    return m;
                 }
             }
 
@@ -172,11 +159,9 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 }
 
                 final Expression expectCauseMethodArg = args.get(0);
-                if (expectCauseMethodArg instanceof J.MethodInvocation) {
-                    isExpectedCauseArgAMatcher = isHamcrestMatcher((J.MethodInvocation) expectCauseMethodArg);
-                    if (!isExpectedCauseArgAMatcher) {
-                        return m;
-                    }
+                isExpectedCauseArgAMatcher = isHamcrestMatcher(expectCauseMethodArg);
+                if (!isExpectedCauseArgAMatcher) {
+                    return m;
                 }
             }
 
@@ -241,21 +226,29 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (method.getType() != null && method.getType().getDeclaringType().getFullyQualifiedName().equals(EXPECTED_EXCEPTION_FQN)) {
-                if (method.getSimpleName().equals("expect")) {
-                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECT_INVOCATION_KEY, method);
-                } else if (method.getSimpleName().equals("expectMessage")) {
-                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECT_MESSAGE_INVOCATION_KEY, method);
-                } else if (method.getSimpleName().equals("expectCause")) {
-                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECT_CAUSE_INVOCATION_KEY, method);
+                switch (method.getSimpleName()) {
+                    case "expect":
+                        getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECT_INVOCATION_KEY, method);
+                        break;
+                    case "expectMessage":
+                        getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECT_MESSAGE_INVOCATION_KEY, method);
+                        break;
+                    case "expectCause":
+                        getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, EXPECT_CAUSE_INVOCATION_KEY, method);
+                        break;
                 }
             }
             return method;
         }
 
-        private boolean isHamcrestMatcher(J.MethodInvocation method) {
+        private boolean isHamcrestMatcher(J j) {
+            if (!(j instanceof J.MethodInvocation)) {
+                return false;
+            }
+
+            final J.MethodInvocation method = (J.MethodInvocation) j;
             return method.getArguments().size() == 1 &&
                     method.getType() != null &&
-                    method.getType().getDeclaringType() != null &&
                     TypeUtils.isOfClassType(method.getType().getDeclaringType(), HAMCREST_MATCHER_FQN);
         }
 
