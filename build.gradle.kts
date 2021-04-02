@@ -32,7 +32,6 @@ plugins {
     id("nebula.maven-apache-license") version "17.3.2"
 
     id("nebula.integtest") version "7.0.9" apply false
-    id("me.champeau.gradle.jmh") version "0.5.2"
     id("org.openrewrite.rewrite") version "3.1.0"
 }
 
@@ -133,14 +132,6 @@ dependencies {
     "integTestImplementation"("org.openrewrite:rewrite-properties:latest.integration")
     "integTestImplementation"("org.openrewrite:rewrite-xml:latest.integration")
     "integTestImplementation"("org.hamcrest:hamcrest:latest.release")
-
-    // jmh benchmarking dependencies
-    jmh("org.projectlombok:lombok:latest.release")
-    jmh("junit:junit:latest.release")
-    jmh("org.openjdk.jmh:jmh-core:latest.release")
-    // Nebula doesn't like having jmhAnnotationProcessor without jmh so we just add it twice.
-    jmh("org.openjdk.jmh:jmh-generator-annprocess:latest.release")
-    jmhAnnotationProcessor("org.openjdk.jmh:jmh-generator-annprocess:latest.release")
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {
