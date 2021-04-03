@@ -89,15 +89,6 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-            // Only visit the compilation unit if the test has a Parameterized runner
-            if (cu.getImports().stream().noneMatch(imp -> imp.getPackageName().equals("org.junit.runners") && (imp.getClassName().equals("Parameterized") || imp.getClassName().equals("*")))) {
-                return cu;
-            }
-            return super.visitCompilationUnit(cu, executionContext);
-        }
-
-        @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
 

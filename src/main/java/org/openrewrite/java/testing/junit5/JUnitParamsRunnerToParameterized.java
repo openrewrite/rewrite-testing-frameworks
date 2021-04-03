@@ -77,14 +77,6 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                // Only visit the compilation unit if the test has a JUnitParams import
-                if (cu.getImports().stream().noneMatch(imp -> imp.getPackageName().equals("junitparams"))) {
-                    return cu;
-                }
-                return super.visitCompilationUnit(cu, executionContext);
-            }
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
