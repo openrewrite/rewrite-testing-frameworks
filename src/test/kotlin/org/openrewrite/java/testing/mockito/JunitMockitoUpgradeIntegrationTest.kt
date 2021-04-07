@@ -19,6 +19,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.InMemoryExecutionContext
+import org.openrewrite.Issue
 import org.openrewrite.Recipe
 import org.openrewrite.SourceFile
 import org.openrewrite.config.Environment
@@ -476,9 +477,8 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
         }
     """.trimIndent()
 
-    // TODO figure out why this thing fails randomly
     @Test
-    @Disabled("spurious CI failures")
+    @Disabled("https://github.com/openrewrite/rewrite-testing-frameworks/issues/116")
     fun theBigOne() {
         val javaSource = parser.parse(exampleJunitBefore)[0]
         val mavenSource = MavenParser.builder().build().parse(
