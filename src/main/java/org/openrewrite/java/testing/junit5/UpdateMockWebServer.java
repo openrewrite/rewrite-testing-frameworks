@@ -88,13 +88,13 @@ public class UpdateMockWebServer extends Recipe {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
-                String mockWebServerVarableName = getCursor().pollMessage(MOCK_WEBSERVER_RULE);
+                final String mockWebServerVariableName = getCursor().pollMessage(MOCK_WEBSERVER_RULE);
                 final J.MethodDeclaration afterEachMethod = getCursor().pollMessage(AFTER_EACH_METHOD);
-                if (mockWebServerVarableName != null) {
+                if (mockWebServerVariableName != null) {
                     if (afterEachMethod != null) {
                         cd = maybeAutoFormat(cd, cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
                             if (statement == afterEachMethod) {
-                                statement = statement.withTemplate(template(mockWebServerVarableName + ".close();")
+                                statement = statement.withTemplate(template(mockWebServerVariableName + ".close();")
                                         .javaParser(OKHTTP3_PARSER.get()).build(), ((J.MethodDeclaration) statement).getBody()
                                         .getCoordinates().lastStatement());
 
@@ -113,7 +113,7 @@ public class UpdateMockWebServer extends Recipe {
                             return statement;
                         }))), executionContext);
                     } else {
-                        String closeMethod = "@AfterEach void afterEachTest() throws IOException {" + mockWebServerVarableName + ".close();}";
+                        String closeMethod = "@AfterEach void afterEachTest() throws IOException {" + mockWebServerVariableName + ".close();}";
                         cd = maybeAutoFormat(cd, cd.withBody(cd.getBody().withTemplate(template(closeMethod)
                                 .imports("org.junit.jupiter.api.AfterEach", "okhttp3.mockwebserver", "java.io.IOException")
                                 .javaParser(OKHTTP3_PARSER.get()).build(), cd.getBody().getCoordinates().lastStatement())), executionContext);
