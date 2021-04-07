@@ -118,6 +118,7 @@ dependencies {
     testRuntimeOnly("org.mockito:mockito-all:$mockito1Version")
     testRuntimeOnly("org.hamcrest:hamcrest:latest.release")
     testRuntimeOnly("pl.pragmatists:JUnitParams:1.+")
+    testRuntimeOnly("com.squareup.okhttp3:mockwebserver:3.+")
 
     "beforeImplementation"("junit:junit:latest.release")
     "beforeImplementation"("org.mockito:mockito-core:$mockito1Version")
