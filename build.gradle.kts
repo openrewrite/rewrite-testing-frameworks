@@ -116,6 +116,7 @@ dependencies {
     testRuntimeOnly("org.springframework:spring-test:4.+")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
     testRuntimeOnly("org.mockito:mockito-all:$mockito1Version")
+    testRuntimeOnly("org.mockito:mockito-core:latest.release")
     testRuntimeOnly("org.hamcrest:hamcrest:latest.release")
     testRuntimeOnly("pl.pragmatists:JUnitParams:1.+")
     testRuntimeOnly("com.squareup.okhttp3:mockwebserver:3.+")
