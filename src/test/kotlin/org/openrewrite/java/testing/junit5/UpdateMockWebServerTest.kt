@@ -43,7 +43,7 @@ class UpdateMockWebServerTest : JavaRecipeTest {
             import org.junit.jupiter.api.AfterEach;
         
             import java.io.IOException;
-        
+            
             class A {
             
                 public MockWebServer server = new MockWebServer();

@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.AnnotationMatcher;
@@ -46,6 +43,11 @@ import java.util.UUID;
 public class UpdateMockWebServer extends Recipe {
     private static final AnnotationMatcher RULE_MATCHER = new AnnotationMatcher("@org.junit.Rule");
     private static final AnnotationMatcher AFTER_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.AfterEach");
+    private static final String AFTER_EACH_FQN = "org.junit.jupiter.api.AfterEach";
+    private static final String MOCK_WEB_SERVER_FQN = "okhttp3.mockwebserver.MockWebServer";
+    private static final String IO_EXCEPTION_FQN = "java.io.IOException";
+    private static final String MOCK_WEBSERVER_RULE = "mock-web-server-rule";
+    private static final String AFTER_EACH_METHOD = "after-each-method";
 
     private static final ThreadLocal<JavaParser> OKHTTP3_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
@@ -82,8 +84,6 @@ public class UpdateMockWebServer extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final static String MOCK_WEBSERVER_RULE = "mock-web-server-rule";
-            private final static String AFTER_EACH_METHOD = "after-each-method";
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
@@ -91,34 +91,41 @@ public class UpdateMockWebServer extends Recipe {
                 final String mockWebServerVariableName = getCursor().pollMessage(MOCK_WEBSERVER_RULE);
                 final J.MethodDeclaration afterEachMethod = getCursor().pollMessage(AFTER_EACH_METHOD);
                 if (mockWebServerVariableName != null) {
-                    if (afterEachMethod != null) {
-                        cd = maybeAutoFormat(cd, cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
+                    if (afterEachMethod == null) {
+                        final String closeMethod = "@AfterEach\nvoid afterEachTest() throws IOException {\n" + mockWebServerVariableName + ".close();\n}";
+                        J.Block body = cd.getBody();
+                        body = maybeAutoFormat(body, body.withTemplate(template(closeMethod)
+                                .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
+                                .javaParser(OKHTTP3_PARSER.get()).build(), body.getCoordinates().lastStatement()), executionContext);
+                        cd = cd.withBody(body);
+                        maybeAddImport(AFTER_EACH_FQN);
+                        maybeAddImport(IO_EXCEPTION_FQN);
+                    } else {
+                        J.Block body = cd.getBody();
+                        body = maybeAutoFormat(body, body.withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
                             if (statement == afterEachMethod) {
-                                statement = statement.withTemplate(template(mockWebServerVariableName + ".close();")
-                                        .javaParser(OKHTTP3_PARSER.get()).build(), ((J.MethodDeclaration) statement).getBody()
-                                        .getCoordinates().lastStatement());
+                                J.MethodDeclaration method = (J.MethodDeclaration) statement;
+                                if (method.getBody() != null) {
+                                    method = method.withTemplate(template(mockWebServerVariableName + ".close();")
+                                            .javaParser(OKHTTP3_PARSER.get()).build(), method.getBody()
+                                            .getCoordinates().lastStatement());
 
-                                if (((J.MethodDeclaration) statement).getThrows() == null || ((J.MethodDeclaration) statement).getThrows().stream()
-                                        .noneMatch(n -> TypeUtils.isOfClassType(n.getType(), "java.io.IOException"))) {
-                                    J.Identifier ioExceptionIdent = J.Identifier.build(UUID.randomUUID(),
-                                            Space.format(" "),
-                                            Markers.EMPTY,
-                                            "IOException",
-                                            JavaType.Class.build("java.io.IOException"));
-                                    statement = ((J.MethodDeclaration) statement).withThrows(ListUtils.concat(((J.MethodDeclaration) statement).getThrows(), ioExceptionIdent));
-                                    maybeAddImport("java.io.IOException");
+                                    if (method.getThrows() == null || method.getThrows().stream()
+                                            .noneMatch(n -> TypeUtils.isOfClassType(n.getType(), IO_EXCEPTION_FQN))) {
+                                        J.Identifier ioExceptionIdent = J.Identifier.build(UUID.randomUUID(),
+                                                Space.format(" "),
+                                                Markers.EMPTY,
+                                                "IOException",
+                                                JavaType.Class.build(IO_EXCEPTION_FQN));
+                                        method = method.withThrows(ListUtils.concat(method.getThrows(), ioExceptionIdent));
+                                        maybeAddImport(IO_EXCEPTION_FQN);
+                                    }
                                 }
-
+                                statement = method;
                             }
                             return statement;
-                        }))), executionContext);
-                    } else {
-                        String closeMethod = "@AfterEach void afterEachTest() throws IOException {" + mockWebServerVariableName + ".close();}";
-                        cd = maybeAutoFormat(cd, cd.withBody(cd.getBody().withTemplate(template(closeMethod)
-                                .imports("org.junit.jupiter.api.AfterEach", "okhttp3.mockwebserver", "java.io.IOException")
-                                .javaParser(OKHTTP3_PARSER.get()).build(), cd.getBody().getCoordinates().lastStatement())), executionContext);
-                        maybeAddImport("org.junit.jupiter.api.AfterEach");
-                        maybeAddImport("java.io.IOException");
+                        })), executionContext);
+                        cd = cd.withBody(body);
                     }
                     maybeRemoveImport("org.junit.Rule");
                     doAfterVisit(new UpgradeDependencyVersion("com.squareup.okhttp3", "mockwebserver", "4.X", null));
