@@ -29,6 +29,39 @@ class CategoryToTagTest : JavaRecipeTest {
         get() = CategoryToTag()
 
     @Test
+    fun categoriesHavingJAssignmentArguments() = assertChanged(
+        dependsOn = arrayOf(
+            "public interface FastTests {}",
+            "public interface SlowTests {}"
+        ),
+        before = """
+            import org.junit.experimental.categories.Category;
+
+            @Category(value = SlowTests.class)
+            public class B {
+            
+            }
+            @Category(value = {SlowTests.class, FastTests.class})
+            public class C {
+            
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Tag;
+
+            @Tag("SlowTests")
+            public class B {
+            
+            }
+            
+            @Tag("SlowTests")
+            @Tag("FastTests")
+            public class C {
+            
+            }
+        """
+    )
+    @Test
     fun multipleCategoriesToTags() = assertChanged(
         dependsOn = arrayOf(
                 "public interface FastTests {}",

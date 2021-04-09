@@ -87,17 +87,22 @@ public class CategoryToTag extends Recipe {
         }
 
         private Stream<J.Annotation> categoryAnnotationToTagAnnotations(J.Annotation maybeCategory) {
-            if (TypeUtils.isOfClassType(maybeCategory.getAnnotationType().getType(), categoryAnnotation)) {
+            if (maybeCategory.getArguments() != null && TypeUtils.isOfClassType(maybeCategory.getAnnotationType().getType(), categoryAnnotation)) {
                 Expression annotationArgument = maybeCategory.getArguments().iterator().next();
-
-                Stream<J.FieldAccess> categories;
-                if (annotationArgument instanceof J.NewArray) {
-                    categories = ((J.NewArray) annotationArgument).getInitializer().stream()
-                            .map(J.FieldAccess.class::cast);
-                } else {
-                    categories = Stream.of((J.FieldAccess) annotationArgument);
+                if (annotationArgument instanceof J.Assignment) {
+                    annotationArgument = ((J.Assignment)annotationArgument).getAssignment();
                 }
 
+                Stream<J.FieldAccess> categories = Stream.empty();
+                if (annotationArgument instanceof J.NewArray) {
+                    J.NewArray argArray = (J.NewArray)annotationArgument;
+                    if (argArray.getInitializer() != null) {
+                        categories = argArray.getInitializer().stream()
+                                .map(J.FieldAccess.class::cast);
+                    }
+                } if (annotationArgument instanceof J.FieldAccess) {
+                    categories = Stream.of((J.FieldAccess) annotationArgument);
+                }
                 return categories.map(category -> {
                     String targetName = ((J.Identifier) category.getTarget()).getSimpleName();
                     J.Annotation tagAnnotation = new J.Annotation(
