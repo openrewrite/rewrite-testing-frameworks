@@ -30,7 +30,7 @@ class AssumeToAssumptionsTest : RecipeTest {
     @Test
     fun assumeToAssumptions() = assertChanged(
         recipe = Environment.builder()
-            .scanClasspath(emptyList())
+            .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()
             .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices"),
         before = """

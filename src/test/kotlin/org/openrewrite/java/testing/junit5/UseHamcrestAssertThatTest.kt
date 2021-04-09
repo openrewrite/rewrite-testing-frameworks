@@ -26,7 +26,7 @@ class UseHamcrestAssertThatTest : JavaRecipeTest {
         .build()
 
     override val recipe = Environment.builder()
-        .scanClasspath(emptyList())
+        .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
         .build()
         .activateRecipes("org.openrewrite.java.testing.junit5.UseHamcrestAssertThat")
 
