@@ -37,7 +37,7 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
         .build()
 
     override val recipe: Recipe = Environment.builder()
-        .scanClasspath(emptyList())
+        .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
         .build()
         .activateRecipes(
             "org.openrewrite.java.testing.junit5.JUnit4to5Migration",

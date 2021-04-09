@@ -26,7 +26,7 @@ class StaticImportsTest : JavaRecipeTest {
     fun useAssertionsStaticImport() = assertChanged(
         parser = JavaParser.fromJavaVersion().build(),
         recipe = Environment.builder()
-            .scanClasspath(emptyList())
+            .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()
             .activateRecipes("org.openrewrite.java.testing.assertj.StaticImports"),
         before = """
