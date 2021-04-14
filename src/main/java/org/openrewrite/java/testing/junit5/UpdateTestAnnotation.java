@@ -22,9 +22,11 @@ import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.search.FindTypes;
+import org.openrewrite.java.search.HasTypes;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
@@ -82,10 +84,8 @@ public class UpdateTestAnnotation extends Recipe {
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            if (!FindTypes.find(cu, "org.junit.Test").isEmpty()) {
+            if (HasTypes.find(cu, Collections.singletonList("org.junit.Test"))) {
                 doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
-                // work around https://github.com/openrewrite/rewrite/issues/401
-                ctx.putMessageInSet(JavaType.FOUND_TYPE_CONTEXT_KEY, JUNIT_JUPITER_TEST);
                 return super.visitCompilationUnit(cu, ctx);
             }
             return cu;
