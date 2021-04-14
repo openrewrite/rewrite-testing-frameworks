@@ -22,6 +22,7 @@ import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.search.HasTypes;
 import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -72,6 +73,11 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
     private static String junitParamsDefaultInitMethodName(String methodName) {
         return PARAMETERS_FOR_PREFIX + methodName.substring(0,1).toUpperCase() + methodName.substring(1);
+    }
+
+    @Override
+    protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
+        return new HasTypes(Collections.singletonList("junitparams")).getVisitor();
     }
 
     @Override
