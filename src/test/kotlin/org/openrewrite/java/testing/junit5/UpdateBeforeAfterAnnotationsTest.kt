@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
@@ -144,6 +145,36 @@ class UpdateBeforeAfterAnnotationsTest : JavaRecipeTest {
                 // comments
                 @BeforeEach
                 void before() {
+                }
+            }
+        """
+    )
+
+    @Test
+    @Disabled("Issue #59")
+    fun testBeforeMethodOverridesPublicAbstract() = assertChanged(
+        dependsOn = arrayOf("""
+            public class AbstractTest {
+                abstract public void setup();
+            }
+        """),
+        before = """
+            import org.junit.Before;
+            
+            public class A extends AbstractTest {
+            
+                @Before
+                public void setup() {
+                }
+            } 
+        """,
+        after = """
+            import org.junit.jupiter.api.BeforeEach;
+            
+            public class A extends AbstractTest {
+            
+                @BeforeEach
+                public void setup() {
                 }
             }
         """
