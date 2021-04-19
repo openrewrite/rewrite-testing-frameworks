@@ -32,7 +32,7 @@ import java.util.List;
  *
  * <a href="https://rules.sonarsource.com/java/tag/tests/RSPEC-2699">Sonar Source RSPEC-2699</a>
  */
-@Incubating(since = "1.1.0")
+@Incubating(since = "1.2.0")
 @Value
 @EqualsAndHashCode(callSuper = true)
 public class TestsShouldIncludeAssertions extends Recipe {
