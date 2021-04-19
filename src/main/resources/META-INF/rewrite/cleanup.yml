@@ -15,9 +15,9 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.sonar.SonarBestPractices
-displayName: Sonar Best Practices for Java Testing Frameworks
-description: Sonar Best Practices for Java Testing Frameworks.
+name: org.openrewrite.java.testing.cleanup.BestPractices
+displayName: Testing Frameworks best practices
+description: Applies best practices to tests.
 tags:
   - sonar
   - testing
