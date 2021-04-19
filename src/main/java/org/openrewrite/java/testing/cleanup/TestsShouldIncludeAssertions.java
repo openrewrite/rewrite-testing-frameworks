@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.sonar;
+package org.openrewrite.java.testing.cleanup;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
@@ -61,24 +61,19 @@ public class TestsShouldIncludeAssertions extends Recipe {
                     )
             )).build());
 
-    @Option(displayName = "Assertion Packages",
-            description = "List of fully qualified package names of test assertion packages used for finding assertion statements.",
-            example = "org.junit.jupiter.api.Assertions, org.hamcrest.MatcherAssert")
-    List<String> assertionPackages;
-
-    @Option(displayName = "Assert Select Methods",
-            description = "List of fully qualified assertion method names used for finding assertion statements.",
-            example = "org.mockito.Mockito.verify, io.vertx.ext.unit.TestContext.verify")
-    List<String> assertMethods;
+    @Option(displayName = "Assertions",
+            description = "List of fully qualified classes and or methods used for identifying assertion statements.",
+            example = "org.junit.jupiter.api.Assertions, org.hamcrest.MatcherAssert, io.vertx.ext.unit.TestContext.verify")
+    List<String> assertions;
 
     @Override
     public String getDisplayName() {
-        return "Sonar RSPEC-2699. Tests should include assertions";
+        return "Tests should include assertions";
     }
 
     @Override
     public String getDescription() {
-        return "For Tests not having any assertions, wrap the statements with JUnit 5's Assertions.assertThrowDoesNotThrow.";
+        return "For Tests not having any assertions, wrap the statements with JUnit 5's Assertions.assertThrowDoesNotThrow (Sonar RSPEC-2699).";
     }
 
     @Override
@@ -131,8 +126,8 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 return false;
             }
             String fqt = methodInvocation.getType().getDeclaringType().getFullyQualifiedName();
-            for (String assertionPackage : assertionPackages) {
-                if (fqt.startsWith(assertionPackage)) {
+            for (String assertionClassOrPackage : assertions) {
+                if (fqt.startsWith(assertionClassOrPackage)) {
                     return true;
                 }
             }
@@ -142,7 +137,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 J.MethodInvocation selectMethod = (J.MethodInvocation) methodInvocation.getSelect();
                 if (selectMethod.getType() != null) {
                     String select = selectMethod.getType().getDeclaringType().getFullyQualifiedName() + "." + selectMethod.getSimpleName();
-                    for (String assertMethod : assertMethods) {
+                    for (String assertMethod : assertions) {
                         if (select.equals(assertMethod)) {
                             return true;
                         }

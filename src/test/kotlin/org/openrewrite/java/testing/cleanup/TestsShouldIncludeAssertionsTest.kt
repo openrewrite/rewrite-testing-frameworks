@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.sonar
+package org.openrewrite.java.testing.cleanup
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
@@ -22,16 +22,15 @@ import org.openrewrite.java.JavaRecipeTest
 
 class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit", "mockito-all", "hamcrest")
+        .classpath("junit", "mockito-all", "hamcrest", "assertj-core")
         .build()
 
     override val recipe: Recipe
         get() = TestsShouldIncludeAssertions(
             listOf(
+                "org.assertj.core.api",
                 "org.junit.jupiter.api.Assertions",
                 "org.hamcrest.MatcherAssert",
-            ),
-            listOf(
                 "org.mockito.Mockito.verify"
             )
         )
@@ -66,6 +65,25 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
         """
     )
 
+    @Test
+    fun assertJAssertion() = assertUnchanged(
+        """
+            import org.junit.jupiter.api.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            public class A {
+
+                @Test
+                public void test() {
+                    assertThat(notification()).isEqualTo(1);
+                }
+                private Integer notification() {
+                    return 1;
+                }
+            }
+        """
+    )
     @Test
     fun hamcrestAssertion() = assertUnchanged(
         """

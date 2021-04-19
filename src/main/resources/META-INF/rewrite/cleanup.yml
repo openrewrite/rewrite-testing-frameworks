@@ -22,10 +22,10 @@ tags:
   - sonar
   - testing
 recipeList:
-  - org.openrewrite.java.testing.sonar.TestsShouldIncludeAssertions:
-      assertionPackages:
+  - org.openrewrite.java.testing.cleanup.TestsShouldIncludeAssertions:
+      assertions:
+        - org.assertj.core.api
         - org.junit.jupiter.api.Assertions
         - org.hamcrest.MatcherAssert
-      assertMethods:
         - org.mockito.Mockito.verify
         - org.springframework.test.web.servlet.ResultActions.andExpect

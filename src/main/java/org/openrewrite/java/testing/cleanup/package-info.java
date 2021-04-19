@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 @NonNullApi
-package org.openrewrite.java.testing.sonar;
+package org.openrewrite.java.testing.cleanup;
 
 import org.openrewrite.internal.lang.NonNullApi;
