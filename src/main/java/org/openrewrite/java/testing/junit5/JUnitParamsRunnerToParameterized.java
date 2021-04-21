@@ -119,7 +119,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                         }
                     } else if (anno.getArguments() != null && !anno.getArguments().isEmpty()){
                         // This conversion is not supported add a comment to the annotation and the method name to the not supported list
-                        anno = anno.withComments(ListUtils.concat(anno.getComments(), new Comment(Comment.Style.LINE, " JunitParamsRunnerToParameterized conversion not supported", "\n" + anno.getPrefix().getIndent())));
+                        anno = anno.withComments(ListUtils.concat(anno.getComments(), new Comment(Comment.Style.LINE, " JunitParamsRunnerToParameterized conversion not supported", "\n" + anno.getPrefix().getIndent(), Markers.EMPTY)));
                         J.MethodDeclaration m = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();
                         Set<String> unsupportedMethods = classDeclCursor.computeMessageIfAbsent(CONVERSION_NOT_SUPPORTED, v -> new HashSet<>());
                         unsupportedMethods.add(m.getSimpleName());

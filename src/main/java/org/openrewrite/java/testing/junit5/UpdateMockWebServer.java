@@ -33,6 +33,8 @@ import org.openrewrite.maven.UpgradeDependencyVersion;
 import java.util.Collections;
 import java.util.UUID;
 
+import static org.openrewrite.Tree.randomId;
+
 /**
  * Recipe for converting JUnit4 okhttp3 MockWebServer Rules with their JUnit5 equivalent.
  * Note this recipe upgrades okhttp3 to version 4.x there are a few backwards incompatible changes: https://square.github.io/okhttp/upgrading_to_okhttp_4/#backwards-incompatible-changes
@@ -56,6 +58,8 @@ public class UpdateMockWebServer extends Recipe {
                     )
             )).build());
 
+    UUID id = randomId();
+
     @Override
     public String getDisplayName() {
         return "okhttp3 3.x MockWebserver @Rule To 4.x MockWebServer";
@@ -74,7 +78,7 @@ public class UpdateMockWebServer extends Recipe {
                 J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
                 if (!FindTypes.find(cu, "org.junit.Rule").isEmpty()
                         && !FindTypes.find(cu, "okhttp3.mockwebserver.MockWebServer").isEmpty()) {
-                    c = c.withMarker(new RecipeSearchResult(UpdateMockWebServer.this));
+                    c = c.withMarkers(c.getMarkers().addOrUpdate(new RecipeSearchResult(id, UpdateMockWebServer.this)));
                 }
                 return c;
             }
