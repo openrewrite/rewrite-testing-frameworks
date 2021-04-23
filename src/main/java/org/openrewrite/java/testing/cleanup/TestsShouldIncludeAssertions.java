@@ -68,12 +68,12 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Tests should include assertions";
+        return "Include an assertion in tests";
     }
 
     @Override
     public String getDescription() {
-        return "For Tests not having any assertions, wrap the statements with JUnit 5's Assertions.assertThrowDoesNotThrow (Sonar RSPEC-2699).";
+        return "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertThrowDoesNotThrow(..)`.";
     }
 
     @Override
