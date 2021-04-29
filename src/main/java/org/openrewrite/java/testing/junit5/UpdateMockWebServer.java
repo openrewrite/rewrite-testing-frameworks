@@ -78,7 +78,7 @@ public class UpdateMockWebServer extends Recipe {
                 J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
                 if (!FindTypes.find(cu, "org.junit.Rule").isEmpty()
                         && !FindTypes.find(cu, "okhttp3.mockwebserver.MockWebServer").isEmpty()) {
-                    c = c.withMarkers(c.getMarkers().addOrUpdate(new RecipeSearchResult(id, UpdateMockWebServer.this)));
+                    c = c.withMarkers(c.getMarkers().addIfAbsent(new RecipeSearchResult(id, UpdateMockWebServer.this)));
                 }
                 return c;
             }
