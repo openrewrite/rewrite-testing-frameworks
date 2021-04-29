@@ -41,6 +41,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     private static final String THROWING_SUPPLIER_FQN = "org.junit.jupiter.api.function.ThrowingSupplier";
     private static final String ASSERTIONS_FQN = "org.junit.jupiter.api.Assertions";
+
     private static final String ASSERTIONS_DOES_NOT_THROW_FQN = "org.junit.jupiter.api.Assertions.assertDoesNotThrow";
     private static final String ASSERT_DOES_NOT_THROW = "assertDoesNotThrow";
 
@@ -63,7 +64,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     @Option(displayName = "Assertions",
             description = "List of fully qualified classes and or methods used for identifying assertion statements.",
-            example = "org.junit.jupiter.api.Assertions, org.hamcrest.MatcherAssert, io.vertx.ext.unit.TestContext.verify")
+            example = "org.assertj.core.api, org.junit.jupiter.api.Assertions, org.hamcrest.MatcherAssert, org.mockito.Mockito.verify")
     List<String> assertions;
 
     @Override
@@ -74,6 +75,20 @@ public class TestsShouldIncludeAssertions extends Recipe {
     @Override
     public String getDescription() {
         return "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertThrowDoesNotThrow(..)`.";
+    }
+
+    @Override
+    public Validated validate() {
+        Validated validated = super.validate()
+                .and(Validated.required("assertions", assertions));
+        if (validated.isValid()) {
+            validated = validated.and(Validated.test(
+                    "assertions",
+                    "Assertions must not be empty and at least contain org.junit.jupiter.api.Assertions",
+                    assertions,
+                    a -> a.stream().filter(ASSERTIONS_FQN::equals).findAny().isPresent()));
+        }
+        return validated;
     }
 
     @Override
@@ -110,7 +125,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
         private boolean methodIsTest(J.MethodDeclaration methodDeclaration) {
             return methodDeclaration.getLeadingAnnotations().stream()
-                    .filter(annotation -> JUNIT_JUPITER_TEST.matches(annotation))
+                    .filter(JUNIT_JUPITER_TEST::matches)
                     .findAny().isPresent();
         }
 
