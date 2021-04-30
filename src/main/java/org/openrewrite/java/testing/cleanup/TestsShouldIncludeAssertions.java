@@ -24,13 +24,10 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
  * For Tests not having any assertions, wrap the statements with JUnit 5's Assertions.assertThrowDoesNotThrow.
- *
- * <a href="https://rules.sonarsource.com/java/tag/tests/RSPEC-2699">Sonar Source RSPEC-2699</a>
  */
 @Incubating(since = "1.2.0")
 @Value
@@ -46,21 +43,9 @@ public class TestsShouldIncludeAssertions extends Recipe {
     private static final String ASSERT_DOES_NOT_THROW = "assertDoesNotThrow";
 
     private static final ThreadLocal<JavaParser> ASSERTIONS_PARSER = ThreadLocal.withInitial(() ->
-            JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
-                    Parser.Input.fromString(
-                            "package org.junit.jupiter.api.function;" +
-                                    "public interface ThrowingSupplier<T> {T get() throws Throwable;}"
-                    ),
-                    Parser.Input.fromString(
-                            "package org.junit.jupiter.api;" +
-                                    "import org.junit.jupiter.api.function.ThrowingSupplier;" +
-                                    "class AssertDoesNotThrow {" +
-                                    "   static <T> T assertDoesNotThrow(ThrowingSupplier<T> supplier) {\n" +
-                                    "       return (T)(Object)null;\n" +
-                                    "   }" +
-                                    "}"
-                    )
-            )).build());
+            JavaParser.fromJavaVersion()
+                    .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---"))
+                    .build());
 
     @Option(displayName = "Assertions",
             description = "List of fully qualified classes and or methods used for identifying assertion statements.",
@@ -113,7 +98,6 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 t.append("});\n}");
 
                 body = body.withTemplate(template(t.toString())
-                                .imports(THROWING_SUPPLIER_FQN)
                                 .staticImports(ASSERTIONS_DOES_NOT_THROW_FQN)
                                 .javaParser(ASSERTIONS_PARSER.get()).build(),
                         body.getCoordinates().replace());
