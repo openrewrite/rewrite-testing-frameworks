@@ -144,46 +144,43 @@ public class TemporaryFolderToTempDir extends Recipe {
                 if (!(m.getSelect() instanceof J.Identifier)) {
                     return m;
                 }
-                for (J.VariableDeclarations tempDirField : tempDirFields) {
-                    for (J.VariableDeclarations.NamedVariable tempDirFieldVar : tempDirField.getVariables()) {
-                        String fieldName = tempDirFieldVar.getSimpleName();
-                        J.Identifier receiver = (J.Identifier) m.getSelect();
-                        if (receiver != null && receiver.getSimpleName().equals(fieldName) &&
-                                m.getType() != null &&
-                                TypeUtils.hasElementType(m.getType().getDeclaringType(), TEMPORARY_FOLDER_FQN)
-                        ) {
-                            List<Expression> args = m.getArguments();
-                            // handle TemporaryFolder.newFile() and TemporaryFolder.newFile(String)
-                            switch (m.getName().getSimpleName()) {
-                                case "newFile":
-                                    if (args.size() == 1 && args.get(0) instanceof J.Empty) {
-                                        m = m.withTemplate(
-                                                template("File.createTempFile(\"junit\", null, " + fieldName + ");").build(),
-                                                m.getCoordinates().replace()
-                                        );
-                                    } else {
-                                        doAfterVisit(new AddNewFileMethod(fieldName, method));
-                                    }
-                                    break;
-                                case "getRoot":
-                                    return m.withTemplate(template("#{};").build(), m.getCoordinates().replace(), fieldName);
-                                case "newFolder":
-                                    if (args.size() == 1 && args.get(0) instanceof J.Empty) {
-                                        m = m.withTemplate(template("Files.createTempDirectory(#{}.toPath(), \"junit\").toFile();").imports(FILES_FQN, FILE_FQN)
-                                                .build(), m.getCoordinates().replace(), fieldName);
-                                        maybeAddImport(FILES_FQN);
-                                    } else {
-                                        doAfterVisit(new AddNewFolderMethod(fieldName, method));
-                                    }
-                                    break;
+                J.Identifier receiver = (J.Identifier) m.getSelect();
+                if (receiver != null && m.getType() != null && TypeUtils.hasElementType(m.getType().getDeclaringType(), TEMPORARY_FOLDER_FQN)) {
+                    for (J.VariableDeclarations tempDirField : tempDirFields) {
+                        for (J.VariableDeclarations.NamedVariable tempDirFieldVar : tempDirField.getVariables()) {
+                            String fieldName = tempDirFieldVar.getSimpleName();
+                            if (fieldName.equals(receiver.getSimpleName())) {
+                                List<Expression> args = m.getArguments();
+                                // handle TemporaryFolder.newFile() and TemporaryFolder.newFile(String)
+                                switch (m.getName().getSimpleName()) {
+                                    case "newFile":
+                                        if (args.size() == 1 && args.get(0) instanceof J.Empty) {
+                                            m = m.withTemplate(
+                                                    template("File.createTempFile(\"junit\", null, " + fieldName + ");").build(),
+                                                    m.getCoordinates().replace()
+                                            );
+                                        } else {
+                                            doAfterVisit(new AddNewFileMethod(fieldName, method));
+                                        }
+                                        break;
+                                    case "getRoot":
+                                        return m.withTemplate(template("#{};").build(), m.getCoordinates().replace(), fieldName);
+                                    case "newFolder":
+                                        if (args.size() == 1 && args.get(0) instanceof J.Empty) {
+                                            m = m.withTemplate(template("Files.createTempDirectory(#{}.toPath(), \"junit\").toFile();").imports(FILES_FQN, FILE_FQN)
+                                                    .build(), m.getCoordinates().replace(), fieldName);
+                                            maybeAddImport(FILES_FQN);
+                                        } else {
+                                            doAfterVisit(new AddNewFolderMethod(fieldName, method));
+                                        }
+                                        break;
+                                }
                             }
-
                         }
                     }
                 }
                 return maybeAutoFormat(method, m, ctx);
             }
-
         }
 
         private static class AddNewFileMethod extends JavaIsoVisitor<ExecutionContext> {
