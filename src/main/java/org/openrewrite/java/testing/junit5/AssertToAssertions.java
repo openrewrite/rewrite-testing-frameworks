@@ -78,10 +78,10 @@ public class AssertToAssertions extends Recipe {
             List<Expression> args = m.getArguments();
             Expression firstArg = args.get(0);
             // Suppress arg-switching for Assertions.assertEquals(String, String)
-            if (args.size() == 2 && TypeUtils.isString(firstArg.getType()) && TypeUtils.isString(args.get(1).getType())) {
+            if (args.size() == 2 && isStringArgument(firstArg) && isStringArgument(args.get(1))) {
                 return m;
             }
-            if (TypeUtils.isString(firstArg.getType())) {
+            if (isStringArgument(firstArg)) {
                 // Move the first arg to be the last argument
 
                 List<Expression> newArgs = Stream.concat(
@@ -93,6 +93,11 @@ public class AssertToAssertions extends Recipe {
             m = maybeAutoFormat(method, m, ctx, getCursor().dropParentUntil(J.class::isInstance));
 
             return m;
+        }
+
+        private boolean isStringArgument(Expression arg) {
+            JavaType expressionType = arg instanceof J.MethodInvocation ? ((J.MethodInvocation)arg).getReturnType() : arg.getType();
+            return TypeUtils.isString(expressionType);
         }
 
         private static boolean isJunitAssertMethod(J.MethodInvocation method) {

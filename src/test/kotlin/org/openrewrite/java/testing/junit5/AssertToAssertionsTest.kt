@@ -31,6 +31,47 @@ class AssertToAssertionsTest : JavaRecipeTest {
         get() = AssertToAssertions()
 
     @Test
+    fun stringArgumentIsMethodInvocation() = assertChanged(
+        before = """
+            import org.junit.Test;
+
+            import static org.junit.Assert.assertFalse;
+
+            public class A {
+                T t = new T();
+                @Test
+                public void test() {
+                    assertFalse(t.getName(), A.class.isAssignableFrom(t.getClass()));
+                }
+                
+                class T {
+                    String getName() {
+                        return "World";
+                    }
+                }
+            }
+        """,
+        after = """
+            import org.junit.Test;
+
+            import static org.junit.jupiter.api.Assertions.assertFalse;
+
+            public class A {
+                T t = new T();
+                @Test
+                public void test() {
+                    assertFalse(A.class.isAssignableFrom(t.getClass()), t.getName());
+                }
+                
+                class T {
+                    String getName() {
+                        return "World";
+                    }
+                }
+            }
+        """
+    )
+    @Test
     fun assertWithoutMessage() = assertChanged(
         before = """
             import org.junit.Assert;
@@ -202,7 +243,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
             import static org.junit.Assert.assertNotNull;
             class A {
                 Long l = 1L;
-                void testNestedPartitionStepStepReference() throws Throwable {
+                void testNestedPartitionStepStepReference() {
                     assertNotNull("message", l);
                 }
             }
@@ -211,7 +252,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
             import static org.junit.jupiter.api.Assertions.assertNotNull;
             class A {
                 Long l = 1L;
-                void testNestedPartitionStepStepReference() throws Throwable {
+                void testNestedPartitionStepStepReference() {
                     assertNotNull(l, "message");
                 }
             }
