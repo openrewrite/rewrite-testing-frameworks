@@ -16,10 +16,9 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.cleanup.BestPractices
-displayName: Testing Frameworks best practices
+displayName: Testing best practices
 description: Applies best practices to tests.
 tags:
-  - sonar
   - testing
 recipeList:
   - org.openrewrite.java.testing.cleanup.TestsShouldIncludeAssertions:
