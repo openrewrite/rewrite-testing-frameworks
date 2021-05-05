@@ -34,7 +34,6 @@ plugins {
     id("org.openrewrite.rewrite") version "4.0.0"
 }
 
-apply(plugin = "nebula.integtest-standalone")
 apply(plugin = "nebula.publish-verification")
 
 configure<org.openrewrite.gradle.RewriteExtension> {
