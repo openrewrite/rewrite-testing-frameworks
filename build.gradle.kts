@@ -132,7 +132,7 @@ dependencies {
 tasks.withType(KotlinCompile::class.java).configureEach {
     kotlinOptions {
         jvmTarget = "1.8"
-        useIR = true
+//        useIR = true
     }
 }
 
