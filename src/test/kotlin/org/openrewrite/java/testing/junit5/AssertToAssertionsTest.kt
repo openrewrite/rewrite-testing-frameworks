@@ -210,7 +210,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
                 }
             }
         """,
-        cycles = 2
+        cycles = 3
     )
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/56")

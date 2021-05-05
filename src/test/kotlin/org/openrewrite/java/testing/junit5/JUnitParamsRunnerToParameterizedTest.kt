@@ -21,10 +21,10 @@ import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 class JUnitParamsRunnerToParameterizedTest : JavaRecipeTest {
-
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit", "JUnitParams")
         .build()
+
     override val recipe: Recipe
         get() = JUnitParamsRunnerToParameterized()
 
