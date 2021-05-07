@@ -23,8 +23,6 @@ tags:
   - hamcrest
   - junit
 recipeList:
-  - org.openrewrite.java.search.FindMethods:
-      methodPattern: org.hamcrest.Matchers *(..)
   - org.openrewrite.maven.AddDependency:
       groupId: org.hamcrest
       artifactId: hamcrest
