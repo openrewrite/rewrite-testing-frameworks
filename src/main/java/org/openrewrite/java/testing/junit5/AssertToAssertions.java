@@ -78,9 +78,15 @@ public class AssertToAssertions extends Recipe {
             List<Expression> args = m.getArguments();
             Expression firstArg = args.get(0);
             // Suppress arg-switching for Assertions.assertEquals(String, String)
-            if (args.size() == 2 && isStringArgument(firstArg) && isStringArgument(args.get(1))) {
-                return m;
+            if (args.size() == 2) {
+                if (m.getSimpleName().equals("assertSame")
+                        || m.getSimpleName().equals("assertNotSame")
+                        || m.getSimpleName().equals("assertEquals")
+                        || m.getSimpleName().equals("assertNotEquals")) {
+                    return m;
+                }
             }
+
             if (isStringArgument(firstArg)) {
                 // Move the first arg to be the last argument
 

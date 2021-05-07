@@ -105,6 +105,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
             }
         """
     )
+
     @Test
     fun assertWithoutMessage() = assertChanged(
         before = """
@@ -121,6 +122,13 @@ class AssertToAssertionsTest : JavaRecipeTest {
                     Assert.assertEquals("foo", "foo");
                     Assert.assertNull(null);
                     Assert.fail();
+                    String value1 = "value1";
+                    String value2 = value1;
+                    Assert.assertEquals(value1, value2);
+                    String value3 = "value3";
+                    Assert.assertNotEquals(value1, value3);
+                    Assert.assertSame(value1, value2);
+                    Assert.assertNotSame(value1, value3);
                 }
             }
         """,
@@ -138,6 +146,13 @@ class AssertToAssertionsTest : JavaRecipeTest {
                     Assertions.assertEquals("foo", "foo");
                     Assertions.assertNull(null);
                     Assertions.fail();
+                    String value1 = "value1";
+                    String value2 = value1;
+                    Assertions.assertEquals(value1, value2);
+                    String value3 = "value3";
+                    Assertions.assertNotEquals(value1, value3);
+                    Assertions.assertSame(value1, value2);
+                    Assertions.assertNotSame(value1, value3);
                 }
             }
         """
@@ -196,6 +211,10 @@ class AssertToAssertionsTest : JavaRecipeTest {
                     Assert.assertTrue("true is true", true);
                     Assert.assertEquals("foo is foo", "foo", "foo");
                     Assert.assertNull("null is null", null);
+                    String value = null;
+                    Assert.assertNull("value is null", value);
+                    value = "hello";
+                    Assert.assertNotNull("value is not null", value);
                     Assert.fail("fail");
                 }
             }
@@ -213,6 +232,10 @@ class AssertToAssertionsTest : JavaRecipeTest {
                     Assertions.assertTrue(true, "true is true");
                     Assertions.assertEquals("foo", "foo", "foo is foo");
                     Assertions.assertNull(null, "null is null");
+                    String value = null;
+                    Assertions.assertNull(value, "value is null");
+                    value = "hello";
+                    Assertions.assertNotNull(value, "value is not null");
                     Assertions.fail("fail");
                 }
             }
