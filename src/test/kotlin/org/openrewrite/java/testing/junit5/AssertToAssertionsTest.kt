@@ -30,6 +30,40 @@ class AssertToAssertionsTest : JavaRecipeTest {
     override val recipe: Recipe
         get() = AssertToAssertions()
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/128")
+    @Test
+    fun dontSwitchAssertEqualsStringArguments() = assertChanged(
+        dependsOn = arrayOf("""
+            class Entity {
+                String getField() {
+                    return "b";
+                }
+            }
+        """),
+        before = """
+            import static org.junit.Assert.assertEquals;
+            
+            class A {
+                void foo() {
+                    Entity entity = new Entity();
+                    String hello = "a";
+                    assertEquals(hello, entity.getField());
+                }
+            }
+        """,
+        after = """
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+            
+            class A {
+                void foo() {
+                    Entity entity = new Entity();
+                    String hello = "a";
+                    assertEquals(hello, entity.getField());
+                }
+            }
+        """
+    )
+
     @Test
     fun stringArgumentIsMethodInvocation() = assertChanged(
         before = """
@@ -79,7 +113,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
             class A {
             
                 void foo() {
-                    Assert.assertEquals(1, 1);
+                    Assert.assertEquals(1, 2);
                     Assert.assertArrayEquals(new int[]{}, new int[]{});
                     Assert.assertNotEquals(1, 2);
                     Assert.assertFalse(false);
@@ -96,7 +130,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
             class A {
             
                 void foo() {
-                    Assertions.assertEquals(1, 1);
+                    Assertions.assertEquals(1, 2);
                     Assertions.assertArrayEquals(new int[]{}, new int[]{});
                     Assertions.assertNotEquals(1, 2);
                     Assertions.assertFalse(false);
@@ -117,7 +151,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
             class A {
             
                 void foo() {
-                    assertEquals(1, 1);
+                    assertEquals(1, 2);
                     assertArrayEquals(new int[]{}, new int[]{});
                     assertNotEquals(1, 2);
                     assertFalse(false);
@@ -134,7 +168,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
             class A {
             
                 void foo() {
-                    assertEquals(1, 1);
+                    assertEquals(1, 2);
                     assertArrayEquals(new int[]{}, new int[]{});
                     assertNotEquals(1, 2);
                     assertFalse(false);
