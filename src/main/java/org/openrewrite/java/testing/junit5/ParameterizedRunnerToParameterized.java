@@ -98,10 +98,10 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
 
-            String parametersMethodName = getCursor().getMessage(PARAMETERS_METHOD_NAME);
-            List<Expression> parametersAnnotationArguments = getCursor().getMessage(PARAMETERS_ANNOTATION_ARGUMENTS);
-            List<Statement> constructorParams = getCursor().getMessage(CONSTRUCTOR_ARGUMENTS);
-            Map<Integer, Statement> fieldInjectionParams = getCursor().getMessage(FIELD_INJECTION_ARGUMENTS);
+            String parametersMethodName = getCursor().pollMessage(PARAMETERS_METHOD_NAME);
+            List<Expression> parametersAnnotationArguments = getCursor().pollMessage(PARAMETERS_ANNOTATION_ARGUMENTS);
+            List<Statement> constructorParams = getCursor().pollMessage(CONSTRUCTOR_ARGUMENTS);
+            Map<Integer, Statement> fieldInjectionParams = getCursor().pollMessage(FIELD_INJECTION_ARGUMENTS);
             String initMethodName = "init" + cd.getSimpleName();
             // Constructor Injected Test
             if (parametersMethodName != null && constructorParams != null) {
