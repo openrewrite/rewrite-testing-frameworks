@@ -59,3 +59,10 @@ recipeList:
   - org.openrewrite.java.testing.assertj.JUnitAssertSameToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitAssertTrueToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitJUnitFailToAssertJFail
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.assertj
+      artifactId: assertj-core
+      version: 3.x
+      scope: test
+      onlyIfUsing:
+        - org.assertj.core.api.Assertions
