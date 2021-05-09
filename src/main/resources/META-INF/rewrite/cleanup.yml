@@ -21,10 +21,4 @@ description: Applies best practices to tests.
 tags:
   - testing
 recipeList:
-  - org.openrewrite.java.testing.cleanup.TestsShouldIncludeAssertions:
-      assertions:
-        - org.assertj.core.api
-        - org.junit.jupiter.api.Assertions
-        - org.hamcrest.MatcherAssert
-        - org.mockito.Mockito.verify
-        - org.springframework.test.web.servlet.ResultActions.andExpect
+  - org.openrewrite.java.testing.cleanup.TestsShouldIncludeAssertions

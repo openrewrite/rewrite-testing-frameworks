@@ -15,13 +15,10 @@
  */
 package org.openrewrite.java.testing.cleanup
 
-import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
-import org.openrewrite.Issue
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
-import org.openrewrite.java.search.FindAnnotations
 
 class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
@@ -29,36 +26,7 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
         .build()
 
     override val recipe: Recipe
-        get() = TestsShouldIncludeAssertions(
-            listOf(
-                "org.assertj.core.api",
-                "org.junit.jupiter.api.Assertions",
-                "org.hamcrest.MatcherAssert",
-                "org.mockito.Mockito.verify"
-            )
-        )
-
-
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/124")
-    @Test
-    fun checkValidation() {
-        val recipe = TestsShouldIncludeAssertions(null)
-        val valid = recipe.validate()
-        Assertions.assertThat(valid.isValid).isFalse()
-        Assertions.assertThat(valid.failures()).hasSize(1)
-        Assertions.assertThat(valid.failures()[0].property).isEqualTo("assertions")
-
-        val recipe2 = TestsShouldIncludeAssertions(listOf(
-            "org.assertj.core.api",
-            "org.hamcrest.MatcherAssert",
-            "org.mockito.Mockito.verify"
-        ))
-        val valid2 = recipe2.validate()
-        Assertions.assertThat(valid2.isValid).isFalse()
-        Assertions.assertThat(valid2.failures()).hasSize(1)
-        Assertions.assertThat(valid2.failures()[0].property).isEqualTo("assertions")
-        Assertions.assertThat(valid2.failures()[0].message).contains("org.junit.jupiter.api.Assertions")
-    }
+        get() = TestsShouldIncludeAssertions()
 
     @Test
     fun noAssertions() = assertChanged(

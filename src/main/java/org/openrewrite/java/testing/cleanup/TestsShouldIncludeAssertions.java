@@ -18,23 +18,27 @@ package org.openrewrite.java.testing.cleanup;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.*;
-import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-/**
- * For Tests not having any assertions, wrap the statements with JUnit 5's Assertions.assertThrowDoesNotThrow.
- */
+@SuppressWarnings("SimplifyStreamApiCallChains")
 @Incubating(since = "1.2.0")
 @Value
 @EqualsAndHashCode(callSuper = true)
 public class TestsShouldIncludeAssertions extends Recipe {
 
-    private static final AnnotationMatcher JUNIT_JUPITER_TEST = new AnnotationMatcher("@org.junit.jupiter.api.Test");
+    private static final List<String> TEST_ANNOTATIONS = Collections.singletonList(
+//            "org.junit.Test",
+            "org.junit.jupiter.api.Test"
+//            "junit.framework.Test"
+    );
 
     private static final String THROWING_SUPPLIER_FQN = "org.junit.jupiter.api.function.ThrowingSupplier";
     private static final String ASSERTIONS_FQN = "org.junit.jupiter.api.Assertions";
@@ -47,10 +51,18 @@ public class TestsShouldIncludeAssertions extends Recipe {
                     .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---"))
                     .build());
 
-    @Option(displayName = "Assertions",
-            description = "List of fully qualified classes and or methods used for identifying assertion statements.",
-            example = "org.assertj.core.api, org.junit.jupiter.api.Assertions, org.hamcrest.MatcherAssert, org.mockito.Mockito.verify")
-    List<String> assertions;
+    private static final List<String> assertions = Arrays.asList(
+            "org.assertj.core.api",
+            "org.junit.jupiter.api.Assertions",
+            "org.hamcrest.MatcherAssert",
+            "org.mockito.Mockito.verify",
+            "org.easymock",
+            "org.jmock",
+            "mockit",
+            "io.restassured",
+            "org.springframework.test.web.servlet.ResultActions",
+            "com.github.tomakehurst.wiremock.client.WireMock"
+    );
 
     @Override
     public String getDisplayName() {
@@ -78,72 +90,80 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new TestIncludesAssertionsVisitor();
-    }
-
-    private class TestIncludesAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-            if ((!methodIsTest(method) || method.getBody() == null)
-                    || methodHasAssertion(method.getBody().getStatements())) {
-                return method;
-            }
-
-            J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
-            J.Block body = md.getBody();
-            if (body != null) {
-                StringBuilder t = new StringBuilder("{\nassertDoesNotThrow(() -> {");
-                body.getStatements().forEach(st -> t.append(st.print()).append(";"));
-                t.append("});\n}");
-
-                body = body.withTemplate(template(t.toString())
-                                .staticImports(ASSERTIONS_DOES_NOT_THROW_FQN)
-                                .javaParser(ASSERTIONS_PARSER.get()).build(),
-                        body.getCoordinates().replace());
-                md = maybeAutoFormat(md, md.withBody(body), executionContext, getCursor().dropParentUntil(J.class::isInstance));
-                maybeAddImport(ASSERTIONS_FQN, ASSERT_DOES_NOT_THROW);
-            }
-            return md;
-        }
-
-        private boolean methodIsTest(J.MethodDeclaration methodDeclaration) {
-            return methodDeclaration.getLeadingAnnotations().stream()
-                    .filter(JUNIT_JUPITER_TEST::matches)
-                    .findAny().isPresent();
-        }
-
-        private boolean methodHasAssertion(List<Statement> statements) {
-            return statements.stream()
-                    .filter(J.MethodInvocation.class::isInstance)
-                    .map(J.MethodInvocation.class::cast)
-                    .filter(this::isAssertion).findAny().isPresent();
-        }
-
-        private boolean isAssertion(J.MethodInvocation methodInvocation) {
-            if (methodInvocation.getType() == null) {
-                return false;
-            }
-            String fqt = methodInvocation.getType().getDeclaringType().getFullyQualifiedName();
-            for (String assertionClassOrPackage : assertions) {
-                if (fqt.startsWith(assertionClassOrPackage)) {
-                    return true;
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext
+                    executionContext) {
+                if ((!methodIsTest(method) || method.getBody() == null)
+                        || methodHasAssertion(method.getBody().getStatements())) {
+                    return method;
                 }
+
+                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+                J.Block body = md.getBody();
+                if (body != null) {
+                    StringBuilder t = new StringBuilder("{\nassertDoesNotThrow(() -> {");
+                    body.getStatements().forEach(st -> t.append(st.print()).append(";"));
+                    t.append("});\n}");
+
+                    body = body.withTemplate(template(t.toString())
+                                    .staticImports(ASSERTIONS_DOES_NOT_THROW_FQN)
+                                    .javaParser(ASSERTIONS_PARSER.get()).build(),
+                            body.getCoordinates().replace());
+                    md = maybeAutoFormat(md, md.withBody(body), executionContext, getCursor().dropParentUntil(J.class::isInstance));
+                    maybeAddImport(ASSERTIONS_FQN, ASSERT_DOES_NOT_THROW);
+                }
+                return md;
             }
 
-            if (methodInvocation.getSelect() != null && methodInvocation.getSelect() instanceof J.MethodInvocation
-                    && ((J.MethodInvocation) methodInvocation.getSelect()).getType() != null) {
-                J.MethodInvocation selectMethod = (J.MethodInvocation) methodInvocation.getSelect();
-                if (selectMethod.getType() != null) {
-                    String select = selectMethod.getType().getDeclaringType().getFullyQualifiedName() + "." + selectMethod.getSimpleName();
-                    for (String assertMethod : assertions) {
-                        if (select.equals(assertMethod)) {
+            private boolean methodIsTest(J.MethodDeclaration methodDeclaration) {
+                for (J.Annotation leadingAnnotation : methodDeclaration.getLeadingAnnotations()) {
+                    for (String testAnnotation : TEST_ANNOTATIONS) {
+                        if (TypeUtils.isOfClassType(leadingAnnotation.getType(), testAnnotation)) {
                             return true;
                         }
                     }
                 }
+                return false;
             }
-            return false;
-        }
+
+            private boolean methodHasAssertion(List<Statement> statements) {
+                for (Statement statement : statements) {
+                    if (statement instanceof J.MethodInvocation) {
+                        J.MethodInvocation methodInvocation = (J.MethodInvocation) statement;
+                        if (isAssertion(methodInvocation)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            private boolean isAssertion(J.MethodInvocation methodInvocation) {
+                if (methodInvocation.getType() == null) {
+                    return false;
+                }
+                String fqt = methodInvocation.getType().getDeclaringType().getFullyQualifiedName();
+                for (String assertionClassOrPackage : assertions) {
+                    if (fqt.startsWith(assertionClassOrPackage)) {
+                        return true;
+                    }
+                }
+
+                if (methodInvocation.getSelect() != null && methodInvocation.getSelect() instanceof J.MethodInvocation
+                        && ((J.MethodInvocation) methodInvocation.getSelect()).getType() != null) {
+                    J.MethodInvocation selectMethod = (J.MethodInvocation) methodInvocation.getSelect();
+                    if (selectMethod.getType() != null) {
+                        String select = selectMethod.getType().getDeclaringType().getFullyQualifiedName() + "." + selectMethod.getSimpleName();
+                        for (String assertMethod : assertions) {
+                            if (select.equals(assertMethod)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+        };
     }
 }
