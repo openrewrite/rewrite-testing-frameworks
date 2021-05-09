@@ -61,7 +61,8 @@ public class TestsShouldIncludeAssertions extends Recipe {
             "mockit",
             "io.restassured",
             "org.springframework.test.web.servlet.ResultActions",
-            "com.github.tomakehurst.wiremock.client.WireMock"
+            "com.github.tomakehurst.wiremock.client.WireMock",
+            "org.junit.Assert" // rarely, the test annotation is junit5 but the assert is junit4
     );
 
     @Override
