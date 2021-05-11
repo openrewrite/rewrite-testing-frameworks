@@ -21,12 +21,10 @@ import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.search.FindTypes;
-import org.openrewrite.java.search.HasTypes;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
@@ -73,6 +71,11 @@ public class UpdateTestAnnotation extends Recipe {
     }
 
     @Override
+    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
+        return new UsesType<>("org.junit.Test");
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new UpdateTestAnnotationVisitor();
     }
@@ -84,11 +87,8 @@ public class UpdateTestAnnotation extends Recipe {
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            if (HasTypes.find(cu, Collections.singletonList("org.junit.Test"))) {
-                doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
-                return super.visitCompilationUnit(cu, ctx);
-            }
-            return cu;
+            doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
+            return super.visitCompilationUnit(cu, ctx);
         }
 
         @Override

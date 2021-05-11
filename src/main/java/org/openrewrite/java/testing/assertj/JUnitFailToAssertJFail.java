@@ -20,6 +20,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.RemoveUnusedImports;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
  */
 public class JUnitFailToAssertJFail extends Recipe {
 
+    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
     private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(
                     Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
@@ -60,12 +62,16 @@ public class JUnitFailToAssertJFail extends Recipe {
     }
 
     @Override
+    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
+        return new UsesType<>(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JUnitFailToAssertJFailVisitor();
     }
 
     public static class JUnitFailToAssertJFailVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
         private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
 
         /**

@@ -22,7 +22,7 @@ import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.search.HasTypes;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -80,8 +80,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     }
 
     @Override
-    protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new HasTypes(Collections.singletonList("org.junit.runners.Parameterized")).getVisitor();
+    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
+        return new UsesType<>("org.junit.runners.Parameterized");
     }
 
     @Override

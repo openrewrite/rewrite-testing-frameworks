@@ -23,6 +23,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.Collections;
@@ -36,6 +37,8 @@ import java.util.stream.Stream;
  * Translates JUnit4's org.junit.rules.TemporaryFolder into JUnit 5's org.junit.jupiter.api.io.TempDir
  */
 public class TemporaryFolderToTempDir extends Recipe {
+
+    private static final String TEMPORARY_FOLDER_FQN = "org.junit.rules.TemporaryFolder";
     private static final ThreadLocal<JavaParser> TEMPDIR_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
                     Parser.Input.fromString("" +
@@ -55,6 +58,11 @@ public class TemporaryFolderToTempDir extends Recipe {
     }
 
     @Override
+    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
+        return new UsesType<>(TEMPORARY_FOLDER_FQN);
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new TemporaryFolderToTempDirVisitor();
     }
@@ -62,7 +70,6 @@ public class TemporaryFolderToTempDir extends Recipe {
     private static class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
 
         private static final String RULE_FQN = "org.junit.Rule";
-        private static final String TEMPORARY_FOLDER_FQN = "org.junit.rules.TemporaryFolder";
         private static final String TEMP_DIR_FQN = "org.junit.jupiter.api.io.TempDir";
         private static final String FILE_FQN = "java.io.File";
         private static final JavaType.Class FILE_TYPE = JavaType.Class.build(FILE_FQN);

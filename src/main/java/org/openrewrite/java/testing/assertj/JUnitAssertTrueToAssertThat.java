@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
@@ -23,6 +22,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
@@ -47,6 +47,7 @@ import java.util.List;
  */
 public class JUnitAssertTrueToAssertThat extends Recipe {
 
+    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
     private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(
                     Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
@@ -64,13 +65,17 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
     }
 
     @Override
+    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
+        return new UsesType<>(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AssertTrueToAssertThatVisitor();
     }
 
     public static class AssertTrueToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
         private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
         private static final String ASSERTJ_ASSERT_THAT_METHOD_NAME = "assertThat";
 

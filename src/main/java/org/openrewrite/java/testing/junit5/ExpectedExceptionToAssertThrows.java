@@ -24,6 +24,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.FindFields;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
@@ -45,6 +46,8 @@ import java.util.stream.Collectors;
  * Does not currently support refactors of ExpectedException.isAnyExceptionExpected().
  */
 public class ExpectedExceptionToAssertThrows extends Recipe {
+
+    private static final String EXPECTED_EXCEPTION_FQN = "org.junit.rules.ExpectedException";
     private static final ThreadLocal<JavaParser> ASSERTIONS_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
                     Parser.Input.fromString("" +
@@ -76,13 +79,17 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
     }
 
     @Override
+    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
+        return new UsesType<>(EXPECTED_EXCEPTION_FQN);
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new ExpectedExceptionToAssertThrowsVisitor();
     }
 
     public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        private static final String EXPECTED_EXCEPTION_FQN = "org.junit.rules.ExpectedException";
         private static final String HAMCREST_MATCHER_FQN = "org.hamcrest.Matchers";
         private static final String EXPECT_INVOCATION_KEY = "expectedExceptionMethodInvocation";
         private static final String EXPECT_MESSAGE_INVOCATION_KEY = "expectMessageMethodInvocation";
