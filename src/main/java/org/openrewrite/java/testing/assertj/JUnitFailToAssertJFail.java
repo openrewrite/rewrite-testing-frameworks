@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.*;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.MethodMatcher;
@@ -63,7 +62,7 @@ public class JUnitFailToAssertJFail extends Recipe {
     }
 
     @Override
-    protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
+    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
         return new UsesType<>(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
     }
 
