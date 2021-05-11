@@ -19,10 +19,12 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindAnnotations;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.Space;
@@ -60,6 +62,11 @@ public class UseTestMethodOrder extends Recipe {
     @Override
     public String getDescription() {
         return "JUnit optionally allows test method execution order to be specified. This Recipe replaces JUnit4 test execution ordering annotations with JUnit5 replacements.";
+    }
+
+    @Override
+    protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
+        return new UsesType<>("org.junit.FixMethodOrder");
     }
 
     @Override

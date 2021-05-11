@@ -21,7 +21,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.FindAnnotations;
-import org.openrewrite.java.search.HasTypes;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -54,7 +54,7 @@ public class CategoryToTag extends Recipe {
 
     @Override
     protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new HasTypes(Collections.singletonList("org.junit.experimental.categories.Category")).getVisitor();
+        return new UsesType<>("org.junit.experimental.categories.Category");
     }
 
     public static class CategoryToTagVisitor extends JavaIsoVisitor<ExecutionContext> {

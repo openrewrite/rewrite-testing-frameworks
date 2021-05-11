@@ -21,7 +21,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.search.HasTypes;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -51,7 +51,7 @@ public class AssertToAssertions extends Recipe {
 
     @Override
     protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new HasTypes(Collections.singletonList("org.junit.Assert.*")).getVisitor();
+        return new UsesType<>("org.junit.Assert.*");
     }
 
     @Override

@@ -19,11 +19,13 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.FindFields;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
@@ -46,6 +48,10 @@ import java.util.stream.Collectors;
  * Must be ran in the JUnit5 suite.
  */
 public class MockitoJUnitToMockitoExtension extends Recipe {
+
+    private static final String MOCKITO_TEST_RULE_FQN = "org.mockito.junit.MockitoTestRule";
+    private static final String MOCKITO_RULE_FQN = "org.mockito.junit.MockitoRule";
+
     private static final ThreadLocal<JavaParser> JAVA_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion()
                     .dependsOn(Arrays.asList(
@@ -71,6 +77,18 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
     }
 
     @Override
+    protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+                doAfterVisit(new UsesType<>(MOCKITO_TEST_RULE_FQN));
+                doAfterVisit(new UsesType<>(MOCKITO_RULE_FQN));
+                return cu;
+            }
+        };
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new MockitoRuleToMockitoExtensionVisitor();
     }
@@ -78,8 +96,6 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
     public static class MockitoRuleToMockitoExtensionVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final String EXTEND_WITH_FQN = "org.junit.jupiter.api.extension.ExtendWith";
         private static final String MOCKITO_EXTENSION_FQN = "org.mockito.junit.jupiter.MockitoExtension";
-        private static final String MOCKITO_RULE_FQN = "org.mockito.junit.MockitoRule";
-        private static final String MOCKITO_TEST_RULE_FQN = "org.mockito.junit.MockitoTestRule";
 
         private static final String MOCKITO_RULE_INVOCATION_KEY = "mockitoRuleInvocation";
         private static final String MOCKITO_TEST_RULE_INVOCATION_KEY = "mockitoTestRuleInvocation";
