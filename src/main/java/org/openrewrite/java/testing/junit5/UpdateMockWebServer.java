@@ -132,7 +132,7 @@ public class UpdateMockWebServer extends Recipe {
                         cd = cd.withBody(body);
                     }
                     maybeRemoveImport("org.junit.Rule");
-                    doAfterVisit(new UpgradeDependencyVersion("com.squareup.okhttp3", "mockwebserver", "4.X", null));
+                    doAfterVisit(new UpgradeDependencyVersion("com.squareup.okhttp3", "mockwebserver", "4.X", null, false));
                 }
                 return cd;
             }
