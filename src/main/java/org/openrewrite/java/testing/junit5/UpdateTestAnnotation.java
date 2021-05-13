@@ -83,7 +83,6 @@ public class UpdateTestAnnotation extends Recipe {
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT_4_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
         private static final String JUNIT_4_TEST_ANNOTATION_ARGUMENTS = "junit4TestAnnotationArguments";
-        private static final JavaType.Class JUNIT_JUPITER_TEST = JavaType.Class.build("org.junit.jupiter.api.Test");
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
