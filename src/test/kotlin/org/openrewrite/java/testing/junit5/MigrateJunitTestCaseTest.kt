@@ -172,6 +172,7 @@ class MigrateJunitTestCaseTest : JavaRecipeTest {
     fun notTestCaseHasTestCaseAssertion() = assertChanged(
         before = """
             import org.junit.Test;
+            
             import static junit.framework.TestCase.assertTrue;
             
             class AaTest {
@@ -186,6 +187,7 @@ class MigrateJunitTestCaseTest : JavaRecipeTest {
         """,
         after = """
             import org.junit.Test;
+            
             import static org.junit.jupiter.api.Assertions.assertTrue;
             
             class AaTest {

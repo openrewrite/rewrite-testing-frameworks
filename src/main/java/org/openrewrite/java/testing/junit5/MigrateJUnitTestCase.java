@@ -18,12 +18,9 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.AnnotationMatcher;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.*;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
@@ -47,7 +44,7 @@ public class MigrateJUnitTestCase extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "TestCase to Jupiter tests";
+        return "Migrate JUnit4 `TestCase` to JUnit5";
     }
 
     @Override
@@ -56,16 +53,18 @@ public class MigrateJUnitTestCase extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+    protected TestCaseVisitor getVisitor() {
         return new TestCaseVisitor();
     }
 
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final JavaType.Class JUNIT_ASSERT_TYPE = JavaType.Class.build("org.junit.Assert");
+
         private static final AnnotationMatcher OVERRIDE_ANNOTATION_MATCHER = new AnnotationMatcher("@java.lang.Override");
+
         private static final AnnotationMatcher TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.Test");
         private static final AnnotationMatcher BEFORE_EACH_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
         private static final AnnotationMatcher AFTER_EACH_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.AfterEach");
+
         private static final AnnotationMatcher JUNIT_BEFORE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Before");
         private static final AnnotationMatcher JUNIT_AFTER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.After");
         private static final AnnotationMatcher JUNIT_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
@@ -88,6 +87,10 @@ public class MigrateJUnitTestCase extends Recipe {
                 }
             }
             maybeRemoveImport(JUNIT_TEST_CASE_FQN);
+            doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert"));
+            doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
+            doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions assert*(..)"));
+            doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions fail*(..)"));
             return cd;
         }
 
@@ -100,13 +103,6 @@ public class MigrateJUnitTestCase extends Recipe {
                     && Boolean.TRUE.equals(getCursor().getNearestMessage(TEST_CASE_MESSAGE_KEY))) {
                 return null;
             }
-            // Change TestCase.Assert types to JUnit 5 Assertions
-            else if (mi.getType() != null && mi.getType().getDeclaringType() != null
-                    && JUNIT_TEST_CASE_FQN.equals(mi.getType().getDeclaringType().getFullyQualifiedName())) {
-                mi = mi.withType(mi.getType().withDeclaringType(JUNIT_ASSERT_TYPE));
-                doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
-                maybeAddImport("org.junit.jupiter.api.Assertions", mi.getSimpleName());
-            }
             return mi;
         }
 
@@ -116,30 +112,26 @@ public class MigrateJUnitTestCase extends Recipe {
             if (Boolean.TRUE.equals(getCursor().getNearestMessage(TEST_CASE_MESSAGE_KEY))) {
                 if (md.getSimpleName().startsWith("test")
                         && !hasAnnotation(md.getLeadingAnnotations(), TEST_ANNOTATION_MATCHER, JUNIT_TEST_ANNOTATION_MATCHER)) {
-                    md = md.withTemplate(template("@Test")
-                                    .javaParser(JAVA_PARSER_THREAD_LOCAL.get())
-                                    .imports("org.junit.jupiter.api.Test").build(),
-                            md.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
-                    maybeAddImport("org.junit.jupiter.api.Test");
+                    md = updateMethodDeclarationAnnotationAndModifier(md, "@Test", "org.junit.jupiter.api.Test");
                 } else if (md.getSimpleName().equals("setUp")
                         && !hasAnnotation(md.getLeadingAnnotations(), BEFORE_EACH_ANNOTATION_MATCHER, JUNIT_BEFORE_ANNOTATION_MATCHER)) {
-                    md = md.withTemplate(template("@BeforeEach")
-                                    .javaParser(JAVA_PARSER_THREAD_LOCAL.get())
-                                    .imports("org.junit.jupiter.api.BeforeEach").build(),
-                            md.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
-                    md = maybeAddPublicModifier(md);
-                    md = maybeRemoveOverrideAnnotation(md);
-                    maybeAddImport("org.junit.jupiter.api.BeforeEach");
+                    md = updateMethodDeclarationAnnotationAndModifier(md, "@BeforeEach", "org.junit.jupiter.api.BeforeEach");
                 } else if (md.getSimpleName().equals("tearDown")
                         && !hasAnnotation(md.getLeadingAnnotations(), AFTER_EACH_ANNOTATION_MATCHER, JUNIT_AFTER_ANNOTATION_MATCHER)) {
-                    md = md.withTemplate(template("@AfterEach").javaParser(JAVA_PARSER_THREAD_LOCAL.get())
-                                    .imports("org.junit.jupiter.api.AfterEach").build(),
-                            md.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
-                    md = maybeAddPublicModifier(md);
-                    md = maybeRemoveOverrideAnnotation(md);
-                    maybeAddImport("org.junit.jupiter.api.AfterEach");
+                    md = updateMethodDeclarationAnnotationAndModifier(md, "@AfterEach", "org.junit.jupiter.api.AfterEach");
                 }
             }
+            return md;
+        }
+
+        private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation) {
+            J.MethodDeclaration md = methodDeclaration.withTemplate(template(annotation)
+                            .javaParser(JAVA_PARSER_THREAD_LOCAL.get())
+                            .imports(fullyQualifiedAnnotation).build(),
+                    methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+            md = maybeAddPublicModifier(md);
+            md = maybeRemoveOverrideAnnotation(md);
+            maybeAddImport(fullyQualifiedAnnotation);
             return md;
         }
 
