@@ -79,6 +79,7 @@ public class MigrateJUnitTestCase extends Recipe {
                 if (cu.getClasses().stream().findAny().isPresent()) {
                     doAfterVisit(new TestCaseVisitor());
                 }
+                doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert"));
                 doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
                 doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions assert*(..)"));
                 doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions fail*(..)"));
@@ -104,7 +105,6 @@ public class MigrateJUnitTestCase extends Recipe {
                 }
             }
             maybeRemoveImport(JUNIT_TEST_CASE_FQN);
-            doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert"));
             return cd;
         }
 
