@@ -89,7 +89,7 @@ public class MigrateJUnitTestCase extends Recipe {
     }
 
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
-
+        private static final JavaType.Class JUNIT_ASSERT_TYPE = JavaType.Class.build("org.junit.Assert");
         private static final AnnotationMatcher OVERRIDE_ANNOTATION_MATCHER = new AnnotationMatcher("@java.lang.Override");
 
         @Override
@@ -115,6 +115,12 @@ public class MigrateJUnitTestCase extends Recipe {
             // setUp and tearDown will be invoked via Before and After annotations, setName is not convertible
             if ("setUp".equals(name) || "tearDown".equals(name) || "setName".equals(name)) {
                 return null;
+            }
+            // FIXME changing method type should not be necessary, yet the `convertTestCase` test fails due to missing imports
+            else if (mi.getType() != null && mi.getType().getDeclaringType() != null
+                    && JUNIT_TEST_CASE_FQN.equals(mi.getType().getDeclaringType().getFullyQualifiedName())) {
+                mi = mi.withType(mi.getType().withDeclaringType(JUNIT_ASSERT_TYPE));
+                maybeAddImport("org.junit.Assert", mi.getSimpleName());
             }
             return mi;
         }
