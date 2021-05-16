@@ -18,9 +18,11 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
@@ -32,6 +34,7 @@ import java.util.List;
 public class MigrateJUnitTestCase extends Recipe {
 
     private static final String JUNIT_TEST_CASE_FQN = "junit.framework.TestCase";
+    private static final String OBJECT_FQN = "java.lang.Object";
 
     private static final ThreadLocal<JavaParser> JAVA_PARSER_THREAD_LOCAL = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion()
@@ -41,6 +44,17 @@ public class MigrateJUnitTestCase extends Recipe {
                                     "public @interface AfterEach {}\n" +
                                     "public @interface BeforeEach {}")))
                     .build());
+
+    private static boolean isSupertypeTestCase(@Nullable JavaType.Class javaTypeClass) {
+        if (javaTypeClass == null || javaTypeClass.getSupertype() == null || OBJECT_FQN.equals(javaTypeClass.getFullyQualifiedName())) {
+            return false;
+        }
+        JavaType.FullyQualified fqType = TypeUtils.asFullyQualified(javaTypeClass);
+        if (fqType != null && JUNIT_TEST_CASE_FQN.equals(fqType.getFullyQualifiedName())) {
+            return true;
+        }
+        return isSupertypeTestCase(javaTypeClass.getSupertype());
+    }
 
     @Override
     public String getDisplayName() {
@@ -53,31 +67,34 @@ public class MigrateJUnitTestCase extends Recipe {
     }
 
     @Override
-    protected TestCaseVisitor getVisitor() {
-        return new TestCaseVisitor();
+    protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
+        return new UsesType<>(JUNIT_TEST_CASE_FQN + ".*");
+    }
+
+    @Override
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+                if (cu.getClasses().stream().findAny().isPresent()) {
+                    doAfterVisit(new TestCaseVisitor());
+                }
+                doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
+                doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions assert*(..)"));
+                doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions fail*(..)"));
+                return cu;
+            }
+        };
     }
 
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private static final AnnotationMatcher OVERRIDE_ANNOTATION_MATCHER = new AnnotationMatcher("@java.lang.Override");
 
-        private static final AnnotationMatcher TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.Test");
-        private static final AnnotationMatcher BEFORE_EACH_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
-        private static final AnnotationMatcher AFTER_EACH_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.AfterEach");
-
-        private static final AnnotationMatcher JUNIT_BEFORE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Before");
-        private static final AnnotationMatcher JUNIT_AFTER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.After");
-        private static final AnnotationMatcher JUNIT_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
-
-        private static final String TEST_CASE_MESSAGE_KEY = "junit-test-case";
-        private static final String OBJECT_FQN = "java.lang.Object";
-
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-            // Because TestCase extends Assert and assertions may be referenced from TestCase even if the class is not a TestCase
-            // it is necessary to add a cursor message stating that the class extends TestCase so the TestCase.Assert assertions can be processed
-            if (isSupertypeTestCase(classDecl.getType())) {
-                getCursor().putMessage(TEST_CASE_MESSAGE_KEY, Boolean.TRUE);
+            if (!isSupertypeTestCase(classDecl.getType())) {
+                return classDecl;
             }
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
             if (cd.getExtends() != null && cd.getExtends().getType() != null) {
@@ -88,9 +105,6 @@ public class MigrateJUnitTestCase extends Recipe {
             }
             maybeRemoveImport(JUNIT_TEST_CASE_FQN);
             doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert"));
-            doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
-            doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions assert*(..)"));
-            doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions fail*(..)"));
             return cd;
         }
 
@@ -99,8 +113,7 @@ public class MigrateJUnitTestCase extends Recipe {
             J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
             String name = mi.getSimpleName();
             // setUp and tearDown will be invoked via Before and After annotations, setName is not convertible
-            if (("setUp".equals(name) || "tearDown".equals(name) || "setName".equals(name))
-                    && Boolean.TRUE.equals(getCursor().getNearestMessage(TEST_CASE_MESSAGE_KEY))) {
+            if ("setUp".equals(name) || "tearDown".equals(name) || "setName".equals(name)) {
                 return null;
             }
             return mi;
@@ -109,17 +122,12 @@ public class MigrateJUnitTestCase extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
-            if (Boolean.TRUE.equals(getCursor().getNearestMessage(TEST_CASE_MESSAGE_KEY))) {
-                if (md.getSimpleName().startsWith("test")
-                        && !hasAnnotation(md.getLeadingAnnotations(), TEST_ANNOTATION_MATCHER, JUNIT_TEST_ANNOTATION_MATCHER)) {
-                    md = updateMethodDeclarationAnnotationAndModifier(md, "@Test", "org.junit.jupiter.api.Test");
-                } else if (md.getSimpleName().equals("setUp")
-                        && !hasAnnotation(md.getLeadingAnnotations(), BEFORE_EACH_ANNOTATION_MATCHER, JUNIT_BEFORE_ANNOTATION_MATCHER)) {
-                    md = updateMethodDeclarationAnnotationAndModifier(md, "@BeforeEach", "org.junit.jupiter.api.BeforeEach");
-                } else if (md.getSimpleName().equals("tearDown")
-                        && !hasAnnotation(md.getLeadingAnnotations(), AFTER_EACH_ANNOTATION_MATCHER, JUNIT_AFTER_ANNOTATION_MATCHER)) {
-                    md = updateMethodDeclarationAnnotationAndModifier(md, "@AfterEach", "org.junit.jupiter.api.AfterEach");
-                }
+            if (md.getSimpleName().startsWith("test")) {
+                md = updateMethodDeclarationAnnotationAndModifier(md, "@Test", "org.junit.jupiter.api.Test");
+            } else if (md.getSimpleName().equals("setUp")) {
+                md = updateMethodDeclarationAnnotationAndModifier(md, "@BeforeEach", "org.junit.jupiter.api.BeforeEach");
+            } else if (md.getSimpleName().equals("tearDown")) {
+                md = updateMethodDeclarationAnnotationAndModifier(md, "@AfterEach", "org.junit.jupiter.api.AfterEach");
             }
             return md;
         }
@@ -133,18 +141,6 @@ public class MigrateJUnitTestCase extends Recipe {
             md = maybeRemoveOverrideAnnotation(md);
             maybeAddImport(fullyQualifiedAnnotation);
             return md;
-        }
-
-        private boolean hasAnnotation(List<J.Annotation> annotationList, AnnotationMatcher... annotationMatchers) {
-            if (annotationList.isEmpty()) {
-                return false;
-            }
-            for (AnnotationMatcher annotationMatcher : annotationMatchers) {
-                if (annotationList.stream().filter(annotationMatcher::matches).findAny().isPresent()) {
-                    return true;
-                }
-            }
-            return false;
         }
 
         private J.MethodDeclaration maybeAddPublicModifier(J.MethodDeclaration md) {
@@ -165,17 +161,6 @@ public class MigrateJUnitTestCase extends Recipe {
                 }
                 return annotation;
             }));
-        }
-
-        private boolean isSupertypeTestCase(@Nullable JavaType.Class javaTypeClass) {
-            if (javaTypeClass == null || javaTypeClass.getSupertype() == null || OBJECT_FQN.equals(javaTypeClass.getFullyQualifiedName())) {
-                return false;
-            }
-            JavaType.FullyQualified fqType = TypeUtils.asFullyQualified(javaTypeClass);
-            if (fqType != null && JUNIT_TEST_CASE_FQN.equals(fqType.getFullyQualifiedName())) {
-                return true;
-            }
-            return isSupertypeTestCase(javaTypeClass.getSupertype());
         }
     }
 }
