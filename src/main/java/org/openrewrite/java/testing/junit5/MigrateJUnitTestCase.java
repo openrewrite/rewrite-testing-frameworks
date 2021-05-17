@@ -68,7 +68,7 @@ public class MigrateJUnitTestCase extends Recipe {
 
     @Override
     protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>(JUNIT_TEST_CASE_FQN + ".*");
+        return new UsesType<>(JUNIT_TEST_CASE_FQN);
     }
 
     @Override
