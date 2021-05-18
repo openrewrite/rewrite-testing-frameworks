@@ -25,6 +25,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
@@ -49,7 +50,7 @@ public class UpdateTestAnnotation extends Recipe {
                 "}"));
 
         if (e instanceof J.FieldAccess) {
-            JavaType.Class type = TypeUtils.asClass(((J.FieldAccess) e).getTarget().getType());
+            JavaType.FullyQualified type = TypeUtils.asFullyQualified(((J.FieldAccess) e).getTarget().getType());
             if (type != null) {
                 String source = (type.getPackageName().isEmpty() ? "" : "package " + type.getPackageName() + ";\n") +
                         "public class " + type.getClassName() + " extends Exception {}";
@@ -136,7 +137,7 @@ public class UpdateTestAnnotation extends Recipe {
                             if (assignParamName.equals("expected")) {
                                 assert e instanceof J.FieldAccess;
 
-                                List<Statement> statements = m.getBody().getStatements();
+                                List<Statement> statements = m.getBody() == null ? Collections.emptyList() : m.getBody().getStatements();
                                 String strStatements = statements.stream().map(Tree::print).collect(Collectors.joining(";", "", ";"));
 
                                 m = m.withTemplate(

@@ -142,7 +142,7 @@ public class UpdateMockWebServer extends Recipe {
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
                 J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, executionContext);
-                JavaType.Class fieldType = variableDeclarations.getTypeAsClass();
+                JavaType.FullyQualified fieldType = variableDeclarations.getTypeAsFullyQualified();
                 if (TypeUtils.isOfClassType(fieldType, "okhttp3.mockwebserver.MockWebServer")) {
                     variableDeclarations = variableDeclarations.withLeadingAnnotations(ListUtils.map(variableDeclarations.getLeadingAnnotations(), annotation -> {
                         if (RULE_MATCHER.matches(annotation)) {

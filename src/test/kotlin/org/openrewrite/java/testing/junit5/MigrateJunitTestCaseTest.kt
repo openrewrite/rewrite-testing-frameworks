@@ -23,6 +23,7 @@ import org.openrewrite.java.JavaRecipeTest
 class MigrateJunitTestCaseTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
+        .logCompilationWarningsAndErrors(true)
         .build()
 
     override val recipe: Recipe
