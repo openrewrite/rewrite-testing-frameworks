@@ -86,7 +86,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                     .filter(J.VariableDeclarations.class::isInstance)
                     .map(J.VariableDeclarations.class::cast)
                     .collect(Collectors.toList());
-            if (fields.stream().anyMatch(it -> TypeUtils.hasElementType(it.getTypeAsClass(), TEMPORARY_FOLDER_FQN))) {
+            if (fields.stream().anyMatch(it -> TypeUtils.hasElementType(it.getTypeAsFullyQualified(), TEMPORARY_FOLDER_FQN))) {
                 Set<J.VariableDeclarations> tempDirFields = new HashSet<>();
                 cd = cd.withBody(
                         cd.getBody().withStatements(
@@ -96,8 +96,8 @@ public class TemporaryFolderToTempDir extends Recipe {
                                                 return statement;
                                             }
                                             J.VariableDeclarations field = (J.VariableDeclarations) statement;
-                                            if (field.getTypeAsClass() == null ||
-                                                    !field.getTypeAsClass().getFullyQualifiedName()
+                                            if (field.getTypeAsFullyQualified() == null ||
+                                                    !field.getTypeAsFullyQualified().getFullyQualifiedName()
                                                             .equals(TEMPORARY_FOLDER_FQN)) {
                                                 return field;
                                             }

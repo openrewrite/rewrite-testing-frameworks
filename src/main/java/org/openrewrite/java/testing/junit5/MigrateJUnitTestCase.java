@@ -45,15 +45,15 @@ public class MigrateJUnitTestCase extends Recipe {
                                     "public @interface BeforeEach {}")))
                     .build());
 
-    private static boolean isSupertypeTestCase(@Nullable JavaType.Class javaTypeClass) {
-        if (javaTypeClass == null || javaTypeClass.getSupertype() == null || OBJECT_FQN.equals(javaTypeClass.getFullyQualifiedName())) {
+    private static boolean isSupertypeTestCase(@Nullable JavaType.FullyQualified fullyQualified) {
+        if (fullyQualified == null || fullyQualified.getSupertype() == null || OBJECT_FQN.equals(fullyQualified.getFullyQualifiedName())) {
             return false;
         }
-        JavaType.FullyQualified fqType = TypeUtils.asFullyQualified(javaTypeClass);
+        JavaType.FullyQualified fqType = TypeUtils.asFullyQualified(fullyQualified);
         if (fqType != null && JUNIT_TEST_CASE_FQN.equals(fqType.getFullyQualifiedName())) {
             return true;
         }
-        return isSupertypeTestCase(javaTypeClass.getSupertype());
+        return isSupertypeTestCase(fullyQualified.getSupertype());
     }
 
     @Override
@@ -107,6 +107,7 @@ public class MigrateJUnitTestCase extends Recipe {
             return cd;
         }
 
+        @SuppressWarnings("ConstantConditions")
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
