@@ -1,14 +1,10 @@
 import nebula.plugin.contacts.Contact
 import nebula.plugin.contacts.ContactsExtension
+import nebula.plugin.release.NetflixOssStrategies.SNAPSHOT
+import nebula.plugin.release.git.base.ReleasePluginExtension
 import nl.javadude.gradle.plugins.license.LicenseExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.util.*
-
-buildscript {
-    repositories {
-        gradlePluginPortal()
-    }
-}
 
 plugins {
     `java-library`
@@ -36,12 +32,12 @@ plugins {
 
 apply(plugin = "nebula.publish-verification")
 
-configure<org.openrewrite.gradle.RewriteExtension> {
+rewrite {
     activeRecipe("org.openrewrite.java.format.AutoFormat")
 }
 
-configure<nebula.plugin.release.git.base.ReleasePluginExtension> {
-    defaultVersionStrategy = nebula.plugin.release.NetflixOssStrategies.SNAPSHOT(project)
+configure<ReleasePluginExtension> {
+    defaultVersionStrategy = SNAPSHOT(project)
 }
 
 group = "org.openrewrite.recipe"
@@ -131,7 +127,6 @@ dependencies {
 tasks.withType(KotlinCompile::class.java).configureEach {
     kotlinOptions {
         jvmTarget = "1.8"
-//        useIR = true
     }
 }
 
@@ -147,6 +142,18 @@ tasks.named<JavaCompile>("compileJava") {
     options.isFork = true
     options.forkOptions.executable = "javac"
     options.compilerArgs.addAll(listOf("--release", "8"))
+}
+
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
+    options.compilerArgs.add("-parameters")
+}
+
+tasks.withType<Javadoc> {
+    // assertTrue(boolean condition) -> assertThat(condition).isTrue()
+    // warning - invalid usage of tag >
+    // see also: https://blog.joda.org/2014/02/turning-off-doclint-in-jdk-8-javadoc.html
+    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
 }
 
 configure<ContactsExtension> {
@@ -193,14 +200,3 @@ configure<PublishingExtension> {
     }
 }
 
-tasks.withType<Javadoc> {
-    // assertTrue(boolean condition) -> assertThat(condition).isTrue()
-    // warning - invalid usage of tag >
-    // see also: https://blog.joda.org/2014/02/turning-off-doclint-in-jdk-8-javadoc.html
-    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
-}
-
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
-    options.compilerArgs.add("-parameters")
-}
