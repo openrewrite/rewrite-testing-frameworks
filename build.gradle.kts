@@ -99,10 +99,6 @@ dependencies {
     testImplementation("org.assertj:assertj-core:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
-    testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    testImplementation("org.jetbrains.kotlin:kotlin-reflect")
-
-    // needed for tests in this project
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
 
     // "Before" framework dependencies
