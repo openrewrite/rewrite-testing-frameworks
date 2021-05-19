@@ -192,7 +192,6 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
      * swap 'em
      */
     @Test
-    @Disabled("Disabling temporarily to get a build out")
     fun replacesGetArgumentAt() = assertChanged(
         before = """
             package mockito.example;
