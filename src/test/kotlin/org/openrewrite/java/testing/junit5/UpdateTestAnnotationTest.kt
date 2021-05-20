@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.openrewrite.Issue
 import org.openrewrite.Parser
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
@@ -167,7 +168,8 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
         """
     )
 
-    @Disabled("test visibility changes require super class info")
+    @Issue("https://github.com/openrewrite/rewrite/issues/150")
+    @Disabled
     @Test
     fun testMethodModifierHasComments() = assertChanged(
         before = """
@@ -308,7 +310,8 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
         """
     )
 
-    @Disabled("test visibility changes require super class info")
+    @Issue("https://github.com/openrewrite/rewrite/issues/150")
+    @Disabled
     @Test
     fun protectedToPackageVisibility() = assertChanged(
         // An existing test method with protected visibility would not be executed by JUnit 4. This refactor will actual

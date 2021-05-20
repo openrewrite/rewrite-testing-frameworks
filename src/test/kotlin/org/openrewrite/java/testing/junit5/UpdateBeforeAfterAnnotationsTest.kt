@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.openrewrite.Issue
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
@@ -125,7 +126,8 @@ class UpdateBeforeAfterAnnotationsTest : JavaRecipeTest {
         """
     )
 
-    @Disabled("test visibility changes require super class info")
+    @Issue("https://github.com/openrewrite/rewrite/issues/150")
+    @Disabled
     @Test
     fun convertsToPackageVisibility() = assertChanged(
         before = """
