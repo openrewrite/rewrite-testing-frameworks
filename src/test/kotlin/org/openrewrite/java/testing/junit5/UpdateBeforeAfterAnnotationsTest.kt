@@ -125,6 +125,7 @@ class UpdateBeforeAfterAnnotationsTest : JavaRecipeTest {
         """
     )
 
+    @Disabled("test visibility changes require super class info")
     @Test
     fun convertsToPackageVisibility() = assertChanged(
         before = """

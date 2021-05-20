@@ -97,12 +97,12 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
                 List<String> mockedList;
             
                 @BeforeEach
-                void initMocks() {
+                public void initMocks() {
                     MockitoAnnotations.initMocks(this);
                 }
             
                 @Test
-                void usingAnnotationBasedMock() {
+                public void usingAnnotationBasedMock() {
             
                     mockedList.add("one");
                     mockedList.clear();

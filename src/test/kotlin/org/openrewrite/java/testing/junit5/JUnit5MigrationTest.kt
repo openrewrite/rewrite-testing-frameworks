@@ -37,7 +37,8 @@ class JUnit5MigrationTest : JavaRecipeTest {
             import org.junit.Before;
 
             public class Example {
-                @Before public void initialize() {
+                @Before
+                public void initialize() {
                 }
             }
         """,
@@ -45,9 +46,8 @@ class JUnit5MigrationTest : JavaRecipeTest {
             import org.junit.jupiter.api.BeforeEach;
 
             public class Example {
-
                 @BeforeEach
-                void initialize() {
+                public void initialize() {
                 }
             }
         """
@@ -59,7 +59,8 @@ class JUnit5MigrationTest : JavaRecipeTest {
             import org.junit.After;
 
             public class Example {
-                @After public void initialize() {
+                @After
+                public void initialize() {
                 }
             }
         """,
@@ -67,9 +68,8 @@ class JUnit5MigrationTest : JavaRecipeTest {
             import org.junit.jupiter.api.AfterEach;
 
             public class Example {
-
                 @AfterEach
-                void initialize() {
+                public void initialize() {
                 }
             }
         """
@@ -90,9 +90,8 @@ class JUnit5MigrationTest : JavaRecipeTest {
             import org.junit.jupiter.api.BeforeAll;
 
             public class Example {
-
                 @BeforeAll
-                static void initialize() {
+                public static void initialize() {
                 }
             }
         """
@@ -104,7 +103,8 @@ class JUnit5MigrationTest : JavaRecipeTest {
             import org.junit.AfterClass;
 
             public class Example {
-                @AfterClass public static void initialize() {
+                @AfterClass
+                public static void initialize() {
                 }
             }
         """,
@@ -112,9 +112,8 @@ class JUnit5MigrationTest : JavaRecipeTest {
             import org.junit.jupiter.api.AfterAll;
 
             public class Example {
-
                 @AfterAll
-                static void initialize() {
+                public static void initialize() {
                 }
             }
         """

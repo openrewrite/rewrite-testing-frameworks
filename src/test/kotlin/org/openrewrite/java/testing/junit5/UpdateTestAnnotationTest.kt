@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Parser
 import org.openrewrite.Recipe
@@ -51,7 +52,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                void test() {
+                public void test() {
                     assertThrows(IllegalArgumentException.class, () -> {
                         throw new IllegalArgumentException("boom");
                     });
@@ -81,7 +82,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                void test() {
+                public void test() {
                     assertThrows(IndexOutOfBoundsException.class, () -> {
                         int arr = new int[]{}[0];
                     });
@@ -112,7 +113,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                void test() {
+                public void test() {
                     assertThrows(IllegalArgumentException.class, () -> {
                         String foo = "foo";
                         throw new IllegalArgumentException("boom");
@@ -139,8 +140,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                void test() {
-                }
+                public void test() { }
             }
         """
     )
@@ -162,12 +162,12 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                void test() {
-                }
+                public void test() { }
             }
         """
     )
 
+    @Disabled("test visibility changes require super class info")
     @Test
     fun testMethodModifierHasComments() = assertChanged(
         before = """
@@ -232,8 +232,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             
                 @Test
                 @Timeout(500)
-                void test() {
-                }
+                public void test() { }
             }
         """
     )
@@ -268,7 +267,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                void test() {
+                public void test() {
                     assertThrows(MyException.class, () -> {
                         throw new MyException("my exception");
                     });
@@ -300,7 +299,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             
                 @Test
                 @Timeout(500)
-                void test() {
+                public void test() {
                     assertThrows(IllegalArgumentException.class, () -> {
                         throw new IllegalArgumentException("boom");
                     });
@@ -309,6 +308,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
         """
     )
 
+    @Disabled("test visibility changes require super class info")
     @Test
     fun protectedToPackageVisibility() = assertChanged(
         // An existing test method with protected visibility would not be executed by JUnit 4. This refactor will actual
@@ -335,6 +335,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
         """
     )
 
+    @Disabled("test visibility changes require super class info")
     @Test
     fun privateToPackageVisibility() = assertChanged(
         // An existing test method with private visibility would not be executed by JUnit 4. This refactor will actual

@@ -105,7 +105,8 @@ public class UpdateTestAnnotation extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             if (m.getLeadingAnnotations().stream().anyMatch(JUNIT_4_TEST_ANNOTATION_MATCHER::matches)) {
-                doAfterVisit(new ChangeTestAccessVisibilityStep(m));
+                // FIXME removing public modifiers requires access to the method super type to prevent assigning weaker access privileges
+                //doAfterVisit(new ChangeTestAccessVisibilityStep(m));
 
                 List<Expression> arguments = getCursor().getMessage(JUNIT_4_TEST_ANNOTATION_ARGUMENTS);
                 if (arguments != null) {

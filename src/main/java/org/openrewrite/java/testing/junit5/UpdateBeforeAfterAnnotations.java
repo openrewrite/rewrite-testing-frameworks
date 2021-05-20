@@ -89,6 +89,7 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
             return super.visitCompilationUnit(cu, ctx);
         }
 
+        /** FIXME removing public modifiers requires access to the method super type to prevent assigning weaker access privileges
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
@@ -125,5 +126,6 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
             }
             return m;
         }
+        **/
     }
 }
