@@ -25,7 +25,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -61,8 +60,10 @@ public class RunnerToExtension extends Recipe {
     public RunnerToExtension(List<String> runners, String extension) {
         this.runners = runners;
         this.extension = extension;
+
+        //The extension can be null when the framework instantiates an instance for recipe discovery.
+        //noinspection ConstantConditions
         if (extension != null) {
-            //The extension can be null when the framework instantiates an instance for recipe discovery.
             JavaType.Class extensionType = JavaType.Class.build(extension);
             this.javaParser = ThreadLocal.withInitial(() ->
 
@@ -94,7 +95,7 @@ public class RunnerToExtension extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "JUnit4 @RunWith to JUnit Jupiter @ExtendWith";
+        return "JUnit 4 `@RunWith` to JUnit Jupiter `@ExtendWith`";
     }
 
     @Override
@@ -111,8 +112,14 @@ public class RunnerToExtension extends Recipe {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
                 for (String runner : runners) {
+                    //noinspection ConstantConditions
                     for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                        cd = cd.withTemplate(getTemplate(), runWith.getCoordinates().replace());
+                        cd = cd.withTemplate(template("@ExtendWith(#{}.class)")
+                                        .javaParser(javaParser::get)
+                                        .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
+                                        .build(),
+                                runWith.getCoordinates().replace(),
+                                extensionType.getClassName());
                         maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                         maybeAddImport(extension);
                         maybeRemoveImport("org.junit.runner.RunWith");
@@ -129,7 +136,12 @@ public class RunnerToExtension extends Recipe {
 
                 for (String runner : runners) {
                     for (J.Annotation runWith : FindAnnotations.find(method.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                        md = md.withTemplate(getTemplate(), runWith.getCoordinates().replace());
+                        md = md.withTemplate(template("@ExtendWith(#{}.class)")
+                                        .javaParser(javaParser::get)
+                                        .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
+                                        .build(),
+                                runWith.getCoordinates().replace(),
+                                extensionType.getClassName());
                         maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                         maybeAddImport(extension);
                         maybeRemoveImport("org.junit.runner.RunWith");
@@ -138,13 +150,6 @@ public class RunnerToExtension extends Recipe {
                 }
 
                 return md;
-            }
-
-            private JavaTemplate getTemplate() {
-                return template("@ExtendWith(" + extensionType.getClassName() + ".class)")
-                        .javaParser(javaParser.get())
-                        .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
-                        .build();
             }
         };
     }

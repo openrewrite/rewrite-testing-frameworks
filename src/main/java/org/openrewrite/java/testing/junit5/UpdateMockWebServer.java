@@ -102,7 +102,7 @@ public class UpdateMockWebServer extends Recipe {
                         J.Block body = cd.getBody();
                         body = maybeAutoFormat(body, body.withTemplate(template(closeMethod)
                                 .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
-                                .javaParser(OKHTTP3_PARSER.get()).build(), body.getCoordinates().lastStatement()), executionContext);
+                                .javaParser(OKHTTP3_PARSER::get).build(), body.getCoordinates().lastStatement()), executionContext);
                         cd = cd.withBody(body);
                         maybeAddImport(AFTER_EACH_FQN);
                         maybeAddImport(IO_EXCEPTION_FQN);
@@ -113,7 +113,7 @@ public class UpdateMockWebServer extends Recipe {
                                 J.MethodDeclaration method = (J.MethodDeclaration) statement;
                                 if (method.getBody() != null) {
                                     method = method.withTemplate(template(mockWebServerVariableName + ".close();")
-                                            .javaParser(OKHTTP3_PARSER.get()).build(), method.getBody()
+                                            .javaParser(OKHTTP3_PARSER::get).build(), method.getBody()
                                             .getCoordinates().lastStatement());
 
                                     if (method.getThrows() == null || method.getThrows().stream()

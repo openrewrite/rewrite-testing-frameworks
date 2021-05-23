@@ -25,21 +25,11 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JRightPadded;
-import org.openrewrite.java.tree.Space;
-import org.openrewrite.marker.Markers;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Set;
 
-import static org.openrewrite.Tree.randomId;
-
 public class UseTestMethodOrder extends Recipe {
-    private static final J.Block EMPTY_BLOCK = new J.Block(randomId(), Space.EMPTY,
-            Markers.EMPTY, new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
-            Collections.emptyList(), Space.EMPTY);
-
     private static final ThreadLocal<JavaParser> TEST_METHOD_ORDER_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion()
                     .dependsOn(Arrays.asList(
@@ -71,28 +61,25 @@ public class UseTestMethodOrder extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final JavaTemplate testMethodOrder =
-                    template("@TestMethodOrder(#{}.class)")
-                            .javaParser(TEST_METHOD_ORDER_PARSER.get())
-                            .imports("org.junit.jupiter.api.TestMethodOrder",
-                                    "org.junit.jupiter.api.MethodOrderer.*")
-                            .build();
+            private final JavaTemplate testMethodOrder = template("@TestMethodOrder(MethodName.class)")
+                    .javaParser(TEST_METHOD_ORDER_PARSER::get)
+                    .imports("org.junit.jupiter.api.TestMethodOrder",
+                            "org.junit.jupiter.api.MethodOrderer.*")
+                    .build();
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration c = classDecl;
 
-                Set<J.Annotation> methodOrders = FindAnnotations.find(c.withBody(EMPTY_BLOCK),
-                        "@org.junit.FixMethodOrder");
+                @SuppressWarnings("ConstantConditions") Set<J.Annotation> methodOrders =
+                        FindAnnotations.find(c.withBody(null), "@org.junit.FixMethodOrder");
 
                 if (!methodOrders.isEmpty()) {
                     maybeAddImport("org.junit.jupiter.api.TestMethodOrder");
                     maybeRemoveImport("org.junit.FixMethodOrder");
                     maybeRemoveImport("org.junit.runners.MethodSorters");
 
-                    c = c.withTemplate(testMethodOrder,
-                            methodOrders.iterator().next().getCoordinates().replace(),
-                            "MethodName");
+                    c = c.withTemplate(testMethodOrder, methodOrders.iterator().next().getCoordinates().replace());
                     maybeAddImport("org.junit.jupiter.api.MethodOrderer.MethodName");
                 }
 

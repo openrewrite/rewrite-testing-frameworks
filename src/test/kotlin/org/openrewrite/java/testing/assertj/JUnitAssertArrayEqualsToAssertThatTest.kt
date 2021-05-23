@@ -115,7 +115,8 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
 
                 @Test
                 public void test() {
-                    assertArrayEquals(new double[]{1.0d, 2.0d, 3.0d}, notification(), .2d);
+                    float eps = .2d;
+                    assertArrayEquals(new double[]{1.0d, 2.0d, 3.0d}, notification(), eps);
                 }
                 private double[] notification() {
                     return new double[]{1.1d, 2.1d, 3.1d};
@@ -132,7 +133,8 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
 
                 @Test
                 public void test() {
-                    assertThat(notification()).containsExactly(new double[]{1.0d, 2.0d, 3.0d}, within(.2d));
+                    float eps = .2d;
+                    assertThat(notification()).containsExactly(new double[]{1.0d, 2.0d, 3.0d}, within(eps));
                 }
                 private double[] notification() {
                     return new double[]{1.1d, 2.1d, 3.1d};

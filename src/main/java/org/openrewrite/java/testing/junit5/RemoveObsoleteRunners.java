@@ -32,7 +32,6 @@ import java.util.List;
 @Value
 @EqualsAndHashCode(callSuper = true)
 public class RemoveObsoleteRunners extends Recipe {
-
     @Option(displayName = "Obsolete Runners",
             description = "The fully qualified class names of the JUnit4 runners to be removed",
             example = "org.junit.runners.JUnit4")
@@ -40,13 +39,13 @@ public class RemoveObsoleteRunners extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Remove JUnit4 @RunWith annotations that do not require an @ExtendsWith replacement.";
+        return "Remove JUnit 4 `@RunWith` annotations that do not require an `@ExtendsWith` replacement.";
     }
 
     @Override
     public String getDescription() {
-        return "Some JUnit4 @RunWith() annotations do not require replacement with an equivalent JUnit 5 @ExtendsWith() annotation. " +
-                "This can be used to remove those runners that either do not have a JUnit5 equivalent or do not require a replacement as part of JUnit 4 to 5 migration.";
+        return "Some JUnit4 `@RunWith` annotations do not require replacement with an equivalent JUnit Jupiter `@ExtendsWith` annotation. " +
+                "This can be used to remove those runners that either do not have a JUnit Jupiter equivalent or do not require a replacement as part of JUnit 4 to 5 migration.";
     }
 
     @Override
@@ -73,6 +72,7 @@ public class RemoveObsoleteRunners extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             List<J.Annotation> filteredAnnotations = null;
             for (String runner : obsoleteRunners) {
+                //noinspection ConstantConditions
                 for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
                     if (filteredAnnotations == null) {
                         filteredAnnotations = new ArrayList<>(classDecl.getLeadingAnnotations());

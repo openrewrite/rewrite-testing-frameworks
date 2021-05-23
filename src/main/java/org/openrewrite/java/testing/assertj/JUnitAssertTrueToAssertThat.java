@@ -21,6 +21,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
@@ -29,25 +30,7 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
-/**
- * This is a refactoring visitor that will convert JUnit-style assertTrue() to assertJ's assertThat().isTrue().
- * <p>
- * This visitor only supports the migration of the following JUnit 5 assertTrue() methods:
- *
- * <PRE>
- * assertTrue(boolean condition) == assertThat(condition).isTrue()
- * assertTrue(boolean condition, String message) == assertThat(condition).withFailMessage(message).isTrue();
- * assertTrue(boolean condition, Supplier<String> messageSupplier) == assertThat(condition).withFailMessage(messageSupplier).isTrue();
- * </PRE>
- * <p>
- * Note: There are three additional method signatures in JUnit that use a BooleanSupplier for the condition. Attempts
- * to map these signatures into assertJ's model obfuscates the original assertion. It would be possible to use a
- * shim method to support these method signatures, however, those shims would need to exist on each compilation
- * unit or in a shared testing utilities library.
- */
 public class JUnitAssertTrueToAssertThat extends Recipe {
-
-    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
     private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(
                     Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
@@ -56,17 +39,17 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "JUnit AssertTrue to AssertThat";
+        return "JUnit `assertTrue` to AssertJ";
     }
 
     @Override
     public String getDescription() {
-        return "Convert JUnit-style assertTrue() to assertJ's assertThat().isTrue().";
+        return "Convert JUnit-style `assertTrue()` to AssertJ's `assertThat().isTrue()`.";
     }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
+        return new UsesType<>("org.junit.jupiter.api.Assertions");
     }
 
     @Override
@@ -75,20 +58,11 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
     }
 
     public static class AssertTrueToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
-        private static final String ASSERTJ_ASSERT_THAT_METHOD_NAME = "assertThat";
-
-        /**
-         * This matcher finds the junit methods that will be migrated by this visitor.
-         */
-        private static final MethodMatcher JUNIT_ASSERT_TRUE_MATCHER = new MethodMatcher(
-                JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertTrue(boolean, ..)"
-        );
+        private static final MethodMatcher JUNIT_ASSERT_TRUE = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertTrue(boolean, ..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (!JUNIT_ASSERT_TRUE_MATCHER.matches(method)) {
+            if (!JUNIT_ASSERT_TRUE.matches(method)) {
                 return method;
             }
 
@@ -97,9 +71,9 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
 
             if (args.size() == 1) {
                 method = method.withTemplate(
-                        template("assertThat(#{}).isTrue();")
+                        template("assertThat(#{any(boolean)}).isTrue();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual
@@ -107,27 +81,22 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
             } else {
                 Expression message = args.get(1);
 
-                // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
-                // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
-                String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
+                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
+                        template("assertThat(#{any(boolean)}).as(#{any(String)}).isTrue();") :
+                        template("assertThat(#{any(boolean)}).withFailMessage(#{any(java.util.function.Supplier)}).isTrue();");
 
-                method = method.withTemplate(
-                        template("assertThat(#{}).#{}(#{}).isTrue();")
+                method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
-                        messageAs,
                         message
                 );
             }
 
-            //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat"
-            maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_ASSERT_THAT_METHOD_NAME);
-
-            //And if there are no longer references to the JUnit assertions class, we can remove the import.
-            maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+            maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
             return method;
         }

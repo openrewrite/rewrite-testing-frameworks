@@ -21,6 +21,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
@@ -29,20 +30,7 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
-/**
- * This is a refactoring visitor that will convert JUnit-style assertNotNull() to assertJ's assertThat().isNotNull().
- * <p>
- * This visitor only supports the migration of the following JUnit 5 assertNotNull() methods:
- *
- * <PRE>
- * assertNotNull(Object actual) == assertThat(condition).isNotNull()
- * assertNotNull(Object actual, String message) == assertThat(condition).as(message).isNotNull();
- * assertNotNull(Object actual, Supplier<String> messageSupplier) == assertThat(condition).withFailMessage(messageSupplier).isNotNull();
- * </PRE>
- */
 public class JUnitAssertNotNullToAssertThat extends Recipe {
-
-    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
     private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(
                     Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
@@ -51,17 +39,17 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "JUnit AssertNotNull to AssertThat";
+        return "JUnit `assertNotNull` to AssertJ";
     }
 
     @Override
     public String getDescription() {
-        return "Convert JUnit-style assertNotNull() to assertJ's assertThat().isNotNull().";
+        return "Convert JUnit-style `assertNotNull()` to AssertJ's `assertThat().isNotNull()`.";
     }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
+        return new UsesType<>("org.junit.jupiter.api.Assertions");
     }
 
     @Override
@@ -70,16 +58,7 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
     }
 
     public static class AssertNotNullToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
-        private static final String ASSERTJ_ASSERT_THAT_METHOD_NAME = "assertThat";
-
-        /**
-         * This matcher finds the junit methods that will be migrated by this visitor.
-         */
-        private static final MethodMatcher JUNIT_ASSERT_NOT_NULL_MATCHER = new MethodMatcher(
-                JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertNotNull(..)"
-        );
+        private static final MethodMatcher JUNIT_ASSERT_NOT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertNotNull(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -91,11 +70,10 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
             Expression actual = args.get(0);
 
             if (args.size() == 1) {
-
                 method = method.withTemplate(
-                        template("assertThat(#{}).isNotNull();")
+                        template("assertThat(#{any()}).isNotNull();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual
@@ -104,25 +82,22 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
             } else {
                 Expression message = args.get(1);
 
-                String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
+                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
+                        template("assertThat(#{any()}).as(#{any(String)}).isNotNull();") :
+                        template("assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isNotNull();");
 
-                method = method.withTemplate(
-                        template("assertThat(#{}).#{}(#{}).isNotNull();")
+                method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
-                        messageAs,
                         message
                 );
             }
 
-            // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
-            maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
-
-            // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat"
-            maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_ASSERT_THAT_METHOD_NAME);
+            maybeRemoveImport("org.junit.jupiter.api.Assertions");
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
 
             return method;
         }

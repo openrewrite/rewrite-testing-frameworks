@@ -15,7 +15,10 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Parser;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.ChangeType;
@@ -25,11 +28,9 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class UpdateTestAnnotation extends Recipe {
 
@@ -63,12 +64,12 @@ public class UpdateTestAnnotation extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Migrate JUnit4 `@Test` annotations to JUnit5";
+        return "Migrate JUnit 4 `@Test` annotations to JUnit5";
     }
 
     @Override
     public String getDescription() {
-        return "Update usages of JUnit4's `@org.junit.Test` annotation to JUnit5's `org.junit.jupiter.api.Test` annotation.";
+        return "Update usages of JUnit 4's `@org.junit.Test` annotation to JUnit5's `org.junit.jupiter.api.Test` annotation.";
     }
 
     @Override
@@ -82,8 +83,8 @@ public class UpdateTestAnnotation extends Recipe {
     }
 
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final AnnotationMatcher JUNIT_4_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
-        private static final String JUNIT_4_TEST_ANNOTATION_ARGUMENTS = "junit4TestAnnotationArguments";
+        private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
+        private static final String JUNIT4_TEST_ANNOTATION_ARGUMENTS = "junit4TestAnnotationArguments";
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
@@ -94,8 +95,8 @@ public class UpdateTestAnnotation extends Recipe {
         @Override
         public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
             J.Annotation ann = super.visitAnnotation(annotation, ctx);
-            if (JUNIT_4_TEST_ANNOTATION_MATCHER.matches(ann)) {
-                getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).putMessage(JUNIT_4_TEST_ANNOTATION_ARGUMENTS, ann.getArguments());
+            if (JUNIT4_TEST.matches(ann)) {
+                getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).putMessage(JUNIT4_TEST_ANNOTATION_ARGUMENTS, ann.getArguments());
                 ann = ann.withArguments(null);
             }
             return ann;
@@ -104,11 +105,11 @@ public class UpdateTestAnnotation extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-            if (m.getLeadingAnnotations().stream().anyMatch(JUNIT_4_TEST_ANNOTATION_MATCHER::matches)) {
+            if (m.getLeadingAnnotations().stream().anyMatch(JUNIT4_TEST::matches)) {
                 // FIXME removing public modifiers requires access to the method super type to prevent assigning weaker access privileges
                 //doAfterVisit(new ChangeTestAccessVisibilityStep(m));
 
-                List<Expression> arguments = getCursor().getMessage(JUNIT_4_TEST_ANNOTATION_ARGUMENTS);
+                List<Expression> arguments = getCursor().getMessage(JUNIT4_TEST_ANNOTATION_ARGUMENTS);
                 if (arguments != null) {
                     doAfterVisit(new ChangeTestMethodBodyStep(m, arguments));
                 }
@@ -135,22 +136,20 @@ public class UpdateTestAnnotation extends Recipe {
                             J.Assignment assign = (J.Assignment) arg;
                             String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
                             Expression e = assign.getAssignment();
+
                             if (assignParamName.equals("expected")) {
                                 assert e instanceof J.FieldAccess;
 
-                                List<Statement> statements = m.getBody() == null ? Collections.emptyList() : m.getBody().getStatements();
-                                String strStatements = statements.stream().map(Tree::print).collect(Collectors.joining(";", "", ";"));
-
                                 m = m.withTemplate(
-                                        template("{ assertThrows(#{}, () -> { #{} }); }")
-                                                .javaParser(JavaParser.fromJavaVersion()
+                                        template("assertThrows(#{any()}, () -> #{});")
+                                                .javaParser(() -> JavaParser.fromJavaVersion()
                                                         .dependsOn(assertThrowsDependsOn(e))
                                                         .build())
                                                 .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                                 .build(),
                                         m.getCoordinates().replaceBody(),
                                         e,
-                                        strStatements
+                                        m.getBody()
                                 );
                                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                             } else if (assignParamName.equals("timeout")) {
@@ -159,6 +158,7 @@ public class UpdateTestAnnotation extends Recipe {
                         }
                     }
                 }
+
                 return m;
             }
         }
@@ -208,22 +208,21 @@ public class UpdateTestAnnotation extends Recipe {
 
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                if (method.isScope(this.scope)) {
-                    method = method.withTemplate(
-                            template("@Timeout(#{})")
+                J.MethodDeclaration m = method;
+
+                if (m.isScope(this.scope)) {
+                    m = m.withTemplate(
+                            template("@Timeout(#{any(long)})")
                                     .imports("org.junit.jupiter.api.Timeout")
                                     .build(),
-                            method.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
+                            m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
                             expression
                     );
                     maybeAddImport("org.junit.jupiter.api.Timeout");
                 }
-                return method;
+
+                return m;
             }
         }
-
     }
-
-
 }
-

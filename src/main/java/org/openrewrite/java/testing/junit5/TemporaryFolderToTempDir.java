@@ -33,12 +33,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * Translates JUnit4's org.junit.rules.TemporaryFolder into JUnit 5's org.junit.jupiter.api.io.TempDir
- */
 public class TemporaryFolderToTempDir extends Recipe {
-
-    private static final String TEMPORARY_FOLDER_FQN = "org.junit.rules.TemporaryFolder";
     private static final ThreadLocal<JavaParser> TEMPDIR_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
                     Parser.Input.fromString("" +
@@ -49,17 +44,17 @@ public class TemporaryFolderToTempDir extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "TemporaryFolder to TempDir";
+        return "Migrate JUnit 4 `TemporaryFolder` to JUnit Jupiter `TempDir`";
     }
 
     @Override
     public String getDescription() {
-        return "Translates JUnit4's org.junit.rules.TemporaryFolder into JUnit 5's org.junit.jupiter.api.io.TempDir.";
+        return "Translates JUnit4's `org.junit.rules.TemporaryFolder` into JUnit 5's `org.junit.jupiter.api.io.TempDir`.";
     }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>(TEMPORARY_FOLDER_FQN);
+        return new UsesType<>("org.junit.rules.TemporaryFolder");
     }
 
     @Override
@@ -68,13 +63,7 @@ public class TemporaryFolderToTempDir extends Recipe {
     }
 
     private static class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
-
-        private static final String RULE_FQN = "org.junit.Rule";
-        private static final String TEMP_DIR_FQN = "org.junit.jupiter.api.io.TempDir";
-        private static final String FILE_FQN = "java.io.File";
-        private static final JavaType.Class FILE_TYPE = JavaType.Class.build(FILE_FQN);
-        private static final String FILES_FQN = "java.nio.file.Files";
-        private static final String IO_EXCEPTION_FQN = "java.io.IOException";
+        private static final JavaType.Class FILE_TYPE = JavaType.Class.build("java.io.File");
         private static final JavaType.Class STRING_TYPE = JavaType.Class.build("java.lang.String");
 
         @Override
@@ -86,7 +75,8 @@ public class TemporaryFolderToTempDir extends Recipe {
                     .filter(J.VariableDeclarations.class::isInstance)
                     .map(J.VariableDeclarations.class::cast)
                     .collect(Collectors.toList());
-            if (fields.stream().anyMatch(it -> TypeUtils.hasElementType(it.getTypeAsFullyQualified(), TEMPORARY_FOLDER_FQN))) {
+
+            if (fields.stream().anyMatch(it -> TypeUtils.hasElementType(it.getTypeAsFullyQualified(), "org.junit.rules.TemporaryFolder"))) {
                 Set<J.VariableDeclarations> tempDirFields = new HashSet<>();
                 cd = cd.withBody(
                         cd.getBody().withStatements(
@@ -98,13 +88,13 @@ public class TemporaryFolderToTempDir extends Recipe {
                                             J.VariableDeclarations field = (J.VariableDeclarations) statement;
                                             if (field.getTypeAsFullyQualified() == null ||
                                                     !field.getTypeAsFullyQualified().getFullyQualifiedName()
-                                                            .equals(TEMPORARY_FOLDER_FQN)) {
+                                                            .equals("org.junit.rules.TemporaryFolder")) {
                                                 return field;
                                             }
-                                            maybeAddImport(FILE_FQN);
-                                            maybeAddImport(TEMP_DIR_FQN);
-                                            maybeRemoveImport(RULE_FQN);
-                                            maybeRemoveImport(TEMPORARY_FOLDER_FQN);
+                                            maybeAddImport("java.io.File");
+                                            maybeAddImport("org.junit.jupiter.api.io.TempDir");
+                                            maybeRemoveImport("org.junit.Rule");
+                                            maybeRemoveImport("org.junit.rules.TemporaryFolder");
 
                                             String fieldVars = field.getVariables().stream()
                                                     .map(v -> v.withInitializer(null))
@@ -112,7 +102,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                                             field = field.withTemplate(
                                                     template("@TempDir\nFile#{};")
                                                             .imports("java.io.File", "org.junit.jupiter.api.io.TempDir")
-                                                            .javaParser(TEMPDIR_PARSER.get())
+                                                            .javaParser(TEMPDIR_PARSER::get)
                                                             .build(),
                                                     field.getCoordinates().replace(), fieldVars);
                                             tempDirFields.add(field);
@@ -121,6 +111,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                                 )
                         )
                 );
+
                 doAfterVisit(new ReplaceTemporaryFolderMethods(tempDirFields));
             }
 
@@ -128,7 +119,7 @@ public class TemporaryFolderToTempDir extends Recipe {
         }
 
         /**
-         * This visitor replaces these methods from TemporaryFolder with JUnit5-compatible alternatives:
+         * This visitor replaces methods from TemporaryFolder with JUnit5-compatible alternatives:
          * <p>
          * File getRoot()
          * File newFile()
@@ -152,7 +143,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                     return m;
                 }
                 J.Identifier receiver = (J.Identifier) m.getSelect();
-                if (receiver != null && m.getType() != null && TypeUtils.hasElementType(m.getType().getDeclaringType(), TEMPORARY_FOLDER_FQN)) {
+                if (receiver != null && m.getType() != null && TypeUtils.hasElementType(m.getType().getDeclaringType(), "org.junit.rules.TemporaryFolder")) {
                     for (J.VariableDeclarations tempDirField : tempDirFields) {
                         for (J.VariableDeclarations.NamedVariable tempDirFieldVar : tempDirField.getVariables()) {
                             String fieldName = tempDirFieldVar.getSimpleName();
@@ -171,12 +162,12 @@ public class TemporaryFolderToTempDir extends Recipe {
                                         }
                                         break;
                                     case "getRoot":
-                                        return m.withTemplate(template("#{};").build(), m.getCoordinates().replace(), fieldName);
+                                        return receiver.withPrefix(m.getPrefix());
                                     case "newFolder":
                                         if (args.size() == 1 && args.get(0) instanceof J.Empty) {
-                                            m = m.withTemplate(template("Files.createTempDirectory(#{}.toPath(), \"junit\").toFile();").imports(FILES_FQN, FILE_FQN)
+                                            m = m.withTemplate(template("Files.createTempDirectory(#{}.toPath(), \"junit\").toFile();").imports("java.nio.file.Files", "java.io.File")
                                                     .build(), m.getCoordinates().replace(), fieldName);
-                                            maybeAddImport(FILES_FQN);
+                                            maybeAddImport("java.nio.file.Files");
                                         } else {
                                             doAfterVisit(new AddNewFolderMethod(fieldName, method));
                                         }
@@ -191,7 +182,6 @@ public class TemporaryFolderToTempDir extends Recipe {
         }
 
         private static class AddNewFileMethod extends JavaIsoVisitor<ExecutionContext> {
-
             private final String fieldName;
             private final J.MethodInvocation methodInvocation;
 
@@ -221,10 +211,10 @@ public class TemporaryFolderToTempDir extends Recipe {
                             "    file.createNewFile();\n" +
                             "    return file;\n" +
                             "}\n")
-                            .imports(FILE_FQN, IO_EXCEPTION_FQN)
+                            .imports("java.io.File", "java.io.IOException")
                             .build(), cd.getBody().getCoordinates().lastStatement());
-                    maybeAddImport(FILE_FQN);
-                    maybeAddImport(IO_EXCEPTION_FQN);
+                    maybeAddImport("java.io.File");
+                    maybeAddImport("java.io.IOException");
                 }
                 doAfterVisit(new TranslateNewFileMethodInvocation());
                 return cd;
@@ -245,7 +235,6 @@ public class TemporaryFolderToTempDir extends Recipe {
 
 
         private static class AddNewFolderMethod extends JavaIsoVisitor<ExecutionContext> {
-
             private final String fieldName;
             private final J.MethodInvocation methodInvocation;
 
@@ -281,16 +270,15 @@ public class TemporaryFolderToTempDir extends Recipe {
                                     "    }\n" +
                                     "    return result;\n" +
                                     "}"
-                    ).imports(FILE_FQN, IO_EXCEPTION_FQN).build(), cd.getBody().getCoordinates().lastStatement());
-                    maybeAddImport(FILE_FQN);
-                    maybeAddImport(IO_EXCEPTION_FQN);
+                    ).imports("java.io.File", "java.io.IOException").build(), cd.getBody().getCoordinates().lastStatement());
+                    maybeAddImport("java.io.File");
+                    maybeAddImport("java.io.IOException");
                 }
                 doAfterVisit(new TranslateNewFolderMethodInvocation());
                 return cd;
             }
 
             private class TranslateNewFolderMethodInvocation extends JavaIsoVisitor<ExecutionContext> {
-
                 @Override
                 public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                     if (method.isScope(methodInvocation)) {

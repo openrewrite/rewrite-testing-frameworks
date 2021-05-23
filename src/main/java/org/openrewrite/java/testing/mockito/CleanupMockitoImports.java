@@ -28,12 +28,12 @@ import org.openrewrite.java.tree.J;
 public class CleanupMockitoImports extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Cleanup Mockito Imports";
+        return "Cleanup Mockito imports";
     }
 
     @Override
     public String getDescription() {
-        return "Orders imports and removes unused imports org.mockito import symbols.";
+        return "Removes unused imports `org.mockito` import symbols.";
     }
 
     @Override

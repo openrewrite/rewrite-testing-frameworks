@@ -364,5 +364,4 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             }
         """
     )
-
 }

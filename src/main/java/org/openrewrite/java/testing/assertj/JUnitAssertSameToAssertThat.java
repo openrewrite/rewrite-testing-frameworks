@@ -21,6 +21,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
@@ -29,20 +30,7 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
-/**
- * This is a refactoring visitor that will convert JUnit-style assertSame() to assertJ's assertThat().isSameAs().
- * <p>
- * This visitor only supports the migration of the following JUnit 5 assertSame() methods:
- *
- * <PRE>
- * assertSame(Object expected, Object actual) == assertThat(actual).isSameAs(expected)
- * assertSame(Object expected, Object actual, String message) == assertThat(actual).as(message).isSameAs(expected)
- * assertSame(Object expected, Object actual, Supplier<String> messageSupplier) == assertThat(actual).withFailMessage(messageSupplier).isSameAs(expected);
- * </PRE>
- */
 public class JUnitAssertSameToAssertThat extends Recipe {
-
-    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
     private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(
                     Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
@@ -51,34 +39,26 @@ public class JUnitAssertSameToAssertThat extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "JUnit AssertSame to AssertThat";
+        return "JUnit `assertSame` to AssertJ";
     }
 
     @Override
     public String getDescription() {
-        return "Convert JUnit-style assertSame() to assertJ's assertThat().isSameAs().";
+        return "Convert JUnit-style `assertSame()` to AssertJ's `assertThat().isSameAs()`.";
     }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
+        return new UsesType<>("org.junit.jupiter.api.Assertions");
     }
+
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AssertSameToAssertThatVisitor();
     }
 
     public static class AssertSameToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
-        private static final String ASSERTJ_ASSERT_THAT_METHOD_NAME = "assertThat";
-
-        /**
-         * This matcher finds the junit methods that will be migrated by this visitor.
-         */
-        private static final MethodMatcher JUNIT_ASSERT_SAME_MATCHER = new MethodMatcher(
-                JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertSame(..)"
-        );
+        private static final MethodMatcher JUNIT_ASSERT_SAME_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertSame(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -92,9 +72,9 @@ public class JUnitAssertSameToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = method.withTemplate(
-                        template("assertThat(#{}).isSameAs(#{});")
+                        template("assertThat(#{any()}).isSameAs(#{any()});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -102,28 +82,24 @@ public class JUnitAssertSameToAssertThat extends Recipe {
                 );
             } else {
                 Expression message = args.get(2);
-                // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
-                // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
-                String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
 
-                method = method.withTemplate(
-                        template("assertThat(#{}).#{}(#{}).isSameAs(#{});")
+                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
+                        template("assertThat(#{any()}).as(#{any(String)}).isSameAs(#{any()});") :
+                        template("assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isSameAs(#{any()});");
+
+                method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
-                        messageAs,
                         message,
                         expected
                 );
             }
 
-            // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
-            maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
-
-            // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat".
-            maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_ASSERT_THAT_METHOD_NAME);
+            maybeRemoveImport("org.junit.jupiter.api.Assertions");
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
 
             return method;
         }

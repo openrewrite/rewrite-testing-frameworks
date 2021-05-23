@@ -77,7 +77,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>("junitparams");
+        return new UsesType<>("junitparams.*");
     }
 
     @Override
@@ -203,15 +203,15 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
             // build @ParameterizedTest template
             this.parameterizedTestTemplate = template("@ParameterizedTest")
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER.get())
+                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @ParameterizedTest(#{}) template
             this.parameterizedTestTemplateWithName = template("@ParameterizedTest(name = \"#{}\")")
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER.get())
+                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @MethodSource("...") template
             this.methodSourceTemplate = template("@MethodSource(#{})")
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER.get())
+                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
                     .imports("org.junit.jupiter.params.provider.MethodSource").build();
         }
 

@@ -323,5 +323,4 @@ class JUnitAssertNotEqualsToAssertThatTest : JavaRecipeTest {
             }
         """
     )
-
 }

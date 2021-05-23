@@ -18,53 +18,31 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * This refactor visitor will replace JUnit 4's "Before", "BeforeClass", "After", and "AfterClass" annotations with their
- * JUnit 5 equivalents. Additionally, this visitor will reduce the visibility of methods marked with those annotations
- * to "package" to comply with JUnit 5 best practices.
- *
- * <PRE>
- * org.junit.Before == org.junit.jupiter.api.BeforeEach
- * org.junit.After == org.junit.jupiter.api.AfterEach
- * org.junit.BeforeClass == org.junit.jupiter.api.BeforeAll
- * org.junit.AfterClass == org.junit.jupiter.api.AfterAll
- * </PRE>
- */
 public class UpdateBeforeAfterAnnotations extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Update Before After Annotations";
+        return "Migrate JUnit 4 lifecycle annotations to JUnit Jupiter";
     }
 
     @Override
     public String getDescription() {
-        return "Replace JUnit 4's `@Before`, `@BeforeClass`, `@After`, and `@AfterClass` annotations with their JUnit 5 equivalents.";
+        return "Replace JUnit 4's `@Before`, `@BeforeClass`, `@After`, and `@AfterClass` annotations with their JUnit Jupiter equivalents.";
     }
 
-    private static String BEFORE_FQN = "org.junit.Before";
-    private static String AFTER_FQN = "org.junit.After";
-    private static String BEFORE_CLASS_FQN = "org.junit.BeforeClass";
-    private static String AFTER_CLASS_FQN = "org.junit.AfterClass";
     @Override
     protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesType<>(BEFORE_CLASS_FQN));
-                doAfterVisit(new UsesType<>(BEFORE_FQN));
-                doAfterVisit(new UsesType<>(AFTER_FQN));
-                doAfterVisit(new UsesType<>(AFTER_CLASS_FQN));
+                doAfterVisit(new UsesType<>("org.junit.BeforeClass"));
+                doAfterVisit(new UsesType<>("org.junit.Before"));
+                doAfterVisit(new UsesType<>("org.junit.After"));
+                doAfterVisit(new UsesType<>("org.junit.AfterClass"));
                 return cu;
             }
         };
@@ -81,10 +59,10 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             //This visitor handles changing the method visibility for any method annotated with one of the four before/after
             //annotations. It registers visitors that will sweep behind it making the type changes.
-            doAfterVisit(new ChangeType(BEFORE_FQN, "org.junit.jupiter.api.BeforeEach"));
-            doAfterVisit(new ChangeType(AFTER_FQN, "org.junit.jupiter.api.AfterEach"));
-            doAfterVisit(new ChangeType(BEFORE_CLASS_FQN, "org.junit.jupiter.api.BeforeAll"));
-            doAfterVisit(new ChangeType(AFTER_CLASS_FQN, "org.junit.jupiter.api.AfterAll"));
+            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach"));
+            doAfterVisit(new ChangeType("org.junit.After", "org.junit.jupiter.api.AfterEach"));
+            doAfterVisit(new ChangeType("org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll"));
+            doAfterVisit(new ChangeType("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll"));
 
             return super.visitCompilationUnit(cu, ctx);
         }
@@ -97,10 +75,10 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
             List<J.Annotation> annotations = new ArrayList<>(m.getLeadingAnnotations());
             for (J.Annotation a : annotations) {
 
-                if (TypeUtils.isOfClassType(a.getType(), BEFORE_FQN) ||
-                        TypeUtils.isOfClassType(a.getType(), AFTER_FQN) ||
-                        TypeUtils.isOfClassType(a.getType(), BEFORE_CLASS_FQN) ||
-                        TypeUtils.isOfClassType(a.getType(), AFTER_CLASS_FQN)) {
+                if (TypeUtils.isOfClassType(a.getType(), "org.junit.Before") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.After") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.BeforeClass") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.AfterClass")) {
 
                     //If we found the annotation, we change the visibility of the method to package and copy any comments to the method.
                     // Also need to format the method declaration because the previous visibility likely had formatting that is removed.

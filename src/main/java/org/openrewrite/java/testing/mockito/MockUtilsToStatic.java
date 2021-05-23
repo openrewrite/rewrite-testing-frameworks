@@ -25,8 +25,6 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
 
-import java.util.Optional;
-
 /**
  * In Mockito 1 you use a code snippet like:
  * <p>
@@ -43,12 +41,12 @@ public class MockUtilsToStatic extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "MockUtils To Static";
+        return "Use static form of Mockito `MockUtil`";
     }
 
     @Override
     public String getDescription() {
-        return "Best-effort attempt to remove MockUtil instances.";
+        return "Best-effort attempt to remove Mockito `MockUtil` instances.";
     }
 
     @Override
@@ -76,12 +74,12 @@ public class MockUtilsToStatic extends Recipe {
                 // MockUtil util = new MockUtil();
                 // If it is, then we'll get rid of it
 
-                Optional.of(getCursor().dropParentUntil(J.class::isInstance))
-                        .filter(it -> it.getValue() instanceof J.VariableDeclarations.NamedVariable)
-                        .map(cur -> cur.dropParentUntil(J.class::isInstance))
-                        .map(Cursor::getValue)
-                        .filter(J.VariableDeclarations.VariableDeclarations.class::isInstance)
-                        .ifPresent(namedVar -> doAfterVisit(new DeleteStatement<>((J.VariableDeclarations) namedVar)));
+                Cursor parent = getCursor().dropParentUntil(J.class::isInstance);
+                if (parent.getValue() instanceof J.VariableDeclarations.NamedVariable) {
+                    Object namedVar = parent.dropParentUntil(J.class::isInstance).getValue();
+                    if (namedVar instanceof J.VariableDeclarations)
+                        doAfterVisit(new DeleteStatement<>((J.VariableDeclarations) namedVar));
+                }
             }
             return super.visitNewClass(newClass, ctx);
         }

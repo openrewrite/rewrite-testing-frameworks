@@ -21,10 +21,10 @@ import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
-
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
         .build()
+
     override val recipe: Recipe
         get() = ParameterizedRunnerToParameterized()
 
@@ -108,6 +108,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             }
         """
     )
+
     @Test
     fun parameterizedTestToParameterizedTestsWithMethodSource() = assertChanged(
         before = """

@@ -32,11 +32,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class MigrateJUnitTestCase extends Recipe {
-
-    private static final String JUNIT_TEST_CASE_FQN = "junit.framework.TestCase";
-    private static final String OBJECT_FQN = "java.lang.Object";
-
-    private static final ThreadLocal<JavaParser> JAVA_PARSER_THREAD_LOCAL = ThreadLocal.withInitial(() ->
+    private static final ThreadLocal<JavaParser> JAVA_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion()
                     .dependsOn(Collections.singletonList(Parser.Input.fromString(
                             "package org.junit.jupiter.api;\n" +
@@ -46,11 +42,12 @@ public class MigrateJUnitTestCase extends Recipe {
                     .build());
 
     private static boolean isSupertypeTestCase(@Nullable JavaType.FullyQualified fullyQualified) {
-        if (fullyQualified == null || fullyQualified.getSupertype() == null || OBJECT_FQN.equals(fullyQualified.getFullyQualifiedName())) {
+        if (fullyQualified == null || fullyQualified.getSupertype() == null || "java.lang.Object".equals(fullyQualified.getFullyQualifiedName())) {
             return false;
         }
+
         JavaType.FullyQualified fqType = TypeUtils.asFullyQualified(fullyQualified);
-        if (fqType != null && JUNIT_TEST_CASE_FQN.equals(fqType.getFullyQualifiedName())) {
+        if (fqType != null && "junit.framework.TestCase".equals(fqType.getFullyQualifiedName())) {
             return true;
         }
         return isSupertypeTestCase(fullyQualified.getSupertype());
@@ -58,17 +55,17 @@ public class MigrateJUnitTestCase extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Migrate JUnit4 `TestCase` to JUnit5";
+        return "Migrate JUnit 4 `TestCase` to JUnit Jupiter";
     }
 
     @Override
     public String getDescription() {
-        return "Convert JUnit TestCase to JUnit 5 Jupiter tests";
+        return "Convert JUnit 4 `TestCase` to JUnit Jupiter.";
     }
 
     @Override
     protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>(JUNIT_TEST_CASE_FQN);
+        return new UsesType<>("junit.framework.TestCase");
     }
 
     @Override
@@ -99,11 +96,11 @@ public class MigrateJUnitTestCase extends Recipe {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
             if (cd.getExtends() != null && cd.getExtends().getType() != null) {
                 JavaType.FullyQualified fullQualifiedExtension = TypeUtils.asFullyQualified(cd.getExtends().getType());
-                if (fullQualifiedExtension != null && JUNIT_TEST_CASE_FQN.equals(fullQualifiedExtension.getFullyQualifiedName())) {
+                if (fullQualifiedExtension != null && "junit.framework.TestCase".equals(fullQualifiedExtension.getFullyQualifiedName())) {
                     cd = cd.withExtends(null);
                 }
             }
-            maybeRemoveImport(JUNIT_TEST_CASE_FQN);
+            maybeRemoveImport("junit.framework.TestCase");
             return cd;
         }
 
@@ -134,7 +131,7 @@ public class MigrateJUnitTestCase extends Recipe {
 
         private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation) {
             J.MethodDeclaration md = methodDeclaration.withTemplate(template(annotation)
-                            .javaParser(JAVA_PARSER_THREAD_LOCAL.get())
+                            .javaParser(JAVA_PARSER::get)
                             .imports(fullyQualifiedAnnotation).build(),
                     methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
             md = maybeAddPublicModifier(md);

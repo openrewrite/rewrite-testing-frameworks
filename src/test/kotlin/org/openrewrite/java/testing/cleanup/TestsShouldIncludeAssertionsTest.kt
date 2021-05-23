@@ -46,7 +46,6 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
             import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
             
             public class AaTest {
-            
                 @Test
                 public void methodTest() {
                     assertDoesNotThrow(() -> {

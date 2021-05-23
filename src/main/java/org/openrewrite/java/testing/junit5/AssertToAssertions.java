@@ -30,26 +30,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * Change JUnit4's org.junit.Assert into JUnit5's org.junit.jupiter.api.Assertions
- * The most significant difference between these classes is that in JUnit4 the optional String message is the first
- * parameter, and the JUnit5 versions have the optional message as the final parameter
- */
 public class AssertToAssertions extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Assert To Assertions";
+        return "JUnit4 Assert To JUnit Jupiter Assertions";
     }
 
     @Override
     public String getDescription() {
-        return "Change JUnit4's org.junit.Assert into JUnit5's org.junit.jupiter.api.Assertions.";
+        return "Change JUnit 4's `org.junit.Assert` into JUnit Jupiter's `org.junit.jupiter.api.Assertions`.";
     }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>("org.junit.Assert.*");
+        return new UsesType<>("org.junit.Assert");
     }
 
     @Override
@@ -100,7 +95,7 @@ public class AssertToAssertions extends Recipe {
         }
 
         private boolean isStringArgument(Expression arg) {
-            JavaType expressionType = arg instanceof J.MethodInvocation ? ((J.MethodInvocation)arg).getReturnType() : arg.getType();
+            JavaType expressionType = arg instanceof J.MethodInvocation ? ((J.MethodInvocation) arg).getReturnType() : arg.getType();
             return TypeUtils.isString(expressionType);
         }
 

@@ -21,18 +21,15 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.J;
 
-/**
- * Orders imports and removes unused imports from classes which import symbols from the "org.junit" package.
- */
 public class CleanupJUnitImports extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Cleanup JUnit Imports";
+        return "Cleanup JUnit imports";
     }
 
     @Override
     public String getDescription() {
-        return "Orders imports and removes unused org.junit import symbols.";
+        return "Removes unused `org.junit` import symbols.";
     }
 
     @Override

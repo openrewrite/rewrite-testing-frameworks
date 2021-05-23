@@ -34,23 +34,19 @@ import java.util.stream.Collectors;
 
 /**
  * Replaces JUnit 4 MockitoJUnit rules with JUnit MockitoExtension.
- *
+ * <p>
  * Supported MockitoJUnit methods:
- *  #rule()
- *  #testRule()
- *
+ * #rule()
+ * #testRule()
+ * <p>
  * Does not currently support @Incubating MockitoJUnit.collector().
  *
  * @implNote collector() is designed to aggregate multiple verifications into a single output.
  * Refactoring the method may be fairly complex and would likely benefit from being a separate recipe.
- *
+ * <p>
  * Must be ran in the JUnit5 suite.
  */
 public class MockitoJUnitToMockitoExtension extends Recipe {
-
-    private static final String MOCKITO_TEST_RULE_FQN = "org.mockito.junit.MockitoTestRule";
-    private static final String MOCKITO_RULE_FQN = "org.mockito.junit.MockitoRule";
-
     private static final ThreadLocal<JavaParser> JAVA_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion()
                     .dependsOn(Arrays.asList(
@@ -67,12 +63,12 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "MockitoJUnit to MockitoExtension";
+        return "JUnit 4 `MockitoJUnit` to JUnit Jupiter `MockitoExtension`";
     }
 
     @Override
     public String getDescription() {
-        return "Replaces MockitoJUnit rules with MockitoExtension.";
+        return "Replaces `MockitoJUnit` rules with `MockitoExtension`.";
     }
 
     @Override
@@ -80,8 +76,8 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesType<>(MOCKITO_TEST_RULE_FQN));
-                doAfterVisit(new UsesType<>(MOCKITO_RULE_FQN));
+                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoTestRule"));
+                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoRule"));
                 return cu;
             }
         };
@@ -93,53 +89,45 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
     }
 
     public static class MockitoRuleToMockitoExtensionVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final String EXTEND_WITH_FQN = "org.junit.jupiter.api.extension.ExtendWith";
-        private static final String MOCKITO_EXTENSION_FQN = "org.mockito.junit.jupiter.MockitoExtension";
-
         private static final String MOCKITO_RULE_INVOCATION_KEY = "mockitoRuleInvocation";
         private static final String MOCKITO_TEST_RULE_INVOCATION_KEY = "mockitoTestRuleInvocation";
 
-        private static final String EXTEND_WITH_MOCKITO_EXTENSION =
-                "@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)";
-        private static final String RUN_WITH_MOCKITO_JUNIT_RUNNER =
-                "@org.junit.runner.RunWith(org.mockito.runners.MockitoJUnitRunner.class)";
-
+        private static final String EXTEND_WITH_MOCKITO_EXTENSION = "@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)";
+        private static final String RUN_WITH_MOCKITO_JUNIT_RUNNER = "@org.junit.runner.RunWith(org.mockito.runners.MockitoJUnitRunner.class)";
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-            Set<J.VariableDeclarations> mockitoFields = FindFields.find(cd, MOCKITO_RULE_FQN);
-            mockitoFields.addAll(FindFields.find(cd, MOCKITO_TEST_RULE_FQN));
+            Set<J.VariableDeclarations> mockitoFields = FindFields.find(cd, "org.mockito.junit.MockitoRule");
+            mockitoFields.addAll(FindFields.find(cd, "org.mockito.junit.MockitoTestRule"));
 
             if (!mockitoFields.isEmpty()) {
                 List<Statement> statements = new ArrayList<>(cd.getBody().getStatements());
                 statements.removeAll(mockitoFields);
                 cd = cd.withBody(cd.getBody().withStatements(statements));
 
-                maybeRemoveImport(MOCKITO_RULE_FQN);
-                maybeRemoveImport(MOCKITO_TEST_RULE_FQN);
+                maybeRemoveImport("org.mockito.junit.MockitoRule");
+                maybeRemoveImport("org.mockito.junit.MockitoTestRule");
 
                 maybeRemoveImport("org.junit.Rule");
                 maybeRemoveImport("org.mockito.junit.MockitoJUnit");
                 maybeRemoveImport("org.mockito.quality.Strictness");
 
+                //noinspection ConstantConditions
                 if (classDecl.getBody().getStatements().size() != cd.getBody().getStatements().size() &&
                         (FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty() &&
                                 FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty())) {
 
-
                     cd = cd.withTemplate(
                             template("@ExtendWith(MockitoExtension.class)")
-                                    .javaParser(JAVA_PARSER.get())
-                                    .imports(EXTEND_WITH_FQN, MOCKITO_EXTENSION_FQN)
+                                    .javaParser(JAVA_PARSER::get)
+                                    .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                                     .build(),
-                            cd.getCoordinates()
-                                    .addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))
+                            cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))
                     );
 
-                    maybeAddImport(EXTEND_WITH_FQN);
-                    maybeAddImport(MOCKITO_EXTENSION_FQN);
+                    maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
+                    maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
                 }
             }
 
@@ -149,9 +137,9 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (method.getType() != null) {
-                if (TypeUtils.isOfClassType(method.getType().getDeclaringType(), MOCKITO_RULE_FQN)) {
+                if (TypeUtils.isOfClassType(method.getType().getDeclaringType(), "org.mockito.junit.MockitoRule")) {
                     getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCKITO_RULE_INVOCATION_KEY, method);
-                } else if (TypeUtils.isOfClassType(method.getType().getDeclaringType(), MOCKITO_TEST_RULE_FQN)) {
+                } else if (TypeUtils.isOfClassType(method.getType().getDeclaringType(), "org.mockito.junit.MockitoTestRule")) {
                     getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCKITO_TEST_RULE_INVOCATION_KEY, method);
                 }
             }
@@ -187,8 +175,8 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                 return false;
             }
 
-            return TypeUtils.isOfClassType(m.getType().getDeclaringType(), MOCKITO_RULE_FQN) ||
-                    TypeUtils.isOfClassType(m.getType().getDeclaringType(), MOCKITO_TEST_RULE_FQN);
+            return TypeUtils.isOfClassType(m.getType().getDeclaringType(), "org.mockito.junit.MockitoRule") ||
+                    TypeUtils.isOfClassType(m.getType().getDeclaringType(), "org.mockito.junit.MockitoTestRule");
         }
 
     }

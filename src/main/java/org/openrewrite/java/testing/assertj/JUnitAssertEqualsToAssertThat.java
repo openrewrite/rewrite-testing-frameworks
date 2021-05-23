@@ -21,6 +21,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
@@ -30,38 +31,7 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
-/**
- * This is a refactoring visitor that will convert JUnit-style assertEquals() to assertJ's assertThat().isEqualTo().
- * <p>
- * This visitor has to convert a surprisingly large number (93 methods) of JUnit's assertEquals to assertThat().
- *
- * <PRE>
- * Two parameter variants:
- * <p>
- * assertEquals(expected,actual) == assertThat(actual).isEqualTo(expected)
- * <p>
- * Three parameter variant where the third argument is a String:
- * <p>
- * assertEquals(expected, actual, "message") == assertThat(actual).as("message").isEqualTo(expected)
- * <p>
- * Three parameter variant where the third argument is a String supplier:
- * <p>
- * assertEquals(expected, actual, () == "message") == assertThat(actual).withFailureMessage("message").isEqualTo(expected)
- * <p>
- * Three parameter variant where args are all floating point numbers.
- * <p>
- * assertEquals(expected, actual, delta) == assertThat(actual).isCloseTo(expected, within(delta));
- * <p>
- * Four parameter variant when comparing floating point numbers with a delta and a message:
- * <p>
- * assertEquals(expected, actual, delta, "message") == assertThat(actual).withFailureMessage("message").isCloseTo(expected, within(delta));
- *
- * </PRE>
- */
 public class JUnitAssertEqualsToAssertThat extends Recipe {
-
-    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
-
     private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(
                     Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
@@ -70,17 +40,17 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "JUnitAssertEquals To AssertThat";
+        return "JUnit `assertEquals` to AssertJ";
     }
 
     @Override
     public String getDescription() {
-        return "Convert JUnit-style assertEquals() to assertJ's assertThat().isEqualTo().";
+        return "Convert JUnit-style `assertEquals()` to AssertJ's `assertThat().isEqualTo()`.";
     }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
+        return new UsesType<>("org.junit.jupiter.api.Assertions");
     }
 
     @Override
@@ -89,22 +59,11 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
     }
 
     public static class AssertEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
-        private static final String ASSERTJ_ASSERT_THAT_METHOD_NAME = "assertThat";
-        private static final String ASSERTJ_WITHIN_METHOD_NAME = "within";
-
-        /**
-         * This matcher finds the junit methods that will be migrated by this visitor.
-         */
-        private static final MethodMatcher JUNIT_ASSERT_EQUALS_MATCHER = new MethodMatcher(
-                JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertEquals(..)"
-        );
+        private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertEquals(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-
-            if (!JUNIT_ASSERT_EQUALS_MATCHER.matches(method)) {
+            if (!JUNIT_ASSERT_EQUALS.matches(method)) {
                 return method;
             }
 
@@ -115,9 +74,9 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = method.withTemplate(
-                        template("assertThat(#{}).isEqualTo(#{});")
+                        template("assertThat(#{any()}).isEqualTo(#{any()});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -127,68 +86,60 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 Expression message = args.get(2);
                 // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
                 // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
-                String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
+                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
+                        template("assertThat(#{any()}).as(#{any(String)}).isEqualTo(#{any()});") :
+                        template("assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isEqualTo(#{any()});");
 
-                method = method.withTemplate(
-                        template("assertThat(#{}).#{}(#{}).isEqualTo(#{});")
+                method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
-                        messageAs,
                         message,
                         expected
                 );
             } else if (args.size() == 3) {
                 method = method.withTemplate(
-                        template("assertThat(#{}).isCloseTo(#{}, within(#{}));")
+                        template("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
                         expected,
                         args.get(2)
                 );
-                maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_WITHIN_METHOD_NAME);
+                maybeAddImport("org.assertj.core.api.Assertions", "within");
 
             } else {
-                //The assertEquals is using a floating point with a delta argument and a message.
+                // The assertEquals is using a floating point with a delta argument and a message.
                 Expression message = args.get(3);
 
-                //If the message is a string use "as", if it is a supplier use "withFailMessage"
-                String messageAs = TypeUtils.isString(message.getType()) ? "as" : "withFailMessage";
+                // If the message is a string use "as", if it is a supplier use "withFailMessage"
+                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
+                        template("assertThat(#{any()}).as(#{any(String)}).isCloseTo(#{any()}, within(#{any()}));") :
+                        template("assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isCloseTo(#{any()}, within(#{any()}));");
 
-                method = method.withTemplate(
-                        template("assertThat(#{}).#{}(#{}).isCloseTo(#{}, within(#{}));")
+                method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
-                        messageAs,
                         message,
                         expected,
                         args.get(2)
                 );
-                maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_WITHIN_METHOD_NAME);
+                maybeAddImport("org.assertj.core.api.Assertions", "within");
             }
 
-            //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat"
-            maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, ASSERTJ_ASSERT_THAT_METHOD_NAME);
-            //And if there are no longer references to the JUnit assertions class, we can remove the import.
-            maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+            maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
             return method;
         }
 
-        /**
-         * Returns true if the expression's type is either a primitive float/double or their object forms Float/Double
-         *
-         * @param expression The expression parsed from the original AST.
-         * @return true if the type is a floating point number.
-         */
         private static boolean isFloatingPointType(Expression expression) {
 
             JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());

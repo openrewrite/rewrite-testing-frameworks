@@ -31,19 +31,16 @@ import java.util.stream.Stream;
 
 import static org.openrewrite.Tree.randomId;
 
-/**
- * Transforms the Junit4 @Category, which can list multiple categories, into one @Tag annotation per category listed
- */
 public class CategoryToTag extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Category To Tag";
+        return "JUnit4 `@Category` to JUnit Jupiter `@Tag`";
     }
 
     @Override
     public String getDescription() {
-        return "Transforms the Junit4 @Category, which can list multiple categories, into one @Tag annotation per category listed.";
+        return "Transforms the JUnit 4 `@Category`, which can list multiple categories, into one `@Tag` annotation per category listed.";
     }
 
     @Override
@@ -57,19 +54,17 @@ public class CategoryToTag extends Recipe {
     }
 
     public static class CategoryToTagVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        private static final String categoryAnnotation = "org.junit.experimental.categories.Category";
         private static final JavaType.Class tagType = JavaType.Class.build("org.junit.jupiter.api.Tag");
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-            Set<J.Annotation> categoryAnnotations = FindAnnotations.find(cd, "@" + categoryAnnotation);
+            Set<J.Annotation> categoryAnnotations = FindAnnotations.find(cd, "@" + "org.junit.experimental.categories.Category");
             if (!categoryAnnotations.isEmpty()) {
                 cd = cd.withLeadingAnnotations(cd.getLeadingAnnotations().stream()
                         .flatMap(this::categoryAnnotationToTagAnnotations)
                         .collect(Collectors.toList()));
-                maybeRemoveImport(categoryAnnotation);
+                maybeRemoveImport("org.junit.experimental.categories.Category");
                 maybeAddImport(tagType);
             }
             cd = maybeAutoFormat(classDecl, cd, ctx);
@@ -79,13 +74,13 @@ public class CategoryToTag extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-            Set<J.Annotation> categoryAnnotations = FindAnnotations.find(m, "@" + categoryAnnotation);
+            Set<J.Annotation> categoryAnnotations = FindAnnotations.find(m, "@" + "org.junit.experimental.categories.Category");
             if (!categoryAnnotations.isEmpty()) {
                 m = m.withLeadingAnnotations(m.getLeadingAnnotations().stream()
                         .flatMap(this::categoryAnnotationToTagAnnotations)
                         .collect(Collectors.toList()));
 
-                maybeRemoveImport(categoryAnnotation);
+                maybeRemoveImport("org.junit.experimental.categories.Category");
                 maybeAddImport(tagType);
             }
             m = maybeAutoFormat(method, m, ctx);
@@ -93,7 +88,7 @@ public class CategoryToTag extends Recipe {
         }
 
         private Stream<J.Annotation> categoryAnnotationToTagAnnotations(J.Annotation maybeCategory) {
-            if (maybeCategory.getArguments() != null && TypeUtils.isOfClassType(maybeCategory.getAnnotationType().getType(), categoryAnnotation)) {
+            if (maybeCategory.getArguments() != null && TypeUtils.isOfClassType(maybeCategory.getAnnotationType().getType(), "org.junit.experimental.categories.Category")) {
                 Expression annotationArgument = maybeCategory.getArguments().iterator().next();
                 if (annotationArgument instanceof J.Assignment) {
                     annotationArgument = ((J.Assignment)annotationArgument).getAssignment();

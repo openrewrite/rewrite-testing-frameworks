@@ -91,12 +91,12 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             
                 @Rule
                 TemporaryFolder tempDir1 = new TemporaryFolder();
-                
+            
                 @Rule
                 TemporaryFolder tempDir2 = new TemporaryFolder();
-                
+            
                 File file2 = tempDir2.newFile("sam");
-                
+            
                 void foo() throws IOException {
                     File file1 = tempDir1.newFile();
                 }
@@ -112,12 +112,12 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             
                 @TempDir
                 File tempDir1;
-                
+            
                 @TempDir
                 File tempDir2;
-                
+            
                 File file2 = newFile(tempDir2, "sam");
-                
+            
                 void foo() throws IOException {
                     File file1 = File.createTempFile("junit", null, tempDir1);
                 }

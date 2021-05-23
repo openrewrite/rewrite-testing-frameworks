@@ -21,7 +21,7 @@ import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 class RunnerToExtensionTest : JavaRecipeTest {
-    override val parser: Parser<*>?
+    override val parser: JavaParser
         get() = JavaParser.fromJavaVersion().classpath("junit", "mockito-all").build()
 
     @Test

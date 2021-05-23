@@ -33,18 +33,7 @@ import java.util.List;
 @Value
 @EqualsAndHashCode(callSuper = true)
 public class TestsShouldIncludeAssertions extends Recipe {
-
-    private static final List<String> TEST_ANNOTATIONS = Collections.singletonList(
-//            "org.junit.Test",
-            "org.junit.jupiter.api.Test"
-//            "junit.framework.Test"
-    );
-
-    private static final String THROWING_SUPPLIER_FQN = "org.junit.jupiter.api.function.ThrowingSupplier";
-    private static final String ASSERTIONS_FQN = "org.junit.jupiter.api.Assertions";
-
-    private static final String ASSERTIONS_DOES_NOT_THROW_FQN = "org.junit.jupiter.api.Assertions.assertDoesNotThrow";
-    private static final String ASSERT_DOES_NOT_THROW = "assertDoesNotThrow";
+    private static final List<String> TEST_ANNOTATIONS = Collections.singletonList("org.junit.jupiter.api.Test");
 
     private static final ThreadLocal<JavaParser> ASSERTIONS_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion()
@@ -84,7 +73,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
                     "assertions",
                     "Assertions must not be empty and at least contain org.junit.jupiter.api.Assertions",
                     assertions,
-                    a -> a.stream().filter(ASSERTIONS_FQN::equals).findAny().isPresent()));
+                    a -> a.stream().filter("org.junit.jupiter.api.Assertions"::equals).findAny().isPresent()));
         }
         return validated;
     }
@@ -103,16 +92,12 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
                 J.Block body = md.getBody();
                 if (body != null) {
-                    StringBuilder t = new StringBuilder("{\nassertDoesNotThrow(() -> {");
-                    body.getStatements().forEach(st -> t.append(st.print()).append(";"));
-                    t.append("});\n}");
-
-                    body = body.withTemplate(template(t.toString())
-                                    .staticImports(ASSERTIONS_DOES_NOT_THROW_FQN)
-                                    .javaParser(ASSERTIONS_PARSER.get()).build(),
-                            body.getCoordinates().replace());
-                    md = maybeAutoFormat(md, md.withBody(body), executionContext, getCursor().dropParentUntil(J.class::isInstance));
-                    maybeAddImport(ASSERTIONS_FQN, ASSERT_DOES_NOT_THROW);
+                    md = method.withTemplate(template("assertDoesNotThrow(() -> #{});")
+                                    .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
+                                    .javaParser(ASSERTIONS_PARSER::get).build(),
+                            method.getCoordinates().replaceBody(),
+                            body);
+                    maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
                 }
                 return md;
             }

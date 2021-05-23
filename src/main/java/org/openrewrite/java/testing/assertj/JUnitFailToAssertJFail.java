@@ -15,7 +15,10 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Parser;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.MethodMatcher;
@@ -25,26 +28,8 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-/**
- * This is a refactoring visitor that will convert JUnit-style fail() to assertJ's fail().
- * <p>
- * This visitor only supports the migration of the following JUnit 5 fail() methods:
- *
- * <PRE>
- * fail()                                  ==   fail("")
- * fail(String message)                    ==   fail(String message)
- * fail(String message, Throwable cause)   ==   fail(String message, Throwable cause)
- * fail(Throwable cause)                   ==   fail("", Throwable cause)
- * </PRE>
- * <p>
- * Note: There is an additional method signature in JUnit that accepts a StringSupplier as an argument. Attempts
- * to map this signature into assertJ's model obfuscates the original assertion.
- */
 public class JUnitFailToAssertJFail extends Recipe {
-
-    private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
     private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(
                     Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
@@ -53,17 +38,17 @@ public class JUnitFailToAssertJFail extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "JUnitFailToAssert to AssertJFail";
+        return "JUnit fail to AssertJ";
     }
 
     @Override
     public String getDescription() {
-        return "Convert JUnit-style fail() to assertJ's fail().";
+        return "Convert JUnit-style `fail()` to AssertJ's `fail()`.";
     }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
+        return new UsesType<>("org.junit.jupiter.api.Assertions");
     }
 
     @Override
@@ -72,86 +57,95 @@ public class JUnitFailToAssertJFail extends Recipe {
     }
 
     public static class JUnitFailToAssertJFailVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
-
-        /**
-         * This matcher finds the junit methods that will be migrated by this visitor.
-         */
-        private static final MethodMatcher JUNIT_FAIL_MATCHER = new MethodMatcher(
-                JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " fail(..)"
-        );
+        private static final MethodMatcher JUNIT_FAIL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " fail(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (!JUNIT_FAIL_MATCHER.matches(method)) {
-                return method;
+            J.MethodInvocation m = method;
+
+            if (!JUNIT_FAIL_MATCHER.matches(m)) {
+                return m;
             }
 
-            List<Expression> args = method.getArguments();
+            List<Expression> args = m.getArguments();
 
             if (args.size() == 1) {
                 // fail(), fail(String), fail(Supplier<String>), fail(Throwable)
                 if (args.get(0) instanceof J.Empty) {
-                    method = method.withTemplate(
+                    m = m.withTemplate(
                             template("org.assertj.core.api.Assertions.fail(\"\");")
-                                    .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                    .javaParser(ASSERTJ_JAVA_PARSER::get)
                                     .build(),
-                            method.getCoordinates().replace()
+                            m.getCoordinates().replace()
                     );
                 } else if (args.get(0) instanceof J.Literal) {
-                    method = method.withTemplate(
+                    m = m.withTemplate(
                             template("org.assertj.core.api.Assertions.fail(#{});")
-                                    .javaParser(ASSERTJ_JAVA_PARSER.get())
+                                    .javaParser(ASSERTJ_JAVA_PARSER::get)
                                     .build(),
-                            method.getCoordinates().replace(),
+                            m.getCoordinates().replace(),
                             args.get(0)
                     );
                 } else {
-                    method = method.withTemplate(
-                            template("org.assertj.core.api.Assertions.fail(\"\", #{});")
-                                    .javaParser(ASSERTJ_JAVA_PARSER.get())
+                    m = m.withTemplate(
+                            template("org.assertj.core.api.Assertions.fail(\"\", #{any()});")
+                                    .javaParser(ASSERTJ_JAVA_PARSER::get)
                                     .build(),
-                            method.getCoordinates().replace(),
+                            m.getCoordinates().replace(),
                             args.get(0)
                     );
                 }
             } else {
                 // fail(String, Throwable)
-                method = method.withTemplate(
-                        template("org.assertj.core.api.Assertions.fail(#{});")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                StringBuilder templateBuilder = new StringBuilder("org.assertj.core.api.Assertions.fail(");
+                for (int i = 0; i < args.size(); i++) {
+                    templateBuilder.append("#{any()}");
+                    if (i < args.size() - 1) {
+                        templateBuilder.append(", ");
+                    }
+                }
+                templateBuilder.append(");");
+
+                m = m.withTemplate(template(templateBuilder.toString())
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
-                        method.getCoordinates().replace(),
-                        args.stream().map(Tree::print).collect(Collectors.joining(","))
+                        m.getCoordinates().replace(),
+                        args.toArray()
                 );
             }
+
             doAfterVisit(new RemoveUnusedImports());
             doAfterVisit(new UnqualifyMethodInvocations());
-            return method;
+            return m;
         }
 
         private static class UnqualifyMethodInvocations extends JavaIsoVisitor<ExecutionContext> {
-
-            private static final MethodMatcher ASSERTJ_FAIL_MATCHER = new MethodMatcher(
-                    ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME + " fail(..)"
-            );
+            private static final MethodMatcher ASSERTJ_FAIL_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions" + " fail(..)");
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                 if (!ASSERTJ_FAIL_MATCHER.matches(method)) {
                     return method;
                 }
-                String args = method.getArguments().stream().map(Tree::print).collect(Collectors.joining(","));
 
-                method = method.withTemplate(
-                        template("fail(#{});")
-                                .staticImports(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME + ".fail")
-                                .javaParser(ASSERTJ_JAVA_PARSER.get())
+                StringBuilder templateBuilder = new StringBuilder("fail(");
+                List<Expression> arguments = method.getArguments();
+                for (int i = 0; i < arguments.size(); i++) {
+                    templateBuilder.append("#{any()}");
+                    if (i < arguments.size() - 1) {
+                        templateBuilder.append(", ");
+                    }
+                }
+                templateBuilder.append(");");
+
+                method = method.withTemplate(template(templateBuilder.toString())
+                                .staticImports("org.assertj.core.api.Assertions" + ".fail")
+                                .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
                         method.getCoordinates().replace(),
-                        args
+                        arguments.toArray()
                 );
-                maybeAddImport(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, "fail");
+                maybeAddImport("org.assertj.core.api.Assertions", "fail");
                 return super.visitMethodInvocation(method, executionContext);
             }
         }
