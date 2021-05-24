@@ -49,7 +49,7 @@ public class CategoryToTag extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
+    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new UsesType<>("org.junit.experimental.categories.Category");
     }
 

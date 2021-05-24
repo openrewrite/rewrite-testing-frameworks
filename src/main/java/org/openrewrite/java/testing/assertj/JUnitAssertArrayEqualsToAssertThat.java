@@ -50,7 +50,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
+    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new UsesType<>(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
     }
 

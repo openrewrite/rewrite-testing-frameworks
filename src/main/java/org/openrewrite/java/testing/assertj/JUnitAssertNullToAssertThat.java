@@ -48,9 +48,10 @@ public class JUnitAssertNullToAssertThat extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
+    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new UsesType<>("org.junit.jupiter.api.Assertions");
     }
+
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new AssertNullToAssertThatVisitor();

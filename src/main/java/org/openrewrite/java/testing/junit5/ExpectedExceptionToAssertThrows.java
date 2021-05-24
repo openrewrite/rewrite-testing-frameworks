@@ -74,7 +74,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
+    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new UsesType<>("org.junit.rules.ExpectedException");
     }
 

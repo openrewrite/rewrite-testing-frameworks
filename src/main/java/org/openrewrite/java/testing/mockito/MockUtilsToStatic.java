@@ -19,10 +19,12 @@ import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.DeleteStatement;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
 /**
@@ -52,6 +54,11 @@ public class MockUtilsToStatic extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new MockUtilsToStaticVisitor();
+    }
+
+    @Override
+    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
+        return new UsesType<>("org.mockito.internal.util.MockUtil");
     }
 
     public static class MockUtilsToStaticVisitor extends JavaVisitor<ExecutionContext> {

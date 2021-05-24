@@ -42,7 +42,6 @@ public class CleanupMockitoImports extends Recipe {
     }
 
     public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
-
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             if (cu.getImports().stream().anyMatch(impoort -> impoort.getPackageName().startsWith("org.mockito"))) {

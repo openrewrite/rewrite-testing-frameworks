@@ -73,7 +73,7 @@ public class UpdateTestAnnotation extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getApplicableTest() {
+    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new UsesType<>("org.junit.Test");
     }
 

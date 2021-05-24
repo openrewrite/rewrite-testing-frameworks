@@ -22,14 +22,19 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
+import org.openrewrite.java.marker.JavaSearchResult;
+import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.Marker;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
+import static org.openrewrite.Tree.randomId;
 
 public class MigrateJUnitTestCase extends Recipe {
     private static final ThreadLocal<JavaParser> JAVA_PARSER = ThreadLocal.withInitial(() ->
@@ -64,8 +69,23 @@ public class MigrateJUnitTestCase extends Recipe {
     }
 
     @Override
-    protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>("junit.framework.TestCase");
+    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            private final Marker FOUND_TYPE = new JavaSearchResult(randomId(), null, null);
+
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+                J.CompilationUnit c = cu;
+                for (J.ClassDeclaration clazz : c.getClasses()) {
+                    if(TypeUtils.isAssignableTo(JavaType.Class.build("junit.framework.TestCase"), clazz.getType())) {
+                        c = c.withMarkers(c.getMarkers().addIfAbsent(FOUND_TYPE));
+                    }
+                }
+
+                doAfterVisit(new UsesType<>("junit.framework.TestCase"));
+                return c;
+            }
+        };
     }
 
     @Override
@@ -130,13 +150,16 @@ public class MigrateJUnitTestCase extends Recipe {
         }
 
         private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation) {
-            J.MethodDeclaration md = methodDeclaration.withTemplate(template(annotation)
-                            .javaParser(JAVA_PARSER::get)
-                            .imports(fullyQualifiedAnnotation).build(),
-                    methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
-            md = maybeAddPublicModifier(md);
-            md = maybeRemoveOverrideAnnotation(md);
-            maybeAddImport(fullyQualifiedAnnotation);
+            J.MethodDeclaration md = methodDeclaration;
+            if(FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
+                md = methodDeclaration.withTemplate(template(annotation)
+                                .javaParser(JAVA_PARSER::get)
+                                .imports(fullyQualifiedAnnotation).build(),
+                        methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                md = maybeAddPublicModifier(md);
+                md = maybeRemoveOverrideAnnotation(md);
+                maybeAddImport(fullyQualifiedAnnotation);
+            }
             return md;
         }
 
