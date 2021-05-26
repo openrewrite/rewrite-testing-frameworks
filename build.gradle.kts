@@ -83,7 +83,7 @@ configurations.all {
 val mockito1Version = "1.10.19"
 val assertJVersion = "3.18.1"
 
-val rewriteVersion = "latest.integration"
+val rewriteVersion = "latest.release"
 dependencies {
     implementation("org.openrewrite:rewrite-java:$rewriteVersion")
     implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
