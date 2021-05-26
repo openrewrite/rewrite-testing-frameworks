@@ -11,7 +11,7 @@ plugins {
     `maven-publish`
     signing
 
-    id("org.jetbrains.kotlin.jvm") version "1.5.0"
+    id("org.jetbrains.kotlin.jvm") version "1.5.10"
     id("nebula.maven-resolved-dependencies") version "17.3.2"
     id("nebula.release") version "15.3.1"
     id("io.github.gradle-nexus.publish-plugin") version "1.0.0"
@@ -27,7 +27,7 @@ plugins {
     id("nebula.source-jar") version "17.3.2"
     id("nebula.maven-apache-license") version "17.3.2"
 
-    id("org.openrewrite.rewrite") version "4.0.0"
+    id("org.openrewrite.rewrite") version "5.0.0"
 }
 
 apply(plugin = "nebula.publish-verification")
@@ -45,9 +45,11 @@ description =
     "A rewrite module automating best practices and major version migrations for popular Java test frameworks like JUnit and Mockito"
 
 repositories {
-    mavenLocal()
-    maven {
-        url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+    if(!project.hasProperty("releasing")) {
+        mavenLocal()
+        maven {
+            url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+        }
     }
     mavenCentral()
 }
@@ -83,7 +85,11 @@ configurations.all {
 val mockito1Version = "1.10.19"
 val assertJVersion = "3.18.1"
 
-val rewriteVersion = "latest.release"
+val rewriteVersion = if(project.hasProperty("releasing")) {
+    "latest.release"
+} else {
+    "latest.integration"
+}
 dependencies {
     implementation("org.openrewrite:rewrite-java:$rewriteVersion")
     implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
