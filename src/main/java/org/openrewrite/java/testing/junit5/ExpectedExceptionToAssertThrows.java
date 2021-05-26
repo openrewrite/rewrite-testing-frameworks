@@ -29,6 +29,8 @@ import org.openrewrite.java.tree.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.
@@ -44,24 +46,29 @@ import java.util.List;
  */
 public class ExpectedExceptionToAssertThrows extends Recipe {
     private static final ThreadLocal<JavaParser> ASSERTIONS_PARSER = ThreadLocal.withInitial(() ->
-            JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
-                    Parser.Input.fromString("" +
-                            "package org.junit.jupiter.api;" +
-                            "import java.util.function.Supplier;" +
-                            "import org.junit.jupiter.api.function.Executable;" +
-                            "class AssertThrows {" +
-                            "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,Supplier<String> messageSupplier){ return null; }" +
-                            "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable,String message){ return null; }" +
-                            "static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable){ return null; }" +
-                            "}"
-                    ),
-                    Parser.Input.fromString(
-                            "package org.junit.jupiter.api.function;" +
-                                    "public interface Executable {" +
-                                    "void execute() throws Throwable;" +
-                                    "}"
-                    )
-            )).build());
+            JavaParser.fromJavaVersion().dependsOn(
+                    Stream.concat(
+                            Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---").stream(),
+                            Stream.of(
+                                    Parser.Input.fromString(
+                                            "package org.junit.jupiter.api.function;" +
+                                            "public interface Executable {" +
+                                            "void execute() throws Throwable;" +
+                                            "}"),
+                                    Parser.Input.fromString(
+                                            "package org.hamcrest;\n" +
+                                            "public interface Matcher<T> {\n" +
+                                            "    boolean matches(Object var1);\n" +
+                                            "}"),
+                                    Parser.Input.fromString(
+                                            "package org.hamcrest;\n" +
+                                            "public class MatcherAssert {\n" +
+                                            "    public static <T> void assertThat(T actual, Matcher<? super T> matcher) {}\n" +
+                                            "    public static <T> void assertThat(String reason, T actual, Matcher<? super T> matcher) {}\n" +
+                                            "    public static void assertThat(String reason, boolean assertion) {}\n" +
+                                            "}"))
+                    ).collect(Collectors.toList())
+            ).build());
 
     @Override
     public String getDisplayName() {

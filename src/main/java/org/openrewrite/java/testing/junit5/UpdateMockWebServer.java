@@ -32,6 +32,7 @@ import org.openrewrite.marker.Markers;
 import org.openrewrite.marker.RecipeSearchResult;
 import org.openrewrite.maven.UpgradeDependencyVersion;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -54,10 +55,12 @@ public class UpdateMockWebServer extends Recipe {
     private static final String AFTER_EACH_METHOD = "after-each-method";
 
     private static final ThreadLocal<JavaParser> OKHTTP3_PARSER = ThreadLocal.withInitial(() ->
-            JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
+            JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
                     Parser.Input.fromString("package okhttp3.mockwebserver;" +
                             "public final class MockWebServer extends java.io.Closeable {}"
-                    )
+                    ),
+                    Parser.Input.fromString("package org.junit.jupiter.api;\n" +
+                            "public @interface AfterEach {}")
             )).build());
 
     UUID id = randomId();

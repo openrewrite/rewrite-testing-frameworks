@@ -28,6 +28,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
@@ -213,6 +214,16 @@ public class UpdateTestAnnotation extends Recipe {
                 if (m.isScope(this.scope)) {
                     m = m.withTemplate(
                             template("@Timeout(#{any(long)})")
+                                    .javaParser(() -> JavaParser.fromJavaVersion()
+                                            .dependsOn(Collections.singletonList(Parser.Input.fromString(
+                                                    "package org.junit.jupiter.api;\n" +
+                                                    "import java.util.concurrent.TimeUnit;\n" +
+                                                    "public @interface Timeout {\n" +
+                                                    "    long value();\n" +
+                                                    "    TimeUnit unit() default TimeUnit.SECONDS;\n" +
+                                                    "}\n"
+                                            )))
+                                            .build())
                                     .imports("org.junit.jupiter.api.Timeout")
                                     .build(),
                             m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),

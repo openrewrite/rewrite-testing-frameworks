@@ -87,6 +87,7 @@ val rewriteVersion = "latest.integration"
 dependencies {
     implementation("org.openrewrite:rewrite-java:$rewriteVersion")
     implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
     runtimeOnly("com.fasterxml.jackson.core:jackson-core:latest.release")
 
     compileOnly("org.projectlombok:lombok:latest.release")
