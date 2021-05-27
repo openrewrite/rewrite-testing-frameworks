@@ -309,3 +309,9 @@ public interface Executable {
 public interface ThrowingSupplier {
     Object get() throws Throwable;
 }
+
+---
+
+package org.opentest4j;
+
+public class MultipleFailuresError extends Throwable {}

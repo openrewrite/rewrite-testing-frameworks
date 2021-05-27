@@ -175,14 +175,16 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             String exceptionDeclParam = (isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher) ?
                     "Exception exception =" : "";
 
-            String expectedExceptionParam = (expectMethodInvocation == null || isExpectArgAMatcher) ?
-                    "Exception.class" : expectMethodInvocation.getArguments().get(0).print();
+            Object expectedExceptionParam = (expectMethodInvocation == null || isExpectArgAMatcher) ?
+                    "Exception.class" : expectMethodInvocation.getArguments().get(0);
 
             String expectedMessageParam = (expectMessageMethodInvocation == null || isExpectMessageArgAMatcher) ?
                     "" : expectMessageMethodInvocation.getArguments().get(0).print();
 
+            String templateString = expectedExceptionParam instanceof String ? "#{} assertThrows(#{}, () -> #{}#{});" : "#{} assertThrows(#{any()}, () -> #{}#{});";
+
             m = m.withTemplate(
-                    template("#{} assertThrows(#{}, () -> #{}#{});")
+                    template(templateString)
                             .javaParser(ASSERTIONS_PARSER::get)
                             .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                             .build(),
