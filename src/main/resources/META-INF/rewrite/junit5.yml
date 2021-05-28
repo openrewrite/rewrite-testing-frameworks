@@ -100,6 +100,13 @@ recipeList:
       scope: test
       onlyIfUsing:
         - org.junit.jupiter.api.Test
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.junit.jupiter
+      artifactId: junit-jupiter-params
+      version: 5.x
+      scope: test
+      onlyIfUsing:
+        - org.junit.jupiter.params.ParameterizedTest
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
