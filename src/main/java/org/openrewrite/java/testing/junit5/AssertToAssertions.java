@@ -18,7 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.ChangeType;
+import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
@@ -57,17 +57,12 @@ public class AssertToAssertions extends Recipe {
         private static final JavaType ASSERTION_TYPE = JavaType.buildType("org.junit.Assert");
 
         @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            doAfterVisit(new ChangeType("org.junit.Assert", "org.junit.jupiter.api.Assertions"));
-            return super.visitClassDeclaration(classDecl, ctx);
-        }
-
-        @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
             if (!isJunitAssertMethod(m)) {
                 return m;
             }
+            doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + m.getSimpleName() + "(..)", "org.junit.jupiter.api.Assertions"));
             List<Expression> args = m.getArguments();
             Expression firstArg = args.get(0);
             // Suppress arg-switching for Assertions.assertEquals(String, String)
@@ -100,7 +95,7 @@ public class AssertToAssertions extends Recipe {
         }
 
         private static boolean isJunitAssertMethod(J.MethodInvocation method) {
-            if (method.getType() != null && TypeUtils.isAssignableTo(ASSERTION_TYPE, method.getType().getDeclaringType())) {
+            if (method.getType() != null && TypeUtils.isAssignableTo(ASSERTION_TYPE, method.getType().getDeclaringType()) && !method.getSimpleName().equals("assertThat")) {
                 return true;
             }
             if (!(method.getSelect() instanceof J.Identifier)) {

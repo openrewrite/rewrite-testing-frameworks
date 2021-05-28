@@ -87,7 +87,6 @@ class AssertToAssertionsTest : JavaRecipeTest {
         """,
         after = """
             import org.junit.Test;
-
             import static org.junit.jupiter.api.Assertions.assertFalse;
 
             public class A {
@@ -307,6 +306,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
         """,
         after = """
             import static org.junit.jupiter.api.Assertions.assertNotNull;
+            
             class A {
                 Long l = 1L;
                 void testNestedPartitionStepStepReference() {
