@@ -179,7 +179,6 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                 }
             
             
-            
                 public static List<Object[]> parameters() {
                     return Arrays.asList(
                         new Object[] { "Otis", "TheDog", 124 },
