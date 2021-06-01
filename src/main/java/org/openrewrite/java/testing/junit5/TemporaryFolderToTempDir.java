@@ -19,7 +19,6 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaVisitor;
@@ -27,9 +26,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -67,55 +64,34 @@ public class TemporaryFolderToTempDir extends Recipe {
         private static final JavaType.Class STRING_TYPE = JavaType.Class.build("java.lang.String");
 
         @Override
-        public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+        public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+            J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, executionContext);
+            maybeAddImport("java.io.File");
+            maybeAddImport("org.junit.jupiter.api.io.TempDir");
+            maybeRemoveImport("org.junit.Rule");
+            maybeRemoveImport("org.junit.rules.TemporaryFolder");
+            return c;
+        }
 
-            J.ClassDeclaration cd = (J.ClassDeclaration) super.visitClassDeclaration(classDecl, ctx);
-
-            List<J.VariableDeclarations> fields = cd.getBody().getStatements().stream()
-                    .filter(J.VariableDeclarations.class::isInstance)
-                    .map(J.VariableDeclarations.class::cast)
-                    .collect(Collectors.toList());
-
-            if (fields.stream().anyMatch(it -> TypeUtils.hasElementType(it.getTypeAsFullyQualified(), "org.junit.rules.TemporaryFolder"))) {
-                Set<J.VariableDeclarations> tempDirFields = new HashSet<>();
-                cd = cd.withBody(
-                        cd.getBody().withStatements(
-                                ListUtils.map(cd.getBody().getStatements(),
-                                        statement -> {
-                                            if (!(statement instanceof J.VariableDeclarations)) {
-                                                return statement;
-                                            }
-                                            J.VariableDeclarations field = (J.VariableDeclarations) statement;
-                                            if (field.getTypeAsFullyQualified() == null ||
-                                                    !field.getTypeAsFullyQualified().getFullyQualifiedName()
-                                                            .equals("org.junit.rules.TemporaryFolder")) {
-                                                return field;
-                                            }
-                                            maybeAddImport("java.io.File");
-                                            maybeAddImport("org.junit.jupiter.api.io.TempDir");
-                                            maybeRemoveImport("org.junit.Rule");
-                                            maybeRemoveImport("org.junit.rules.TemporaryFolder");
-
-                                            String fieldVars = field.getVariables().stream()
-                                                    .map(v -> v.withInitializer(null))
-                                                    .map(J::print).collect(Collectors.joining(","));
-                                            field = field.withTemplate(
-                                                    template("@TempDir\nFile#{};")
-                                                            .imports("java.io.File", "org.junit.jupiter.api.io.TempDir")
-                                                            .javaParser(TEMPDIR_PARSER::get)
-                                                            .build(),
-                                                    field.getCoordinates().replace(), fieldVars);
-                                            tempDirFields.add(field);
-                                            return field;
-                                        }
-                                )
-                        )
-                );
-
-                doAfterVisit(new ReplaceTemporaryFolderMethods(tempDirFields));
+        @Override
+        public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
+            J.VariableDeclarations multiVars = (J.VariableDeclarations)super.visitVariableDeclarations(multiVariable, executionContext);
+            if (multiVars.getTypeAsFullyQualified() == null ||
+                    !multiVars.getTypeAsFullyQualified().getFullyQualifiedName()
+                            .equals("org.junit.rules.TemporaryFolder")) {
+                return multiVars;
             }
-
-            return cd;
+            String fieldVars = multiVars.getVariables().stream()
+                    .map(v -> v.withInitializer(null))
+                    .map(J::print).collect(Collectors.joining(","));
+            multiVars = multiVars.withTemplate(
+                    template("@TempDir\nFile#{};")
+                            .imports("java.io.File", "org.junit.jupiter.api.io.TempDir")
+                            .javaParser(TEMPDIR_PARSER::get)
+                            .build(),
+                    multiVars.getCoordinates().replace(), fieldVars);
+            doAfterVisit(new ReplaceTemporaryFolderMethods(multiVars));
+            return multiVars;
         }
 
         /**
@@ -130,9 +106,9 @@ public class TemporaryFolderToTempDir extends Recipe {
          */
         private static class ReplaceTemporaryFolderMethods extends JavaVisitor<ExecutionContext> {
 
-            private final Set<J.VariableDeclarations> tempDirFields;
+            private final J.VariableDeclarations tempDirFields;
 
-            private ReplaceTemporaryFolderMethods(Set<J.VariableDeclarations> tempDirFields) {
+            private ReplaceTemporaryFolderMethods(J.VariableDeclarations tempDirFields) {
                 this.tempDirFields = tempDirFields;
             }
 
@@ -144,35 +120,33 @@ public class TemporaryFolderToTempDir extends Recipe {
                 }
                 J.Identifier receiver = (J.Identifier) m.getSelect();
                 if (receiver != null && m.getType() != null && TypeUtils.hasElementType(m.getType().getDeclaringType(), "org.junit.rules.TemporaryFolder")) {
-                    for (J.VariableDeclarations tempDirField : tempDirFields) {
-                        for (J.VariableDeclarations.NamedVariable tempDirFieldVar : tempDirField.getVariables()) {
-                            String fieldName = tempDirFieldVar.getSimpleName();
-                            if (fieldName.equals(receiver.getSimpleName())) {
-                                List<Expression> args = m.getArguments();
-                                // handle TemporaryFolder.newFile() and TemporaryFolder.newFile(String)
-                                switch (m.getName().getSimpleName()) {
-                                    case "newFile":
-                                        if (args.size() == 1 && args.get(0) instanceof J.Empty) {
-                                            m = m.withTemplate(
-                                                    template("File.createTempFile(\"junit\", null, " + fieldName + ");").build(),
-                                                    m.getCoordinates().replace()
-                                            );
-                                        } else {
-                                            doAfterVisit(new AddNewFileMethod(fieldName, method));
-                                        }
-                                        break;
-                                    case "getRoot":
-                                        return receiver.withPrefix(m.getPrefix());
-                                    case "newFolder":
-                                        if (args.size() == 1 && args.get(0) instanceof J.Empty) {
-                                            m = m.withTemplate(template("Files.createTempDirectory(#{}.toPath(), \"junit\").toFile();").imports("java.nio.file.Files", "java.io.File")
-                                                    .build(), m.getCoordinates().replace(), fieldName);
-                                            maybeAddImport("java.nio.file.Files");
-                                        } else {
-                                            doAfterVisit(new AddNewFolderMethod(fieldName, method));
-                                        }
-                                        break;
-                                }
+                    for (J.VariableDeclarations.NamedVariable tempDirFieldVar : tempDirFields.getVariables()) {
+                        String fieldName = tempDirFieldVar.getSimpleName();
+                        if (fieldName.equals(receiver.getSimpleName())) {
+                            List<Expression> args = m.getArguments();
+                            // handle TemporaryFolder.newFile() and TemporaryFolder.newFile(String)
+                            switch (m.getName().getSimpleName()) {
+                                case "newFile":
+                                    if (args.size() == 1 && args.get(0) instanceof J.Empty) {
+                                        m = m.withTemplate(
+                                                template("File.createTempFile(\"junit\", null, " + fieldName + ");").build(),
+                                                m.getCoordinates().replace()
+                                        );
+                                    } else {
+                                        doAfterVisit(new AddNewFileMethod(fieldName, method));
+                                    }
+                                    break;
+                                case "getRoot":
+                                    return receiver.withPrefix(m.getPrefix()).withType(tempDirFieldVar.getType());
+                                case "newFolder":
+                                    if (args.size() == 1 && args.get(0) instanceof J.Empty) {
+                                        m = m.withTemplate(template("Files.createTempDirectory(#{}.toPath(), \"junit\").toFile();").imports("java.nio.file.Files", "java.io.File")
+                                                .build(), m.getCoordinates().replace(), fieldName);
+                                        maybeAddImport("java.nio.file.Files");
+                                    } else {
+                                        doAfterVisit(new AddNewFolderMethod(fieldName, method));
+                                    }
+                                    break;
                             }
                         }
                     }
@@ -224,11 +198,12 @@ public class TemporaryFolderToTempDir extends Recipe {
 
                 @Override
                 public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-                    if (method.isScope(methodInvocation)) {
+                    J.MethodInvocation m = super.visitMethodInvocation(method, executionContext);
+                    if (m.isScope(methodInvocation)) {
                         List<Expression> args = method.getArguments();
-                        return method.withTemplate(template("newFile(#{}, #{});").build(), method.getCoordinates().replace(), fieldName, args.get(0));
+                        return m.withTemplate(template("newFile(#{}, #{});").build(), method.getCoordinates().replace(), fieldName, args.get(0));
                     }
-                    return super.visitMethodInvocation(method, executionContext);
+                    return m;
                 }
             }
         }
