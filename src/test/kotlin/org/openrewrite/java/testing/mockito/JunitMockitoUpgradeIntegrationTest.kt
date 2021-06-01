@@ -240,7 +240,6 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
             }
         """,
         after = """
-            
             public class Foo {
             }
         """

@@ -137,6 +137,7 @@ class MigrateJunitTestCaseTest : JavaRecipeTest {
         """,
         after = """
             package com.abc;
+            
             import com.abc.CTest;
             import org.junit.jupiter.api.AfterEach;
             import org.junit.jupiter.api.BeforeEach;

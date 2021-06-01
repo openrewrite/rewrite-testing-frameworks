@@ -62,7 +62,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                     assertThat(notification()).containsExactly(expected);
                 }
                 private Integer[] notification() {
-                    return new Integer[] {1, 2, 3};        
+                    return new Integer[] {1, 2, 3};
                 }
             }
         """
@@ -82,7 +82,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                     assertArrayEquals(new int[]{1, 2, 3}, notification(), () -> "These arrays should be equal");
                 }
                 private int[] notification() {
-                    return new int[]{1, 2, 3};        
+                    return new int[]{1, 2, 3};
                 }
             }
         """,
@@ -98,7 +98,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                     assertThat(notification()).withFailMessage(() -> "These arrays should be equal").containsExactly(new int[]{1, 2, 3});
                 }
                 private int[] notification() {
-                    return new int[]{1, 2, 3};        
+                    return new int[]{1, 2, 3};
                 }
             }
         """

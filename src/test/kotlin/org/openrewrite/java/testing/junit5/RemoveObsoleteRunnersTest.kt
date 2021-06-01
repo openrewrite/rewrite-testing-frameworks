@@ -39,7 +39,6 @@ class RemoveObsoleteRunnersTest : JavaRecipeTest {
             }
         """,
         after = """
-            
             public class Foo {
             }
         """
@@ -56,7 +55,6 @@ class RemoveObsoleteRunnersTest : JavaRecipeTest {
             }
         """,
         after = """
-            
             public class Foo {
             }
         """

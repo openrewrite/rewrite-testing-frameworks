@@ -62,8 +62,6 @@ class JUnitParamsRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.MethodSource;
             
-            
-            
             public class PersonTests {
             
                 @ParameterizedTest
@@ -99,7 +97,7 @@ class JUnitParamsRunnerToParameterizedTest : JavaRecipeTest {
         
             @RunWith(JUnitParamsRunner.class)
             public class PersonTests {
-                
+            
                 @Test
                 @Parameters(method = "youngAdultPersonParams")
                 @TestCaseName("persons-age: {0} is-young-adult: {1}")
@@ -138,10 +136,8 @@ class JUnitParamsRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.MethodSource;
             
-            
-            
             public class PersonTests {
-                
+            
                 @ParameterizedTest(name = "persons-age: {0} is-young-adult: {1}")
                 @MethodSource("youngAdultPersonParams")
                 public void personIsAdult(int age, boolean valid) {

@@ -76,7 +76,6 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import java.util.List;
         
         
-        
             public class VetTests {
             
                 private String firstName;
@@ -99,7 +98,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     vet.setId(id);
                 }
             
-                
+            
                 public static List<Object[]> parameters() {
                     return Arrays.asList(
                         new Object[] { "Otis", "TheDog", 124 },
@@ -155,9 +154,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             
             import java.util.Arrays;
             import java.util.List;
-        
-        
-        
+            
+            
             public class VetTests {
             
                 private String firstName;
@@ -180,7 +178,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     vet.setId(id);
                 }
             
-                
+            
+            
                 public static List<Object[]> parameters() {
                     return Arrays.asList(
                         new Object[] { "Otis", "TheDog", 124 },

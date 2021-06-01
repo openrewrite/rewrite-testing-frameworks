@@ -158,7 +158,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             
                 @TempDir
                 File tempDir;
-                
+            
                 void foo() {
                     File root = tempDir;
                 }
@@ -232,7 +232,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             
                 @TempDir
                 File tempDir1;
-                
+            
                 File subDir = newFolder(tempDir1, "sub");
                 File subDirs = newFolder(tempDir1, "foo", "bar", "baz");
             
