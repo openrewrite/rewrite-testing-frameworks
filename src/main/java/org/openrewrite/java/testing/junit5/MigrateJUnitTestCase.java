@@ -46,6 +46,8 @@ public class MigrateJUnitTestCase extends Recipe {
                                     "public @interface BeforeEach {}")))
                     .build());
 
+    private static final AnnotationMatcher JUNIT_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
+
     private static boolean isSupertypeTestCase(@Nullable JavaType.FullyQualified fullyQualified) {
         if (fullyQualified == null || fullyQualified.getSupertype() == null || "java.lang.Object".equals(fullyQualified.getFullyQualifiedName())) {
             return false;
@@ -96,6 +98,7 @@ public class MigrateJUnitTestCase extends Recipe {
                 if (cu.getClasses().stream().findAny().isPresent()) {
                     doAfterVisit(new TestCaseVisitor());
                 }
+                // ChangeType for org.junit.Assert method invocations because TestCase extends org.junit.Assert
                 doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert"));
                 doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
                 doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions assert*(..)"));
@@ -139,7 +142,7 @@ public class MigrateJUnitTestCase extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
-            if (md.getSimpleName().startsWith("test")) {
+            if (md.getSimpleName().startsWith("test") && md.getLeadingAnnotations().stream().noneMatch(JUNIT_TEST_ANNOTATION_MATCHER::matches)) {
                 md = updateMethodDeclarationAnnotationAndModifier(md, "@Test", "org.junit.jupiter.api.Test");
             } else if (md.getSimpleName().equals("setUp")) {
                 md = updateMethodDeclarationAnnotationAndModifier(md, "@BeforeEach", "org.junit.jupiter.api.BeforeEach");
