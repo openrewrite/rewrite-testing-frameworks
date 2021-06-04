@@ -140,8 +140,8 @@ public class TemporaryFolderToTempDir extends Recipe {
                                     return receiver.withPrefix(m.getPrefix()).withType(tempDirFieldVar.getType());
                                 case "newFolder":
                                     if (args.size() == 1 && args.get(0) instanceof J.Empty) {
-                                        m = m.withTemplate(template("Files.createTempDirectory(#{}.toPath(), \"junit\").toFile();").imports("java.nio.file.Files", "java.io.File")
-                                                .build(), m.getCoordinates().replace(), fieldName);
+                                        m = m.withTemplate(template("Files.createTempDirectory(#{any(java.io.File)}.toPath(), \"junit\").toFile();").imports("java.nio.file.Files", "java.io.File")
+                                                .build(), m.getCoordinates().replace(), tempDirFieldVar);
                                         maybeAddImport("java.nio.file.Files");
                                     } else {
                                         doAfterVisit(new AddNewFolderMethod(fieldName, method));
