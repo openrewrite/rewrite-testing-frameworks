@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
+import org.openrewrite.Issue
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
@@ -242,6 +243,50 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                         throw new IOException("Couldn't create folders " + root);
                     }
                     return result;
+                }
+            }
+        """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/142")
+    @Test
+    fun newFileNameIsJIdentifier() = assertChanged(
+        before = """
+            import org.junit.rules.TemporaryFolder;
+            
+            import java.io.File;
+            import java.io.IOException;
+            public class T {
+                @Test
+                public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
+                    final String fileName = "SampleFile.txt";
+                    TemporaryFolder tempFolder  = new TemporaryFolder();
+                    tempFolder.create();
+                    File f = tempFolder.newFile(fileName);
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.io.TempDir;
+            import org.junit.rules.TemporaryFolder;
+            
+            import java.io.File;
+            import java.io.IOException;
+            
+            public class T {
+                @Test
+                public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
+                    final String fileName = "SampleFile.txt";
+                    @TempDir
+                    File tempFolder;
+                    tempFolder.create();
+                    File f = newFile(tempFolder, fileName);
+                }
+            
+                private static File newFile(File root, String fileName) throws IOException {
+                    File file = new File(root, fileName);
+                    file.createNewFile();
+                    return file;
                 }
             }
         """

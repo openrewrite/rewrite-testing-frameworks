@@ -133,7 +133,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                                                 m.getCoordinates().replace()
                                         );
                                     } else {
-                                        doAfterVisit(new AddNewFileMethod(fieldName, method));
+                                        doAfterVisit(new AddNewFileMethod(tempDirFieldVar.getName(), method));
                                     }
                                     break;
                                 case "getRoot":
@@ -141,7 +141,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                                 case "newFolder":
                                     if (args.size() == 1 && args.get(0) instanceof J.Empty) {
                                         m = m.withTemplate(template("Files.createTempDirectory(#{any(java.io.File)}.toPath(), \"junit\").toFile();").imports("java.nio.file.Files", "java.io.File")
-                                                .build(), m.getCoordinates().replace(), tempDirFieldVar);
+                                                .build(), m.getCoordinates().replace(), tempDirFieldVar.getName());
                                         maybeAddImport("java.nio.file.Files");
                                     } else {
                                         doAfterVisit(new AddNewFolderMethod(fieldName, method));
@@ -156,10 +156,10 @@ public class TemporaryFolderToTempDir extends Recipe {
         }
 
         private static class AddNewFileMethod extends JavaIsoVisitor<ExecutionContext> {
-            private final String fieldName;
+            private final J.Identifier fieldName;
             private final J.MethodInvocation methodInvocation;
 
-            private AddNewFileMethod(String fieldName, J.MethodInvocation methodInvocation) {
+            private AddNewFileMethod(J.Identifier fieldName, J.MethodInvocation methodInvocation) {
                 this.fieldName = fieldName;
                 this.methodInvocation = methodInvocation;
             }
@@ -201,7 +201,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                     J.MethodInvocation m = super.visitMethodInvocation(method, executionContext);
                     if (m.isScope(methodInvocation)) {
                         List<Expression> args = method.getArguments();
-                        return m.withTemplate(template("newFile(#{}, #{});").build(), method.getCoordinates().replace(), fieldName, args.get(0));
+                        return m.withTemplate(template("newFile(#{any(java.io.File)}, #{any(java.lang.String)});").build(), method.getCoordinates().replace(), fieldName, args.get(0));
                     }
                     return m;
                 }
