@@ -268,7 +268,6 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
         """,
         after = """
             import org.junit.jupiter.api.io.TempDir;
-            import org.junit.rules.TemporaryFolder;
             
             import java.io.File;
             import java.io.IOException;
@@ -287,6 +286,38 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                     File file = new File(root, fileName);
                     file.createNewFile();
                     return file;
+                }
+            }
+        """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/143")
+    @Test
+    fun fieldRetainsModifiers() = assertChanged(
+        before = """
+            import org.junit.ClassRule;
+            import org.junit.rules.TemporaryFolder;
+            
+            public class T {
+                @ClassRule
+                public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
+                
+                public static void init() {
+                    File aDir = temporaryFolder.getRoot();
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.io.TempDir;
+            
+            import java.io.File;
+            
+            public class T {
+                @TempDir
+                public static final File temporaryFolder;
+            
+                public static void init() {
+                    File aDir = temporaryFolder;
                 }
             }
         """

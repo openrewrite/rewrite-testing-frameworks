@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaVisitor;
@@ -55,43 +52,50 @@ public class TemporaryFolderToTempDir extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+    protected TemporaryFolderToTempDirVisitor getVisitor() {
         return new TemporaryFolderToTempDirVisitor();
     }
 
-    private static class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
+    private static class TemporaryFolderToTempDirVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final JavaType.Class FILE_TYPE = JavaType.Class.build("java.io.File");
         private static final JavaType.Class STRING_TYPE = JavaType.Class.build("java.lang.String");
 
         @Override
-        public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
             J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, executionContext);
-            maybeAddImport("java.io.File");
-            maybeAddImport("org.junit.jupiter.api.io.TempDir");
-            maybeRemoveImport("org.junit.Rule");
-            maybeRemoveImport("org.junit.rules.TemporaryFolder");
+            if(c != cu) {
+                maybeAddImport("java.io.File");
+                maybeAddImport("org.junit.jupiter.api.io.TempDir");
+                maybeRemoveImport("org.junit.ClassRule");
+                maybeRemoveImport("org.junit.Rule");
+                maybeRemoveImport("org.junit.rules.TemporaryFolder");
+            }
             return c;
         }
 
         @Override
-        public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
-            J.VariableDeclarations multiVars = (J.VariableDeclarations)super.visitVariableDeclarations(multiVariable, executionContext);
-            if (multiVars.getTypeAsFullyQualified() == null ||
-                    !multiVars.getTypeAsFullyQualified().getFullyQualifiedName()
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
+            J.VariableDeclarations m = super.visitVariableDeclarations(multiVariable, executionContext);
+            if (m.getTypeAsFullyQualified() == null ||
+                    !m.getTypeAsFullyQualified().getFullyQualifiedName()
                             .equals("org.junit.rules.TemporaryFolder")) {
-                return multiVars;
+                return m;
             }
-            String fieldVars = multiVars.getVariables().stream()
+            String fieldVars = m.getVariables().stream()
                     .map(v -> v.withInitializer(null))
                     .map(J::print).collect(Collectors.joining(","));
-            multiVars = multiVars.withTemplate(
-                    template("@TempDir\nFile#{};")
+            String modifiers = m.getModifiers().stream().map(it -> it.getType().name().toLowerCase()).collect(Collectors.joining(" "));
+            m = m.withTemplate(
+                    template("@TempDir\n#{} File#{};")
                             .imports("java.io.File", "org.junit.jupiter.api.io.TempDir")
                             .javaParser(TEMPDIR_PARSER::get)
                             .build(),
-                    multiVars.getCoordinates().replace(), fieldVars);
-            doAfterVisit(new ReplaceTemporaryFolderMethods(multiVars));
-            return multiVars;
+                    m.getCoordinates().replace(),
+                    modifiers,
+                    fieldVars);
+
+            doAfterVisit(new ReplaceTemporaryFolderMethods(m));
+            return m;
         }
 
         /**
