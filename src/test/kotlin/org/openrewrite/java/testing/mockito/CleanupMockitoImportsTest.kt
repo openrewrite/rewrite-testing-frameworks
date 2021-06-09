@@ -29,13 +29,16 @@ class CleanupMockitoImportsTest : JavaRecipeTest {
         get() = CleanupMockitoImports()
 
     @Test
-    fun removesUnusedImport() = assertChanged(
+    fun removesUnusedMockitoImport() = assertChanged(
         before = """
             import org.mockito.Mock;
+            import java.util.Arrays;
             
             public class A {}
         """,
         after = """
+            import java.util.Arrays;
+            
             public class A {}
         """
     )
@@ -44,11 +47,8 @@ class CleanupMockitoImportsTest : JavaRecipeTest {
     fun leavesOtherImportsAlone() = assertUnchanged(
         before = """
             import java.util.Arrays;
-            
             import java.util.Collections;
-            
             import java.util.HashSet;
-            
             import java.util.List;
             
             public class A {}

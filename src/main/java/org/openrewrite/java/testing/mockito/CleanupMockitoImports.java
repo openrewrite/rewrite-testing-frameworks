@@ -43,11 +43,11 @@ public class CleanupMockitoImports extends Recipe {
 
     public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            if (cu.getImports().stream().anyMatch(impoort -> impoort.getPackageName().startsWith("org.mockito"))) {
-                doAfterVisit(new OrderImports(true));
+        public J.Import visitImport(J.Import _import, ExecutionContext executionContext) {
+            if(_import.getPackageName().startsWith("org.mockito")) {
+                maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
             }
-            return cu;
+            return _import;
         }
     }
 }
