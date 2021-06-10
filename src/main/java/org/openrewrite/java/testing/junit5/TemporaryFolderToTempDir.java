@@ -84,7 +84,8 @@ public class TemporaryFolderToTempDir extends Recipe {
         public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
             J.VariableDeclarations m = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable, executionContext);
             if (m.getTypeAsFullyQualified() == null ||
-                    !m.getTypeAsFullyQualified().getFullyQualifiedName().equals("org.junit.rules.TemporaryFolder")) {
+                    !m.getTypeAsFullyQualified().getFullyQualifiedName()
+                            .equals("org.junit.rules.TemporaryFolder")) {
                 return m;
             }
             String fieldVars = m.getVariables().stream()
@@ -136,7 +137,7 @@ public class TemporaryFolderToTempDir extends Recipe {
             if (mi.getSelect() == null) {
                 return mi;
             }
-            J tempDir = mi.getSelect() != null ? mi.getSelect().withType(FILE_TYPE) : null;
+            J tempDir = mi.getSelect().withType(FILE_TYPE);
             List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
             if (args.isEmpty()) {
                 return mi.withTemplate(template("new File(#{any(java.io.File)}, \"junit\")")
@@ -157,38 +158,38 @@ public class TemporaryFolderToTempDir extends Recipe {
         @Override
         public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration md = (J.MethodDeclaration) super.visitMethodDeclaration(method, executionContext);
-            if (md.getLeadingAnnotations().stream().anyMatch(annotation -> JUNIT_TEST_ANNOTATION_MATCHER.matches(annotation) || JUPITER_TEST_ANNOTATION_MATCHER.matches(annotation))) {
-                List<Statement> parameters = new ArrayList<>();
-                J.Block body = md.getBody();
-                if (body != null) {
-                    List<Statement> statements = (ListUtils.map(md.getBody().getStatements(), st -> {
-                        if (st instanceof J.VariableDeclarations) {
-                            J.VariableDeclarations v = (J.VariableDeclarations) st;
-                            if (v.getTypeAsFullyQualified() != null
-                                    && "java.io.File".equals(v.getTypeAsFullyQualified().getFullyQualifiedName())
-                                    && v.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches)) {
-                                v = v.withPrefix(Space.EMPTY)
-                                        .withLeadingAnnotations(ListUtils.map(v.getLeadingAnnotations(), annotation -> annotation.withPrefix(Space.EMPTY)));
-                                v = v.withVariables(ListUtils.map(v.getVariables(), namedVariable -> namedVariable.withPrefix(Space.format(" "))));
-                                if (v.getTypeExpression() != null) {
-                                    v = v.withTypeExpression(v.getTypeExpression().withPrefix(Space.format(" ")));
-                                }
-                                parameters.add(v);
-                                return null;
-                            }
+            if (md.getLeadingAnnotations().stream().noneMatch(annotation -> JUNIT_TEST_ANNOTATION_MATCHER.matches(annotation) || JUPITER_TEST_ANNOTATION_MATCHER.matches(annotation))
+                    || md.getBody() == null) {
+                return md;
+            }
+            List<Statement> parameters = new ArrayList<>();
+            J.Block body = md.getBody();
+            List<Statement> statements = (ListUtils.map(md.getBody().getStatements(), st -> {
+                if (st instanceof J.VariableDeclarations) {
+                    J.VariableDeclarations v = (J.VariableDeclarations) st;
+                    if (v.getTypeAsFullyQualified() != null
+                            && "java.io.File".equals(v.getTypeAsFullyQualified().getFullyQualifiedName())
+                            && v.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches)) {
+                        v = v.withPrefix(Space.EMPTY)
+                                .withLeadingAnnotations(ListUtils.map(v.getLeadingAnnotations(), annotation -> annotation.withPrefix(Space.EMPTY)));
+                        v = v.withVariables(ListUtils.map(v.getVariables(), namedVariable -> namedVariable.withPrefix(Space.format(" "))));
+                        if (v.getTypeExpression() != null) {
+                            v = v.withTypeExpression(v.getTypeExpression().withPrefix(Space.format(" ")));
                         }
-                        return st;
-                    }));
-                    if (!parameters.isEmpty()) {
-                        if (md.getParameters().iterator().next() instanceof J.Empty) {
-                            md = md.withParameters(parameters);
-                        } else {
-                            md = md.withParameters(ListUtils.concatAll(md.getParameters(), parameters));
-                        }
+                        parameters.add(v);
+                        return null;
                     }
-                    body = maybeAutoFormat(body, body.withStatements(statements), executionContext);
-                    md = md.withBody(body);
                 }
+                return st;
+            }));
+            if (!parameters.isEmpty()) {
+                if (md.getParameters().iterator().next() instanceof J.Empty) {
+                    md = md.withParameters(parameters);
+                } else {
+                    md = md.withParameters(ListUtils.concatAll(md.getParameters(), parameters));
+                }
+                body = maybeAutoFormat(body, body.withStatements(statements), executionContext);
+                md = md.withBody(body);
             }
             return md;
         }
