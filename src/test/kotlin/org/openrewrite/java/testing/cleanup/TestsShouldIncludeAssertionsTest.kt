@@ -78,7 +78,7 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
     )
     @Test
     fun assertJAssertion() = assertUnchanged(
-        """
+        before = """
             import org.junit.jupiter.api.Test;
 
             import static org.assertj.core.api.Assertions.assertThat;
@@ -97,7 +97,7 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
     )
     @Test
     fun hamcrestAssertion() = assertUnchanged(
-        """
+            before = """
             import org.junit.jupiter.api.Test;
 
             import static org.hamcrest.MatcherAssert.assertThat;

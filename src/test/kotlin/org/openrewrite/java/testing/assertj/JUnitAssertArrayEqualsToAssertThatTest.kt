@@ -23,7 +23,7 @@ import org.openrewrite.java.JavaRecipeTest
 import org.openrewrite.java.tree.J
 
 class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
-    override val parser: Parser<J.CompilationUnit> = JavaParser.fromJavaVersion()
+    override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
         .build()
 

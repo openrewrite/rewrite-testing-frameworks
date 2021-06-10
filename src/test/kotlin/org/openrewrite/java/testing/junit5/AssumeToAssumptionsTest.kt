@@ -20,8 +20,9 @@ import org.openrewrite.Issue
 import org.openrewrite.RecipeTest
 import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.JavaRecipeTest
 
-class AssumeToAssumptionsTest : RecipeTest {
+class AssumeToAssumptionsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
         .build()
