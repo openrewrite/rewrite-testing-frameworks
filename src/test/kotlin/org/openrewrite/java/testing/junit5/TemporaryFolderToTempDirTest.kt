@@ -311,6 +311,47 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
         """
     )
 
+    @Test
+    fun multipleTemporaryFoldersInMethodBody() = assertChanged(
+        before = """
+            import org.junit.Test;
+            import org.junit.rules.TemporaryFolder;
+            
+            import java.io.File;
+            import java.io.IOException;
+            public class T {
+                @Test
+                public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
+                    final String fileName = "SampleFile.txt";
+                    final String otherFileName = "otherText.txt";
+                    TemporaryFolder tempFolder = new TemporaryFolder();
+                    TemporaryFolder tempFolder2 = new TemporaryFolder();
+                    tempFolder.create();
+                    tempFolder2.create();
+                    File f = tempFolder.newFile(fileName);
+                    File f2 = tempFolder2.newFile(otherFileName);
+                }
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            import org.junit.jupiter.api.io.TempDir;
+            
+            import java.io.File;
+            import java.io.IOException;
+            
+            public class T {
+                @Test
+                public void newNamedFileIsCreatedUnderRootFolder(@TempDir File tempFolder, @TempDir File tempFolder2) throws IOException {
+                    final String fileName = "SampleFile.txt";
+                    final String otherFileName = "otherText.txt";
+                    File f = new File(tempFolder, fileName);
+                    File f2 = new File(tempFolder2, otherFileName);
+                }
+            }
+        """
+    )
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/143")
     @Test
     fun fieldRetainsModifiers() = assertChanged(

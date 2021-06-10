@@ -155,6 +155,12 @@ public class TemporaryFolderToTempDir extends Recipe {
             }
         }
 
+        /**
+         * Replace TemporaryFolder variables defined within MethodDeclaration bodies with @TempDir method parameters.
+         * @param method
+         * @param executionContext
+         * @return
+         */
         @Override
         public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration md = (J.MethodDeclaration) super.visitMethodDeclaration(method, executionContext);
@@ -172,11 +178,14 @@ public class TemporaryFolderToTempDir extends Recipe {
                             && v.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches)) {
                         v = v.withPrefix(Space.EMPTY)
                                 .withLeadingAnnotations(ListUtils.map(v.getLeadingAnnotations(), annotation -> annotation.withPrefix(Space.EMPTY)));
-                        v = v.withVariables(ListUtils.map(v.getVariables(), namedVariable -> namedVariable.withPrefix(Space.format(" "))));
                         if (v.getTypeExpression() != null) {
                             v = v.withTypeExpression(v.getTypeExpression().withPrefix(Space.format(" ")));
                         }
-                        parameters.add(v);
+                        if (parameters.isEmpty()) {
+                            parameters.add(v);
+                        } else {
+                            parameters.add(v.withPrefix(Space.format(" ")));
+                        }
                         return null;
                     }
                 }
