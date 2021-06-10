@@ -62,6 +62,7 @@ class JUnit5MigrationTest : JavaRecipeTest {
             import static org.hamcrest.Matchers.containsInAnyOrder;
 
             public class Sample {
+                @SuppressWarnings("deprecation")
                 @Test
                 public void filterShouldRemoveUnusedConfig() {
                     assertThat(asList("1","2","3"),
