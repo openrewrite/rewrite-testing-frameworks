@@ -16,128 +16,59 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
+import org.openrewrite.Issue
 import org.openrewrite.Recipe
+import org.openrewrite.RecipeDiagnosticTest
 import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 class JUnit5MigrationTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit")
+        .classpath("junit", "hamcrest")
+        .logCompilationWarningsAndErrors(true)
         .build()
 
     override val recipe: Recipe = Environment.builder()
         .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
         .build()
-        .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices")
+        .activateRecipes("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
 
     @Test
-    fun changeBeforeToBeforeEach() = assertChanged(
-        before = """
-            import org.junit.Before;
-
-            public class Example {
-                @Before
-                public void initialize() {
-                }
-            }
-        """,
-        after = """
-            import org.junit.jupiter.api.BeforeEach;
-
-            public class Example {
-                @BeforeEach
-                public void initialize() {
-                }
-            }
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/145")
+    fun assertThatReciever() = assertChanged(
+        before =
         """
+            import org.junit.Assert;
+            import org.junit.Test;
+
+            import static java.util.Arrays.asList;
+            import static org.hamcrest.Matchers.containsInAnyOrder;
+
+            public class Sample {
+                @SuppressWarnings("deprecation")
+                @Test
+                public void filterShouldRemoveUnusedConfig() {
+                    Assert.assertThat(asList("1","2","3"),
+                        containsInAnyOrder("3","2","1"));
+                }
+            }
+        """.trimIndent(),
+        after = """
+            import org.junit.jupiter.api.Test;
+
+            import static java.util.Arrays.asList;
+            import static org.hamcrest.MatcherAssert.assertThat;
+            import static org.hamcrest.Matchers.containsInAnyOrder;
+
+            public class Sample {
+                @Test
+                public void filterShouldRemoveUnusedConfig() {
+                    assertThat(asList("1","2","3"),
+                        containsInAnyOrder("3","2","1"));
+                }
+            }
+        """.trimIndent()
     )
 
-    @Test
-    fun changeAfterToAfterEach() = assertChanged(
-        before = """
-            import org.junit.After;
-
-            public class Example {
-                @After
-                public void initialize() {
-                }
-            }
-        """,
-        after = """
-            import org.junit.jupiter.api.AfterEach;
-
-            public class Example {
-                @AfterEach
-                public void initialize() {
-                }
-            }
-        """
-    )
-
-    @Test
-    fun changeBeforeClassToBeforeAll() = assertChanged(
-        before = """
-            import org.junit.BeforeClass;
-
-            public class Example {
-                @BeforeClass
-                public static void initialize() {
-                }
-            }
-        """,
-        after = """
-            import org.junit.jupiter.api.BeforeAll;
-
-            public class Example {
-                @BeforeAll
-                public static void initialize() {
-                }
-            }
-        """
-    )
-
-    @Test
-    fun changeAfterClassToAfterAll() = assertChanged(
-        before = """
-            import org.junit.AfterClass;
-
-            public class Example {
-                @AfterClass
-                public static void initialize() {
-                }
-            }
-        """,
-        after = """
-            import org.junit.jupiter.api.AfterAll;
-
-            public class Example {
-                @AfterAll
-                public static void initialize() {
-                }
-            }
-        """
-    )
-
-    @Test
-    fun changeIgnoreToDisabled() = assertChanged(
-        before = """
-            import org.junit.Ignore;
-
-            public class Example {
-                @Ignore @Test public void something() {}
-            
-                @Ignore("not ready yet") @Test public void somethingElse() {}
-            }
-        """,
-        after = """
-            import org.junit.jupiter.api.Disabled;
-
-            public class Example {
-                @Disabled @Test public void something() {}
-            
-                @Disabled("not ready yet") @Test public void somethingElse() {}
-            }
-        """
-    )
 }
