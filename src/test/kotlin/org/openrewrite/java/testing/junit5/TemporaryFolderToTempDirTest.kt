@@ -30,6 +30,32 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
         get() = TemporaryFolderToTempDir()
 
     @Test
+    fun temporaryFolderInstantiatedWithParentFolder() = assertChanged(
+        before = """
+            import org.junit.Rule;
+            import org.junit.rules.TemporaryFolder;
+            
+            import java.io.File;
+            
+            class A {
+                File parentDir = new File();
+                @Rule
+                TemporaryFolder tempDir = new TemporaryFolder(parentDir);
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.io.TempDir;
+            
+            import java.io.File;
+            
+            class A {
+                File parentDir = new File();
+                @TempDir
+                File tempDir;
+            }
+        """
+    )
+    @Test
     fun basicReplace() = assertChanged(
         before = """
             import org.junit.Rule;
@@ -117,16 +143,10 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 @TempDir
                 File tempDir2;
             
-                File file2 = newFile(tempDir2, "sam");
+                File file2 = new File(tempDir2, "sam");
             
                 void foo() throws IOException {
-                    File file1 = File.createTempFile("junit", null, tempDir1);
-                }
-            
-                private static File newFile(File root, String fileName) throws IOException {
-                    File file = new File(root, fileName);
-                    file.createNewFile();
-                    return file;
+                    File file1 = new File(tempDir1, "junit");
                 }
             }
         """
@@ -191,7 +211,6 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
 
             import java.io.File;
             import java.io.IOException;
-            import java.nio.file.Files;
             
             class A {
             
@@ -199,7 +218,15 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 File tempDir1;
             
                 void foo() throws IOException {
-                    File file1 = Files.createTempDirectory(tempDir1.toPath(), "junit").toFile();
+                    File file1 = newFolder(tempDir1, "junit");
+                }
+            
+                private static File newFolder(File root, String name) throws IOException {
+                    File result = new File(root, name);
+                    if (!result.mkdirs()) {
+                        throw new IOException("Couldn't create folders " + root);
+                    }
+                    return result;
                 }
             }
         """
@@ -235,10 +262,10 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 File tempDir1;
             
                 File subDir = newFolder(tempDir1, "sub");
-                File subDirs = newFolder(tempDir1, "foo", "bar", "baz");
+                File subDirs = newFolder(tempDir1, "foo/bar/baz");
             
-                private static File newFolder(File root, String ... folders) throws IOException {
-                    File result = new File(root, String.join("/", folders));
+                private static File newFolder(File root, String name) throws IOException {
+                    File result = new File(root, name);
                     if (!result.mkdirs()) {
                         throw new IOException("Couldn't create folders " + root);
                     }
@@ -252,6 +279,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
     @Test
     fun newFileNameIsJIdentifier() = assertChanged(
         before = """
+            import org.junit.Test;
             import org.junit.rules.TemporaryFolder;
             
             import java.io.File;
@@ -260,13 +288,14 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 @Test
                 public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
                     final String fileName = "SampleFile.txt";
-                    TemporaryFolder tempFolder  = new TemporaryFolder();
+                    TemporaryFolder tempFolder = new TemporaryFolder();
                     tempFolder.create();
                     File f = tempFolder.newFile(fileName);
                 }
             }
         """,
         after = """
+            import org.junit.Test;
             import org.junit.jupiter.api.io.TempDir;
             
             import java.io.File;
@@ -274,18 +303,9 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             
             public class T {
                 @Test
-                public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
+                public void newNamedFileIsCreatedUnderRootFolder(@TempDir File tempFolder) throws IOException {
                     final String fileName = "SampleFile.txt";
-                    @TempDir
-                    File tempFolder;
-                    tempFolder.create();
-                    File f = newFile(tempFolder, fileName);
-                }
-            
-                private static File newFile(File root, String fileName) throws IOException {
-                    File file = new File(root, fileName);
-                    file.createNewFile();
-                    return file;
+                    File f = new File(tempFolder, fileName);
                 }
             }
         """
