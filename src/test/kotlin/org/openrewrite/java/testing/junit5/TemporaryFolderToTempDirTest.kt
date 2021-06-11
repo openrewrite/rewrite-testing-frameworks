@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.Recipe
@@ -30,15 +31,41 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
         get() = TemporaryFolderToTempDir()
 
     @Test
-    fun basicReplace() = assertChanged(
+    fun temporaryFolderInstantiatedWithParentFolder() = assertChanged(
         before = """
             import org.junit.Rule;
             import org.junit.rules.TemporaryFolder;
             
+            import java.io.File;
+            
+            class A {
+                File parentDir = new File();
+                @Rule
+                TemporaryFolder tempDir = new TemporaryFolder(parentDir);
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.io.TempDir;
+            
+            import java.io.File;
+            
+            class A {
+                File parentDir = new File();
+                @TempDir
+                File tempDir;
+            }
+        """
+    )
+    @Test
+    fun basicReplace() = assertChanged(
+        before = """
+            import org.junit.ClassRule;
+            import org.junit.rules.TemporaryFolder;
+            
             class A {
             
-                @Rule
-                TemporaryFolder tempDir = new TemporaryFolder();
+                @ClassRule
+                public static TemporaryFolder tempDir = new TemporaryFolder();
             }
         """,
         after = """
@@ -49,7 +76,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             class A {
             
                 @TempDir
-                File tempDir;
+                public static File tempDir;
             }
         """
     )
@@ -57,13 +84,13 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
     @Test
     fun multiVarReplace() = assertChanged(
         before = """
-            import org.junit.Rule;
+            import org.junit.ClassRule;
             import org.junit.rules.TemporaryFolder;
             
             class A {
             
-                @Rule
-                TemporaryFolder tempDir1 = new TemporaryFolder(), tempDir2 = new TemporaryFolder();
+                @ClassRule
+                static TemporaryFolder tempDir1 = new TemporaryFolder(), tempDir2 = new TemporaryFolder();
             }
         """,
         after = """
@@ -74,60 +101,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             class A {
             
                 @TempDir
-                File tempDir1, tempDir2;
-            }
-        """
-    )
-
-    @Test
-    fun newFile() = assertChanged(
-        before = """
-            import org.junit.Rule;
-            import org.junit.rules.TemporaryFolder;
-            
-            import java.io.File;
-            import java.io.IOException;
-            
-            class A {
-            
-                @Rule
-                TemporaryFolder tempDir1 = new TemporaryFolder();
-            
-                @Rule
-                TemporaryFolder tempDir2 = new TemporaryFolder();
-            
-                File file2 = tempDir2.newFile("sam");
-            
-                void foo() throws IOException {
-                    File file1 = tempDir1.newFile();
-                }
-            }
-        """,
-        after = """
-            import org.junit.jupiter.api.io.TempDir;
-            
-            import java.io.File;
-            import java.io.IOException;
-            
-            class A {
-            
-                @TempDir
-                File tempDir1;
-            
-                @TempDir
-                File tempDir2;
-            
-                File file2 = newFile(tempDir2, "sam");
-            
-                void foo() throws IOException {
-                    File file1 = File.createTempFile("junit", null, tempDir1);
-                }
-            
-                private static File newFile(File root, String fileName) throws IOException {
-                    File file = new File(root, fileName);
-                    file.createNewFile();
-                    return file;
-                }
+                static File tempDir1, tempDir2;
             }
         """
     )
@@ -191,7 +165,6 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
 
             import java.io.File;
             import java.io.IOException;
-            import java.nio.file.Files;
             
             class A {
             
@@ -199,7 +172,16 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 File tempDir1;
             
                 void foo() throws IOException {
-                    File file1 = Files.createTempDirectory(tempDir1.toPath(), "junit").toFile();
+                    File file1 = newFolder(tempDir1, "junit");
+                }
+            
+                private static File newFolder(File root, String... subDirs) throws IOException {
+                    String subFolder = String.join("/", subDirs);
+                    File result = new File(root, subFolder);
+                    if (!result.mkdirs()) {
+                        throw new IOException("Couldn't create folders " + root);
+                    }
+                    return result;
                 }
             }
         """
@@ -208,6 +190,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
     @Test
     fun newFolderWithArgs() = assertChanged(
         before = """
+            import org.junit.Test;
             import org.junit.Rule;
             import org.junit.rules.TemporaryFolder;
             
@@ -219,11 +202,22 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 @Rule
                 TemporaryFolder tempDir1 = new TemporaryFolder();
                 
-                File subDir = tempDir1.newFolder("sub");
-                File subDirs = tempDir1.newFolder("foo", "bar", "baz");
+                @Test
+                void someTest() {
+                    File subDir = tempDir1.newFolder("sub");
+                    File subDirs = tempDir1.newFolder("foo", "bar", "baz");
+                    
+                    String last = "z";
+                    File subDirs2 = tempDir1.newFolder("v", "w", getSubFolderName(), "y", last);
+                }
+                
+                String getSubFolderName() {
+                    return "x";
+                }
             }
         """,
         after = """
+            import org.junit.Test;
             import org.junit.jupiter.api.io.TempDir;
 
             import java.io.File;
@@ -234,11 +228,22 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 @TempDir
                 File tempDir1;
             
-                File subDir = newFolder(tempDir1, "sub");
-                File subDirs = newFolder(tempDir1, "foo", "bar", "baz");
+                @Test
+                void someTest() {
+                    File subDir = newFolder(tempDir1, "sub");
+                    File subDirs = newFolder(tempDir1, "foo", "bar", "baz");
             
-                private static File newFolder(File root, String ... folders) throws IOException {
-                    File result = new File(root, String.join("/", folders));
+                    String last = "z";
+                    File subDirs2 = newFolder(tempDir1, "v", "w", getSubFolderName(), "y", last);
+                }
+            
+                String getSubFolderName() {
+                    return "x";
+                }
+            
+                private static File newFolder(File root, String... subDirs) throws IOException {
+                    String subFolder = String.join("/", subDirs);
+                    File result = new File(root, subFolder);
                     if (!result.mkdirs()) {
                         throw new IOException("Couldn't create folders " + root);
                     }
@@ -248,44 +253,151 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
         """
     )
 
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/142")
     @Test
-    fun newFileNameIsJIdentifier() = assertChanged(
+    fun newFolderWithParams() = assertChanged(
         before = """
+            import org.junit.Rule;
+            import org.junit.Test;
             import org.junit.rules.TemporaryFolder;
             
             import java.io.File;
             import java.io.IOException;
+            
+            class A {
+            
+                @Rule
+                TemporaryFolder tempDir1 = new TemporaryFolder();
+                String s1 = "foo";
+                String s2 = "bar";
+                String s3 = "baz";
+                
+                @Test
+                void someTest() {
+                    File subDir = tempDir1.newFolder("sub");
+                    File subDirs = tempDir1.newFolder(s1, s2, s3);
+                }
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            import org.junit.jupiter.api.io.TempDir;
+            
+            import java.io.File;
+            import java.io.IOException;
+            
+            class A {
+            
+                @TempDir
+                File tempDir1;
+                String s1 = "foo";
+                String s2 = "bar";
+                String s3 = "baz";
+            
+                @Test
+                void someTest() {
+                    File subDir = newFolder(tempDir1, "sub");
+                    File subDirs = newFolder(tempDir1, s1, s2, s3);
+                }
+            
+                private static File newFolder(File root, String... subDirs) throws IOException {
+                    String subFolder = String.join("/", subDirs);
+                    File result = new File(root, subFolder);
+                    if (!result.mkdirs()) {
+                        throw new IOException("Couldn't create folders " + root);
+                    }
+                    return result;
+                }
+            }
+        """
+    )
+
+    @Test
+    fun usingMethodRule() = assertChanged(
+        before = """
+            import org.junit.Rule;import org.junit.Test;
+            import org.junit.rules.TemporaryFolder;
+            
+            import java.io.File;
+            import java.io.IOException;
+            
             public class T {
+                @Rule
+                TemporaryFolder tempFolder = new TemporaryFolder();
+                
                 @Test
                 public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
                     final String fileName = "SampleFile.txt";
-                    TemporaryFolder tempFolder  = new TemporaryFolder();
                     tempFolder.create();
                     File f = tempFolder.newFile(fileName);
                 }
             }
         """,
         after = """
+            import org.junit.Test;
             import org.junit.jupiter.api.io.TempDir;
             
             import java.io.File;
             import java.io.IOException;
             
             public class T {
+                @TempDir
+                File tempFolder;
+            
                 @Test
                 public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
                     final String fileName = "SampleFile.txt";
-                    @TempDir
-                    File tempFolder;
-                    tempFolder.create();
-                    File f = newFile(tempFolder, fileName);
+                    File f = File.createTempFile(fileName, null, tempFolder);
                 }
+            }
+        """
+    )
+
+    @Test
+    fun multipleTemporaryFoldersInMethodBody() = assertChanged(
+        before = """
+            import org.junit.ClassRule;
+            import org.junit.Rule;
+            import org.junit.Test;
+            import org.junit.rules.TemporaryFolder;
             
-                private static File newFile(File root, String fileName) throws IOException {
-                    File file = new File(root, fileName);
-                    file.createNewFile();
-                    return file;
+            import java.io.File;
+            import java.io.IOException;
+            public class T {
+                @ClassRule
+                static TemporaryFolder tempFolder = new TemporaryFolder();
+                @Rule
+                TemporaryFolder tempFolder2 = new TemporaryFolder();
+                
+                @Test
+                public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
+                    final String fileName = "SampleFile.txt";
+                    final String otherFileName = "otherText.txt";
+                    tempFolder.create();
+                    tempFolder2.create();
+                    File f = tempFolder.newFile(fileName);
+                    File f2 = tempFolder2.newFile(otherFileName);
+                }
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            import org.junit.jupiter.api.io.TempDir;
+            
+            import java.io.File;
+            import java.io.IOException;
+            
+            public class T {
+                @TempDir
+                static File tempFolder;
+                @TempDir
+                File tempFolder2;
+            
+                @Test
+                public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
+                    final String fileName = "SampleFile.txt";
+                    final String otherFileName = "otherText.txt";
+                    File f = File.createTempFile(fileName, null, tempFolder);
+                    File f2 = File.createTempFile(otherFileName, null, tempFolder2);
                 }
             }
         """
@@ -318,6 +430,37 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             
                 public static void init() {
                     File aDir = temporaryFolder;
+                }
+            }
+        """
+    )
+
+    @Test
+    fun newTemporaryFolderInstanceAsArgumentNotSupported() = assertUnchanged(
+        before = """
+            import org.junit.rules.TemporaryFolder;
+            public class Z {
+                void why() {
+                    doSomething(new TemporaryFolder());
+                }
+                void doSomething(TemporaryFolder tempFolder) {
+                
+                }
+            }
+        """
+    )
+
+    @Test
+    fun notSupported() = assertUnchanged(
+        before = """
+            import org.junit.rules.TemporaryFolder;
+            public class Z {
+                void why() {
+                    TemporaryFolder t = new TemporaryFolder();
+                    doSomething(t);
+                }
+                void doSomething(TemporaryFolder tempFolder) {
+                
                 }
             }
         """
