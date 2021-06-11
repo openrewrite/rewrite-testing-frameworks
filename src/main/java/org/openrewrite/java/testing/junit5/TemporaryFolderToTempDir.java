@@ -99,8 +99,7 @@ public class TemporaryFolderToTempDir extends Recipe {
         }
 
         private boolean isRuleAnnotatedTemporaryFolder(J.VariableDeclarations vd) {
-            return vd.getTypeAsFullyQualified() != null
-                    && "org.junit.rules.TemporaryFolder".equals(vd.getTypeAsFullyQualified().getFullyQualifiedName())
+            return TypeUtils.isOfClassType(vd.getTypeAsFullyQualified(), "org.junit.rules.TemporaryFolder")
                     && vd.getLeadingAnnotations().stream().filter(anno -> CLASS_RULE_ANNOTATION_MATCHER.matches(anno) || RULE_ANNOTATION_MATCHER.matches(anno)).findAny().isPresent();
         }
 
