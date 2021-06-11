@@ -65,7 +65,7 @@ public class MockUtilsToStatic extends Recipe {
         private static final MethodMatcher METHOD_MATCHER = new MethodMatcher("org.mockito.internal.util.MockUtil MockUtil()");
         private final ChangeMethodTargetToStatic changeMethodTargetToStatic = new ChangeMethodTargetToStatic(
                 "org.mockito.internal.util.MockUtil *(..)",
-                "org.mockito.internal.util.MockUtil"
+                "org.mockito.internal.util.MockUtil", null
         );
 
         @Override

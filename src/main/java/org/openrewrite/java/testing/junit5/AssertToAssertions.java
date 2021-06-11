@@ -62,7 +62,8 @@ public class AssertToAssertions extends Recipe {
             if (!isJunitAssertMethod(m)) {
                 return m;
             }
-            doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + m.getSimpleName() + "(..)", "org.junit.jupiter.api.Assertions"));
+            doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + m.getSimpleName() + "(..)",
+                    "org.junit.jupiter.api.Assertions", null));
             List<Expression> args = m.getArguments();
             Expression firstArg = args.get(0);
             // Suppress arg-switching for Assertions.assertEquals(String, String)
