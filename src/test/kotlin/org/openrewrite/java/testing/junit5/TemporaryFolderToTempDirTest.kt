@@ -190,6 +190,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
     @Test
     fun newFolderWithArgs() = assertChanged(
         before = """
+            import org.junit.Test;
             import org.junit.Rule;
             import org.junit.rules.TemporaryFolder;
             
@@ -201,11 +202,14 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 @Rule
                 TemporaryFolder tempDir1 = new TemporaryFolder();
                 
-                File subDir = tempDir1.newFolder("sub");
-                File subDirs = tempDir1.newFolder("foo", "bar", "baz");
-                
-                String last = "z";
-                File subDirs2 = tempDir1.newFolder("v", "w", getSubFolderName(), "y", last);
+                @Test
+                void someTest() {
+                    File subDir = tempDir1.newFolder("sub");
+                    File subDirs = tempDir1.newFolder("foo", "bar", "baz");
+                    
+                    String last = "z";
+                    File subDirs2 = tempDir1.newFolder("v", "w", getSubFolderName(), "y", last);
+                }
                 
                 String getSubFolderName() {
                     return "x";
@@ -213,6 +217,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             }
         """,
         after = """
+            import org.junit.Test;
             import org.junit.jupiter.api.io.TempDir;
 
             import java.io.File;
@@ -223,11 +228,14 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 @TempDir
                 File tempDir1;
             
-                File subDir = newFolder(tempDir1, "sub");
-                File subDirs = newFolder(tempDir1, "foo", "bar", "baz");
+                @Test
+                void someTest() {
+                    File subDir = newFolder(tempDir1, "sub");
+                    File subDirs = newFolder(tempDir1, "foo", "bar", "baz");
             
-                String last = "z";
-                File subDirs2 = newFolder(tempDir1, "v", "w", getSubFolderName(), "y", last);
+                    String last = "z";
+                    File subDirs2 = newFolder(tempDir1, "v", "w", getSubFolderName(), "y", last);
+                }
             
                 String getSubFolderName() {
                     return "x";
