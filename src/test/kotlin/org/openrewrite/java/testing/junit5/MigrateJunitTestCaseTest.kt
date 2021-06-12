@@ -65,8 +65,7 @@ class MigrateJunitTestCaseTest : JavaRecipeTest {
             import org.junit.jupiter.api.BeforeEach;
             import org.junit.jupiter.api.Test;
             
-            import static org.junit.jupiter.api.Assertions.assertEquals;
-            import static org.junit.jupiter.api.Assertions.fail;
+            import static org.junit.jupiter.api.Assertions.*;
 
             public class MathTest {
                 protected long value1;
@@ -80,6 +79,7 @@ class MigrateJunitTestCaseTest : JavaRecipeTest {
             
                 @Test
                 public void testAdd() {
+                    //setName("primitive test");
                     long result = value1 + value2;
                     assertEquals(5, result);
                     fail("some Failure message");

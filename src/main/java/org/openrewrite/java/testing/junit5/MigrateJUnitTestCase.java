@@ -25,10 +25,9 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.marker.JavaSearchResult;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Marker;
+import org.openrewrite.marker.Markers;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -95,15 +94,31 @@ public class MigrateJUnitTestCase extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                if (cu.getClasses().stream().findAny().isPresent()) {
-                    doAfterVisit(new TestCaseVisitor());
-                }
+                J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
+                doAfterVisit(new TestCaseVisitor());
                 // ChangeType for org.junit.Assert method invocations because TestCase extends org.junit.Assert
                 doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert"));
                 doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
                 doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions assert*(..)"));
                 doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions fail*(..)"));
-                return cu;
+                return c;
+            }
+
+            @SuppressWarnings("ConstantConditions")
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
+                if ((mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase"))
+                        || (mi.getType() != null && TypeUtils.isOfClassType(mi.getType().getDeclaringType(), "junit.framework.TestCase"))) {
+                    String name = mi.getSimpleName();
+                    // setUp and tearDown will be invoked via Before and After annotations
+                    if ("setUp".equals(name) || "tearDown".equals(name)) {
+                        return null;
+                    } else if ("setName".equals(name)) {
+                        mi = mi.withPrefix(mi.getPrefix().withComments(ListUtils.concat(mi.getPrefix().getComments(), new Comment(Comment.Style.LINE, "", "", Markers.EMPTY))));
+                    }
+                }
+                return mi;
             }
         };
     }
@@ -125,18 +140,6 @@ public class MigrateJUnitTestCase extends Recipe {
             }
             maybeRemoveImport("junit.framework.TestCase");
             return cd;
-        }
-
-        @SuppressWarnings("ConstantConditions")
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-            J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
-            String name = mi.getSimpleName();
-            // setUp and tearDown will be invoked via Before and After annotations, setName is not convertible
-            if ("setUp".equals(name) || "tearDown".equals(name) || "setName".equals(name)) {
-                return null;
-            }
-            return mi;
         }
 
         @Override
