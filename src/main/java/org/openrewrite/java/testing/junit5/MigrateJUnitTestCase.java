@@ -78,7 +78,7 @@ public class MigrateJUnitTestCase extends Recipe {
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
                 J.CompilationUnit c = cu;
                 for (J.ClassDeclaration clazz : c.getClasses()) {
-                    if(TypeUtils.isAssignableTo(JavaType.Class.build("junit.framework.TestCase"), clazz.getType())) {
+                    if (TypeUtils.isAssignableTo(JavaType.Class.build("junit.framework.TestCase"), clazz.getType())) {
                         c = c.withMarkers(c.getMarkers().addIfAbsent(FOUND_TYPE));
                     }
                 }
@@ -157,7 +157,7 @@ public class MigrateJUnitTestCase extends Recipe {
 
         private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation) {
             J.MethodDeclaration md = methodDeclaration;
-            if(FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
+            if (FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
                 md = methodDeclaration.withTemplate(template(annotation)
                                 .javaParser(JAVA_PARSER::get)
                                 .imports(fullyQualifiedAnnotation).build(),

@@ -72,7 +72,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     }
 
     private static String junitParamsDefaultInitMethodName(String methodName) {
-        return PARAMETERS_FOR_PREFIX + methodName.substring(0,1).toUpperCase() + methodName.substring(1);
+        return PARAMETERS_FOR_PREFIX + methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
     }
 
     @Override
@@ -102,7 +102,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                 Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                 // methods having names starting with parametersFor... are init methods
                 if (m.getSimpleName().startsWith(PARAMETERS_FOR_PREFIX)) {
-                    ((Set<String>)classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<String>())).add(m.getSimpleName());
+                    ((Set<String>) classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<String>())).add(m.getSimpleName());
                 }
                 return m;
             }
@@ -117,10 +117,10 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                         for (String method : annotationArgumentValue.split(",")) {
                             ((Set<String>) classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<String>())).add(method);
                         }
-                    } else if (anno.getArguments() != null && !anno.getArguments().isEmpty()){
+                    } else if (anno.getArguments() != null && !anno.getArguments().isEmpty()) {
                         // This conversion is not supported add a comment to the annotation and the method name to the not supported list
                         String comment = " JunitParamsRunnerToParameterized conversion not supported";
-                        if(anno.getComments().stream().noneMatch(c -> c.getText().equals(comment))) {
+                        if (anno.getComments().stream().noneMatch(c -> c.getText().equals(comment))) {
                             anno = anno.withComments(ListUtils.concat(anno.getComments(), new Comment(Comment.Style.LINE, comment,
                                     "\n" + anno.getPrefix().getIndent(), Markers.EMPTY)));
                         }
@@ -130,12 +130,12 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                         unsupportedMethods.add(junitParamsDefaultInitMethodName(m.getSimpleName()));
                     }
                 } else if (NAMED_PARAMETERS_MATCHER.matches(annotation)) {
-                     String namedInitMethod = getLiteralAnnotationArgumentValue(annotation);
-                     if (namedInitMethod != null) {
-                         J.MethodDeclaration m = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();
-                         ((Set<String>) classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<String>())).add(m.getSimpleName());
-                         classDeclCursor.computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<String, String>()).put(namedInitMethod, m.getSimpleName());
-                     }
+                    String namedInitMethod = getLiteralAnnotationArgumentValue(annotation);
+                    if (namedInitMethod != null) {
+                        J.MethodDeclaration m = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();
+                        ((Set<String>) classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<String>())).add(m.getSimpleName());
+                        classDeclCursor.computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<String, String>()).put(namedInitMethod, m.getSimpleName());
+                    }
                 } else if (TEST_CASE_NAME_MATCHER.matches(anno)) {
                     // test name for ParameterizedTest argument
                     Object testNameArg = getLiteralAnnotationArgumentValue(anno);
@@ -150,7 +150,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             private String getLiteralAnnotationArgumentValue(J.Annotation anno) {
                 String annotationArgumentValue = null;
                 if (anno.getArguments() != null && anno.getArguments().size() == 1 && anno.getArguments().get(0) instanceof J.Literal) {
-                    J.Literal literal = (J.Literal)anno.getArguments().get(0);
+                    J.Literal literal = (J.Literal) anno.getArguments().get(0);
                     annotationArgumentValue = literal.getValue() != null ? literal.getValue().toString() : null;
                 }
                 return annotationArgumentValue;
@@ -163,9 +163,9 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                         && anno.getArguments().get(0) instanceof J.Assignment
                         && ((J.Assignment) anno.getArguments().get(0)).getVariable() instanceof J.Identifier
                         && ((J.Assignment) anno.getArguments().get(0)).getAssignment() instanceof J.Literal) {
-                    J.Assignment annoArg = (J.Assignment)anno.getArguments().get(0);
-                    J.Literal assignment = (J.Literal)annoArg.getAssignment();
-                    String identifier = ((J.Identifier)annoArg.getVariable()).getSimpleName();
+                    J.Assignment annoArg = (J.Assignment) anno.getArguments().get(0);
+                    J.Literal assignment = (J.Literal) annoArg.getAssignment();
+                    String identifier = ((J.Identifier) annoArg.getVariable()).getSimpleName();
                     for (String variableName : variableNames) {
                         if (variableName.equals(identifier)) {
                             value = assignment.getValue() != null ? assignment.getValue().toString() : null;
@@ -297,7 +297,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             if (anno.getArguments() != null && anno.getArguments().size() == 1) {
                 Expression annoArg = anno.getArguments().get(0);
                 if (annoArg instanceof J.Literal) {
-                    annotationArgumentValue = (String) ((J.Literal)annoArg).getValue();
+                    annotationArgumentValue = (String) ((J.Literal) annoArg).getValue();
                 } else if (annoArg instanceof J.Assignment && (((J.Assignment) annoArg).getAssignment()) instanceof J.Literal) {
                     annotationArgumentValue = (String) ((J.Literal) ((J.Assignment) annoArg).getAssignment()).getValue();
                 }
