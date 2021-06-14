@@ -217,11 +217,11 @@ public class UpdateTestAnnotation extends Recipe {
                                     .javaParser(() -> JavaParser.fromJavaVersion()
                                             .dependsOn(Collections.singletonList(Parser.Input.fromString(
                                                     "package org.junit.jupiter.api;\n" +
-                                                    "import java.util.concurrent.TimeUnit;\n" +
-                                                    "public @interface Timeout {\n" +
-                                                    "    long value();\n" +
-                                                    "    TimeUnit unit() default TimeUnit.SECONDS;\n" +
-                                                    "}\n"
+                                                            "import java.util.concurrent.TimeUnit;\n" +
+                                                            "public @interface Timeout {\n" +
+                                                            "    long value();\n" +
+                                                            "    TimeUnit unit() default TimeUnit.SECONDS;\n" +
+                                                            "}\n"
                                             )))
                                             .build())
                                     .imports("org.junit.jupiter.api.Timeout")

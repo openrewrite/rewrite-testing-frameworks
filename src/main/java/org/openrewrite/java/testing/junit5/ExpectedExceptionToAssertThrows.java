@@ -52,21 +52,21 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                             Stream.of(
                                     Parser.Input.fromString(
                                             "package org.junit.jupiter.api.function;" +
-                                            "public interface Executable {" +
-                                            "void execute() throws Throwable;" +
-                                            "}"),
+                                                    "public interface Executable {" +
+                                                    "void execute() throws Throwable;" +
+                                                    "}"),
                                     Parser.Input.fromString(
                                             "package org.hamcrest;\n" +
-                                            "public interface Matcher<T> {\n" +
-                                            "    boolean matches(Object var1);\n" +
-                                            "}"),
+                                                    "public interface Matcher<T> {\n" +
+                                                    "    boolean matches(Object var1);\n" +
+                                                    "}"),
                                     Parser.Input.fromString(
                                             "package org.hamcrest;\n" +
-                                            "public class MatcherAssert {\n" +
-                                            "    public static <T> void assertThat(T actual, Matcher<? super T> matcher) {}\n" +
-                                            "    public static <T> void assertThat(String reason, T actual, Matcher<? super T> matcher) {}\n" +
-                                            "    public static void assertThat(String reason, boolean assertion) {}\n" +
-                                            "}"))
+                                                    "public class MatcherAssert {\n" +
+                                                    "    public static <T> void assertThat(T actual, Matcher<? super T> matcher) {}\n" +
+                                                    "    public static <T> void assertThat(String reason, T actual, Matcher<? super T> matcher) {}\n" +
+                                                    "    public static void assertThat(String reason, boolean assertion) {}\n" +
+                                                    "}"))
                     ).collect(Collectors.toList())
             ).build());
 

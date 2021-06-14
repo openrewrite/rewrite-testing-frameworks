@@ -44,7 +44,7 @@ public class CleanupMockitoImports extends Recipe {
     public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.Import visitImport(J.Import _import, ExecutionContext executionContext) {
-            if(_import.getPackageName().startsWith("org.mockito")) {
+            if (_import.getPackageName().startsWith("org.mockito")) {
                 maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
             }
             return _import;
