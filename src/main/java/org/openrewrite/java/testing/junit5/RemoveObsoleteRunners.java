@@ -33,7 +33,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class RemoveObsoleteRunners extends Recipe {
     @Option(displayName = "Obsolete Runners",
-            description = "The fully qualified class names of the JUnit4 runners to be removed",
+            description = "The fully qualified class names of the JUnit4 runners to be removed.",
             example = "org.junit.runners.JUnit4")
     List<String> obsoleteRunners;
 
