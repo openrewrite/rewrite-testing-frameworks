@@ -42,8 +42,7 @@ public class ExampleJunitTestClass {
     }
 
     @AfterClass
-    public static void afterClass() {
-    }
+    public static void afterClass() { }
 
     @Mock
     List<String> mockedList;
@@ -100,8 +99,7 @@ public class ExampleJunitTestClass {
     }
 
     @Test(timeout = 500)
-    public void bar() {
-    }
+    public void bar() { }
 
     @Test
     public void aTest() {
