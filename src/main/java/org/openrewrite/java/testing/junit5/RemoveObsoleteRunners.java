@@ -39,7 +39,7 @@ public class RemoveObsoleteRunners extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Remove JUnit 4 `@RunWith` annotations that do not require an `@ExtendsWith` replacement.";
+        return "Remove JUnit 4 `@RunWith` annotations that do not require an `@ExtendsWith` replacement";
     }
 
     @Override
