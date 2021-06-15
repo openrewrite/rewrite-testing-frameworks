@@ -103,7 +103,8 @@ class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
                     return "String";
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -181,7 +182,8 @@ class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
                     return "String";
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -224,6 +226,7 @@ class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
                     return "String";
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 }

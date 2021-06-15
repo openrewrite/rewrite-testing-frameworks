@@ -99,7 +99,8 @@ class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
                     return 1;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -135,7 +136,8 @@ class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
                     return 1;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -173,7 +175,8 @@ class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
                     return 1;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -214,7 +217,8 @@ class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
                     return 1;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -263,7 +267,8 @@ class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
                     return 1;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
 }

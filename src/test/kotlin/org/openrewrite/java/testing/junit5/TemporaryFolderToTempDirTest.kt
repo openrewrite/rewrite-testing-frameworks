@@ -184,7 +184,8 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                     return result;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -250,7 +251,8 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                     return result;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -308,7 +310,8 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                     return result;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test

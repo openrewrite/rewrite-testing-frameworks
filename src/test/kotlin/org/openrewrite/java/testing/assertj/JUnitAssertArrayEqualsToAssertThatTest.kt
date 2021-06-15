@@ -101,7 +101,8 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                     return new int[]{1, 2, 3};
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -177,7 +178,8 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                     return new double[]{1.1d, 2.1d, 3.1d};
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -213,7 +215,8 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                     return new Double[]{1.0d, 2.0d, 3.0d};
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -287,7 +290,8 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                     return new float[]{1.1f, 2.1f, 3.1f};
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -323,6 +327,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                     return new String[] {"Fred", "Alice", "Mary"};        
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 }

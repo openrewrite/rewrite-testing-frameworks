@@ -173,7 +173,8 @@ class JUnitAssertEqualsToAssertThatTest : JavaRecipeTest {
                     return 0.1d;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -210,7 +211,8 @@ class JUnitAssertEqualsToAssertThatTest : JavaRecipeTest {
                     return Double.valueOf(0.1d);
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -284,7 +286,8 @@ class JUnitAssertEqualsToAssertThatTest : JavaRecipeTest {
                     return 0.1f;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -321,6 +324,7 @@ class JUnitAssertEqualsToAssertThatTest : JavaRecipeTest {
                     return new File("someFile");
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 }

@@ -209,6 +209,7 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
                     });
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 }

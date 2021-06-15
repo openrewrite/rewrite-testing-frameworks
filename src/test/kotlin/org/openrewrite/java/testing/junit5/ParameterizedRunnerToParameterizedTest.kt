@@ -105,7 +105,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                         new Object[] { "Garfield", "TheBoss", 126 });
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -185,7 +186,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                         new Object[] { "Garfield", "TheBoss", 126 });
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -255,6 +257,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     this.stuff = stuff;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 }

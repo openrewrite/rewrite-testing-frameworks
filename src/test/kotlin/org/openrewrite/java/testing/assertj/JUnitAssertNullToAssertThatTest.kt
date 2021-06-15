@@ -99,7 +99,8 @@ class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
                     return null;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -173,7 +174,8 @@ class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
                     return null;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 
     @Test
@@ -214,6 +216,7 @@ class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
                     return null;
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true
     )
 }
