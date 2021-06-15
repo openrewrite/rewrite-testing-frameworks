@@ -19,7 +19,6 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -108,7 +107,7 @@ public class UpdateTestAnnotation extends Recipe {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             if (m.getLeadingAnnotations().stream().anyMatch(JUNIT4_TEST::matches)) {
                 // FIXME removing public modifiers requires access to the method super type to prevent assigning weaker access privileges
-                //doAfterVisit(new ChangeTestAccessVisibilityStep(m));
+                //doAfterVisit(new ChangeMethodAccessLevelVisitor<>(new MethodMatcher(method), null));
 
                 List<Expression> arguments = getCursor().getMessage(JUNIT4_TEST_ANNOTATION_ARGUMENTS);
                 if (arguments != null) {
@@ -160,40 +159,6 @@ public class UpdateTestAnnotation extends Recipe {
                     }
                 }
 
-                return m;
-            }
-        }
-
-        private static class ChangeTestAccessVisibilityStep extends JavaIsoVisitor<ExecutionContext> {
-            private static final Predicate<J.Modifier> HAS_ACCESS_MODIFIER = mod -> mod.getType() == J.Modifier.Type.Private || mod.getType() == J.Modifier.Type.Public || mod.getType() == J.Modifier.Type.Protected;
-            private final J.MethodDeclaration scope;
-
-            public ChangeTestAccessVisibilityStep(J.MethodDeclaration scope) {
-                this.scope = scope;
-            }
-
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-                if (m.isScope(scope)) {
-                    // If we found the annotation, we change the visibility of the method to package (no access modifiers) and copy any comments to the method.
-                    // Also need to format the method declaration because the previous visibility likely had formatting that is removed.
-                    final List<Comment> modifierComments = new ArrayList<>();
-                    List<J.Modifier> modifiers = ListUtils.map(m.getModifiers(), modifier -> {
-                        if (HAS_ACCESS_MODIFIER.test(modifier)) {
-                            modifierComments.addAll(modifier.getComments());
-                            return null;
-                        } else {
-                            return modifier;
-                        }
-                    });
-                    if (!modifierComments.isEmpty()) {
-                        m = m.withComments(ListUtils.concatAll(m.getComments(), modifierComments));
-                    }
-                    if (m.getModifiers() != modifiers) {
-                        m = maybeAutoFormat(m, m.withModifiers(modifiers), ctx, getCursor().dropParentUntil(J.class::isInstance));
-                    }
-                }
                 return m;
             }
         }
