@@ -43,5 +43,6 @@ recipeList:
       groupId: org.mockito
       artifactId: mockito-junit-jupiter
       version: 3.x
+      scope: test
       onlyIfUsing:
         - org.mockito.junit.jupiter.MockitoExtension
