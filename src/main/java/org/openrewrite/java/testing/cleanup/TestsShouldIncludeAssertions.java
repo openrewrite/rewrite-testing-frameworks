@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.cleanup;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.*;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.search.UsesType;
@@ -99,7 +98,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
                 J.Block body = md.getBody();
                 if (body != null) {
-                    md = method.withTemplate(template("assertDoesNotThrow(() -> #{});")
+                    md = method.withTemplate(template("assertDoesNotThrow(() -> #{any()});")
                                     .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
                                     .javaParser(ASSERTIONS_PARSER::get).build(),
                             method.getCoordinates().replaceBody(),
@@ -142,16 +141,11 @@ public class TestsShouldIncludeAssertions extends Recipe {
                         return true;
                     }
                 }
-
-                if (methodInvocation.getSelect() != null && methodInvocation.getSelect() instanceof J.MethodInvocation
-                        && ((J.MethodInvocation) methodInvocation.getSelect()).getType() != null) {
-                    J.MethodInvocation selectMethod = (J.MethodInvocation) methodInvocation.getSelect();
-                    if (selectMethod.getType() != null) {
-                        String select = selectMethod.getType().getDeclaringType().getFullyQualifiedName() + "." + selectMethod.getSimpleName();
-                        for (String assertMethod : assertions) {
-                            if (select.equals(assertMethod)) {
-                                return true;
-                            }
+                if (methodInvocation.getType() != null && methodInvocation.getType().getDeclaringType() != null) {
+                    String methodFqn = methodInvocation.getType().getDeclaringType().getFullyQualifiedName() + "." + methodInvocation.getSimpleName();
+                    for (String assertMethod : assertions) {
+                        if (assertMethod.equals(methodFqn)) {
+                            return true;
                         }
                     }
                 }

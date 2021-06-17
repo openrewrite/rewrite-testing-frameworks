@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup
 
 import org.junit.jupiter.api.Test
+import org.openrewrite.Parser
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
@@ -23,6 +24,18 @@ import org.openrewrite.java.JavaRecipeTest
 class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit", "mockito-all", "hamcrest", "assertj-core")
+        .dependsOn(
+            listOf(
+                Parser.Input.fromString(
+                    """
+                        package org.learning.math;
+                        public interface MyMathService {
+                            Integer addIntegers(String i1, String i2);
+                        }
+                    """
+                )
+            )
+            )
         .build()
 
     override val recipe: Recipe
@@ -133,59 +146,47 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
         before = """
             import org.junit.jupiter.api.Test;
             import org.mockito.Mock;
+            import org.learning.math.MyMathService;
+            import static org.mockito.Mockito.when;
+            import static org.mockito.Mockito.times;
             import static org.mockito.Mockito.verify;
             
             class AaTest {
                 @Mock
                 MyMathService myMathService;
                 
-                private class MyMathService {
-                    Integer add(Object i1, Object i2) {
-                        return Math.addExact(Integer.valueOf(i1), Integer.valueOf(i2));
-                    }
-                }
-                
                 @Test
                 public void verifyTest() {
-                    Integer i = myMathService.add(1,2);
-                    verify(myMathService).add(1,2);
-                }
-                
-                @Test
-                public void verifyTest() {
-                    Integer i = myMathService.add(1,2);
-                    verify(myMathService).add(1,2);
+                    when(myMathService.addIntegers("1", "2")).thenReturn(3);
+                    Integer i = myMathService.addIntegers("1", "2");
+                    verify(myMathService, times(1));
                 }
             }
         """
     )
 
     @Test
-    fun hasMockitoWhenThrows() = assertChanged(
+    fun hasMockitoDoesNotValidate() = assertChanged(
         before = """
             import org.junit.jupiter.api.Test;
             import org.mockito.Mock;
+            import org.learning.math.MyMathService;
             import static org.mockito.Mockito.when;
             
             class AaTest {
                 @Mock
                 MyMathService myMathService;
                 
-                private class MyMathService {
-                    Integer add(Object o1, Object o2) {
-                        return Integer.valueOf(i1 + i2);
-                    }
-                }
-            
                 @Test
                 public void methodTest() {
-                    when(myMathService.add("a", "b")).thenThrow(new RuntimeException());
-                    myMathService.add("a", "b");
+                    when(myMathService.addIntegers("1", "2")).thenReturn(3);
+                    myMathService.addIntegers("1", "2");
                 }
             }
         """,
         after = """
             import org.junit.jupiter.api.Test;
+            import org.learning.math.MyMathService;
             import org.mockito.Mock;
             
             import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -195,21 +196,14 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
                 @Mock
                 MyMathService myMathService;
                 
-                private class MyMathService {
-                    Integer add(Object o1, Object o2) {
-                        return Integer.valueOf(i1 + i2);
-                    }
-                }
-            
                 @Test
                 public void methodTest() {
                     assertDoesNotThrow(() -> {
-                        when(myMathService.add("a", "b")).thenThrow(new RuntimeException());
-                        myMathService.add("a", "b");
+                        when(myMathService.addIntegers("1", "2")).thenReturn(3);
+                        myMathService.addIntegers("1", "2");
                     });
                 }
             }
-        """,
-        skipEnhancedTypeValidation = true
+        """
     )
 }
