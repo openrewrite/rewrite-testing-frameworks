@@ -53,8 +53,7 @@ class UpdateMockWebServerTest : JavaRecipeTest {
                     server.close();
                 }
             }
-        """,
-        skipEnhancedTypeValidation = true
+        """
     )
 
     @Test
@@ -87,7 +86,6 @@ class UpdateMockWebServerTest : JavaRecipeTest {
                     server.close();
                 }
             }
-        """,
-        skipEnhancedTypeValidation = true
+        """
     )
 }
