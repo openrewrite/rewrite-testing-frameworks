@@ -23,7 +23,9 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -100,7 +102,7 @@ public class TemporaryFolderToTempDir extends Recipe {
 
         private boolean isRuleAnnotatedTemporaryFolder(J.VariableDeclarations vd) {
             return TypeUtils.isOfClassType(vd.getTypeAsFullyQualified(), "org.junit.rules.TemporaryFolder")
-                    && vd.getLeadingAnnotations().stream().filter(anno -> CLASS_RULE_ANNOTATION_MATCHER.matches(anno) || RULE_ANNOTATION_MATCHER.matches(anno)).findAny().isPresent();
+                    && vd.getLeadingAnnotations().stream().anyMatch(anno -> CLASS_RULE_ANNOTATION_MATCHER.matches(anno) || RULE_ANNOTATION_MATCHER.matches(anno));
         }
 
         @Override
@@ -154,15 +156,16 @@ public class TemporaryFolderToTempDir extends Recipe {
             Stream<J.MethodDeclaration> methods = cd.getBody().getStatements().stream()
                     .filter(J.MethodDeclaration.class::isInstance)
                     .map(J.MethodDeclaration.class::cast);
-            boolean methodAlreadyExists = methods
-                    .anyMatch(m -> {
+            JavaType newFolderMethodDeclaration = methods
+                    .filter(m -> {
                         List<Statement> params = m.getParameters();
                         return m.getSimpleName().equals("newFolder")
                                 && params.size() == 2
                                 && params.get(0).hasClassType(FILE_TYPE)
                                 && params.get(1).hasClassType(STRING_TYPE);
-                    });
-            if (!methodAlreadyExists) {
+                    }).map(J.MethodDeclaration::getType).findAny().orElse(null);
+
+            if (newFolderMethodDeclaration == null) {
                 cd = cd.withTemplate(template(
                         "private static File newFolder(File root, String... subDirs) throws IOException {\n" +
                                 "    String subFolder = String.join(\"/\", subDirs);\n" +
@@ -173,18 +176,22 @@ public class TemporaryFolderToTempDir extends Recipe {
                                 "    return result;\n" +
                                 "}"
                 ).imports("java.io.File", "java.io.IOException").javaParser(TEMPDIR_PARSER::get).build(), cd.getBody().getCoordinates().lastStatement());
+                newFolderMethodDeclaration = ((J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1)).getType();
                 maybeAddImport("java.io.File");
                 maybeAddImport("java.io.IOException");
             }
-            doAfterVisit(new TranslateNewFolderMethodInvocation(methodInvocation));
+            assert (newFolderMethodDeclaration != null);
+            doAfterVisit(new TranslateNewFolderMethodInvocation(methodInvocation, newFolderMethodDeclaration));
             return cd;
         }
 
         private static class TranslateNewFolderMethodInvocation extends JavaVisitor<ExecutionContext> {
             J.MethodInvocation methodScope;
+            JavaType newMethodType;
 
-            public TranslateNewFolderMethodInvocation(J.MethodInvocation method) {
+            public TranslateNewFolderMethodInvocation(J.MethodInvocation method, JavaType newMethodType) {
                 this.methodScope = method;
+                this.newMethodType = newMethodType;
             }
 
             @Override
@@ -197,10 +204,10 @@ public class TemporaryFolderToTempDir extends Recipe {
                     J tempDir = mi.getSelect().withType(FILE_TYPE);
                     List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
                     if (args.isEmpty()) {
-                        return mi.withTemplate(template("newFolder(#{any(java.io.File)}, \"junit\")")
+                        mi = mi.withTemplate(template("newFolder(#{any(java.io.File)}, \"junit\")")
                                 .imports("java.io.File").javaParser(TEMPDIR_PARSER::get).build(), mi.getCoordinates().replace(), tempDir);
                     } else if (args.size() == 1) {
-                        return mi.withTemplate(template("newFolder(#{any(java.io.File)}, #{any(java.lang.String)})")
+                        mi = mi.withTemplate(template("newFolder(#{any(java.io.File)}, #{any(java.lang.String)})")
                                         .imports("java.io.File").javaParser(TEMPDIR_PARSER::get).build(),
                                 mi.getCoordinates().replace(), tempDir, args.get(0));
                     } else {
@@ -209,10 +216,13 @@ public class TemporaryFolderToTempDir extends Recipe {
                         sb.append(")");
                         List<Object> templateArgs = new ArrayList<>(args);
                         templateArgs.add(0, tempDir);
-                        return mi.withTemplate(template(sb.toString())
+                        mi = mi.withTemplate(template(sb.toString())
                                         .imports("java.io.File").javaParser(TEMPDIR_PARSER::get).build(),
                                 mi.getCoordinates().replace(), templateArgs.toArray());
                     }
+                    mi = mi.withType(newMethodType);
+                    J.ClassDeclaration parentClass = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).getValue();
+                    mi = mi.withName(mi.getName().withType(parentClass.getType()));
                 }
                 return mi;
             }

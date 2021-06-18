@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.Recipe
@@ -184,8 +183,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                     return result;
                 }
             }
-        """,
-        skipEnhancedTypeValidation = true
+        """
     )
 
     @Test
@@ -204,7 +202,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 TemporaryFolder tempDir1 = new TemporaryFolder();
                 
                 @Test
-                void someTest() {
+                public void someTest() {
                     File subDir = tempDir1.newFolder("sub");
                     File subDirs = tempDir1.newFolder("foo", "bar", "baz");
                     
@@ -230,7 +228,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 File tempDir1;
             
                 @Test
-                void someTest() {
+                public void someTest() {
                     File subDir = newFolder(tempDir1, "sub");
                     File subDirs = newFolder(tempDir1, "foo", "bar", "baz");
             
@@ -251,8 +249,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                     return result;
                 }
             }
-        """,
-        skipEnhancedTypeValidation = true
+        """
     )
 
     @Test
@@ -274,7 +271,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 String s3 = "baz";
                 
                 @Test
-                void someTest() {
+                public void someTest() {
                     File subDir = tempDir1.newFolder("sub");
                     File subDirs = tempDir1.newFolder(s1, s2, s3);
                 }
@@ -296,7 +293,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 String s3 = "baz";
             
                 @Test
-                void someTest() {
+                public void someTest() {
                     File subDir = newFolder(tempDir1, "sub");
                     File subDirs = newFolder(tempDir1, s1, s2, s3);
                 }
@@ -310,8 +307,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                     return result;
                 }
             }
-        """,
-        skipEnhancedTypeValidation = true
+        """
     )
 
     @Test
