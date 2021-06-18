@@ -15,4 +15,5 @@
  */
 package org.openrewrite.java.testing.statik;
 
-public interface UnitTest{}
+public interface UnitTest {
+}
