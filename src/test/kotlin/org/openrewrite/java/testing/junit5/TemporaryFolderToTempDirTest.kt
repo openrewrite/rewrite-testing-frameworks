@@ -132,7 +132,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             
                 @TempDir
                 File tempDir;
-            
+                
                 void foo() {
                     File root = tempDir;
                 }
@@ -197,7 +197,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             import java.io.IOException;
             
             class A {
-            
+                
                 @Rule
                 TemporaryFolder tempDir1 = new TemporaryFolder();
                 
@@ -226,16 +226,16 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             
                 @TempDir
                 File tempDir1;
-            
+                
                 @Test
                 public void someTest() {
                     File subDir = newFolder(tempDir1, "sub");
                     File subDirs = newFolder(tempDir1, "foo", "bar", "baz");
-            
+                    
                     String last = "z";
                     File subDirs2 = newFolder(tempDir1, "v", "w", getSubFolderName(), "y", last);
                 }
-            
+                
                 String getSubFolderName() {
                     return "x";
                 }
@@ -291,7 +291,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 String s1 = "foo";
                 String s2 = "bar";
                 String s3 = "baz";
-            
+                
                 @Test
                 public void someTest() {
                     File subDir = newFolder(tempDir1, "sub");
@@ -341,7 +341,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             public class T {
                 @TempDir
                 File tempFolder;
-            
+                
                 @Test
                 public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
                     final String fileName = "SampleFile.txt";
@@ -390,7 +390,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 static File tempFolder;
                 @TempDir
                 File tempFolder2;
-            
+                
                 @Test
                 public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
                     final String fileName = "SampleFile.txt";
@@ -426,7 +426,7 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             public class T {
                 @TempDir
                 public static final File temporaryFolder;
-            
+                
                 public static void init() {
                     File aDir = temporaryFolder;
                 }

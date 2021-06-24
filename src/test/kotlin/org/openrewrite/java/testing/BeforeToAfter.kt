@@ -16,8 +16,9 @@
 package org.openrewrite.java.testing
 
 import org.openrewrite.InMemoryExecutionContext
+import org.openrewrite.Recipe
+import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
-import org.openrewrite.loadRecipeFromClasspath
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -30,10 +31,11 @@ fun main(args: Array<String>) {
         .classpath("mockito-all", "junit")
         .build()
 
-    val recipe = loadRecipeFromClasspath(
-        "org.openrewrite.java.testing.junit5.JUnit4to5Migration",
-        "org.openrewrite.java.testing.mockito.Mockito1to3Migration"
-    )
+    val recipe: Recipe = Environment.builder()
+        .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
+        .build()
+        .activateRecipes("org.openrewrite.java.testing.junit5.JUnit4to5Migration",
+            "org.openrewrite.java.testing.mockito.Mockito1to3Migration")
 
     val sources = parser.parse(listJavaSources(beforeDir), beforeDir, InMemoryExecutionContext())
     recipe.run(sources).map {

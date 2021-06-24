@@ -87,6 +87,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
         """,
         after = """
             import org.junit.Test;
+            
             import static org.junit.jupiter.api.Assertions.assertFalse;
 
             public class A {
@@ -95,7 +96,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
                 public void test() {
                     assertFalse(A.class.isAssignableFrom(t.getClass()), t.getName());
                 }
-            
+                
                 class T {
                     String getName() {
                         return "World";
