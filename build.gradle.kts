@@ -71,11 +71,6 @@ signing {
     sign(publishing.publications["nebula"])
 }
 
-sourceSets {
-    create("before")
-    create("after")
-}
-
 configurations.all {
     resolutionStrategy {
         cacheChangingModulesFor(0, TimeUnit.SECONDS)
@@ -118,14 +113,6 @@ dependencies {
     testRuntimeOnly("org.hamcrest:hamcrest:latest.release")
     testRuntimeOnly("pl.pragmatists:JUnitParams:1.+")
     testRuntimeOnly("com.squareup.okhttp3:mockwebserver:3.+")
-
-    "beforeImplementation"("junit:junit:latest.release")
-    "beforeImplementation"("org.mockito:mockito-core:$mockito1Version")
-    "beforeImplementation"("org.assertj:assertj-core:3.18.1")
-    "afterImplementation"("org.junit.jupiter:junit-jupiter-api:latest.release")
-    "afterImplementation"("org.junit.jupiter:junit-jupiter-params:latest.release")
-    "afterImplementation"("org.mockito:mockito-core:latest.release")
-    "afterRuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:latest.release")
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {
