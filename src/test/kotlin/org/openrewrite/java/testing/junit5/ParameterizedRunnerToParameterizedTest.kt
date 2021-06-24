@@ -203,7 +203,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
 
             @RunWith(Parameterized.class)
             public class RewriteTests {
-                @Parameter(1)
+                @Parameter(value = 1)
                 public String name;
                 @Parameter(2)
                 public String nickName;
