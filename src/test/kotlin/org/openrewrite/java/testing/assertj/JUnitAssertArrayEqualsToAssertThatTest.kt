@@ -45,7 +45,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                     assertArrayEquals(expected, notification());
                 }
                 private Integer[] notification() {
-                    return new Integer[] {1, 2, 3};        
+                    return new Integer[] {1, 2, 3};
                 }
             }
         """,
