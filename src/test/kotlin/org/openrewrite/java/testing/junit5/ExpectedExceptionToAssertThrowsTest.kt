@@ -111,7 +111,7 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
             public class SimpleExpectedExceptionTest {
             
                 public void throwsExceptionWithSpecificType() {
-                    Throwable exception = assertThrows(NullPointerException.class, () -> {
+                    assertThrows(NullPointerException.class, () -> {
                         throw new NullPointerException();
                     });
                 }
@@ -150,7 +150,7 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
             public class SimpleExpectedExceptionTest {
             
                 public void throwsExceptionWithSpecificType() {
-                    Exception exception = assertThrows(Exception.class, () -> {
+                    Throwable exception = assertThrows(Exception.class, () -> {
                         throw new NullPointerException();
                     });
                     assertThat(exception, isA(NullPointerException.class));
@@ -230,7 +230,7 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
             public class ExampleTests {
             
                 public void expectMessageWithMatcher() {
-                    Exception exception = assertThrows(Exception.class, () -> {
+                    Throwable exception = assertThrows(Exception.class, () -> {
                         throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
                     });
                     assertThat(exception.getMessage(), containsString("rewrite expectMessage"));
@@ -270,7 +270,7 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
             public class ExampleTests {
             
                 public void expectCause() {
-                    Exception exception = assertThrows(Exception.class, () -> {
+                    Throwable exception = assertThrows(Exception.class, () -> {
                         throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
                     });
                     assertThat(exception.getCause(), nullValue());
@@ -312,7 +312,7 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
             public class ExampleTests {
             
                 public void expectExceptionUseCases() {
-                    Exception exception = assertThrows(Exception.class, () -> {
+                    Throwable exception = assertThrows(Exception.class, () -> {
                         throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
                     });
                     assertThat(exception, isA(NullPointerException.class));

@@ -173,9 +173,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             Object expectedExceptionParam = (expectMethodInvocation == null || isExpectArgAMatcher) ?
                     "Exception.class" : expectMethodInvocation.getArguments().get(0);
 
-            String exceptionDeclParam = (isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher) ?
-                    "Exception exception =" : "Throwable exception =";
-
+            String exceptionDeclParam = ((isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher) || expectMessageMethodInvocation != null) ? "Throwable exception =" : "";
 
             String templateString = expectedExceptionParam instanceof String ? "#{} assertThrows(#{}, () -> #{});" : "#{} assertThrows(#{any()}, () -> #{});";
 
