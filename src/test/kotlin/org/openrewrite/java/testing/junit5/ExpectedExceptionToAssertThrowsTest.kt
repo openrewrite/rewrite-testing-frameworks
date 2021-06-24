@@ -111,7 +111,7 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
             public class SimpleExpectedExceptionTest {
             
                 public void throwsExceptionWithSpecificType() {
-                    assertThrows(NullPointerException.class, () -> {
+                    Throwable exception = assertThrows(NullPointerException.class, () -> {
                         throw new NullPointerException();
                     });
                 }
@@ -184,14 +184,16 @@ class ExpectedExceptionToAssertThrowsTest : JavaRecipeTest {
             package org.openrewrite.java.testing.junit5;
             
             import static org.junit.jupiter.api.Assertions.assertThrows;
+            import static org.junit.jupiter.api.Assertions.assertTrue;
             
             public class SimpleExpectedExceptionTest {
             
                 public void statementsBeforeExpected() {
-                    assertThrows(IndexOutOfBoundsException.class, () -> {
+                    Throwable exception = assertThrows(IndexOutOfBoundsException.class, () -> {
                         int[] a = new int[]{1};
                         int b = a[1];
-                    }, "Index 1 out of bounds for length 1");
+                    });
+                    assertTrue(exception.getMessage().contains("Index 1 out of bounds for length 1"));
                 }
             }
         """
