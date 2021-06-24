@@ -170,17 +170,19 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 }
             }
 
+            String exceptionDeclParam = ((isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher)
+                    || expectMessageMethodInvocation != null) ?
+                    "Throwable exception =" : "";
+
             Object expectedExceptionParam = (expectMethodInvocation == null || isExpectArgAMatcher) ?
                     "Exception.class" : expectMethodInvocation.getArguments().get(0);
-
-            String exceptionDeclParam = ((isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher) || expectMessageMethodInvocation != null) ? "Throwable exception =" : "";
 
             String templateString = expectedExceptionParam instanceof String ? "#{} assertThrows(#{}, () -> #{});" : "#{} assertThrows(#{any()}, () -> #{});";
 
             m = m.withTemplate(
                     template(templateString)
                             .javaParser(ASSERTIONS_PARSER::get)
-                            .staticImports("org.junit.jupiter.api.Assertions.assertThrows", "org.junit.jupiter.api.Assertions.assertTrue")
+                            .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                             .build(),
                     m.getCoordinates().replaceBody(),
                     exceptionDeclParam,
@@ -190,11 +192,11 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
             maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
 
-            if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher) {
+            if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
                 m = m.withTemplate(
                         template("assertTrue(exception.getMessage().contains(#{any(java.lang.String)});")
                                 .javaParser(ASSERTIONS_PARSER::get)
-                                .staticImports("org.junit.jupiter.api.Assertions.assertThrows", "org.junit.jupiter.api.Assertions.assertTrue")
+                                .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
                                 .build(),
                         m.getBody().getCoordinates().lastStatement(),
                         expectMessageMethodInvocation.getArguments().get(0)
