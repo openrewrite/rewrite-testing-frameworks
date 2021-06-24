@@ -20,14 +20,12 @@ import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -172,16 +170,14 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 }
             }
 
-            String exceptionDeclParam = (isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher) ?
-                    "Exception exception =" : "";
+            String exceptionDeclParam = ((isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher)
+                    || expectMessageMethodInvocation != null) ?
+                    "Throwable exception =" : "";
 
             Object expectedExceptionParam = (expectMethodInvocation == null || isExpectArgAMatcher) ?
                     "Exception.class" : expectMethodInvocation.getArguments().get(0);
 
-            String expectedMessageParam = (expectMessageMethodInvocation == null || isExpectMessageArgAMatcher) ?
-                    "" : expectMessageMethodInvocation.getArguments().get(0).print();
-
-            String templateString = expectedExceptionParam instanceof String ? "#{} assertThrows(#{}, () -> #{}#{});" : "#{} assertThrows(#{any()}, () -> #{}#{});";
+            String templateString = expectedExceptionParam instanceof String ? "#{} assertThrows(#{}, () -> #{});" : "#{} assertThrows(#{any()}, () -> #{});";
 
             m = m.withTemplate(
                     template(templateString)
@@ -191,11 +187,22 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     m.getCoordinates().replaceBody(),
                     exceptionDeclParam,
                     expectedExceptionParam,
-                    bodyWithoutExpectedExceptionCalls,
-                    !StringUtils.isBlank(expectedMessageParam) ? "," + expectedMessageParam : expectedMessageParam
+                    bodyWithoutExpectedExceptionCalls
             );
 
             maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
+
+            if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
+                m = m.withTemplate(
+                        template("assertTrue(exception.getMessage().contains(#{any(java.lang.String)});")
+                                .javaParser(ASSERTIONS_PARSER::get)
+                                .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
+                                .build(),
+                        m.getBody().getCoordinates().lastStatement(),
+                        expectMessageMethodInvocation.getArguments().get(0)
+                );
+                maybeAddImport("org.junit.jupiter.api.Assertions", "assertTrue");
+            }
 
             JavaTemplate assertThatTemplate = template("assertThat(#{}, #{any()});")
                     .javaParser(ASSERTIONS_PARSER::get)
