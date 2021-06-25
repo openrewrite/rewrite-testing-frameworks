@@ -229,8 +229,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import java.util.Arrays;
             import java.util.List;
             import java.util.Map;
-        
-        
+            
             public class RewriteTests {
                 public String name;
                 public String nickName;
