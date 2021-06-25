@@ -202,15 +202,15 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             this.unsupportedConversions = unsupportedConversions;
 
             // build @ParameterizedTest template
-            this.parameterizedTestTemplate = template("@ParameterizedTest")
+            this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, "@ParameterizedTest")
                     .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @ParameterizedTest(#{}) template
-            this.parameterizedTestTemplateWithName = template("@ParameterizedTest(name = \"#{}\")")
+            this.parameterizedTestTemplateWithName = JavaTemplate.builder(this::getCursor, "@ParameterizedTest(name = \"#{}\")")
                     .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @MethodSource("...") template
-            this.methodSourceTemplate = template("@MethodSource(#{})")
+            this.methodSourceTemplate = JavaTemplate.builder(this::getCursor, "@MethodSource(#{})")
                     .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
                     .imports("org.junit.jupiter.params.provider.MethodSource").build();
         }

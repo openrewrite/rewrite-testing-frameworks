@@ -71,7 +71,7 @@ public class JUnitAssertFalseToAssertThat extends Recipe {
 
             if (args.size() == 1) {
                 method = method.withTemplate(
-                        template("assertThat(#{any(boolean)}).isFalse();")
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).isFalse();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
@@ -81,8 +81,8 @@ public class JUnitAssertFalseToAssertThat extends Recipe {
             } else {
                 Expression message = args.get(1);
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        template("assertThat(#{any(boolean)}).as(#{any(String)}).isFalse();") :
-                        template("assertThat(#{any(boolean)}).withFailMessage(#{any(java.util.function.Supplier)}).isFalse();");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).as(#{any(String)}).isFalse();") :
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).withFailMessage(#{any(java.util.function.Supplier)}).isFalse();");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")

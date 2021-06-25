@@ -158,7 +158,7 @@ public class MigrateJUnitTestCase extends Recipe {
         private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation) {
             J.MethodDeclaration md = methodDeclaration;
             if (FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
-                md = methodDeclaration.withTemplate(template(annotation)
+                md = methodDeclaration.withTemplate(JavaTemplate.builder(this::getCursor, annotation)
                                 .javaParser(JAVA_PARSER::get)
                                 .imports(fullyQualifiedAnnotation).build(),
                         methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));

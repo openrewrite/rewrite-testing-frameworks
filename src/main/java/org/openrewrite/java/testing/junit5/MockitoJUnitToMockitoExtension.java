@@ -21,6 +21,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.FindFields;
@@ -119,7 +120,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                                 FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty())) {
 
                     cd = cd.withTemplate(
-                            template("@ExtendWith(MockitoExtension.class)")
+                            JavaTemplate.builder(this::getCursor, "@ExtendWith(MockitoExtension.class)")
                                     .javaParser(JAVA_PARSER::get)
                                     .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                                     .build(),

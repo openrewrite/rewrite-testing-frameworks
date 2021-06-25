@@ -20,6 +20,7 @@ import lombok.Value;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
@@ -98,7 +99,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
                 J.Block body = md.getBody();
                 if (body != null) {
-                    md = method.withTemplate(template("assertDoesNotThrow(() -> #{any()});")
+                    md = method.withTemplate(JavaTemplate.builder(this::getCursor, "assertDoesNotThrow(() -> #{any()});")
                                     .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
                                     .javaParser(ASSERTIONS_PARSER::get).build(),
                             method.getCoordinates().replaceBody(),

@@ -180,7 +180,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             String templateString = expectedExceptionParam instanceof String ? "#{} assertThrows(#{}, () -> #{});" : "#{} assertThrows(#{any()}, () -> #{});";
 
             m = m.withTemplate(
-                    template(templateString)
+                    JavaTemplate.builder(this::getCursor, templateString)
                             .javaParser(ASSERTIONS_PARSER::get)
                             .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                             .build(),
@@ -194,7 +194,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
             if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
                 m = m.withTemplate(
-                        template("assertTrue(exception.getMessage().contains(#{any(java.lang.String)});")
+                        JavaTemplate.builder(this::getCursor, "assertTrue(exception.getMessage().contains(#{any(java.lang.String)});")
                                 .javaParser(ASSERTIONS_PARSER::get)
                                 .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
                                 .build(),
@@ -204,7 +204,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertTrue");
             }
 
-            JavaTemplate assertThatTemplate = template("assertThat(#{}, #{any()});")
+            JavaTemplate assertThatTemplate = JavaTemplate.builder(this::getCursor, "assertThat(#{}, #{any()});")
                     .javaParser(ASSERTIONS_PARSER::get)
                     .staticImports("org.hamcrest.MatcherAssert.assertThat")
                     .build();

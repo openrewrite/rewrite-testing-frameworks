@@ -25,6 +25,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -114,7 +115,7 @@ public class RunnerToExtension extends Recipe {
                 for (String runner : runners) {
                     //noinspection ConstantConditions
                     for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                        cd = cd.withTemplate(template("@ExtendWith(#{}.class)")
+                        cd = cd.withTemplate(JavaTemplate.builder(this::getCursor, "@ExtendWith(#{}.class)")
                                         .javaParser(javaParser::get)
                                         .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
                                         .build(),
@@ -136,7 +137,7 @@ public class RunnerToExtension extends Recipe {
 
                 for (String runner : runners) {
                     for (J.Annotation runWith : FindAnnotations.find(method.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                        md = md.withTemplate(template("@ExtendWith(#{}.class)")
+                        md = md.withTemplate(JavaTemplate.builder(this::getCursor, "@ExtendWith(#{}.class)")
                                         .javaParser(javaParser::get)
                                         .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
                                         .build(),

@@ -74,7 +74,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = method.withTemplate(
-                        template("assertThat(#{any()}).isNotEqualTo(#{any()});")
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).isNotEqualTo(#{any()});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
@@ -86,8 +86,8 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 Expression message = args.get(2);
 
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        template("assertThat(#{any()}).as(#{any(String)}).isNotEqualTo(#{any()});") :
-                        template("assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isNotEqualTo(#{any()});");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isNotEqualTo(#{any()});") :
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isNotEqualTo(#{any()});");
 
 
                 method = method.withTemplate(template
@@ -101,7 +101,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 );
             } else if (args.size() == 3) {
                 method = method.withTemplate(
-                        template("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                                 .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
@@ -115,8 +115,8 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 Expression message = args.get(3);
 
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        template("assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));") :
-                        template("assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isNotCloseTo(#{any()}, within(#{any()}));");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));") :
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isNotCloseTo(#{any()}, within(#{any()}));");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")

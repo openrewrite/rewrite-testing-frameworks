@@ -61,7 +61,7 @@ public class UseTestMethodOrder extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final JavaTemplate testMethodOrder = template("@TestMethodOrder(MethodName.class)")
+            private final JavaTemplate testMethodOrder = JavaTemplate.builder(this::getCursor, "@TestMethodOrder(MethodName.class)")
                     .javaParser(TEST_METHOD_ORDER_PARSER::get)
                     .imports("org.junit.jupiter.api.TestMethodOrder",
                             "org.junit.jupiter.api.MethodOrderer.*")

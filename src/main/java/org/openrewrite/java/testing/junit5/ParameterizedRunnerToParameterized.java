@@ -170,18 +170,18 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     "@ParameterizedTest(" + parameterizedTestAnnotationParameters.get(0).print() + ")" :
                     "@ParameterizedTest";
 
-            this.parameterizedTestTemplate = template(parameterizedTestAnnotationTemplate)
+            this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, parameterizedTestAnnotationTemplate)
                     .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
                     .imports("org.junit.jupiter.params.ParameterizedTest")
                     .build();
 
             // build @MethodSource("...") template
-            this.methodSourceTemplate = template("@MethodSource(\"" + parametersMethodName + "\")")
+            this.methodSourceTemplate = JavaTemplate.builder(this::getCursor, "@MethodSource(\"" + parametersMethodName + "\")")
                     .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
                     .imports("org.junit.jupiter.params.provider.MethodSource").build();
 
             // build init-method with parameters template
-            this.initMethodStatementTemplate = template(initMethodName + "(#{});")
+            this.initMethodStatementTemplate = JavaTemplate.builder(this::getCursor, initMethodName + "(#{});")
                     .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
                     .build();
 
@@ -205,7 +205,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 }
 
                 initMethodTemplate.append("}");
-                initMethodDeclarationTemplate = template(initMethodTemplate.toString()).javaParser(PARAMETERIZED_TEMPLATE_PARSER::get).build();
+                initMethodDeclarationTemplate = JavaTemplate.builder(this::getCursor, initMethodTemplate.toString()).javaParser(PARAMETERIZED_TEMPLATE_PARSER::get).build();
             } else {
                 initMethodDeclarationTemplate = null;
             }

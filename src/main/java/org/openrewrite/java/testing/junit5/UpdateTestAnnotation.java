@@ -19,10 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.AnnotationMatcher;
-import org.openrewrite.java.ChangeType;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
@@ -141,7 +138,7 @@ public class UpdateTestAnnotation extends Recipe {
                                 assert e instanceof J.FieldAccess;
 
                                 m = m.withTemplate(
-                                        template("assertThrows(#{any()}, () -> #{});")
+                                        JavaTemplate.builder(this::getCursor, "assertThrows(#{any()}, () -> #{});")
                                                 .javaParser(() -> JavaParser.fromJavaVersion()
                                                         .dependsOn(assertThrowsDependsOn(e))
                                                         .build())
@@ -178,7 +175,7 @@ public class UpdateTestAnnotation extends Recipe {
 
                 if (m.isScope(this.scope)) {
                     m = m.withTemplate(
-                            template("@Timeout(#{any(long)})")
+                            JavaTemplate.builder(this::getCursor, "@Timeout(#{any(long)})")
                                     .javaParser(() -> JavaParser.fromJavaVersion()
                                             .dependsOn(Collections.singletonList(Parser.Input.fromString(
                                                     "package org.junit.jupiter.api;\n" +

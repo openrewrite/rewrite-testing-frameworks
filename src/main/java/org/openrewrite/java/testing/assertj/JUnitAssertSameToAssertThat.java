@@ -72,7 +72,7 @@ public class JUnitAssertSameToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = method.withTemplate(
-                        template("assertThat(#{any()}).isSameAs(#{any()});")
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).isSameAs(#{any()});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
@@ -84,8 +84,8 @@ public class JUnitAssertSameToAssertThat extends Recipe {
                 Expression message = args.get(2);
 
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        template("assertThat(#{any()}).as(#{any(String)}).isSameAs(#{any()});") :
-                        template("assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isSameAs(#{any()});");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isSameAs(#{any()});") :
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isSameAs(#{any()});");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")

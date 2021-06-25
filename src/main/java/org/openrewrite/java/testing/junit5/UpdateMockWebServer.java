@@ -23,6 +23,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindTypes;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -105,7 +106,7 @@ public class UpdateMockWebServer extends Recipe {
                     if (afterEachMethod == null) {
                         final String closeMethod = "@AfterEach\nvoid afterEachTest() throws IOException {#{any(okhttp3.mockwebserver.MockWebServer)}.close();\n}";
                         J.Block body = cd.getBody();
-                        body = maybeAutoFormat(body, body.withTemplate(template(closeMethod)
+                        body = maybeAutoFormat(body, body.withTemplate(JavaTemplate.builder(this::getCursor, closeMethod)
                                 .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
                                 .javaParser(OKHTTP3_PARSER::get).build(), body.getCoordinates().lastStatement(), mockWebServerVariable), executionContext);
                         cd = cd.withBody(body);
@@ -117,7 +118,7 @@ public class UpdateMockWebServer extends Recipe {
                             if (statement == afterEachMethod) {
                                 J.MethodDeclaration method = (J.MethodDeclaration) statement;
                                 if (method.getBody() != null) {
-                                    method = method.withTemplate(template("#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
+                                    method = method.withTemplate(JavaTemplate.builder(this::getCursor, "#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
                                             .javaParser(OKHTTP3_PARSER::get).build(), method.getBody()
                                             .getCoordinates().lastStatement(), mockWebServerVariable);
 

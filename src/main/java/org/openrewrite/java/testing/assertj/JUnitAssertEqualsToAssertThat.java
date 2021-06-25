@@ -74,7 +74,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = method.withTemplate(
-                        template("assertThat(#{any()}).isEqualTo(#{any()});")
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).isEqualTo(#{any()});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
@@ -87,8 +87,8 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
                 // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        template("assertThat(#{any()}).as(#{any(String)}).isEqualTo(#{any()});") :
-                        template("assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isEqualTo(#{any()});");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isEqualTo(#{any()});") :
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isEqualTo(#{any()});");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
@@ -101,7 +101,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 );
             } else if (args.size() == 3) {
                 method = method.withTemplate(
-                        template("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                                 .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
@@ -118,8 +118,8 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
 
                 // If the message is a string use "as", if it is a supplier use "withFailMessage"
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        template("assertThat(#{any()}).as(#{any(String)}).isCloseTo(#{any()}, within(#{any()}));") :
-                        template("assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isCloseTo(#{any()}, within(#{any()}));");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isCloseTo(#{any()}, within(#{any()}));") :
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isCloseTo(#{any()}, within(#{any()}));");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")

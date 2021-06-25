@@ -75,7 +75,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = method.withTemplate(
-                        template("assertThat(#{anyArray()}).containsExactly(#{anyArray()});")
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).containsExactly(#{anyArray()});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
@@ -88,8 +88,8 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
                 Expression message = args.get(2);
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        template("assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()});") :
-                        template("assertThat(#{anyArray()}).withFailMessage(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()});");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()});") :
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).withFailMessage(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()});");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
@@ -103,7 +103,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
             } else if (args.size() == 3) {
                 // assert is using floating points with a delta and no message.
                 method = method.withTemplate(
-                        template("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                                 .javaParser(ASSERTJ_JAVA_PARSER::get)
                                 .build(),
@@ -118,8 +118,8 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 // If the message is a string use "as", if it is a supplier use "withFailMessage"
                 Expression message = args.get(3);
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        template("assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()}, within(#{any()}));") :
-                        template("assertThat(#{anyArray()}).withFailMessage(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()}, within(#{}));");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()}, within(#{any()}));") :
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).withFailMessage(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()}, within(#{}));");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
