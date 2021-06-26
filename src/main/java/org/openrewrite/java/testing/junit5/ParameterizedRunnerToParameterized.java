@@ -18,10 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.AnnotationMatcher;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
@@ -212,25 +209,28 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
 
         @Override
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+            J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
+            if(c != cu) {
+                doAfterVisit(new RemoveAnnotationVisitor(PARAMETERS));
+                doAfterVisit(new RemoveAnnotationVisitor(PARAMETER));
+                doAfterVisit(new RemoveAnnotationVisitor(RUN_WITH_PARAMETERS));
+
+                maybeRemoveImport("org.junit.Test");
+                maybeRemoveImport("org.junit.runner.RunWith");
+                maybeRemoveImport("org.junit.runners.Parameterized");
+                maybeRemoveImport("org.junit.runners.Parameterized.Parameters");
+                maybeRemoveImport("org.junit.runners.Parameterized.Parameter");
+                maybeRemoveImport("org.junit.jupiter.api.Test");
+                maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
+                maybeAddImport("org.junit.jupiter.params.provider.MethodSource");
+            }
+            return c;
+        }
+
+        @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
-            // Remove @RunWith(Parameterized.class) annotation
-            cd = cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
-                if (RUN_WITH_PARAMETERS.matches(annotation)) {
-                    return null;
-                }
-                return annotation;
-            }));
-
-            // Update Imports
-            maybeRemoveImport("org.junit.Test");
-            maybeRemoveImport("org.junit.runner.RunWith");
-            maybeRemoveImport("org.junit.runners.Parameterized");
-            maybeRemoveImport("org.junit.runners.Parameterized.Parameters");
-            maybeRemoveImport("org.junit.runners.Parameterized.Parameter");
-            maybeRemoveImport("org.junit.jupiter.api.Test");
-            maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
-            maybeAddImport("org.junit.jupiter.params.provider.MethodSource");
 
             if (initMethodDeclarationTemplate != null) {
                 cd = maybeAutoFormat(cd, cd.withBody(cd.getBody().withTemplate(initMethodDeclarationTemplate,
@@ -259,14 +259,6 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
-
-            // Remove the @Parameters annotation
-            m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), annotation -> {
-                if (PARAMETERS.matches(annotation)) {
-                    return null;
-                }
-                return annotation;
-            }));
 
             // Replace @Test with @ParameterizedTest
             m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), annotation -> {

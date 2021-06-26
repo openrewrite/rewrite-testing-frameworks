@@ -22,6 +22,8 @@ import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.RemoveAnnotation;
+import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -62,7 +64,7 @@ public class RemoveObsoleteRunners extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+    protected RemoveObsoleteRunnersVisitor getVisitor() {
         return new RemoveObsoleteRunnersVisitor();
     }
 
@@ -70,21 +72,12 @@ public class RemoveObsoleteRunners extends Recipe {
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-            List<J.Annotation> filteredAnnotations = null;
             for (String runner : obsoleteRunners) {
                 //noinspection ConstantConditions
-                for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                    if (filteredAnnotations == null) {
-                        filteredAnnotations = new ArrayList<>(classDecl.getLeadingAnnotations());
-                    }
-                    filteredAnnotations.remove(runWith);
-                    maybeRemoveImport(runner);
-                }
+                doAfterVisit(new RemoveAnnotation("@org.junit.runner.RunWith(" + runner + ".class)"));
+                maybeRemoveImport(runner);
             }
-            if (filteredAnnotations != null) {
-                classDecl = classDecl.withLeadingAnnotations(filteredAnnotations);
-                maybeRemoveImport("org.junit.runner.RunWith");
-            }
+            maybeRemoveImport("org.junit.runner.RunWith");
             return classDecl;
         }
     }

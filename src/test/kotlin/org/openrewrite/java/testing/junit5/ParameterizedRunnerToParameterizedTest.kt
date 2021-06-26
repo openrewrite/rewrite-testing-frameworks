@@ -97,7 +97,6 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     vet.setId(id);
                 }
             
-                
                 public static List<Object[]> parameters() {
                     return Arrays.asList(
                         new Object[] { "Otis", "TheDog", 124 },
@@ -177,7 +176,6 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     vet.setId(id);
                 }
             
-                
                 public static List<Object[]> parameters() {
                     return Arrays.asList(
                         new Object[] { "Otis", "TheDog", 124 },
@@ -235,7 +233,6 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                 public String nickName;
                 public Integer id;
                 public Map<String, String> stuff;
-            
             
                 public static List<Object[]> parameters() {
                     return Arrays.asList(new Object[]{124, "Otis", "TheDog", Map.of("toys", "ball", "treats", "bacon")}, new Object[]{126, "Garfield", "TheBoss", Map.of("toys", "yarn", "treats", "fish")});

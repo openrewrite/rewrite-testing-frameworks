@@ -18,10 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.AnnotationMatcher;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.Expression;
@@ -219,12 +216,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
             // Remove @RunWith(JUnitParamsRunner.class) annotation
-            cd = cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
-                if (RUN_WITH_JUNIT_PARAMS_ANNOTATION_MATCHER.matches(annotation)) {
-                    return null;
-                }
-                return annotation;
-            }));
+            doAfterVisit(new RemoveAnnotationVisitor(RUN_WITH_JUNIT_PARAMS_ANNOTATION_MATCHER));
+
             // Update Imports
             maybeRemoveImport("org.junit.Test");
             maybeRemoveImport("org.junit.jupiter.api.Test");
