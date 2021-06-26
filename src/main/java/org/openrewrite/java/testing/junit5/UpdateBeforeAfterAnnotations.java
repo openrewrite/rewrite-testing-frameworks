@@ -66,25 +66,5 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
 
             return super.visitCompilationUnit(cu, ctx);
         }
-
-        /** FIXME removing public modifiers requires access to the method super type to prevent assigning weaker access privileges
-     * @Override
-     * public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-     * J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-    
-     * List<J.Annotation> annotations = new ArrayList<>(m.getLeadingAnnotations());
-     * for (J.Annotation a : annotations) {
-    
-     * if (TypeUtils.isOfClassType(a.getType(), "org.junit.Before") ||
-     * TypeUtils.isOfClassType(a.getType(), "org.junit.After") ||
-     * TypeUtils.isOfClassType(a.getType(), "org.junit.BeforeClass") ||
-     * TypeUtils.isOfClassType(a.getType(), "org.junit.AfterClass")) {
-    
-     * doAfterVisit(new ChangeMethodAccessLevelVisitor<>(new MethodMatcher(method), null));
-     * }
-     * }
-     * return m;
-     * }
-     **/
     }
 }
