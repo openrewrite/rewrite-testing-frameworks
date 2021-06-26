@@ -117,9 +117,9 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 if (parameterAnnotation.getArguments() != null && !parameterAnnotation.getArguments().isEmpty() && !(parameterAnnotation.getArguments().get(0) instanceof J.Empty)) {
                     J positionArg = parameterAnnotation.getArguments().get(0);
                     if (positionArg instanceof J.Assignment) {
-                        position = (Integer) ((J.Literal)((J.Assignment)positionArg).getAssignment()).getValue();
+                        position = (Integer) ((J.Literal) ((J.Assignment) positionArg).getAssignment()).getValue();
                     } else {
-                        position = (Integer) ((J.Literal)positionArg).getValue();
+                        position = (Integer) ((J.Literal) positionArg).getValue();
                     }
                 }
                 // the variableDeclaration will be used for a method parameter set the prefix to empty and remove any comments
