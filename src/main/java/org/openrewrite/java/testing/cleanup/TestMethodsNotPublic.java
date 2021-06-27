@@ -15,9 +15,6 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -25,19 +22,18 @@ import org.openrewrite.java.ChangeMethodAccessLevelVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.J.Annotation;
 import org.openrewrite.java.tree.TypeUtils;
 
 public class TestMethodsNotPublic extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Remove `public` from JUnit5 `@Test` methods";
+        return "Remove `public` visibility of JUnit5 tests";
     }
 
     @Override
     public String getDescription() {
-        return "Remove public modifier from `@Test`, `@ParametrizedTest`, `@BeforeEach` and `@AfterEach` methods. They no longer have to be public visibility to be usable by JUnit 5.";
+        return "Remove `public` modifier from methods with `@Test`, `@ParametrizedTest`, `@RepeatedTest`, `TestFactory`, `@BeforeEach` or `@AfterEach`. They no longer have to be public visibility to be usable by JUnit 5.";
     }
 
     @Override
@@ -52,9 +48,7 @@ public class TestMethodsNotPublic extends Recipe {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
 
             if (m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public)) {
-
-                List<Annotation> annotations = new ArrayList<>(m.getLeadingAnnotations());
-                for (J.Annotation a : annotations) {
+                for (J.Annotation a : m.getLeadingAnnotations()) {
                     if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
                         TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
                         TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||

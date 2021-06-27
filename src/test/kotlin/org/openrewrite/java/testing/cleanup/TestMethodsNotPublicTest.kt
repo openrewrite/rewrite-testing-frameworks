@@ -29,15 +29,10 @@ class TestMethodsNotPublicTest : JavaRecipeTest {
         get() = TestMethodsNotPublic()
 
     @Test
-    fun removePublicModifiers() = assertChanged(
+    fun removePublicMethodModifiers() = assertChanged(
         before = """
             import java.util.Collections;
-            import org.junit.jupiter.api.AfterEach;
-            import org.junit.jupiter.api.BeforeEach;
-            import org.junit.jupiter.api.DynamicTest;
-            import org.junit.jupiter.api.RepeatedTest;
-            import org.junit.jupiter.api.Test;
-            import org.junit.jupiter.api.TestFactory;
+            import org.junit.jupiter.api.*;
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.ValueSource;
 
@@ -72,12 +67,7 @@ class TestMethodsNotPublicTest : JavaRecipeTest {
         """,
         after = """
             import java.util.Collections;
-            import org.junit.jupiter.api.AfterEach;
-            import org.junit.jupiter.api.BeforeEach;
-            import org.junit.jupiter.api.DynamicTest;
-            import org.junit.jupiter.api.RepeatedTest;
-            import org.junit.jupiter.api.Test;
-            import org.junit.jupiter.api.TestFactory;
+            import org.junit.jupiter.api.*;
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.ValueSource;
 
@@ -113,13 +103,12 @@ class TestMethodsNotPublicTest : JavaRecipeTest {
     )
 
     @Test
-    fun ignorePrivateModifiers() = assertUnchanged(
+    fun ignorePrivateMethodModifiers() = assertUnchanged(
         before = """
+            import java.util.Collections;
             import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import java.util.Collections;
+            import org.junit.jupiter.params.ParameterizedTest;
+            import org.junit.jupiter.params.provider.ValueSource;
 
             class ATest {
 
@@ -148,13 +137,12 @@ import java.util.Collections;
     )
 
     @Test
-    fun ignoreProtectedModifiers() = assertUnchanged(
+    fun ignoreProtectedMethodModifiers() = assertUnchanged(
         before = """
+            import java.util.Collections;
             import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import java.util.Collections;
+            import org.junit.jupiter.params.ParameterizedTest;
+            import org.junit.jupiter.params.provider.ValueSource;
 
             class ATest {
 
