@@ -20,24 +20,135 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
-class TestMethodsNotPublicTest : JavaRecipeTest {
+class TestsShouldNotBePublicTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit-jupiter-api", "junit-jupiter-params")
         .build()
 
     override val recipe: Recipe
-        get() = TestMethodsNotPublic()
+        get() = TestsShouldNotBePublic()
 
     @Test
-    fun removePublicModifiers() = assertChanged(
+    fun removePublicClassModifiers() = assertChanged(
+            before = """
+            import org.junit.jupiter.api.Nested;
+            import org.junit.jupiter.api.Test;
+
+            public class ATest {
+
+                @Test
+                void testMethod() {
+                }
+
+                @Nested
+                public class NestedTestClass {
+                
+                    @Test
+                    void anotherTestMethod() {
+                    }
+                }
+
+                @Nested
+                public class AnotherNestedTestClass {
+
+                    private static final String CONSTANT = "foo";
+
+                    private void setup() {
+                    }
+
+                    @Test
+                    void anotherTestMethod() {
+                    }
+                }
+            }
+        """,
+            after = """
+            import org.junit.jupiter.api.Nested;
+            import org.junit.jupiter.api.Test;
+
+            class ATest {
+
+                @Test
+                void testMethod() {
+                }
+
+                @Nested
+                class NestedTestClass {
+
+                    @Test
+                    void anotherTestMethod() {
+                    }
+                }
+
+                @Nested
+                class AnotherNestedTestClass {
+
+                    private static final String CONSTANT = "foo";
+
+                    private void setup() {
+                    }
+
+                    @Test
+                    void anotherTestMethod() {
+                    }
+                }
+            }
+        """,
+    )
+
+    @Test
+    fun ignorePublicAbstractClass() = assertUnchanged(
+            before = """
+            import org.junit.jupiter.api.Test;
+
+            public abstract class ATest {
+
+                @Test
+                void testMethod() {
+                }
+            }
+        """,
+    )
+
+    @Test
+    fun ignorePublicClassWithPublicVariables() = assertUnchanged(
+            before = """
+            import org.junit.jupiter.api.Test;
+
+            public class ATest {
+
+                public int foo;
+
+                @Test
+                void testMethod() {
+                }
+            }
+        """
+    )
+
+    @Test
+    fun ignorePublicClassWithPublicMethodsThatAreNotRelatedToTests() = assertUnchanged(
+            before = """
+            import org.junit.jupiter.api.Test;
+
+            public class ATest {
+
+                public int foo() {
+                    return 0;
+                }
+
+                @Test
+                void testMethod() {
+                }
+            }
+        """
+    )
+
+    @Test
+    fun removePublicMethodModifiers() = assertChanged(
         before = """
             import java.util.Collections;
-            import org.junit.jupiter.api.AfterEach;
-            import org.junit.jupiter.api.BeforeEach;
-            import org.junit.jupiter.api.DynamicTest;
-            import org.junit.jupiter.api.RepeatedTest;
-            import org.junit.jupiter.api.Test;
-            import org.junit.jupiter.api.TestFactory;
+            import org.junit.jupiter.api.*;
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.ValueSource;
 
@@ -72,12 +183,7 @@ class TestMethodsNotPublicTest : JavaRecipeTest {
         """,
         after = """
             import java.util.Collections;
-            import org.junit.jupiter.api.AfterEach;
-            import org.junit.jupiter.api.BeforeEach;
-            import org.junit.jupiter.api.DynamicTest;
-            import org.junit.jupiter.api.RepeatedTest;
-            import org.junit.jupiter.api.Test;
-            import org.junit.jupiter.api.TestFactory;
+            import org.junit.jupiter.api.*;
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.ValueSource;
 
@@ -113,13 +219,12 @@ class TestMethodsNotPublicTest : JavaRecipeTest {
     )
 
     @Test
-    fun ignorePrivateModifiers() = assertUnchanged(
+    fun ignorePrivateMethodModifiers() = assertUnchanged(
         before = """
+            import java.util.Collections;
             import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import java.util.Collections;
+            import org.junit.jupiter.params.ParameterizedTest;
+            import org.junit.jupiter.params.provider.ValueSource;
 
             class ATest {
 
@@ -148,13 +253,12 @@ import java.util.Collections;
     )
 
     @Test
-    fun ignoreProtectedModifiers() = assertUnchanged(
+    fun ignoreProtectedMethodModifiers() = assertUnchanged(
         before = """
+            import java.util.Collections;
             import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import java.util.Collections;
+            import org.junit.jupiter.params.ParameterizedTest;
+            import org.junit.jupiter.params.provider.ValueSource;
 
             class ATest {
 
