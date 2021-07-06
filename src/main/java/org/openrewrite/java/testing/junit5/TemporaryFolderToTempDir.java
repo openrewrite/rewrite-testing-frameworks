@@ -118,8 +118,10 @@ public class TemporaryFolderToTempDir extends Recipe {
                         break;
                     case "create":
                         return null;
-                    default:
+                    case "getRoot":
                         return mi.getSelect().withPrefix(mi.getPrefix());
+                    default:
+                        return mi;
                 }
             }
             return mi;

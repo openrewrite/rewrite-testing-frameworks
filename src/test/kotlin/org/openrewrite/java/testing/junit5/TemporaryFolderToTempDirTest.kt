@@ -472,6 +472,40 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
         """
     )
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/159")
+    @Test
+    fun tempFolderDeleteMethodInvocationIsNotModified() = assertChanged(
+        before = """
+            import org.junit.Rule;
+            import org.junit.rules.TemporaryFolder;
+            
+            public class A {
+                @Rule
+                public TemporaryFolder tmpFolder = new TemporaryFolder();
+                
+                @After
+                public void tearDown() {
+                    tmpFolder.delete();
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.io.TempDir;
+            
+            import java.io.File;
+            
+            public class A {
+                @TempDir
+                public File tmpFolder;
+                
+                @After
+                public void tearDown() {
+                    tmpFolder.delete();
+                }
+            }
+        """
+    )
+
     @Test
     fun newTemporaryFolderInstanceAsArgumentNotSupported() = assertUnchanged(
         before = """
