@@ -30,7 +30,6 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
     override val recipe: Recipe
         get() = TemporaryFolderToTempDir()
 
-    @Disabled
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/159")
     @Test
     fun changesReferencesToFolder()  = assertChanged(
@@ -38,31 +37,29 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
             import org.junit.Rule;
             import org.junit.rules.TemporaryFolder;
             
-            public class A
-            {
-              @Rule
-              public TemporaryFolder tmpFolder = new TemporaryFolder();
-            
-              @After
-              public void tearDown()
-              {
-                tmpFolder.delete();
-              }
+            public class A {
+                @Rule
+                public TemporaryFolder tmpFolder = new TemporaryFolder();
+                
+                @After
+                public void tearDown() {
+                    tmpFolder.delete();
+                }
             }
         """,
         after = """
             import org.junit.jupiter.api.io.TempDir;
             
-            public class A
-            {
-              @TempDir
-              public File tmpDir = new File();
+            import java.io.File;
             
-              @After
-              public void tearDown()
-              {
-                tmpDir.delete();
-              }
+            public class A {
+                @TempDir
+                public File tmpFolder;
+                
+                @After
+                public void tearDown() {
+                    tmpFolder.delete();
+                }
             }
         """
     )
@@ -467,40 +464,6 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                 
                 public static void init() {
                     File aDir = temporaryFolder;
-                }
-            }
-        """
-    )
-
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/159")
-    @Test
-    fun tempFolderDeleteMethodInvocationIsNotModified() = assertChanged(
-        before = """
-            import org.junit.Rule;
-            import org.junit.rules.TemporaryFolder;
-            
-            public class A {
-                @Rule
-                public TemporaryFolder tmpFolder = new TemporaryFolder();
-                
-                @After
-                public void tearDown() {
-                    tmpFolder.delete();
-                }
-            }
-        """,
-        after = """
-            import org.junit.jupiter.api.io.TempDir;
-            
-            import java.io.File;
-            
-            public class A {
-                @TempDir
-                public File tmpFolder;
-                
-                @After
-                public void tearDown() {
-                    tmpFolder.delete();
                 }
             }
         """
