@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.Recipe
@@ -28,6 +29,43 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
 
     override val recipe: Recipe
         get() = TemporaryFolderToTempDir()
+
+    @Disabled
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/159")
+    @Test
+    fun changesReferencesToFolder()  = assertChanged(
+        before = """
+            import org.junit.Rule;
+            import org.junit.rules.TemporaryFolder;
+            
+            public class A
+            {
+              @Rule
+              public TemporaryFolder tmpFolder = new TemporaryFolder();
+            
+              @After
+              public void tearDown()
+              {
+                tmpFolder.delete();
+              }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.io.TempDir;
+            
+            public class A
+            {
+              @TempDir
+              public File tmpDir = new File();
+            
+              @After
+              public void tearDown()
+              {
+                tmpDir.delete();
+              }
+            }
+        """
+    )
 
     @Test
     fun temporaryFolderInstantiatedWithParentFolder() = assertChanged(
