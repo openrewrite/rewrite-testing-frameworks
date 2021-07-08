@@ -57,23 +57,23 @@ public class TestsShouldNotBePublic extends Recipe {
             ClassDeclaration c = super.visitClassDeclaration(classDecl, executionContext);
 
             if (c.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public)
-                && c.getModifiers().stream().noneMatch(mod -> mod.getType() == Type.Abstract)) {
+                    && c.getModifiers().stream().noneMatch(mod -> mod.getType() == Type.Abstract)) {
 
                 boolean hasTestMethods = c.getBody().getStatements().stream()
-                    .filter(statement -> statement instanceof J.MethodDeclaration)
-                    .map(J.MethodDeclaration.class::cast)
-                    .anyMatch(this::hasJUnit5MethodAnnotation);
+                        .filter(statement -> statement instanceof J.MethodDeclaration)
+                        .map(J.MethodDeclaration.class::cast)
+                        .anyMatch(this::hasJUnit5MethodAnnotation);
 
                 boolean hasPublicNonTestMethods = c.getBody().getStatements().stream()
-                    .filter(statement -> statement instanceof J.MethodDeclaration)
-                    .map(J.MethodDeclaration.class::cast)
-                    .filter(m -> m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public))
-                    .anyMatch(method -> !hasJUnit5MethodAnnotation(method));
+                        .filter(statement -> statement instanceof J.MethodDeclaration)
+                        .map(J.MethodDeclaration.class::cast)
+                        .filter(m -> m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public))
+                        .anyMatch(method -> !hasJUnit5MethodAnnotation(method));
 
                 boolean hasPublicVariableDeclarations = c.getBody().getStatements().stream()
-                    .filter(statement -> statement instanceof J.VariableDeclarations)
-                    .map(J.VariableDeclarations.class::cast)
-                    .anyMatch(m -> m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public));
+                        .filter(statement -> statement instanceof J.VariableDeclarations)
+                        .map(J.VariableDeclarations.class::cast)
+                        .anyMatch(m -> m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public));
 
                 if (hasTestMethods && !hasPublicNonTestMethods && !hasPublicVariableDeclarations) {
                     // Remove public modifier and move associated comment
@@ -107,7 +107,7 @@ public class TestsShouldNotBePublic extends Recipe {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
 
             if (m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public)
-                && hasJUnit5MethodAnnotation(m)) {
+                    && hasJUnit5MethodAnnotation(m)) {
                 // remove public modifier
                 doAfterVisit(new ChangeMethodAccessLevelVisitor<>(new MethodMatcher(method), null));
             }
@@ -118,11 +118,11 @@ public class TestsShouldNotBePublic extends Recipe {
         private boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {
             for (J.Annotation a : method.getLeadingAnnotations()) {
                 if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test")
-                    || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest")
-                    || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest")
-                    || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")
-                    || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterEach")
-                    || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeEach")) {
+                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest")
+                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest")
+                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")
+                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterEach")
+                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeEach")) {
                     return true;
                 }
             }
