@@ -254,4 +254,75 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
         """,
         skipEnhancedTypeValidation = true
     )
+
+    @Test
+    fun testParamsAreFinalFields() = assertChanged(
+        before = """
+                import java.util.ArrayList;
+                import java.util.List;
+                
+                import org.junit.Test;
+                import org.junit.runner.RunWith;
+                import org.junit.runners.Parameterized;
+                import org.junit.runners.Parameterized.Parameters;
+                
+                @RunWith(Parameterized.class)
+                public class DateFormatTests {
+                    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.S z";
+                    private final String input;
+                    private final String output;
+                    private final int hour;
+                
+                    public DateFormatTests(String pattern, String input, String output, int hourForTest) {
+                        this.output = output;
+                        this.input = input;
+                        hour = hourForTest;
+                    }
+                
+                    @Test
+                    public void testDateFormat() {
+                    }
+                
+                    @Parameters
+                    public static List<Object[]> data() {
+                        List<Object[]> params = new ArrayList<>();
+                        params.add(new Object[] { DATE_FORMAT, "1970-01-01 11:20:34.0 GMT", "1970-01-01 11:20:34.0 GMT", 11 });
+                        return params;
+                    }
+                }
+        """,
+        after = """
+                import org.junit.jupiter.params.ParameterizedTest;
+                import org.junit.jupiter.params.provider.MethodSource;
+                
+                import java.util.ArrayList;
+                import java.util.List;
+                
+                public class DateFormatTests {
+                    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.S z";
+                    private String input;
+                    private String output;
+                    private int hour;
+                
+                    public void initDateFormatTests(String pattern, String input, String output, int hourForTest) {
+                        this.output = output;
+                        this.input = input;
+                        hour = hourForTest;
+                    }
+                
+                    @MethodSource("data")
+                    @ParameterizedTest
+                    public void testDateFormat(String pattern, String input, String output, int hourForTest) {
+                        initDateFormatTests(pattern, input, output, hourForTest);
+                    }
+                
+                    public static List<Object[]> data() {
+                        List<Object[]> params = new ArrayList<>();
+                        params.add(new Object[] { DATE_FORMAT, "1970-01-01 11:20:34.0 GMT", "1970-01-01 11:20:34.0 GMT", 11 });
+                        return params;
+                    }
+                }
+        """,
+        skipEnhancedTypeValidation = true
+    )
 }

@@ -236,6 +236,21 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 cd = maybeAutoFormat(cd, cd.withBody(cd.getBody().withTemplate(initMethodDeclarationTemplate,
                         cd.getBody().getCoordinates().lastStatement())), executionContext);
             }
+
+            // if a constructor was converted to an init method then remove final modifiers from any associated field variables.
+            final Set<String> fieldNames = getCursor().pollMessage("INIT_VARS");
+            if (fieldNames != null && !fieldNames.isEmpty()) {
+                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
+                    if (statement instanceof J.VariableDeclarations) {
+                        J.VariableDeclarations varDecls = (J.VariableDeclarations) statement;
+                        if (varDecls.getVariables().stream().anyMatch(it -> fieldNames.contains(it.getSimpleName()))
+                                && (varDecls.hasModifier(J.Modifier.Type.Final))) {
+                            statement = varDecls.withModifiers(ListUtils.map(varDecls.getModifiers(), mod -> mod.getType() == J.Modifier.Type.Final ? null : mod));
+                        }
+                    }
+                    return statement;
+                })));
+            }
             return cd;
         }
 
@@ -288,6 +303,20 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 m = m.withName(m.getName().withName(initMethodName));
                 m = maybeAutoFormat(m, m.withReturnTypeExpression(new J.Primitive(randomId(), Space.EMPTY, Markers.EMPTY, JavaType.Primitive.Void)),
                         executionContext, getCursor().dropParentUntil(J.class::isInstance));
+
+                // converting a constructor to a void init method may require removing final modifiers from field vars.
+                if (m.getBody() != null) {
+                    Set<String> fieldNames = m.getBody().getStatements().stream()
+                            .filter(J.Assignment.class::isInstance).map(J.Assignment.class::cast)
+                            .map(it -> {
+                                if (it.getVariable() instanceof J.FieldAccess) {
+                                    return ((J.FieldAccess) it.getVariable()).getName().getSimpleName();
+                                }
+                                return it.getVariable() instanceof J.Identifier ? ((J.Identifier) it.getVariable()).getSimpleName() : null;
+                            })
+                            .collect(Collectors.toSet());
+                    getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("INIT_VARS", fieldNames);
+                }
             }
 
             return m;
