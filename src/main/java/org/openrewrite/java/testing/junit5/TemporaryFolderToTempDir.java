@@ -168,7 +168,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                     }).map(J.MethodDeclaration::getType).findAny().orElse(null);
 
             if (newFolderMethodDeclaration == null) {
-                cd = cd.withTemplate(JavaTemplate.builder(this::getCursor, 
+                cd = cd.withTemplate(JavaTemplate.builder(this::getCursor,
                         "private static File newFolder(File root, String... subDirs) throws IOException {\n" +
                                 "    String subFolder = String.join(\"/\", subDirs);\n" +
                                 "    File result = new File(root, subFolder);\n" +

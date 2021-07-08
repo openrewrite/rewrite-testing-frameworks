@@ -211,7 +211,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
             J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
-            if(c != cu) {
+            if (c != cu) {
                 doAfterVisit(new RemoveAnnotationVisitor(PARAMETERS));
                 doAfterVisit(new RemoveAnnotationVisitor(PARAMETER));
                 doAfterVisit(new RemoveAnnotationVisitor(RUN_WITH_PARAMETERS));
