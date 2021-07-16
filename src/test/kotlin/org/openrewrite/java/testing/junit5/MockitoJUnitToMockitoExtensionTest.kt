@@ -136,11 +136,11 @@ class MockitoJUnitToMockitoExtensionTest : JavaRecipeTest {
             }
         """,
         after = """
+            import java.util.List;
+
             import org.junit.jupiter.api.extension.ExtendWith;
             import org.mockito.Mock;
             import org.mockito.junit.jupiter.MockitoExtension;
-
-            import java.util.List;
 
             @ExtendWith(MockitoExtension.class)
             class A {
@@ -182,11 +182,11 @@ class MockitoJUnitToMockitoExtensionTest : JavaRecipeTest {
             }
         """,
         after = """
+            import java.util.List;
+
             import org.junit.jupiter.api.extension.ExtendWith;
             import org.mockito.Mock;
             import org.mockito.junit.jupiter.MockitoExtension;
-
-            import java.util.List;
 
             @ExtendWith(MockitoExtension.class)
             class A {

@@ -172,6 +172,7 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
             import org.mockito.Mock;
             import org.learning.math.MyMathService;
             import static org.mockito.Mockito.when;
+            import org.learning.math.Stuff;
             
             class AaTest {
                 @Mock
@@ -186,11 +187,12 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
         """,
         after = """
             import org.junit.jupiter.api.Test;
-            import org.learning.math.MyMathService;
             import org.mockito.Mock;
+            import org.learning.math.MyMathService;
             
             import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
             import static org.mockito.Mockito.when;
+            import org.learning.math.Stuff;
             
             class AaTest {
                 @Mock

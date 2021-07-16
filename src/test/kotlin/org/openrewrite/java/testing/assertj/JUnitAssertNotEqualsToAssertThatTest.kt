@@ -293,8 +293,8 @@ class JUnitAssertNotEqualsToAssertThatTest : JavaRecipeTest {
     @Test
     fun fullyQualifiedMethodWithMessage() = assertChanged(
         before = """
-            import java.io.File;
             import org.junit.Test;
+            import java.io.File;
 
             public class A {
 
@@ -309,7 +309,6 @@ class JUnitAssertNotEqualsToAssertThatTest : JavaRecipeTest {
         """,
         after = """
             import org.junit.Test;
-
             import java.io.File;
 
             import static org.assertj.core.api.Assertions.assertThat;

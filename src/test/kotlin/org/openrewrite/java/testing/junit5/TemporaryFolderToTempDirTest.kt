@@ -225,8 +225,8 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
     fun newFolderWithArgs() = assertChanged(
         before = """
             import org.junit.Test;
-            import org.junit.Rule;
             import org.junit.rules.TemporaryFolder;
+            import org.junit.Rule;
             
             import java.io.File;
             import java.io.IOException;
