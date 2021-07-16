@@ -269,6 +269,9 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
             package org.openrewrite.java.testing.junit5;
             
             import org.junit.jupiter.api.*;
+            
+            import java.util.List;
+            
             import static org.mockito.Mockito.*;
             
             public class ExampleJunitTestClass {

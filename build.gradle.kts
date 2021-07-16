@@ -90,7 +90,7 @@ dependencies {
     implementation("org.openrewrite:rewrite-java:$rewriteVersion")
     implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
-    runtimeOnly("com.fasterxml.jackson.core:jackson-core:latest.release")
+    runtimeOnly("com.fasterxml.jackson.core:jackson-core:2.12.+")
     runtimeOnly("org.openrewrite:rewrite-java-11:$rewriteVersion")
 
     compileOnly("org.projectlombok:lombok:latest.release")
