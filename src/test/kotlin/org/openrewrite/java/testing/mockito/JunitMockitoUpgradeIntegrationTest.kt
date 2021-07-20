@@ -264,6 +264,7 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
     )
 
     @Test
+    @Disabled("Temporarily disable this test")
     fun junitJupiterMavenDependenciesAreUpdated() {
         val javaSource = parser.parse("""
             package org.openrewrite.java.testing.junit5;
