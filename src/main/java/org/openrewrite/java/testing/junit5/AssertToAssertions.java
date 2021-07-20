@@ -26,9 +26,8 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class AssertToAssertions extends Recipe {
 
@@ -79,13 +78,18 @@ public class AssertToAssertions extends Recipe {
             if (isStringArgument(firstArg)) {
                 // Move the first arg to be the last argument
 
-                List<Expression> newArgs = Stream.concat(
-                        args.stream().skip(1),
-                        Stream.of(firstArg)
-                ).collect(Collectors.toList());
+                List<Expression> newArgs = new ArrayList<>(args.size());
+                for (int i = 1; i < args.size(); i++) {
+                    if(i == 1) {
+                        newArgs.add(args.get(i).withPrefix(firstArg.getPrefix()));
+                    } else {
+                        newArgs.add(args.get(i));
+                    }
+                }
+                newArgs.add(firstArg.withPrefix(args.get(args.size() - 1).getPrefix()));
+
                 m = m.withArguments(newArgs);
             }
-            m = maybeAutoFormat(method, m, ctx, getCursor().dropParentUntil(J.class::isInstance));
 
             return m;
         }

@@ -107,6 +107,34 @@ class AssertToAssertionsTest : JavaRecipeTest {
     )
 
     @Test
+    fun lineBreakInArguments() = assertChanged(
+        before = """
+            import org.junit.Test;
+            import static org.junit.Assert.assertFalse;
+
+            public class A {
+                @Test
+                public void test() {
+                    assertFalse("boom",
+                            true);
+                }
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            import static org.junit.jupiter.api.Assertions.assertFalse;
+
+            public class A {
+                @Test
+                public void test() {
+                    assertFalse(true,
+                            "boom");
+                }
+            }
+        """
+    )
+
+    @Test
     fun assertWithoutMessage() = assertChanged(
         before = """
             import org.junit.Assert;
