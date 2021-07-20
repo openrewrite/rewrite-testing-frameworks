@@ -18,7 +18,10 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
 public class CleanupJUnitImports extends Recipe {
@@ -35,6 +38,19 @@ public class CleanupJUnitImports extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new CleanupJUnitImportsVisitor();
+    }
+
+    @Nullable
+    @Override
+    protected JavaVisitor<ExecutionContext> getSingleSourceApplicableTest() {
+        return new JavaVisitor<ExecutionContext>() {
+            @Override
+            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                doAfterVisit(new UsesType<>("org.junit.*"));
+                doAfterVisit(new UsesType<>("junit.*"));
+                return cu;
+            }
+        };
     }
 
     public static class CleanupJUnitImportsVisitor extends JavaIsoVisitor<ExecutionContext> {

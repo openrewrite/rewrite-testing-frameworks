@@ -18,8 +18,10 @@ package org.openrewrite.java.testing.mockito;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.OrderImports;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
 /**
@@ -39,6 +41,12 @@ public class CleanupMockitoImports extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new CleanupMockitoImportsVisitor();
+    }
+
+    @Nullable
+    @Override
+    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
+        return new UsesType<>("org.mockito.*");
     }
 
     public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
