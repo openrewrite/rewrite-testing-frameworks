@@ -21,43 +21,15 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.Predicate;
 
 public class UpdateTestAnnotation extends Recipe {
-
-    private static List<Parser.Input> assertThrowsDependsOn(Expression e) {
-        List<Parser.Input> dependsOn = new ArrayList<>(3);
-
-        dependsOn.add(Parser.Input.fromString("package org.junit.jupiter.api.function;\n" +
-                "public interface Executable {\n" +
-                "    void execute() throws Throwable;\n" +
-                "}"));
-
-        dependsOn.add(Parser.Input.fromString("package org.junit.jupiter.api;\n" +
-                "import org.junit.jupiter.api.function.Executable;\n" +
-                "public class Assertions {\n" +
-                "    public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {\n" +
-                "        return null;\n" +
-                "    }\n" +
-                "}"));
-
-        if (e instanceof J.FieldAccess) {
-            JavaType.FullyQualified type = TypeUtils.asFullyQualified(((J.FieldAccess) e).getTarget().getType());
-            if (type != null) {
-                String source = (type.getPackageName().isEmpty() ? "" : "package " + type.getPackageName() + ";\n") +
-                        "public class " + type.getClassName() + " extends Exception {}";
-                dependsOn.add(Parser.Input.fromString(source));
-            }
-        }
-
-        return dependsOn;
-    }
 
     @Override
     public String getDisplayName() {
@@ -93,7 +65,8 @@ public class UpdateTestAnnotation extends Recipe {
         public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
             J.Annotation ann = super.visitAnnotation(annotation, ctx);
             if (JUNIT4_TEST.matches(ann)) {
-                getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).putMessage(JUNIT4_TEST_ANNOTATION_ARGUMENTS, ann.getArguments());
+                getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).putMessage(JUNIT4_TEST_ANNOTATION_ARGUMENTS,
+                        ann.getArguments());
                 ann = ann.withArguments(null);
             }
             return ann;
@@ -119,6 +92,26 @@ public class UpdateTestAnnotation extends Recipe {
             private final J.MethodDeclaration scope;
             private final List<Expression> arguments;
 
+            private final JavaTemplate assertThrows = JavaTemplate.builder(this::getCursor, "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
+                    .javaParser(() -> JavaParser.fromJavaVersion()
+                            .logCompilationWarningsAndErrors(true)
+                            .dependsOn(
+                                    "package org.junit.jupiter.api.function;" +
+                                            "public interface Executable {" +
+                                            "    void execute() throws Throwable;" +
+                                            "}",
+                                    "package org.junit.jupiter.api;" +
+                                            "import org.junit.jupiter.api.function.Executable;" +
+                                            "public class Assertions {" +
+                                            "   public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {" +
+                                            "      return null;" +
+                                            "   }" +
+                                            "}"
+                            )
+                            .build())
+                    .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
+                    .build();
+
             public ChangeTestMethodBodyStep(J.MethodDeclaration scope, List<Expression> arguments) {
                 this.scope = scope;
                 this.arguments = arguments;
@@ -137,17 +130,21 @@ public class UpdateTestAnnotation extends Recipe {
                             if (assignParamName.equals("expected")) {
                                 assert e instanceof J.FieldAccess;
 
-                                m = m.withTemplate(
-                                        JavaTemplate.builder(this::getCursor, "assertThrows(#{any()}, () -> #{});")
-                                                .javaParser(() -> JavaParser.fromJavaVersion()
-                                                        .dependsOn(assertThrowsDependsOn(e))
-                                                        .build())
-                                                .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
-                                                .build(),
+                                m = m.withTemplate(JavaTemplate.builder(this::getCursor, "Object o = () -> #{}").build(),
                                         m.getCoordinates().replaceBody(),
-                                        e,
-                                        m.getBody()
-                                );
+                                        m.getBody());
+
+                                assert m.getBody() != null;
+                                J.Lambda lambda = (J.Lambda) ((J.VariableDeclarations) m.getBody().getStatements().get(0))
+                                        .getVariables().get(0).getInitializer();
+
+                                assert lambda != null;
+                                lambda = lambda.withType(JavaType.Class.build("org.junit.jupiter.api.function.Executable"));
+
+                                m = m.withTemplate(assertThrows,
+                                        m.getCoordinates().replaceBody(),
+                                        e, lambda);
+
                                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                             } else if (assignParamName.equals("timeout")) {
                                 doAfterVisit(new AddTimeoutAnnotationStep(m, e));
