@@ -20,7 +20,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.OrderImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
