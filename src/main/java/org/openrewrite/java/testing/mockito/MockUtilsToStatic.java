@@ -19,7 +19,6 @@ import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.DeleteStatement;
 import org.openrewrite.java.JavaVisitor;
