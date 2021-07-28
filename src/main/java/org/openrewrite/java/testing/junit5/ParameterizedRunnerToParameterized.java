@@ -67,25 +67,26 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     }
 
     private static class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
+        @SuppressWarnings("unchecked")
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
-
-            String parametersMethodName = getCursor().pollMessage(PARAMETERS_METHOD_NAME);
-            List<Expression> parametersAnnotationArguments = getCursor().pollMessage(PARAMETERS_ANNOTATION_ARGUMENTS);
-            List<Statement> constructorParams = getCursor().pollMessage(CONSTRUCTOR_ARGUMENTS);
-            Map<Integer, Statement> fieldInjectionParams = getCursor().pollMessage(FIELD_INJECTION_ARGUMENTS);
+            Map<String, Object> params = getCursor().pollMessage(classDecl.getId().toString());
+            String parametersMethodName = params != null ? (String)params.get(PARAMETERS_METHOD_NAME) : null;
+            List<Expression> parametersAnnotationArguments = params != null ?  (List<Expression>)params.get(PARAMETERS_ANNOTATION_ARGUMENTS) : null;
+            List<Statement> constructorParams = params != null ? (List<Statement>)params.get(CONSTRUCTOR_ARGUMENTS) : null;
+            Map<Integer, Statement> fieldInjectionParams = params != null ? (Map<Integer, Statement>)params.get(FIELD_INJECTION_ARGUMENTS) : null;
             String initMethodName = "init" + cd.getSimpleName();
 
             // Constructor Injected Test
             if (parametersMethodName != null && constructorParams != null) {
-                doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true));
+                doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true));
             }
 
             // Field Injected Test
             else if (parametersMethodName != null && fieldInjectionParams != null) {
                 List<Statement> fieldParams = new ArrayList<>(fieldInjectionParams.values());
-                doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false));
+                doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false));
             }
             return cd;
         }
@@ -94,15 +95,16 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
+            Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration)classDeclCursor.getValue()).getId().toString(), v->new HashMap<>());
             for (J.Annotation annotation : m.getLeadingAnnotations()) {
                 if (PARAMETERS.matches(annotation)) {
-                    classDeclCursor.putMessage(PARAMETERS_ANNOTATION_ARGUMENTS, annotation.getArguments());
-                    classDeclCursor.putMessage(PARAMETERS_METHOD_NAME, method.getSimpleName());
+                    params.put(PARAMETERS_ANNOTATION_ARGUMENTS, annotation.getArguments());
+                    params.put(PARAMETERS_METHOD_NAME, method.getSimpleName());
                 }
             }
 
             if (m.isConstructor()) {
-                classDeclCursor.putMessage(CONSTRUCTOR_ARGUMENTS, m.getParameters());
+                params.put(CONSTRUCTOR_ARGUMENTS, m.getParameters());
             }
             return m;
         }
@@ -111,6 +113,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
             J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, executionContext);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
+            Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration)classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
             J.Annotation parameterAnnotation = variableDeclarations.getLeadingAnnotations().stream().filter(PARAMETER::matches).findFirst().orElse(null);
             if (parameterAnnotation != null) {
                 Integer position = 0;
@@ -127,13 +130,16 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 if (variableForInitMethod.getTypeExpression() != null) {
                     variableForInitMethod = variableForInitMethod.withTypeExpression(variableForInitMethod.getTypeExpression().withPrefix(Space.EMPTY).withComments(new ArrayList<>()));
                 }
-                classDeclCursor.computeMessageIfAbsent(FIELD_INJECTION_ARGUMENTS, v -> new TreeMap<Integer, Statement>()).put(position, variableForInitMethod);
+                //noinspection unchecked
+                ((TreeMap<Integer, Statement>) params.computeIfAbsent(FIELD_INJECTION_ARGUMENTS, v -> new TreeMap<Integer, Statement>())).put(position, variableForInitMethod);
+
             }
             return variableDeclarations;
         }
     }
 
     private static class ParameterizedRunnerToParameterizedTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private final J.ClassDeclaration scope;
         private final String initMethodName;
         private final List<Statement> parameterizedTestMethodParameters;
         private final String initStatementParamString;
@@ -145,11 +151,13 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         @Nullable
         private final JavaTemplate initMethodDeclarationTemplate;
 
-        public ParameterizedRunnerToParameterizedTestsVisitor(String parametersMethodName,
+        public ParameterizedRunnerToParameterizedTestsVisitor(J.ClassDeclaration scope,
+                                                              String parametersMethodName,
                                                               String initMethodName,
                                                               @Nullable List<Expression> parameterizedTestAnnotationParameters,
                                                               List<Statement> parameterizedTestMethodParameters,
                                                               boolean isConstructorInjection) {
+            this.scope = scope;
             this.initMethodName = initMethodName;
 
             this.parameterizedTestMethodParameters = parameterizedTestMethodParameters.stream()
@@ -231,6 +239,10 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+            if (!scope.isScope(classDecl)) {
+                return cd;
+            }
+
 
             if (initMethodDeclarationTemplate != null) {
                 cd = maybeAutoFormat(cd, cd.withBody(cd.getBody().withTemplate(initMethodDeclarationTemplate,
@@ -257,6 +269,10 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         @Override
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
             J.VariableDeclarations vdecls = super.visitVariableDeclarations(multiVariable, executionContext);
+            if (!getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).isScopeInPath(scope)) {
+                return vdecls;
+            }
+
             final AtomicReference<Space> annoPrefix = new AtomicReference<>();
             vdecls = vdecls.withLeadingAnnotations(ListUtils.map(vdecls.getLeadingAnnotations(), anno -> {
                 if (PARAMETER.matches(anno)) {
@@ -274,7 +290,9 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
-
+            if (!getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).isScopeInPath(scope)) {
+                return m;
+            }
             // Replace @Test with @ParameterizedTest
             m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), annotation -> {
                 if (JUPITER_TEST.matches(annotation) || JUNIT_TEST.matches(annotation)) {
@@ -318,7 +336,6 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("INIT_VARS", fieldNames);
                 }
             }
-
             return m;
         }
     }

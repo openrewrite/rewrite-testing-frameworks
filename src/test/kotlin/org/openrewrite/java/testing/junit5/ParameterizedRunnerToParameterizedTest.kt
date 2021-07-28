@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
+import org.openrewrite.Issue
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
@@ -322,6 +323,140 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                         return params;
                     }
                 }
+        """,
+        skipEnhancedTypeValidation = true
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/163")
+    @Test
+    fun nestedRunners() = assertChanged(
+        before = """
+            import java.util.Collection;
+            import org.junit.Assert;
+            import org.junit.BeforeClass;
+            import org.junit.Test;
+            import org.junit.runner.RunWith;
+            import org.junit.runners.Parameterized;
+            
+            public class NestedTests {
+                @BeforeClass
+                public static void setup() {
+                }
+                
+                public static abstract class T1 extends NestedTests {
+                    final String path;
+                    public T1(String path) {
+                        this.path = path;
+                    }
+                    @Test
+                    public void test() {
+                        Assert.assertNotNull(path);
+                    }
+                }
+                
+                static List<Object[]> valuesDataProvider() {
+                    List<Object[]> params = new ArrayList<>();
+                        params.add(new Object[] { "1", "2" });
+                        return params;
+                }
+                
+                @RunWith(Parameterized.class)
+                public static class I1 extends T1 {
+                    @Parameterized.Parameters(name = "{index}: {0}[{1}] = {2}")
+                    public static Collection<Object[]> data1() {
+                        return valuesDataProvider();
+                    }
+                    public I1(String path) {
+                        super(path);
+                    }
+                    @Test
+                    public void testI() {
+                        Assert.assertNotNull(path);
+                    }
+                }
+                
+                @RunWith(Parameterized.class)
+                public static class I2 extends NestedTests {
+                    @Parameterized.Parameters(name = "{index}: {0}[{1}] = {2}")
+                    public static Collection<Object[]> data2() {
+                        return valuesDataProvider();
+                    }
+                    final String path;
+                    public I2(String path) {
+                        this.path = path;
+                    }
+                    @Test
+                    public void testI2() {
+                        Assert.assertNotNull(path);
+                    }
+                }
+            }
+        """,
+        after = """
+            import java.util.Collection;
+            import org.junit.Assert;
+            import org.junit.BeforeClass;
+            import org.junit.Test;
+            import org.junit.jupiter.params.ParameterizedTest;
+            import org.junit.jupiter.params.provider.MethodSource;
+            
+            public class NestedTests {
+                @BeforeClass
+                public static void setup() {
+                }
+                
+                public static abstract class T1 extends NestedTests {
+                    final String path;
+                    public T1(String path) {
+                        this.path = path;
+                    }
+                    @Test
+                    public void test() {
+                        Assert.assertNotNull(path);
+                    }
+                }
+                
+                static List<Object[]> valuesDataProvider() {
+                    List<Object[]> params = new ArrayList<>();
+                        params.add(new Object[] { "1", "2" });
+                        return params;
+                }
+                
+                public static class I1 extends T1 {
+                    public static Collection<Object[]> data1() {
+                        return valuesDataProvider();
+                    }
+            
+                    public void initI1(String path) {
+                        super(path);
+                    }
+            
+                    @MethodSource("data1")
+                    @ParameterizedTest(name = "{index}: {0}[{1}] = {2}")
+                    public void testI(String path) {
+                        initI1(path);
+                        Assert.assertNotNull(path);
+                    }
+                }
+                
+                public static class I2 extends NestedTests {
+                    public static Collection<Object[]> data2() {
+                        return valuesDataProvider();
+                    }
+                     String path;
+            
+                    public void initI2(String path) {
+                        this.path = path;
+                    }
+            
+                    @MethodSource("data2")
+                    @ParameterizedTest(name = "{index}: {0}[{1}] = {2}")
+                    public void testI2(String path) {
+                        initI2(path);
+                        Assert.assertNotNull(path);
+                    }
+                }
+            }
         """,
         skipEnhancedTypeValidation = true
     )
