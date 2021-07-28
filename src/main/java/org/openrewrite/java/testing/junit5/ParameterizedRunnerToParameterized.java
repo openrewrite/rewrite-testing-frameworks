@@ -131,7 +131,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     variableForInitMethod = variableForInitMethod.withTypeExpression(variableForInitMethod.getTypeExpression().withPrefix(Space.EMPTY).withComments(new ArrayList<>()));
                 }
                 //noinspection unchecked
-                ((TreeMap<Integer, Statement>) params.computeIfAbsent(FIELD_INJECTION_ARGUMENTS, v -> new TreeMap<Integer, Statement>())).put(position, variableForInitMethod);
+                ((TreeMap<Integer, Statement>) params.computeIfAbsent(FIELD_INJECTION_ARGUMENTS, v -> new TreeMap<>())).put(position, variableForInitMethod);
 
             }
             return variableDeclarations;

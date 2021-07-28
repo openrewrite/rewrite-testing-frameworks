@@ -137,7 +137,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 Expression expectMethodArg = args.get(0);
                 isExpectArgAMatcher = isHamcrestMatcher(expectMethodArg);
                 JavaType.FullyQualified argType = TypeUtils.asFullyQualified(expectMethodArg.getType());
-                if (!isExpectArgAMatcher && (argType == null || !argType.getFullyQualifiedName().equals("java.lang.Class"))) {
+                if (!isExpectArgAMatcher && (argType == null || !"java.lang.Class".equals(argType.getFullyQualifiedName()))) {
                     return m;
                 }
             }
@@ -235,7 +235,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (method.getType() != null && method.getType().getDeclaringType().getFullyQualifiedName().equals("org.junit.rules.ExpectedException")) {
+            if (method.getType() != null && "org.junit.rules.ExpectedException".equals(method.getType().getDeclaringType().getFullyQualifiedName())) {
                 switch (method.getSimpleName()) {
                     case "expect":
                         getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, "expectedExceptionMethodInvocation", method);
