@@ -67,10 +67,10 @@ public class AssertToAssertions extends Recipe {
             Expression firstArg = args.get(0);
             // Suppress arg-switching for Assertions.assertEquals(String, String)
             if (args.size() == 2) {
-                if (m.getSimpleName().equals("assertSame")
-                        || m.getSimpleName().equals("assertNotSame")
-                        || m.getSimpleName().equals("assertEquals")
-                        || m.getSimpleName().equals("assertNotEquals")) {
+                if ("assertSame".equals(m.getSimpleName())
+                        || "assertNotSame".equals(m.getSimpleName())
+                        || "assertEquals".equals(m.getSimpleName())
+                        || "assertNotEquals".equals(m.getSimpleName())) {
                     return m;
                 }
             }
@@ -101,7 +101,7 @@ public class AssertToAssertions extends Recipe {
 
         private static boolean isJunitAssertMethod(J.MethodInvocation method) {
             if (method.getType() != null && TypeUtils.isAssignableTo(ASSERTION_TYPE, method.getType().getDeclaringType())) {
-                return !method.getSimpleName().equals("assertThat");
+                return !"assertThat".equals(method.getSimpleName());
             }
             if (!(method.getSelect() instanceof J.Identifier)) {
                 return false;
@@ -111,7 +111,7 @@ public class AssertToAssertions extends Recipe {
                 return false;
             }
             JavaType.FullyQualified receiverType = (JavaType.FullyQualified) receiver.getType();
-            return receiverType.getFullyQualifiedName().equals("org.junit.Assert");
+            return "org.junit.Assert".equals(receiverType.getFullyQualifiedName());
         }
     }
 }

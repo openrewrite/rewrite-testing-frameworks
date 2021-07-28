@@ -161,7 +161,7 @@ public class TemporaryFolderToTempDir extends Recipe {
             JavaType newFolderMethodDeclaration = methods
                     .filter(m -> {
                         List<Statement> params = m.getParameters();
-                        return m.getSimpleName().equals("newFolder")
+                        return "newFolder".equals(m.getSimpleName())
                                 && params.size() == 2
                                 && params.get(0).hasClassType(FILE_TYPE)
                                 && params.get(1).hasClassType(STRING_TYPE);

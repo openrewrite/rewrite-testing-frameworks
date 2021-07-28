@@ -151,7 +151,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
             JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
             if (fullyQualified != null) {
                 String typeName = fullyQualified.getFullyQualifiedName();
-                return (typeName.equals("java.lang.Double") || typeName.equals("java.lang.Float"));
+                return ("java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName));
             }
 
             JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());

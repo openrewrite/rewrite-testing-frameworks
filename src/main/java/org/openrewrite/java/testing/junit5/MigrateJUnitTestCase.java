@@ -146,9 +146,9 @@ public class MigrateJUnitTestCase extends Recipe {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
             if (md.getSimpleName().startsWith("test") && md.getLeadingAnnotations().stream().noneMatch(JUNIT_TEST_ANNOTATION_MATCHER::matches)) {
                 md = updateMethodDeclarationAnnotationAndModifier(md, "@Test", "org.junit.jupiter.api.Test");
-            } else if (md.getSimpleName().equals("setUp")) {
+            } else if ("setUp".equals(md.getSimpleName())) {
                 md = updateMethodDeclarationAnnotationAndModifier(md, "@BeforeEach", "org.junit.jupiter.api.BeforeEach");
-            } else if (md.getSimpleName().equals("tearDown")) {
+            } else if ("tearDown".equals(md.getSimpleName())) {
                 md = updateMethodDeclarationAnnotationAndModifier(md, "@AfterEach", "org.junit.jupiter.api.AfterEach");
             }
             return md;

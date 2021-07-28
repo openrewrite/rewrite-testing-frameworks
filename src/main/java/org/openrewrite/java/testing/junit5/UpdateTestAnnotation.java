@@ -127,7 +127,7 @@ public class UpdateTestAnnotation extends Recipe {
                             String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
                             Expression e = assign.getAssignment();
 
-                            if (assignParamName.equals("expected")) {
+                            if ("expected".equals(assignParamName)) {
                                 assert e instanceof J.FieldAccess;
 
                                 m = m.withTemplate(JavaTemplate.builder(this::getCursor, "Object o = () -> #{}").build(),
@@ -146,7 +146,7 @@ public class UpdateTestAnnotation extends Recipe {
                                         e, lambda);
 
                                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
-                            } else if (assignParamName.equals("timeout")) {
+                            } else if ("timeout".equals(assignParamName)) {
                                 doAfterVisit(new AddTimeoutAnnotationStep(m, e));
                             }
                         }
