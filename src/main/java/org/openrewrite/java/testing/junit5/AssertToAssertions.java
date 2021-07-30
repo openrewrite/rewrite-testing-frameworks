@@ -80,7 +80,7 @@ public class AssertToAssertions extends Recipe {
 
                 List<Expression> newArgs = new ArrayList<>(args.size());
                 for (int i = 1; i < args.size(); i++) {
-                    if(i == 1) {
+                    if (i == 1) {
                         newArgs.add(args.get(i).withPrefix(firstArg.getPrefix()));
                     } else {
                         newArgs.add(args.get(i));

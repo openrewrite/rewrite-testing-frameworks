@@ -95,16 +95,6 @@ public class TestRuleToTestInfo extends Recipe {
             }
 
             @Override
-            public J.Import visitImport(J.Import _import, ExecutionContext executionContext) {
-                J.Import imp = super.visitImport(_import, executionContext);
-                if (imp.getTypeName().equals(testNameType)) {
-                    //noinspection ConstantConditions
-                    return null;
-                }
-                return imp;
-            }
-
-            @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
                 J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, executionContext);
                 if (varDecls.getType() != null && TypeUtils.isOfClassType(varDecls.getType(), testNameType)) {
@@ -126,11 +116,11 @@ public class TestRuleToTestInfo extends Recipe {
             }
 
             //FIXME. add TestMethod statements.
-//            @Override
-//            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-//                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
-//                return md;
-//            }
+            //            @Override
+            //            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+            //                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+            //                return md;
+            //            }
 
             private boolean isBeforeAnnotation(J.Annotation annotation) {
                 return TypeUtils.isOfClassType(annotation.getType(), "org.junit.Before") || TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.BeforeEach");

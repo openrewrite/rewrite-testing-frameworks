@@ -72,10 +72,10 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
             Map<String, Object> params = getCursor().pollMessage(classDecl.getId().toString());
-            String parametersMethodName = params != null ? (String)params.get(PARAMETERS_METHOD_NAME) : null;
-            List<Expression> parametersAnnotationArguments = params != null ?  (List<Expression>)params.get(PARAMETERS_ANNOTATION_ARGUMENTS) : null;
-            List<Statement> constructorParams = params != null ? (List<Statement>)params.get(CONSTRUCTOR_ARGUMENTS) : null;
-            Map<Integer, Statement> fieldInjectionParams = params != null ? (Map<Integer, Statement>)params.get(FIELD_INJECTION_ARGUMENTS) : null;
+            String parametersMethodName = params != null ? (String) params.get(PARAMETERS_METHOD_NAME) : null;
+            List<Expression> parametersAnnotationArguments = params != null ?  (List<Expression>) params.get(PARAMETERS_ANNOTATION_ARGUMENTS) : null;
+            List<Statement> constructorParams = params != null ? (List<Statement>) params.get(CONSTRUCTOR_ARGUMENTS) : null;
+            Map<Integer, Statement> fieldInjectionParams = params != null ? (Map<Integer, Statement>) params.get(FIELD_INJECTION_ARGUMENTS) : null;
             String initMethodName = "init" + cd.getSimpleName();
 
             // Constructor Injected Test
@@ -95,7 +95,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
-            Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration)classDeclCursor.getValue()).getId().toString(), v->new HashMap<>());
+            Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
             for (J.Annotation annotation : m.getLeadingAnnotations()) {
                 if (PARAMETERS.matches(annotation)) {
                     params.put(PARAMETERS_ANNOTATION_ARGUMENTS, annotation.getArguments());
@@ -113,7 +113,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
             J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, executionContext);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
-            Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration)classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
+            Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
             J.Annotation parameterAnnotation = variableDeclarations.getLeadingAnnotations().stream().filter(PARAMETER::matches).findFirst().orElse(null);
             if (parameterAnnotation != null) {
                 Integer position = 0;
