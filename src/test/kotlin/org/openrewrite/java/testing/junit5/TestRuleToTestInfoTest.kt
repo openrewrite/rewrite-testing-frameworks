@@ -37,6 +37,9 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
                 protected String randomName() {
                     return name.getMethodName();
                 }
+                
+                private static class SomeInnerClass {
+                }
             }
         """,
         after = """
@@ -47,6 +50,9 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
                 public String name;
                 protected String randomName() {
                     return name;
+                }
+                
+                private static class SomeInnerClass {
                 }
             
                 @BeforeEach

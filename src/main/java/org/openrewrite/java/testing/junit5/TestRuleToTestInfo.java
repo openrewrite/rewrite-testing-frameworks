@@ -125,21 +125,16 @@ public class TestRuleToTestInfo extends Recipe {
                 return nc;
             }
 
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
-                if (md.getLeadingAnnotations().stream().anyMatch(this::isBeforeAnnotation)) {
-                    //noinspection ConstantConditions
-                    getCursor().putMessage("before-method", getCursor().firstEnclosing(J.ClassDeclaration.class));
-                }
-                return md;
-            }
+            //FIXME. add TestMethod statements.
+//            @Override
+//            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+//                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+//                return md;
+//            }
 
             private boolean isBeforeAnnotation(J.Annotation annotation) {
                 return TypeUtils.isOfClassType(annotation.getType(), "org.junit.Before") || TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.BeforeEach");
             }
-
-
         };
     }
 
@@ -155,7 +150,7 @@ public class TestRuleToTestInfo extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
-            if (getCursor().isScopeInPath(enclosingClass)) {
+            if (enclosingClass.getId().equals(cd.getId())) {
                 String t = "@BeforeEach\n" +
                         "public void setup(TestInfo testInfo) {\n" +
                         "   Optional<Method> testMethod = testInfo.getTestMethod();\n" +
