@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
@@ -26,19 +27,19 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.ArrayList;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Arrays;
 
 public class TestRuleToTestInfo extends Recipe {
 
     private static final String testNameType = "org.junit.rules.TestName";
     private static final MethodMatcher TEST_NAME_GET_NAME = new MethodMatcher(testNameType + " getMethodName()");
+    private static final AnnotationMatcher RULE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Rule");
+    private static final AnnotationMatcher JUNIT_BEFORE_MATCHER = new AnnotationMatcher("@org.junit.Before");
+    private static final AnnotationMatcher JUPITER_BEFORE_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
 
     private static final ThreadLocal<JavaParser> TEST_INFO_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(
-                    Stream.of(
-                            Parser.Input.fromString(
+                    Arrays.asList(Parser.Input.fromString(
                                     "package org.junit.jupiter.api;\n" +
                                             "import java.lang.reflect.Method;\n" +
                                             "import java.util.Optional;\n" +
@@ -48,7 +49,10 @@ public class TestRuleToTestInfo extends Recipe {
                                             "  Set<String> getTags();\n" +
                                             "  Optional<Class<?>> getTestClass();\n" +
                                             "  Optional<Method> getTestMethod();" +
-                                            "}")).collect(Collectors.toList())
+                                            "}"),
+                            Parser.Input.fromString(
+                                    "package org.junit.jupiter.api; public @interface BeforeEach {}"
+                            ))
             ).build());
 
     @Override
@@ -59,11 +63,6 @@ public class TestRuleToTestInfo extends Recipe {
     @Override
     public String getDescription() {
         return "Replace usages of JUnit 4's `@Rule TestName` with JUnit 5's TestInfo.";
-    }
-
-    @Override
-    protected @Nullable TreeVisitor<?, ExecutionContext> getApplicableTest() {
-        return new UsesType<>(testNameType);
     }
 
     @Override
@@ -91,6 +90,7 @@ public class TestRuleToTestInfo extends Recipe {
                     }
                 });
                 doAfterVisit(new ChangeType(testNameType, "String"));
+                doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach"));
                 return compilationUnit;
             }
 
@@ -98,9 +98,13 @@ public class TestRuleToTestInfo extends Recipe {
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
                 J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, executionContext);
                 if (varDecls.getType() != null && TypeUtils.isOfClassType(varDecls.getType(), testNameType)) {
-                    varDecls = varDecls.withLeadingAnnotations(new ArrayList<>());
-                    //noinspection ConstantConditions
-                    doAfterVisit(new AddBeforeEachMethod(varDecls, getCursor().firstEnclosing(J.ClassDeclaration.class)));
+                    varDecls = varDecls.withLeadingAnnotations(ListUtils.map(varDecls.getLeadingAnnotations(), anno -> {
+                        if (RULE_ANNOTATION_MATCHER.matches(anno)) {
+                            return null;
+                        }
+                        return anno;
+                    }));
+                    getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("has-testName-rule", varDecls);
                 }
                 return varDecls;
             }
@@ -115,46 +119,56 @@ public class TestRuleToTestInfo extends Recipe {
                 return nc;
             }
 
-            //FIXME. add TestMethod statements.
-            //            @Override
-            //            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-            //                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
-            //                return md;
-            //            }
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+                if (md.getLeadingAnnotations().stream().anyMatch(anno -> JUNIT_BEFORE_MATCHER.matches(anno) || JUPITER_BEFORE_EACH_MATCHER.matches(anno))) {
+                    getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("before-method", md);
+                }
+                return md;
+            }
 
-            private boolean isBeforeAnnotation(J.Annotation annotation) {
-                return TypeUtils.isOfClassType(annotation.getType(), "org.junit.Before") || TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.BeforeEach");
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
+                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+                J.VariableDeclarations varDecls = getCursor().pollMessage("has-testName-rule");
+                if (varDecls != null) {
+                    String testMethodStatement = "Optional<Method> testMethod = testInfo.getTestMethod();\n" +
+                            "if (testMethod.isPresent()) {\n" +
+                            "    this.#{} = testMethod.get().getName();\n" +
+                            "}";
+                    J.MethodDeclaration beforeMethod = getCursor().pollMessage("before-method");
+                    if (beforeMethod == null) {
+                        String t = "@BeforeEach\n" +
+                                "public void setup(TestInfo testInfo) {" + testMethodStatement + "}";
+                        cd = cd.withTemplate(JavaTemplate.builder(this::getCursor, t).javaParser(TEST_INFO_PARSER::get)
+                                        .imports("org.junit.jupiter.api.TestInfo", "org.junit.jupiter.api.BeforeEach", "java.util.Optional", "java.lang.reflect.Method")
+                                        .build(),
+                                cd.getBody().getCoordinates().lastStatement(),
+                                varDecls.getVariables().get(0).getName().getSimpleName());
+                    } else {
+                        doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
+                            @Override
+                            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+                                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+                                if (md.getId().equals(beforeMethod.getId())) {
+                                    md = md.withTemplate(JavaTemplate.builder(this::getCursor, "TestInfo testInfo").javaParser(TEST_INFO_PARSER::get)
+                                                    .imports("org.junit.jupiter.api.TestInfo", "org.junit.jupiter.api.BeforeEach", "java.util.Optional", "java.lang.reflect.Method")
+                                                    .build(),
+                                            md.getCoordinates().replaceParameters());
+                                    //noinspection ConstantConditions
+                                    md = maybeAutoFormat(md, md.withTemplate(JavaTemplate.builder(this::getCursor, testMethodStatement).javaParser(TEST_INFO_PARSER::get)
+                                                    .imports("org.junit.jupiter.api.TestInfo", "java.util.Optional", "java.lang.reflect.Method")
+                                                    .build(),
+                                            md.getBody().getCoordinates().lastStatement(), varDecls.getVariables().get(0).getName().getSimpleName()), executionContext, getCursor().getParent());
+                                }
+                                return md;
+                            }
+                        });
+                    }
+                }
+                return cd;
             }
         };
-    }
-
-    private static class AddBeforeEachMethod extends JavaIsoVisitor<ExecutionContext> {
-        private final J.VariableDeclarations varDecls;
-        private final J.ClassDeclaration enclosingClass;
-
-        public AddBeforeEachMethod(J.VariableDeclarations varDecls, J.ClassDeclaration enclosingClass) {
-            this.varDecls = varDecls;
-            this.enclosingClass = enclosingClass;
-        }
-
-        @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
-            if (enclosingClass.getId().equals(cd.getId())) {
-                String t = "@BeforeEach\n" +
-                        "public void setup(TestInfo testInfo) {\n" +
-                        "   Optional<Method> testMethod = testInfo.getTestMethod();\n" +
-                        "   if (testMethod.isPresent()) {\n" +
-                        "        this.#{} = testMethod.get().getName();\n" +
-                        "   }\n" +
-                        "}";
-                cd = cd.withTemplate(JavaTemplate.builder(this::getCursor, t).javaParser(TEST_INFO_PARSER::get)
-                                .imports("org.junit.jupiter.api.TestInfo", "java.util.Optional", "java.lang.reflect.Method")
-                                .build(),
-                        cd.getBody().getCoordinates().lastStatement(),
-                        varDecls.getVariables().get(0).getName().getSimpleName());
-            }
-            return cd;
-        }
     }
 }

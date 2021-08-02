@@ -43,6 +43,7 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
             }
         """,
         after = """
+            import org.junit.jupiter.api.BeforeEach;
             import org.junit.jupiter.api.TestInfo;
             
             public class SomeTest {
@@ -61,6 +62,57 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
                     if (testMethod.isPresent()) {
                         this.name = testMethod.get().getName();
                     }
+                }
+            }
+        """
+    )
+
+    @Test
+    fun testRuleHasBeforeMethodToTestInfo() = assertChanged(
+        before = """
+            import org.junit.Before;
+            import org.junit.Rule;
+            import org.junit.rules.TestName;
+            
+            public class SomeTest {
+                protected int count;
+                @Rule
+                public TestName name = new TestName();
+                protected String randomName() {
+                    return name.getMethodName();
+                }
+                
+                @Before
+                public void setup() {
+                    count++;
+                }
+                
+                private static class SomeInnerClass {
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.BeforeEach;
+            import org.junit.jupiter.api.TestInfo;
+            
+            public class SomeTest {
+                protected int count;
+                
+                public String name;
+                protected String randomName() {
+                    return name;
+                }
+            
+                @BeforeEach
+                public void setup(TestInfo testInfo) {
+                    count++;
+                    Optional<Method> testMethod = testInfo.getTestMethod();
+                    if (testMethod.isPresent()) {
+                        this.name = testMethod.get().getName();
+                    }
+                }
+                
+                private static class SomeInnerClass {
                 }
             }
         """
