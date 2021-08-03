@@ -104,7 +104,7 @@ class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -183,7 +183,7 @@ class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -227,6 +227,6 @@ class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 }

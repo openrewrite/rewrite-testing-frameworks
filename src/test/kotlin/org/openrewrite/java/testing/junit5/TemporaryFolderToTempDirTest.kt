@@ -60,7 +60,8 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                     tmpFolder.delete();
                 }
             }
-        """
+        """,
+        typeValidation =  { identifiers = false}
     )
 
     @Test
@@ -465,7 +466,8 @@ class TemporaryFolderToTempDirTest : JavaRecipeTest {
                     File aDir = temporaryFolder;
                 }
             }
-        """
+        """,
+        typeValidation =  { identifiers = false}
     )
 
     @Test

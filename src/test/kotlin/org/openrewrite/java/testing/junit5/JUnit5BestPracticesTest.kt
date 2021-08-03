@@ -138,6 +138,7 @@ class JUnit5BestPracticesTest : JavaRecipeTest {
             
                 @Disabled("not ready yet") @Test public void somethingElse() {}
             }
-        """
+        """,
+        typeValidation =  { identifiers = false; }
     )
 }

@@ -160,7 +160,8 @@ class CategoryToTagTest : JavaRecipeTest {
             public class B {
             
             }
-        """
+        """,
+        typeValidation =  { identifiers = false; }
     )
 
     @Test

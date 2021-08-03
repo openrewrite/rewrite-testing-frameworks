@@ -100,7 +100,7 @@ class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -137,7 +137,7 @@ class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -176,7 +176,7 @@ class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -218,7 +218,7 @@ class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -268,7 +268,7 @@ class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
 }

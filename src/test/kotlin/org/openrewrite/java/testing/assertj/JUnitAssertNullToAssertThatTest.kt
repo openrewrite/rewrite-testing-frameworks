@@ -16,11 +16,10 @@
 package org.openrewrite.java.testing.assertj
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.Parser
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
-import org.openrewrite.java.tree.J
+import org.openrewrite.java.TypeValidator
 
 class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
@@ -67,41 +66,43 @@ class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
     )
 
     @Test
-    fun singleStaticMethodWithMessageString() = assertChanged(
-        before = """
-            import org.junit.Test;
-
-            import static org.junit.jupiter.api.Assertions.assertNull;
-
-            public class A {
-
-                @Test
-                public void test() {
-                    assertNull(notification(), "Should be null");
+    fun singleStaticMethodWithMessageString() {
+        assertChanged(
+            before = """
+                import org.junit.Test;
+    
+                import static org.junit.jupiter.api.Assertions.assertNull;
+    
+                public class A {
+    
+                    @Test
+                    public void test() {
+                        assertNull(notification(), "Should be null");
+                    }
+                    private String notification() {
+                        return null;
+                    }
                 }
-                private String notification() {
-                    return null;
+            """,
+            after = """
+                import org.junit.Test;
+    
+                import static org.assertj.core.api.Assertions.assertThat;
+    
+                public class A {
+    
+                    @Test
+                    public void test() {
+                        assertThat(notification()).as("Should be null").isNull();
+                    }
+                    private String notification() {
+                        return null;
+                    }
                 }
-            }
-        """,
-        after = """
-            import org.junit.Test;
-
-            import static org.assertj.core.api.Assertions.assertThat;
-
-            public class A {
-
-                @Test
-                public void test() {
-                    assertThat(notification()).as("Should be null").isNull();
-                }
-                private String notification() {
-                    return null;
-                }
-            }
-        """,
-        skipEnhancedTypeValidation = true
-    )
+            """,
+            typeValidation =  { methodInvocations = false; }
+        )
+    }
 
     @Test
     fun singleStaticMethodWithMessageSupplier() = assertChanged(
@@ -175,7 +176,7 @@ class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -217,6 +218,6 @@ class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 }

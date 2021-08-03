@@ -105,7 +105,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; methodDeclarations = false; identifiers = false}
     )
 
     @Test
@@ -184,7 +184,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; methodDeclarations = false; identifiers = false}
     )
 
     @Test
@@ -252,8 +252,9 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     this.stuff = stuff;
                 }
             }
-        """,
-        skipEnhancedTypeValidation = true
+        """
+        ,
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -324,7 +325,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     }
                 }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; methodDeclarations = false; identifiers = false}
     )
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/163")
@@ -458,6 +459,6 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { identifiers = false; methodInvocations = false; methodDeclarations = false }
     )
 }

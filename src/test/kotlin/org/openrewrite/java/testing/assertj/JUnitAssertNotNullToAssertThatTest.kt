@@ -100,7 +100,7 @@ class JUnitAssertNotNullToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -175,7 +175,7 @@ class JUnitAssertNotNullToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -217,6 +217,6 @@ class JUnitAssertNotNullToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 }

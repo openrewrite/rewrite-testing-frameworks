@@ -20,6 +20,7 @@ import org.openrewrite.Parser
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
+import org.openrewrite.java.TypeValidator
 import org.openrewrite.java.tree.J
 
 class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
@@ -102,7 +103,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -179,7 +180,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -216,7 +217,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -291,7 +292,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 
     @Test
@@ -328,6 +329,6 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                 }
             }
         """,
-        skipEnhancedTypeValidation = true
+        typeValidation =  { methodInvocations = false; }
     )
 }
