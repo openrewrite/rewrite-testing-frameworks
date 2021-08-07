@@ -25,9 +25,12 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class TestRuleToTestInfo extends Recipe {
 
@@ -161,6 +164,16 @@ public class TestRuleToTestInfo extends Recipe {
                                                     .imports("org.junit.jupiter.api.TestInfo", "java.util.Optional", "java.lang.reflect.Method")
                                                     .build(),
                                             md.getBody().getCoordinates().lastStatement(), varDecls.getVariables().get(0).getName().getSimpleName()), executionContext, getCursor().getParent());
+
+                                    // Make sure the testName is initialized first in case any other piece of the method body references it
+                                    assert md.getBody() != null;
+                                    if(md.getBody().getStatements().size() > 2) {
+                                        List<Statement> statements = md.getBody().getStatements();
+                                        List<Statement> reorderedStatements = new ArrayList<>(statements.size());
+                                        reorderedStatements.addAll(statements.subList(statements.size() - 2, statements.size()));
+                                        reorderedStatements.addAll(statements.subList(0, statements.size() - 2));
+                                        md = md.withBody(md.getBody().withStatements(reorderedStatements));
+                                    }
                                 }
                                 return md;
                             }

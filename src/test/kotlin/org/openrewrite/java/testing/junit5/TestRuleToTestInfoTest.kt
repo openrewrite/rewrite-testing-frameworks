@@ -105,11 +105,11 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
             
                 @BeforeEach
                 public void setup(TestInfo testInfo) {
-                    count++;
                     Optional<Method> testMethod = testInfo.getTestMethod();
                     if (testMethod.isPresent()) {
                         this.name = testMethod.get().getName();
                     }
+                    count++;
                 }
                 
                 private static class SomeInnerClass {
