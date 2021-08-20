@@ -63,6 +63,4 @@ recipeList:
       groupId: org.assertj
       artifactId: assertj-core
       version: 3.x
-      scope: test
-      onlyIfUsing:
-        - org.assertj.core.api.Assertions
+      onlyIfUsing: org.assertj.core.api.Assertions

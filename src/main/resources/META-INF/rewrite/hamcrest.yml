@@ -27,6 +27,4 @@ recipeList:
       groupId: org.hamcrest
       artifactId: hamcrest
       version: 2.x
-      scope: test
-      onlyIfUsing:
-        - org.hamcrest.Matchers
+      onlyIfUsing: org.hamcrest.Matchers
