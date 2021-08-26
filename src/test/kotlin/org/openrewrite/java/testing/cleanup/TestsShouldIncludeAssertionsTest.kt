@@ -197,7 +197,7 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
             class AaTest {
                 @Mock
                 MyMathService myMathService;
-                
+            
                 @Test
                 public void methodTest() {
                     assertDoesNotThrow(() -> {

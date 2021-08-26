@@ -325,7 +325,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                     assertThat(notification()).withFailMessage(() -> "These should be close").containsExactly(expected);
                 }
                 private String[] notification() {
-                    return new String[] {"Fred", "Alice", "Mary"};        
+                    return new String[] {"Fred", "Alice", "Mary"};
                 }
             }
         """,

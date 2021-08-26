@@ -47,12 +47,12 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
             import org.junit.jupiter.api.TestInfo;
             
             public class SomeTest {
-                
+            
                 public String name;
                 protected String randomName() {
                     return name;
                 }
-                
+            
                 private static class SomeInnerClass {
                 }
             
@@ -97,7 +97,7 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
             
             public class SomeTest {
                 protected int count;
-                
+            
                 public String name;
                 protected String randomName() {
                     return name;
@@ -111,7 +111,7 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
                     }
                     count++;
                 }
-                
+            
                 private static class SomeInnerClass {
                 }
             }

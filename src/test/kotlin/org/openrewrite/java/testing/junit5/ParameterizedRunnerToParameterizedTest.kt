@@ -405,7 +405,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                 @BeforeClass
                 public static void setup() {
                 }
-                
+            
                 public static abstract class T1 extends NestedTests {
                     final String path;
                     public T1(String path) {
@@ -416,13 +416,13 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                         Assert.assertNotNull(path);
                     }
                 }
-                
+            
                 static List<Object[]> valuesDataProvider() {
                     List<Object[]> params = new ArrayList<>();
                         params.add(new Object[] { "1", "2" });
                         return params;
                 }
-                
+            
                 public static class I1 extends T1 {
                     public static Collection<Object[]> data1() {
                         return valuesDataProvider();
@@ -439,7 +439,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                         Assert.assertNotNull(path);
                     }
                 }
-                
+            
                 public static class I2 extends NestedTests {
                     public static Collection<Object[]> data2() {
                         return valuesDataProvider();
