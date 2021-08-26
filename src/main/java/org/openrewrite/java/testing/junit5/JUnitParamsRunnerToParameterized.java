@@ -20,10 +20,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Comment;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
@@ -117,8 +114,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                     } else if (anno.getArguments() != null && !anno.getArguments().isEmpty()) {
                         // This conversion is not supported add a comment to the annotation and the method name to the not supported list
                         String comment = " JunitParamsRunnerToParameterized conversion not supported";
-                        if (anno.getComments().stream().noneMatch(c -> c.getText().equals(comment))) {
-                            anno = anno.withComments(ListUtils.concat(anno.getComments(), new Comment(Comment.Style.LINE, comment,
+                        if (anno.getComments().stream().noneMatch(c -> c.printComment().endsWith(comment))) {
+                            anno = anno.withComments(ListUtils.concat(anno.getComments(), new TextComment(false, comment,
                                     "\n" + anno.getPrefix().getIndent(), Markers.EMPTY)));
                         }
                         J.MethodDeclaration m = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();

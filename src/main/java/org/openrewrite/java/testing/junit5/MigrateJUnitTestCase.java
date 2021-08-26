@@ -71,6 +71,7 @@ public class MigrateJUnitTestCase extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
+        //noinspection ConstantConditions
         return new JavaIsoVisitor<ExecutionContext>() {
             private final Marker FOUND_TYPE = new JavaSearchResult(randomId(), null, null);
 
@@ -114,7 +115,7 @@ public class MigrateJUnitTestCase extends Recipe {
                     if ("setUp".equals(name) || "tearDown".equals(name)) {
                         return null;
                     } else if ("setName".equals(name)) {
-                        mi = mi.withPrefix(mi.getPrefix().withComments(ListUtils.concat(mi.getPrefix().getComments(), new Comment(Comment.Style.LINE, "", "", Markers.EMPTY))));
+                        mi = mi.withPrefix(mi.getPrefix().withComments(ListUtils.concat(mi.getPrefix().getComments(), new TextComment(false, "", "", Markers.EMPTY))));
                     }
                 }
                 return mi;
