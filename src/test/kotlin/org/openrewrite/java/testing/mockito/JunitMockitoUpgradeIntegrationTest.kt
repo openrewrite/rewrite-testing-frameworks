@@ -15,16 +15,11 @@
  */
 package org.openrewrite.java.testing.mockito
 
-import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.openrewrite.InMemoryExecutionContext
 import org.openrewrite.Recipe
-import org.openrewrite.SourceFile
 import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
-import org.openrewrite.maven.MavenParser
 
 /**
  * Validates the recipes related to upgrading from Mockito 1 to Mockito 3

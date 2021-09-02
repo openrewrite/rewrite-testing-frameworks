@@ -15,9 +15,6 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -32,6 +29,9 @@ import org.openrewrite.java.tree.J.MethodDeclaration;
 import org.openrewrite.java.tree.J.Modifier;
 import org.openrewrite.java.tree.J.Modifier.Type;
 import org.openrewrite.java.tree.TypeUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TestsShouldNotBePublic extends Recipe {
 

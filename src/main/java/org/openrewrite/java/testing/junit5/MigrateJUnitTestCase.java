@@ -25,7 +25,10 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.marker.JavaSearchResult;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TextComment;
+import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
