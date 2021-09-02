@@ -31,13 +31,14 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
         before = """
             import org.junit.Rule;
             import org.junit.rules.TestName;
+
             public class SomeTest {
                 @Rule
                 public TestName name = new TestName();
                 protected String randomName() {
                     return name.getMethodName();
                 }
-                
+
                 private static class SomeInnerClass {
                 }
             }
@@ -45,17 +46,17 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
         after = """
             import org.junit.jupiter.api.BeforeEach;
             import org.junit.jupiter.api.TestInfo;
-            
+
             public class SomeTest {
             
                 public String name;
                 protected String randomName() {
                     return name;
                 }
-            
+
                 private static class SomeInnerClass {
                 }
-            
+
                 @BeforeEach
                 public void setup(TestInfo testInfo) {
                     Optional<Method> testMethod = testInfo.getTestMethod();
@@ -73,7 +74,7 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
             import org.junit.Before;
             import org.junit.Rule;
             import org.junit.rules.TestName;
-            
+
             public class SomeTest {
                 protected int count;
                 @Rule
@@ -81,12 +82,12 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
                 protected String randomName() {
                     return name.getMethodName();
                 }
-                
+
                 @Before
                 public void setup() {
                     count++;
                 }
-                
+
                 private static class SomeInnerClass {
                 }
             }
@@ -94,15 +95,14 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
         after = """
             import org.junit.jupiter.api.BeforeEach;
             import org.junit.jupiter.api.TestInfo;
-            
+
             public class SomeTest {
                 protected int count;
-            
                 public String name;
                 protected String randomName() {
                     return name;
                 }
-            
+
                 @BeforeEach
                 public void setup(TestInfo testInfo) {
                     Optional<Method> testMethod = testInfo.getTestMethod();
@@ -111,7 +111,7 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
                     }
                     count++;
                 }
-            
+
                 private static class SomeInnerClass {
                 }
             }

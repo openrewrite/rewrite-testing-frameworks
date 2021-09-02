@@ -173,11 +173,11 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
             import org.learning.math.MyMathService;
             import static org.mockito.Mockito.when;
             import org.learning.math.Stuff;
-            
+
             class AaTest {
                 @Mock
                 MyMathService myMathService;
-                
+
                 @Test
                 public void methodTest() {
                     when(myMathService.addIntegers("1", "2")).thenReturn(3);
@@ -193,11 +193,11 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
             import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
             import static org.mockito.Mockito.when;
             import org.learning.math.Stuff;
-            
+
             class AaTest {
                 @Mock
                 MyMathService myMathService;
-            
+
                 @Test
                 public void methodTest() {
                     assertDoesNotThrow(() -> {

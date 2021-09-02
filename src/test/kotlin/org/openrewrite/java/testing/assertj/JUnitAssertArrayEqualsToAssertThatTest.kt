@@ -308,7 +308,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                     org.junit.jupiter.api.Assertions.assertArrayEquals(expected, notification(), () -> "These should be close");
                 }
                 private String[] notification() {
-                    return new String[] {"Fred", "Alice", "Mary"};        
+                    return new String[] {"Fred", "Alice", "Mary"};
                 }
             }
         """,

@@ -338,12 +338,12 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.Test;
             import org.junit.runner.RunWith;
             import org.junit.runners.Parameterized;
-            
+
             public class NestedTests {
                 @BeforeClass
                 public static void setup() {
                 }
-                
+
                 public static abstract class T1 extends NestedTests {
                     final String path;
                     public T1(String path) {
@@ -354,13 +354,13 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                         Assert.assertNotNull(path);
                     }
                 }
-                
+
                 static List<Object[]> valuesDataProvider() {
                     List<Object[]> params = new ArrayList<>();
                         params.add(new Object[] { "1", "2" });
                         return params;
                 }
-                
+
                 @RunWith(Parameterized.class)
                 public static class I1 extends T1 {
                     @Parameterized.Parameters(name = "{index}: {0}[{1}] = {2}")
@@ -375,7 +375,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                         Assert.assertNotNull(path);
                     }
                 }
-                
+
                 @RunWith(Parameterized.class)
                 public static class I2 extends NestedTests {
                     @Parameterized.Parameters(name = "{index}: {0}[{1}] = {2}")
@@ -400,12 +400,12 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             import org.junit.Test;
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.MethodSource;
-            
+
             public class NestedTests {
                 @BeforeClass
                 public static void setup() {
                 }
-            
+
                 public static abstract class T1 extends NestedTests {
                     final String path;
                     public T1(String path) {
@@ -416,22 +416,22 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                         Assert.assertNotNull(path);
                     }
                 }
-            
+
                 static List<Object[]> valuesDataProvider() {
                     List<Object[]> params = new ArrayList<>();
                         params.add(new Object[] { "1", "2" });
                         return params;
                 }
-            
+
                 public static class I1 extends T1 {
                     public static Collection<Object[]> data1() {
                         return valuesDataProvider();
                     }
-            
+
                     public void initI1(String path) {
                         super(path);
                     }
-            
+
                     @MethodSource("data1")
                     @ParameterizedTest(name = "{index}: {0}[{1}] = {2}")
                     public void testI(String path) {
@@ -439,17 +439,17 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                         Assert.assertNotNull(path);
                     }
                 }
-            
+
                 public static class I2 extends NestedTests {
                     public static Collection<Object[]> data2() {
                         return valuesDataProvider();
                     }
                      String path;
-            
+
                     public void initI2(String path) {
                         this.path = path;
                     }
-            
+
                     @MethodSource("data2")
                     @ParameterizedTest(name = "{index}: {0}[{1}] = {2}")
                     public void testI2(String path) {

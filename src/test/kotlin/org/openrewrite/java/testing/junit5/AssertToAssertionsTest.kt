@@ -77,7 +77,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
                 public void test() {
                     assertFalse(t.getName(), A.class.isAssignableFrom(t.getClass()));
                 }
-                
+
                 class T {
                     String getName() {
                         return "World";
@@ -96,7 +96,7 @@ class AssertToAssertionsTest : JavaRecipeTest {
                 public void test() {
                     assertFalse(A.class.isAssignableFrom(t.getClass()), t.getName());
                 }
-            
+
                 class T {
                     String getName() {
                         return "World";
