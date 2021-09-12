@@ -24,7 +24,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.FindAnnotations;
-import org.openrewrite.java.search.FindFields;
+import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
@@ -99,8 +99,8 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-            Set<J.VariableDeclarations> mockitoFields = FindFields.find(cd, "org.mockito.junit.MockitoRule");
-            mockitoFields.addAll(FindFields.find(cd, "org.mockito.junit.MockitoTestRule"));
+            Set<J.VariableDeclarations> mockitoFields = FindFieldsOfType.find(cd, "org.mockito.junit.MockitoRule");
+            mockitoFields.addAll(FindFieldsOfType.find(cd, "org.mockito.junit.MockitoTestRule"));
 
             if (!mockitoFields.isEmpty()) {
                 List<Statement> statements = new ArrayList<>(cd.getBody().getStatements());
