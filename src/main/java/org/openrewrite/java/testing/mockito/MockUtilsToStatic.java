@@ -61,7 +61,7 @@ public class MockUtilsToStatic extends Recipe {
     }
 
     public static class MockUtilsToStaticVisitor extends JavaVisitor<ExecutionContext> {
-        private static final MethodMatcher METHOD_MATCHER = new MethodMatcher("org.mockito.internal.util.MockUtil MockUtil()");
+        private static final MethodMatcher METHOD_MATCHER = new MethodMatcher("org.mockito.internal.util.MockUtil <constructor>()");
         private final ChangeMethodTargetToStatic changeMethodTargetToStatic = new ChangeMethodTargetToStatic(
                 "org.mockito.internal.util.MockUtil *(..)",
                 "org.mockito.internal.util.MockUtil",
