@@ -22,21 +22,17 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
-import org.openrewrite.java.marker.JavaSearchResult;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
-import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-
-import static org.openrewrite.Tree.randomId;
 
 public class MigrateJUnitTestCase extends Recipe {
     private static final ThreadLocal<JavaParser> JAVA_PARSER = ThreadLocal.withInitial(() ->
@@ -76,13 +72,11 @@ public class MigrateJUnitTestCase extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         //noinspection ConstantConditions
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final Marker FOUND_TYPE = new JavaSearchResult(randomId(), null, null);
-
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
                 for (J.ClassDeclaration clazz : cu.getClasses()) {
                     if (TypeUtils.isAssignableTo(JavaType.Class.build("junit.framework.TestCase"), clazz.getType())) {
-                        return cu.withMarkers(cu.getMarkers().addIfAbsent(FOUND_TYPE));
+                        return cu.withMarkers(cu.getMarkers().searchResult());
                     }
                 }
 

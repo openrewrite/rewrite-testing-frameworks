@@ -30,7 +30,6 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
-import org.openrewrite.marker.RecipeSearchResult;
 import org.openrewrite.maven.UpgradeDependencyVersion;
 
 import java.util.Arrays;
@@ -86,7 +85,7 @@ public class UpdateMockWebServer extends Recipe {
                 J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
                 if (!FindTypes.find(cu, "org.junit.Rule").isEmpty()
                         && !FindTypes.find(cu, "okhttp3.mockwebserver.MockWebServer").isEmpty()) {
-                    c = c.withMarkers(c.getMarkers().addIfAbsent(new RecipeSearchResult(id, UpdateMockWebServer.this)));
+                    c = c.withMarkers(c.getMarkers().searchResult());
                 }
                 return c;
             }
