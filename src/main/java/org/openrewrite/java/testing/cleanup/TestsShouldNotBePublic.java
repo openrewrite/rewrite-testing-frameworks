@@ -31,7 +31,9 @@ import org.openrewrite.java.tree.J.Modifier.Type;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class TestsShouldNotBePublic extends Recipe {
 
@@ -43,6 +45,11 @@ public class TestsShouldNotBePublic extends Recipe {
     @Override
     public String getDescription() {
         return "Remove `public` modifier from methods with `@Test`, `@ParametrizedTest`, `@RepeatedTest`, `TestFactory`, `@BeforeEach` or `@AfterEach`. They no longer have to be public visibility to be usable by JUnit 5.";
+    }
+
+    @Override
+    public Set<String> getTags() {
+        return Collections.singleton("RSPEC-5786");
     }
 
     @Override
