@@ -93,6 +93,9 @@ dependencies {
     runtimeOnly("com.fasterxml.jackson.core:jackson-core:2.12.+")
     runtimeOnly("org.openrewrite:rewrite-java-11:$rewriteVersion")
 
+    runtimeOnly("com.github.tomakehurst:wiremock-jre8:latest.release")
+    runtimeOnly("org.junit.jupiter:junit-jupiter-api:latest.release")
+
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
