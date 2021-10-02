@@ -44,6 +44,7 @@ tags:
   - testing
   - junit
 recipeList:
+  - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
   - org.openrewrite.java.ReorderMethodArguments:
       methodPattern: org.junit.Assume assume*(String, boolean)
