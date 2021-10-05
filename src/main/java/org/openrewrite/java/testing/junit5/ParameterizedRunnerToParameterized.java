@@ -172,7 +172,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
             // build @ParameterizedTest(#{}) template
             String parameterizedTestAnnotationTemplate = parameterizedTestAnnotationParameters != null ?
-                    "@ParameterizedTest(" + parameterizedTestAnnotationParameters.get(0).print(getCursor()) + ")" :
+                    "@ParameterizedTest(" + parameterizedTestAnnotationParameters.get(0).print() + ")" :
                     "@ParameterizedTest";
 
             this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, parameterizedTestAnnotationTemplate)
@@ -198,9 +198,9 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     J.VariableDeclarations vd = (J.VariableDeclarations) parameterizedTestMethodParameter;
                     if (vd.getTypeExpression() != null && vd.getVariables().size() == 1) {
                         initStatementParams.add(vd.getVariables().get(0).getSimpleName());
-                        initMethodTemplate.append(parameterizedTestMethodParameter.print(getCursor())).append(", ");
+                        initMethodTemplate.append(parameterizedTestMethodParameter.print()).append(", ");
                     } else {
-                        throw new AssertionError("Expected VariableDeclarations with TypeExpression and single Variable, got [" + parameterizedTestMethodParameter.print(getCursor()) + "]");
+                        throw new AssertionError("Expected VariableDeclarations with TypeExpression and single Variable, got [" + parameterizedTestMethodParameter.print() + "]");
                     }
                 }
                 initMethodTemplate.replace(initMethodTemplate.length() - 2, initMethodTemplate.length(), ") {\n");

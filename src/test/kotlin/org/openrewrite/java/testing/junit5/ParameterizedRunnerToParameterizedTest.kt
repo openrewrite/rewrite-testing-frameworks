@@ -24,6 +24,7 @@ import org.openrewrite.java.JavaRecipeTest
 class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
+        .logCompilationWarningsAndErrors(true)
         .build()
 
     override val recipe: Recipe
@@ -31,7 +32,25 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
 
     @Test
     fun parametersNameHasParameters() = assertChanged(
+        dependsOn = arrayOf("""
+            package abc;
+            public class Vet {
+                private Integer id;
+                private String firstName;
+                private String lastName;
+                public void setId(Integer id) {
+                    this.id = id;
+                }
+                public void setFirstName(String firstName) {
+                    this.firstName = firstName;
+                }
+                public void setLastName(String lastName) {
+                    this.lastName = lastName;
+                }
+            }
+        """),
         before = """
+            package abc;
             import org.junit.Test;
             import org.junit.runner.RunWith;
             import org.junit.runners.*;
@@ -70,6 +89,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             }
         """,
         after = """
+            package abc;
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.MethodSource;
             
@@ -333,6 +353,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
     fun nestedRunners() = assertChanged(
         before = """
             import java.util.Collection;
+            import java.util.ArrayList;
+            import java.util.List;
             import org.junit.Assert;
             import org.junit.BeforeClass;
             import org.junit.Test;
@@ -395,6 +417,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
         """,
         after = """
             import java.util.Collection;
+            import java.util.ArrayList;
+            import java.util.List;
             import org.junit.Assert;
             import org.junit.BeforeClass;
             import org.junit.Test;
