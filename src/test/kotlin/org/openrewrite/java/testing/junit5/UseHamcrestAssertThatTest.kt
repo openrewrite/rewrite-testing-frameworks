@@ -22,7 +22,7 @@ import org.openrewrite.java.JavaRecipeTest
 
 class UseHamcrestAssertThatTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit", "hamcrest-core")
+        .classpath("junit", "hamcrest-core", "mockito-all")
         .build()
 
     override val recipe = Environment.builder()
