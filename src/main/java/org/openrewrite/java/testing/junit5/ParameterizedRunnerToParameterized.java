@@ -72,21 +72,23 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
             Map<String, Object> params = getCursor().pollMessage(classDecl.getId().toString());
-            String parametersMethodName = params != null ? (String) params.get(PARAMETERS_METHOD_NAME) : null;
-            List<Expression> parametersAnnotationArguments = params != null ?  (List<Expression>) params.get(PARAMETERS_ANNOTATION_ARGUMENTS) : null;
-            List<Statement> constructorParams = params != null ? (List<Statement>) params.get(CONSTRUCTOR_ARGUMENTS) : null;
-            Map<Integer, Statement> fieldInjectionParams = params != null ? (Map<Integer, Statement>) params.get(FIELD_INJECTION_ARGUMENTS) : null;
-            String initMethodName = "init" + cd.getSimpleName();
+            if (params != null) {
+                String parametersMethodName = (String) params.get(PARAMETERS_METHOD_NAME);
+                List<Expression> parametersAnnotationArguments = (List<Expression>) params.get(PARAMETERS_ANNOTATION_ARGUMENTS);
+                List<Statement> constructorParams = (List<Statement>) params.get(CONSTRUCTOR_ARGUMENTS);
+                Map<Integer, Statement> fieldInjectionParams = (Map<Integer, Statement>) params.get(FIELD_INJECTION_ARGUMENTS);
+                String initMethodName = "init" + cd.getSimpleName();
 
-            // Constructor Injected Test
-            if (parametersMethodName != null && constructorParams != null) {
-                doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true));
-            }
+                // Constructor Injected Test
+                if (parametersMethodName != null && constructorParams != null) {
+                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true));
+                }
 
-            // Field Injected Test
-            else if (parametersMethodName != null && fieldInjectionParams != null) {
-                List<Statement> fieldParams = new ArrayList<>(fieldInjectionParams.values());
-                doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false));
+                // Field Injected Test
+                else if (parametersMethodName != null && fieldInjectionParams != null) {
+                    List<Statement> fieldParams = new ArrayList<>(fieldInjectionParams.values());
+                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false));
+                }
             }
             return cd;
         }
@@ -95,16 +97,17 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
-            Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
+            if (m.isConstructor()) {
+                Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
+                params.put(CONSTRUCTOR_ARGUMENTS, m.getParameters());
+            }
             for (J.Annotation annotation : m.getLeadingAnnotations()) {
                 if (PARAMETERS.matches(annotation)) {
+                    Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
                     params.put(PARAMETERS_ANNOTATION_ARGUMENTS, annotation.getArguments());
                     params.put(PARAMETERS_METHOD_NAME, method.getSimpleName());
+                    break;
                 }
-            }
-
-            if (m.isConstructor()) {
-                params.put(CONSTRUCTOR_ARGUMENTS, m.getParameters());
             }
             return m;
         }
@@ -113,26 +116,31 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
             J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, executionContext);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
-            Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
-            J.Annotation parameterAnnotation = variableDeclarations.getLeadingAnnotations().stream().filter(PARAMETER::matches).findFirst().orElse(null);
-            if (parameterAnnotation != null) {
-                Integer position = 0;
-                if (parameterAnnotation.getArguments() != null && !parameterAnnotation.getArguments().isEmpty() && !(parameterAnnotation.getArguments().get(0) instanceof J.Empty)) {
-                    J positionArg = parameterAnnotation.getArguments().get(0);
-                    if (positionArg instanceof J.Assignment) {
-                        position = (Integer) ((J.Literal) ((J.Assignment) positionArg).getAssignment()).getValue();
-                    } else {
-                        position = (Integer) ((J.Literal) positionArg).getValue();
+            J.Annotation parameterAnnotation = null;
+            Integer position = 0;
+            for (J.Annotation leadingAnnotation : variableDeclarations.getLeadingAnnotations()) {
+                if (PARAMETER.matches(leadingAnnotation)) {
+                    parameterAnnotation = leadingAnnotation;
+                    if (parameterAnnotation.getArguments() != null && !(parameterAnnotation.getArguments().get(0) instanceof J.Empty)) {
+                        J positionArg = parameterAnnotation.getArguments().get(0);
+                        if (positionArg instanceof J.Assignment) {
+                            position = (Integer) ((J.Literal) ((J.Assignment) positionArg).getAssignment()).getValue();
+                        } else {
+                            position = (Integer) ((J.Literal) positionArg).getValue();
+                        }
                     }
+                    break;
                 }
+            }
+
+            if (parameterAnnotation != null) {
                 // the variableDeclaration will be used for a method parameter set the prefix to empty and remove any comments
                 J.VariableDeclarations variableForInitMethod = variableDeclarations.withLeadingAnnotations(new ArrayList<>()).withModifiers(new ArrayList<>()).withPrefix(Space.EMPTY);
                 if (variableForInitMethod.getTypeExpression() != null) {
                     variableForInitMethod = variableForInitMethod.withTypeExpression(variableForInitMethod.getTypeExpression().withPrefix(Space.EMPTY).withComments(new ArrayList<>()));
                 }
-                //noinspection unchecked
-                ((TreeMap<Integer, Statement>) params.computeIfAbsent(FIELD_INJECTION_ARGUMENTS, v -> new TreeMap<>())).put(position, variableForInitMethod);
-
+                Map<String, TreeMap<Integer, Statement>> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
+                params.computeIfAbsent(FIELD_INJECTION_ARGUMENTS, v -> new TreeMap<>()).put(position, variableForInitMethod);
             }
             return variableDeclarations;
         }
@@ -142,6 +150,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         private final J.ClassDeclaration scope;
         private final String initMethodName;
         private final List<Statement> parameterizedTestMethodParameters;
+        @Nullable
+        private final List<Expression> parameterizedTestAnnotationParameters;
         private final String initStatementParamString;
 
         private final JavaTemplate parameterizedTestTemplate;
@@ -171,8 +181,9 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     .collect(Collectors.joining(", "));
 
             // build @ParameterizedTest(#{}) template
+            this.parameterizedTestAnnotationParameters = parameterizedTestAnnotationParameters;
             String parameterizedTestAnnotationTemplate = parameterizedTestAnnotationParameters != null ?
-                    "@ParameterizedTest(" + parameterizedTestAnnotationParameters.get(0).print() + ")" :
+                    "@ParameterizedTest(#{any()})" :
                     "@ParameterizedTest";
 
             this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, parameterizedTestAnnotationTemplate)
@@ -192,18 +203,16 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
             // If this is not a constructor injected test then build a javaTemplate for a new init-method
             if (!isConstructorInjection) {
-                final StringBuilder initMethodTemplate = new StringBuilder("public void ").append(initMethodName).append("(");
+                final StringBuilder initMethodTemplate = new StringBuilder("public void ").append(initMethodName).append("() {\n");
                 final List<String> initStatementParams = new ArrayList<>();
                 for (Statement parameterizedTestMethodParameter : parameterizedTestMethodParameters) {
                     J.VariableDeclarations vd = (J.VariableDeclarations) parameterizedTestMethodParameter;
                     if (vd.getTypeExpression() != null && vd.getVariables().size() == 1) {
                         initStatementParams.add(vd.getVariables().get(0).getSimpleName());
-                        initMethodTemplate.append(parameterizedTestMethodParameter.print()).append(", ");
                     } else {
-                        throw new AssertionError("Expected VariableDeclarations with TypeExpression and single Variable, got [" + parameterizedTestMethodParameter.print() + "]");
+                        throw new AssertionError("Expected VariableDeclarations with TypeExpression and single Variable, got [" + parameterizedTestMethodParameter + "]");
                     }
                 }
-                initMethodTemplate.replace(initMethodTemplate.length() - 2, initMethodTemplate.length(), ") {\n");
 
                 for (String p : initStatementParams) {
                     initMethodTemplate.append("    this.").append(p).append(" = ").append(p).append(";\n");
@@ -245,8 +254,17 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
 
             if (initMethodDeclarationTemplate != null) {
-                cd = maybeAutoFormat(cd, cd.withBody(cd.getBody().withTemplate(initMethodDeclarationTemplate,
-                        cd.getBody().getCoordinates().lastStatement())), executionContext);
+                cd = cd.withBody(cd.getBody().withTemplate(initMethodDeclarationTemplate,
+                        cd.getBody().getCoordinates().lastStatement()));
+                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), stmt -> {
+                    if (stmt instanceof J.MethodDeclaration) {
+                        J.MethodDeclaration md = (J.MethodDeclaration)stmt;
+                        if (md.getName().getSimpleName().equals(initMethodName)) {
+                            return md.withParameters(parameterizedTestMethodParameters);
+                        }
+                    }
+                    return stmt;
+                })));
             }
 
             // if a constructor was converted to an init method then remove final modifiers from any associated field variables.
@@ -263,6 +281,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     return statement;
                 })));
             }
+            cd = maybeAutoFormat(classDecl, cd, executionContext);
             return cd;
         }
 
@@ -297,8 +316,13 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), annotation -> {
                 if (JUPITER_TEST.matches(annotation) || JUNIT_TEST.matches(annotation)) {
                     List<Comment> annotationComments = annotation.getComments();
-                    annotation = annotation.withTemplate(parameterizedTestTemplate,
-                            annotation.getCoordinates().replace());
+                    if (parameterizedTestAnnotationParameters == null) {
+                        annotation = annotation.withTemplate(parameterizedTestTemplate,
+                                annotation.getCoordinates().replace());
+                    } else {
+                        annotation = annotation.withTemplate(parameterizedTestTemplate,
+                                annotation.getCoordinates().replace(), parameterizedTestAnnotationParameters.get(0));
+                    }
                     if (!annotationComments.isEmpty()) {
                         annotation = annotation.withComments(annotationComments);
                     }
