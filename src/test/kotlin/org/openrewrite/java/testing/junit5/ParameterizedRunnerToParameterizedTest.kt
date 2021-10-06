@@ -120,8 +120,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             
                 public static List<Object[]> parameters() {
                     return Arrays.asList(
-                        new Object[] { "Otis", "TheDog", 124 },
-                        new Object[] { "Garfield", "TheBoss", 126 });
+                            new Object[]{"Otis", "TheDog", 124},
+                            new Object[]{"Garfield", "TheBoss", 126});
                 }
             }
         """,
@@ -199,8 +199,8 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
             
                 public static List<Object[]> parameters() {
                     return Arrays.asList(
-                        new Object[] { "Otis", "TheDog", 124 },
-                        new Object[] { "Garfield", "TheBoss", 126 });
+                            new Object[]{"Otis", "TheDog", 124},
+                            new Object[]{"Garfield", "TheBoss", 126});
                 }
             }
         """,
@@ -272,8 +272,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     this.stuff = stuff;
                 }
             }
-        """
-        ,
+        """,
         typeValidation =  { methodInvocations = false; }
     )
 
@@ -308,7 +307,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     @Parameters
                     public static List<Object[]> data() {
                         List<Object[]> params = new ArrayList<>();
-                        params.add(new Object[] { DATE_FORMAT, "1970-01-01 11:20:34.0 GMT", "1970-01-01 11:20:34.0 GMT", 11 });
+                        params.add(new Object[]{DATE_FORMAT, "1970-01-01 11:20:34.0 GMT", "1970-01-01 11:20:34.0 GMT", 11});
                         return params;
                     }
                 }
@@ -340,7 +339,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                 
                     public static List<Object[]> data() {
                         List<Object[]> params = new ArrayList<>();
-                        params.add(new Object[] { DATE_FORMAT, "1970-01-01 11:20:34.0 GMT", "1970-01-01 11:20:34.0 GMT", 11 });
+                        params.add(new Object[]{DATE_FORMAT, "1970-01-01 11:20:34.0 GMT", "1970-01-01 11:20:34.0 GMT", 11});
                         return params;
                     }
                 }
@@ -468,7 +467,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
                     public static Collection<Object[]> data2() {
                         return valuesDataProvider();
                     }
-                     String path;
+                    String path;
 
                     public void initI2(String path) {
                         this.path = path;
