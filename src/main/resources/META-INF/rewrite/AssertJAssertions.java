@@ -1652,6 +1652,13 @@ public abstract class AbstractMapAssert extends AbstractObjectAssert implements 
 package org.assertj.core.api;
 import java.io.*;
 
+public abstract class AbstractMapSizeAssert extends AbstractIntegerAssert {
+  public abstract AbstractMapAssert returnToMap();
+}
+---
+package org.assertj.core.api;
+import java.io.*;
+
 public abstract class AbstractObjectArrayAssert extends AbstractAssert implements IndexedObjectEnumerableAssert, ArraySortedAssert {
   public AbstractObjectArrayAssert as(org.assertj.core.description.Description p0) { return (AbstractObjectArrayAssert) (Object) null; }
   public AbstractObjectArrayAssert as(String p0, Object[] p1) { return (AbstractObjectArrayAssert) (Object) null; }
@@ -2134,7 +2141,9 @@ package org.assertj.core.api;
 import java.io.*;
 
 public abstract class AbstractThrowableAssert extends AbstractObjectAssert {
-  public class ThrowingCallable{}
+  public interface ThrowingCallable {
+    void call() throws Throwable;
+  }
   public AbstractThrowableAssert hasMessage(String p0) { return (AbstractThrowableAssert) (Object) null; }
   public AbstractThrowableAssert hasMessage(String p0, Object[] p1) { return (AbstractThrowableAssert) (Object) null; }
   public AbstractThrowableAssert hasCause(Throwable p0) { return (AbstractThrowableAssert) (Object) null; }
@@ -2527,6 +2536,131 @@ public class Assertions implements InstanceOfAssertFactories {
   public static void useRepresentation(org.assertj.core.presentation.Representation p0) {}
   public static void registerFormatterForType(Class p0, java.util.function.Function p1) {}
   public static void useDefaultRepresentation() {}
+}
+---
+package org.assertj.core.api;
+import java.io.*;
+
+public class AssertionsForClassTypes {
+  public static CompletableFutureAssert assertThat(java.util.concurrent.CompletableFuture p0) { return (CompletableFutureAssert) (Object) null; }
+  public static OptionalAssert assertThat(java.util.Optional p0) { return (OptionalAssert) (Object) null; }
+  public static OptionalDoubleAssert assertThat(java.util.OptionalDouble p0) { return (OptionalDoubleAssert) (Object) null; }
+  public static OptionalIntAssert assertThat(java.util.OptionalInt p0) { return (OptionalIntAssert) (Object) null; }
+  public static OptionalLongAssert assertThat(java.util.OptionalLong p0) { return (OptionalLongAssert) (Object) null; }
+  public static AbstractBigDecimalAssert assertThat(java.math.BigDecimal p0) { return (AbstractBigDecimalAssert) (Object) null; }
+  public static AbstractUriAssert assertThat(java.net.URI p0) { return (AbstractUriAssert) (Object) null; }
+  public static AbstractUrlAssert assertThat(java.net.URL p0) { return (AbstractUrlAssert) (Object) null; }
+  public static AbstractBooleanAssert assertThat(boolean p0) { return (AbstractBooleanAssert) (Object) null; }
+  public static AbstractBooleanAssert assertThat(Boolean p0) { return (AbstractBooleanAssert) (Object) null; }
+  public static AbstractBooleanArrayAssert assertThat(boolean[] p0) { return (AbstractBooleanArrayAssert) (Object) null; }
+  public static Boolean2DArrayAssert assertThat(boolean[][] p0) { return (Boolean2DArrayAssert) (Object) null; }
+  public static AbstractByteAssert assertThat(byte p0) { return (AbstractByteAssert) (Object) null; }
+  public static AbstractByteAssert assertThat(Byte p0) { return (AbstractByteAssert) (Object) null; }
+  public static AbstractByteArrayAssert assertThat(byte[] p0) { return (AbstractByteArrayAssert) (Object) null; }
+  public static Byte2DArrayAssert assertThat(byte[][] p0) { return (Byte2DArrayAssert) (Object) null; }
+  public static AbstractCharacterAssert assertThat(char p0) { return (AbstractCharacterAssert) (Object) null; }
+  public static AbstractCharArrayAssert assertThat(char[] p0) { return (AbstractCharArrayAssert) (Object) null; }
+  public static Char2DArrayAssert assertThat(char[][] p0) { return (Char2DArrayAssert) (Object) null; }
+  public static AbstractCharacterAssert assertThat(Character p0) { return (AbstractCharacterAssert) (Object) null; }
+  public static ClassAssert assertThat(Class p0) { return (ClassAssert) (Object) null; }
+  public static AbstractDoubleAssert assertThat(double p0) { return (AbstractDoubleAssert) (Object) null; }
+  public static AbstractDoubleAssert assertThat(Double p0) { return (AbstractDoubleAssert) (Object) null; }
+  public static AbstractDoubleArrayAssert assertThat(double[] p0) { return (AbstractDoubleArrayAssert) (Object) null; }
+  public static Double2DArrayAssert assertThat(double[][] p0) { return (Double2DArrayAssert) (Object) null; }
+  public static AbstractFileAssert assertThat(File p0) { return (AbstractFileAssert) (Object) null; }
+  public static AbstractInputStreamAssert assertThat(InputStream p0) { return (AbstractInputStreamAssert) (Object) null; }
+  public static AbstractFloatAssert assertThat(float p0) { return (AbstractFloatAssert) (Object) null; }
+  public static AbstractFloatAssert assertThat(Float p0) { return (AbstractFloatAssert) (Object) null; }
+  public static AbstractFloatArrayAssert assertThat(float[] p0) { return (AbstractFloatArrayAssert) (Object) null; }
+  public static Float2DArrayAssert assertThat(float[][] p0) { return (Float2DArrayAssert) (Object) null; }
+  public static AbstractIntegerAssert assertThat(int p0) { return (AbstractIntegerAssert) (Object) null; }
+  public static AbstractIntArrayAssert assertThat(int[] p0) { return (AbstractIntArrayAssert) (Object) null; }
+  public static Int2DArrayAssert assertThat(int[][] p0) { return (Int2DArrayAssert) (Object) null; }
+  public static AbstractIntegerAssert assertThat(Integer p0) { return (AbstractIntegerAssert) (Object) null; }
+  public static AbstractLongAssert assertThat(long p0) { return (AbstractLongAssert) (Object) null; }
+  public static AbstractLongAssert assertThat(Long p0) { return (AbstractLongAssert) (Object) null; }
+  public static AbstractLongArrayAssert assertThat(long[] p0) { return (AbstractLongArrayAssert) (Object) null; }
+  public static Long2DArrayAssert assertThat(long[][] p0) { return (Long2DArrayAssert) (Object) null; }
+  public static ObjectAssert assertThat(Object p0) { return (ObjectAssert) (Object) null; }
+  public static ObjectArrayAssert assertThat(Object[] p0) { return (ObjectArrayAssert) (Object) null; }
+  public static Object2DArrayAssert assertThat(Object[][] p0) { return (Object2DArrayAssert) (Object) null; }
+  public static AbstractShortAssert assertThat(short p0) { return (AbstractShortAssert) (Object) null; }
+  public static AbstractShortAssert assertThat(Short p0) { return (AbstractShortAssert) (Object) null; }
+  public static AbstractShortArrayAssert assertThat(short[] p0) { return (AbstractShortArrayAssert) (Object) null; }
+  public static Short2DArrayAssert assertThat(short[][] p0) { return (Short2DArrayAssert) (Object) null; }
+  public static AbstractCharSequenceAssert assertThat(StringBuilder p0) { return (AbstractCharSequenceAssert) (Object) null; }
+  public static AbstractCharSequenceAssert assertThat(StringBuffer p0) { return (AbstractCharSequenceAssert) (Object) null; }
+  public static AbstractStringAssert assertThat(String p0) { return (AbstractStringAssert) (Object) null; }
+  public static AbstractDateAssert assertThat(java.util.Date p0) { return (AbstractDateAssert) (Object) null; }
+  public static AbstractZonedDateTimeAssert assertThat(java.time.ZonedDateTime p0) { return (AbstractZonedDateTimeAssert) (Object) null; }
+  public static AbstractLocalDateTimeAssert assertThat(java.time.LocalDateTime p0) { return (AbstractLocalDateTimeAssert) (Object) null; }
+  public static AbstractOffsetDateTimeAssert assertThat(java.time.OffsetDateTime p0) { return (AbstractOffsetDateTimeAssert) (Object) null; }
+  public static AbstractOffsetTimeAssert assertThat(java.time.OffsetTime p0) { return (AbstractOffsetTimeAssert) (Object) null; }
+  public static AbstractLocalTimeAssert assertThat(java.time.LocalTime p0) { return (AbstractLocalTimeAssert) (Object) null; }
+  public static AbstractLocalDateAssert assertThat(java.time.LocalDate p0) { return (AbstractLocalDateAssert) (Object) null; }
+  public static AbstractInstantAssert assertThat(java.time.Instant p0) { return (AbstractInstantAssert) (Object) null; }
+  public static AbstractDurationAssert assertThat(java.time.Duration p0) { return (AbstractDurationAssert) (Object) null; }
+  public static AbstractPeriodAssert assertThat(java.time.Period p0) { return (AbstractPeriodAssert) (Object) null; }
+  public static AbstractThrowableAssert assertThat(Throwable p0) { return (AbstractThrowableAssert) (Object) null; }
+  public static AbstractThrowableAssert assertThatThrownBy(ThrowableAssert.ThrowingCallable p0) { return (AbstractThrowableAssert) (Object) null; }
+  public static AbstractThrowableAssert assertThatThrownBy(ThrowableAssert.ThrowingCallable p0, String p1, Object[] p2) { return (AbstractThrowableAssert) (Object) null; }
+  public static ThrowableTypeAssert assertThatExceptionOfType(Class p0) { return (ThrowableTypeAssert) (Object) null; }
+  public static NotThrownAssert assertThatNoException() { return (NotThrownAssert) (Object) null; }
+  public static AbstractThrowableAssert assertThatCode(ThrowableAssert.ThrowingCallable p0) { return (AbstractThrowableAssert) (Object) null; }
+  public static Throwable catchThrowable(ThrowableAssert.ThrowingCallable p0) { return (Throwable) (Object) null; }
+  public static Throwable catchThrowableOfType(ThrowableAssert.ThrowingCallable p0, Class p1) { return (Throwable) (Object) null; }
+  public static void setRemoveAssertJRelatedElementsFromStackTrace(boolean p0) {}
+  public static void fail(String p0) {}
+  public static void fail(String p0, Throwable p1) {}
+  public static void failBecauseExceptionWasNotThrown(Class p0) {}
+  public static void shouldHaveThrown(Class p0) {}
+  public static void setMaxLengthForSingleLineDescription(int p0) {}
+  public static org.assertj.core.groups.Properties extractProperty(String p0, Class p1) { return (org.assertj.core.groups.Properties) (Object) null; }
+  public static org.assertj.core.groups.Properties extractProperty(String p0) { return (org.assertj.core.groups.Properties) (Object) null; }
+  public static org.assertj.core.groups.Tuple tuple(Object[] p0) { return (org.assertj.core.groups.Tuple) (Object) null; }
+  public static void setAllowExtractingPrivateFields(boolean p0) {}
+  public static void setAllowComparingPrivateFields(boolean p0) {}
+  public static org.assertj.core.data.MapEntry entry(Object p0, Object p1) { return (org.assertj.core.data.MapEntry) (Object) null; }
+  public static org.assertj.core.data.Index atIndex(int p0) { return (org.assertj.core.data.Index) (Object) null; }
+  public static org.assertj.core.data.Offset offset(Double p0) { return (org.assertj.core.data.Offset) (Object) null; }
+  public static org.assertj.core.data.Offset offset(Float p0) { return (org.assertj.core.data.Offset) (Object) null; }
+  public static org.assertj.core.data.Offset within(Double p0) { return (org.assertj.core.data.Offset) (Object) null; }
+  public static org.assertj.core.data.Offset within(Float p0) { return (org.assertj.core.data.Offset) (Object) null; }
+  public static org.assertj.core.data.Offset within(java.math.BigDecimal p0) { return (org.assertj.core.data.Offset) (Object) null; }
+  public static org.assertj.core.data.Offset within(Byte p0) { return (org.assertj.core.data.Offset) (Object) null; }
+  public static org.assertj.core.data.Offset within(Integer p0) { return (org.assertj.core.data.Offset) (Object) null; }
+  public static org.assertj.core.data.Offset within(Short p0) { return (org.assertj.core.data.Offset) (Object) null; }
+  public static org.assertj.core.data.Offset within(Long p0) { return (org.assertj.core.data.Offset) (Object) null; }
+  public static org.assertj.core.data.Percentage withinPercentage(Double p0) { return (org.assertj.core.data.Percentage) (Object) null; }
+  public static org.assertj.core.data.Percentage withinPercentage(Integer p0) { return (org.assertj.core.data.Percentage) (Object) null; }
+  public static org.assertj.core.data.Percentage withinPercentage(Long p0) { return (org.assertj.core.data.Percentage) (Object) null; }
+  public static Condition allOf(Condition[] p0) { return (Condition) (Object) null; }
+  public static Condition allOf(Iterable p0) { return (Condition) (Object) null; }
+  public static Condition anyOf(Condition[] p0) { return (Condition) (Object) null; }
+  public static Condition anyOf(Iterable p0) { return (Condition) (Object) null; }
+  public static org.assertj.core.condition.DoesNotHave doesNotHave(Condition p0) { return (org.assertj.core.condition.DoesNotHave) (Object) null; }
+  public static org.assertj.core.condition.Not not(Condition p0) { return (org.assertj.core.condition.Not) (Object) null; }
+  public static org.assertj.core.api.filter.Filters filter(Object[] p0) { return (org.assertj.core.api.filter.Filters) (Object) null; }
+  public static org.assertj.core.api.filter.Filters filter(Iterable p0) { return (org.assertj.core.api.filter.Filters) (Object) null; }
+  public static org.assertj.core.api.filter.InFilter in(Object[] p0) { return (org.assertj.core.api.filter.InFilter) (Object) null; }
+  public static org.assertj.core.api.filter.NotInFilter notIn(Object[] p0) { return (org.assertj.core.api.filter.NotInFilter) (Object) null; }
+  public static org.assertj.core.api.filter.NotFilter not(Object p0) { return (org.assertj.core.api.filter.NotFilter) (Object) null; }
+  public static String contentOf(File p0, java.nio.charset.Charset p1) { return (String) (Object) null; }
+  public static String contentOf(File p0, String p1) { return (String) (Object) null; }
+  public static String contentOf(File p0) { return (String) (Object) null; }
+  public static java.util.List linesOf(File p0) { return (java.util.List) (Object) null; }
+  public static java.util.List linesOf(File p0, java.nio.charset.Charset p1) { return (java.util.List) (Object) null; }
+  public static java.util.List linesOf(File p0, String p1) { return (java.util.List) (Object) null; }
+  public static String contentOf(java.net.URL p0, java.nio.charset.Charset p1) { return (String) (Object) null; }
+  public static String contentOf(java.net.URL p0, String p1) { return (String) (Object) null; }
+  public static String contentOf(java.net.URL p0) { return (String) (Object) null; }
+  public static java.util.List linesOf(java.net.URL p0) { return (java.util.List) (Object) null; }
+  public static java.util.List linesOf(java.net.URL p0, java.nio.charset.Charset p1) { return (java.util.List) (Object) null; }
+  public static java.util.List linesOf(java.net.URL p0, String p1) { return (java.util.List) (Object) null; }
+  public static void setLenientDateParsing(boolean p0) {}
+  public static void registerCustomDateFormat(java.text.DateFormat p0) {}
+  public static void registerCustomDateFormat(String p0) {}
+  public static void useDefaultDateFormatsOnly() {}
 }
 ---
 package org.assertj.core.api;
@@ -3470,6 +3604,9 @@ package org.assertj.core.api;
 import java.io.*;
 
 public class ThrowableAssert extends AbstractThrowableAssert {
+  public interface ThrowingCallable {
+    void call() throws Throwable;
+  }
   public void ThrowableAssert(Throwable p0) {}
   public void ThrowableAssert(java.util.concurrent.Callable p0) {}
   public static Throwable catchThrowable(ThrowableAssert.ThrowingCallable p0) { return (Throwable) (Object) null; }
@@ -3479,10 +3616,48 @@ public class ThrowableAssert extends AbstractThrowableAssert {
 package org.assertj.core.api;
 import java.io.*;
 
+public class ThrowableAssertAlternative extends AbstractAssert {
+  public void ThrowableAssertAlternative(Throwable p0) {}
+  public ThrowableAssertAlternative withMessage(String p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withMessage(String p0, Object[] p1) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withCause(Throwable p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withNoCause() { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withMessageStartingWith(String p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withMessageStartingWith(String p0, Object[] p1) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withMessageContaining(String p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withMessageContaining(String p0, Object[] p1) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withMessageContainingAll(CharSequence[] p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withMessageNotContaining(String p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withMessageNotContainingAny(CharSequence[] p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withStackTraceContaining(String p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withStackTraceContaining(String p0, Object[] p1) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withMessageMatching(String p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withMessageEndingWith(String p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withMessageEndingWith(String p0, Object[] p1) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withCauseInstanceOf(Class p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withCauseExactlyInstanceOf(Class p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withRootCauseInstanceOf(Class p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative withRootCauseExactlyInstanceOf(Class p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative describedAs(String p0, Object[] p1) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative describedAs(org.assertj.core.description.Description p0) { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative havingCause() { return (ThrowableAssertAlternative) (Object) null; }
+  public ThrowableAssertAlternative havingRootCause() { return (ThrowableAssertAlternative) (Object) null; }
+}
+---
+package org.assertj.core.api;
+import java.io.*;
+
 public class ThrowableTypeAssert implements Descriptable {
   public void ThrowableTypeAssert(Class p0) {}
   public ThrowableAssertAlternative isThrownBy(ThrowableAssert.ThrowingCallable p0) { return (ThrowableAssertAlternative) (Object) null; }
   public ThrowableTypeAssert describedAs(org.assertj.core.description.Description p0) { return (ThrowableTypeAssert) (Object) null; }
+}
+---
+package org.assertj.core.api;
+import java.io.*;
+
+public class WithThrowable {
+  public ThrowableAssertAlternative withThrowableOfType(Class p0) { return (ThrowableAssertAlternative) (Object) null; }
 }
 ---
 package org.assertj.core.api;
@@ -3686,6 +3861,14 @@ public class Percentage {
 package org.assertj.core.data;
 import java.io.*;
 
+public interface TemporalOffset {
+  boolean isBeyondOffset(java.time.temporal.Temporal p0, java.time.temporal.Temporal p1);
+  String getBeyondOffsetDifferenceDescription(java.time.temporal.Temporal p0, java.time.temporal.Temporal p1);
+}
+---
+package org.assertj.core.data;
+import java.io.*;
+
 public abstract class TemporalUnitOffset implements TemporalOffset {
   public void TemporalUnitOffset(long p0, java.time.temporal.TemporalUnit p1) {}
   public String getBeyondOffsetDifferenceDescription(java.time.temporal.Temporal p0, java.time.temporal.Temporal p1) { return (String) (Object) null; }
@@ -3701,6 +3884,24 @@ public abstract class Description {
   public String toString() { return (String) (Object) null; }
   public static Description emptyIfNull(Description p0) { return (Description) (Object) null; }
   public static String mostRelevantDescription(Description p0, String p1) { return (String) (Object) null; }
+}
+---
+package org.assertj.core.description;
+import java.io.*;
+
+public class LazyTextDescription extends Description {
+  public void LazyTextDescription(java.util.function.Supplier p0) {}
+  public String value() { return (String) (Object) null; }
+}
+---
+package org.assertj.core.description;
+import java.io.*;
+
+public class TextDescription extends Description {
+  public void TextDescription(String p0, Object[] p1) {}
+  public String value() { return (String) (Object) null; }
+  public int hashCode() { return (int) (Object) null; }
+  public boolean equals(Object p0) { return (boolean) (Object) null; }
 }
 ---
 package org.assertj.core.groups;
