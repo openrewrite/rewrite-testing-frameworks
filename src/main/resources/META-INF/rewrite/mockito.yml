@@ -44,3 +44,4 @@ recipeList:
       artifactId: mockito-junit-jupiter
       version: 3.x
       onlyIfUsing: org.mockito.junit.jupiter.MockitoExtension
+  - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
