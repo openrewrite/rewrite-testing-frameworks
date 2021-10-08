@@ -45,6 +45,17 @@ group = "org.openrewrite.recipe"
 description =
     "A rewrite module automating best practices and major version migrations for popular Java test frameworks like JUnit and Mockito"
 
+val mockitoVersions: List<String> = listOf("3")
+
+sourceSets {
+    mockitoVersions.forEach { version ->
+        create("testWithMockito_${version}") {
+            compileClasspath += sourceSets.getByName("main").output
+            runtimeClasspath += sourceSets.getByName("main").output
+        }
+    }
+}
+
 repositories {
     if(!project.hasProperty("releasing")) {
         mavenLocal()
@@ -71,10 +82,22 @@ signing {
     sign(publishing.publications["nebula"])
 }
 
-configurations.all {
-    resolutionStrategy {
-        cacheChangingModulesFor(0, TimeUnit.SECONDS)
-        cacheDynamicVersionsFor(0, TimeUnit.SECONDS)
+configurations {
+    mockitoVersions.forEach { version ->
+        getByName("testWithMockito_${version}RuntimeOnly") {
+            isCanBeResolved = true
+            extendsFrom(getByName("testImplementation"))
+        }
+        getByName("testWithMockito_${version}Implementation") {
+            isCanBeResolved = true
+            extendsFrom(getByName("testImplementation"))
+        }
+    }
+    all {
+        resolutionStrategy {
+            cacheChangingModulesFor(0, TimeUnit.SECONDS)
+            cacheDynamicVersionsFor(0, TimeUnit.SECONDS)
+        }
     }
 }
 
@@ -113,10 +136,13 @@ dependencies {
     testRuntimeOnly("org.springframework:spring-test:4.+")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
     testRuntimeOnly("org.mockito:mockito-all:$mockito1Version")
-    testRuntimeOnly("org.mockito:mockito-core:3.+")
     testRuntimeOnly("org.hamcrest:hamcrest:latest.release")
     testRuntimeOnly("pl.pragmatists:JUnitParams:1.+")
     testRuntimeOnly("com.squareup.okhttp3:mockwebserver:3.+")
+
+    "testWithMockito_3RuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    "testWithMockito_3RuntimeOnly"("junit:junit:latest.release")
+    "testWithMockito_3RuntimeOnly"("org.mockito:mockito-core:3.+")
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {
@@ -128,6 +154,23 @@ tasks.withType(KotlinCompile::class.java).configureEach {
 tasks.named<Test>("test") {
     useJUnitPlatform()
     jvmArgs = listOf("-Xmx1g", "-XX:+UnlockDiagnosticVMOptions", "-XX:+ShowHiddenFrames")
+}
+
+mockitoVersions.forEach { version ->
+    val sourceSetName = "testWithMockito_${version}"
+    val sourceSetReference = project.sourceSets.getByName(sourceSetName)
+    val testTask = tasks.register<Test>(sourceSetName) {
+        description = "Runs the unit tests for ${sourceSetName}."
+        group = "verification"
+        useJUnitPlatform()
+        jvmArgs = listOf("-XX:+UnlockDiagnosticVMOptions", "-XX:+ShowHiddenFrames")
+        testClassesDirs = sourceSetReference.output.classesDirs
+        classpath = sourceSetReference.runtimeClasspath
+        shouldRunAfter(tasks.test)
+    }
+    tasks.test {
+        dependsOn(testTask)
+    }
 }
 
 tasks.named<JavaCompile>("compileJava") {

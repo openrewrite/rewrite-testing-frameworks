@@ -75,7 +75,6 @@ recipeList:
   - org.openrewrite.java.testing.junit5.UpdateTestAnnotation
   - org.openrewrite.java.testing.junit5.ParameterizedRunnerToParameterized
   - org.openrewrite.java.testing.junit5.JUnitParamsRunnerToParameterized
-  - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
   - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
   - org.openrewrite.java.testing.junit5.UpdateMockWebServer
   - org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
