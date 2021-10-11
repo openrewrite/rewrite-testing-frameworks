@@ -25,15 +25,59 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.mockito.MockitoAnnotations.Mock
       newFullyQualifiedTypeName: org.mockito.Mock
-  - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.Matchers anyVararg()
-      newMethodName: any
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.mockito.Matchers
       newFullyQualifiedTypeName: org.mockito.ArgumentMatchers
   - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.ArgumentMatchers anyVararg()
+      newMethodName: any
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.ArgumentMatchers anyObject()
+      newMethodName: any
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.ArgumentMatchers anyListOf()
+      newMethodName: anyList
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.ArgumentMatchers anySetOf()
+      newMethodName: anySet
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.ArgumentMatchers anyMapOf()
+      newMethodName: anyMap
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.ArgumentMatchers anyCollectionOf()
+      newMethodName: anyCollection
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.ArgumentMatchers anyIterableOf()
+      newMethodName: anyIterable
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.ArgumentMatchers isNull(java.lang.Class)
+      argumentIndex: 0
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.ArgumentMatchers notNull(java.lang.Class)
+      argumentIndex: 0
+  - org.openrewrite.java.ReorderMethodArguments:
+      methodPattern: org.mockito.MockedStatic verify(org.mockito.verification.VerificationMode, org.mockito.MockedStatic.Verification)
+      newParameterNames:
+        - verification
+        - mode
+      oldParameterNames:
+        - mode
+        - verification
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.Mockito verifyZeroInteractions(..)
+      newMethodName: verifyNoInteractions
+  - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.invocation.InvocationOnMock getArgumentAt(int, java.lang.Class)
       newMethodName: getArgument
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.mockito.exceptions.verification.TooLittleActualInvocations
+      newFullyQualifiedTypeName: org.mockito.exceptions.verification.TooFewActualInvocations
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.mockito.configuration.AnnotationEngine
+      newFullyQualifiedTypeName: org.mockito.plugins.AnnotationEngine
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.mockito.plugins.InstantiatorProvider
+      newFullyQualifiedTypeName: org.mockito.plugins.InstantiatorProvider2
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.mockito.runners.MockitoJUnitRunner
       newFullyQualifiedTypeName: org.mockito.junit.MockitoJUnitRunner
@@ -45,3 +89,4 @@ recipeList:
       version: 3.x
       onlyIfUsing: org.mockito.junit.jupiter.MockitoExtension
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
+
