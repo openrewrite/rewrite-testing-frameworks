@@ -18,9 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -33,12 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 
 public class TestRuleToTestInfo extends Recipe {
-
-    private static final String testNameType = "org.junit.rules.TestName";
-    private static final MethodMatcher TEST_NAME_GET_NAME = new MethodMatcher(testNameType + " getMethodName()");
-    private static final AnnotationMatcher RULE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Rule");
-    private static final AnnotationMatcher JUNIT_BEFORE_MATCHER = new AnnotationMatcher("@org.junit.Before");
-    private static final AnnotationMatcher JUPITER_BEFORE_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
 
     private static final ThreadLocal<JavaParser> TEST_INFO_PARSER = ThreadLocal.withInitial(() ->
             JavaParser.fromJavaVersion().dependsOn(
@@ -69,119 +61,140 @@ public class TestRuleToTestInfo extends Recipe {
     }
 
     @Override
-    protected @Nullable TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>(testNameType);
+    protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
+        return new UsesType<>("org.junit.rules.TestName");
     }
 
     @Override
-    protected JavaIsoVisitor<ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                J.CompilationUnit compilationUnit = super.visitCompilationUnit(cu, executionContext);
-                maybeRemoveImport("org.junit.Rule");
-                maybeRemoveImport(testNameType);
-                maybeAddImport("org.junit.jupiter.api.TestInfo");
-                doAfterVisit(new JavaVisitor<ExecutionContext>() {
-                    @Override
-                    public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-                        J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, executionContext);
-                        if (TEST_NAME_GET_NAME.matches(mi) && mi.getSelect() != null) {
-                            return mi.getSelect().withPrefix(Space.format(" "));
-                        }
-                        return mi;
+    protected TestRuleToTestInfoVisitor getVisitor() {
+        return new TestRuleToTestInfoVisitor();
+    }
+
+    private static class TestRuleToTestInfoVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private static final MethodMatcher TEST_NAME_GET_NAME = new MethodMatcher("org.junit.rules.TestName getMethodName()");
+        private static final AnnotationMatcher RULE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Rule");
+        private static final AnnotationMatcher JUNIT_BEFORE_MATCHER = new AnnotationMatcher("@org.junit.Before");
+        private static final AnnotationMatcher JUPITER_BEFORE_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
+
+        @Override
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+            J.CompilationUnit compilationUnit = super.visitCompilationUnit(cu, executionContext);
+            maybeRemoveImport("org.junit.Rule");
+            maybeRemoveImport("org.junit.rules.TestName");
+            maybeAddImport("org.junit.jupiter.api.TestInfo");
+            doAfterVisit(new JavaVisitor<ExecutionContext>() {
+                @Override
+                public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
+                    J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, executionContext);
+                    if (TEST_NAME_GET_NAME.matches(mi) && mi.getSelect() != null) {
+                        return mi.getSelect().withPrefix(Space.format(" "));
                     }
-                });
-                doAfterVisit(new ChangeType(testNameType, "String"));
-                doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach"));
-                return compilationUnit;
-            }
-
-            @Override
-            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
-                J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, executionContext);
-                if (varDecls.getType() != null && TypeUtils.isOfClassType(varDecls.getType(), testNameType)) {
-                    varDecls = varDecls.withLeadingAnnotations(ListUtils.map(varDecls.getLeadingAnnotations(), anno -> {
-                        if (RULE_ANNOTATION_MATCHER.matches(anno)) {
-                            return null;
-                        }
-                        return anno;
-                    }));
-                    getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("has-testName-rule", varDecls);
+                    return mi;
                 }
-                return varDecls;
-            }
+            });
+            doAfterVisit(new ChangeType("org.junit.rules.TestName", "String"));
+            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach"));
+            return compilationUnit;
+        }
 
-            @Override
-            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext executionContext) {
-                J.NewClass nc = super.visitNewClass(newClass, executionContext);
-                if (TypeUtils.isOfClassType(nc.getType(), testNameType)) {
-                    //noinspection ConstantConditions
-                    return null;
-                }
-                return nc;
-            }
-
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
-                if (md.getLeadingAnnotations().stream().anyMatch(anno -> JUNIT_BEFORE_MATCHER.matches(anno) || JUPITER_BEFORE_EACH_MATCHER.matches(anno))) {
-                    getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("before-method", md);
-                }
-                return md;
-            }
-
-            @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
-                J.VariableDeclarations varDecls = getCursor().pollMessage("has-testName-rule");
-                if (varDecls != null) {
-                    String testMethodStatement = "Optional<Method> testMethod = testInfo.getTestMethod();\n" +
-                            "if (testMethod.isPresent()) {\n" +
-                            "    this.#{} = testMethod.get().getName();\n" +
-                            "}";
-                    J.MethodDeclaration beforeMethod = getCursor().pollMessage("before-method");
-                    if (beforeMethod == null) {
-                        String t = "@BeforeEach\n" +
-                                "public void setup(TestInfo testInfo) {" + testMethodStatement + "}";
-                        cd = cd.withTemplate(JavaTemplate.builder(this::getCursor, t).javaParser(TEST_INFO_PARSER::get)
-                                        .imports("org.junit.jupiter.api.TestInfo", "org.junit.jupiter.api.BeforeEach", "java.util.Optional", "java.lang.reflect.Method")
-                                        .build(),
-                                cd.getBody().getCoordinates().lastStatement(),
-                                varDecls.getVariables().get(0).getName().getSimpleName());
-                    } else {
-                        doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
-                            @Override
-                            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-                                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
-                                if (md.getId().equals(beforeMethod.getId())) {
-                                    md = md.withTemplate(JavaTemplate.builder(this::getCursor, "TestInfo testInfo").javaParser(TEST_INFO_PARSER::get)
-                                                    .imports("org.junit.jupiter.api.TestInfo", "org.junit.jupiter.api.BeforeEach", "java.util.Optional", "java.lang.reflect.Method")
-                                                    .build(),
-                                            md.getCoordinates().replaceParameters());
-                                    //noinspection ConstantConditions
-                                    md = maybeAutoFormat(md, md.withTemplate(JavaTemplate.builder(this::getCursor, testMethodStatement).javaParser(TEST_INFO_PARSER::get)
-                                                    .imports("org.junit.jupiter.api.TestInfo", "java.util.Optional", "java.lang.reflect.Method")
-                                                    .build(),
-                                            md.getBody().getCoordinates().lastStatement(), varDecls.getVariables().get(0).getName().getSimpleName()), executionContext, getCursor().getParent());
-
-                                    // Make sure the testName is initialized first in case any other piece of the method body references it
-                                    assert md.getBody() != null;
-                                    if(md.getBody().getStatements().size() > 2) {
-                                        List<Statement> statements = md.getBody().getStatements();
-                                        List<Statement> reorderedStatements = new ArrayList<>(statements.size());
-                                        reorderedStatements.addAll(statements.subList(statements.size() - 2, statements.size()));
-                                        reorderedStatements.addAll(statements.subList(0, statements.size() - 2));
-                                        md = md.withBody(md.getBody().withStatements(reorderedStatements));
-                                    }
-                                }
-                                return md;
-                            }
-                        });
+        @Override
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
+            J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, executionContext);
+            if (varDecls.getType() != null && TypeUtils.isOfClassType(varDecls.getType(), "org.junit.rules.TestName")) {
+                varDecls = varDecls.withLeadingAnnotations(ListUtils.map(varDecls.getLeadingAnnotations(), anno -> {
+                    if (RULE_ANNOTATION_MATCHER.matches(anno)) {
+                        return null;
                     }
-                }
-                return cd;
+                    return anno;
+                }));
+                getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("has-testName-rule", varDecls);
             }
-        };
+            return varDecls;
+        }
+
+        @Override
+        public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext executionContext) {
+            J.NewClass nc = super.visitNewClass(newClass, executionContext);
+            if (TypeUtils.isOfClassType(nc.getType(), "org.junit.rules.TestName")) {
+                //noinspection ConstantConditions
+                return null;
+            }
+            return nc;
+        }
+
+        @Override
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+            J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+            if (md.getLeadingAnnotations().stream().anyMatch(anno -> JUNIT_BEFORE_MATCHER.matches(anno) || JUPITER_BEFORE_EACH_MATCHER.matches(anno))) {
+                getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("before-method", md);
+            }
+            return md;
+        }
+
+        @Override
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+            J.VariableDeclarations varDecls = getCursor().pollMessage("has-testName-rule");
+            J.MethodDeclaration beforeMethod = getCursor().pollMessage("before-method");
+            if (varDecls != null) {
+                String testMethodStatement = "Optional<Method> testMethod = testInfo.getTestMethod();\n" +
+                        "if (testMethod.isPresent()) {\n" +
+                        "    this.#{} = testMethod.get().getName();\n" +
+                        "}";
+                if (beforeMethod == null) {
+                    String t = "@BeforeEach\n" +
+                            "public void setup(TestInfo testInfo) {" + testMethodStatement + "}";
+                    cd = cd.withTemplate(JavaTemplate.builder(this::getCursor, t).javaParser(TEST_INFO_PARSER::get)
+                                    .imports("org.junit.jupiter.api.TestInfo", "org.junit.jupiter.api.BeforeEach", "java.util.Optional", "java.lang.reflect.Method")
+                                    .build(),
+                            cd.getBody().getCoordinates().lastStatement(),
+                            varDecls.getVariables().get(0).getName().getSimpleName());
+                    maybeAddImport("java.lang.reflect.Method");
+                } else {
+                    doAfterVisit(new BeforeMethodToTestInfoVisitor(beforeMethod, varDecls, testMethodStatement));
+                }
+            }
+            return cd;
+        }
+    }
+
+    private static class BeforeMethodToTestInfoVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private final J.MethodDeclaration beforeMethod;
+        private final J.VariableDeclarations varDecls;
+        private final String testMethodStatement;
+
+        public BeforeMethodToTestInfoVisitor(J.MethodDeclaration beforeMethod, J.VariableDeclarations varDecls, String testMethodStatement) {
+            this.beforeMethod = beforeMethod;
+            this.varDecls = varDecls;
+            this.testMethodStatement = testMethodStatement;
+        }
+
+        @Override
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+            J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+            if (md.getId().equals(beforeMethod.getId())) {
+                md = md.withTemplate(JavaTemplate.builder(this::getCursor, "TestInfo testInfo").javaParser(TEST_INFO_PARSER::get)
+                                .imports("org.junit.jupiter.api.TestInfo", "org.junit.jupiter.api.BeforeEach", "java.util.Optional", "java.lang.reflect.Method")
+                                .build(),
+                        md.getCoordinates().replaceParameters());
+                //noinspection ConstantConditions
+                md = maybeAutoFormat(md, md.withTemplate(JavaTemplate.builder(this::getCursor, testMethodStatement).javaParser(TEST_INFO_PARSER::get)
+                                .imports("org.junit.jupiter.api.TestInfo", "java.util.Optional", "java.lang.reflect.Method")
+                                .build(),
+                        md.getBody().getCoordinates().lastStatement(), varDecls.getVariables().get(0).getName().getSimpleName()), executionContext, getCursor().getParent());
+
+                // Make sure the testName is initialized first in case any other piece of the method body references it
+                assert md.getBody() != null;
+                if(md.getBody().getStatements().size() > 2) {
+                    List<Statement> statements = md.getBody().getStatements();
+                    List<Statement> reorderedStatements = new ArrayList<>(statements.size());
+                    reorderedStatements.addAll(statements.subList(statements.size() - 2, statements.size()));
+                    reorderedStatements.addAll(statements.subList(0, statements.size() - 2));
+                    md = md.withBody(md.getBody().withStatements(reorderedStatements));
+                }
+                maybeAddImport("java.lang.reflect.Method");
+            }
+            return md;
+        }
     }
 }
