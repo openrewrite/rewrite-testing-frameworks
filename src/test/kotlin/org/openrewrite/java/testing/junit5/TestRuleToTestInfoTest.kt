@@ -46,6 +46,8 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
         after = """
             import org.junit.jupiter.api.BeforeEach;
             import org.junit.jupiter.api.TestInfo;
+            
+            import java.lang.reflect.Method;
 
             public class SomeTest {
                 
@@ -95,6 +97,8 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
         after = """
             import org.junit.jupiter.api.BeforeEach;
             import org.junit.jupiter.api.TestInfo;
+            
+            import java.lang.reflect.Method;
 
             public class SomeTest {
                 protected int count;
