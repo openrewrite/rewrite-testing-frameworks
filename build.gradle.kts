@@ -116,9 +116,6 @@ dependencies {
     runtimeOnly("com.fasterxml.jackson.core:jackson-core:2.12.+")
     runtimeOnly("org.openrewrite:rewrite-java-11:$rewriteVersion")
 
-    runtimeOnly("com.github.tomakehurst:wiremock-jre8:latest.release")
-    runtimeOnly("org.junit.jupiter:junit-jupiter-api:latest.release")
-
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
@@ -130,6 +127,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    testRuntimeOnly("com.github.tomakehurst:wiremock-jre8:latest.release")
 
     // "Before" framework dependencies
     testRuntimeOnly("junit:junit:latest.release")
