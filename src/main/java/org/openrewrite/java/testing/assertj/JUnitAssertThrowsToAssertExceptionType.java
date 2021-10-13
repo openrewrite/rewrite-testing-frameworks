@@ -26,13 +26,9 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
-public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
+import java.util.function.Supplier;
 
-    private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
-            JavaParser.fromJavaVersion().dependsOn(
-                    Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-            ).build()
-    );
+public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
 
     @Override
     public String getDisplayName() {
@@ -55,23 +51,25 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
     }
 
     private static class AssertExceptionTypeVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion()
+                .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")).build();
         private static final MethodMatcher ASSERT_THROWS_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertThrows(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
             if (ASSERT_THROWS_MATCHER.matches(mi) && mi.getArguments().size() == 2) {
-                J.Lambda lamdaArg = (J.Lambda) mi.getArguments().get(1);
-                lamdaArg = lamdaArg.withType(JavaType.buildType("org.assertj.core.api.ThrowableAssert.ThrowingCallable"));
+                J.Lambda lambdaArg = (J.Lambda) mi.getArguments().get(1);
+                lambdaArg = lambdaArg.withType(JavaType.buildType("org.assertj.core.api.ThrowableAssert.ThrowingCallable"));
                 mi = mi.withTemplate(
                         JavaTemplate
                                 .builder(this::getCursor,
                                         "assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
-                                .javaParser(ASSERTJ_JAVA_PARSER::get)
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .staticImports("org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType")
                                 .build(),
                         mi.getCoordinates().replace(),
-                        mi.getArguments().get(0), lamdaArg);
+                        mi.getArguments().get(0), lambdaArg);
                 maybeAddImport("org.assertj.core.api.AssertionsForClassTypes", "assertThatExceptionOfType");
                 maybeRemoveImport("org.junit.jupiter.api.Assertions.assertThrows");
             }

@@ -33,6 +33,7 @@ import org.openrewrite.java.tree.JavaType;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.openrewrite.Parser.Input.fromString;
 
@@ -55,7 +56,7 @@ public class RunnerToExtension extends Recipe {
      */
     @JsonIgnore
     @EqualsAndHashCode.Exclude
-    ThreadLocal<JavaParser> javaParser;
+    Supplier<JavaParser> javaParser;
 
     @JsonCreator
     public RunnerToExtension(List<String> runners, String extension) {
@@ -66,8 +67,7 @@ public class RunnerToExtension extends Recipe {
         //noinspection ConstantConditions
         if (extension != null) {
             JavaType.Class extensionType = JavaType.Class.build(extension);
-            this.javaParser = ThreadLocal.withInitial(() ->
-
+            this.javaParser = () ->
                     JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
                             fromString("package org.junit.jupiter.api.extension;\n" +
                                     "public @interface ExtendWith {\n" +
@@ -75,9 +75,9 @@ public class RunnerToExtension extends Recipe {
                                     "}"),
                             fromString("package " + extensionType.getPackageName() + ";\n" +
                                     "public class " + extensionType.getClassName() + " {}"
-                            ))).build());
+                            ))).build();
         } else {
-            javaParser = null;
+            javaParser = () -> null;
         }
     }
 
@@ -113,10 +113,9 @@ public class RunnerToExtension extends Recipe {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
                 for (String runner : runners) {
-                    //noinspection ConstantConditions
                     for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
                         cd = cd.withTemplate(JavaTemplate.builder(this::getCursor, "@ExtendWith(#{}.class)")
-                                        .javaParser(javaParser::get)
+                                        .javaParser(javaParser)
                                         .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
                                         .build(),
                                 runWith.getCoordinates().replace(),
@@ -138,7 +137,7 @@ public class RunnerToExtension extends Recipe {
                 for (String runner : runners) {
                     for (J.Annotation runWith : FindAnnotations.find(method.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
                         md = md.withTemplate(JavaTemplate.builder(this::getCursor, "@ExtendWith(#{}.class)")
-                                        .javaParser(javaParser::get)
+                                        .javaParser(javaParser)
                                         .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
                                         .build(),
                                 runWith.getCoordinates().replace(),

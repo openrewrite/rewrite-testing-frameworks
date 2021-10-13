@@ -34,8 +34,7 @@ import org.openrewrite.maven.UpgradeDependencyVersion;
 
 import java.util.Arrays;
 import java.util.UUID;
-
-import static org.openrewrite.Tree.randomId;
+import java.util.function.Supplier;
 
 /**
  * Recipe for converting JUnit4 okhttp3 MockWebServer Rules with their JUnit5 equivalent.
@@ -53,7 +52,7 @@ public class UpdateMockWebServer extends Recipe {
     private static final String MOCK_WEBSERVER_VARIABLE = "mock-web-server-variable";
     private static final String AFTER_EACH_METHOD = "after-each-method";
 
-    private static final ThreadLocal<JavaParser> OKHTTP3_PARSER = ThreadLocal.withInitial(() ->
+    private static final Supplier<JavaParser> OKHTTP3_PARSER = () ->
             JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
                     Parser.Input.fromString("package okhttp3.mockwebserver;" +
                             "public final class MockWebServer  extends ExternalResource implements Closeable {" +
@@ -63,9 +62,7 @@ public class UpdateMockWebServer extends Recipe {
                     ),
                     Parser.Input.fromString("package org.junit.jupiter.api;\n" +
                             "public @interface AfterEach {}")
-            )).build());
-
-    UUID id = randomId();
+            )).build();
 
     @Override
     public String getDisplayName() {
@@ -107,7 +104,7 @@ public class UpdateMockWebServer extends Recipe {
                         J.Block body = cd.getBody();
                         body = maybeAutoFormat(body, body.withTemplate(JavaTemplate.builder(this::getCursor, closeMethod)
                                 .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
-                                .javaParser(OKHTTP3_PARSER::get).build(), body.getCoordinates().lastStatement(), mockWebServerVariable), executionContext);
+                                .javaParser(OKHTTP3_PARSER).build(), body.getCoordinates().lastStatement(), mockWebServerVariable), executionContext);
                         cd = cd.withBody(body);
                         maybeAddImport(AFTER_EACH_FQN);
                         maybeAddImport(IO_EXCEPTION_FQN);
@@ -118,7 +115,7 @@ public class UpdateMockWebServer extends Recipe {
                                 J.MethodDeclaration method = (J.MethodDeclaration) statement;
                                 if (method.getBody() != null) {
                                     method = method.withTemplate(JavaTemplate.builder(this::getCursor, "#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
-                                            .javaParser(OKHTTP3_PARSER::get).build(), method.getBody()
+                                            .javaParser(OKHTTP3_PARSER).build(), method.getBody()
                                             .getCoordinates().lastStatement(), mockWebServerVariable);
 
                                     if (method.getThrows() == null || method.getThrows().stream()

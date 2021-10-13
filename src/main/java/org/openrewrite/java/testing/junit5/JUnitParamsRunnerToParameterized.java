@@ -27,6 +27,7 @@ import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -54,10 +55,6 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static final String INIT_METHODS_MAP = "named-parameters-map";
     private static final String CONVERSION_NOT_SUPPORTED = "conversion-not-supported";
 
-    private static final ThreadLocal<JavaParser> PARAMETERIZED_TEMPLATE_PARSER = ThreadLocal.withInitial(() ->
-            JavaParser.fromJavaVersion().dependsOn(Parser.Input.fromResource("/META-INF/rewrite/Parameterized.java", "---")).build()
-    );
-
     @Override
     public String getDisplayName() {
         return "Pragmatists @RunWith(JUnitParamsRunner.class) to JUnit Jupiter Parameterized Tests";
@@ -78,101 +75,103 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+    protected ParameterizedTemplateVisitor getVisitor() {
+        return new ParameterizedTemplateVisitor();
+    }
 
-            @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
-                Set<String> initMethods = getCursor().getMessage(INIT_METHOD_REFERENCES);
-                if (initMethods != null && !initMethods.isEmpty()) {
-                    doAfterVisit(new ParametersNoArgsImplicitMethodSource(initMethods,
-                            getCursor().computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<>()),
-                            getCursor().computeMessageIfAbsent(CONVERSION_NOT_SUPPORTED, v -> new HashSet<>())));
-                }
-                return cd;
+    private static class ParameterizedTemplateVisitor extends JavaIsoVisitor<ExecutionContext> {
+
+        @Override
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+            Set<String> initMethods = getCursor().getMessage(INIT_METHOD_REFERENCES);
+            if (initMethods != null && !initMethods.isEmpty()) {
+                doAfterVisit(new ParametersNoArgsImplicitMethodSource(initMethods,
+                        getCursor().computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<>()),
+                        getCursor().computeMessageIfAbsent(CONVERSION_NOT_SUPPORTED, v -> new HashSet<>())));
             }
+            return cd;
+        }
 
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-                J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
-                Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
-                // methods having names starting with parametersFor... are init methods
-                if (m.getSimpleName().startsWith(PARAMETERS_FOR_PREFIX)) {
+        @Override
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
+            Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
+            // methods having names starting with parametersFor... are init methods
+            if (m.getSimpleName().startsWith(PARAMETERS_FOR_PREFIX)) {
+                classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>()).add(m.getSimpleName());
+            }
+            return m;
+        }
+
+        @Override
+        public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext executionContext) {
+            J.Annotation anno = super.visitAnnotation(annotation, executionContext);
+            Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
+            if (PARAMETERS_MATCHER.matches(anno)) {
+                String annotationArgumentValue = getAnnotationArgumentForInitMethod(anno, "method", "named");
+                if (annotationArgumentValue != null) {
+                    for (String method : annotationArgumentValue.split(",")) {
+                        classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>()).add(method);
+                    }
+                } else if (anno.getArguments() != null && !anno.getArguments().isEmpty()) {
+                    // This conversion is not supported add a comment to the annotation and the method name to the not supported list
+                    String comment = " JunitParamsRunnerToParameterized conversion not supported";
+                    if (anno.getComments().stream().noneMatch(c -> c.printComment().endsWith(comment))) {
+                        anno = anno.withComments(ListUtils.concat(anno.getComments(), new TextComment(false, comment,
+                                "\n" + anno.getPrefix().getIndent(), Markers.EMPTY)));
+                    }
+                    J.MethodDeclaration m = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();
+                    Set<String> unsupportedMethods = classDeclCursor.computeMessageIfAbsent(CONVERSION_NOT_SUPPORTED, v -> new HashSet<>());
+                    unsupportedMethods.add(m.getSimpleName());
+                    unsupportedMethods.add(junitParamsDefaultInitMethodName(m.getSimpleName()));
+                }
+            } else if (NAMED_PARAMETERS_MATCHER.matches(annotation)) {
+                String namedInitMethod = getLiteralAnnotationArgumentValue(annotation);
+                if (namedInitMethod != null) {
+                    J.MethodDeclaration m = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();
                     classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>()).add(m.getSimpleName());
+                    classDeclCursor.computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<>()).put(namedInitMethod, m.getSimpleName());
                 }
-                return m;
+            } else if (TEST_CASE_NAME_MATCHER.matches(anno)) {
+                // test name for ParameterizedTest argument
+                Object testNameArg = getLiteralAnnotationArgumentValue(anno);
+                String testName = testNameArg != null ? testNameArg.toString() : "{method}({params}) [{index}]";
+                J.MethodDeclaration md = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();
+                classDeclCursor.computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<>()).put(md.getSimpleName(), testName);
             }
+            return anno;
+        }
 
-            @Override
-            public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext executionContext) {
-                J.Annotation anno = super.visitAnnotation(annotation, executionContext);
-                Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
-                if (PARAMETERS_MATCHER.matches(anno)) {
-                    String annotationArgumentValue = getAnnotationArgumentForInitMethod(anno, "method", "named");
-                    if (annotationArgumentValue != null) {
-                        for (String method : annotationArgumentValue.split(",")) {
-                            classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>()).add(method);
-                        }
-                    } else if (anno.getArguments() != null && !anno.getArguments().isEmpty()) {
-                        // This conversion is not supported add a comment to the annotation and the method name to the not supported list
-                        String comment = " JunitParamsRunnerToParameterized conversion not supported";
-                        if (anno.getComments().stream().noneMatch(c -> c.printComment().endsWith(comment))) {
-                            anno = anno.withComments(ListUtils.concat(anno.getComments(), new TextComment(false, comment,
-                                    "\n" + anno.getPrefix().getIndent(), Markers.EMPTY)));
-                        }
-                        J.MethodDeclaration m = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();
-                        Set<String> unsupportedMethods = classDeclCursor.computeMessageIfAbsent(CONVERSION_NOT_SUPPORTED, v -> new HashSet<>());
-                        unsupportedMethods.add(m.getSimpleName());
-                        unsupportedMethods.add(junitParamsDefaultInitMethodName(m.getSimpleName()));
-                    }
-                } else if (NAMED_PARAMETERS_MATCHER.matches(annotation)) {
-                    String namedInitMethod = getLiteralAnnotationArgumentValue(annotation);
-                    if (namedInitMethod != null) {
-                        J.MethodDeclaration m = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();
-                        classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>()).add(m.getSimpleName());
-                        classDeclCursor.computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<>()).put(namedInitMethod, m.getSimpleName());
-                    }
-                } else if (TEST_CASE_NAME_MATCHER.matches(anno)) {
-                    // test name for ParameterizedTest argument
-                    Object testNameArg = getLiteralAnnotationArgumentValue(anno);
-                    String testName = testNameArg != null ? testNameArg.toString() : "{method}({params}) [{index}]";
-                    J.MethodDeclaration md = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();
-                    classDeclCursor.computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<>()).put(md.getSimpleName(), testName);
-                }
-                return anno;
+        @Nullable
+        private String getLiteralAnnotationArgumentValue(J.Annotation anno) {
+            String annotationArgumentValue = null;
+            if (anno.getArguments() != null && anno.getArguments().size() == 1 && anno.getArguments().get(0) instanceof J.Literal) {
+                J.Literal literal = (J.Literal) anno.getArguments().get(0);
+                annotationArgumentValue = literal.getValue() != null ? literal.getValue().toString() : null;
             }
+            return annotationArgumentValue;
+        }
 
-            @Nullable
-            private String getLiteralAnnotationArgumentValue(J.Annotation anno) {
-                String annotationArgumentValue = null;
-                if (anno.getArguments() != null && anno.getArguments().size() == 1 && anno.getArguments().get(0) instanceof J.Literal) {
-                    J.Literal literal = (J.Literal) anno.getArguments().get(0);
-                    annotationArgumentValue = literal.getValue() != null ? literal.getValue().toString() : null;
-                }
-                return annotationArgumentValue;
-            }
-
-            @Nullable
-            private String getAnnotationArgumentForInitMethod(J.Annotation anno, String... variableNames) {
-                String value = null;
-                if (anno.getArguments() != null && anno.getArguments().size() == 1
-                        && anno.getArguments().get(0) instanceof J.Assignment
-                        && ((J.Assignment) anno.getArguments().get(0)).getVariable() instanceof J.Identifier
-                        && ((J.Assignment) anno.getArguments().get(0)).getAssignment() instanceof J.Literal) {
-                    J.Assignment annoArg = (J.Assignment) anno.getArguments().get(0);
-                    J.Literal assignment = (J.Literal) annoArg.getAssignment();
-                    String identifier = ((J.Identifier) annoArg.getVariable()).getSimpleName();
-                    for (String variableName : variableNames) {
-                        if (variableName.equals(identifier)) {
-                            value = assignment.getValue() != null ? assignment.getValue().toString() : null;
-                            break;
-                        }
+        @Nullable
+        private String getAnnotationArgumentForInitMethod(J.Annotation anno, String... variableNames) {
+            String value = null;
+            if (anno.getArguments() != null && anno.getArguments().size() == 1
+                    && anno.getArguments().get(0) instanceof J.Assignment
+                    && ((J.Assignment) anno.getArguments().get(0)).getVariable() instanceof J.Identifier
+                    && ((J.Assignment) anno.getArguments().get(0)).getAssignment() instanceof J.Literal) {
+                J.Assignment annoArg = (J.Assignment) anno.getArguments().get(0);
+                J.Literal assignment = (J.Literal) annoArg.getAssignment();
+                String identifier = ((J.Identifier) annoArg.getVariable()).getSimpleName();
+                for (String variableName : variableNames) {
+                    if (variableName.equals(identifier)) {
+                        value = assignment.getValue() != null ? assignment.getValue().toString() : null;
+                        break;
                     }
                 }
-                return value;
             }
-        };
+            return value;
+        }
     }
 
     /***
@@ -184,6 +183,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
      * - Test has Parameters(named = "...") and NamedParameters annotation
      */
     private static class ParametersNoArgsImplicitMethodSource extends JavaIsoVisitor<ExecutionContext> {
+        private static final Supplier<JavaParser> PARAMETERIZED_TEMPLATE_PARSER = () ->
+                JavaParser.fromJavaVersion().dependsOn(Parser.Input.fromResource("/META-INF/rewrite/Parameterized.java", "---")).build();
 
         private final Set<String> initMethods;
         private final Set<String> unsupportedConversions;
@@ -200,15 +201,15 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
             // build @ParameterizedTest template
             this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, "@ParameterizedTest")
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
+                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @ParameterizedTest(#{}) template
             this.parameterizedTestTemplateWithName = JavaTemplate.builder(this::getCursor, "@ParameterizedTest(name = \"#{}\")")
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
+                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @MethodSource("...") template
             this.methodSourceTemplate = JavaTemplate.builder(this::getCursor, "@MethodSource(#{})")
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER::get)
+                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
                     .imports("org.junit.jupiter.params.provider.MethodSource").build();
         }
 

@@ -29,18 +29,14 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 @SuppressWarnings("SimplifyStreamApiCallChains")
-@Incubating(since = "1.2.0")
 @Value
 @EqualsAndHashCode(callSuper = true)
 public class TestsShouldIncludeAssertions extends Recipe {
     private static final List<String> TEST_ANNOTATIONS = Collections.singletonList("org.junit.jupiter.api.Test");
-
-    private static final ThreadLocal<JavaParser> ASSERTIONS_PARSER = ThreadLocal.withInitial(() ->
-            JavaParser.fromJavaVersion()
-                    .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---"))
-                    .build());
 
     private static final List<String> assertions = Arrays.asList(
             "org.assertj.core.api",
@@ -86,72 +82,81 @@ public class TestsShouldIncludeAssertions extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext
-                    executionContext) {
-                if ((!methodIsTest(method) || method.getBody() == null)
-                        || methodHasAssertion(method.getBody().getStatements())) {
-                    return method;
-                }
+    protected TestShouldIncludeAssertionsVisitor getVisitor() {
+        return new TestShouldIncludeAssertionsVisitor();
+    }
 
-                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
-                J.Block body = md.getBody();
-                if (body != null) {
-                    md = method.withTemplate(JavaTemplate.builder(this::getCursor, "assertDoesNotThrow(() -> #{any()});")
-                                    .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
-                                    .javaParser(ASSERTIONS_PARSER::get).build(),
-                            method.getCoordinates().replaceBody(),
-                            body);
-                    maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
-                }
-                return md;
+    private static class TestShouldIncludeAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion()
+                .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---")).build();
+
+        @Override
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext
+                executionContext) {
+            if ((!methodIsTest(method) || method.getBody() == null)
+                    || methodHasAssertion(method.getBody())) {
+                return method;
             }
 
-            private boolean methodIsTest(J.MethodDeclaration methodDeclaration) {
-                for (J.Annotation leadingAnnotation : methodDeclaration.getLeadingAnnotations()) {
-                    for (String testAnnotation : TEST_ANNOTATIONS) {
-                        if (TypeUtils.isOfClassType(leadingAnnotation.getType(), testAnnotation)) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
+            J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+            J.Block body = md.getBody();
+            if (body != null) {
+                md = method.withTemplate(JavaTemplate.builder(this::getCursor, "assertDoesNotThrow(() -> #{any()});")
+                                .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
+                                .javaParser(ASSERTJ_JAVA_PARSER).build(),
+                        method.getCoordinates().replaceBody(),
+                        body);
+                maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
             }
+            return md;
+        }
 
-            private boolean methodHasAssertion(List<Statement> statements) {
-                for (Statement statement : statements) {
-                    if (statement instanceof J.MethodInvocation) {
-                        J.MethodInvocation methodInvocation = (J.MethodInvocation) statement;
-                        if (isAssertion(methodInvocation)) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            }
-
-            private boolean isAssertion(J.MethodInvocation methodInvocation) {
-                if (methodInvocation.getType() == null) {
-                    return false;
-                }
-                String fqt = methodInvocation.getType().getDeclaringType().getFullyQualifiedName();
-                for (String assertionClassOrPackage : assertions) {
-                    if (fqt.startsWith(assertionClassOrPackage)) {
+        private boolean methodIsTest(J.MethodDeclaration methodDeclaration) {
+            for (J.Annotation leadingAnnotation : methodDeclaration.getLeadingAnnotations()) {
+                for (String testAnnotation : TEST_ANNOTATIONS) {
+                    if (TypeUtils.isOfClassType(leadingAnnotation.getType(), testAnnotation)) {
                         return true;
                     }
                 }
-                if (methodInvocation.getType() != null && methodInvocation.getType().getDeclaringType() != null) {
-                    String methodFqn = methodInvocation.getType().getDeclaringType().getFullyQualifiedName() + "." + methodInvocation.getSimpleName();
-                    for (String assertMethod : assertions) {
-                        if (assertMethod.equals(methodFqn)) {
-                            return true;
-                        }
+            }
+            return false;
+        }
+
+        private boolean methodHasAssertion(J.Block body) {
+            AtomicBoolean hasAssertion = new AtomicBoolean(Boolean.FALSE);
+            JavaIsoVisitor findAssertionVisitor = new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
+                    J.MethodInvocation mi = super.visitMethodInvocation(method, atomicBoolean);
+                    if (isAssertion(mi)) {
+                        atomicBoolean.set(Boolean.TRUE);
                     }
+                    return mi;
                 }
+            };
+            findAssertionVisitor.visit(body, hasAssertion);
+            return hasAssertion.get();
+        }
+
+        private boolean isAssertion(J.MethodInvocation methodInvocation) {
+            if (methodInvocation.getType() == null) {
                 return false;
             }
-        };
-    }
+            String fqt = methodInvocation.getType().getDeclaringType().getFullyQualifiedName();
+            for (String assertionClassOrPackage : assertions) {
+                if (fqt.startsWith(assertionClassOrPackage)) {
+                    return true;
+                }
+            }
+            if (methodInvocation.getType().getDeclaringType() != null) {
+                String methodFqn = methodInvocation.getType().getDeclaringType().getFullyQualifiedName() + "." + methodInvocation.getSimpleName();
+                for (String assertMethod : assertions) {
+                    if (assertMethod.equals(methodFqn)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+    };
 }

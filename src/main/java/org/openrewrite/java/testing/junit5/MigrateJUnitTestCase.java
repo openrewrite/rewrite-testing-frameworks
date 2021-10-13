@@ -35,14 +35,6 @@ import java.util.Comparator;
 import java.util.List;
 
 public class MigrateJUnitTestCase extends Recipe {
-    private static final ThreadLocal<JavaParser> JAVA_PARSER = ThreadLocal.withInitial(() ->
-            JavaParser.fromJavaVersion()
-                    .dependsOn(Collections.singletonList(Parser.Input.fromString(
-                            "package org.junit.jupiter.api;\n" +
-                                    "public @interface Test {}\n" +
-                                    "public @interface AfterEach {}\n" +
-                                    "public @interface BeforeEach {}")))
-                    .build());
 
     private static final AnnotationMatcher JUNIT_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
 
@@ -70,7 +62,6 @@ public class MigrateJUnitTestCase extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        //noinspection ConstantConditions
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
@@ -156,7 +147,13 @@ public class MigrateJUnitTestCase extends Recipe {
             J.MethodDeclaration md = methodDeclaration;
             if (FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
                 md = methodDeclaration.withTemplate(JavaTemplate.builder(this::getCursor, annotation)
-                                .javaParser(JAVA_PARSER::get)
+                                .javaParser(() -> JavaParser.fromJavaVersion()
+                                                .dependsOn(Collections.singletonList(Parser.Input.fromString(
+                                                        "package org.junit.jupiter.api;\n" +
+                                                                "public @interface Test {}\n" +
+                                                                "public @interface AfterEach {}\n" +
+                                                                "public @interface BeforeEach {}")))
+                                                .build())
                                 .imports(fullyQualifiedAnnotation).build(),
                         methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 md = maybeAddPublicModifier(md);
