@@ -27,6 +27,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -43,30 +44,6 @@ import java.util.stream.Stream;
  * Does not currently support migration of ExpectedException.isAnyExceptionExpected().
  */
 public class ExpectedExceptionToAssertThrows extends Recipe {
-    private static final ThreadLocal<JavaParser> ASSERTIONS_PARSER = ThreadLocal.withInitial(() ->
-            JavaParser.fromJavaVersion().dependsOn(
-                    Stream.concat(
-                            Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---").stream(),
-                            Stream.of(
-                                    Parser.Input.fromString(
-                                            "package org.junit.jupiter.api.function;" +
-                                                    "public interface Executable {" +
-                                                    "void execute() throws Throwable;" +
-                                                    "}"),
-                                    Parser.Input.fromString(
-                                            "package org.hamcrest;\n" +
-                                                    "public interface Matcher<T> {\n" +
-                                                    "    boolean matches(Object var1);\n" +
-                                                    "}"),
-                                    Parser.Input.fromString(
-                                            "package org.hamcrest;\n" +
-                                                    "public class MatcherAssert {\n" +
-                                                    "    public static <T> void assertThat(T actual, Matcher<? super T> matcher) {}\n" +
-                                                    "    public static <T> void assertThat(String reason, T actual, Matcher<? super T> matcher) {}\n" +
-                                                    "    public static void assertThat(String reason, boolean assertion) {}\n" +
-                                                    "}"))
-                    ).collect(Collectors.toList())
-            ).build());
 
     @Override
     public String getDisplayName() {
@@ -89,6 +66,31 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
     }
 
     public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private static final Supplier<JavaParser> ASSERTIONS_PARSER = () ->
+                JavaParser.fromJavaVersion().dependsOn(
+                Stream.concat(
+                Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---").stream(),
+                            Stream.of(
+                                    Parser.Input.fromString(
+                                    "package org.junit.jupiter.api.function;" +
+                                    "public interface Executable {" +
+                                    "void execute() throws Throwable;" +
+                                    "}"),
+                                    Parser.Input.fromString(
+                                    "package org.hamcrest;\n" +
+                                    "public interface Matcher<T> {\n" +
+                                    "    boolean matches(Object var1);\n" +
+                                    "}"),
+                                    Parser.Input.fromString(
+                                    "package org.hamcrest;\n" +
+                                    "public class MatcherAssert {\n" +
+                                    "    public static <T> void assertThat(T actual, Matcher<? super T> matcher) {}\n" +
+                                    "    public static <T> void assertThat(String reason, T actual, Matcher<? super T> matcher) {}\n" +
+                                    "    public static void assertThat(String reason, boolean assertion) {}\n" +
+                                    "}"))
+                                    ).collect(Collectors.toList())
+                ).build();
+
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
@@ -181,7 +183,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
             m = m.withTemplate(
                     JavaTemplate.builder(this::getCursor, templateString)
-                            .javaParser(ASSERTIONS_PARSER::get)
+                            .javaParser(ASSERTIONS_PARSER)
                             .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                             .build(),
                     m.getCoordinates().replaceBody(),
@@ -195,7 +197,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
                 m = m.withTemplate(
                         JavaTemplate.builder(this::getCursor, "assertTrue(exception.getMessage().contains(#{any(java.lang.String)});")
-                                .javaParser(ASSERTIONS_PARSER::get)
+                                .javaParser(ASSERTIONS_PARSER)
                                 .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
                                 .build(),
                         m.getBody().getCoordinates().lastStatement(),
@@ -205,7 +207,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             }
 
             JavaTemplate assertThatTemplate = JavaTemplate.builder(this::getCursor, "assertThat(#{}, #{any()});")
-                    .javaParser(ASSERTIONS_PARSER::get)
+                    .javaParser(ASSERTIONS_PARSER)
                     .staticImports("org.hamcrest.MatcherAssert.assertThat")
                     .build();
 

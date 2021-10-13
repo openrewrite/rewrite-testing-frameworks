@@ -30,18 +30,7 @@ import java.util.Arrays;
 import java.util.Set;
 
 public class UseTestMethodOrder extends Recipe {
-    private static final ThreadLocal<JavaParser> TEST_METHOD_ORDER_PARSER = ThreadLocal.withInitial(() ->
-            JavaParser.fromJavaVersion()
-                    .dependsOn(Arrays.asList(
-                            Parser.Input.fromString("package org.junit.jupiter.api;\n" +
-                                    "public interface MethodOrderer {\n" +
-                                    "  public class MethodName {}\n" +
-                                    "}"),
-                            Parser.Input.fromString("package org.junit.jupiter.api;\n" +
-                                    "public @interface TestMethodOrder {}")
-                    ))
-                    .build()
-    );
+
 
     @Override
     public String getDisplayName() {
@@ -62,7 +51,17 @@ public class UseTestMethodOrder extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             private final JavaTemplate testMethodOrder = JavaTemplate.builder(this::getCursor, "@TestMethodOrder(MethodName.class)")
-                    .javaParser(TEST_METHOD_ORDER_PARSER::get)
+                    .javaParser(() ->
+                            JavaParser.fromJavaVersion()
+                                    .dependsOn(Arrays.asList(
+                                            Parser.Input.fromString("package org.junit.jupiter.api;\n" +
+                                                    "public interface MethodOrderer {\n" +
+                                                    "  public class MethodName {}\n" +
+                                                    "}"),
+                                            Parser.Input.fromString("package org.junit.jupiter.api;\n" +
+                                                    "public @interface TestMethodOrder {}")
+                                    ))
+                                    .build())
                     .imports("org.junit.jupiter.api.TestMethodOrder",
                             "org.junit.jupiter.api.MethodOrderer.*")
                     .build();
@@ -71,8 +70,7 @@ public class UseTestMethodOrder extends Recipe {
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration c = classDecl;
 
-                @SuppressWarnings("ConstantConditions") Set<J.Annotation> methodOrders =
-                        FindAnnotations.find(c.withBody(null), "@org.junit.FixMethodOrder");
+                Set<J.Annotation> methodOrders = FindAnnotations.find(c.withBody(null), "@org.junit.FixMethodOrder");
 
                 if (!methodOrders.isEmpty()) {
                     maybeAddImport("org.junit.jupiter.api.TestMethodOrder");

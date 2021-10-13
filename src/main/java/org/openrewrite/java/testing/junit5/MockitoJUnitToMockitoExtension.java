@@ -48,19 +48,6 @@ import java.util.stream.Collectors;
  * Must be ran in the JUnit5 suite.
  */
 public class MockitoJUnitToMockitoExtension extends Recipe {
-    private static final ThreadLocal<JavaParser> JAVA_PARSER = ThreadLocal.withInitial(() ->
-            JavaParser.fromJavaVersion()
-                    .dependsOn(Arrays.asList(
-                            Parser.Input.fromString("package org.junit.jupiter.api.extension;\n" +
-                                    "public @interface ExtendWith {\n" +
-                                    "Class[] value();\n" +
-                                    "}"),
-                            Parser.Input.fromString("package org.mockito.junit.jupiter;\n" +
-                                    "public class MockitoExtension {\n" +
-                                    "}")
-                    ))
-                    .build()
-    );
 
     @Override
     public String getDisplayName() {
@@ -114,14 +101,23 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                 maybeRemoveImport("org.mockito.junit.MockitoJUnit");
                 maybeRemoveImport("org.mockito.quality.Strictness");
 
-                //noinspection ConstantConditions
                 if (classDecl.getBody().getStatements().size() != cd.getBody().getStatements().size() &&
                         (FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty() &&
                                 FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty())) {
 
                     cd = cd.withTemplate(
                             JavaTemplate.builder(this::getCursor, "@ExtendWith(MockitoExtension.class)")
-                                    .javaParser(JAVA_PARSER::get)
+                                    .javaParser(() ->
+                                            JavaParser.fromJavaVersion()
+                                                    .dependsOn(Arrays.asList(
+                                                            Parser.Input.fromString("package org.junit.jupiter.api.extension;\n" +
+                                                                    "public @interface ExtendWith {\n" +
+                                                                    "Class[] value();\n" +
+                                                                    "}"),
+                                                            Parser.Input.fromString("package org.mockito.junit.jupiter;\n" +
+                                                                    "public class MockitoExtension {\n" +
+                                                                    "}")
+                                                    )).build())
                                     .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                                     .build(),
                             cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))

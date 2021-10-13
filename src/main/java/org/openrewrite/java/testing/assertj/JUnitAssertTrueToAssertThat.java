@@ -29,14 +29,9 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 public class JUnitAssertTrueToAssertThat extends Recipe {
-    private static final ThreadLocal<JavaParser> ASSERTJ_JAVA_PARSER = ThreadLocal.withInitial(() ->
-            JavaParser.fromJavaVersion().dependsOn(
-                    Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")
-            ).build()
-    );
-
     @Override
     public String getDisplayName() {
         return "JUnit `assertTrue` to AssertJ";
@@ -58,6 +53,8 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
     }
 
     public static class AssertTrueToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion()
+                .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")).build();
         private static final MethodMatcher JUNIT_ASSERT_TRUE = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertTrue(boolean, ..)");
 
         @Override
@@ -73,7 +70,7 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
                 method = method.withTemplate(
                         JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).isTrue();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER::get)
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual
@@ -87,7 +84,7 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER::get)
+                                .javaParser(ASSERTJ_JAVA_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
