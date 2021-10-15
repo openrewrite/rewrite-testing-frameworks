@@ -104,6 +104,7 @@ public class RunnerToExtension extends Recipe {
         return "Replace runners with the JUnit Jupiter extension equivalent.";
     }
 
+    @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             private final JavaType.Class extensionType = JavaType.Class.build(extension);
