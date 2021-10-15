@@ -111,6 +111,25 @@ class TestsShouldNotBePublicTest : JavaRecipeTest {
     )
 
     @Test
+    fun ignoreOverriddenMethod() = assertUnchanged(
+        before = """
+            import org.junit.jupiter.api.Test;
+
+            abstract class AbstractTest {
+                public abstract void testMethod();
+            }
+            
+            class BTest extends AbstractTest {
+            
+                @Test
+                @Override
+                public void testMethod() {
+                }
+            }
+        """,
+    )
+
+    @Test
     fun ignorePublicClassWithPublicVariables() = assertUnchanged(
             before = """
             import org.junit.jupiter.api.Test;
