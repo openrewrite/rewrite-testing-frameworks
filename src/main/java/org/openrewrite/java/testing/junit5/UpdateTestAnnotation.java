@@ -94,7 +94,6 @@ public class UpdateTestAnnotation extends Recipe {
 
             private final JavaTemplate assertThrows = JavaTemplate.builder(this::getCursor, "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
                     .javaParser(() -> JavaParser.fromJavaVersion()
-                            .logCompilationWarningsAndErrors(true)
                             .dependsOn(
                                     "package org.junit.jupiter.api.function;" +
                                             "public interface Executable {" +
