@@ -75,7 +75,7 @@ public class AssertToAssertions extends Recipe {
                 }
             }
 
-            if (isStringArgument(firstArg)) {
+            if (TypeUtils.isString(firstArg.getType())) {
                 // Move the first arg to be the last argument
 
                 List<Expression> newArgs = new ArrayList<>(args.size());
@@ -92,11 +92,6 @@ public class AssertToAssertions extends Recipe {
             }
 
             return m;
-        }
-
-        private boolean isStringArgument(Expression arg) {
-            JavaType expressionType = arg instanceof J.MethodInvocation ? ((J.MethodInvocation) arg).getReturnType() : arg.getType();
-            return TypeUtils.isString(expressionType);
         }
 
         private static boolean isJunitAssertMethod(J.MethodInvocation method) {

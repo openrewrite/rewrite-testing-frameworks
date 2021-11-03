@@ -159,14 +159,14 @@ public class TemporaryFolderToTempDir extends Recipe {
             Stream<J.MethodDeclaration> methods = cd.getBody().getStatements().stream()
                     .filter(J.MethodDeclaration.class::isInstance)
                     .map(J.MethodDeclaration.class::cast);
-            JavaType newFolderMethodDeclaration = methods
+            JavaType.Method newFolderMethodDeclaration = methods
                     .filter(m -> {
                         List<Statement> params = m.getParameters();
                         return "newFolder".equals(m.getSimpleName())
                                 && params.size() == 2
                                 && params.get(0).hasClassType(FILE_TYPE)
                                 && params.get(1).hasClassType(STRING_TYPE);
-                    }).map(J.MethodDeclaration::getType).findAny().orElse(null);
+                    }).map(J.MethodDeclaration::getMethodType).findAny().orElse(null);
 
             if (newFolderMethodDeclaration == null) {
                 cd = cd.withTemplate(JavaTemplate.builder(this::getCursor,
@@ -179,7 +179,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                                 "    return result;\n" +
                                 "}"
                 ).imports("java.io.File", "java.io.IOException").javaParser(TEMPDIR_PARSER).build(), cd.getBody().getCoordinates().lastStatement());
-                newFolderMethodDeclaration = ((J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1)).getType();
+                newFolderMethodDeclaration = ((J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1)).getMethodType();
                 maybeAddImport("java.io.File");
                 maybeAddImport("java.io.IOException");
             }
@@ -190,9 +190,9 @@ public class TemporaryFolderToTempDir extends Recipe {
 
         private static class TranslateNewFolderMethodInvocation extends JavaVisitor<ExecutionContext> {
             J.MethodInvocation methodScope;
-            JavaType newMethodType;
+            JavaType.Method newMethodType;
 
-            public TranslateNewFolderMethodInvocation(J.MethodInvocation method, JavaType newMethodType) {
+            public TranslateNewFolderMethodInvocation(J.MethodInvocation method, JavaType.Method newMethodType) {
                 this.methodScope = method;
                 this.newMethodType = newMethodType;
             }
@@ -223,7 +223,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                                         .imports("java.io.File").javaParser(TEMPDIR_PARSER).build(),
                                 mi.getCoordinates().replace(), templateArgs.toArray());
                     }
-                    mi = mi.withType(newMethodType);
+                    mi = mi.withMethodType(newMethodType);
                     J.ClassDeclaration parentClass = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).getValue();
                     mi = mi.withName(mi.getName().withType(parentClass.getType()));
                 }

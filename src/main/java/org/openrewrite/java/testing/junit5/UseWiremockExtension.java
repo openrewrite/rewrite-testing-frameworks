@@ -101,8 +101,7 @@ public class UseWiremockExtension extends Recipe {
                         );
                     } else {
                         JavaType.Class optsType = JavaType.Class.build("com.github.tomakehurst.wiremock.core.Options");
-                        if (TypeUtils.isAssignableTo(optsType, arg.getType()) ||
-                                (arg.getType() instanceof JavaType.Method && TypeUtils.isAssignableTo(optsType, ((JavaType.Method) arg.getType()).getDeclaringType()))) {
+                        if (TypeUtils.isAssignableTo(optsType, arg.getType())) {
                             String newWiremockExtension = "WireMockExtension.newInstance()" +
                                     ".options(#{any(com.github.tomakehurst.wiremock.core.Options)})";
                             if (n.getArguments().size() > 1) {

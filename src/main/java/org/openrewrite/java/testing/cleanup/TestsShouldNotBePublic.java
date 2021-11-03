@@ -114,7 +114,7 @@ public class TestsShouldNotBePublic extends Recipe {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
 
             if (m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public)
-                    && Boolean.FALSE.equals(TypeUtils.isAnOverride(method.getType()))
+                    && Boolean.FALSE.equals(TypeUtils.isOverride(method.getMethodType()))
                     && hasJUnit5MethodAnnotation(m)) {
                 // remove public modifier
                 doAfterVisit(new ChangeMethodAccessLevelVisitor<>(new MethodMatcher(method), null));
