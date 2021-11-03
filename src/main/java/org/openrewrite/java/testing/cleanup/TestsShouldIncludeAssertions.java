@@ -139,17 +139,17 @@ public class TestsShouldIncludeAssertions extends Recipe {
         }
 
         private boolean isAssertion(J.MethodInvocation methodInvocation) {
-            if (methodInvocation.getType() == null) {
+            if (methodInvocation.getMethodType() == null) {
                 return false;
             }
-            String fqt = methodInvocation.getType().getDeclaringType().getFullyQualifiedName();
+            String fqt = methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName();
             for (String assertionClassOrPackage : assertions) {
                 if (fqt.startsWith(assertionClassOrPackage)) {
                     return true;
                 }
             }
-            if (methodInvocation.getType().getDeclaringType() != null) {
-                String methodFqn = methodInvocation.getType().getDeclaringType().getFullyQualifiedName() + "." + methodInvocation.getSimpleName();
+            if (methodInvocation.getMethodType().getDeclaringType() != null) {
+                String methodFqn = methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName() + "." + methodInvocation.getSimpleName();
                 for (String assertMethod : assertions) {
                     if (assertMethod.equals(methodFqn)) {
                         return true;

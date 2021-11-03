@@ -97,7 +97,7 @@ public class MigrateJUnitTestCase extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
                 if ((mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase"))
-                        || (mi.getType() != null && TypeUtils.isOfClassType(mi.getType().getDeclaringType(), "junit.framework.TestCase"))) {
+                        || (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"))) {
                     String name = mi.getSimpleName();
                     // setUp and tearDown will be invoked via Before and After annotations
                     if ("setUp".equals(name) || "tearDown".equals(name)) {

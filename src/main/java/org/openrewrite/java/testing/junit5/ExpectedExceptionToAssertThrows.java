@@ -237,7 +237,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (method.getType() != null && "org.junit.rules.ExpectedException".equals(method.getType().getDeclaringType().getFullyQualifiedName())) {
+            if (method.getMethodType() != null && "org.junit.rules.ExpectedException".equals(method.getMethodType().getDeclaringType().getFullyQualifiedName())) {
                 switch (method.getSimpleName()) {
                     case "expect":
                         getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, "expectedExceptionMethodInvocation", method);
@@ -260,8 +260,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
             final J.MethodInvocation method = (J.MethodInvocation) j;
             return method.getArguments().size() == 1 &&
-                    method.getType() != null &&
-                    TypeUtils.isOfClassType(method.getType().getDeclaringType(), "org.hamcrest.Matchers");
+                    method.getMethodType() != null &&
+                    TypeUtils.isOfClassType(method.getMethodType().getDeclaringType(), "org.hamcrest.Matchers");
         }
 
         private static boolean isExpectedExceptionMethodInvocation(Statement statement) {
@@ -270,11 +270,11 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             }
 
             J.MethodInvocation m = (J.MethodInvocation) statement;
-            if (m.getType() == null) {
+            if (m.getMethodType() == null) {
                 return false;
             }
 
-            return TypeUtils.isOfClassType(m.getType().getDeclaringType(), "org.junit.rules.ExpectedException");
+            return TypeUtils.isOfClassType(m.getMethodType().getDeclaringType(), "org.junit.rules.ExpectedException");
         }
     }
 }

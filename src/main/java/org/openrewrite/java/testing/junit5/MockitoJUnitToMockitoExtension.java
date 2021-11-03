@@ -133,10 +133,10 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (method.getType() != null) {
-                if (TypeUtils.isOfClassType(method.getType().getDeclaringType(), "org.mockito.junit.MockitoRule")) {
+            if (method.getMethodType() != null) {
+                if (TypeUtils.isOfClassType(method.getMethodType().getDeclaringType(), "org.mockito.junit.MockitoRule")) {
                     getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCKITO_RULE_INVOCATION_KEY, method);
-                } else if (TypeUtils.isOfClassType(method.getType().getDeclaringType(), "org.mockito.junit.MockitoTestRule")) {
+                } else if (TypeUtils.isOfClassType(method.getMethodType().getDeclaringType(), "org.mockito.junit.MockitoTestRule")) {
                     getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCKITO_TEST_RULE_INVOCATION_KEY, method);
                 }
             }
@@ -168,12 +168,12 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                 return false;
             }
             final J.MethodInvocation m = (J.MethodInvocation) statement;
-            if (m.getType() == null) {
+            if (m.getMethodType() == null) {
                 return false;
             }
 
-            return TypeUtils.isOfClassType(m.getType().getDeclaringType(), "org.mockito.junit.MockitoRule") ||
-                    TypeUtils.isOfClassType(m.getType().getDeclaringType(), "org.mockito.junit.MockitoTestRule");
+            return TypeUtils.isOfClassType(m.getMethodType().getDeclaringType(), "org.mockito.junit.MockitoRule") ||
+                    TypeUtils.isOfClassType(m.getMethodType().getDeclaringType(), "org.mockito.junit.MockitoTestRule");
         }
 
     }

@@ -108,7 +108,7 @@ public class TemporaryFolderToTempDir extends Recipe {
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
             J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, executionContext);
-            String declaringType = mi.getType() != null ? mi.getType().getDeclaringType().getFullyQualifiedName() : null;
+            String declaringType = mi.getMethodType() != null ? mi.getMethodType().getDeclaringType().getFullyQualifiedName() : null;
             if ("org.junit.rules.TemporaryFolder".equals(declaringType) && mi.getSelect() != null) {
                 switch (mi.getSimpleName()) {
                     case "newFile":

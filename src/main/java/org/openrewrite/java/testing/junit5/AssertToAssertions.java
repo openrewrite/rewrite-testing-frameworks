@@ -100,7 +100,7 @@ public class AssertToAssertions extends Recipe {
         }
 
         private static boolean isJunitAssertMethod(J.MethodInvocation method) {
-            if (method.getType() != null && TypeUtils.isAssignableTo(ASSERTION_TYPE, method.getType().getDeclaringType())) {
+            if (method.getMethodType() != null && TypeUtils.isAssignableTo(ASSERTION_TYPE, method.getMethodType().getDeclaringType())) {
                 return !"assertThat".equals(method.getSimpleName());
             }
             if (!(method.getSelect() instanceof J.Identifier)) {
