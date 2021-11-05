@@ -20,10 +20,10 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("JUnit3StyleTestMethodInJUnit4Class")
 class MigrateJunitTestCaseTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit")
-        .logCompilationWarningsAndErrors(true)
+        .classpath("junit", "hamcrest")
         .build()
 
     override val recipe: Recipe

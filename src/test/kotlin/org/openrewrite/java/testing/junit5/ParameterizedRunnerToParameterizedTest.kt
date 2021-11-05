@@ -23,8 +23,7 @@ import org.openrewrite.java.JavaRecipeTest
 
 class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit")
-        .logCompilationWarningsAndErrors(true)
+        .classpath("junit", "hamcrest")
         .build()
 
     override val recipe: Recipe

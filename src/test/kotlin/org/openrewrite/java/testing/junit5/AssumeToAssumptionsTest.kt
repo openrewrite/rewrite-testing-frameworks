@@ -23,7 +23,7 @@ import org.openrewrite.java.JavaRecipeTest
 
 class AssumeToAssumptionsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit")
+        .classpath("junit", "hamcrest")
         .build()
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/54")

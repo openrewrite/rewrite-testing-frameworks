@@ -24,8 +24,7 @@ import org.openrewrite.java.JavaRecipeTest
 
 class MockitoJUnitToMockitoExtensionTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .logCompilationWarningsAndErrors(false)
-        .classpath("junit", "mockito-core")
+        .classpath("junit", "hamcrest", "mockito-core")
         .dependsOn(
             listOf(
                 Parser.Input.fromString("package org.junit.jupiter.api.extension;\n" +
@@ -314,7 +313,7 @@ class MockitoJUnitToMockitoExtensionTest : JavaRecipeTest {
                 public void unsupported() {
                     VerificationCollector collector = MockitoJUnit.collector().assertLazily();
 
-                    List mockList = mock(List.class);
+                    List<Object> mockList = mock(List.class);
                     verify(mockList).add("one");
                     verify(mockList).clear();
 

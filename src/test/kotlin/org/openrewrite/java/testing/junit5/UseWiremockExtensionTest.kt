@@ -25,7 +25,6 @@ import org.openrewrite.java.JavaRecipeTest
 class UseWiremockExtensionTest : JavaRecipeTest {
     override val parser: JavaParser
         get() = JavaParser.fromJavaVersion()
-            .logCompilationWarningsAndErrors(true)
             .classpath("junit", "wiremock-jre8")
             .build()
 

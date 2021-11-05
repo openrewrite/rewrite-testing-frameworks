@@ -22,9 +22,10 @@ import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("SimplifiableAssertion", "ConstantConditions", "UnnecessaryLocalVariable")
 class AssertToAssertionsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit")
+        .classpath("junit", "hamcrest")
         .build()
 
     override val recipe: Recipe

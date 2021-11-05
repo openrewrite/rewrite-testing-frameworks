@@ -23,7 +23,6 @@ import org.openrewrite.java.JavaRecipeTest
 class JUnitAssertThrowsToAssertExceptionTypeTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit", "hamcrest")
-        .logCompilationWarningsAndErrors(true)
         .build()
 
     override val recipe: Recipe
