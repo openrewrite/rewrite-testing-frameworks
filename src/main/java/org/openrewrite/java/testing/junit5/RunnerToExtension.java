@@ -23,6 +23,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -33,6 +34,7 @@ import org.openrewrite.java.tree.JavaType;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.openrewrite.Parser.Input.fromString;
 
@@ -49,6 +51,7 @@ public class RunnerToExtension extends Recipe {
             description = "The fully qualified class names of the JUnit Jupiter extension.",
             example = "org.springframework.test.context.junit.jupiter.SpringExtension")
     String extension;
+
 
     @JsonCreator
     public RunnerToExtension(List<String> runners, String extension) {
@@ -83,17 +86,23 @@ public class RunnerToExtension extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             private final JavaType.Class extensionType = JavaType.Class.build(extension);
-            private final JavaTemplate extendsWithTemplate = JavaTemplate.builder(this::getCursor, "@ExtendWith(#{}.class)")
-                    .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
-                            fromString("package org.junit.jupiter.api.extension;\n" +
-                                    "public @interface ExtendWith {\n" +
-                                    "   Class<? extends Extension>[] value();\n" +
-                                    "}"),
-                            fromString("package " + extensionType.getPackageName() + ";\n" +
-                                    "public class " + extensionType.getClassName() + " {}"
-                            ))).build())
-                    .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
-                    .build();
+            @Nullable private JavaTemplate extendsWithTemplate;
+            private JavaTemplate getExtendsWithTemplate() {
+                if(extendsWithTemplate == null) {
+                    extendsWithTemplate = JavaTemplate.builder(this::getCursor, "@ExtendWith(#{}.class)")
+                            .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
+                                    fromString("package org.junit.jupiter.api.extension;\n" +
+                                            "public @interface ExtendWith {\n" +
+                                            "   Class<? extends Extension>[] value();\n" +
+                                            "}"),
+                                    fromString("package " + extensionType.getPackageName() + ";\n" +
+                                            "public class " + extensionType.getClassName() + " {}"
+                                    ))).build())
+                            .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
+                            .build();
+                }
+                return extendsWithTemplate;
+            }
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -102,7 +111,7 @@ public class RunnerToExtension extends Recipe {
                 for (String runner : runners) {
                     //noinspection ConstantConditions
                     for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                        cd = cd.withTemplate(extendsWithTemplate,
+                        cd = cd.withTemplate(getExtendsWithTemplate(),
                                 runWith.getCoordinates().replace(),
                                 extensionType.getClassName());
                         maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
@@ -121,7 +130,7 @@ public class RunnerToExtension extends Recipe {
 
                 for (String runner : runners) {
                     for (J.Annotation runWith : FindAnnotations.find(method.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                        md = md.withTemplate(extendsWithTemplate,
+                        md = md.withTemplate(getExtendsWithTemplate(),
                                 runWith.getCoordinates().replace(),
                                 extensionType.getClassName());
                         maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
