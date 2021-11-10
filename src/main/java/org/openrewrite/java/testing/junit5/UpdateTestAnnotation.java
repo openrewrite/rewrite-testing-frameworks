@@ -19,15 +19,13 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.*;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
 
 public class UpdateTestAnnotation extends Recipe {
 
@@ -53,123 +51,52 @@ public class UpdateTestAnnotation extends Recipe {
 
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
-        private static final String JUNIT4_TEST_ANNOTATION_ARGUMENTS = "junit4TestAnnotationArguments";
-
-        @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test"));
-            return super.visitCompilationUnit(cu, ctx);
-        }
-
-        @Override
-        public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
-            J.Annotation ann = super.visitAnnotation(annotation, ctx);
-            if (JUNIT4_TEST.matches(ann)) {
-                getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).putMessage(JUNIT4_TEST_ANNOTATION_ARGUMENTS,
-                        ann.getArguments());
-                ann = ann.withArguments(null);
-            }
-            return ann;
-        }
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-            if (m.getLeadingAnnotations().stream().anyMatch(JUNIT4_TEST::matches)) {
-                // FIXME removing public modifiers requires access to the method super type to prevent assigning weaker access privileges
-                //doAfterVisit(new ChangeMethodAccessLevelVisitor<>(new MethodMatcher(method), null));
-
-                List<Expression> arguments = getCursor().getMessage(JUNIT4_TEST_ANNOTATION_ARGUMENTS);
-                if (arguments != null) {
-                    doAfterVisit(new ChangeTestMethodBodyStep(m, arguments));
+            ChangeTestAnnotation cta = new ChangeTestAnnotation();
+            J.MethodDeclaration m = (J.MethodDeclaration) cta.visitNonNull(method, ctx, getCursor().getParentOrThrow());
+            if (m != method) {
+                if (Boolean.FALSE.equals(TypeUtils.isOverride(m.getMethodType()))) {
+                    m = (J.MethodDeclaration) new ChangeMethodAccessLevelVisitor<ExecutionContext>(new MethodMatcher(m), null)
+                            .visitNonNull(m, ctx, getCursor().getParentOrThrow());
                 }
-            }
+                if(cta.expectedException != null) {
+                    m = m.withTemplate(JavaTemplate.builder(this::getCursor, "Object o = () -> #{}").build(),
+                            m.getCoordinates().replaceBody(),
+                            m.getBody());
 
-            return m;
-        }
+                    assert m.getBody() != null;
+                    J.Lambda lambda = (J.Lambda) ((J.VariableDeclarations) m.getBody().getStatements().get(0))
+                            .getVariables().get(0).getInitializer();
 
-        private static class ChangeTestMethodBodyStep extends JavaIsoVisitor<ExecutionContext> {
-            private final J.MethodDeclaration scope;
-            private final List<Expression> arguments;
+                    assert lambda != null;
+                    lambda = lambda.withType(JavaType.Class.build("org.junit.jupiter.api.function.Executable"));
 
-            private final JavaTemplate assertThrows = JavaTemplate.builder(this::getCursor, "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
-                    .javaParser(() -> JavaParser.fromJavaVersion()
-                            .dependsOn(
-                                    "package org.junit.jupiter.api.function;" +
-                                            "public interface Executable {" +
-                                            "    void execute() throws Throwable;" +
-                                            "}",
-                                    "package org.junit.jupiter.api;" +
-                                            "import org.junit.jupiter.api.function.Executable;" +
-                                            "public class Assertions {" +
-                                            "   public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {" +
-                                            "      return null;" +
-                                            "   }" +
-                                            "}"
-                            )
-                            .build())
-                    .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
-                    .build();
-
-            public ChangeTestMethodBodyStep(J.MethodDeclaration scope, List<Expression> arguments) {
-                this.scope = scope;
-                this.arguments = arguments;
-            }
-
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-                if (m.isScope(scope) && m.getBody() != null) {
-                    for (Expression arg : arguments) {
-                        if (arg instanceof J.Assignment) {
-                            J.Assignment assign = (J.Assignment) arg;
-                            String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
-                            Expression e = assign.getAssignment();
-
-                            if ("expected".equals(assignParamName)) {
-                                assert e instanceof J.FieldAccess;
-
-                                m = m.withTemplate(JavaTemplate.builder(this::getCursor, "Object o = () -> #{}").build(),
-                                        m.getCoordinates().replaceBody(),
-                                        m.getBody());
-
-                                assert m.getBody() != null;
-                                J.Lambda lambda = (J.Lambda) ((J.VariableDeclarations) m.getBody().getStatements().get(0))
-                                        .getVariables().get(0).getInitializer();
-
-                                assert lambda != null;
-                                lambda = lambda.withType(JavaType.Class.build("org.junit.jupiter.api.function.Executable"));
-
-                                m = m.withTemplate(assertThrows,
-                                        m.getCoordinates().replaceBody(),
-                                        e, lambda);
-
-                                maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
-                            } else if ("timeout".equals(assignParamName)) {
-                                doAfterVisit(new AddTimeoutAnnotationStep(m, e));
-                            }
-                        }
-                    }
+                    m = m.withTemplate(JavaTemplate.builder(this::getCursor,
+                                            "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
+                                    .javaParser(() -> JavaParser.fromJavaVersion()
+                                            .dependsOn(
+                                                    "package org.junit.jupiter.api.function;" +
+                                                            "public interface Executable {" +
+                                                            "    void execute() throws Throwable;" +
+                                                            "}",
+                                                    "package org.junit.jupiter.api;" +
+                                                            "import org.junit.jupiter.api.function.Executable;" +
+                                                            "public class Assertions {" +
+                                                            "   public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {" +
+                                                            "      return null;" +
+                                                            "   }" +
+                                                            "}"
+                                            )
+                                            .build())
+                                    .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
+                                    .build(),
+                            m.getCoordinates().replaceBody(),
+                            cta.expectedException, lambda);
+                    maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                 }
-
-                return m;
-            }
-        }
-
-        private static class AddTimeoutAnnotationStep extends JavaIsoVisitor<ExecutionContext> {
-            private final J.MethodDeclaration scope;
-            private final Expression expression;
-
-            public AddTimeoutAnnotationStep(J.MethodDeclaration scope, Expression expression) {
-                this.scope = scope;
-                this.expression = expression;
-            }
-
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                J.MethodDeclaration m = method;
-
-                if (m.isScope(this.scope)) {
+                if(cta.timeout != null) {
                     m = m.withTemplate(
                             JavaTemplate.builder(this::getCursor, "@Timeout(#{any(long)})")
                                     .javaParser(() -> JavaParser.fromJavaVersion()
@@ -185,12 +112,51 @@ public class UpdateTestAnnotation extends Recipe {
                                     .imports("org.junit.jupiter.api.Timeout")
                                     .build(),
                             m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
-                            expression
-                    );
+                            cta.timeout);
                     maybeAddImport("org.junit.jupiter.api.Timeout");
                 }
+                maybeAddImport("org.junit.jupiter.api.Test");
+                maybeRemoveImport("org.junit.Test");
+            }
 
-                return m;
+            return super.visitMethodDeclaration(m, ctx);
+        }
+
+        private static class ChangeTestAnnotation extends JavaIsoVisitor<ExecutionContext> {
+            @Nullable
+            Expression expectedException;
+
+            @Nullable
+            Expression timeout;
+
+            boolean found = false;
+
+            @Override
+            public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext context) {
+                if (!found && JUNIT4_TEST.matches(a)) {
+                    // While unlikely, it's possible that a method has an inner class/lambda/etc. with methods that have test annotations
+                    // Avoid considering any but the first test annotation found
+                    found = true;
+                    if(a.getArguments() != null) {
+                        for (Expression arg : a.getArguments()) {
+                            if (!(arg instanceof J.Assignment)) {
+                                continue;
+                            }
+                            J.Assignment assign = (J.Assignment) arg;
+                            String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
+                            Expression e = assign.getAssignment();
+                            if ("expected".equals(assignParamName)) {
+                                expectedException = e;
+                            } else if ("timeout".equals(assignParamName)) {
+                                timeout = e;
+                            }
+
+                        }
+                    }
+                    a = a.withArguments(null)
+                            .withType(JavaType.Class.build("org.junit.jupiter.api.Test"));
+                }
+                return a;
             }
         }
     }

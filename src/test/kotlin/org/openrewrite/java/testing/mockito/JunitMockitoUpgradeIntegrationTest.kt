@@ -97,7 +97,7 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
                 }
             
                 @Test
-                public void usingAnnotationBasedMock() {
+                void usingAnnotationBasedMock() {
             
                     mockedList.add("one");
                     mockedList.clear();

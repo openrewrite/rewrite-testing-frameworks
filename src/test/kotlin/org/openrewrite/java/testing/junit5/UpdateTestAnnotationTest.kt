@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.Recipe
@@ -51,7 +50,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                public void test() {
+                void test() {
                     assertThrows(IllegalArgumentException.class, () -> {
                         throw new IllegalArgumentException("boom");
                     });
@@ -81,7 +80,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                public void test() {
+                void test() {
                     assertThrows(IndexOutOfBoundsException.class, () -> {
                         int arr = new int[]{}[0];
                     });
@@ -112,7 +111,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                public void test() {
+                void test() {
                     assertThrows(IllegalArgumentException.class, () -> {
                         String foo = "foo";
                         throw new IllegalArgumentException("boom");
@@ -130,7 +129,8 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                public void test() { }
+                public void test() {
+                }
             }
         """,
         after = """
@@ -139,39 +139,24 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                public void test() { }
+                void test() {
+                }
             }
         """
     )
 
     @Test
-    fun junitStarImport() = assertChanged(
+    fun preservesComments() = assertChanged(
+        dependsOn = arrayOf("""
+                package org.openrewrite;
+                public @interface Issue {
+                    String value();
+                }
+            """
+        ),
         before = """
-            import org.junit.*;
-            
-            public class A {
-            
-                @Test
-                public void test() { }
-            }
-        """,
-        after = """
-            import org.junit.jupiter.api.Test;
-            
-            public class A {
-            
-                @Test
-                public void test() { }
-            }
-        """
-    )
-
-    @Issue("https://github.com/openrewrite/rewrite/issues/150")
-    @Disabled
-    @Test
-    fun testMethodModifierHasComments() = assertChanged(
-        before = """
-            import org.junit.Test;import org.openrewrite.Issue;
+            import org.junit.Test;
+            import org.openrewrite.Issue;
             
             public class A {
             
@@ -190,7 +175,8 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             }
         """,
         after = """
-            import org.junit.jupiter.api.Test;import org.openrewrite.Issue;
+            import org.junit.jupiter.api.Test;
+            import org.openrewrite.Issue;
             
             public class A {
             
@@ -221,7 +207,8 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test(timeout = 500)
-                public void test() { }
+                public void test() {
+                }
             }
         """,
         after = """
@@ -232,7 +219,8 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             
                 @Test
                 @Timeout(500)
-                public void test() { }
+                void test() {
+                }
             }
         """
     )
@@ -267,7 +255,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             public class A {
             
                 @Test
-                public void test() {
+                void test() {
                     assertThrows(MyException.class, () -> {
                         throw new MyException("my exception");
                     });
@@ -299,7 +287,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             
                 @Test
                 @Timeout(500)
-                public void test() {
+                void test() {
                     assertThrows(IllegalArgumentException.class, () -> {
                         throw new IllegalArgumentException("boom");
                     });
@@ -309,11 +297,8 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
     )
 
     @Issue("https://github.com/openrewrite/rewrite/issues/150")
-    @Disabled
     @Test
     fun protectedToPackageVisibility() = assertChanged(
-        // An existing test method with protected visibility would not be executed by JUnit 4. This refactor will actual
-        // fix this use case when moving to JUnit 5.
         before = """
             import org.junit.Test;
 
@@ -336,11 +321,8 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
         """
     )
 
-    @Disabled("test visibility changes require super class info")
     @Test
     fun privateToPackageVisibility() = assertChanged(
-        // An existing test method with private visibility would not be executed by JUnit 4. This refactor will actual
-        // fix this use case when moving to JUnit 5.
         before = """
             import org.junit.Test;
             
@@ -358,6 +340,41 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
             
                 @Test
                 void test() {
+                }
+            }
+        """
+    )
+
+    @Test
+    fun `Preserves visibility on test method that is an override`() = assertChanged(
+        dependsOn = arrayOf("""
+            package com.test;
+            
+            public interface Foo {
+                void foo();
+            }
+        """),
+        before = """
+            package com.test;
+            
+            import org.junit.Test;
+            
+            public class FooTest implements Foo {
+                
+                @Test 
+                public void foo() {
+                }
+            }
+        """,
+        after = """
+            package com.test;
+            
+            import org.junit.jupiter.api.Test;
+            
+            public class FooTest implements Foo {
+                
+                @Test 
+                public void foo() {
                 }
             }
         """

@@ -34,7 +34,7 @@ class JUnit5MigrationTest : JavaRecipeTest {
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/145")
-    fun assertThatReciever() = assertChanged(
+    fun assertThatReceiver() = assertChanged(
         before =
         """
             import org.junit.Assert;
@@ -47,8 +47,8 @@ class JUnit5MigrationTest : JavaRecipeTest {
                 @SuppressWarnings("deprecation")
                 @Test
                 public void filterShouldRemoveUnusedConfig() {
-                    Assert.assertThat(asList("1","2","3"),
-                        containsInAnyOrder("3","2","1"));
+                    Assert.assertThat(asList("1", "2", "3"),
+                            containsInAnyOrder("3", "2", "1"));
                 }
             }
         """.trimIndent(),
@@ -62,9 +62,9 @@ class JUnit5MigrationTest : JavaRecipeTest {
             public class Sample {
                 @SuppressWarnings("deprecation")
                 @Test
-                public void filterShouldRemoveUnusedConfig() {
-                    assertThat(asList("1","2","3"),
-                        containsInAnyOrder("3","2","1"));
+                void filterShouldRemoveUnusedConfig() {
+                    assertThat(asList("1", "2", "3"),
+                            containsInAnyOrder("3", "2", "1"));
                 }
             }
         """.trimIndent()
