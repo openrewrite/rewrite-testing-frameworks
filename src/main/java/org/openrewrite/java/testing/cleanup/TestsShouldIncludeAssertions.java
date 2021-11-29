@@ -23,7 +23,6 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Arrays;
@@ -124,7 +123,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
         private boolean methodHasAssertion(J.Block body) {
             AtomicBoolean hasAssertion = new AtomicBoolean(Boolean.FALSE);
-            JavaIsoVisitor findAssertionVisitor = new JavaIsoVisitor<AtomicBoolean>() {
+            JavaIsoVisitor<AtomicBoolean> findAssertionVisitor = new JavaIsoVisitor<AtomicBoolean>() {
                 @Override
                 public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
                     J.MethodInvocation mi = super.visitMethodInvocation(method, atomicBoolean);
@@ -158,5 +157,5 @@ public class TestsShouldIncludeAssertions extends Recipe {
             }
             return false;
         }
-    };
+    }
 }

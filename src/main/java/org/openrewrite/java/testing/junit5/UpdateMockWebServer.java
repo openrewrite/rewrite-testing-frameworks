@@ -120,11 +120,12 @@ public class UpdateMockWebServer extends Recipe {
 
                                     if (method.getThrows() == null || method.getThrows().stream()
                                             .noneMatch(n -> TypeUtils.isOfClassType(n.getType(), IO_EXCEPTION_FQN))) {
-                                        J.Identifier ioExceptionIdent = J.Identifier.build(UUID.randomUUID(),
+                                        J.Identifier ioExceptionIdent = new J.Identifier(UUID.randomUUID(),
                                                 Space.format(" "),
                                                 Markers.EMPTY,
                                                 "IOException",
-                                                JavaType.Class.build(IO_EXCEPTION_FQN));
+                                                JavaType.Class.build(IO_EXCEPTION_FQN),
+                                                null);
                                         method = method.withThrows(ListUtils.concat(method.getThrows(), ioExceptionIdent));
                                         maybeAddImport(IO_EXCEPTION_FQN);
                                     }

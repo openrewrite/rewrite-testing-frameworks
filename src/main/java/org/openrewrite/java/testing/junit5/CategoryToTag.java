@@ -111,7 +111,7 @@ public class CategoryToTag extends Recipe {
                             randomId(),
                             Space.EMPTY,
                             Markers.EMPTY,
-                            J.Identifier.build(randomId(), Space.EMPTY, Markers.EMPTY, tagType.getClassName(), tagType),
+                            new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, tagType.getClassName(), tagType, null),
                             JContainer.build(Space.EMPTY,
                                     Collections.singletonList(
                                             new JRightPadded<>(

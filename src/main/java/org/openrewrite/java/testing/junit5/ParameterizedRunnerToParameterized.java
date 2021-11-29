@@ -341,7 +341,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
             // Change constructor to test init method
             if (initMethodDeclarationTemplate == null && m.isConstructor()) {
-                m = m.withName(m.getName().withName(initMethodName));
+                m = m.withName(m.getName().withSimpleName(initMethodName));
                 m = maybeAutoFormat(m, m.withReturnTypeExpression(new J.Primitive(randomId(), Space.EMPTY, Markers.EMPTY, JavaType.Primitive.Void)),
                         executionContext, getCursor().dropParentUntil(J.class::isInstance));
 
