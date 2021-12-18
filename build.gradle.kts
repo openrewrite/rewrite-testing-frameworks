@@ -180,7 +180,6 @@ tasks.named<JavaCompile>("compileJava") {
     targetCompatibility = JavaVersion.VERSION_1_8.toString()
 
     options.isFork = true
-    options.forkOptions.executable = "javac"
     options.compilerArgs.addAll(listOf("--release", "8"))
 }
 
