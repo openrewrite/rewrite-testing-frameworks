@@ -34,8 +34,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final AnnotationMatcher RUN_WITH_PARAMETERS = new AnnotationMatcher("@org.junit.runner.RunWith(org.junit.runners.Parameterized.class)");
     private static final AnnotationMatcher JUNIT_TEST = new AnnotationMatcher("@org.junit.Test");
     private static final AnnotationMatcher JUPITER_TEST = new AnnotationMatcher("@org.junit.jupiter.api.Test");
-    private static final AnnotationMatcher PARAMETERS = new AnnotationMatcher("@org.junit.runners.Parameterized.Parameters");
-    private static final AnnotationMatcher PARAMETER = new AnnotationMatcher("@org.junit.runners.Parameterized.Parameter");
+    private static final AnnotationMatcher PARAMETERS = new AnnotationMatcher("@org.junit.runners.Parameterized$Parameters");
+    private static final AnnotationMatcher PARAMETER = new AnnotationMatcher("@org.junit.runners.Parameterized$Parameter");
     private static final AnnotationMatcher PARAMETERIZED_TEST = new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest");
 
     private static final String PARAMETERS_ANNOTATION_ARGUMENTS = "parameters-annotation-args";
