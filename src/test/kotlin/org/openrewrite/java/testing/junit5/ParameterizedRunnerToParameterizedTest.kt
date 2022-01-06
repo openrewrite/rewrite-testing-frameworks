@@ -50,6 +50,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
         """),
         before = """
             package abc;
+            
             import org.junit.Test;
             import org.junit.runner.RunWith;
             import org.junit.runners.*;
@@ -89,6 +90,7 @@ class ParameterizedRunnerToParameterizedTest : JavaRecipeTest {
         """,
         after = """
             package abc;
+            
             import org.junit.jupiter.params.ParameterizedTest;
             import org.junit.jupiter.params.provider.MethodSource;
             
