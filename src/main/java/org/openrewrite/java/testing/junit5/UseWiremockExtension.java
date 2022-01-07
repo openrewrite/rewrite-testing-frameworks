@@ -20,10 +20,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
 
 import java.util.function.Supplier;
 
@@ -38,11 +35,6 @@ public class UseWiremockExtension extends Recipe {
         return "As of 2.31.0, wiremock [supports JUnit 5](http://wiremock.org/docs/junit-jupiter/) via an extension.";
     }
 
-    public UseWiremockExtension() {
-        doNext(new ChangeType("com.github.tomakehurst.wiremock.junit.WireMockRule",
-                "com.github.tomakehurst.wiremock.junit5.WireMockExtension"));
-    }
-
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new UsesType<>("com.github.tomakehurst.wiremock.junit.WireMockRule");
@@ -53,6 +45,14 @@ public class UseWiremockExtension extends Recipe {
         MethodMatcher newWiremockRule = new MethodMatcher("com.github.tomakehurst.wiremock.junit.WireMockRule <constructor>(..)");
 
         return new JavaVisitor<ExecutionContext>() {
+
+            @Override
+            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext context) {
+                doNext(new ChangeType("com.github.tomakehurst.wiremock.junit.WireMockRule",
+                        "com.github.tomakehurst.wiremock.junit5.WireMockExtension"));
+                return super.visitJavaSourceFile(cu, context);
+            }
+
             @Override
             public J visitNewClass(J.NewClass newClass, ExecutionContext executionContext) {
                 J.NewClass n = (J.NewClass) super.visitNewClass(newClass, executionContext);
