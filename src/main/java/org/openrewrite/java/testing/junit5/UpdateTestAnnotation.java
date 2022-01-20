@@ -129,7 +129,7 @@ public class UpdateTestAnnotation extends Recipe {
             @Nullable
             Expression timeout;
 
-            boolean found = false;
+            boolean found;
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext context) {
