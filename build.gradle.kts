@@ -50,7 +50,7 @@ group = "org.openrewrite.recipe"
 description =
     "A rewrite module automating best practices and major version migrations for popular Java test frameworks like JUnit and Mockito"
 
-val mockitoVersions: List<String> = listOf("3")
+val mockitoVersions: List<String> = listOf("4")
 
 sourceSets {
     mockitoVersions.forEach { version ->
@@ -147,9 +147,9 @@ dependencies {
     testRuntimeOnly("pl.pragmatists:JUnitParams:1.+")
     testRuntimeOnly("com.squareup.okhttp3:mockwebserver:3.+")
 
-    "testWithMockito_3RuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:latest.release")
-    "testWithMockito_3RuntimeOnly"("junit:junit:latest.release")
-    "testWithMockito_3RuntimeOnly"("org.mockito:mockito-core:3.+")
+    "testWithMockito_4RuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    "testWithMockito_4RuntimeOnly"("junit:junit:latest.release")
+    "testWithMockito_4RuntimeOnly"("org.mockito:mockito-core:4.+")
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {
