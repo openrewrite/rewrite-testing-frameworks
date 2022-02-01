@@ -148,12 +148,12 @@ public class MigrateJUnitTestCase extends Recipe {
             if (FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
                 md = methodDeclaration.withTemplate(JavaTemplate.builder(this::getCursor, annotation)
                                 .javaParser(() -> JavaParser.fromJavaVersion()
-                                                .dependsOn(Collections.singletonList(Parser.Input.fromString(
-                                                        "package org.junit.jupiter.api;\n" +
-                                                                "public @interface Test {}\n" +
-                                                                "public @interface AfterEach {}\n" +
-                                                                "public @interface BeforeEach {}")))
-                                                .build())
+                                        .dependsOn(Collections.singletonList(Parser.Input.fromString(
+                                                "package org.junit.jupiter.api;\n" +
+                                                        "public @interface Test {}\n" +
+                                                        "public @interface AfterEach {}\n" +
+                                                        "public @interface BeforeEach {}")))
+                                        .build())
                                 .imports(fullyQualifiedAnnotation).build(),
                         methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 md = maybeAddPublicModifier(md);
