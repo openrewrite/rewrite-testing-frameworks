@@ -66,16 +66,16 @@ public class UseWiremockExtension extends Recipe {
 
                     Supplier<JavaParser> wiremockParser = () -> JavaParser.fromJavaVersion()
                             .dependsOn("" +
-                                            "package com.github.tomakehurst.wiremock.junit5;" +
-                                            "import com.github.tomakehurst.wiremock.core.Options;" +
-                                            "public class WireMockExtension {" +
-                                            "  public native static Builder newInstance();" +
-                                            "  public static class Builder {" +
-                                            "    public native Builder options(Options options);" +
-                                            "    public native Builder failOnUnmatchedRequests(boolean failOnUnmatched);" +
-                                            "    public native WireMockExtension build();" +
-                                            "  }" +
-                                            "}",
+                                    "package com.github.tomakehurst.wiremock.junit5;" +
+                                    "import com.github.tomakehurst.wiremock.core.Options;" +
+                                    "public class WireMockExtension {" +
+                                    "  public native static Builder newInstance();" +
+                                    "  public static class Builder {" +
+                                    "    public native Builder options(Options options);" +
+                                    "    public native Builder failOnUnmatchedRequests(boolean failOnUnmatched);" +
+                                    "    public native WireMockExtension build();" +
+                                    "  }" +
+                                    "}",
                                     "" +
                                             "package com.github.tomakehurst.wiremock.core;" +
                                             "public class WireMockConfiguration implements Options {" +

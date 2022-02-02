@@ -61,7 +61,7 @@ public class UpdateTestAnnotation extends Recipe {
                     m = (J.MethodDeclaration) new ChangeMethodAccessLevelVisitor<ExecutionContext>(new MethodMatcher(m), null)
                             .visitNonNull(m, ctx, getCursor().getParentOrThrow());
                 }
-                if(cta.expectedException != null) {
+                if (cta.expectedException != null) {
                     m = m.withTemplate(JavaTemplate.builder(this::getCursor, "Object o = () -> #{}").build(),
                             m.getCoordinates().replaceBody(),
                             m.getBody());
@@ -74,7 +74,7 @@ public class UpdateTestAnnotation extends Recipe {
                     lambda = lambda.withType(JavaType.Class.build("org.junit.jupiter.api.function.Executable"));
 
                     m = m.withTemplate(JavaTemplate.builder(this::getCursor,
-                                            "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
+                                    "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
                                     .javaParser(() -> JavaParser.fromJavaVersion()
                                             .dependsOn(
                                                     "package org.junit.jupiter.api.function;" +
@@ -96,7 +96,7 @@ public class UpdateTestAnnotation extends Recipe {
                             cta.expectedException, lambda);
                     maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                 }
-                if(cta.timeout != null) {
+                if (cta.timeout != null) {
                     m = m.withTemplate(
                             JavaTemplate.builder(this::getCursor, "@Timeout(#{any(long)})")
                                     .javaParser(() -> JavaParser.fromJavaVersion()
@@ -137,7 +137,7 @@ public class UpdateTestAnnotation extends Recipe {
                     // While unlikely, it's possible that a method has an inner class/lambda/etc. with methods that have test annotations
                     // Avoid considering any but the first test annotation found
                     found = true;
-                    if(a.getArguments() != null) {
+                    if (a.getArguments() != null) {
                         for (Expression arg : a.getArguments()) {
                             if (!(arg instanceof J.Assignment)) {
                                 continue;

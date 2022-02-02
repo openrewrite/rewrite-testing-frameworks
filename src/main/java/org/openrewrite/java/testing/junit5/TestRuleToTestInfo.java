@@ -186,7 +186,7 @@ public class TestRuleToTestInfo extends Recipe {
 
                 // Make sure the testName is initialized first in case any other piece of the method body references it
                 assert md.getBody() != null;
-                if(md.getBody().getStatements().size() > 2) {
+                if (md.getBody().getStatements().size() > 2) {
                     List<Statement> statements = md.getBody().getStatements();
                     List<Statement> reorderedStatements = new ArrayList<>(statements.size());
                     reorderedStatements.addAll(statements.subList(statements.size() - 2, statements.size()));

@@ -86,9 +86,10 @@ public class RunnerToExtension extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             private final JavaType.Class extensionType = JavaType.Class.build(extension);
-            @Nullable private JavaTemplate extendsWithTemplate;
+            @Nullable
+            private JavaTemplate extendsWithTemplate;
             private JavaTemplate getExtendsWithTemplate() {
-                if(extendsWithTemplate == null) {
+                if (extendsWithTemplate == null) {
                     extendsWithTemplate = JavaTemplate.builder(this::getCursor, "@ExtendWith(#{}.class)")
                             .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
                                     fromString("package org.junit.jupiter.api.extension;\n" +

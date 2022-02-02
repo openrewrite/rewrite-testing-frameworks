@@ -257,7 +257,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                         cd.getBody().getCoordinates().lastStatement()));
                 cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), stmt -> {
                     if (stmt instanceof J.MethodDeclaration) {
-                        J.MethodDeclaration md = (J.MethodDeclaration)stmt;
+                        J.MethodDeclaration md = (J.MethodDeclaration) stmt;
                         if (md.getName().getSimpleName().equals(initMethodName)) {
                             return md.withParameters(parameterizedTestMethodParameters);
                         }

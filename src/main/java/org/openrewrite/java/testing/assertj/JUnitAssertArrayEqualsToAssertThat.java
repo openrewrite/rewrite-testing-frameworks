@@ -59,6 +59,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
         private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertArrayEquals(..)");
         private static final Supplier<JavaParser> ASSERTIONS_PARSER = () -> JavaParser.fromJavaVersion()
                 .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")).build();
+
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (!JUNIT_ASSERT_EQUALS.matches(method)) {

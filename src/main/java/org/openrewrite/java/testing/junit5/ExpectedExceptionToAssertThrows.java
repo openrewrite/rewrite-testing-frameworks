@@ -68,27 +68,27 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
     public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final Supplier<JavaParser> ASSERTIONS_PARSER = () ->
                 JavaParser.fromJavaVersion().dependsOn(
-                Stream.concat(
-                Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---").stream(),
-                            Stream.of(
-                                    Parser.Input.fromString(
-                                    "package org.junit.jupiter.api.function;" +
-                                    "public interface Executable {" +
-                                    "void execute() throws Throwable;" +
-                                    "}"),
-                                    Parser.Input.fromString(
-                                    "package org.hamcrest;\n" +
-                                    "public interface Matcher<T> {\n" +
-                                    "    boolean matches(Object var1);\n" +
-                                    "}"),
-                                    Parser.Input.fromString(
-                                    "package org.hamcrest;\n" +
-                                    "public class MatcherAssert {\n" +
-                                    "    public static <T> void assertThat(T actual, Matcher<? super T> matcher) {}\n" +
-                                    "    public static <T> void assertThat(String reason, T actual, Matcher<? super T> matcher) {}\n" +
-                                    "    public static void assertThat(String reason, boolean assertion) {}\n" +
-                                    "}"))
-                                    ).collect(Collectors.toList())
+                        Stream.concat(
+                                Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---").stream(),
+                                Stream.of(
+                                        Parser.Input.fromString(
+                                                "package org.junit.jupiter.api.function;" +
+                                                        "public interface Executable {" +
+                                                        "void execute() throws Throwable;" +
+                                                        "}"),
+                                        Parser.Input.fromString(
+                                                "package org.hamcrest;\n" +
+                                                        "public interface Matcher<T> {\n" +
+                                                        "    boolean matches(Object var1);\n" +
+                                                        "}"),
+                                        Parser.Input.fromString(
+                                                "package org.hamcrest;\n" +
+                                                        "public class MatcherAssert {\n" +
+                                                        "    public static <T> void assertThat(T actual, Matcher<? super T> matcher) {}\n" +
+                                                        "    public static <T> void assertThat(String reason, T actual, Matcher<? super T> matcher) {}\n" +
+                                                        "    public static void assertThat(String reason, boolean assertion) {}\n" +
+                                                        "}"))
+                        ).collect(Collectors.toList())
                 ).build();
 
         @Override
