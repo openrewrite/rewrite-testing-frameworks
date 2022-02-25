@@ -49,7 +49,7 @@ public class UseWiremockExtension extends Recipe {
             @Override
             public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext context) {
                 doNext(new ChangeType("com.github.tomakehurst.wiremock.junit.WireMockRule",
-                        "com.github.tomakehurst.wiremock.junit5.WireMockExtension"));
+                        "com.github.tomakehurst.wiremock.junit5.WireMockExtension", true));
                 return super.visitJavaSourceFile(cu, context);
             }
 
@@ -59,7 +59,7 @@ public class UseWiremockExtension extends Recipe {
                 if (newWiremockRule.matches(n)) {
                     maybeAddImport("com.github.tomakehurst.wiremock.junit5.WireMockExtension");
 
-                    doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension"));
+                    doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true));
 
                     assert n.getArguments() != null;
                     Expression arg = n.getArguments().get(0);

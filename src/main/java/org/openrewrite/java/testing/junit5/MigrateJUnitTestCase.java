@@ -85,7 +85,7 @@ public class MigrateJUnitTestCase extends Recipe {
                 J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
                 doAfterVisit(new TestCaseVisitor());
                 // ChangeType for org.junit.Assert method invocations because TestCase extends org.junit.Assert
-                doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert"));
+                doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert", true));
                 doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
                 doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions assert*(..)"));
                 doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions fail*(..)"));
