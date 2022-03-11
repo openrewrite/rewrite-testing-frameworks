@@ -23,6 +23,8 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
+import java.time.Duration;
+
 /**
  * Orders imports and removes unused imports from classes which import symbols from the "org.mockito" package.
  */
@@ -36,6 +38,11 @@ public class CleanupMockitoImports extends Recipe {
     public String getDescription() {
         return "Removes unused imports `org.mockito` import symbols.";
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {

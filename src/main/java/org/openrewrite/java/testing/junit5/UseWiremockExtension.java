@@ -22,6 +22,7 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
+import java.time.Duration;
 import java.util.function.Supplier;
 
 public class UseWiremockExtension extends Recipe {
@@ -34,6 +35,11 @@ public class UseWiremockExtension extends Recipe {
     public String getDescription() {
         return "As of 2.31.0, wiremock [supports JUnit 5](http://wiremock.org/docs/junit-jupiter/) via an extension.";
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {

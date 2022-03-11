@@ -26,6 +26,7 @@ import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.marker.Markers;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -64,6 +65,11 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     public String getDescription() {
         return "Convert Pragmatists Parameterized test to the JUnit Jupiter ParameterizedTest equivalent.";
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 
     private static String junitParamsDefaultInitMethodName(String methodName) {
         return PARAMETERS_FOR_PREFIX + methodName.substring(0, 1).toUpperCase() + methodName.substring(1);

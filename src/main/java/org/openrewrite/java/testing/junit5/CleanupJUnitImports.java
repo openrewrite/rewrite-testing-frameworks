@@ -24,6 +24,8 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
+import java.time.Duration;
+
 public class CleanupJUnitImports extends Recipe {
     @Override
     public String getDisplayName() {
@@ -34,6 +36,11 @@ public class CleanupJUnitImports extends Recipe {
     public String getDescription() {
         return "Removes unused `org.junit` import symbols.";
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {

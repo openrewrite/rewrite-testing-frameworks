@@ -23,6 +23,7 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -231,4 +232,9 @@ public class TemporaryFolderToTempDir extends Recipe {
             }
         }
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 }

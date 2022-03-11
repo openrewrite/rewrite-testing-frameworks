@@ -26,6 +26,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
+import java.time.Duration;
 import java.util.function.Supplier;
 
 public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
@@ -34,6 +35,11 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
     public String getDisplayName() {
         return "JUnit AssertThrows to AssertJ exceptionType";
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 
     @Override
     public String getDescription() {

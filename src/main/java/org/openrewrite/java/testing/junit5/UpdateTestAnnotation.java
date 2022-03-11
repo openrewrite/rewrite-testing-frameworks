@@ -24,6 +24,7 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Comparator;
 
@@ -160,4 +161,9 @@ public class UpdateTestAnnotation extends Recipe {
             }
         }
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 }

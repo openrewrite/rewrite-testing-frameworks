@@ -32,6 +32,7 @@ import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.maven.UpgradeDependencyVersion;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -73,6 +74,11 @@ public class UpdateMockWebServer extends Recipe {
     public String getDescription() {
         return "Replace usages of okhttp3 3.x @Rule MockWebServer with 4.x MockWebServer.";
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {

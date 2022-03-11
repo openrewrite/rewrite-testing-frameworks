@@ -23,6 +23,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -41,6 +42,11 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final String PARAMETERS_ANNOTATION_ARGUMENTS = "parameters-annotation-args";
     private static final String CONSTRUCTOR_ARGUMENTS = "constructor-args";
     private static final String FIELD_INJECTION_ARGUMENTS = "field-injection-args";
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
     private static final String PARAMETERS_METHOD_NAME = "parameters-method-name";
 
     @Override

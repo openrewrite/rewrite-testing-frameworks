@@ -26,6 +26,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -49,6 +50,11 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
     public String getDisplayName() {
         return "JUnit 4 `ExpectedException` To JUnit Jupiter's `assertThrows()`";
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 
     @Override
     public String getDescription() {

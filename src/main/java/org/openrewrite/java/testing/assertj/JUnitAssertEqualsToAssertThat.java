@@ -29,6 +29,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -38,6 +39,11 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
     public String getDisplayName() {
         return "JUnit `assertEquals` to AssertJ";
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 
     @Override
     public String getDescription() {

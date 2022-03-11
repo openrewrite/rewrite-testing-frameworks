@@ -24,6 +24,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -38,6 +39,11 @@ public class JUnitFailToAssertJFail extends Recipe {
     public String getDescription() {
         return "Convert JUnit-style `fail()` to AssertJ's `fail()`.";
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {

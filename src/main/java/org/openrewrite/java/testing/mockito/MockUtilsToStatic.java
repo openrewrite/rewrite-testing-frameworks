@@ -26,6 +26,8 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
+import java.time.Duration;
+
 /**
  * In Mockito 1 you use a code snippet like:
  * <p>
@@ -91,4 +93,9 @@ public class MockUtilsToStatic extends Recipe {
             return super.visitNewClass(newClass, ctx);
         }
     }
+
+  @Override
+  public Duration getEstimatedEffortPerOccurrence() {
+    return Duration.ofMinutes(5);
+  }
 }
