@@ -15,8 +15,8 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.intellij.lang.annotations.Language;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
@@ -25,7 +25,6 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Comparator;
 
 public class UpdateTestAnnotation extends Recipe {
@@ -52,7 +51,6 @@ public class UpdateTestAnnotation extends Recipe {
 
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
-
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             ChangeTestAnnotation cta = new ChangeTestAnnotation();
@@ -72,43 +70,52 @@ public class UpdateTestAnnotation extends Recipe {
                             .getVariables().get(0).getInitializer();
 
                     assert lambda != null;
-                    lambda = lambda.withType(JavaType.Class.build("org.junit.jupiter.api.function.Executable"));
+                    lambda = lambda.withType(JavaType.ShallowClass.build("org.junit.jupiter.api.function.Executable"));
 
-                    m = m.withTemplate(JavaTemplate.builder(this::getCursor,
-                                    "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
-                                    .javaParser(() -> JavaParser.fromJavaVersion()
-                                            .dependsOn(
-                                                    "package org.junit.jupiter.api.function;" +
-                                                            "public interface Executable {" +
-                                                            "    void execute() throws Throwable;" +
-                                                            "}",
-                                                    "package org.junit.jupiter.api;" +
-                                                            "import org.junit.jupiter.api.function.Executable;" +
-                                                            "public class Assertions {" +
-                                                            "   public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {" +
-                                                            "      return null;" +
-                                                            "   }" +
-                                                            "}"
-                                            )
-                                            .build())
-                                    .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
-                                    .build(),
-                            m.getCoordinates().replaceBody(),
-                            cta.expectedException, lambda);
-                    maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
+                    @Language("java") String[] assertionShims = {
+                            "package org.junit.jupiter.api.function;" +
+                                    "public interface Executable {" +
+                                    "    void execute() throws Throwable;" +
+                                    "}",
+                            "package org.junit.jupiter.api;" +
+                                    "import org.junit.jupiter.api.function.Executable;" +
+                                    "public class Assertions {" +
+                                    "   public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {" +
+                                    "      return null;" +
+                                    "   }" +
+                                    "   public static void assertDoesNotThrow(Executable executable) {}" +
+                                    "}"
+                    };
+
+                    if (cta.expectedException instanceof J.FieldAccess
+                            && TypeUtils.isAssignableTo ("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
+                        m = m.withTemplate(JavaTemplate.builder(this::getCursor, "assertDoesNotThrow(#{any(org.junit.jupiter.api.function.Executable)});")
+                                        .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(assertionShims).build())
+                                        .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
+                                        .build(),
+                                m.getCoordinates().replaceBody(), lambda);
+                        maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
+                    } else {
+                        m = m.withTemplate(JavaTemplate.builder(this::getCursor,  "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
+                                        .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(assertionShims).build())
+                                        .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
+                                        .build(),
+                                m.getCoordinates().replaceBody(), cta.expectedException, lambda);
+                        maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
+                    }
                 }
                 if (cta.timeout != null) {
                     m = m.withTemplate(
                             JavaTemplate.builder(this::getCursor, "@Timeout(#{any(long)})")
                                     .javaParser(() -> JavaParser.fromJavaVersion()
-                                            .dependsOn(Collections.singletonList(Parser.Input.fromString(
-                                                    "package org.junit.jupiter.api;\n" +
-                                                            "import java.util.concurrent.TimeUnit;\n" +
-                                                            "public @interface Timeout {\n" +
-                                                            "    long value();\n" +
-                                                            "    TimeUnit unit() default TimeUnit.SECONDS;\n" +
-                                                            "}\n"
-                                            )))
+                                            .dependsOn(new String[]{
+                                                    "package org.junit.jupiter.api;" +
+                                                    "import java.util.concurrent.TimeUnit;" +
+                                                    "public @interface Timeout {" +
+                                                    "    long value();" +
+                                                    "    TimeUnit unit() default TimeUnit.SECONDS;" +
+                                                    "}"
+                                            })
                                             .build())
                                     .imports("org.junit.jupiter.api.Timeout")
                                     .build(),
@@ -155,7 +162,7 @@ public class UpdateTestAnnotation extends Recipe {
                         }
                     }
                     a = a.withArguments(null)
-                            .withType(JavaType.Class.build("org.junit.jupiter.api.Test"));
+                            .withType(JavaType.ShallowClass.build("org.junit.jupiter.api.Test"));
                 }
                 return a;
             }

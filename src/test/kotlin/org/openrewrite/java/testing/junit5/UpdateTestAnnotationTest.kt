@@ -21,6 +21,7 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("NewClassNamingConvention")
 class UpdateTestAnnotationTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
@@ -28,6 +29,37 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
 
     override val recipe: Recipe
         get() = UpdateTestAnnotation()
+
+    @Suppress("DefaultAnnotationParam")
+    @Test
+    fun expectedNoneToAssertDoesNotThrow() = assertChanged(
+        before = """
+            import org.junit.Test;
+            
+            public class A {
+            
+                @Test(expected = Test.None.class)
+                public void test_printLine() {
+                    int arr = new int[]{0}[0];
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Test;
+            
+            import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+            
+            public class A {
+            
+                @Test
+                void test_printLine() {
+                    assertDoesNotThrow(() -> {
+                        int arr = new int[]{0}[0];
+                    });
+                }
+            }
+        """
+    )
 
     @Test
     fun assertThrowsSingleLine() = assertChanged(
@@ -59,6 +91,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
         """
     )
 
+    @Suppress("ConstantConditions")
     @Test
     fun assertThrowsSingleStatement() = assertChanged(
         before = """
@@ -296,6 +329,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
         """
     )
 
+    @Suppress("TestMethodWithIncorrectSignature")
     @Issue("https://github.com/openrewrite/rewrite/issues/150")
     @Test
     fun protectedToPackageVisibility() = assertChanged(
@@ -321,6 +355,7 @@ class UpdateTestAnnotationTest : JavaRecipeTest {
         """
     )
 
+    @Suppress("TestMethodWithIncorrectSignature")
     @Test
     fun privateToPackageVisibility() = assertChanged(
         before = """
