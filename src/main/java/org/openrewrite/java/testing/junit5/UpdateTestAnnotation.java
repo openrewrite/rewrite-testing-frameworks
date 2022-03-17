@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.intellij.lang.annotations.Language;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -72,7 +71,7 @@ public class UpdateTestAnnotation extends Recipe {
                     assert lambda != null;
                     lambda = lambda.withType(JavaType.ShallowClass.build("org.junit.jupiter.api.function.Executable"));
 
-                    @Language("java") String[] assertionShims = {
+                    String[] assertionShims = {
                             "package org.junit.jupiter.api.function;" +
                                     "public interface Executable {" +
                                     "    void execute() throws Throwable;" +
