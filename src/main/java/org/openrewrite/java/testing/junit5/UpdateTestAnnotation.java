@@ -73,15 +73,11 @@ public class UpdateTestAnnotation extends Recipe {
 
                     String[] assertionShims = {
                             "package org.junit.jupiter.api.function;" +
-                                    "public interface Executable {" +
-                                    "    void execute() throws Throwable;" +
-                                    "}",
+                                    "public interface Executable {void execute() throws Throwable;}",
                             "package org.junit.jupiter.api;" +
                                     "import org.junit.jupiter.api.function.Executable;" +
                                     "public class Assertions {" +
-                                    "   public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {" +
-                                    "      return null;" +
-                                    "   }" +
+                                    "   public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {return null;}" +
                                     "   public static void assertDoesNotThrow(Executable executable) {}" +
                                     "}"
                     };
