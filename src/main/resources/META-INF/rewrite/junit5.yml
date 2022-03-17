@@ -82,11 +82,14 @@ recipeList:
       groupId: junit
       artifactId: junit
   - org.openrewrite.maven.ExcludeDependency:
+      groupId: junit
+      artifactId: junit
+  - org.openrewrite.maven.RemoveDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
   - org.openrewrite.maven.ExcludeDependency:
-      groupId: junit
-      artifactId: junit
+      groupId: org.junit.vintage
+      artifactId: junit-vintage-engine
   - org.openrewrite.maven.AddDependency:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter-api
