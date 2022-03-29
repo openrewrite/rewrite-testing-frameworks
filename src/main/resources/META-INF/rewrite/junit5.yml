@@ -61,6 +61,10 @@ recipeList:
       obsoleteRunners:
         - org.junit.runners.JUnit4
         - org.junit.runners.BlockJUnit4ClassRunner
+  - org.openrewrite.java.testing.junit5.RunnerToExtension:
+      runners:
+        - org.vertx.testtools.VertxUnitRunner
+      extension: org.vertx.testtools.VertxExtension
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.junit5.UseTestMethodOrder
