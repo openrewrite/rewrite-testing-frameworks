@@ -1,3 +1,5 @@
+@file:Suppress("GradlePackageUpdate")
+
 import nebula.plugin.contacts.Contact
 import nebula.plugin.contacts.ContactsExtension
 import nebula.plugin.release.NetflixOssStrategies.SNAPSHOT
