@@ -57,4 +57,32 @@ class AssertEqualsNullToAssertNullTest : JavaRecipeTest {
             }
         """,
     )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/200")
+    @Suppress("ConstantConditions", "SimplifiableAssertion")
+    @Test
+    fun preserveStyleOfStaticImportOrNot() = assertChanged(
+        before = """
+            import org.junit.jupiter.api.Assertions;
+            
+            public class Test {
+                void test() {
+                    String s = null;
+                    Assertions.assertEquals(s, null);
+                    Assertions.assertEquals(null, s);
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Assertions;
+            
+            public class Test {
+                void test() {
+                    String s = null;
+                    Assertions.assertNull(s);
+                    Assertions.assertNull(s);
+                }
+            }
+        """,
+    )
 }
