@@ -24,6 +24,9 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.junit5.StaticImports
   - org.openrewrite.java.testing.junit5.JUnit4to5Migration
+  - org.openrewrite.java.testing.cleanup.AssertEqualsNullToAssertNull
+  - org.openrewrite.java.testing.cleanup.AssertFalseEqualsToAssertNotEquals
+  - org.openrewrite.java.testing.cleanup.AssertTrueEqualsToAssertEquals
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.StaticImports
