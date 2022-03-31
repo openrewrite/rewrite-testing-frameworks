@@ -177,7 +177,7 @@ mockitoVersions.forEach { version ->
         classpath = sourceSetReference.runtimeClasspath
         shouldRunAfter(tasks.test)
     }
-    tasks.test {
+    tasks.named("check").configure {
         dependsOn(testTask)
     }
 }
