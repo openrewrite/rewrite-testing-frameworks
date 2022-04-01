@@ -61,10 +61,6 @@ recipeList:
       obsoleteRunners:
         - org.junit.runners.JUnit4
         - org.junit.runners.BlockJUnit4ClassRunner
-  - org.openrewrite.java.testing.junit5.RunnerToExtension:
-      runners:
-        - org.vertx.testtools.VertxUnitRunner
-      extension: org.vertx.testtools.VertxExtension
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.junit5.UseTestMethodOrder
@@ -81,6 +77,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.JUnitParamsRunnerToParameterized
   - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
   - org.openrewrite.java.testing.junit5.UpdateMockWebServer
+  - org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
   - org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
   - org.openrewrite.maven.RemoveDependency:
       groupId: junit
@@ -155,3 +152,22 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junit.Ignore
       newFullyQualifiedTypeName: org.junit.jupiter.api.Disabled
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
+displayName: Use Vertx JUnit 5 Extension
+description: Migrates Vertx `@RunWith` `VertxUnitRunner` to the JUnit Jupiter `@ExtendWith` `VertxExtension`.
+tags:
+  - testing
+  - junit
+recipeList:
+  - org.openrewrite.java.testing.junit5.RunnerToExtension:
+      runners:
+        - org.vertx.testtools.VertxUnitRunner
+      extension: org.vertx.testtools.VertxExtension
+  - org.openrewrite.maven.AddDependency:
+      groupId: io.vertx
+      artifactId: vertx-junit5
+      version: 4.x
+      onlyIfUsing: io.vertx.junit5.VertxExtension
+
