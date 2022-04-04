@@ -247,7 +247,7 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
             import org.mockito.runners.MockitoJUnitRunner;
 
             @RunWith(MockitoJUnitRunner.class)
-            public class ExampleTest { }
+            public class ExampleTest {}
         """,
         after = """
             import org.junit.jupiter.api.extension.ExtendWith;
