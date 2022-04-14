@@ -15,10 +15,14 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeMethodAccessLevelVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
@@ -36,7 +40,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 public class TestsShouldNotBePublic extends Recipe {
+
+    @Option(displayName = "Remove protected modifiers",
+            description = "Also remove protected modifiers from test methods",
+            example = "true",
+            required = false)
+    @Nullable
+    private Boolean removeProtectedModifiers;
 
     @Override
     public String getDisplayName() {
@@ -45,7 +58,7 @@ public class TestsShouldNotBePublic extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Remove `public` modifier from methods with `@Test`, `@ParametrizedTest`, `@RepeatedTest`, `TestFactory`, `@BeforeEach` or `@AfterEach`. They no longer have to be public visibility to be usable by JUnit 5.";
+        return "Remove `public` and optionally `protected` modifiers from methods with `@Test`, `@ParametrizedTest`, `@RepeatedTest`, `TestFactory`, `@BeforeEach` or `@AfterEach`. They no longer have to be public visibility to be usable by JUnit 5.";
     }
 
   @Override
@@ -60,10 +73,15 @@ public class TestsShouldNotBePublic extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new TestsNotPublicVisitor();
+        return new TestsNotPublicVisitor(Boolean.TRUE.equals(removeProtectedModifiers));
     }
 
     private static class TestsNotPublicVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private final Boolean orProtected;
+
+        private TestsNotPublicVisitor(Boolean orProtected) {
+            this.orProtected = orProtected;
+        }
 
         @Override
         public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext executionContext) {
@@ -119,7 +137,7 @@ public class TestsShouldNotBePublic extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
 
-            if (m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public)
+            if (m.getModifiers().stream().anyMatch(mod -> (mod.getType() == J.Modifier.Type.Public || (orProtected && mod.getType() == Type.Protected)))
                     && Boolean.FALSE.equals(TypeUtils.isOverride(method.getMethodType()))
                     && hasJUnit5MethodAnnotation(m)) {
                 // remove public modifier

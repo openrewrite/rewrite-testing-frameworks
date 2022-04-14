@@ -26,7 +26,7 @@ class TestsShouldNotBePublicTest : JavaRecipeTest {
         .build()
 
     override val recipe: Recipe
-        get() = TestsShouldNotBePublic()
+        get() = TestsShouldNotBePublic(null)
 
     @Test
     fun removePublicClassModifiers() = assertChanged(
@@ -305,4 +305,78 @@ class TestsShouldNotBePublicTest : JavaRecipeTest {
         """
     )
 
+    @Test
+    fun removeProtectedMethodModifiers() = assertChanged(
+        recipe = TestsShouldNotBePublic(true),
+        before = """
+            import java.util.Collections;
+            import org.junit.jupiter.api.*;
+            import org.junit.jupiter.params.ParameterizedTest;
+            import org.junit.jupiter.params.provider.ValueSource;
+
+            class ATest {
+
+                @BeforeEach
+                protected void beforeEachMethod() {
+                }
+
+                @AfterEach
+                protected void afterEachMethod() {
+                }
+
+                @Test
+                protected void testMethod() {
+                }
+
+                @RepeatedTest(2)
+                protected void repeatedTestMethod() {
+                }
+
+                @ValueSource(strings = {"a", "b"})
+                @ParameterizedTest
+                protected void parameterizedTestMethod(String input) {
+                }
+
+                @TestFactory
+                protected Collection<DynamicTest> testFactoryMethod() {
+                    return null;
+                }
+            }
+        """,
+        after = """
+            import java.util.Collections;
+            import org.junit.jupiter.api.*;
+            import org.junit.jupiter.params.ParameterizedTest;
+            import org.junit.jupiter.params.provider.ValueSource;
+
+            class ATest {
+
+                @BeforeEach
+                void beforeEachMethod() {
+                }
+
+                @AfterEach
+                void afterEachMethod() {
+                }
+
+                @Test
+                void testMethod() {
+                }
+
+                @RepeatedTest(2)
+                void repeatedTestMethod() {
+                }
+
+                @ValueSource(strings = {"a", "b"})
+                @ParameterizedTest
+                void parameterizedTestMethod(String input) {
+                }
+
+                @TestFactory
+                Collection<DynamicTest> testFactoryMethod() {
+                    return null;
+                }
+            }
+        """
+    )
 }
