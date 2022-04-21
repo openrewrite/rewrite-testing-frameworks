@@ -135,6 +135,7 @@ tags:
   - mockito
 recipeList:
   - org.openrewrite.java.testing.mockito.Mockito1to3Migration
+  - org.openrewrite.java.testing.mockito.MockitoJUnitRunnerSilentToExtension
   - org.openrewrite.java.testing.junit5.RunnerToExtension:
       runners:
         - org.mockito.runners.MockitoJUnitRunner
