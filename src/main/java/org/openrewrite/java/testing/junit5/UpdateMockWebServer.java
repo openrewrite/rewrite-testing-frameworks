@@ -130,7 +130,7 @@ public class UpdateMockWebServer extends Recipe {
                                                 Space.format(" "),
                                                 Markers.EMPTY,
                                                 "IOException",
-                                                JavaType.Class.build(IO_EXCEPTION_FQN),
+                                                JavaType.ShallowClass.build(IO_EXCEPTION_FQN),
                                                 null);
                                         method = method.withThrows(ListUtils.concat(method.getThrows(), ioExceptionIdent));
                                         maybeAddImport(IO_EXCEPTION_FQN);
@@ -143,7 +143,7 @@ public class UpdateMockWebServer extends Recipe {
                         cd = cd.withBody(body);
                     }
                     maybeRemoveImport("org.junit.Rule");
-                    doAfterVisit(new UpgradeDependencyVersion("com.squareup.okhttp3", "mockwebserver", "4.X", null, false));
+                    doNext(new UpgradeDependencyVersion("com.squareup.okhttp3", "mockwebserver", "4.X", null, false));
                 }
                 return cd;
             }

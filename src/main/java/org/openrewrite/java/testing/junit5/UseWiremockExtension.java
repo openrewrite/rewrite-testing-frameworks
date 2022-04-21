@@ -21,6 +21,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.maven.UpgradeDependencyVersion;
 
 import java.time.Duration;
 import java.util.function.Supplier;
@@ -64,8 +65,8 @@ public class UseWiremockExtension extends Recipe {
                 J.NewClass n = (J.NewClass) super.visitNewClass(newClass, executionContext);
                 if (newWiremockRule.matches(n)) {
                     maybeAddImport("com.github.tomakehurst.wiremock.junit5.WireMockExtension");
-
                     doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true));
+                    doNext(new UpgradeDependencyVersion("com.github.tomakehurst", "wiremock-jre8", "2.x", null, true));
 
                     assert n.getArguments() != null;
                     Expression arg = n.getArguments().get(0);
@@ -106,7 +107,7 @@ public class UseWiremockExtension extends Recipe {
                                 arg
                         );
                     } else {
-                        JavaType.Class optsType = JavaType.Class.build("com.github.tomakehurst.wiremock.core.Options");
+                        JavaType.Class optsType = JavaType.ShallowClass.build("com.github.tomakehurst.wiremock.core.Options");
                         if (TypeUtils.isAssignableTo(optsType, arg.getType())) {
                             String newWiremockExtension = "WireMockExtension.newInstance()" +
                                     ".options(#{any(com.github.tomakehurst.wiremock.core.Options)})";
