@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup
 
 import org.junit.jupiter.api.Test
+import org.openrewrite.Issue
 import org.openrewrite.Parser
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
@@ -39,7 +40,7 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
         .build()
 
     override val recipe: Recipe
-        get() = TestsShouldIncludeAssertions()
+        get() = TestsShouldIncludeAssertions(null)
 
     @Test
     fun noAssertions() = assertChanged(
@@ -136,6 +137,84 @@ class TestsShouldIncludeAssertionsTest : JavaRecipeTest {
                 @Test
                 public void methodTest() {
                     assertEquals(1,1);
+                }
+            }
+        """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/201")
+    @Test
+    fun methodBodyContainsMethodInvocationWithAssert() = assertUnchanged(
+        before = """
+            import java.util.Set;
+            import org.junit.jupiter.api.Test;
+            
+            import static org.junit.Assert.assertTrue;
+
+            public class TestClass {
+                @Test
+                public void methodTest() {
+                    Set<String> s = Set.of("hello");
+                    testContains(s, "hello");
+                }
+            
+                @SuppressWarnings("JUnit5AssertionsConverter")
+                private static void testContains(Set<String> set, String word) {
+                    assertTrue(set.contains(word));
+                }
+            }
+        """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/201")
+    @Test
+    fun usesAdditionalAssertion() = assertChanged(
+        dependsOn = arrayOf("""
+            package org.foo;
+
+            import java.util.Set;
+
+            public class TestUtil {
+                public static void testContains(Set<String> set, String word) {
+                }
+            }
+        """),
+        recipe = TestsShouldIncludeAssertions("org.foo.TestUtil"),
+        before = """
+            import java.util.Set;
+            import org.foo.TestUtil;
+            import org.junit.jupiter.api.Test;
+            
+            public class TestClass {
+                @Test
+                public void doesNotChange() {
+                    Set<String> s = Set.of("hello");
+                    TestUtil.testContains(s, "hello");
+                }
+                @Test
+                public void changes() {
+                    System.out.println("The test requires dependsOn.");
+                }
+            }
+        """,
+        after = """
+            import java.util.Set;
+            import org.foo.TestUtil;
+            
+            import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+            import org.junit.jupiter.api.Test;
+
+            public class TestClass {
+                @Test
+                public void doesNotChange() {
+                    Set<String> s = Set.of("hello");
+                    TestUtil.testContains(s, "hello");
+                }
+                @Test
+                public void changes() {
+                    assertDoesNotThrow(() -> {
+                        System.out.println("The test requires dependsOn.");
+                    });
                 }
             }
         """
