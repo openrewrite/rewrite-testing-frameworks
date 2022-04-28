@@ -103,6 +103,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
         private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion()
                 .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---")).build();
 
+        private final Map<String, Set<J.Block>> matcherPatternToClassInvocation = new HashMap<>();
         private final List<String> additionalAsserts;
 
         TestShouldIncludeAssertionsVisitor(@Nullable String additionalAsserts) {
@@ -181,10 +182,18 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
             Set<MethodMatcher> methodMatchers = new HashSet<>();
             findMethodDeclarationsVisitor.visit(classDeclaration, methodMatchers);
-
             Set<J.Block> methodBodies = new HashSet<>();
-            methodMatchers.forEach(matcher -> methodBodies.addAll(findMethodDeclarations(classDeclaration, matcher)));
+
+            methodMatchers.forEach(matcher -> {
+                Set<J.Block> declarationBodies = matcherPatternToClassInvocation.computeIfAbsent(matcherPattern(matcher),
+                        k -> findMethodDeclarations(classDeclaration, matcher));
+                methodBodies.addAll(declarationBodies);
+            });
             return methodBodies.stream().anyMatch(this::methodHasAssertion);
+        }
+
+        private String matcherPattern(MethodMatcher methodMatcher) {
+            return methodMatcher.getTargetTypePattern() + " " + methodMatcher.getMethodNamePattern() + "(" + methodMatcher.getArgumentPattern() + ")";
         }
 
         private Set<J.Block> findMethodDeclarations(J.ClassDeclaration classDeclaration, MethodMatcher methodMatcher) {
@@ -216,12 +225,10 @@ public class TestsShouldIncludeAssertions extends Recipe {
                     return true;
                 }
             }
-            if (methodInvocation.getMethodType().getDeclaringType() != null) {
-                String methodFqn = methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName() + "." + methodInvocation.getSimpleName();
-                for (String assertMethod : DEFAULT_ASSERTIONS) {
-                    if (assertMethod.equals(methodFqn)) {
-                        return true;
-                    }
+            String methodFqn = methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName() + "." + methodInvocation.getSimpleName();
+            for (String assertMethod : DEFAULT_ASSERTIONS) {
+                if (assertMethod.equals(methodFqn)) {
+                    return true;
                 }
             }
             if (additionalAsserts != null) {
