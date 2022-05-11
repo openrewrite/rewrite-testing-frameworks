@@ -19,7 +19,10 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.*;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -95,7 +98,6 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(ASSERTIONS_PARSER)
-                                .typeValidation(new TypeValidation().methodInvocations(false))
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -126,7 +128,6 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                                 .javaParser(ASSERTIONS_PARSER)
-                                .typeValidation(new TypeValidation().methodInvocations(false))
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,

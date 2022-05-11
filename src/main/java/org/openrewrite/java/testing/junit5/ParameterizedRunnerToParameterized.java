@@ -199,13 +199,11 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             // build @MethodSource("...") template
             this.methodSourceTemplate = JavaTemplate.builder(this::getCursor, "@MethodSource(\"" + parametersMethodName + "\")")
                     .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
-                    .typeValidation(TypeValidation.none())
                     .imports("org.junit.jupiter.params.provider.MethodSource").build();
 
             // build init-method with parameters template
             this.initMethodStatementTemplate = JavaTemplate.builder(this::getCursor, initMethodName + "(#{});")
                     .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
-                    .typeValidation(TypeValidation.none())
                     .build();
 
             // If this is not a constructor injected test then build a javaTemplate for a new init-method
@@ -226,9 +224,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 }
 
                 initMethodTemplate.append("}");
-                initMethodDeclarationTemplate = JavaTemplate.builder(this::getCursor, initMethodTemplate.toString())
-                        .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
-                        .typeValidation(new TypeValidation().methodDeclarations(false).methodInvocations(false)).build();
+                initMethodDeclarationTemplate = JavaTemplate.builder(this::getCursor, initMethodTemplate.toString()).javaParser(PARAMETERIZED_TEMPLATE_PARSER).build();
             } else {
                 initMethodDeclarationTemplate = null;
             }
