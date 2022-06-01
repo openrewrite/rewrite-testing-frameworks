@@ -20,13 +20,18 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.search.FindMissingTypes;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Orders imports and removes unused imports from classes which import symbols from the "org.mockito" package.
+ * Removes unused "org.mockito" imports.
  */
 public class CleanupMockitoImports extends Recipe {
     @Override
@@ -36,7 +41,7 @@ public class CleanupMockitoImports extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Removes unused imports `org.mockito` import symbols.";
+        return "Removes unused `org.mockito` import symbols, unless its possible they are associated with method invocations having null or unknown type information.";
     }
 
   @Override
@@ -56,12 +61,45 @@ public class CleanupMockitoImports extends Recipe {
     }
 
     public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private static final List<String> MOCKITO_METHOD_NAMES = Arrays.asList("mock", "mockingDetails", "spy",
+                "stub", "when", "verify", "reset", "verifyNoMoreInteractions", "verifyZeroInteractions", "stubVoid",
+                "doThrow", "doCallRealMethod", "doAnswer", "doNothing", "doReturn", "inOrder", "ignoreStubs",
+                "times", "never", "atLeastOnce", "atLeast", "atMost", "calls", "only", "timeout", "after");
         @Override
-        public J.Import visitImport(J.Import _import, ExecutionContext executionContext) {
-            if (_import.getPackageName().startsWith("org.mockito")) {
-                maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
+        public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
+            JavaSourceFile sf = super.visitJavaSourceFile(cu, executionContext);
+
+            final List<String> unknownTypeMethodInvocationNames = FindMissingTypes.findMissingTypes(cu)
+                    .stream().map(FindMissingTypes.MissingTypeResult::getJ)
+                    .filter(J.MethodInvocation.class::isInstance)
+                    .map(J.MethodInvocation.class::cast)
+                    .map(J.MethodInvocation::getSimpleName).collect(Collectors.toList());
+
+            for (J.Import _import : cu.getImports()) {
+                if (_import.getPackageName().startsWith("org.mockito")) {
+                    if (_import.isStatic()) {
+                        String staticName = _import.getQualid().getSimpleName();
+                        if ("*".equals(staticName) && !possibleMockitoMethod(unknownTypeMethodInvocationNames)) {
+                            maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
+                        } else if (!unknownTypeMethodInvocationNames.contains(staticName)) {
+                            maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName() + "." + staticName);
+                        }
+                    } else {
+                        maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
+                    }
+                }
             }
-            return _import;
+            return sf;
+        }
+
+        private boolean possibleMockitoMethod(List<String> methodNamesHavingNullType) {
+            for (String missingMethod : methodNamesHavingNullType) {
+                if (MOCKITO_METHOD_NAMES.contains(missingMethod)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

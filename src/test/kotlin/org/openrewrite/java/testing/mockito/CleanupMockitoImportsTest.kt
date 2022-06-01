@@ -54,6 +54,98 @@ class CleanupMockitoImportsTest : JavaRecipeTest {
             public class A {}
         """
     )
+
+    @Test
+    fun `do not remove static import when possibly associated with method invocation having a null type`() =
+        assertUnchanged(
+            before = """
+            import static org.mockito.Mockito.when;
+
+            class MyObjectTest {
+              MyObject myObject;
+            
+              void test() {
+                when(myObject.getSomeField()).thenReturn("testValue");
+              }
+            }
+        """
+        )
+
+    @Test
+    fun `remove unused mockito static import`() = assertChanged(
+        dependsOn = arrayOf(
+            """
+            class MyObject {
+                String getSomeField(){return null;}
+            }
+        """
+        ),
+        before = """
+            import static org.mockito.Mockito.when;
+            import static org.mockito.Mockito.after;
+            import org.junit.jupiter.api.Test;
+            import org.mockito.Mock;
+
+            class MyObjectTest {
+              @Mock
+              MyObject myObject;
+            
+              void test() {
+                when(myObject.getSomeField()).thenReturn("testValue");
+              }
+            }
+        """,
+        after = """
+            import static org.mockito.Mockito.when;
+            import org.junit.jupiter.api.Test;
+            import org.mockito.Mock;
+
+            class MyObjectTest {
+              @Mock
+              MyObject myObject;
+            
+              void test() {
+                when(myObject.getSomeField()).thenReturn("testValue");
+              }
+            }
+        """
+    )
+
+    @Test
+    fun `preserve star imports`() = assertUnchanged(
+        before = """
+            package mockito.example;
+            
+            import java.util.List;
+            
+            import static org.mockito.Mockito.*;
+            
+            public class MockitoArgumentMatchersTest {
+                static class Foo {
+                    boolean bool(String str, int i, Object obj) { return false; }
+                }
+            
+                public void usesMatchers() {
+                    Foo mockFoo = mock(Foo.class);
+                    when(mockFoo.bool(anyString(), anyInt(), any(Object.class))).thenReturn(true);
+                }
+            }
+        """
+    )
+
+    @Test
+    fun `remove unused star import`() = assertChanged(
+        before = """
+            import static org.mockito.Mockito.*;
+            
+            public class MockitoArgumentMatchersTest {
+            }
+        """,
+        after = """
+            public class MockitoArgumentMatchersTest {
+            }
+        """
+    )
 }
 
 
