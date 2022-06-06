@@ -48,6 +48,7 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
             import org.junit.jupiter.api.TestInfo;
             
             import java.lang.reflect.Method;
+            import java.util.Optional;
 
             public class SomeTest {
                 
@@ -99,6 +100,7 @@ class TestRuleToTestInfoTest : JavaRecipeTest {
             import org.junit.jupiter.api.TestInfo;
             
             import java.lang.reflect.Method;
+            import java.util.Optional;
 
             public class SomeTest {
                 protected int count;

@@ -152,6 +152,7 @@ public class TestRuleToTestInfo extends Recipe {
                             cd.getBody().getCoordinates().lastStatement(),
                             varDecls.getVariables().get(0).getName().getSimpleName());
                     maybeAddImport("java.lang.reflect.Method");
+                    maybeAddImport("java.util.Optional");
                 } else {
                     doAfterVisit(new BeforeMethodToTestInfoVisitor(beforeMethod, varDecls, testMethodStatement));
                 }
@@ -195,6 +196,7 @@ public class TestRuleToTestInfo extends Recipe {
                     md = md.withBody(md.getBody().withStatements(reorderedStatements));
                 }
                 maybeAddImport("java.lang.reflect.Method");
+                maybeAddImport("java.util.Optional");
             }
             return md;
         }
