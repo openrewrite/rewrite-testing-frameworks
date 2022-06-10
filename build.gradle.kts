@@ -123,13 +123,13 @@ val rewriteVersion = if(project.hasProperty("releasing")) {
 dependencies {
     implementation("org.openrewrite:rewrite-java:$rewriteVersion")
     implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
-    implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
     runtimeOnly("com.fasterxml.jackson.core:jackson-core:2.12.+")
     runtimeOnly("org.openrewrite:rewrite-java-11:$rewriteVersion")
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
+    testImplementation(platform("org.jetbrains.kotlin:kotlin-bom"))
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testImplementation("org.openrewrite:rewrite-java-11:$rewriteVersion")
