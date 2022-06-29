@@ -24,9 +24,7 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.junit5.StaticImports
   - org.openrewrite.java.testing.junit5.JUnit4to5Migration
-  - org.openrewrite.java.testing.cleanup.AssertEqualsNullToAssertNull
-  - org.openrewrite.java.testing.cleanup.AssertFalseEqualsToAssertNotEquals
-  - org.openrewrite.java.testing.cleanup.AssertTrueEqualsToAssertEquals
+  - org.openrewrite.java.testing.junit5.CleanupAssertions
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.StaticImports
@@ -174,4 +172,19 @@ recipeList:
       artifactId: vertx-junit5
       version: 4.x
       onlyIfUsing: io.vertx.junit5.VertxExtension
-
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.CleanupAssertions
+displayName: Clean Up Assertions
+description: Simplifies JUnit Jupiter assertions to their most-direct equivalents
+tags:
+  - testing
+  - junit
+recipeList:
+  - org.openrewrite.java.testing.cleanup.AssertTrueNegationToAssertFalse
+  - org.openrewrite.java.testing.cleanup.AssertFalseNegationToAssertTrue
+  - org.openrewrite.java.testing.cleanup.AssertTrueEqualsToAssertEquals
+  - org.openrewrite.java.testing.cleanup.AssertTrueComparisonToAssertEquals
+  - org.openrewrite.java.testing.cleanup.AssertFalseEqualsToAssertNotEquals
+  - org.openrewrite.java.testing.cleanup.AssertEqualsNullToAssertNull
+  - org.openrewrite.java.testing.cleanup.AssertFalseNullToAssertNotNull

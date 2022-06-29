@@ -96,11 +96,14 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
                     return false;
                 }
 
-                J.Binary binary = (J.Binary) method.getArguments().get(0);
+                final Expression firstArgument = method.getArguments().get(0);
+                if (!(firstArgument instanceof J.Binary)) {
+                    return false;
+                }
+
+                J.Binary binary = (J.Binary) firstArgument;
                 J.Binary.Type operator = binary.getOperator();
                 return operator.equals(J.Binary.Type.Equal);
-
-
             }
         };
     }
