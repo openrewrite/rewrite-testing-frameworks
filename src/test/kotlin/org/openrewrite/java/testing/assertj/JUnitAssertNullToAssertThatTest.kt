@@ -20,10 +20,12 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("NewClassNamingConvention", "ExcessiveLambdaUsage", "ConstantConditions")
 class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
-    override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit")
-        .build()
+    override val parser: JavaParser
+        get() = JavaParser.fromJavaVersion()
+            .classpath("junit")
+            .build()
 
     override val recipe: Recipe
         get() = JUnitAssertNullToAssertThat()
