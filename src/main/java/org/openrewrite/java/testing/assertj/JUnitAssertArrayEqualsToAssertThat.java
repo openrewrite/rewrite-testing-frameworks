@@ -64,7 +64,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
     public static class AssertArrayEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertArrayEquals(..)");
         private static final Supplier<JavaParser> ASSERTIONS_PARSER = () -> JavaParser.fromJavaVersion()
-                .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")).build();
+                .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")).logCompilationWarningsAndErrors(true).build();
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -88,12 +88,10 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                         expected
                 );
             } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
-                // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
-                // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
                 Expression message = args.get(2);
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                         JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()});") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).withFailMessage(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()});");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).as(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()});");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
@@ -119,11 +117,10 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 maybeAddImport("org.assertj.core.api.Assertions", "within");
             } else {
                 // The assertEquals is using a floating point with a delta argument and a message.
-                // If the message is a string use "as", if it is a supplier use "withFailMessage"
                 Expression message = args.get(3);
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                         JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()}, within(#{any()}));") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).withFailMessage(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()}, within(#{}));");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).as(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()}, within(#{}));");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")

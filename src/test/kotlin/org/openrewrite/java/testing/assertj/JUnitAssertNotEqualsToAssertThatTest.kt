@@ -20,6 +20,7 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("NewClassNamingConvention", "UnnecessaryBoxing", "ExcessiveLambdaUsage")
 class JUnitAssertNotEqualsToAssertThatTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
@@ -91,7 +92,7 @@ class JUnitAssertNotEqualsToAssertThatTest : JavaRecipeTest {
 
                 @Test
                 public void test() {
-                    assertThat(notification()).withFailMessage(() -> "These should not be equal").isNotEqualTo("fred");
+                    assertThat(notification()).as(() -> "These should not be equal").isNotEqualTo("fred");
                 }
                 private String notification() {
                     return "joe";
@@ -203,7 +204,7 @@ class JUnitAssertNotEqualsToAssertThatTest : JavaRecipeTest {
 
                 @Test
                 public void test() {
-                    assertThat(notification()).withFailMessage(() -> "These should not be close.").isNotCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
+                    assertThat(notification()).as(() -> "These should not be close.").isNotCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
                 }
                 private double notification() {
                     return Double.valueOf(1.1d);

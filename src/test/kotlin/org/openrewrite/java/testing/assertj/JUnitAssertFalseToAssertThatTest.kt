@@ -20,6 +20,7 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("NewClassNamingConvention", "ConstantConditions", "ExcessiveLambdaUsage")
 class JUnitAssertFalseToAssertThatTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
@@ -128,7 +129,7 @@ class JUnitAssertFalseToAssertThatTest : JavaRecipeTest {
 
                 @Test
                 public void test() {
-                    assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be negative").isFalse();
+                    assertThat(notification() != null && notification() > 0).as(() -> "The notification should be negative").isFalse();
                 }
                 private Integer notification() {
                     return 1;
@@ -167,7 +168,7 @@ class JUnitAssertFalseToAssertThatTest : JavaRecipeTest {
                 public void test() {
                     assertThat(notification() != null && notification() > 0).isFalse();
                     assertThat(notification() != null && notification() > 0).as("The notification should be negative").isFalse();
-                    assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be negative").isFalse();
+                    assertThat(notification() != null && notification() > 0).as(() -> "The notification should be negative").isFalse();
                 }
                 private Integer notification() {
                     return 1;
@@ -209,7 +210,7 @@ class JUnitAssertFalseToAssertThatTest : JavaRecipeTest {
                 public void test() {
                     assertThat(notification() != null && notification() > 0).isFalse();
                     assertThat(notification() != null && notification() > 0).as("The notification should be negative").isFalse();
-                    assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be negative").isFalse();
+                    assertThat(notification() != null && notification() > 0).as(() -> "The notification should be negative").isFalse();
                 }
                 private Integer notification() {
                     return 1;
@@ -254,7 +255,7 @@ class JUnitAssertFalseToAssertThatTest : JavaRecipeTest {
                 public void test() {
                     assertThat(notification() != null && notification() > 0).isFalse();
                     assertThat(notification() != null && notification() > 0).as("The notification should be negative").isFalse();
-                    assertThat(notification() != null && notification() > 0).withFailMessage(() -> "The notification should be negative").isFalse();
+                    assertThat(notification() != null && notification() > 0).as(() -> "The notification should be negative").isFalse();
                     assertFalse(() -> notification() != null && notification() > 0);
                     assertFalse(() -> notification() != null && notification() > 0, "The notification should be negative");
                     assertFalse(() -> notification() != null && notification() > 0, () -> "The notification should be negative");

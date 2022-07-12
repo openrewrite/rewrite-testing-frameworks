@@ -20,6 +20,7 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("NewClassNamingConvention", "ExcessiveLambdaUsage")
 class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit-jupiter-api")
@@ -134,7 +135,7 @@ class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
                 @Test
                 public void test() {
                     String str = "string";
-                    assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
+                    assertThat(str).as(() -> "Should be the same").isSameAs(notification());
                 }
                 private String notification() {
                     return "String";
@@ -174,7 +175,7 @@ class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
                     String str = "string";
                     assertThat(str).isSameAs(notification());
                     assertThat(str).as("Should be the same").isSameAs(notification());
-                    assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
+                    assertThat(str).as(() -> "Should be the same").isSameAs(notification());
                 }
                 private String notification() {
                     return "String";
@@ -218,7 +219,7 @@ class JUnitAssertSameToAssertThatTest : JavaRecipeTest {
                     String str = "string";
                     assertThat(str).isSameAs(notification());
                     assertThat(str).as("Should be the same").isSameAs(notification());
-                    assertThat(str).withFailMessage(() -> "Should be the same").isSameAs(notification());
+                    assertThat(str).as(() -> "Should be the same").isSameAs(notification());
                 }
                 private String notification() {
                     return "String";

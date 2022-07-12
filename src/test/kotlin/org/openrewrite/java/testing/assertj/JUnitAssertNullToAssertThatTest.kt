@@ -132,7 +132,7 @@ class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
 
                 @Test
                 public void test() {
-                    assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
+                    assertThat(notification()).as(() -> "Should be null").isNull();
                 }
                 private String notification() {
                     return null;
@@ -170,7 +170,7 @@ class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
                 public void test() {
                     assertThat(notification()).isNull();
                     assertThat(notification()).as("Should be null").isNull();
-                    assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
+                    assertThat(notification()).as(() -> "Should be null").isNull();
                 }
                 private String notification() {
                     return null;
@@ -212,7 +212,7 @@ class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
                 public void test() {
                     assertThat(notification()).isNull();
                     assertThat(notification()).as("Should be null").isNull();
-                    assertThat(notification()).withFailMessage(() -> "Should be null").isNull();
+                    assertThat(notification()).as(() -> "Should be null").isNull();
                 }
                 private String notification() {
                     return null;

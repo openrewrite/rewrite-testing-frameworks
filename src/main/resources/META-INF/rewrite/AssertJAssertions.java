@@ -70,6 +70,7 @@ public abstract class AbstractAssert implements Assert {
   public AbstractAssert overridingErrorMessage(java.util.function.Supplier p0) { return (AbstractAssert) (Object) null; }
   public AbstractAssert withFailMessage(String p0, Object[] p1) { return (AbstractAssert) (Object) null; }
   public AbstractAssert withFailMessage(java.util.function.Supplier p0) { return (AbstractAssert) (Object) null; }
+  public AbstractAssert as(java.util.function.Supplier p0) { return (AbstractAssert) (Object) null; }
   public AbstractAssert usingComparator(java.util.Comparator p0) { return (AbstractAssert) (Object) null; }
   public AbstractAssert usingComparator(java.util.Comparator p0, String p1) { return (AbstractAssert) (Object) null; }
   public AbstractAssert usingDefaultComparator() { return (AbstractAssert) (Object) null; }
@@ -3082,6 +3083,8 @@ import java.io.*;
 
 public interface Descriptable {
   Object describedAs(org.assertj.core.description.Description p0);
+  default Object as(java.util.function.Supplier<String> descriptionSupplier) { return null;}
+
 }
 ---
 package org.assertj.core.api;

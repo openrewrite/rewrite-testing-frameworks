@@ -89,7 +89,7 @@ public class JUnitAssertSameToAssertThat extends Recipe {
 
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                         JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isSameAs(#{any()});") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isSameAs(#{any()});");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isSameAs(#{any()});");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")

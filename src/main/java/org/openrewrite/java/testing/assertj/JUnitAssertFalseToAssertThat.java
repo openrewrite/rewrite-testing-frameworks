@@ -86,7 +86,7 @@ public class JUnitAssertFalseToAssertThat extends Recipe {
                 Expression message = args.get(1);
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                         JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).as(#{any(String)}).isFalse();") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).withFailMessage(#{any(java.util.function.Supplier)}).isFalse();");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).as(#{any(java.util.function.Supplier)}).isFalse();");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")

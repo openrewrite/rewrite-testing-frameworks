@@ -20,6 +20,7 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("NewClassNamingConvention", "ExcessiveLambdaUsage", "RedundantArrayCreation")
 class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
@@ -93,7 +94,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
 
                 @Test
                 public void test() {
-                    assertThat(notification()).withFailMessage(() -> "These arrays should be equal").containsExactly(new int[]{1, 2, 3});
+                    assertThat(notification()).as(() -> "These arrays should be equal").containsExactly(new int[]{1, 2, 3});
                 }
                 private int[] notification() {
                     return new int[]{1, 2, 3};
@@ -282,7 +283,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
 
                 @Test
                 public void test() {
-                    assertThat(notification()).withFailMessage(() -> "These should be close").containsExactly(new float[]{1.0f, 2.0f, 3.0f}, within(.2f));
+                    assertThat(notification()).as(() -> "These should be close").containsExactly(new float[]{1.0f, 2.0f, 3.0f}, within(.2f));
                 }
                 private float[] notification() {
                     return new float[]{1.1f, 2.1f, 3.1f};
@@ -319,7 +320,7 @@ class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
                 @Test
                 public void test() {
                     String[] expected = new String[] {"Fred", "Alice", "Mary"};
-                    assertThat(notification()).withFailMessage(() -> "These should be close").containsExactly(expected);
+                    assertThat(notification()).as(() -> "These should be close").containsExactly(expected);
                 }
                 private String[] notification() {
                     return new String[] {"Fred", "Alice", "Mary"};

@@ -91,7 +91,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
 
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                         JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isNotEqualTo(#{any()});") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isNotEqualTo(#{any()});");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotEqualTo(#{any()});");
 
 
                 method = method.withTemplate(template
@@ -120,7 +120,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
 
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                         JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isNotCloseTo(#{any()}, within(#{any()}));");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotCloseTo(#{any()}, within(#{any()}));");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")

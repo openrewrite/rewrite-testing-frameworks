@@ -89,14 +89,13 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 );
             } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
                 Expression message = args.get(2);
-                // In assertJ the "as" method has a more informative error message, but doesn't accept String suppliers
-                // so we're using "as" if the message is a string and "withFailMessage" if it is a supplier.
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                         JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isEqualTo(#{any()});") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isEqualTo(#{any()});");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isEqualTo(#{any()});");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                .imports("java.util.function.Supplier")
                                 .javaParser(ASSERTIONS_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),
@@ -121,13 +120,13 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 // The assertEquals is using a floating point with a delta argument and a message.
                 Expression message = args.get(3);
 
-                // If the message is a string use "as", if it is a supplier use "withFailMessage"
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                         JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isCloseTo(#{any()}, within(#{any()}));") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).withFailMessage(#{any(java.util.function.Supplier)}).isCloseTo(#{any()}, within(#{any()}));");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isCloseTo(#{any()}, within(#{any()}));");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
+                                .imports("java.util.function.Supplier")
                                 .javaParser(ASSERTIONS_PARSER)
                                 .build(),
                         method.getCoordinates().replace(),

@@ -86,7 +86,7 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
 
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                         JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).as(#{any(String)}).isTrue();") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).withFailMessage(#{any(java.util.function.Supplier)}).isTrue();");
+                        JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).as(#{any(java.util.function.Supplier)}).isTrue();");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")

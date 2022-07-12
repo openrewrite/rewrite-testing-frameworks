@@ -20,6 +20,7 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("NewClassNamingConvention", "ExcessiveLambdaUsage")
 class JUnitAssertNotNullToAssertThatTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit")
@@ -128,7 +129,7 @@ class JUnitAssertNotNullToAssertThatTest : JavaRecipeTest {
 
                 @Test
                 public void test() {
-                    assertThat(notification()).withFailMessage(() -> "Should not be null").isNotNull();
+                    assertThat(notification()).as(() -> "Should not be null").isNotNull();
                 }
                 private String notification() {
                     return "";
@@ -166,7 +167,7 @@ class JUnitAssertNotNullToAssertThatTest : JavaRecipeTest {
                 public void test() {
                     assertThat(notification()).isNotNull();
                     assertThat(notification()).as("Should not be null").isNotNull();
-                    assertThat(notification()).withFailMessage(() -> "Should not be null").isNotNull();
+                    assertThat(notification()).as(() -> "Should not be null").isNotNull();
                 }
                 private String notification() {
                     return "";
@@ -208,7 +209,7 @@ class JUnitAssertNotNullToAssertThatTest : JavaRecipeTest {
                 public void test() {
                     assertThat(notification()).isNotNull();
                     assertThat(notification()).as("Should not be null").isNotNull();
-                    assertThat(notification()).withFailMessage(() -> "Should not be null").isNotNull();
+                    assertThat(notification()).as(() -> "Should not be null").isNotNull();
                 }
                 private String notification() {
                     return "";
