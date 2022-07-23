@@ -21,7 +21,7 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
-class AssertTrueEqualToAssertEqualsTest : JavaRecipeTest {
+class AssertTrueEqualsToAssertEqualsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .logCompilationWarningsAndErrors(true)
         .classpath("junit-jupiter-api")
@@ -55,8 +55,7 @@ class AssertTrueEqualToAssertEqualsTest : JavaRecipeTest {
                     assertEquals(a, b);
                 }
             }
-        """,
-    )
+        """)
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/206")
     @Suppress("ConstantConditions", "SimplifiableAssertion")
@@ -83,6 +82,22 @@ class AssertTrueEqualToAssertEqualsTest : JavaRecipeTest {
                     Assertions.assertEquals(a, b);
                 }
             }
-        """,
-    )
+        """)
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/238")
+
+    @Test
+    fun retainArraysEquals() = assertUnchanged(
+        before = """
+            import java.util.Arrays;
+            import org.junit.jupiter.api.Assertions;
+            
+            public class Test {
+                void test() {
+                    int[] a = {1, 2, 3};
+                    int[] b = {1, 2, 3};
+                    Assertions.assertTrue(Arrays.equals(a, b));
+                }
+            }
+        """)
 }
