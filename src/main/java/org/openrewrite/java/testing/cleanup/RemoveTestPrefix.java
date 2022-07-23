@@ -35,7 +35,7 @@ public class RemoveTestPrefix extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Remove `test` from methods with `@Test`, `@ParametrizedTest`, `@RepeatedTest` or `@TestFactory`. They no longer have to prefix test to be usable by JUnit 5.";
+        return "Remove `test` from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest` or `@TestFactory`. They no longer have to prefix test to be usable by JUnit 5.";
     }
 
     @Override

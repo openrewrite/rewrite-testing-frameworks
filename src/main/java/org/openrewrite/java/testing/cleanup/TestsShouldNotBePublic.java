@@ -58,7 +58,7 @@ public class TestsShouldNotBePublic extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Remove `public` and optionally `protected` modifiers from methods with `@Test`, `@ParametrizedTest`, `@RepeatedTest`, `TestFactory`, `@BeforeEach` or `@AfterEach`. They no longer have to be public visibility to be usable by JUnit 5.";
+        return "Remove `public` and optionally `protected` modifiers from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@BeforeEach` or `@AfterEach`. They no longer have to be public visibility to be usable by JUnit 5.";
     }
 
   @Override
