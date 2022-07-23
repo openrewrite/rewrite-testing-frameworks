@@ -127,10 +127,8 @@ class RemoveTestPrefixTest : JavaRecipeTest {
     )
 
     @Test
-    fun ignoreNonAnnotatedMethods() = assertUnchanged(
+    fun ignoreNotAnnotatedMethods() = assertUnchanged(
             before = """
-            import org.junit.jupiter.api.Test;
-
             class ATest {
                 void testMethod() {
                 }
