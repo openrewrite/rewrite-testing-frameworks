@@ -85,7 +85,6 @@ class AssertTrueEqualsToAssertEqualsTest : JavaRecipeTest {
         """)
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/238")
-
     @Test
     fun retainArraysEquals() = assertUnchanged(
         before = """
