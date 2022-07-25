@@ -20,10 +20,12 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("RedundantThrows")
 class UpdateMockWebServerTest : JavaRecipeTest {
 
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit", "mockwebserver")
+        .classpath("junit")
+        .dependsOn("package okhttp3.mockwebserver; public class MockWebServer implements Closeable {}")
         .build()
     override val recipe: Recipe
         get() = UpdateMockWebServer()
