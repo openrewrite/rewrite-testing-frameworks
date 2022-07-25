@@ -20,8 +20,12 @@ import java.time.Duration;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.J.MethodDeclaration;
 import org.openrewrite.java.tree.TypeUtils;
@@ -36,6 +40,20 @@ public class RemoveTestPrefix extends Recipe {
     @Override
     public String getDescription() {
         return "Remove `test` from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest` or `@TestFactory`. They no longer have to prefix test to be usable by JUnit 5.";
+    }
+
+    @Override
+    protected @Nullable TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
+        return new JavaVisitor<ExecutionContext>(){
+            @Override
+            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.Test"));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.RepeatedTest"));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.params.ParameterizedTest"));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestFactory"));
+                return cu;
+            }
+        };
     }
 
     @Override
