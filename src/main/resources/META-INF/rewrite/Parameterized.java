@@ -9,6 +9,9 @@
  */
 package org.junit.jupiter.params;
 
+import java.util.List;
+import java.util.Optional;
+
 public @interface ParameterizedTest {
     String DISPLAY_NAME_PLACEHOLDER = "{displayName}";
     String INDEX_PLACEHOLDER = "{index}";
@@ -20,30 +23,22 @@ public @interface ParameterizedTest {
 
 ---
 
-package org.junit.jupiter.params.provider;
+        package org.junit.jupiter.params.provider;
+
+        import org.junit.jupiter.params.ParameterizedTest;
+        import org.junit.jupiter.api.extension.ExtensionContext;
+        import java.util.stream.Stream;
+        import java.lang.reflect.Method;
 
 public @interface ArgumentsSource {
     Class<? extends ArgumentsProvider> value();
 }
 
----
-
-package org.junit.jupiter.params.provider;
-
-import org.junit.jupiter.params.ParameterizedTest;
 
 @ArgumentsSource(MethodArgumentsProvider.class)
 public @interface MethodSource {
     String[] value() default "";
 }
-
----
-
-package org.junit.jupiter.params.provider;
-
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-import java.util.stream.Stream;
-import java.lang.reflect.Method;
 
 class MethodArgumentsProvider implements ArgumentsProvider {
     public void accept(MethodSource annotation) {
@@ -63,22 +58,36 @@ class MethodArgumentsProvider implements ArgumentsProvider {
     private static Arguments toArguments(Object item) { return (Arguments) (Object) null; }
 }
 
+public interface Arguments {
+    Object[] get();
+    static Arguments of(Object... arguments) {
+        return () -> arguments;
+    }
+    static Arguments arguments(Object... arguments) {
+        return of(arguments);
+    }
+}
+
+public interface ArgumentsProvider {
+    Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception;
+}
+
 ---
 
-package org.junit.jupiter.api.extension;
+        package org.junit.jupiter.api.extension;
 
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
+        import org.junit.jupiter.api.TestInstance;
+        import org.junit.jupiter.api.TestInstance.Lifecycle;
+        import java.lang.reflect.AnnotatedElement;
+        import java.lang.reflect.Method;
+        import java.util.ArrayList;
+        import java.util.Arrays;
+        import java.util.Collections;
+        import java.util.List;
+        import java.util.Map;
+        import java.util.Optional;
+        import java.util.Set;
+        import java.util.function.Function;
 
 public interface ExtensionContext {
 
@@ -116,7 +125,7 @@ public interface ExtensionContext {
     Store getStore(Namespace namespace);
     interface Store {
         interface CloseableResource {
-                void close() throws Throwable;
+            void close() throws Throwable;
         }
         Object get(Object key);
         <V> V get(Object key, Class<V> requiredType);
@@ -146,9 +155,19 @@ public interface ExtensionContext {
     }
 }
 
+public interface TestInstances {
+    Object getInnermostInstance();
+
+    List<Object> getEnclosingInstances();
+
+    List<Object> getAllInstances();
+
+    <T> Optional<T> findInstance(Class<T> var1);
+}
+
 ---
 
-package org.junit.jupiter.api;
+        package org.junit.jupiter.api;
 
 public @interface TestInstance {
     enum Lifecycle {
@@ -156,29 +175,4 @@ public @interface TestInstance {
         PER_METHOD;
     }
     Lifecycle value();
-}
-
----
-
-package org.junit.jupiter.params.provider;
-
-import org.junit.platform.commons.util.Preconditions;
-public interface Arguments {
-    Object[] get();
-    static Arguments of(Object... arguments) {
-        return () -> arguments;
-    }
-    static Arguments arguments(Object... arguments) {
-        return of(arguments);
-    }
-}
-
----
-
-package org.junit.jupiter.params.provider;
-
-import org.junit.jupiter.api.extension.ExtensionContext;
-
-public interface ArgumentsProvider {
-    Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception;
 }
