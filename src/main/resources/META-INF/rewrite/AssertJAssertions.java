@@ -15,19 +15,16 @@
  */
 package org.assertj.core.api;
 import java.io.*;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class Abstract2DArrayAssert extends AbstractAssert implements Array2DAssert {
   public abstract Abstract2DArrayAssert isDeepEqualTo(Object p0);
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractArrayAssert extends AbstractEnumerableAssert implements ArraySortedAssert {
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractAssert implements Assert {
   public static boolean throwUnsupportedExceptionOnEquals;
@@ -90,23 +87,14 @@ public abstract class AbstractAssert implements Assert {
   public AbstractAssert hasSameHashCodeAs(Object p0) { return (AbstractAssert) (Object) null; }
   public AbstractAssert doesNotHaveSameHashCodeAs(Object p0) { return (AbstractAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractAtomicFieldUpdaterAssert extends AbstractObjectAssert {
   public AbstractAtomicFieldUpdaterAssert hasValue(Object p0, Object p1) { return (AbstractAtomicFieldUpdaterAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractAtomicReferenceAssert extends AbstractObjectAssert {
   public AbstractAtomicReferenceAssert hasReference(Object p0) { return (AbstractAtomicReferenceAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractBigDecimalAssert extends AbstractComparableAssert implements NumberAssert {
   public AbstractBigDecimalAssert isZero() { return (AbstractBigDecimalAssert) (Object) null; }
@@ -141,9 +129,6 @@ public abstract class AbstractBigDecimalAssert extends AbstractComparableAssert 
   public NumberAssert isStrictlyBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
   public NumberAssert isBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AbstractBigIntegerAssert extends AbstractComparableAssert implements NumberAssert {
   public AbstractBigIntegerAssert isZero() { return (AbstractBigIntegerAssert) (Object) null; }
@@ -174,9 +159,6 @@ public class AbstractBigIntegerAssert extends AbstractComparableAssert implement
   public NumberAssert isStrictlyBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
   public NumberAssert isBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractBooleanArrayAssert extends AbstractArrayAssert {
   public void isNullOrEmpty() {}
@@ -219,9 +201,6 @@ public abstract class AbstractBooleanArrayAssert extends AbstractArrayAssert {
   public AbstractBooleanArrayAssert containsAnyOf(boolean[] p0) { return (AbstractBooleanArrayAssert) (Object) null; }
   public AbstractBooleanArrayAssert containsAnyOf(Boolean[] p0) { return (AbstractBooleanArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractBooleanAssert extends AbstractAssert {
   public AbstractBooleanAssert isTrue() { return (AbstractBooleanAssert) (Object) null; }
@@ -231,9 +210,6 @@ public abstract class AbstractBooleanAssert extends AbstractAssert {
   public AbstractBooleanAssert usingComparator(java.util.Comparator p0) { return (AbstractBooleanAssert) (Object) null; }
   public AbstractBooleanAssert usingComparator(java.util.Comparator p0, String p1) { return (AbstractBooleanAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractByteArrayAssert extends AbstractArrayAssert {
   public void isNullOrEmpty() {}
@@ -293,9 +269,6 @@ public abstract class AbstractByteArrayAssert extends AbstractArrayAssert {
   public AbstractStringAssert asString(java.nio.charset.Charset p0) { return (AbstractStringAssert) (Object) null; }
   public AbstractStringAssert encodedAsBase64() { return (AbstractStringAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractByteAssert extends AbstractComparableAssert implements NumberAssert {
   public AbstractByteAssert isEqualTo(byte p0) { return (AbstractByteAssert) (Object) null; }
@@ -335,9 +308,6 @@ public abstract class AbstractByteAssert extends AbstractComparableAssert implem
   public NumberAssert isStrictlyBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
   public NumberAssert isBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractCharArrayAssert extends AbstractArrayAssert {
   public void isNullOrEmpty() {}
@@ -381,9 +351,6 @@ public abstract class AbstractCharArrayAssert extends AbstractArrayAssert {
   public AbstractCharArrayAssert containsAnyOf(char[] p0) { return (AbstractCharArrayAssert) (Object) null; }
   public AbstractCharArrayAssert containsAnyOf(Character[] p0) { return (AbstractCharArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractCharSequenceAssert extends AbstractAssert implements EnumerableAssert {
   public void isNullOrEmpty() {}
@@ -454,9 +421,6 @@ public abstract class AbstractCharSequenceAssert extends AbstractAssert implemen
   public AbstractCharSequenceAssert isUpperCase() { return (AbstractCharSequenceAssert) (Object) null; }
   public AbstractCharSequenceAssert isEqualToNormalizingUnicode(CharSequence p0) { return (AbstractCharSequenceAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractCharacterAssert extends AbstractComparableAssert {
   public AbstractCharacterAssert isEqualTo(char p0) { return (AbstractCharacterAssert) (Object) null; }
@@ -472,9 +436,6 @@ public abstract class AbstractCharacterAssert extends AbstractComparableAssert {
   public AbstractCharacterAssert usingComparator(java.util.Comparator p0, String p1) { return (AbstractCharacterAssert) (Object) null; }
   public AbstractCharacterAssert usingDefaultComparator() { return (AbstractCharacterAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractClassAssert extends AbstractAssert {
   public AbstractClassAssert isAssignableFrom(Class[] p0) { return (AbstractClassAssert) (Object) null; }
@@ -503,9 +464,6 @@ public abstract class AbstractClassAssert extends AbstractAssert {
   public AbstractClassAssert hasPackage(String p0) { return (AbstractClassAssert) (Object) null; }
   public AbstractClassAssert hasPackage(Package p0) { return (AbstractClassAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractComparableAssert extends AbstractObjectAssert implements ComparableAssert {
   public AbstractComparableAssert isEqualByComparingTo(Comparable p0) { return (AbstractComparableAssert) (Object) null; }
@@ -522,9 +480,6 @@ public abstract class AbstractComparableAssert extends AbstractObjectAssert impl
   public AbstractComparableAssert inHexadecimal() { return (AbstractComparableAssert) (Object) null; }
   public AbstractComparableAssert inBinary() { return (AbstractComparableAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractCompletableFutureAssert extends AbstractAssert {
   public AbstractCompletableFutureAssert isDone() { return (AbstractCompletableFutureAssert) (Object) null; }
@@ -548,9 +503,6 @@ public abstract class AbstractCompletableFutureAssert extends AbstractAssert {
   public WithThrowable failsWithin(java.time.Duration p0) { return (WithThrowable) (Object) null; }
   public WithThrowable failsWithin(long p0, java.util.concurrent.TimeUnit p1) { return (WithThrowable) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractDateAssert extends AbstractAssert {
   public AbstractDateAssert isEqualTo(String p0) { return (AbstractDateAssert) (Object) null; }
@@ -665,9 +617,6 @@ public abstract class AbstractDateAssert extends AbstractAssert {
   public AbstractDateAssert usingComparator(java.util.Comparator p0, String p1) { return (AbstractDateAssert) (Object) null; }
   public AbstractDateAssert usingDefaultComparator() { return (AbstractDateAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractDoubleArrayAssert extends AbstractArrayAssert {
   public void isNullOrEmpty() {}
@@ -732,9 +681,6 @@ public abstract class AbstractDoubleArrayAssert extends AbstractArrayAssert {
   public AbstractDoubleArrayAssert containsAnyOf(double[] p0) { return (AbstractDoubleArrayAssert) (Object) null; }
   public AbstractDoubleArrayAssert containsAnyOf(Double[] p0) { return (AbstractDoubleArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractDoubleAssert extends AbstractComparableAssert implements FloatingPointNumberAssert {
   public void AbstractDoubleAssert(double p0, Class p1) {}
@@ -786,9 +732,6 @@ public abstract class AbstractDoubleAssert extends AbstractComparableAssert impl
   public NumberAssert isStrictlyBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
   public NumberAssert isBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractDurationAssert extends AbstractComparableAssert {
   public AbstractDurationAssert isZero() { return (AbstractDurationAssert) (Object) null; }
@@ -802,18 +745,12 @@ public abstract class AbstractDurationAssert extends AbstractComparableAssert {
   public AbstractDurationAssert hasDays(long p0) { return (AbstractDurationAssert) (Object) null; }
   public AbstractDurationAssert isCloseTo(java.time.Duration p0, java.time.Duration p1) { return (AbstractDurationAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractEnumerableAssert extends AbstractAssert implements EnumerableAssert {
   public AbstractEnumerableAssert hasSameSizeAs(Object p0) { return (AbstractEnumerableAssert) (Object) null; }
   public AbstractEnumerableAssert inHexadecimal() { return (AbstractEnumerableAssert) (Object) null; }
   public AbstractEnumerableAssert inBinary() { return (AbstractEnumerableAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractFileAssert extends AbstractAssert {
   public AbstractFileAssert exists() { return (AbstractFileAssert) (Object) null; }
@@ -855,9 +792,6 @@ public abstract class AbstractFileAssert extends AbstractAssert {
   public AbstractFileAssert isEmpty() { return (AbstractFileAssert) (Object) null; }
   public AbstractFileAssert isNotEmpty() { return (AbstractFileAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractFloatArrayAssert extends AbstractArrayAssert {
   public void isNullOrEmpty() {}
@@ -922,9 +856,6 @@ public abstract class AbstractFloatArrayAssert extends AbstractArrayAssert {
   public AbstractFloatArrayAssert containsAnyOf(float[] p0) { return (AbstractFloatArrayAssert) (Object) null; }
   public AbstractFloatArrayAssert containsAnyOf(Float[] p0) { return (AbstractFloatArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractFloatAssert extends AbstractComparableAssert implements FloatingPointNumberAssert {
   public void AbstractFloatAssert(float p0, Class p1) {}
@@ -976,9 +907,6 @@ public abstract class AbstractFloatAssert extends AbstractComparableAssert imple
   public NumberAssert isStrictlyBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
   public NumberAssert isBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractFutureAssert extends AbstractAssert {
   public AbstractFutureAssert isCancelled() { return (AbstractFutureAssert) (Object) null; }
@@ -992,9 +920,6 @@ public abstract class AbstractFutureAssert extends AbstractAssert {
   public WithThrowable failsWithin(java.time.Duration p0) { return (WithThrowable) (Object) null; }
   public WithThrowable failsWithin(long p0, java.util.concurrent.TimeUnit p1) { return (WithThrowable) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractInputStreamAssert extends AbstractAssert {
   public AbstractInputStreamAssert hasContentEqualTo(InputStream p0) { return (AbstractInputStreamAssert) (Object) null; }
@@ -1008,9 +933,6 @@ public abstract class AbstractInputStreamAssert extends AbstractAssert {
   public AbstractInputStreamAssert hasDigest(String p0, byte[] p1) { return (AbstractInputStreamAssert) (Object) null; }
   public AbstractInputStreamAssert hasDigest(String p0, String p1) { return (AbstractInputStreamAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AbstractInstantAssert extends AbstractTemporalAssert {
   public AbstractInstantAssert isBefore(java.time.Instant p0) { return (AbstractInstantAssert) (Object) null; }
@@ -1030,9 +952,6 @@ public class AbstractInstantAssert extends AbstractTemporalAssert {
   public AbstractInstantAssert isStrictlyBetween(java.time.Instant p0, java.time.Instant p1) { return (AbstractInstantAssert) (Object) null; }
   public AbstractInstantAssert isStrictlyBetween(String p0, String p1) { return (AbstractInstantAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractIntArrayAssert extends AbstractArrayAssert {
   public void isNullOrEmpty() {}
@@ -1075,9 +994,6 @@ public abstract class AbstractIntArrayAssert extends AbstractArrayAssert {
   public AbstractIntArrayAssert containsAnyOf(int[] p0) { return (AbstractIntArrayAssert) (Object) null; }
   public AbstractIntArrayAssert containsAnyOf(Integer[] p0) { return (AbstractIntArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractIntegerAssert extends AbstractComparableAssert implements NumberAssert {
   public AbstractIntegerAssert isEqualTo(int p0) { return (AbstractIntegerAssert) (Object) null; }
@@ -1118,9 +1034,6 @@ public abstract class AbstractIntegerAssert extends AbstractComparableAssert imp
   public NumberAssert isStrictlyBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
   public NumberAssert isBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractIterableAssert extends AbstractAssert implements ObjectEnumerableAssert {
   public void isNullOrEmpty() {}
@@ -1279,25 +1192,16 @@ public abstract class AbstractIterableAssert extends AbstractAssert implements O
   public AbstractIterableAssert withThreadDumpOnError() { return (AbstractIterableAssert) (Object) null; }
   public AbstractIterableSizeAssert size() { return (AbstractIterableSizeAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractIterableSizeAssert extends AbstractIntegerAssert {
   public abstract AbstractIterableAssert returnToIterable();
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractIteratorAssert extends AbstractAssert {
   public AbstractIteratorAssert hasNext() { return (AbstractIteratorAssert) (Object) null; }
   public AbstractIteratorAssert isExhausted() { return (AbstractIteratorAssert) (Object) null; }
   public IterableAssert toIterable() { return (IterableAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractListAssert extends AbstractIterableAssert implements IndexedObjectEnumerableAssert {
   public AbstractListAssert contains(Object p0, org.assertj.core.data.Index p1) { return (AbstractListAssert) (Object) null; }
@@ -1344,9 +1248,6 @@ public abstract class AbstractListAssert extends AbstractIterableAssert implemen
   public AbstractListAssert withFailMessage(String p0, Object[] p1) { return (AbstractListAssert) (Object) null; }
   public AbstractListAssert withThreadDumpOnError() { return (AbstractListAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractLocalDateAssert extends AbstractTemporalAssert {
   public static String NULL_LOCAL_DATE_TIME_PARAMETER_MESSAGE;
@@ -1368,9 +1269,6 @@ public abstract class AbstractLocalDateAssert extends AbstractTemporalAssert {
   public AbstractLocalDateAssert isStrictlyBetween(java.time.LocalDate p0, java.time.LocalDate p1) { return (AbstractLocalDateAssert) (Object) null; }
   public AbstractLocalDateAssert isStrictlyBetween(String p0, String p1) { return (AbstractLocalDateAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractLocalDateTimeAssert extends AbstractTemporalAssert {
   public static String NULL_LOCAL_DATE_TIME_PARAMETER_MESSAGE;
@@ -1399,9 +1297,6 @@ public abstract class AbstractLocalDateTimeAssert extends AbstractTemporalAssert
   public AbstractLocalDateTimeAssert isStrictlyBetween(java.time.LocalDateTime p0, java.time.LocalDateTime p1) { return (AbstractLocalDateTimeAssert) (Object) null; }
   public AbstractLocalDateTimeAssert isStrictlyBetween(String p0, String p1) { return (AbstractLocalDateTimeAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractLocalTimeAssert extends AbstractTemporalAssert {
   public static String NULL_LOCAL_TIME_PARAMETER_MESSAGE;
@@ -1425,9 +1320,6 @@ public abstract class AbstractLocalTimeAssert extends AbstractTemporalAssert {
   public AbstractLocalTimeAssert isStrictlyBetween(java.time.LocalTime p0, java.time.LocalTime p1) { return (AbstractLocalTimeAssert) (Object) null; }
   public AbstractLocalTimeAssert isStrictlyBetween(String p0, String p1) { return (AbstractLocalTimeAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AbstractLongAdderAssert extends AbstractAssert implements NumberAssert, ComparableAssert {
   public AbstractLongAdderAssert hasValue(long p0) { return (AbstractLongAdderAssert) (Object) null; }
@@ -1469,9 +1361,6 @@ public class AbstractLongAdderAssert extends AbstractAssert implements NumberAss
   public ComparableAssert isNotEqualByComparingTo(Comparable p0) { return (ComparableAssert) (Object) null; }
   public ComparableAssert isEqualByComparingTo(Comparable p0) { return (ComparableAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractLongArrayAssert extends AbstractArrayAssert {
   public void isNullOrEmpty() {}
@@ -1514,9 +1403,6 @@ public abstract class AbstractLongArrayAssert extends AbstractArrayAssert {
   public AbstractLongArrayAssert containsAnyOf(long[] p0) { return (AbstractLongArrayAssert) (Object) null; }
   public AbstractLongArrayAssert containsAnyOf(Long[] p0) { return (AbstractLongArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractLongAssert extends AbstractComparableAssert implements NumberAssert {
   public AbstractLongAssert isEqualTo(long p0) { return (AbstractLongAssert) (Object) null; }
@@ -1556,9 +1442,6 @@ public abstract class AbstractLongAssert extends AbstractComparableAssert implem
   public NumberAssert isStrictlyBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
   public NumberAssert isBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractMapAssert extends AbstractObjectAssert implements EnumerableAssert {
   public AbstractMapAssert allSatisfy(java.util.function.BiConsumer p0) { return (AbstractMapAssert) (Object) null; }
@@ -1649,16 +1532,10 @@ public abstract class AbstractMapAssert extends AbstractObjectAssert implements 
   public RecursiveComparisonAssert usingRecursiveComparison() { return (RecursiveComparisonAssert) (Object) null; }
   public RecursiveComparisonAssert usingRecursiveComparison(org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration p0) { return (RecursiveComparisonAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractMapSizeAssert extends AbstractIntegerAssert {
   public abstract AbstractMapAssert returnToMap();
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractObjectArrayAssert extends AbstractAssert implements IndexedObjectEnumerableAssert, ArraySortedAssert {
   public AbstractObjectArrayAssert as(org.assertj.core.description.Description p0) { return (AbstractObjectArrayAssert) (Object) null; }
@@ -1769,9 +1646,6 @@ public abstract class AbstractObjectArrayAssert extends AbstractAssert implement
   public RecursiveComparisonAssert usingRecursiveComparison() { return (RecursiveComparisonAssert) (Object) null; }
   public RecursiveComparisonAssert usingRecursiveComparison(org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration p0) { return (RecursiveComparisonAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractObjectAssert extends AbstractAssert {
   public void AbstractObjectAssert(Object p0, Class p1) {}
@@ -1801,9 +1675,6 @@ public abstract class AbstractObjectAssert extends AbstractAssert {
   public RecursiveComparisonAssert usingRecursiveComparison() { return (RecursiveComparisonAssert) (Object) null; }
   public RecursiveComparisonAssert usingRecursiveComparison(org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration p0) { return (RecursiveComparisonAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractOffsetDateTimeAssert extends AbstractTemporalAssert {
   public static String NULL_OFFSET_DATE_TIME_PARAMETER_MESSAGE;
@@ -1834,9 +1705,6 @@ public abstract class AbstractOffsetDateTimeAssert extends AbstractTemporalAsser
   public AbstractOffsetDateTimeAssert usingDefaultComparator() { return (AbstractOffsetDateTimeAssert) (Object) null; }
   public AbstractOffsetDateTimeAssert isAtSameInstantAs(java.time.OffsetDateTime p0) { return (AbstractOffsetDateTimeAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractOffsetTimeAssert extends AbstractTemporalAssert {
   public static String NULL_OFFSET_TIME_PARAMETER_MESSAGE;
@@ -1861,9 +1729,6 @@ public abstract class AbstractOffsetTimeAssert extends AbstractTemporalAssert {
   public AbstractOffsetTimeAssert isStrictlyBetween(java.time.OffsetTime p0, java.time.OffsetTime p1) { return (AbstractOffsetTimeAssert) (Object) null; }
   public AbstractOffsetTimeAssert isStrictlyBetween(String p0, String p1) { return (AbstractOffsetTimeAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractOptionalAssert extends AbstractAssert {
   public AbstractOptionalAssert isPresent() { return (AbstractOptionalAssert) (Object) null; }
@@ -1886,9 +1751,6 @@ public abstract class AbstractOptionalAssert extends AbstractAssert {
   public RecursiveComparisonAssert usingRecursiveComparison() { return (RecursiveComparisonAssert) (Object) null; }
   public RecursiveComparisonAssert usingRecursiveComparison(org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration p0) { return (RecursiveComparisonAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractOptionalDoubleAssert extends AbstractAssert {
   public AbstractOptionalDoubleAssert isPresent() { return (AbstractOptionalDoubleAssert) (Object) null; }
@@ -1899,9 +1761,6 @@ public abstract class AbstractOptionalDoubleAssert extends AbstractAssert {
   public AbstractOptionalDoubleAssert hasValueCloseTo(Double p0, org.assertj.core.data.Offset p1) { return (AbstractOptionalDoubleAssert) (Object) null; }
   public AbstractOptionalDoubleAssert hasValueCloseTo(Double p0, org.assertj.core.data.Percentage p1) { return (AbstractOptionalDoubleAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractOptionalIntAssert extends AbstractAssert {
   public AbstractOptionalIntAssert isPresent() { return (AbstractOptionalIntAssert) (Object) null; }
@@ -1910,9 +1769,6 @@ public abstract class AbstractOptionalIntAssert extends AbstractAssert {
   public AbstractOptionalIntAssert isNotEmpty() { return (AbstractOptionalIntAssert) (Object) null; }
   public AbstractOptionalIntAssert hasValue(int p0) { return (AbstractOptionalIntAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractOptionalLongAssert extends AbstractAssert {
   public AbstractOptionalLongAssert isPresent() { return (AbstractOptionalLongAssert) (Object) null; }
@@ -1921,9 +1777,6 @@ public abstract class AbstractOptionalLongAssert extends AbstractAssert {
   public AbstractOptionalLongAssert isNotEmpty() { return (AbstractOptionalLongAssert) (Object) null; }
   public AbstractOptionalLongAssert hasValue(long p0) { return (AbstractOptionalLongAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractPathAssert extends AbstractComparableAssert {
   public AbstractPathAssert hasSameContentAs(java.nio.file.Path p0) { return (AbstractPathAssert) (Object) null; }
@@ -1972,9 +1825,6 @@ public abstract class AbstractPathAssert extends AbstractComparableAssert {
   public AbstractPathAssert isEmptyFile() { return (AbstractPathAssert) (Object) null; }
   public AbstractPathAssert isNotEmptyFile() { return (AbstractPathAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractPeriodAssert extends AbstractAssert {
   public AbstractPeriodAssert hasYears(int p0) { return (AbstractPeriodAssert) (Object) null; }
@@ -1983,9 +1833,6 @@ public abstract class AbstractPeriodAssert extends AbstractAssert {
   public AbstractPeriodAssert isPositive() { return (AbstractPeriodAssert) (Object) null; }
   public AbstractPeriodAssert isNegative() { return (AbstractPeriodAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractPredicateAssert extends AbstractAssert {
   public AbstractPredicateAssert accepts(Object[] p0) { return (AbstractPredicateAssert) (Object) null; }
@@ -1993,15 +1840,9 @@ public abstract class AbstractPredicateAssert extends AbstractAssert {
   public AbstractPredicateAssert acceptsAll(Iterable p0) { return (AbstractPredicateAssert) (Object) null; }
   public AbstractPredicateAssert rejectsAll(Iterable p0) { return (AbstractPredicateAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 abstract class AbstractPredicateLikeAssert extends AbstractAssert {
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractShortArrayAssert extends AbstractArrayAssert {
   public void isNullOrEmpty() {}
@@ -2057,9 +1898,6 @@ public abstract class AbstractShortArrayAssert extends AbstractArrayAssert {
   public AbstractShortArrayAssert containsAnyOf(Short[] p0) { return (AbstractShortArrayAssert) (Object) null; }
   public AbstractShortArrayAssert containsAnyOf(int[] p0) { return (AbstractShortArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractShortAssert extends AbstractComparableAssert implements NumberAssert {
   public AbstractShortAssert isEqualTo(short p0) { return (AbstractShortAssert) (Object) null; }
@@ -2099,17 +1937,11 @@ public abstract class AbstractShortAssert extends AbstractComparableAssert imple
   public NumberAssert isStrictlyBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
   public NumberAssert isBetween(Number p0, Number p1) { return (NumberAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AbstractSpliteratorAssert extends AbstractAssert {
   public AbstractSpliteratorAssert hasCharacteristics(int[] p0) { return (AbstractSpliteratorAssert) (Object) null; }
   public AbstractSpliteratorAssert hasOnlyCharacteristics(int[] p0) { return (AbstractSpliteratorAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AbstractStringAssert extends AbstractCharSequenceAssert {
   public AbstractStringAssert isLessThan(String p0) { return (AbstractStringAssert) (Object) null; }
@@ -2126,9 +1958,6 @@ public class AbstractStringAssert extends AbstractCharSequenceAssert {
   public AbstractStringAssert isEqualTo(String p0, Object[] p1) { return (AbstractStringAssert) (Object) null; }
   public AbstractStringAssert isEqualTo(String p0) { return (AbstractStringAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractTemporalAssert extends AbstractAssert {
   public AbstractTemporalAssert isCloseTo(java.time.temporal.Temporal p0, org.assertj.core.data.TemporalOffset p1) { return (AbstractTemporalAssert) (Object) null; }
@@ -2137,9 +1966,6 @@ public abstract class AbstractTemporalAssert extends AbstractAssert {
   public AbstractTemporalAssert usingComparator(java.util.Comparator p0, String p1) { return (AbstractTemporalAssert) (Object) null; }
   public AbstractTemporalAssert usingDefaultComparator() { return (AbstractTemporalAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractThrowableAssert extends AbstractObjectAssert {
   public interface ThrowingCallable {
@@ -2176,9 +2002,6 @@ public abstract class AbstractThrowableAssert extends AbstractObjectAssert {
   public AbstractThrowableAssert hasSuppressedException(Throwable p0) { return (AbstractThrowableAssert) (Object) null; }
   public void doesNotThrowAnyException() {}
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractUriAssert extends AbstractAssert {
   public AbstractUriAssert hasPath(String p0) { return (AbstractUriAssert) (Object) null; }
@@ -2200,9 +2023,6 @@ public abstract class AbstractUriAssert extends AbstractAssert {
   public AbstractUriAssert hasNoParameter(String p0) { return (AbstractUriAssert) (Object) null; }
   public AbstractUriAssert hasNoParameter(String p0, String p1) { return (AbstractUriAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractUrlAssert extends AbstractAssert {
   public AbstractUrlAssert hasProtocol(String p0) { return (AbstractUrlAssert) (Object) null; }
@@ -2225,9 +2045,6 @@ public abstract class AbstractUrlAssert extends AbstractAssert {
   public AbstractUrlAssert hasNoParameter(String p0, String p1) { return (AbstractUrlAssert) (Object) null; }
   public AbstractUrlAssert isEqualToWithSortedQueryParameters(java.net.URL p0) { return (AbstractUrlAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public abstract class AbstractZonedDateTimeAssert extends AbstractTemporalAssert {
   public static String NULL_DATE_TIME_PARAMETER_MESSAGE;
@@ -2257,9 +2074,6 @@ public abstract class AbstractZonedDateTimeAssert extends AbstractTemporalAssert
   public AbstractZonedDateTimeAssert isStrictlyBetween(String p0, String p1) { return (AbstractZonedDateTimeAssert) (Object) null; }
   public AbstractZonedDateTimeAssert usingDefaultComparator() { return (AbstractZonedDateTimeAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface Array2DAssert {
   void isNullOrEmpty();
@@ -2268,17 +2082,11 @@ public interface Array2DAssert {
   Array2DAssert hasDimensions(int p0, int p1);
   Array2DAssert hasSameDimensionsAs(Object p0);
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface ArraySortedAssert {
   ArraySortedAssert isSorted();
   ArraySortedAssert isSortedAccordingTo(java.util.Comparator p0);
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface Assert extends Descriptable, ExtensionPoints {
   Assert isEqualTo(Object p0);
@@ -2316,38 +2124,23 @@ public interface Assert extends Descriptable, ExtensionPoints {
   Assert hasSameHashCodeAs(Object p0);
   Assert doesNotHaveSameHashCodeAs(Object p0);
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface AssertDelegateTarget {
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface AssertFactory {
   Assert createAssert(Object p0);
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface AssertProvider {
   Object assertThat();
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface AssertionInfo {
   String overridingErrorMessage();
   org.assertj.core.description.Description description();
   org.assertj.core.presentation.Representation representation();
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class Assertions implements InstanceOfAssertFactories {
   public static PredicateAssert assertThat(java.util.function.Predicate p0) { return (PredicateAssert) (Object) null; }
@@ -2538,9 +2331,6 @@ public class Assertions implements InstanceOfAssertFactories {
   public static void registerFormatterForType(Class p0, java.util.function.Function p1) {}
   public static void useDefaultRepresentation() {}
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AssertionsForClassTypes {
   public static CompletableFutureAssert assertThat(java.util.concurrent.CompletableFuture p0) { return (CompletableFutureAssert) (Object) null; }
@@ -2663,9 +2453,6 @@ public class AssertionsForClassTypes {
   public static void registerCustomDateFormat(String p0) {}
   public static void useDefaultDateFormatsOnly() {}
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicBooleanAssert extends AbstractAssert {
   public void AtomicBooleanAssert(java.util.concurrent.atomic.AtomicBoolean p0) {}
@@ -2674,9 +2461,6 @@ public class AtomicBooleanAssert extends AbstractAssert {
   public AtomicBooleanAssert usingComparator(java.util.Comparator p0) { return (AtomicBooleanAssert) (Object) null; }
   public AtomicBooleanAssert usingComparator(java.util.Comparator p0, String p1) { return (AtomicBooleanAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicIntegerArrayAssert extends AbstractEnumerableAssert {
   public void AtomicIntegerArrayAssert(java.util.concurrent.atomic.AtomicIntegerArray p0) {}
@@ -2710,9 +2494,6 @@ public class AtomicIntegerArrayAssert extends AbstractEnumerableAssert {
   public AtomicIntegerArrayAssert containsExactlyInAnyOrder(int[] p0) { return (AtomicIntegerArrayAssert) (Object) null; }
   public AtomicIntegerArrayAssert containsAnyOf(int[] p0) { return (AtomicIntegerArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicIntegerAssert extends AbstractAssert {
   public void AtomicIntegerAssert(java.util.concurrent.atomic.AtomicInteger p0) {}
@@ -2733,18 +2514,12 @@ public class AtomicIntegerAssert extends AbstractAssert {
   public AtomicIntegerAssert usingComparator(java.util.Comparator p0, String p1) { return (AtomicIntegerAssert) (Object) null; }
   public AtomicIntegerAssert usingDefaultComparator() { return (AtomicIntegerAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicIntegerFieldUpdaterAssert extends AbstractAtomicFieldUpdaterAssert {
   public void AtomicIntegerFieldUpdaterAssert(java.util.concurrent.atomic.AtomicIntegerFieldUpdater p0) {}
   public AtomicIntegerFieldUpdaterAssert hasValue(Integer p0, Object p1) { return (AtomicIntegerFieldUpdaterAssert) (Object) null; }
   public AbstractAtomicFieldUpdaterAssert hasValue(Object p0, Object p1) { return (AbstractAtomicFieldUpdaterAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicLongArrayAssert extends AbstractEnumerableAssert {
   public void AtomicLongArrayAssert(java.util.concurrent.atomic.AtomicLongArray p0) {}
@@ -2778,9 +2553,6 @@ public class AtomicLongArrayAssert extends AbstractEnumerableAssert {
   public AtomicLongArrayAssert containsExactlyInAnyOrder(long[] p0) { return (AtomicLongArrayAssert) (Object) null; }
   public AtomicLongArrayAssert containsAnyOf(long[] p0) { return (AtomicLongArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicLongAssert extends AbstractAssert {
   public void AtomicLongAssert(java.util.concurrent.atomic.AtomicLong p0) {}
@@ -2801,18 +2573,12 @@ public class AtomicLongAssert extends AbstractAssert {
   public AtomicLongAssert usingComparator(java.util.Comparator p0, String p1) { return (AtomicLongAssert) (Object) null; }
   public AtomicLongAssert usingDefaultComparator() { return (AtomicLongAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicLongFieldUpdaterAssert extends AbstractAtomicFieldUpdaterAssert {
   public void AtomicLongFieldUpdaterAssert(java.util.concurrent.atomic.AtomicLongFieldUpdater p0) {}
   public AtomicLongFieldUpdaterAssert hasValue(Long p0, Object p1) { return (AtomicLongFieldUpdaterAssert) (Object) null; }
   public AbstractAtomicFieldUpdaterAssert hasValue(Object p0, Object p1) { return (AbstractAtomicFieldUpdaterAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicMarkableReferenceAssert extends AbstractAtomicReferenceAssert {
   public void AtomicMarkableReferenceAssert(java.util.concurrent.atomic.AtomicMarkableReference p0) {}
@@ -2820,9 +2586,6 @@ public class AtomicMarkableReferenceAssert extends AbstractAtomicReferenceAssert
   public AtomicMarkableReferenceAssert isMarked() { return (AtomicMarkableReferenceAssert) (Object) null; }
   public AtomicMarkableReferenceAssert isNotMarked() { return (AtomicMarkableReferenceAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicReferenceArrayAssert extends AbstractAssert implements IndexedObjectEnumerableAssert, ArraySortedAssert {
   public void AtomicReferenceArrayAssert(java.util.concurrent.atomic.AtomicReferenceArray p0) {}
@@ -2930,9 +2693,6 @@ public class AtomicReferenceArrayAssert extends AbstractAssert implements Indexe
   public AtomicReferenceArrayAssert containsAnyElementsOf(Iterable p0) { return (AtomicReferenceArrayAssert) (Object) null; }
   public AtomicReferenceArrayAssert noneMatch(java.util.function.Predicate p0) { return (AtomicReferenceArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicReferenceAssert extends AbstractAssert {
   public void AtomicReferenceAssert(java.util.concurrent.atomic.AtomicReference p0) {}
@@ -2942,26 +2702,17 @@ public class AtomicReferenceAssert extends AbstractAssert {
   public AtomicReferenceAssert hasValueMatching(java.util.function.Predicate p0, String p1) { return (AtomicReferenceAssert) (Object) null; }
   public AtomicReferenceAssert hasValueSatisfying(java.util.function.Consumer p0) { return (AtomicReferenceAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicReferenceFieldUpdaterAssert extends AbstractAtomicFieldUpdaterAssert {
   public void AtomicReferenceFieldUpdaterAssert(java.util.concurrent.atomic.AtomicReferenceFieldUpdater p0) {}
   public AtomicReferenceFieldUpdaterAssert hasValue(Object p0, Object p1) { return (AtomicReferenceFieldUpdaterAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class AtomicStampedReferenceAssert extends AbstractAtomicReferenceAssert {
   public void AtomicStampedReferenceAssert(java.util.concurrent.atomic.AtomicStampedReference p0) {}
   public AtomicStampedReferenceAssert hasReference(Object p0) { return (AtomicStampedReferenceAssert) (Object) null; }
   public AtomicStampedReferenceAssert hasStamp(int p0) { return (AtomicStampedReferenceAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class Boolean2DArrayAssert extends Abstract2DArrayAssert {
   public void Boolean2DArrayAssert(boolean[][] p0) {}
@@ -2976,17 +2727,11 @@ public class Boolean2DArrayAssert extends Abstract2DArrayAssert {
   public Boolean2DArrayAssert doesNotContain(boolean[] p0, org.assertj.core.data.Index p1) { return (Boolean2DArrayAssert) (Object) null; }
   public Abstract2DArrayAssert isDeepEqualTo(Object p0) { return (Abstract2DArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class BooleanAssert extends AbstractBooleanAssert {
   public void BooleanAssert(Boolean p0) {}
   public void BooleanAssert(java.util.concurrent.atomic.AtomicBoolean p0) {}
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class Byte2DArrayAssert extends Abstract2DArrayAssert {
   public void Byte2DArrayAssert(byte[][] p0) {}
@@ -3001,9 +2746,6 @@ public class Byte2DArrayAssert extends Abstract2DArrayAssert {
   public Byte2DArrayAssert doesNotContain(byte[] p0, org.assertj.core.data.Index p1) { return (Byte2DArrayAssert) (Object) null; }
   public Abstract2DArrayAssert isDeepEqualTo(Object p0) { return (Abstract2DArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class Char2DArrayAssert extends Abstract2DArrayAssert {
   public void Char2DArrayAssert(char[][] p0) {}
@@ -3019,33 +2761,21 @@ public class Char2DArrayAssert extends Abstract2DArrayAssert {
   public Char2DArrayAssert inUnicode() { return (Char2DArrayAssert) (Object) null; }
   public Abstract2DArrayAssert isDeepEqualTo(Object p0) { return (Abstract2DArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class ClassAssert extends AbstractClassAssert {
   public void ClassAssert(Class p0) {}
   public ClassAssert hasAnnotations(Class[] p0) { return (ClassAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class ClassBasedNavigableIterableAssert extends AbstractIterableAssert {
   public void ClassBasedNavigableIterableAssert(Iterable p0, Class p1, Class p2) {}
   public AbstractAssert toAssert(Object p0, String p1) { return (AbstractAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class ClassBasedNavigableListAssert extends AbstractListAssert {
   public void ClassBasedNavigableListAssert(java.util.List p0, Class p1) {}
   public AbstractAssert toAssert(Object p0, String p1) { return (AbstractAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface ComparableAssert {
   ComparableAssert isEqualByComparingTo(Comparable p0);
@@ -3057,15 +2787,9 @@ public interface ComparableAssert {
   ComparableAssert isBetween(Comparable p0, Comparable p1);
   ComparableAssert isStrictlyBetween(Comparable p0, Comparable p1);
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class CompletableFutureAssert extends AbstractCompletableFutureAssert {
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class Condition implements Descriptable {
   public void Condition() {}
@@ -3077,18 +2801,12 @@ public class Condition implements Descriptable {
   public boolean matches(Object p0) { return (boolean) (Object) null; }
   public String toString() { return (String) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface Descriptable {
   Object describedAs(org.assertj.core.description.Description p0);
   default Object as(java.util.function.Supplier<String> descriptionSupplier) { return null;}
 
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class Double2DArrayAssert extends Abstract2DArrayAssert {
   public void Double2DArrayAssert(double[][] p0) {}
@@ -3103,18 +2821,12 @@ public class Double2DArrayAssert extends Abstract2DArrayAssert {
   public Double2DArrayAssert doesNotContain(double[] p0, org.assertj.core.data.Index p1) { return (Double2DArrayAssert) (Object) null; }
   public Abstract2DArrayAssert isDeepEqualTo(Object p0) { return (Abstract2DArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class DoublePredicateAssert extends AbstractPredicateLikeAssert {
   public void DoublePredicateAssert(java.util.function.DoublePredicate p0) {}
   public DoublePredicateAssert accepts(double[] p0) { return (DoublePredicateAssert) (Object) null; }
   public DoublePredicateAssert rejects(double[] p0) { return (DoublePredicateAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface EnumerableAssert {
   void isNullOrEmpty();
@@ -3131,9 +2843,6 @@ public interface EnumerableAssert {
   EnumerableAssert usingElementComparator(java.util.Comparator p0);
   EnumerableAssert usingDefaultElementComparator();
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface ExtensionPoints {
   ExtensionPoints is(Condition p0);
@@ -3142,25 +2851,16 @@ public interface ExtensionPoints {
   ExtensionPoints doesNotHave(Condition p0);
   ExtensionPoints satisfies(Condition p0);
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class FactoryBasedNavigableIterableAssert extends AbstractIterableAssert {
   public void FactoryBasedNavigableIterableAssert(Iterable p0, Class p1, AssertFactory p2) {}
   public AbstractAssert toAssert(Object p0, String p1) { return (AbstractAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class FactoryBasedNavigableListAssert extends AbstractListAssert {
   public void FactoryBasedNavigableListAssert(java.util.List p0, Class p1, AssertFactory p2) {}
   public AbstractAssert toAssert(Object p0, String p1) { return (AbstractAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class Float2DArrayAssert extends Abstract2DArrayAssert {
   public void Float2DArrayAssert(float[][] p0) {}
@@ -3175,9 +2875,6 @@ public class Float2DArrayAssert extends Abstract2DArrayAssert {
   public Float2DArrayAssert doesNotContain(float[] p0, org.assertj.core.data.Index p1) { return (Float2DArrayAssert) (Object) null; }
   public Abstract2DArrayAssert isDeepEqualTo(Object p0) { return (Abstract2DArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface FloatingPointNumberAssert extends NumberAssert {
   FloatingPointNumberAssert isEqualTo(Number p0, org.assertj.core.data.Offset p1);
@@ -3188,38 +2885,23 @@ public interface FloatingPointNumberAssert extends NumberAssert {
   FloatingPointNumberAssert isFinite();
   FloatingPointNumberAssert isInfinite();
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class FutureAssert extends AbstractFutureAssert {
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface IndexedObjectEnumerableAssert extends ObjectEnumerableAssert {
   IndexedObjectEnumerableAssert contains(Object p0, org.assertj.core.data.Index p1);
   IndexedObjectEnumerableAssert doesNotContain(Object p0, org.assertj.core.data.Index p1);
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface InstanceOfAssertFactories {
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class InstanceOfAssertFactory implements AssertFactory {
   public void InstanceOfAssertFactory(Class p0, AssertFactory p1) {}
   public AbstractAssert createAssert(Object p0) { return (AbstractAssert) (Object) null; }
   public String toString() { return (String) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class Int2DArrayAssert extends Abstract2DArrayAssert {
   public void Int2DArrayAssert(int[][] p0) {}
@@ -3234,18 +2916,12 @@ public class Int2DArrayAssert extends Abstract2DArrayAssert {
   public Int2DArrayAssert doesNotContain(int[] p0, org.assertj.core.data.Index p1) { return (Int2DArrayAssert) (Object) null; }
   public Abstract2DArrayAssert isDeepEqualTo(Object p0) { return (Abstract2DArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class IntPredicateAssert extends AbstractPredicateLikeAssert {
   public void IntPredicateAssert(java.util.function.IntPredicate p0) {}
   public IntPredicateAssert accepts(int[] p0) { return (IntPredicateAssert) (Object) null; }
   public IntPredicateAssert rejects(int[] p0) { return (IntPredicateAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class IterableAssert extends FactoryBasedNavigableIterableAssert {
   public void IterableAssert(Iterable p0) {}
@@ -3271,16 +2947,10 @@ public class IterableAssert extends FactoryBasedNavigableIterableAssert {
   public IterableAssert satisfiesExactly(java.util.function.Consumer[] p0) { return (IterableAssert) (Object) null; }
   public IterableAssert satisfiesExactlyInAnyOrder(java.util.function.Consumer[] p0) { return (IterableAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class IteratorAssert extends AbstractIteratorAssert {
   public void IteratorAssert(java.util.Iterator p0) {}
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class ListAssert extends FactoryBasedNavigableListAssert {
   public void ListAssert(java.util.List p0) {}
@@ -3322,9 +2992,6 @@ public class ListAssert extends FactoryBasedNavigableListAssert {
   public ListAssert satisfiesExactly(java.util.function.Consumer[] p0) { return (ListAssert) (Object) null; }
   public ListAssert satisfiesExactlyInAnyOrder(java.util.function.Consumer[] p0) { return (ListAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class Long2DArrayAssert extends Abstract2DArrayAssert {
   public void Long2DArrayAssert(long[][] p0) {}
@@ -3339,25 +3006,16 @@ public class Long2DArrayAssert extends Abstract2DArrayAssert {
   public Long2DArrayAssert doesNotContain(long[] p0, org.assertj.core.data.Index p1) { return (Long2DArrayAssert) (Object) null; }
   public Abstract2DArrayAssert isDeepEqualTo(Object p0) { return (Abstract2DArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class LongAdderAssert extends AbstractLongAdderAssert {
   public void LongAdderAssert(java.util.concurrent.atomic.LongAdder p0) {}
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class LongPredicateAssert extends AbstractPredicateLikeAssert {
   public void LongPredicateAssert(java.util.function.LongPredicate p0) {}
   public LongPredicateAssert accepts(long[] p0) { return (LongPredicateAssert) (Object) null; }
   public LongPredicateAssert rejects(long[] p0) { return (LongPredicateAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class MapAssert extends AbstractMapAssert {
   public void MapAssert(java.util.Map p0) {}
@@ -3374,18 +3032,12 @@ public class MapAssert extends AbstractMapAssert {
   public AbstractListAssert extractingByKeys(Object[] p0) { return (AbstractListAssert) (Object) null; }
   public AbstractListAssert extractingFromEntries(java.util.function.Function[] p0) { return (AbstractListAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class NotThrownAssert implements Descriptable {
   public void NotThrownAssert() {}
   public void isThrownBy(ThrowableAssert.ThrowingCallable p0) {}
   public NotThrownAssert describedAs(org.assertj.core.description.Description p0) { return (NotThrownAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface NumberAssert {
   NumberAssert isZero();
@@ -3402,9 +3054,6 @@ public interface NumberAssert {
   NumberAssert isCloseTo(Number p0, org.assertj.core.data.Percentage p1);
   NumberAssert isNotCloseTo(Number p0, org.assertj.core.data.Percentage p1);
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class Object2DArrayAssert extends Abstract2DArrayAssert {
   public void Object2DArrayAssert(Object[][] p0) {}
@@ -3419,9 +3068,6 @@ public class Object2DArrayAssert extends Abstract2DArrayAssert {
   public Object2DArrayAssert doesNotContain(Object[] p0, org.assertj.core.data.Index p1) { return (Object2DArrayAssert) (Object) null; }
   public Abstract2DArrayAssert isDeepEqualTo(Object p0) { return (Abstract2DArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class ObjectArrayAssert extends AbstractObjectArrayAssert {
   public void ObjectArrayAssert(Object[] p0) {}
@@ -3443,18 +3089,12 @@ public class ObjectArrayAssert extends AbstractObjectArrayAssert {
   public ObjectArrayAssert satisfiesExactly(java.util.function.Consumer[] p0) { return (ObjectArrayAssert) (Object) null; }
   public ObjectArrayAssert satisfiesExactlyInAnyOrder(java.util.function.Consumer[] p0) { return (ObjectArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class ObjectAssert extends AbstractObjectAssert {
   public void ObjectAssert(Object p0) {}
   public void ObjectAssert(java.util.concurrent.atomic.AtomicReference p0) {}
   public AbstractListAssert extracting(java.util.function.Function[] p0) { return (AbstractListAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public interface ObjectEnumerableAssert extends EnumerableAssert {
   ObjectEnumerableAssert contains(Object[] p0);
@@ -3516,41 +3156,23 @@ public interface ObjectEnumerableAssert extends EnumerableAssert {
   ObjectEnumerableAssert containsAnyElementsOf(Iterable p0);
   ObjectEnumerableAssert noneMatch(java.util.function.Predicate p0);
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class OptionalAssert extends AbstractOptionalAssert {
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class OptionalDoubleAssert extends AbstractOptionalDoubleAssert {
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class OptionalIntAssert extends AbstractOptionalIntAssert {
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class OptionalLongAssert extends AbstractOptionalLongAssert {
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class PredicateAssert extends AbstractPredicateAssert {
   public PredicateAssert accepts(Object[] p0) { return (PredicateAssert) (Object) null; }
   public PredicateAssert rejects(Object[] p0) { return (PredicateAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class RecursiveComparisonAssert extends AbstractAssert {
   public void RecursiveComparisonAssert(Object p0, org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration p1) {}
@@ -3577,9 +3199,6 @@ public class RecursiveComparisonAssert extends AbstractAssert {
   public RecursiveComparisonAssert withEqualsForType(java.util.function.BiPredicate p0, Class p1) { return (RecursiveComparisonAssert) (Object) null; }
   public org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration getRecursiveComparisonConfiguration() { return (org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class Short2DArrayAssert extends Abstract2DArrayAssert {
   public void Short2DArrayAssert(short[][] p0) {}
@@ -3596,15 +3215,9 @@ public class Short2DArrayAssert extends Abstract2DArrayAssert {
   public Short2DArrayAssert doesNotContain(int[] p0, org.assertj.core.data.Index p1) { return (Short2DArrayAssert) (Object) null; }
   public Abstract2DArrayAssert isDeepEqualTo(Object p0) { return (Abstract2DArrayAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class SpliteratorAssert extends AbstractSpliteratorAssert {
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class ThrowableAssert extends AbstractThrowableAssert {
   public interface ThrowingCallable {
@@ -3615,9 +3228,6 @@ public class ThrowableAssert extends AbstractThrowableAssert {
   public static Throwable catchThrowable(ThrowableAssert.ThrowingCallable p0) { return (Throwable) (Object) null; }
   public static Throwable catchThrowableOfType(ThrowableAssert.ThrowingCallable p0, Class p1) { return (Throwable) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class ThrowableAssertAlternative extends AbstractAssert {
   public void ThrowableAssertAlternative(Throwable p0) {}
@@ -3646,25 +3256,16 @@ public class ThrowableAssertAlternative extends AbstractAssert {
   public ThrowableAssertAlternative havingCause() { return (ThrowableAssertAlternative) (Object) null; }
   public ThrowableAssertAlternative havingRootCause() { return (ThrowableAssertAlternative) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class ThrowableTypeAssert implements Descriptable {
   public void ThrowableTypeAssert(Class p0) {}
   public ThrowableAssertAlternative isThrownBy(ThrowableAssert.ThrowingCallable p0) { return (ThrowableAssertAlternative) (Object) null; }
   public ThrowableTypeAssert describedAs(org.assertj.core.description.Description p0) { return (ThrowableTypeAssert) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class WithThrowable {
   public ThrowableAssertAlternative withThrowableOfType(Class p0) { return (ThrowableAssertAlternative) (Object) null; }
 }
----
-package org.assertj.core.api;
-import java.io.*;
 
 public class WritableAssertionInfo implements AssertionInfo {
   public void WritableAssertionInfo(org.assertj.core.presentation.Representation p0) {}
@@ -3692,9 +3293,6 @@ import java.io.*;
 public abstract class FilterOperator {
   public abstract Filters applyOn(Filters p0);
 }
----
-package org.assertj.core.api.filter;
-import java.io.*;
 
 public class Filters {
   public static Filters filter(Iterable p0) { return (Filters) (Object) null; }
@@ -3710,25 +3308,16 @@ public class Filters {
   public Filters notIn(Object[] p0) { return (Filters) (Object) null; }
   public java.util.List get() { return (java.util.List) (Object) null; }
 }
----
-package org.assertj.core.api.filter;
-import java.io.*;
 
 public class InFilter extends FilterOperator {
   public static InFilter in(Object[] p0) { return (InFilter) (Object) null; }
   public Filters applyOn(Filters p0) { return (Filters) (Object) null; }
 }
----
-package org.assertj.core.api.filter;
-import java.io.*;
 
 public class NotFilter extends FilterOperator {
   public static NotFilter not(Object p0) { return (NotFilter) (Object) null; }
   public Filters applyOn(Filters p0) { return (Filters) (Object) null; }
 }
----
-package org.assertj.core.api.filter;
-import java.io.*;
 
 public class NotInFilter extends FilterOperator {
   public static NotInFilter notIn(Object[] p0) { return (NotInFilter) (Object) null; }
@@ -3745,6 +3334,50 @@ public interface ThrowingExtractor extends java.util.function.Function {
 ---
 package org.assertj.core.api.recursive.comparison;
 import java.io.*;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.stream.Stream;
+
+abstract class FieldHolder<T> {
+  public FieldHolder() {
+  }
+
+  public void put(String fieldLocation, T entity) {
+  }
+
+  public T get(String fieldLocation) {
+    return null;
+  }
+
+  public boolean hasEntity(String fieldLocation) {
+    return false;
+  }
+
+  public boolean isEmpty() {
+    return false;
+  }
+
+  public Stream<Map.Entry<String, T>> entryByField() { return null; }
+
+}
+
+public class FieldComparators extends FieldHolder<Comparator<?>> {
+  public FieldComparators() {
+  }
+
+  public void registerComparator(String fieldLocation, Comparator<?> comparator) {
+  }
+
+  public boolean hasComparatorForField(String fieldLocation) {
+    return false;
+  }
+  public Comparator<?> getComparatorForField(String fieldLocation) {
+    return null;
+  }
+  public Stream<Map.Entry<String, Comparator<?>>> comparatorByFields() {
+    return null;
+  }
+}
 
 public class RecursiveComparisonConfiguration {
   public class Builder{}
@@ -3799,16 +3432,10 @@ import java.io.*;
 public class DoesNotHave extends Negative {
   public static DoesNotHave doesNotHave(org.assertj.core.api.Condition p0) { return (DoesNotHave) (Object) null; }
 }
----
-package org.assertj.core.condition;
-import java.io.*;
 
 public abstract class Negative extends org.assertj.core.api.Condition {
   public boolean matches(Object p0) { return (boolean) (Object) null; }
 }
----
-package org.assertj.core.condition;
-import java.io.*;
 
 public class Not extends Negative {
   public static Not not(org.assertj.core.api.Condition p0) { return (Not) (Object) null; }
@@ -3824,9 +3451,6 @@ public class Index {
   public int hashCode() { return (int) (Object) null; }
   public String toString() { return (String) (Object) null; }
 }
----
-package org.assertj.core.data;
-import java.io.*;
 
 public class MapEntry implements java.util.Map.Entry {
   public static MapEntry entry(Object p0, Object p1) { return (MapEntry) (Object) null; }
@@ -3837,9 +3461,6 @@ public class MapEntry implements java.util.Map.Entry {
   public Object getValue() { return (Object) (Object) null; }
   public Object setValue(Object p0) { return (Object) (Object) null; }
 }
----
-package org.assertj.core.data;
-import java.io.*;
 
 public class Offset {
   public boolean strict;
@@ -3849,9 +3470,6 @@ public class Offset {
   public int hashCode() { return (int) (Object) null; }
   public String toString() { return (String) (Object) null; }
 }
----
-package org.assertj.core.data;
-import java.io.*;
 
 public class Percentage {
   public double value;
@@ -3860,17 +3478,11 @@ public class Percentage {
   public int hashCode() { return (int) (Object) null; }
   public String toString() { return (String) (Object) null; }
 }
----
-package org.assertj.core.data;
-import java.io.*;
 
 public interface TemporalOffset {
   boolean isBeyondOffset(java.time.temporal.Temporal p0, java.time.temporal.Temporal p1);
   String getBeyondOffsetDifferenceDescription(java.time.temporal.Temporal p0, java.time.temporal.Temporal p1);
 }
----
-package org.assertj.core.data;
-import java.io.*;
 
 public abstract class TemporalUnitOffset implements TemporalOffset {
   public void TemporalUnitOffset(long p0, java.time.temporal.TemporalUnit p1) {}
@@ -3888,17 +3500,11 @@ public abstract class Description {
   public static Description emptyIfNull(Description p0) { return (Description) (Object) null; }
   public static String mostRelevantDescription(Description p0, String p1) { return (String) (Object) null; }
 }
----
-package org.assertj.core.description;
-import java.io.*;
 
 public class LazyTextDescription extends Description {
   public void LazyTextDescription(java.util.function.Supplier p0) {}
   public String value() { return (String) (Object) null; }
 }
----
-package org.assertj.core.description;
-import java.io.*;
 
 public class TextDescription extends Description {
   public void TextDescription(String p0, Object[] p1) {}
@@ -3917,9 +3523,6 @@ public class Properties {
   public java.util.List from(Iterable p0) { return (java.util.List) (Object) null; }
   public java.util.List from(Object[] p0) { return (java.util.List) (Object) null; }
 }
----
-package org.assertj.core.groups;
-import java.io.*;
 
 public class Tuple {
   public void Tuple(Object[] p0) {}
@@ -3955,4 +3558,3 @@ public interface Representation {
   String toStringOf(Object p0);
   String unambiguousToStringOf(Object p0);
 }
----
