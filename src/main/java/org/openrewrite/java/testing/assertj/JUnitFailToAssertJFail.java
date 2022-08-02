@@ -31,7 +31,6 @@ import java.util.function.Supplier;
 public class JUnitFailToAssertJFail extends Recipe {
     @Override
     public String getDisplayName() {
-        //noinspection GrazieInspection
         return "JUnit fail to AssertJ";
     }
 
@@ -56,7 +55,7 @@ public class JUnitFailToAssertJFail extends Recipe {
     }
 
     public static class JUnitFailToAssertJFailVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion()
+        private final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion()
                 .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")).build();
         private static final MethodMatcher JUNIT_FAIL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " fail(..)");
 
@@ -121,6 +120,8 @@ public class JUnitFailToAssertJFail extends Recipe {
         }
 
         private static class UnqualifiedMethodInvocations extends JavaIsoVisitor<ExecutionContext> {
+            private final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion()
+                    .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")).build();
             private static final MethodMatcher ASSERTJ_FAIL_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions" + " fail(..)");
 
             @Override
