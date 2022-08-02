@@ -15,6 +15,9 @@
  */
 package org.assertj.core.api;
 import java.io.*;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.stream.Stream;
 
 public abstract class Abstract2DArrayAssert extends AbstractAssert implements Array2DAssert {
   public abstract Abstract2DArrayAssert isDeepEqualTo(Object p0);
@@ -3742,6 +3745,60 @@ import java.io.*;
 public interface ThrowingExtractor extends java.util.function.Function {
   Object extractThrows(Object p0) throws Exception;
 }
+---
+package org.assertj.core.api.recursive.comparison;
+
+import java.util.Comparator;
+import java.util.Map;
+import java.util.stream.Stream;
+
+abstract class FieldHolder<T> {
+  public FieldHolder() {
+  }
+
+  public void put(String fieldLocation, T entity) {
+  }
+
+  public T get(String fieldLocation) {
+    return null;
+  }
+
+  public boolean hasEntity(String fieldLocation) {
+    return false;
+  }
+
+  public boolean isEmpty() {
+    return false;
+  }
+
+  public Stream<Map.Entry<String, T>> entryByField() { return null; }
+
+}
+---
+package org.assertj.core.api.recursive.comparison;
+
+import java.util.Comparator;
+import java.util.Map;
+import java.util.stream.Stream;
+
+public class FieldComparators extends FieldHolder<Comparator<?>> {
+  public FieldComparators() {
+  }
+
+  public void registerComparator(String fieldLocation, Comparator<?> comparator) {
+  }
+
+  public boolean hasComparatorForField(String fieldLocation) {
+    return false;
+  }
+  public Comparator<?> getComparatorForField(String fieldLocation) {
+    return null;
+  }
+  public Stream<Map.Entry<String, Comparator<?>>> comparatorByFields() {
+    return null;
+  }
+}
+
 ---
 package org.assertj.core.api.recursive.comparison;
 import java.io.*;
