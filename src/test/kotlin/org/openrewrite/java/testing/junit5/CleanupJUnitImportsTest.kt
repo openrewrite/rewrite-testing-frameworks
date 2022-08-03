@@ -21,7 +21,7 @@ import org.openrewrite.java.JavaRecipeTest
 
 class CleanupJUnitImportsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit", "apiguardian")
+        .classpath("junit")
         .build()
 
     override val recipe = CleanupJUnitImports()

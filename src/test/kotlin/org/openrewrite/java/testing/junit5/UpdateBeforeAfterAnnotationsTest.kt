@@ -24,7 +24,7 @@ import org.openrewrite.java.JavaRecipeTest
 
 class UpdateBeforeAfterAnnotationsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit", "apiguardian")
+        .classpath("junit")
         .build()
 
     override val recipe: Recipe

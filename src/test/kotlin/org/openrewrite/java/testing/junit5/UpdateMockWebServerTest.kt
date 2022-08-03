@@ -24,7 +24,7 @@ import org.openrewrite.java.JavaRecipeTest
 class UpdateMockWebServerTest : JavaRecipeTest {
 
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit", "apiguardian")
+        .classpath("junit")
         .dependsOn("package okhttp3.mockwebserver; public class MockWebServer implements Closeable {}")
         .build()
     override val recipe: Recipe

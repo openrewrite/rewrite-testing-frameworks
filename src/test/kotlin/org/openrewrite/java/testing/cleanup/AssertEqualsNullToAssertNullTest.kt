@@ -24,7 +24,7 @@ import org.openrewrite.java.JavaRecipeTest
 class AssertEqualsNullToAssertNullTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .logCompilationWarningsAndErrors(true)
-        .classpath("junit-jupiter-api", "apiguardian")
+        .classpath("junit-jupiter-api")
         .build()
 
     override val recipe: Recipe

@@ -23,7 +23,7 @@ import org.openrewrite.java.JavaRecipeTest
 @Suppress("NewClassNamingConvention", "ExcessiveLambdaUsage", "RedundantArrayCreation")
 class JUnitAssertArrayEqualsToAssertThatTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit", "apiguardian")
+        .classpath("junit")
         .build()
 
     override val recipe: Recipe

@@ -22,7 +22,7 @@ import org.openrewrite.java.JavaRecipeTest
 
 class RemoveTestPrefixTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit-jupiter-api", "apiguardian")
+        .classpath("junit-jupiter-api")
         .build()
 
     override val recipe: Recipe

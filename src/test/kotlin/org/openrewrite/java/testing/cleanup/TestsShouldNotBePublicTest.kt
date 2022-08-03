@@ -22,7 +22,7 @@ import org.openrewrite.java.JavaRecipeTest
 
 class TestsShouldNotBePublicTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit-jupiter-api", "junit-jupiter-params", "apiguardian")
+        .classpath("junit-jupiter-api", "junit-jupiter-params")
         .build()
 
     override val recipe: Recipe

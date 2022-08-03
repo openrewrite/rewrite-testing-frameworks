@@ -24,7 +24,7 @@ import org.openrewrite.java.JavaRecipeTest
 class JUnitAssertNullToAssertThatTest : JavaRecipeTest {
     override val parser: JavaParser
         get() = JavaParser.fromJavaVersion()
-            .classpath("junit", "apiguardian")
+            .classpath("junit")
             .build()
 
     override val recipe: Recipe

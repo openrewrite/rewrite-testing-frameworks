@@ -24,7 +24,7 @@ import org.openrewrite.java.JavaRecipeTest
 @Suppress("NewClassNamingConvention")
 class UpdateTestAnnotationTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit", "apiguardian")
+        .classpath("junit")
         .build()
 
     override val recipe: Recipe
