@@ -25,7 +25,7 @@ class JUnitFailToAssertJFailTest : JavaRecipeTest {
 
     override val parser: JavaParser
         get() = JavaParser.fromJavaVersion()
-            .classpath("junit", "apiguardian-api")
+            .classpath("junit", "apiguardian")
             .build()
 
     override val recipe: Recipe
