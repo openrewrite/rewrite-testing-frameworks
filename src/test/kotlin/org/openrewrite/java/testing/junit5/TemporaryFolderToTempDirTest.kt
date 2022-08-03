@@ -23,7 +23,7 @@ import org.openrewrite.java.JavaRecipeTest
 
 class TemporaryFolderToTempDirTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit")
+        .classpath("junit", "apiguardian-api")
         .build()
 
     override val recipe: Recipe

@@ -28,7 +28,7 @@ class CleanupAssertionsTest : RewriteTest {
                 .build()
                 .activateRecipes("org.openrewrite.java.testing.junit5.CleanupAssertions"))
             .parser(JavaParser.fromJavaVersion()
-                .classpath("junit-jupiter-api")
+                .classpath("junit-jupiter-api", "apiguardian-api")
                 .build())
     }
 

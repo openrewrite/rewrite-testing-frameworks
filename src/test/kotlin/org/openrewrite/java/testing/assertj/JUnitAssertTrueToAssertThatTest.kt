@@ -25,7 +25,7 @@ class JUnitAssertTrueToAssertThatTest : JavaRecipeTest {
 
     override val parser: JavaParser
         get() = JavaParser.fromJavaVersion()
-            .classpath("junit")
+            .classpath("junit", "apiguardian-api")
             .build()
 
     override val recipe: Recipe

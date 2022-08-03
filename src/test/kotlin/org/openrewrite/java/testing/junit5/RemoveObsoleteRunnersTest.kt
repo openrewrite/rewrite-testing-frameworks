@@ -21,7 +21,7 @@ import org.openrewrite.java.JavaRecipeTest
 
 class RemoveObsoleteRunnersTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit")
+        .classpath("junit", "apiguardian-api")
         .build()
 
     override val recipe = RemoveObsoleteRunners(

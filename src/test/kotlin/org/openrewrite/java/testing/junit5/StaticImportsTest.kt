@@ -24,7 +24,7 @@ class StaticImportsTest : JavaRecipeTest {
     @Test
     fun useAssertionsStaticImport() = assertChanged(
         parser = JavaParser.fromJavaVersion()
-                .classpath("junit-jupiter-api")
+                .classpath("junit-jupiter-api", "apiguardian-api")
                 .build(),
         recipe = Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")

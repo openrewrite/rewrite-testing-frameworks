@@ -22,8 +22,8 @@ import org.openrewrite.java.JavaRecipeTest
 
 class CategoryToTagTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .build()
+        .classpath("junit", "apiguardian-api")
+        .build()
 
     override val recipe: Recipe
         get() = CategoryToTag()
