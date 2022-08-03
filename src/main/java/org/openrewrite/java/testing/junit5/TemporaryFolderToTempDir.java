@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -35,8 +36,8 @@ public class TemporaryFolderToTempDir extends Recipe {
     private static final AnnotationMatcher CLASS_RULE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.ClassRule");
     private static final AnnotationMatcher RULE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Rule");
 
-    private static final JavaType.Class FILE_TYPE = JavaType.Class.build("java.io.File");
-    private static final JavaType.Class STRING_TYPE = JavaType.Class.build("java.lang.String");
+    private static final JavaType.Class FILE_TYPE = JavaType.ShallowClass.build("java.io.File");
+    private static final JavaType.Class STRING_TYPE = JavaType.ShallowClass.build("java.lang.String");
     private static final Supplier<JavaParser> TEMPDIR_PARSER = () ->
             JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
                     Parser.Input.fromString("" +
@@ -109,8 +110,8 @@ public class TemporaryFolderToTempDir extends Recipe {
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
             J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, executionContext);
-            String declaringType = mi.getMethodType() != null ? mi.getMethodType().getDeclaringType().getFullyQualifiedName() : null;
-            if ("org.junit.rules.TemporaryFolder".equals(declaringType) && mi.getSelect() != null) {
+            if (mi.getSelect() != null && mi.getMethodType() != null
+                    && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "org.junit.rules.TemporaryFolder")) {
                 switch (mi.getSimpleName()) {
                     case "newFile":
                         return convertToNewFile(mi);
@@ -167,7 +168,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                                 && params.size() == 2
                                 && params.get(0).hasClassType(FILE_TYPE)
                                 && params.get(1).hasClassType(STRING_TYPE);
-                    }).map(J.MethodDeclaration::getMethodType).findAny().orElse(null);
+                    }).map(J.MethodDeclaration::getMethodType).filter(Objects::nonNull).findAny().orElse(null);
 
             if (newFolderMethodDeclaration == null) {
                 cd = cd.withTemplate(JavaTemplate.builder(this::getCursor,
