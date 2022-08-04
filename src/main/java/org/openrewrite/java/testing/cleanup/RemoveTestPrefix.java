@@ -16,6 +16,8 @@
 package org.openrewrite.java.testing.cleanup;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -31,6 +33,13 @@ import org.openrewrite.java.tree.J.MethodDeclaration;
 import org.openrewrite.java.tree.TypeUtils;
 
 public class RemoveTestPrefix extends Recipe {
+
+    private static final List<String> RESERVED_KEYWORDS = Arrays.asList("abstract", "continue", "for", "new", "switch",
+            "assert", "default", "if", "package", "synchronized", "boolean", "do", "goto", "private", "this", "break",
+            "double", "implements", "protected", "throw", "byte", "else", "import", "public", "throws", "case", "enum",
+            "instanceof", "return", "transient", "catch", "extends", "int", "short", "try", "char", "final",
+            "interface", "static", "void", "class", "finally", "long", "strictfp", "volatile", "const", "float",
+            "native", "super", "while", "null");
 
     @Override
     public String getDisplayName() {
@@ -48,6 +57,7 @@ public class RemoveTestPrefix extends Recipe {
             @Override
             public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
                 doAfterVisit(new UsesType<>("org.junit.jupiter.api.Test"));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestTemplate"));
                 doAfterVisit(new UsesType<>("org.junit.jupiter.api.RepeatedTest"));
                 doAfterVisit(new UsesType<>("org.junit.jupiter.params.ParameterizedTest"));
                 doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestFactory"));
@@ -78,6 +88,9 @@ public class RemoveTestPrefix extends Recipe {
                     && Boolean.FALSE.equals(TypeUtils.isOverride(method.getMethodType()))
                     && hasJUnit5MethodAnnotation(m)) {
                 String newMethodName = Character.toLowerCase(simpleName.charAt(4)) + simpleName.substring(5);
+                if (RESERVED_KEYWORDS.contains(newMethodName)) {
+                    return m;
+                }
                 JavaType.Method type = m.getMethodType();
                 if (type != null) {
                     type = type.withName(newMethodName);
@@ -92,6 +105,7 @@ public class RemoveTestPrefix extends Recipe {
         private static boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {
             for (J.Annotation a : method.getLeadingAnnotations()) {
                 if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test")
+                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")
                         || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest")
                         || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest")
                         || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")) {
