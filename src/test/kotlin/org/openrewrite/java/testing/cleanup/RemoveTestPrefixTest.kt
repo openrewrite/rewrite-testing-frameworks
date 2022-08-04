@@ -127,6 +127,45 @@ class RemoveTestPrefixTest : JavaRecipeTest {
     )
 
     @Test
+    fun ignoreKeyword() = assertUnchanged(
+            before = """
+            import org.junit.jupiter.api.Test;
+
+            class ATest {
+                @Test
+                void testSwitch() {
+                }
+            }
+        """
+    )
+
+    @Test
+    fun ignoreNull() = assertUnchanged(
+            before = """
+            import org.junit.jupiter.api.Test;
+
+            class ATest {
+                @Test
+                void testNull() {
+                }
+            }
+        """
+    )
+
+    @Test
+    fun ignoreUnderscore() = assertUnchanged(
+            before = """
+            import org.junit.jupiter.api.Test;
+
+            class ATest {
+                @Test
+                void test_() {
+                }
+            }
+        """
+    )
+
+    @Test
     fun ignoreNotAnnotatedMethods() = assertUnchanged(
             before = """
             class ATest {
