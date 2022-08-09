@@ -39,7 +39,9 @@ public class RemoveTestPrefix extends Recipe {
             "double", "implements", "protected", "throw", "byte", "else", "import", "public", "throws", "case", "enum",
             "instanceof", "return", "transient", "catch", "extends", "int", "short", "try", "char", "final",
             "interface", "static", "void", "class", "finally", "long", "strictfp", "volatile", "const", "float",
-            "native", "super", "while", "null");
+            "native", "super", "while",
+            // Non keywords that still result in an error
+            "null", "clone", "equals", "finalize", "hashCode", "notify", "notifyAll", "toString", "wait");
 
     @Override
     public String getDisplayName() {

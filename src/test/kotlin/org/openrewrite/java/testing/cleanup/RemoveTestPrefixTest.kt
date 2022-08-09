@@ -174,4 +174,17 @@ class RemoveTestPrefixTest : JavaRecipeTest {
             }
         """
     )
+
+    @Test
+    fun ignoreToString() = assertUnchanged(
+            before = """
+            import org.junit.jupiter.api.Test;
+
+            class ATest {
+                @Test
+                void testToString() {
+                }
+            }
+        """
+    )
 }
