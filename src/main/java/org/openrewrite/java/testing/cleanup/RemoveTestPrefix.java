@@ -111,12 +111,19 @@ public class RemoveTestPrefix extends Recipe {
             }
 
             JavaType.Method type = m.getMethodType();
-            if (type != null) {
-                type = type.withName(newMethodName);
+
+            if (type == null || methodExists(type, newMethodName)) {
+                return m;
             }
+
+            type = type.withName(newMethodName);
             return m.withName(m.getName()
                     .withSimpleName(newMethodName))
                     .withMethodType(type);
+        }
+
+        private boolean methodExists(JavaType.Method method, String newName) {
+            return TypeUtils.findDeclaredMethod(method.getDeclaringType(), newName, method.getParameterTypes()).orElse(null) != null;
         }
 
         private static boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {

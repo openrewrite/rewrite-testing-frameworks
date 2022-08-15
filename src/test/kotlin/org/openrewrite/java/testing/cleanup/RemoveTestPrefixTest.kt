@@ -195,4 +195,19 @@ class RemoveTestPrefixTest : JavaRecipeTest {
             }
         """
     )
+
+    @Test
+    fun renamedMethodExists() = assertUnchanged(
+        before = """
+            import org.junit.jupiter.api.Test;
+
+            class ATest {
+                @Test
+                void testMyDoSomethingLogic() {
+                }
+                
+                void myDoSomethingLogic() {}
+            }
+        """
+    )
 }
