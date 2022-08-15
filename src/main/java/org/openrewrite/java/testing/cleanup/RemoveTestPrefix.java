@@ -41,7 +41,7 @@ public class RemoveTestPrefix extends Recipe {
             "interface", "static", "void", "class", "finally", "long", "strictfp", "volatile", "const", "float",
             "native", "super", "while",
             // Non keywords that still result in an error
-            "null", "clone", "equals", "finalize", "hashCode", "notify", "notifyAll", "toString", "wait");
+            "null", "clone", "finalize", "hashCode", "notify", "notifyAll", "toString", "wait");
 
     @Override
     public String getDisplayName() {
@@ -55,7 +55,7 @@ public class RemoveTestPrefix extends Recipe {
 
     @Override
     protected @Nullable TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaVisitor<ExecutionContext>(){
+        return new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
                 doAfterVisit(new UsesType<>("org.junit.jupiter.api.Test"));
@@ -70,7 +70,7 @@ public class RemoveTestPrefix extends Recipe {
 
     @Override
     public Duration getEstimatedEffortPerOccurrence() {
-      return Duration.ofMinutes(1);
+        return Duration.ofMinutes(1);
     }
 
     @Override
@@ -80,28 +80,43 @@ public class RemoveTestPrefix extends Recipe {
 
     private static class RemoveTestPrefixVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method,
+                ExecutionContext executionContext) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
 
+            // Quickly reject invalid methods
             String simpleName = method.getSimpleName();
-            if (simpleName.startsWith("test")
-                    && 4 < simpleName.length()
-                    && Character.isAlphabetic(simpleName.charAt(4))
-                    && Boolean.FALSE.equals(TypeUtils.isOverride(method.getMethodType()))
-                    && hasJUnit5MethodAnnotation(m)) {
-                String newMethodName = Character.toLowerCase(simpleName.charAt(4)) + simpleName.substring(5);
-                if (RESERVED_KEYWORDS.contains(newMethodName)) {
-                    return m;
-                }
-                JavaType.Method type = m.getMethodType();
-                if (type != null) {
-                    type = type.withName(newMethodName);
-                }
-                m = m.withName(m.getName()
-                        .withSimpleName(newMethodName))
-                        .withMethodType(type);
+            int nameLength = simpleName.length();
+            if (nameLength < 5
+                    || !simpleName.startsWith("test")
+                    || TypeUtils.isOverride(method.getMethodType())
+                    || !hasJUnit5MethodAnnotation(method)) {
+                return m;
             }
-            return m;
+
+            // Reject invalid start character
+            boolean snakecase = simpleName.charAt(4) == '_'
+                    && 5 < nameLength
+                    && Character.isAlphabetic(simpleName.charAt(5));
+            if (!snakecase && !Character.isAlphabetic(simpleName.charAt(4))) {
+                return m;
+            }
+
+            // Rename method
+            String newMethodName = snakecase
+                    ? Character.toLowerCase(simpleName.charAt(5)) + simpleName.substring(6)
+                    : Character.toLowerCase(simpleName.charAt(4)) + simpleName.substring(5);
+            if (RESERVED_KEYWORDS.contains(newMethodName)) {
+                return m;
+            }
+
+            JavaType.Method type = m.getMethodType();
+            if (type != null) {
+                type = type.withName(newMethodName);
+            }
+            return m.withName(m.getName()
+                    .withSimpleName(newMethodName))
+                    .withMethodType(type);
         }
 
         private static boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {
