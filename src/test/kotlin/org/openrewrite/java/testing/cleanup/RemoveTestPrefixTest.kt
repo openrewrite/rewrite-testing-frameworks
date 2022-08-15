@@ -40,6 +40,10 @@ class RemoveTestPrefixTest : JavaRecipeTest {
                 void testMethod() {
                 }
 
+                @Test
+                void test_snake_case() {
+                }
+
                 @Nested
                 class NestedTestClass {
                     @Test
@@ -63,6 +67,10 @@ class RemoveTestPrefixTest : JavaRecipeTest {
 
                 @Test
                 void method() {
+                }
+
+                @Test
+                void snake_case() {
                 }
 
                 @Nested
@@ -153,7 +161,7 @@ class RemoveTestPrefixTest : JavaRecipeTest {
     )
 
     @Test
-    fun ignoreUnderscore() = assertUnchanged(
+    fun ignoreUnderscoreOnly() = assertUnchanged(
             before = """
             import org.junit.jupiter.api.Test;
 
