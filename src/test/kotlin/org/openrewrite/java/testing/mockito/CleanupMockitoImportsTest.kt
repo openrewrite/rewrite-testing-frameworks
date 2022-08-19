@@ -72,6 +72,22 @@ class CleanupMockitoImportsTest : JavaRecipeTest {
         )
 
     @Test
+    fun `do not remove static star import when possibly associated with method invocation having a null type`() =
+        assertUnchanged(
+            before = """
+            import static org.mockito.Mockito.*;
+
+            class MyObjectTest {
+              MyObject myObject;
+            
+              void test() {
+                when(myObject.getSomeField()).thenReturn("testValue");
+              }
+            }
+        """
+        )
+
+    @Test
     fun `remove unused mockito static import`() = assertChanged(
         dependsOn = arrayOf(
             """
