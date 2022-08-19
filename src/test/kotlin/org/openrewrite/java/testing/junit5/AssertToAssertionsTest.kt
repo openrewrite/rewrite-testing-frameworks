@@ -346,4 +346,27 @@ class AssertToAssertionsTest : JavaRecipeTest {
             }
         """
     )
+
+    @Test
+    fun preservesWildcardImport() = assertChanged(
+        before = """
+            import static org.junit.Assert.*;
+            
+            class A {
+                void test() {
+                    assertNotNull(UnknownType.unknownMethod());
+                }
+            }
+        """,
+        after = """
+            import static org.junit.jupiter.api.Assertions.*;
+        
+            class A {
+                void test() {
+                    assertNotNull(UnknownType.unknownMethod());
+                }
+            }
+        """,
+        typeValidation =  { methodInvocations = false; identifiers = false; }
+    )
 }

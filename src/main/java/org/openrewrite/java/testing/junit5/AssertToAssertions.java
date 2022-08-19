@@ -23,6 +23,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
@@ -55,6 +56,22 @@ public class AssertToAssertions extends Recipe {
     public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private static final JavaType ASSERTION_TYPE = JavaType.buildType("org.junit.Assert");
+
+        @Override
+        public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
+            boolean hasWildcardAssertImport = false;
+            for (J.Import imp : cu.getImports()) {
+                if ("org.junit.Assert.*".equals(imp.getQualid().toString())) {
+                    hasWildcardAssertImport = true;
+                    break;
+                }
+            }
+            if (hasWildcardAssertImport) {
+                maybeAddImport("org.junit.jupiter.api.Assertions", "*", false);
+                maybeRemoveImport("org.junit.Assert.*");
+            }
+            return super.visitJavaSourceFile(cu, executionContext);
+        }
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
