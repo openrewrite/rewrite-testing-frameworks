@@ -81,7 +81,7 @@ public class CleanupMockitoImports extends Recipe {
                         String staticName = _import.getQualid().getSimpleName();
                         if ("*".equals(staticName) && !possibleMockitoMethod(unknownTypeMethodInvocationNames)) {
                             maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
-                        } else if (!unknownTypeMethodInvocationNames.contains(staticName)) {
+                        } else if (!"*".equals(staticName) && !unknownTypeMethodInvocationNames.contains(staticName)) {
                             maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName() + "." + staticName);
                         }
                     } else {
