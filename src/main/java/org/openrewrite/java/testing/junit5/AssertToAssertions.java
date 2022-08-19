@@ -29,6 +29,7 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class AssertToAssertions extends Recipe {
@@ -57,6 +58,11 @@ public class AssertToAssertions extends Recipe {
 
         private static final JavaType ASSERTION_TYPE = JavaType.buildType("org.junit.Assert");
 
+        private static final List<String> JUNIT_ASSERT_METHOD_NAMES = Arrays.asList(
+                "assertArrayEquals", "assertEquals", "assertFalse", "assertNotEquals", "assertNotNull", "assertNotSame",
+                "assertNull", "assertSame", "assertThrows", "assertTrue", "fail");
+
+
         @Override
         public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
             boolean hasWildcardAssertImport = false;
@@ -80,7 +86,7 @@ public class AssertToAssertions extends Recipe {
                 return m;
             }
             doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + m.getSimpleName() + "(..)",
-                    "org.junit.jupiter.api.Assertions", null, null));
+                    "org.junit.jupiter.api.Assertions", null, null, true));
             List<Expression> args = m.getArguments();
             Expression firstArg = args.get(0);
             // Suppress arg-switching for Assertions.assertEquals(String, String)
@@ -115,6 +121,9 @@ public class AssertToAssertions extends Recipe {
         private static boolean isJunitAssertMethod(J.MethodInvocation method) {
             if (method.getMethodType() != null && TypeUtils.isAssignableTo(ASSERTION_TYPE, method.getMethodType().getDeclaringType())) {
                 return !"assertThat".equals(method.getSimpleName());
+            }
+            if (method.getMethodType() == null && JUNIT_ASSERT_METHOD_NAMES.contains(method.getSimpleName())) {
+                return true;
             }
             if (!(method.getSelect() instanceof J.Identifier)) {
                 return false;
