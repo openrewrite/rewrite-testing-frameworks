@@ -18,14 +18,14 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
-import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.Modifier.Type;
 
 import java.time.Duration;
-import java.util.stream.Collectors;
 
 public class TempDirNonFinal extends Recipe {
 
@@ -52,18 +52,18 @@ public class TempDirNonFinal extends Recipe {
         return new TempDirVisitor();
     }
 
-    private static class TempDirVisitor extends JavaVisitor<ExecutionContext> {
+    private static class TempDirVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
-        public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
-            J.VariableDeclarations mv = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable,
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
+            J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable,
                     executionContext);
-            if (mv.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches)
-                    && mv.getModifiers().stream().anyMatch(mod -> mod.getType() == Type.Final)) {
-                return mv.withModifiers(mv.getModifiers().stream()
-                        .filter(mod -> mod.getType() != Type.Final)
-                        .collect(Collectors.toList()));
+            if (varDecls.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches)
+                    && varDecls.getModifiers().stream().anyMatch(mod -> mod.getType() == Type.Final)) {
+                return maybeAutoFormat(varDecls, varDecls.withModifiers(ListUtils
+                        .map(varDecls.getModifiers(), modifier -> modifier.getType() == Type.Final ? null : modifier)),
+                        executionContext, getCursor().getParentOrThrow());
             }
-            return mv;
+            return varDecls;
         }
     }
 
