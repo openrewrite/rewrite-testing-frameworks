@@ -87,6 +87,7 @@ class LifecycleNonPrivateTest : JavaRecipeTest {
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
     fun beforeEachAfterAllUnchanged() = assertUnchanged(
         before = """
+            import org.junit.jupiter.api.AfterAll;
             import org.junit.jupiter.api.BeforeEach;
             
             class A {
