@@ -39,6 +39,8 @@ class LifecycleNonPrivateTest : JavaRecipeTest {
                 @BeforeEach
                 private void beforeEach() {
                 }
+                private void unaffected() {
+                }
             }
         """,
         after = """
@@ -48,19 +50,53 @@ class LifecycleNonPrivateTest : JavaRecipeTest {
                 @BeforeEach
                 void beforeEach() {
                 }
+                private void unaffected() {
+                }
             }
         """
     )
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
-    fun beforeEachUnchanged() = assertUnchanged(
+    fun afterAllPrivate() = assertChanged(
+        before = """
+            import org.junit.jupiter.api.AfterAll;
+            
+            class A {
+                @AfterAll
+                private static void afterAll() {
+                }
+                private void unaffected() {
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.AfterAll;
+            
+            class A {
+                @AfterAll
+                static void afterAll() {
+                }
+                private void unaffected() {
+                }
+            }
+        """
+    )
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
+    fun beforeEachAfterAllUnchanged() = assertUnchanged(
         before = """
             import org.junit.jupiter.api.BeforeEach;
             
             class A {
                 @BeforeEach
                 void beforeEach() {
+                }
+                @AfterAll
+                static void afterAll() {
+                }
+                private void unaffected() {
                 }
             }
         """

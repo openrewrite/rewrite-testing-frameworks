@@ -18,6 +18,9 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.AnnotationMatcher;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -26,9 +29,16 @@ import org.openrewrite.java.tree.J.Modifier.Type;
 import org.openrewrite.java.tree.JavaSourceFile;
 
 import java.time.Duration;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.List;
 
 public class LifecycleNonPrivate extends Recipe {
+
+    private static final List<String> ANNOTATIONS = Arrays.asList(
+            "org.junit.jupiter.api.AfterAll",
+            "org.junit.jupiter.api.AfterEach",
+            "org.junit.jupiter.api.BeforeAll",
+            "org.junit.jupiter.api.BeforeEach");
 
     @Override
     public String getDisplayName() {
@@ -45,10 +55,7 @@ public class LifecycleNonPrivate extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.AfterAll"));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.AfterEach"));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.BeforeAll"));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.BeforeEach"));
+                ANNOTATIONS.forEach(ann -> doAfterVisit(new UsesType<>(ann)));
                 return cu;
             }
         };
@@ -59,15 +66,18 @@ public class LifecycleNonPrivate extends Recipe {
         return new LifecycleNonPrivateVisitor();
     }
 
-    private static class LifecycleNonPrivateVisitor extends JavaVisitor<ExecutionContext> {
+    private static class LifecycleNonPrivateVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
-        public J visitMethodDeclaration(MethodDeclaration method, ExecutionContext p) {
-            J.MethodDeclaration md = (MethodDeclaration) super.visitMethodDeclaration(method, p);
-            if (md.getModifiers().stream().anyMatch(mod -> mod.getType() == Type.Private)) {
-                return md
-                        .withModifiers(md.getModifiers().stream()
-                        .filter(mod -> mod.getType() != Type.Private)
-                        .collect(Collectors.toList()));
+        public J.MethodDeclaration visitMethodDeclaration(MethodDeclaration method, ExecutionContext p) {
+            J.MethodDeclaration md = super.visitMethodDeclaration(method, p);
+            if (md.getModifiers().stream().anyMatch(mod -> mod.getType() == Type.Private)
+                    && md.getLeadingAnnotations().stream().anyMatch(ann -> ANNOTATIONS.stream()
+                            .map(AnnotationMatcher::new)
+                            .anyMatch(matcher -> matcher.matches(ann)))) {
+                return maybeAutoFormat(md,
+                        md.withModifiers(ListUtils.map(md.getModifiers(),
+                                modifier -> modifier.getType() == Type.Private ? null : modifier)),
+                        p, getCursor().getParent());
             }
             return md;
         }
