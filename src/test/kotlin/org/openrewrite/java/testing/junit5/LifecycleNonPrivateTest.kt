@@ -102,3 +102,4 @@ class LifecycleNonPrivateTest : JavaRecipeTest {
         """
     )
 }
+
