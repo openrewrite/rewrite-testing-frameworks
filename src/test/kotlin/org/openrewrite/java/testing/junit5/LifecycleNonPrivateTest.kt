@@ -13,26 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:Suppress("JUnitMalformedDeclaration")
+
 package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
-import org.openrewrite.Recipe
+import org.openrewrite.java.Assertions.java
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.JavaRecipeTest
+import org.openrewrite.test.RecipeSpec
+import org.openrewrite.test.RewriteTest
 
-class LifecycleNonPrivateTest : JavaRecipeTest {
-    override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit")
-        .build()
-
-    override val recipe: Recipe
-        get() = LifecycleNonPrivate()
-
+class LifecycleNonPrivateTest : RewriteTest {
+    override fun defaults(spec: RecipeSpec) {
+        spec.recipe(LifecycleNonPrivate())
+        spec.parser(JavaParser.fromJavaVersion()
+            .classpath("junit")
+            .build())
+    }
+    
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
-    fun beforeEachPrivate() = assertChanged(
-        before = """
+    fun beforeEachPrivate() = rewriteRun(
+        java("""
             import org.junit.jupiter.api.BeforeEach;
             
             class A {
@@ -43,7 +46,7 @@ class LifecycleNonPrivateTest : JavaRecipeTest {
                 }
             }
         """,
-        after = """
+        """
             import org.junit.jupiter.api.BeforeEach;
             
             class A {
@@ -53,13 +56,13 @@ class LifecycleNonPrivateTest : JavaRecipeTest {
                 private void unaffected() {
                 }
             }
-        """
+        """)
     )
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
-    fun afterAllPrivate() = assertChanged(
-        before = """
+    fun afterAllPrivate() = rewriteRun(
+        java("""
             import org.junit.jupiter.api.AfterAll;
             
             class A {
@@ -70,7 +73,7 @@ class LifecycleNonPrivateTest : JavaRecipeTest {
                 }
             }
         """,
-        after = """
+        """
             import org.junit.jupiter.api.AfterAll;
             
             class A {
@@ -80,13 +83,13 @@ class LifecycleNonPrivateTest : JavaRecipeTest {
                 private void unaffected() {
                 }
             }
-        """
+        """)
     )
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
-    fun beforeEachAfterAllUnchanged() = assertUnchanged(
-        before = """
+    fun beforeEachAfterAllUnchanged() = rewriteRun(
+        java("""
             import org.junit.jupiter.api.AfterAll;
             import org.junit.jupiter.api.BeforeEach;
             
@@ -100,7 +103,7 @@ class LifecycleNonPrivateTest : JavaRecipeTest {
                 private void unaffected() {
                 }
             }
-        """
+        """)
     )
 }
 

@@ -31,10 +31,11 @@ import org.openrewrite.java.tree.JavaSourceFile;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class LifecycleNonPrivate extends Recipe {
 
-    private static final List<String> ANNOTATIONS = Arrays.asList(
+    private static final List<String> ANNOTATION_TYPES = Arrays.asList(
             "org.junit.jupiter.api.AfterAll",
             "org.junit.jupiter.api.AfterEach",
             "org.junit.jupiter.api.BeforeAll",
@@ -55,7 +56,7 @@ public class LifecycleNonPrivate extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
-                ANNOTATIONS.forEach(ann -> doAfterVisit(new UsesType<>(ann)));
+                ANNOTATION_TYPES.forEach(ann -> doAfterVisit(new UsesType<>(ann)));
                 return cu;
             }
         };
@@ -67,17 +68,19 @@ public class LifecycleNonPrivate extends Recipe {
     }
 
     private static class LifecycleNonPrivateVisitor extends JavaIsoVisitor<ExecutionContext> {
+        final List<AnnotationMatcher> lifeCycleAnnotationMatchers = ANNOTATION_TYPES.stream()
+                .map(annoFqn -> "@" + annoFqn).map(AnnotationMatcher::new).collect(Collectors.toList());
         @Override
         public J.MethodDeclaration visitMethodDeclaration(MethodDeclaration method, ExecutionContext p) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, p);
-            if (md.getModifiers().stream().anyMatch(mod -> mod.getType() == Type.Private)
-                    && md.getLeadingAnnotations().stream().anyMatch(ann -> ANNOTATIONS.stream()
-                            .map(AnnotationMatcher::new)
+
+            if (J.Modifier.hasModifier(md.getModifiers(), Type.Private)
+                    && md.getLeadingAnnotations().stream().anyMatch(ann -> lifeCycleAnnotationMatchers.stream()
                             .anyMatch(matcher -> matcher.matches(ann)))) {
                 return maybeAutoFormat(md,
                         md.withModifiers(ListUtils.map(md.getModifiers(),
                                 modifier -> modifier.getType() == Type.Private ? null : modifier)),
-                        p, getCursor().getParent());
+                        p, getCursor().getParentOrThrow());
             }
             return md;
         }
