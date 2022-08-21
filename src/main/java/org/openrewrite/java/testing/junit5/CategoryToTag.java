@@ -60,7 +60,7 @@ public class CategoryToTag extends Recipe {
     }
 
     public static class CategoryToTagVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final JavaType.Class tagType = JavaType.Class.build("org.junit.jupiter.api.Tag");
+        private static final JavaType.Class tagType = JavaType.ShallowClass.build("org.junit.jupiter.api.Tag");
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {

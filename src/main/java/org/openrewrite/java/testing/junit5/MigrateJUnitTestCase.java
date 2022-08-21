@@ -72,7 +72,7 @@ public class MigrateJUnitTestCase extends Recipe {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
                 for (J.ClassDeclaration clazz : cu.getClasses()) {
-                    if (TypeUtils.isAssignableTo(JavaType.Class.build("junit.framework.TestCase"), clazz.getType())) {
+                    if (TypeUtils.isAssignableTo(JavaType.ShallowClass.build("junit.framework.TestCase"), clazz.getType())) {
                         return cu.withMarkers(cu.getMarkers().searchResult());
                     }
                 }
