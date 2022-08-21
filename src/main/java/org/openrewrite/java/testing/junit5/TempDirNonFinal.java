@@ -55,10 +55,9 @@ public class TempDirNonFinal extends Recipe {
     private static class TempDirVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
-            J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable,
-                    executionContext);
+            J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, executionContext);
             if (varDecls.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches)
-                    && varDecls.getModifiers().stream().anyMatch(mod -> mod.getType() == Type.Final)) {
+                    && varDecls.hasModifier(Type.Final)) {
                 return maybeAutoFormat(varDecls, varDecls.withModifiers(ListUtils
                         .map(varDecls.getModifiers(), modifier -> modifier.getType() == Type.Final ? null : modifier)),
                         executionContext, getCursor().getParentOrThrow());
