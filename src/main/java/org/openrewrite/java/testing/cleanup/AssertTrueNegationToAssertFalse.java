@@ -17,13 +17,9 @@ package org.openrewrite.java.testing.cleanup;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
-import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
-import java.util.List;
 import java.util.function.Supplier;
 
 public class AssertTrueNegationToAssertFalse extends Recipe {

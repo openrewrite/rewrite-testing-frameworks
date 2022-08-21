@@ -17,22 +17,23 @@ package org.openrewrite.java.testing.junit5
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
-import org.openrewrite.Recipe
+import org.openrewrite.java.Assertions.java
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.JavaRecipeTest
+import org.openrewrite.test.RecipeSpec
+import org.openrewrite.test.RewriteTest
 
-class TempDirNonFinalTest : JavaRecipeTest {
-    override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("junit")
-        .build()
-
-    override val recipe: Recipe
-        get() = TempDirNonFinal()
+class TempDirNonFinalTest : RewriteTest {
+    override fun defaults(spec: RecipeSpec) {
+        spec.recipe(TempDirNonFinal())
+        spec.parser(JavaParser.fromJavaVersion()
+            .classpath("junit")
+            .build())
+    }
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
-    fun tempDirStaticFinalFile() = assertChanged(
-        before = """
+    fun tempDirStaticFinalFile() = rewriteRun(
+        java("""
             import org.junit.jupiter.api.io.TempDir;
             
             import java.io.File;
@@ -42,7 +43,7 @@ class TempDirNonFinalTest : JavaRecipeTest {
                 static final File tempDir;
             }
         """,
-        after = """
+        """
             import org.junit.jupiter.api.io.TempDir;
             
             import java.io.File;
@@ -51,13 +52,13 @@ class TempDirNonFinalTest : JavaRecipeTest {
                 @TempDir
                 static File tempDir;
             }
-        """
+        """)
     )
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
-    fun tempDirStaticFinalPath() = assertChanged(
-        before = """
+    fun tempDirStaticFinalPath() = rewriteRun(
+        java("""
             import org.junit.jupiter.api.io.TempDir;
             
             import java.nio.file.Path;
@@ -67,7 +68,7 @@ class TempDirNonFinalTest : JavaRecipeTest {
                 static final Path tempDir;
             }
         """,
-        after = """
+        """
             import org.junit.jupiter.api.io.TempDir;
             
             import java.nio.file.Path;
@@ -76,14 +77,14 @@ class TempDirNonFinalTest : JavaRecipeTest {
                 @TempDir
                 static Path tempDir;
             }
-        """
+        """)
     )
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
-    fun tempDirFileParameter() = assertUnchanged(
-        before = """
-            import org.junit.jupiter.api.Test
+    fun tempDirFileParameter() = rewriteRun(
+        java("""
+            import org.junit.jupiter.api.Test;
             import org.junit.jupiter.api.io.TempDir;
             
             import java.nio.file.Path;
@@ -93,13 +94,13 @@ class TempDirNonFinalTest : JavaRecipeTest {
                 void fileTest(@TempDir File tempDir) {
                 }
             }
-        """
+        """)
     )
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
-    fun tempDirStaticFile() = assertUnchanged(
-        before = """
+    fun tempDirStaticFile() = rewriteRun(
+        java("""
             import org.junit.jupiter.api.io.TempDir;
             
             import java.io.File;
@@ -108,13 +109,13 @@ class TempDirNonFinalTest : JavaRecipeTest {
                 @TempDir
                 static File tempDir;
             }
-        """
+        """)
     )
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
-    fun tempDirStaticPath() = assertUnchanged(
-        before = """
+    fun tempDirStaticPath() = rewriteRun(
+        java("""
             import org.junit.jupiter.api.io.TempDir;
             
             import java.nio.file.Path;
@@ -123,6 +124,6 @@ class TempDirNonFinalTest : JavaRecipeTest {
                 @TempDir
                 static Path tempDir;
             }
-        """
+        """)
     )
 }
