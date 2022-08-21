@@ -23,7 +23,6 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
-import java.util.List;
 import java.util.function.Supplier;
 
 public class AssertTrueComparisonToAssertEquals extends Recipe {
@@ -83,11 +82,6 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
 
                 }
                 return super.visitMethodInvocation(method, ctx);
-            }
-
-            private J.MethodInvocation getMethodInvocation(Expression expr){
-                List<J> s = expr.getSideEffects();
-                return  ((J.MethodInvocation) s.get(0));
             }
 
             private boolean isEqualBinary(J.MethodInvocation method) {

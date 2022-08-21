@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.junit5;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
@@ -35,7 +34,6 @@ import org.openrewrite.java.tree.JavaType;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Supplier;
 
 import static org.openrewrite.Parser.Input.fromString;
 
@@ -91,7 +89,7 @@ public class RunnerToExtension extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final JavaType.Class extensionType = JavaType.Class.build(extension);
+            private final JavaType.Class extensionType = JavaType.ShallowClass.build(extension);
             @Nullable
             private JavaTemplate extendsWithTemplate;
             private JavaTemplate getExtendsWithTemplate() {
