@@ -346,4 +346,53 @@ class AssertToAssertionsTest : JavaRecipeTest {
             }
         """
     )
+
+    @Test
+    fun preservesWildcardImport() = assertChanged(
+        before = """
+            import static org.junit.Assert.*;
+            
+            class A {
+                void test() {
+                    assertNotNull(UnknownType.unknownMethod());
+                }
+            }
+        """,
+        after = """
+            import static org.junit.jupiter.api.Assertions.*;
+        
+            class A {
+                void test() {
+                    assertNotNull(UnknownType.unknownMethod());
+                }
+            }
+        """,
+        typeValidation =  { methodInvocations = false; identifiers = false; }
+    )
+
+    // The retained org.junit.Assert import is not ideal,
+    // but if this recipe is invoked within JUnit4to5Migration, then it gets removed by CleanupJUnitImports
+    @Test
+    fun migratesAssertStatementsWithMissingTypeInfo() = assertChanged(
+        before = """
+            import static org.junit.Assert.assertNotNull;
+            
+            class A {
+                void test() {
+                    assertNotNull(UnknownType.unknownMethod());
+                }
+            }
+        """,
+        after = """
+            import static org.junit.Assert.assertNotNull;
+            import static org.junit.jupiter.api.Assertions.assertNotNull;
+        
+            class A {
+                void test() {
+                    assertNotNull(UnknownType.unknownMethod());
+                }
+            }
+        """,
+        typeValidation =  { methodInvocations = false; identifiers = false; }
+    )
 }
