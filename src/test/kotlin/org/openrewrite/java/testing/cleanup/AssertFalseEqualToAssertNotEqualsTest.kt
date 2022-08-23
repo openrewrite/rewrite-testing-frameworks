@@ -23,7 +23,6 @@ import org.openrewrite.java.JavaRecipeTest
 
 class AssertFalseEqualToAssertNotEqualsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .logCompilationWarningsAndErrors(true)
         .classpath("junit-jupiter-api")
         .build()
 
@@ -42,6 +41,7 @@ class AssertFalseEqualToAssertNotEqualsTest : JavaRecipeTest {
                     String a = "a";
                     String c = "c";
                     assertFalse(a.equals(c));
+                    assertFalse(a.equals(c), "message");
                 }
             }
         """,
@@ -53,6 +53,7 @@ class AssertFalseEqualToAssertNotEqualsTest : JavaRecipeTest {
                     String a = "a";
                     String c = "c";
                     assertNotEquals(a, c);
+                    assertNotEquals(a, c, "message");
                 }
             }
         """,
@@ -69,7 +70,7 @@ class AssertFalseEqualToAssertNotEqualsTest : JavaRecipeTest {
                 void test() {
                     String a = "a";
                     String c = "c";
-                    Assertions.assertFalse(a.equals(c));
+                    Assertions.assertFalse(a.equals(c), "message");
                 }
             }
         """,
@@ -80,7 +81,7 @@ class AssertFalseEqualToAssertNotEqualsTest : JavaRecipeTest {
                 void test() {
                     String a = "a";
                     String c = "c";
-                    Assertions.assertNotEquals(a, c);
+                    Assertions.assertNotEquals(a, c, "message");
                 }
             }
         """,

@@ -23,7 +23,6 @@ import org.openrewrite.java.JavaRecipeTest
 
 class AssertTrueNullToAssertNullTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .logCompilationWarningsAndErrors(true)
         .classpath("junit-jupiter-api")
         .build()
 
@@ -41,9 +40,11 @@ class AssertTrueNullToAssertNullTest : JavaRecipeTest {
                 void test() {
                     String a = null;
                     assertTrue(a == null);
+                    assertTrue(a == null, "message");
                     
                     String b = null;
                     assertTrue(null == b);
+                    assertTrue(null == b, "message");
                 }
             }
         """,
@@ -54,9 +55,11 @@ class AssertTrueNullToAssertNullTest : JavaRecipeTest {
                 void test() {
                     String a = null;
                     assertNull(a);
+                    assertNull(a, "message");
                     
                     String b = null;
                     assertNull(b);
+                    assertNull(b, "message");
                 }
             }
         """,
@@ -73,9 +76,11 @@ class AssertTrueNullToAssertNullTest : JavaRecipeTest {
                 void test() {
                     String a = null;
                     Assertions.assertTrue(a == null);
+                    Assertions.assertTrue(a == null, "message");
                     
                     String b = null;
                     Assertions.assertTrue(null == b);
+                    Assertions.assertTrue(null == b, "message");
                 }
             }
         """,
@@ -86,9 +91,11 @@ class AssertTrueNullToAssertNullTest : JavaRecipeTest {
                 void test() {
                     String a = null;
                     Assertions.assertNull(a);
+                    Assertions.assertNull(a, "message");
                     
                     String b = null;
                     Assertions.assertNull(b);
+                    Assertions.assertNull(b, "message");
                 }
             }
         """,

@@ -23,7 +23,6 @@ import org.openrewrite.java.JavaRecipeTest
 
 class AssertFalseNullToAssertNotNullTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .logCompilationWarningsAndErrors(true)
         .classpath("junit-jupiter-api")
         .build()
 
@@ -41,9 +40,11 @@ class AssertFalseNullToAssertNotNullTest : JavaRecipeTest {
                 void test() {
                     String a = null;
                     assertFalse(a == null);
+                    assertFalse(a == null, "message");
                     
                     String b = null;
                     assertFalse(null == b);
+                    assertFalse(null == b, "message");
                 }
             }
         """,
@@ -54,9 +55,11 @@ class AssertFalseNullToAssertNotNullTest : JavaRecipeTest {
                 void test() {
                     String a = null;
                     assertNotNull(a);
+                    assertNotNull(a, "message");
                     
                     String b = null;
                     assertNotNull(b);
+                    assertNotNull(b, "message");
                 }
             }
         """,
@@ -73,9 +76,11 @@ class AssertFalseNullToAssertNotNullTest : JavaRecipeTest {
                 void test() {
                     String a = null;
                     Assertions.assertFalse(a == null);
+                    Assertions.assertFalse(a == null, "message");
                     
                     String b = null;
                     Assertions.assertFalse(null == b);
+                    Assertions.assertFalse(null == b, "message");
                 }
             }
         """,
@@ -86,9 +91,11 @@ class AssertFalseNullToAssertNotNullTest : JavaRecipeTest {
                 void test() {
                     String a = null;
                     Assertions.assertNotNull(a);
+                    Assertions.assertNotNull(a, "message");
                     
                     String b = null;
                     Assertions.assertNotNull(b);
+                    Assertions.assertNotNull(b, "message");
                 }
             }
         """,

@@ -47,45 +47,57 @@ public class AssertTrueEqualsToAssertEquals extends Recipe {
 
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
-        Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                //language=java
-                .dependsOn("" +
-                        "package org.junit.jupiter.api;" +
-                        "public class Assertions {" +
-                        "public static void assertEquals(Object expected,Object actual) {}" +
-                        "}")
-                .build();
 
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final JavaTemplate assertEquals = JavaTemplate.builder(this::getCursor, "assertEquals(#{any(java.lang.Object)},#{any(java.lang.Object)})")
-                    .staticImports("org.junit.jupiter.api.Assertions.assertEquals")
-                    .javaParser(javaParser)
-                    .build();
-
-            private final JavaTemplate assertEqualsNoStaticImport = JavaTemplate.builder(this::getCursor, "Assertions.assertEquals(#{any(java.lang.Object)},#{any(java.lang.Object)})")
-                    .imports("org.junit.jupiter.api.Assertions")
-                    .javaParser(javaParser)
+            final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
+                    //language=java
+                    .dependsOn("" +
+                            "package org.junit.jupiter.api;" +
+                            "import java.util.function.Supplier;" +
+                            "public class Assertions {" +
+                            "public static void assertEquals(Object expected,Object actual) {}" +
+                            "public static void assertEquals(Object expected,Object actual, String message) {}" +
+                            "public static void assertEquals(Object expected,Object actual, Supplier<String> message) {}" +
+                            "}")
                     .build();
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (ASSERT_TRUE.matches(method)) {
-                    if (isEquals(method.getArguments().get(0))) {
-
-                        J.MethodInvocation methodInvocation = getMethodInvocation(method);
-                        J.MethodInvocation s = (J.MethodInvocation)methodInvocation.getArguments().get(0);
-
-                        if(method.getSelect() == null) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (ASSERT_TRUE.matches(mi)) {
+                    if (isEquals(mi.getArguments().get(0))) {
+                        StringBuilder sb = new StringBuilder();
+                        if (mi.getSelect() == null) {
                             maybeRemoveImport("org.junit.jupiter.api.Assertions");
                             maybeAddImport("org.junit.jupiter.api.Assertions", "assertEquals");
-
-                            return method.withTemplate(assertEquals, method.getCoordinates().replace(),s.getSelect(), s.getArguments().get(0));
                         } else {
-                            return method.withTemplate(assertEqualsNoStaticImport, method.getCoordinates().replace(),s.getSelect(), s.getArguments().get(0));
+                            sb.append("Assertions.");
                         }
+                        J.MethodInvocation methodInvocation = getMethodInvocation(mi);
+                        J.MethodInvocation s = (J.MethodInvocation)methodInvocation.getArguments().get(0);
+                        sb.append("assertEquals(#{any(java.lang.Object)},#{any(java.lang.Object)}");
+                        Object[] args;
+                        if (mi.getArguments().size() == 2) {
+                            args = new Object[]{s.getSelect(), s.getArguments().get(0), mi.getArguments().get(1)};
+                            sb.append(", #{any()}");
+                        } else {
+                            args = new Object[]{s.getSelect(),  s.getArguments().get(0)};
+                        }
+                        sb.append(")");
+                        JavaTemplate t;
+                        if(mi.getSelect() == null) {
+                            t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                    .staticImports("org.junit.jupiter.api.Assertions.assertEquals")
+                                    .javaParser(javaParser).build();
+                        } else {
+                            t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                    .imports("org.junit.jupiter.api.Assertions.assertEquals")
+                                    .javaParser(javaParser).build();
+                        }
+                        mi = mi.withTemplate(t, mi.getCoordinates().replace(), args);
                     }
                 }
-                return super.visitMethodInvocation(method, ctx);
+                return mi;
             }
 
             private J.MethodInvocation getMethodInvocation(Expression expr){

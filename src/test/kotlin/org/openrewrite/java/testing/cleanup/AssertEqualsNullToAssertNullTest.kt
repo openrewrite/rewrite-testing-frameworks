@@ -23,7 +23,6 @@ import org.openrewrite.java.JavaRecipeTest
 
 class AssertEqualsNullToAssertNullTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .logCompilationWarningsAndErrors(true)
         .classpath("junit-jupiter-api")
         .build()
 
@@ -42,6 +41,8 @@ class AssertEqualsNullToAssertNullTest : JavaRecipeTest {
                     String s = null;
                     assertEquals(s, null);
                     assertEquals(null, s);
+                    assertEquals(s, null, "message");
+                    assertEquals(null, s, "message");
                 }
             }
         """,
@@ -53,6 +54,8 @@ class AssertEqualsNullToAssertNullTest : JavaRecipeTest {
                     String s = null;
                     assertNull(s);
                     assertNull(s);
+                    assertNull(s, "message");
+                    assertNull(s, "message");
                 }
             }
         """,
@@ -70,6 +73,8 @@ class AssertEqualsNullToAssertNullTest : JavaRecipeTest {
                     String s = null;
                     Assertions.assertEquals(s, null);
                     Assertions.assertEquals(null, s);
+                    Assertions.assertEquals(s, null, "message");
+                    Assertions.assertEquals(null, s, "message");
                 }
             }
         """,
@@ -81,6 +86,8 @@ class AssertEqualsNullToAssertNullTest : JavaRecipeTest {
                     String s = null;
                     Assertions.assertNull(s);
                     Assertions.assertNull(s);
+                    Assertions.assertNull(s, "message");
+                    Assertions.assertNull(s, "message");
                 }
             }
         """,

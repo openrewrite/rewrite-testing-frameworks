@@ -46,42 +46,51 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
 
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
-        Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                //language=java
-                .dependsOn("" +
-                        "package org.junit.jupiter.api;" +
-                        "public class Assertions {" +
-                        "public static void assertEquals(Object expected,Object actual) {}" +
-                        "}")
-                .build();
-
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final JavaTemplate assertEquals = JavaTemplate.builder(this::getCursor, "assertEquals(#{any(java.lang.Object)},#{any(java.lang.Object)})")
-                    .staticImports("org.junit.jupiter.api.Assertions.assertEquals")
-                    .javaParser(javaParser)
-                    .build();
-
-            private final JavaTemplate assertEqualsNoStaticImport = JavaTemplate.builder(this::getCursor, "Assertions.assertEquals(#{any(java.lang.Object)},#{any(java.lang.Object)})")
-                    .imports("org.junit.jupiter.api.Assertions")
-                    .javaParser(javaParser)
+            final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
+                    //language=java
+                    .dependsOn("" +
+                            "package org.junit.jupiter.api;" +
+                            "import java.util.function.Supplier;" +
+                            "public class Assertions {" +
+                            "   public static void assertEquals(Object expected,Object actual) {}" +
+                            "   public static void assertEquals(Object expected,Object actual, String message) {}" +
+                            "   public static void assertEquals(Object actual, Supplier<String> messageSupplier) {}" +
+                            "}")
                     .build();
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (ASSERT_TRUE.matches(method) && isEqualBinary(method)) {
-
-                    J.Binary binary = (J.Binary) method.getArguments().get(0);
-
-                    if (method.getSelect() == null) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (ASSERT_TRUE.matches(mi) && isEqualBinary(mi)) {
+                    J.Binary binary = (J.Binary) mi.getArguments().get(0);
+                    StringBuilder sb = new StringBuilder();
+                    Object[] args;
+                    if (mi.getSelect() != null) {
+                        sb.append("Assertions.");
+                    }
+                    sb.append("assertEquals(#{any(java.lang.Object)}, #{any(java.lang.Object)}");
+                    if (mi.getArguments().size() == 2) {
+                        sb.append(", #{any()}");
+                        args = new Object[]{binary.getLeft(), binary.getRight(), mi.getArguments().get(1)};
+                    } else {
+                        args = new Object[]{binary.getLeft(), binary.getRight()};
+                    }
+                    sb.append(")");
+                    JavaTemplate t;
+                    if (mi.getSelect() == null) {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertEquals");
-                        return method.withTemplate(assertEquals, method.getCoordinates().replace(),binary.getLeft(),binary.getRight());
+                        t = JavaTemplate.builder(this::getCursor, sb.toString()).javaParser(javaParser)
+                                .staticImports("org.junit.jupiter.api.Assertions.assertEquals").build();
                     } else {
-                        return method.withTemplate(assertEqualsNoStaticImport, method.getCoordinates().replace(),binary.getLeft(),binary.getRight());
-                    }
+                        t = JavaTemplate.builder(this::getCursor, sb.toString()).javaParser(javaParser)
+                                .imports("org.junit.jupiter.api.Assertions").build();
 
+                    }
+                    mi = mi.withTemplate(t, mi.getCoordinates().replace(), args);
                 }
-                return super.visitMethodInvocation(method, ctx);
+                return mi;
             }
 
             private boolean isEqualBinary(J.MethodInvocation method) {

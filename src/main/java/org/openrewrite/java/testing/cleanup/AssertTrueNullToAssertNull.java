@@ -46,43 +46,59 @@ public class AssertTrueNullToAssertNull extends Recipe {
 
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
-        Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                //language=java
-                .dependsOn("" +
-                        "package org.junit.jupiter.api;" +
-                        "public class Assertions {" +
-                        "  public static void assertNull(Object actual) {}" +
-                        "}")
-                .build();
 
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final JavaTemplate assertNull = JavaTemplate.builder(this::getCursor, "assertNull(#{any(java.lang.Object)})")
-                    .staticImports("org.junit.jupiter.api.Assertions.assertNull")
-                    .javaParser(javaParser)
-                    .build();
-
-            private final JavaTemplate assertNullNoStaticImport = JavaTemplate.builder(this::getCursor, "Assertions.assertNull(#{any(java.lang.Object)})")
-                    .imports("org.junit.jupiter.api.Assertions")
-                    .javaParser(javaParser)
+            final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
+                    //language=java
+                    .dependsOn("" +
+                            "package org.junit.jupiter.api;" +
+                            "import java.util.function.Supplier;" +
+                            "public class Assertions {" +
+                            "  public static void assertNull(Object actual) {}" +
+                            "  public static void assertNull(Object actual, String message) {}" +
+                            "  public static void assertNull(Object actual, Supplier<String> message) {}" +
+                            "}")
                     .build();
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (ASSERT_TRUE.matches(method) && isEqualBinary(method)) {
-
-                    J.Binary binary = (J.Binary) method.getArguments().get(0);
-
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (ASSERT_TRUE.matches(mi) && isEqualBinary(mi)) {
+                    J.Binary binary = (J.Binary) mi.getArguments().get(0);
                     Expression nonNullExpression = getNonNullExpression(binary);
 
-                    if (method.getSelect() == null) {
+                    StringBuilder sb = new StringBuilder();
+                    if (mi.getSelect() == null) {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertNull");
-                        return method.withTemplate(assertNull, method.getCoordinates().replace(), nonNullExpression);
                     } else {
-                        return method.withTemplate(assertNullNoStaticImport, method.getCoordinates().replace(), nonNullExpression);
+                        sb.append("Assertions.");
                     }
+                    sb.append("assertNull(#{any(java.lang.Object)}");
+
+                    Object[] args;
+                    if (mi.getArguments().size() == 2) {
+                        sb.append(", #{any()}");
+                        args = new Object[]{nonNullExpression, mi.getArguments().get(1)};
+                    } else {
+                        args = new Object[]{nonNullExpression};
+                    }
+                    sb.append(")");
+                    JavaTemplate t;
+                    if (mi.getSelect() == null) {
+                        t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                .staticImports("org.junit.jupiter.api.Assertions.assertNull")
+                                .javaParser(javaParser)
+                                .build();
+                    } else {
+                        t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                .imports("org.junit.jupiter.api.Assertions")
+                                .javaParser(javaParser)
+                                .build();
+                    }
+                    mi = mi.withTemplate(t, mi.getCoordinates().replace(), args);
                 }
-                return super.visitMethodInvocation(method, ctx);
+                return mi;
             }
 
 

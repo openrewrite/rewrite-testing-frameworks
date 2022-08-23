@@ -23,7 +23,6 @@ import org.openrewrite.java.JavaRecipeTest
 
 class AssertTrueComparisonToAssertEqualsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .logCompilationWarningsAndErrors(true)
         .classpath("junit-jupiter-api")
         .build()
 
@@ -81,6 +80,34 @@ class AssertTrueComparisonToAssertEqualsTest : JavaRecipeTest {
                     int a = 1;
                     int b = 1;
                     Assertions.assertEquals(a, b);
+                }
+            }
+        """,
+    )
+
+    @Suppress("ConstantConditions", "SimplifiableAssertion")
+    @Test
+    fun preserveMessage() = assertChanged(
+        recipe = AssertTrueComparisonToAssertEquals(),
+        before = """
+            import org.junit.jupiter.api.Assertions;
+            
+            public class Test {
+                void test() {
+                    int a = 1;
+                    int b = 1;
+                    Assertions.assertTrue(a == b, "a does not equal b");
+                }
+            }
+        """,
+        after = """
+            import org.junit.jupiter.api.Assertions;
+            
+            public class Test {
+                void test() {
+                    int a = 1;
+                    int b = 1;
+                    Assertions.assertEquals(a, b, "a does not equal b");
                 }
             }
         """,

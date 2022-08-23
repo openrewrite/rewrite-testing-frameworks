@@ -23,7 +23,6 @@ import org.openrewrite.java.JavaRecipeTest
 
 class AssertTrueNegationToAssertFalseTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .logCompilationWarningsAndErrors(true)
         .classpath("junit-jupiter-api")
         .build()
 
@@ -41,6 +40,7 @@ class AssertTrueNegationToAssertFalseTest : JavaRecipeTest {
                 void test() {
                     boolean a = false;
                     assertTrue(!a);
+                    assertTrue(!a, "message");
                 }
             }
         """,
@@ -51,6 +51,7 @@ class AssertTrueNegationToAssertFalseTest : JavaRecipeTest {
                 void test() {
                     boolean a = false;
                     assertFalse(a);
+                    assertFalse(a, "message");
                 }
             }
         """,
@@ -67,6 +68,7 @@ class AssertTrueNegationToAssertFalseTest : JavaRecipeTest {
                 void test() {
                     boolean a = false;
                     Assertions.assertTrue(!a);
+                    Assertions.assertTrue(!a, "message");
                 }
             }
         """,
@@ -77,6 +79,7 @@ class AssertTrueNegationToAssertFalseTest : JavaRecipeTest {
                 void test() {
                     boolean a = false;
                     Assertions.assertFalse(a);
+                    Assertions.assertFalse(a, "message");
                 }
             }
         """,

@@ -39,42 +39,52 @@ public class AssertTrueNegationToAssertFalse extends Recipe {
 
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
-        Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                //language=java
-                .dependsOn("" +
-                        "package org.junit.jupiter.api;" +
-                        "public class Assertions {" +
-                        "public static void assertFalse(boolean condition) {}" +
-                        "}")
-                .build();
-
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final JavaTemplate assertFalse = JavaTemplate.builder(this::getCursor, "assertFalse(#{any(java.lang.Boolean)})")
-                    .staticImports("org.junit.jupiter.api.Assertions.assertFalse")
-                    .javaParser(javaParser)
-                    .build();
-
-            private final JavaTemplate assertFalseNoStaticImport = JavaTemplate.builder(this::getCursor, "Assertions.assertFalse(#{any(java.lang.Boolean)})")
-                    .imports("org.junit.jupiter.api.Assertions")
-                    .javaParser(javaParser)
+            final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
+                    //language=java
+                    .dependsOn("" +
+                            "package org.junit.jupiter.api;" +
+                            "import java.util.function.Supplier;" +
+                            "public class Assertions {" +
+                            "public static void assertFalse(boolean condition) {}" +
+                            "public static void assertFalse(boolean condition, String message) {}" +
+                            "public static void assertFalse(boolean condition, Supplier<String> message) {}" +
+                            "}")
                     .build();
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-
-                if (ASSERT_TRUE.matches(method) && isUnaryOperatorNot(method)) {
-                    J.Unary unary = (J.Unary) method.getArguments().get(0);
-
-                    if (method.getSelect() == null) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (ASSERT_TRUE.matches(mi) && isUnaryOperatorNot(mi)) {
+                    StringBuilder sb = new StringBuilder();
+                    J.Unary unary = (J.Unary) mi.getArguments().get(0);
+                    if (mi.getSelect() == null) {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertFalse");
-
-                        return method.withTemplate(assertFalse, method.getCoordinates().replace(), unary.getExpression());
                     } else {
-                        return method.withTemplate(assertFalseNoStaticImport, method.getCoordinates().replace(), unary.getExpression());
+                        sb.append("Assertions.");
                     }
+                    sb.append("assertFalse(#{any(java.lang.Boolean)}");
+                    Object[] args;
+                    if (mi.getArguments().size() == 2) {
+                        args = new Object[]{unary.getExpression(), mi.getArguments().get(1)};
+                        sb.append(", #{any()}");
+                    } else {
+                        args = new Object[]{unary.getExpression()};
+                    }
+                    sb.append(")");
+                    JavaTemplate t;
+                    if (mi.getSelect() == null) {
+                        t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                .staticImports("org.junit.jupiter.api.Assertions.assertFalse").javaParser(javaParser).build();
+                    } else {
+                        t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                .imports("org.junit.jupiter.api.Assertions").javaParser(javaParser).build();
+                    }
+
+                    mi = mi.withTemplate(t, mi.getCoordinates().replace(), args);
                 }
-                return super.visitMethodInvocation(method, ctx);
+                return mi;
             }
 
             private boolean isUnaryOperatorNot(J.MethodInvocation method) {

@@ -47,45 +47,53 @@ public class AssertFalseEqualsToAssertNotEquals extends Recipe {
 
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
-        Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                //language=java
-                .dependsOn("" +
-                        "package org.junit.jupiter.api;" +
-                        "public class Assertions {" +
-                        "public static void assertNotEquals(Object expected,Object actual) {}" +
-                        "}")
-                .build();
-
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final JavaTemplate assertEquals = JavaTemplate.builder(this::getCursor, "assertNotEquals(#{any(java.lang.Object)},#{any(java.lang.Object)})")
-                    .staticImports("org.junit.jupiter.api.Assertions.assertNotEquals")
-                    .javaParser(javaParser)
-                    .build();
-
-            private final JavaTemplate assertEqualsNoStaticImport = JavaTemplate.builder(this::getCursor, "Assertions.assertNotEquals(#{any(java.lang.Object)},#{any(java.lang.Object)})")
-                    .imports("org.junit.jupiter.api.Assertions")
-                    .javaParser(javaParser)
+            final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
+                    //language=java
+                    .dependsOn("" +
+                            "package org.junit.jupiter.api;" +
+                            "import java.util.function.Supplier;" +
+                            "public class Assertions {" +
+                            "public static void assertNotEquals(Object expected,Object actual) {}" +
+                            "public static void assertNotEquals(Object expected,Object actual, String message) {}" +
+                            "public static void assertNotEquals(Object actual, Supplier<String> messageSupplier) {}" +
+                            "}")
                     .build();
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if (ASSERT_FALSE.matches(method)) {
+                    StringBuilder sb = new StringBuilder();
+                    Object[] args;
+                    if (mi.getSelect() == null) {
+                        maybeRemoveImport("org.junit.jupiter.api.Assertions");
+                        maybeAddImport("org.junit.jupiter.api.Assertions", "assertNotEquals");
+                    } else {
+                        sb.append("Assertions.");
+                    }
+                    sb.append("assertNotEquals(#{any(java.lang.Object)}, #{any(java.lang.Object)}");
+                    if (mi.getArguments().size() == 2) {
+                        sb.append(", #{any()}");
+                    }
+                    sb.append(")");
                     if (isEquals(method.getArguments().get(0))) {
 
                         J.MethodInvocation methodInvocation = getMethodInvocation(method);
                         J.MethodInvocation s = (J.MethodInvocation)methodInvocation.getArguments().get(0);
-
-                        if(method.getSelect() == null) {
-                            maybeRemoveImport("org.junit.jupiter.api.Assertions");
-                            maybeAddImport("org.junit.jupiter.api.Assertions", "assertNotEquals");
-
-                            return method.withTemplate(assertEquals, method.getCoordinates().replace(),s.getSelect(), s.getArguments().get(0));
+                        args = method.getArguments().size() == 2 ? new Object[]{s.getSelect(), s.getArguments().get(0), mi.getArguments().get(1)} : new Object[]{s.getSelect(), s.getArguments().get(0)};
+                        JavaTemplate t;
+                        if (mi.getSelect() == null) {
+                            t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                    .staticImports("org.junit.jupiter.api.Assertions.assertNotEquals").javaParser(javaParser).build();
                         } else {
-                            return method.withTemplate(assertEqualsNoStaticImport, method.getCoordinates().replace(),s.getSelect(), s.getArguments().get(0));
+                            t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                    .imports("org.junit.jupiter.api.Assertions").javaParser(javaParser).build();
                         }
+                        mi = mi.withTemplate(t, mi.getCoordinates().replace(), args);
                     }
                 }
-                return super.visitMethodInvocation(method, ctx);
+                return mi;
             }
 
             private J.MethodInvocation getMethodInvocation(Expression expr){
@@ -96,7 +104,7 @@ public class AssertFalseEqualsToAssertNotEquals extends Recipe {
             private boolean isEquals(Expression expr) {
                 List<J> s = expr.getSideEffects();
 
-               if (s.isEmpty()){
+                if (s.isEmpty()){
                     return false;
                 }
 

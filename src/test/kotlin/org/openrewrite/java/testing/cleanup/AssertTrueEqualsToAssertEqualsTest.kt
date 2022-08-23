@@ -23,7 +23,6 @@ import org.openrewrite.java.JavaRecipeTest
 
 class AssertTrueEqualsToAssertEqualsTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .logCompilationWarningsAndErrors(true)
         .classpath("junit-jupiter-api")
         .build()
 
@@ -42,6 +41,7 @@ class AssertTrueEqualsToAssertEqualsTest : JavaRecipeTest {
                     String a = "a";
                     String b = "b";
                     assertTrue(a.equals(b));
+                    assertTrue(a.equals(b), "message");
                 }
             }
         """,
@@ -53,6 +53,7 @@ class AssertTrueEqualsToAssertEqualsTest : JavaRecipeTest {
                     String a = "a";
                     String b = "b";
                     assertEquals(a, b);
+                    assertEquals(a, b, "message");
                 }
             }
         """)
@@ -69,6 +70,7 @@ class AssertTrueEqualsToAssertEqualsTest : JavaRecipeTest {
                     String a = "a";
                     String b = "b";
                     Assertions.assertTrue(a.equals(b));
+                    Assertions.assertTrue(a.equals(b), "message");
                 }
             }
         """,
@@ -80,10 +82,12 @@ class AssertTrueEqualsToAssertEqualsTest : JavaRecipeTest {
                     String a = "a";
                     String b = "b";
                     Assertions.assertEquals(a, b);
+                    Assertions.assertEquals(a, b, "message");
                 }
             }
         """)
 
+    @Suppress("SimplifiableAssertion")
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/238")
     @Test
     fun retainArraysEquals() = assertUnchanged(
