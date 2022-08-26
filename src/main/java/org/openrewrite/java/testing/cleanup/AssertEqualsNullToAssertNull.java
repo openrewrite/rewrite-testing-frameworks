@@ -22,6 +22,7 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 
 import java.util.function.Supplier;
 
@@ -64,6 +65,9 @@ public class AssertEqualsNullToAssertNull extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if (ASSERT_EQUALS.matches(method)) {
+                    if (!(mi.getArguments().get(0).getType() == JavaType.Primitive.Null || mi.getArguments().get(1).getType() == JavaType.Primitive.Null)) {
+                        return mi;
+                    }
                     StringBuilder sb = new StringBuilder();
                     Object[] args;
                     if (mi.getSelect() != null) {
