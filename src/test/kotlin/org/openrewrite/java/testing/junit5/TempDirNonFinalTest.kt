@@ -25,9 +25,9 @@ import org.openrewrite.test.RewriteTest
 class TempDirNonFinalTest : RewriteTest {
     override fun defaults(spec: RecipeSpec) {
         spec.recipe(TempDirNonFinal())
-        spec.parser(JavaParser.fromJavaVersion()
+        spec.parser{JavaParser.fromJavaVersion()
             .classpath("junit")
-            .build())
+            .build()}
     }
 
     @Test
