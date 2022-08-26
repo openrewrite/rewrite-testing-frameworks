@@ -28,9 +28,8 @@ class CleanupAssertionsTest : RewriteTest {
                 .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
                 .build()
                 .activateRecipes("org.openrewrite.java.testing.junit5.CleanupAssertions"))
-            .parser{JavaParser.fromJavaVersion()
-                .classpath("junit-jupiter-api")
-                .build()}
+            .parser(JavaParser.fromJavaVersion()
+                .classpath("junit-jupiter-api"))
     }
 
     @Test

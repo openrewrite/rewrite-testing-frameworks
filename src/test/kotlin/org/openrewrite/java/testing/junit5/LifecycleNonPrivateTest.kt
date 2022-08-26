@@ -27,11 +27,10 @@ import org.openrewrite.test.RewriteTest
 class LifecycleNonPrivateTest : RewriteTest {
     override fun defaults(spec: RecipeSpec) {
         spec.recipe(LifecycleNonPrivate())
-        spec.parser{JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .build()}
+        spec.parser(JavaParser.fromJavaVersion()
+            .classpath("junit"))
     }
-    
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
     fun beforeEachPrivate() = rewriteRun(
