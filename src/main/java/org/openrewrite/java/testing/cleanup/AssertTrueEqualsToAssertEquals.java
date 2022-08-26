@@ -64,38 +64,36 @@ public class AssertTrueEqualsToAssertEquals extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (ASSERT_TRUE.matches(mi)) {
-                    if (isEquals(mi.getArguments().get(0))) {
-                        StringBuilder sb = new StringBuilder();
-                        if (mi.getSelect() == null) {
-                            maybeRemoveImport("org.junit.jupiter.api.Assertions");
-                            maybeAddImport("org.junit.jupiter.api.Assertions", "assertEquals");
-                        } else {
-                            sb.append("Assertions.");
-                        }
-                        J.MethodInvocation methodInvocation = getMethodInvocation(mi);
-                        J.MethodInvocation s = (J.MethodInvocation)methodInvocation.getArguments().get(0);
-                        sb.append("assertEquals(#{any(java.lang.Object)},#{any(java.lang.Object)}");
-                        Object[] args;
-                        if (mi.getArguments().size() == 2) {
-                            args = new Object[]{s.getSelect(), s.getArguments().get(0), mi.getArguments().get(1)};
-                            sb.append(", #{any()}");
-                        } else {
-                            args = new Object[]{s.getSelect(),  s.getArguments().get(0)};
-                        }
-                        sb.append(")");
-                        JavaTemplate t;
-                        if(mi.getSelect() == null) {
-                            t = JavaTemplate.builder(this::getCursor, sb.toString())
-                                    .staticImports("org.junit.jupiter.api.Assertions.assertEquals")
-                                    .javaParser(javaParser).build();
-                        } else {
-                            t = JavaTemplate.builder(this::getCursor, sb.toString())
-                                    .imports("org.junit.jupiter.api.Assertions.assertEquals")
-                                    .javaParser(javaParser).build();
-                        }
-                        mi = mi.withTemplate(t, mi.getCoordinates().replace(), args);
+                if (ASSERT_TRUE.matches(mi) && isEquals(mi.getArguments().get(0))) {
+                    StringBuilder sb = new StringBuilder();
+                    if (mi.getSelect() == null) {
+                        maybeRemoveImport("org.junit.jupiter.api.Assertions");
+                        maybeAddImport("org.junit.jupiter.api.Assertions", "assertEquals");
+                    } else {
+                        sb.append("Assertions.");
                     }
+                    J.MethodInvocation methodInvocation = getMethodInvocation(mi);
+                    J.MethodInvocation s = (J.MethodInvocation)methodInvocation.getArguments().get(0);
+                    sb.append("assertEquals(#{any(java.lang.Object)},#{any(java.lang.Object)}");
+                    Object[] args;
+                    if (mi.getArguments().size() == 2) {
+                        args = new Object[]{s.getSelect(), s.getArguments().get(0), mi.getArguments().get(1)};
+                        sb.append(", #{any()}");
+                    } else {
+                        args = new Object[]{s.getSelect(),  s.getArguments().get(0)};
+                    }
+                    sb.append(")");
+                    JavaTemplate t;
+                    if(mi.getSelect() == null) {
+                        t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                .staticImports("org.junit.jupiter.api.Assertions.assertEquals")
+                                .javaParser(javaParser).build();
+                    } else {
+                        t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                .imports("org.junit.jupiter.api.Assertions.assertEquals")
+                                .javaParser(javaParser).build();
+                    }
+                    mi = mi.withTemplate(t, mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }

@@ -64,10 +64,7 @@ public class AssertEqualsNullToAssertNull extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (ASSERT_EQUALS.matches(method)) {
-                    if (!(mi.getArguments().get(0).getType() == JavaType.Primitive.Null || mi.getArguments().get(1).getType() == JavaType.Primitive.Null)) {
-                        return mi;
-                    }
+                if (ASSERT_EQUALS.matches(method) && hasNullLiteralArg(mi)) {
                     StringBuilder sb = new StringBuilder();
                     Object[] args;
                     if (mi.getSelect() != null) {
@@ -96,8 +93,15 @@ public class AssertEqualsNullToAssertNull extends Recipe {
                 return mi;
             }
 
+            private boolean hasNullLiteralArg(J.MethodInvocation method) {
+                if (method.getArguments().size() > 1) {
+                    return isNullLiteral(method.getArguments().get(0)) || isNullLiteral(method.getArguments().get(1));
+                }
+                return false;
+            }
+
             private boolean isNullLiteral(Expression expr) {
-                return expr instanceof J.Literal && ((J.Literal) expr).getValue() == null;
+                return expr.getType() == JavaType.Primitive.Null;
             }
         };
     }
