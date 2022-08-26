@@ -63,7 +63,7 @@ public class AssertFalseEqualsToAssertNotEquals extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (ASSERT_FALSE.matches(method)) {
+                if (ASSERT_FALSE.matches(method) && isEquals(method.getArguments().get(0))) {
                     StringBuilder sb = new StringBuilder();
                     Object[] args;
                     if (mi.getSelect() == null) {
@@ -77,21 +77,19 @@ public class AssertFalseEqualsToAssertNotEquals extends Recipe {
                         sb.append(", #{any()}");
                     }
                     sb.append(")");
-                    if (isEquals(method.getArguments().get(0))) {
 
-                        J.MethodInvocation methodInvocation = getMethodInvocation(method);
-                        J.MethodInvocation s = (J.MethodInvocation)methodInvocation.getArguments().get(0);
-                        args = method.getArguments().size() == 2 ? new Object[]{s.getSelect(), s.getArguments().get(0), mi.getArguments().get(1)} : new Object[]{s.getSelect(), s.getArguments().get(0)};
-                        JavaTemplate t;
-                        if (mi.getSelect() == null) {
-                            t = JavaTemplate.builder(this::getCursor, sb.toString())
-                                    .staticImports("org.junit.jupiter.api.Assertions.assertNotEquals").javaParser(javaParser).build();
-                        } else {
-                            t = JavaTemplate.builder(this::getCursor, sb.toString())
-                                    .imports("org.junit.jupiter.api.Assertions").javaParser(javaParser).build();
-                        }
-                        mi = mi.withTemplate(t, mi.getCoordinates().replace(), args);
+                    J.MethodInvocation methodInvocation = getMethodInvocation(method);
+                    J.MethodInvocation s = (J.MethodInvocation)methodInvocation.getArguments().get(0);
+                    args = method.getArguments().size() == 2 ? new Object[]{s.getSelect(), s.getArguments().get(0), mi.getArguments().get(1)} : new Object[]{s.getSelect(), s.getArguments().get(0)};
+                    JavaTemplate t;
+                    if (mi.getSelect() == null) {
+                        t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                .staticImports("org.junit.jupiter.api.Assertions.assertNotEquals").javaParser(javaParser).build();
+                    } else {
+                        t = JavaTemplate.builder(this::getCursor, sb.toString())
+                                .imports("org.junit.jupiter.api.Assertions").javaParser(javaParser).build();
                     }
+                    mi = mi.withTemplate(t, mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }
