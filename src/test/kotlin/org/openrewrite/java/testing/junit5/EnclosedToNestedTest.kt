@@ -24,7 +24,7 @@ import org.openrewrite.test.RewriteTest
 class EnclosedToNestedTest : RewriteTest {
     override fun defaults(spec: RecipeSpec) {
         spec.recipe(EnclosedToNested())
-            .parser(JavaParser.fromJavaVersion().classpath("junit").logCompilationWarningsAndErrors(true).build())
+            .parser(JavaParser.fromJavaVersion().classpath("junit").logCompilationWarningsAndErrors(true))
     }
 
     @Test

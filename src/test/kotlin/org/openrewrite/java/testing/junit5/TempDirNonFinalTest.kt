@@ -26,8 +26,7 @@ class TempDirNonFinalTest : RewriteTest {
     override fun defaults(spec: RecipeSpec) {
         spec.recipe(TempDirNonFinal())
         spec.parser(JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .build())
+            .classpath("junit"))
     }
 
     @Test
