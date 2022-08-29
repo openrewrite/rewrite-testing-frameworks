@@ -61,10 +61,10 @@ public class MigrateJUnitTestCase extends Recipe {
         return "Convert JUnit 4 `TestCase` to JUnit Jupiter.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
+    }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
@@ -78,6 +78,7 @@ public class MigrateJUnitTestCase extends Recipe {
                 }
 
                 doAfterVisit(new UsesType<>("junit.framework.TestCase"));
+                doAfterVisit(new UsesType<>("junit.framework.Assert"));
                 return cu;
             }
         };
@@ -92,6 +93,7 @@ public class MigrateJUnitTestCase extends Recipe {
                 doAfterVisit(new TestCaseVisitor());
                 // ChangeType for org.junit.Assert method invocations because TestCase extends org.junit.Assert
                 doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert", true));
+                doAfterVisit(new ChangeType("junit.framework.Assert", "org.junit.Assert", true));
                 doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
                 doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions assert*(..)"));
                 doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions fail*(..)"));

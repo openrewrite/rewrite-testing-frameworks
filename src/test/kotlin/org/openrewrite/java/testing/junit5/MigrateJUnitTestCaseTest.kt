@@ -21,7 +21,7 @@ import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 @Suppress("JUnit3StyleTestMethodInJUnit4Class")
-class MigrateJunitTestCaseTest : JavaRecipeTest {
+class MigrateJUnitTestCaseTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("junit", "hamcrest")
         .build()
@@ -175,6 +175,40 @@ class MigrateJunitTestCaseTest : JavaRecipeTest {
             import org.junit.Test;
             
             import static junit.framework.TestCase.assertTrue;
+            
+            class AaTest {
+                @Test
+                public void someTest() {
+                    assertTrue("assert message", isSameStuff("stuff"));
+                }
+                private boolean isSameStuff(String stuff) {
+                    return "stuff".equals(stuff);
+                }
+            }
+        """,
+        after = """
+            import org.junit.Test;
+            
+            import static org.junit.jupiter.api.Assertions.assertTrue;
+            
+            class AaTest {
+                @Test
+                public void someTest() {
+                    assertTrue(isSameStuff("stuff"), "assert message");
+                }
+                private boolean isSameStuff(String stuff) {
+                    return "stuff".equals(stuff);
+                }
+            }
+        """
+    )
+
+    @Test
+    fun notTestCaseHasAssertAssertion() = assertChanged(
+        before = """
+            import org.junit.Test;
+            
+            import static junit.framework.Assert.assertTrue;
             
             class AaTest {
                 @Test
