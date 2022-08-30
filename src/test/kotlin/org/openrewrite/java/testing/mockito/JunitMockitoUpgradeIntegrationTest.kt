@@ -24,7 +24,7 @@ import org.openrewrite.java.JavaRecipeTest
 /**
  * Validates the recipes related to upgrading from Mockito 1 to Mockito 3
  */
-@Suppress("unchecked")
+@Suppress("unchecked", "NotNullFieldNotInitialized", "NewClassNamingConvention")
 class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath("mockito-all", "junit", "hamcrest")
@@ -34,8 +34,7 @@ class JunitMockitoUpgradeIntegrationTest : JavaRecipeTest {
         .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
         .build()
         .activateRecipes(
-            "org.openrewrite.java.testing.junit5.JUnit4to5Migration",
-            "org.openrewrite.java.testing.mockito.Mockito1to3Migration"
+            "org.openrewrite.java.testing.junit5.JUnit4to5Migration"
         )
 
     /**

@@ -15,14 +15,18 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.mockito.Mockito3to4Migration
-displayName: Mockito 4.x migration from 3.x
-description: Upgrade Mockito from 3.x to 4.x.
+name: org.openrewrite.java.testing.mockito.Mockito1to4Migration
+displayName: Mockito 4.x upgrade
+description: Upgrade Mockito from 1.x to 4.x.
 tags:
   - testing
   - mockito
 recipeList:
   - org.openrewrite.java.testing.mockito.Mockito1to3Migration
+  - org.openrewrite.maven.UpgradeDependency:
+        groupId: org.mockito
+        artifactId: mockito-junit-jupiter
+        version: 4.x
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to3Migration
