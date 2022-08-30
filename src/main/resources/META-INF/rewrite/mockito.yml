@@ -24,9 +24,9 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.mockito.Mockito1to3Migration
   - org.openrewrite.maven.UpgradeDependencyVersion:
-        groupId: org.mockito
-        artifactId: mockito-junit-jupiter
-        version: 4.x
+      groupId: org.mockito
+      artifactId: mockito-junit-jupiter
+      newVersion: 4.x
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to3Migration
