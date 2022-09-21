@@ -9,18 +9,17 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.J.MethodDeclaration;
-import org.openrewrite.java.tree.J.MethodInvocation;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.JavaType.Method;
-import org.openrewrite.java.tree.TypeTree;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.J.*;
+import org.openrewrite.java.tree.J.Lambda.Parameters;
 import org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId;
 
 public class CucumberJava8ToCucumberJava extends Recipe {
 
-    public static final String IO_CUCUMBER_JAVA8 = "io.cucumber.java8";
+    private static final String IO_CUCUMBER_JAVA8 = "io.cucumber.java8";
+    private static final String IO_CUCUMBER_JAVA8_STEP_DEFINITION = IO_CUCUMBER_JAVA8 + ".* *(String, ..)";
 
     public CucumberJava8ToCucumberJava() {
         doNext(new ChangeDependencyGroupIdAndArtifactId(
@@ -32,17 +31,17 @@ public class CucumberJava8ToCucumberJava extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesMethod<>(IO_CUCUMBER_JAVA8 + ".* *(..)");
+        return new UsesMethod<>(IO_CUCUMBER_JAVA8_STEP_DEFINITION, true);
     }
 
     @Override
     public String getDisplayName() {
-        return "TODO";
+        return "Replace Cucumber-Java8 with Cucumber-Java.";
     }
 
     @Override
     public String getDescription() {
-        return "TODO";
+        return "Replace LambdaGlue method invocations with StepDefinitionAnnotations on new methods with the same body";
     }
 
     @Override
@@ -82,7 +81,35 @@ public class CucumberJava8ToCucumberJava extends Recipe {
                 return super.visitMethodDeclaration(method, p);
             }
 
-            System.out.println(method);
+            Block body = method.getBody();
+            List<Statement> statements = body.getStatements();
+            var methodMatcher = new MethodMatcher(IO_CUCUMBER_JAVA8_STEP_DEFINITION);
+            List<Statement> replaced = new ArrayList<>();
+            for (Statement statement : statements) {
+                if (statement instanceof MethodInvocation mi
+                        && methodMatcher.matches(mi)) {
+                    String simpleName = mi.getSimpleName();
+                    List<Expression> arguments = mi.getArguments();
+                    Expression stringExpression = arguments.get(0);
+                    if (stringExpression instanceof Literal literal) {
+                        String literalValue = (String) literal.getValue();
+                        System.out.println(literalValue);
+                    } else
+                        continue;
+
+                    Expression possibleStepDefinitionBody = arguments.get(1);
+                    if (possibleStepDefinitionBody instanceof Lambda lambda
+                            && TypeUtils.isAssignableTo("io.cucumber.java8.StepDefinitionBody",
+                                    possibleStepDefinitionBody.getType())) {
+                        Parameters parameters = lambda.getParameters();
+                        J lambdaBody = lambda.getBody();
+                        System.out.println(parameters);
+                        System.out.println(lambdaBody);
+                    } else
+                        continue;
+
+                }
+            }
 
             // TODO Only remove empty constructor
 //            return method.withTemplate(JavaTemplate.builder(this::getCursor, ";").build(),
@@ -92,10 +119,7 @@ public class CucumberJava8ToCucumberJava extends Recipe {
 
         @Override
         public J visitMethodInvocation(MethodInvocation method, ExecutionContext p) {
-            System.out.println(method);
-            Method methodType = method.getMethodType();
-            System.out.println(methodType);
-
+            System.out.println("Method invocation:" + method);
             // TODO Auto-generated method stub
             return super.visitMethodInvocation(method, p);
         }
