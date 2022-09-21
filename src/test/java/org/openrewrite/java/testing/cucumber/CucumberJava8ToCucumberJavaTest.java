@@ -43,6 +43,11 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
 
                                 Then("the result is {double}", (Double expected) -> assertEquals(expected, calc.value()));
                             }
+
+                            static class RpnCalculator {
+                                void push(Object string) { }
+                                public Double value() { return Double.NaN; }
+                            }
                         }""",
                 """
                         package com.example.app;
@@ -69,6 +74,11 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                             @Then("the result is {int}")
                             public void the_result_is_int(double expected) {
                                 assertEquals(expected, calc.value());
+                            }
+
+                            static class RpnCalculator {
+                                void push(Object string) { }
+                                public Double value() { return Double.NaN; }
                             }
                         }"""),
                 17));
