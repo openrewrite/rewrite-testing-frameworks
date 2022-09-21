@@ -14,7 +14,9 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new CucumberJava8ToCucumberJava());
-        spec.parser(JavaParser.fromJavaVersion().classpath("cucumber-java8", "cucumber-java"));
+        spec.parser(JavaParser.fromJavaVersion()
+                .logCompilationWarningsAndErrors(true)
+                .classpath("junit", "cucumber-java8", "cucumber-java"));
     }
 
     @Test
