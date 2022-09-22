@@ -86,9 +86,15 @@ public class CucumberJava8ToCucumberJava extends Recipe {
             List<Statement> statements = body.getStatements();
             var methodMatcher = new MethodMatcher(IO_CUCUMBER_JAVA8_STEP_DEFINITION);
             List<Statement> replaced = new ArrayList<>();
+
+            StringBuilder newMethodsTemplate = new StringBuilder();
+            List<J> newMethodsParameters = new ArrayList<>();
+
             for (Statement statement : statements) {
                 if (statement instanceof MethodInvocation mi
                         && methodMatcher.matches(mi)) {
+
+                    // Annotations require a String literal
                     final String stepDefinitionMethodName = mi.getSimpleName();
                     List<Expression> arguments = mi.getArguments();
                     Expression stringExpression = arguments.get(0);
@@ -98,6 +104,7 @@ public class CucumberJava8ToCucumberJava extends Recipe {
                     } else
                         continue;
 
+                    // Extract step definition body
                     Expression possibleStepDefinitionBody = arguments.get(1);
                     final Parameters parameters;
                     final J lambdaBody;
@@ -108,51 +115,49 @@ public class CucumberJava8ToCucumberJava extends Recipe {
                         lambdaBody = lambda.getBody();
                     } else
                         continue;
+                    boolean isBlock = lambdaBody instanceof J.Block;
 
-                    // TODO Create new method using
-                    System.out.println(stepDefinitionMethodName);
-                    System.out.println(literalValue);
+                    // Convert cucumber expression into a generated method name
                     String literalMethodName = literalValue.replaceAll("\s+", "_").replaceAll("[^A-Za-z0-9_]", "");
-                    System.out.println(literalMethodName);
-                    System.out.println(parameters);
-                    System.out.println(lambdaBody);
-
-                    doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
-                        @Override
-                        public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext p) {
-                            ClassDeclaration classDeclaration = super.visitClassDeclaration(classDecl, p);
-                            return classDeclaration.withTemplate(
-                                    JavaTemplate.builder(this::getCursor, """
-                                            @%s
-                                            public void %s(%s) {
-                                                //TODO any
-                                            }
-                                            """.formatted(
-                                                    stepDefinitionMethodName,
-                                                    literalMethodName, 
-                                                    String.join(", ", Collections.nCopies(parameters.getParameters().size(), "#{any()}"))
-                                                    ))
-                                            .javaParser(() -> JavaParser.fromJavaVersion()
-                                                    .classpath("junit", "cucumber-java").build())
-                                            .build(),
-                                    classDeclaration.getBody().getCoordinates().lastStatement(),
-                                    parameters.getParameters().toArray());
-                                    //,lambdaBody);
-                        }
-                    });
+                    List<J> lambdaParameters = parameters.getParameters();
+                    String nCopies = String.join(", ", Collections.nCopies(lambdaParameters.size(), "#{any()}"));
+                    String block = isBlock ? "#{any()}" : """
+                            {
+                                #{any()}
+                            }
+                            """;
+                    newMethodsTemplate.append("""
+                            @%s
+                            public void %s(%s) %s
+                            """.formatted(
+                            stepDefinitionMethodName,
+                            literalMethodName,
+                            nCopies,
+                            block));
+                    // Add parameters
+                    newMethodsParameters.addAll(lambdaParameters);
+                    newMethodsParameters.add(lambdaBody);
 
                     replaced.add(statement);
                 }
             }
+
+            doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
+                @Override
+                public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext p) {
+                    // TOOD Only apply once on correct class, not on all classes
+                    ClassDeclaration classDeclaration = super.visitClassDeclaration(classDecl, p);
+                    return classDeclaration.withTemplate(
+                            JavaTemplate.builder(this::getCursor, newMethodsTemplate.toString())
+                                    .javaParser(() -> JavaParser.fromJavaVersion()
+                                            .classpath("junit", "cucumber-java").build())
+                                    .build(),
+                            classDeclaration.getBody().getCoordinates().lastStatement(),
+                            newMethodsParameters.toArray());
+                }
+            });
             return method.withBody(body.withStatements(statements.stream()
                     .filter(Predicates.not(replaced::contains)).toList()));
-        }
-
-        @Override
-        public J visitMethodInvocation(MethodInvocation method, ExecutionContext p) {
-            System.out.println("Method invocation:" + method);
-            // TODO Auto-generated method stub
-            return super.visitMethodInvocation(method, p);
         }
     }
 }
