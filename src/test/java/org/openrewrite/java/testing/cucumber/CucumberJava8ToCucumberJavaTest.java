@@ -21,7 +21,7 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
 
     @Test
     void run() {
-        rewriteRun(version(java(
+        rewriteRun(spec -> spec.cycles(3), version(java(
                 """
                         package com.example.app;
 

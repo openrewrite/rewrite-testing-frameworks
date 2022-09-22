@@ -2,14 +2,15 @@ package org.openrewrite.java.testing.cucumber;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import io.vavr.Predicates;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.java.tree.J.*;
@@ -88,33 +89,63 @@ public class CucumberJava8ToCucumberJava extends Recipe {
             for (Statement statement : statements) {
                 if (statement instanceof MethodInvocation mi
                         && methodMatcher.matches(mi)) {
-                    String simpleName = mi.getSimpleName();
+                    final String stepDefinitionMethodName = mi.getSimpleName();
                     List<Expression> arguments = mi.getArguments();
                     Expression stringExpression = arguments.get(0);
+                    final String literalValue;
                     if (stringExpression instanceof Literal literal) {
-                        String literalValue = (String) literal.getValue();
-                        System.out.println(literalValue);
+                        literalValue = (String) literal.getValue();
                     } else
                         continue;
 
                     Expression possibleStepDefinitionBody = arguments.get(1);
+                    final Parameters parameters;
+                    final J lambdaBody;
                     if (possibleStepDefinitionBody instanceof Lambda lambda
                             && TypeUtils.isAssignableTo("io.cucumber.java8.StepDefinitionBody",
                                     possibleStepDefinitionBody.getType())) {
-                        Parameters parameters = lambda.getParameters();
-                        J lambdaBody = lambda.getBody();
-                        System.out.println(parameters);
-                        System.out.println(lambdaBody);
+                        parameters = lambda.getParameters();
+                        lambdaBody = lambda.getBody();
                     } else
                         continue;
 
+                    // TODO Create new method using
+                    System.out.println(stepDefinitionMethodName);
+                    System.out.println(literalValue);
+                    String literalMethodName = literalValue.replaceAll("\s+", "_").replaceAll("[^A-Za-z0-9_]", "");
+                    System.out.println(literalMethodName);
+                    System.out.println(parameters);
+                    System.out.println(lambdaBody);
+
+                    doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
+                        @Override
+                        public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext p) {
+                            ClassDeclaration classDeclaration = super.visitClassDeclaration(classDecl, p);
+                            return classDeclaration.withTemplate(
+                                    JavaTemplate.builder(this::getCursor, """
+                                            @%s
+                                            public void %s(%s) {
+                                                //TODO any
+                                            }
+                                            """.formatted(
+                                                    stepDefinitionMethodName,
+                                                    literalMethodName, 
+                                                    String.join(", ", Collections.nCopies(parameters.getParameters().size(), "#{any()}"))
+                                                    ))
+                                            .javaParser(() -> JavaParser.fromJavaVersion()
+                                                    .classpath("junit", "cucumber-java").build())
+                                            .build(),
+                                    classDeclaration.getBody().getCoordinates().lastStatement(),
+                                    parameters.getParameters().toArray());
+                                    //,lambdaBody);
+                        }
+                    });
+
+                    replaced.add(statement);
                 }
             }
-
-            // TODO Only remove empty constructor
-//            return method.withTemplate(JavaTemplate.builder(this::getCursor, ";").build(),
-//                    method.getCoordinates().replace());
-            return method;
+            return method.withBody(body.withStatements(statements.stream()
+                    .filter(Predicates.not(replaced::contains)).toList()));
         }
 
         @Override
