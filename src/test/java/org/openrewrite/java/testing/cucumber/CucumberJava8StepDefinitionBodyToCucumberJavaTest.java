@@ -47,8 +47,12 @@ class CucumberJava8StepDefinitionBodyToCucumberJavaTest implements RewriteTest {
                             }
 
                             static class RpnCalculator {
-                                void push(Object string) { }
-                                public Double value() { return Double.NaN; }
+                                void push(Object string) {
+                                }
+
+                                public Double value() {
+                                    return Double.NaN;
+                                }
                             }
                         }""",
                 """
@@ -64,8 +68,12 @@ class CucumberJava8StepDefinitionBodyToCucumberJavaTest implements RewriteTest {
                             private RpnCalculator calc;
 
                             static class RpnCalculator {
-                                void push(Object string) { }
-                                public Double value() { return Double.NaN; }
+                                void push(Object string) {
+                                }
+
+                                public Double value() {
+                                    return Double.NaN;
+                                }
                             }
 
                             @Given("a calculator I just turned on")
@@ -103,7 +111,7 @@ class CucumberJava8StepDefinitionBodyToCucumberJavaTest implements RewriteTest {
                                 delegated();
                             }
                             
-                            private void delegated(){
+                            private void delegated() {
                                 Given("{int} cakes", (Integer i) -> {
                                     cakes = i;
                                 });
@@ -121,12 +129,47 @@ class CucumberJava8StepDefinitionBodyToCucumberJavaTest implements RewriteTest {
                                 delegated();
                             }
                             
-                            private void delegated(){
+                            private void delegated() {
                             }
 
                             @Given("{int} cakes")
                             public void int_cakes(Integer i) {
                                 cakes = i;
+                            }
+                        }"""),
+                17));
+    }
+
+    @Test
+    void should_retain_whitespace_and_comments_around_lambda_arguments() {
+        rewriteRun(version(java(
+                """
+                        package com.example.app;
+
+                        import io.cucumber.java8.En;
+
+                        public class CalculatorStepDefinitions implements En {
+                            public CalculatorStepDefinitions() {
+                                Given("{int} plus {int}", (
+                                // A
+                                Integer a,
+                                Integer b) -> {
+                                    int c = a + b;
+                                });
+                            }
+                        }""",
+                """
+                        package com.example.app;
+
+                        import io.cucumber.java.en.Given;
+
+                        public class CalculatorStepDefinitions {
+                            @Given("{int} plus {int}")
+                            public void int_plus_int(
+                                // A
+                                Integer a,
+                                Integer b) {
+                                int c = a + b;
                             }
                         }"""),
                 17));

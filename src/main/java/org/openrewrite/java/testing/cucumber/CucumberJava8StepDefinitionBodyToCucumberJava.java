@@ -102,7 +102,8 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
             if (lambdaBody instanceof J.Block block) {
                 List<Statement> statements = block.getStatements();
                 // TODO Lambda statement unpacking loses any comments/whitespace
-                String lambdaStatements = Collections.nCopies(statements.size(), "#{any()}").stream().collect(Collectors.joining());
+                String lambdaStatements = Collections.nCopies(statements.size(), "#{any()}").stream()
+                        .collect(Collectors.joining());
                 template = """
                         @%s(#{any()})
                         public void %s(%s) {
@@ -178,14 +179,18 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
             maybeAddImport(replacementImport);
 
             // Update implements & add new methods last
-            return classDeclaration
-                    .withImplements(retained)
-                    .withTemplate(JavaTemplate.builder(this::getCursor, template)
-                            .javaParser(() -> JavaParser.fromJavaVersion().classpath("junit", "cucumber-java").build())
-                            .imports(replacementImport)
-                            .build(),
-                            classDeclaration.getBody().getCoordinates().lastStatement(),
-                            templateParameters);
+            return maybeAutoFormat(
+                    classDeclaration,
+                    classDeclaration
+                            .withImplements(retained)
+                            .withTemplate(JavaTemplate.builder(this::getCursor, template)
+                                    .javaParser(() -> JavaParser.fromJavaVersion().classpath("junit", "cucumber-java")
+                                            .build())
+                                    .imports(replacementImport)
+                                    .build(),
+                                    classDeclaration.getBody().getCoordinates().lastStatement(),
+                                    templateParameters),
+                    p);
         }
 
         @Override
