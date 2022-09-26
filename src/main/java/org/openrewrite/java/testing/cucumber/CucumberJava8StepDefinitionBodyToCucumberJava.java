@@ -2,6 +2,7 @@ package org.openrewrite.java.testing.cucumber;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -94,15 +95,37 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
                     .collect(Collectors.joining(", "));
             String stepDefinitionMethodName = mi.getSimpleName();
             // TODO J.Block lambda bodies are needlessly wrapped here, but leaving out the {} breaks the generated code
-            String template = """
-                    @%s(#{any()})
-                    public void %s(%s) {
-                        #{any()}
-                    }
-                    """.formatted(
-                    stepDefinitionMethodName,
-                    literalMethodName,
-                    lambdaParameters);
+            J lambdaBody = lambda.getBody();
+            final String template;
+            List<J> templateParameters = new ArrayList<>();
+            templateParameters.add(literal);
+            if (lambdaBody instanceof J.Block block) {
+                List<Statement> statements = block.getStatements();
+                // TODO Lambda statement unpacking loses any comments/whitespace
+                String lambdaStatements = Collections.nCopies(statements.size(), "#{any()}").stream().collect(Collectors.joining());
+                template = """
+                        @%s(#{any()})
+                        public void %s(%s) {
+                            %s
+                        }
+                        """.formatted(
+                        stepDefinitionMethodName,
+                        literalMethodName,
+                        lambdaParameters,
+                        lambdaStatements);
+                templateParameters.addAll(statements);
+            } else {
+                template = """
+                        @%s(#{any()})
+                        public void %s(%s) {
+                            #{any()}
+                        }
+                        """.formatted(
+                        stepDefinitionMethodName,
+                        literalMethodName,
+                        lambdaParameters);
+                templateParameters.add(lambdaBody);
+            }
             // Determine step definitions class name
             J.ClassDeclaration parentClass = getCursor()
                     .dropParentUntil(J.ClassDeclaration.class::isInstance)
@@ -116,7 +139,7 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
                     parentClass.getType(),
                     replacementImport,
                     template,
-                    new Object[] { literal, lambda.getBody() }));
+                    templateParameters.toArray()));
 
             // Remove original method invocation; it's replaced in the above visitor
             return null;
