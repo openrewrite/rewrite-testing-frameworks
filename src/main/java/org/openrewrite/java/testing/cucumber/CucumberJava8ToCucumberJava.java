@@ -2,11 +2,8 @@ package org.openrewrite.java.testing.cucumber;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 
-import io.vavr.Predicates;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -15,8 +12,6 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.java.tree.J.*;
-import org.openrewrite.java.tree.J.Lambda.Parameters;
-import org.openrewrite.java.tree.J.VariableDeclarations.NamedVariable;
 import org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId;
 
 public class CucumberJava8ToCucumberJava extends Recipe {
@@ -60,10 +55,12 @@ public class CucumberJava8ToCucumberJava extends Recipe {
     }
 
     static class CucumberJava8Visitor extends JavaVisitor<ExecutionContext> {
+        /**
+         * Remove `implements io.cucumber.java8.En` and add `import static io.cucumber.java.en.*;`.
+         */
         @Override
         public J visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext p) {
             J.ClassDeclaration classDecl = (ClassDeclaration) super.visitClassDeclaration(cd, p);
-
             List<TypeTree> interfaces = classDecl.getImplements();
             if (interfaces == null || interfaces.isEmpty()) {
                 return classDecl;
@@ -74,7 +71,6 @@ public class CucumberJava8ToCucumberJava extends Recipe {
                 if (typeTree.getType() instanceof JavaType.Class clazz
                         && IO_CUCUMBER_JAVA8.equals(clazz.getPackageName())) {
                     maybeRemoveImport(clazz.getFullyQualifiedName());
-                    maybeAddImport("io.cucumber.java.%s.*".formatted(clazz.getClassName().toLowerCase()), false);
                 } else {
                     retained.add(typeTree);
                 }
@@ -84,7 +80,7 @@ public class CucumberJava8ToCucumberJava extends Recipe {
 
         @Override
         public J visitMethodDeclaration(MethodDeclaration md, ExecutionContext p) {
-            // Remove empty constructor
+            // Remove empty constructor which might be left over after removing method invocations
             J.MethodDeclaration methodDeclaration = (J.MethodDeclaration) super.visitMethodDeclaration(md, p);
             if (methodDeclaration.isConstructor() && methodDeclaration.getBody().getStatements().isEmpty()) {
                 return null;
@@ -99,8 +95,13 @@ public class CucumberJava8ToCucumberJava extends Recipe {
                 return methodInvocation;
             }
 
+            String stepDefinitionMethodName = mi.getSimpleName();
+            String replacementImport = "%s.%s".formatted(
+                    methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName()
+                            .replace("java8", "java").toLowerCase(),
+                    stepDefinitionMethodName);
+
             // Annotations require a String literal
-            final String stepDefinitionMethodName = mi.getSimpleName();
             List<Expression> arguments = mi.getArguments();
             Expression stringExpression = arguments.get(0);
             if (!(stringExpression instanceof Literal literal)) {
@@ -126,25 +127,18 @@ public class CucumberJava8ToCucumberJava extends Recipe {
             List<String> lambdaParameters = lambda.getParameters().getParameters().stream()
                     .filter(j -> j instanceof J.VariableDeclarations)
                     .map(j -> (J.VariableDeclarations) j)
-                    .peek(vd -> {
-                        System.out.println(vd);
-                    })
                     .map(VariableDeclarations::toString)
                     .toList(); // TODO Type loss here, but my attempts to pass these as J failed
             String nCopiesOfAnyArgument = String.join(", ", lambdaParameters);
-            String bodyWrappedInBlockIfNecessary = lambdaBody instanceof J.Block ? "#{any()}" : """
-                    {
-                        #{any()}
-                    }
-                    """;
             String template = """
                     @%s(#{any()})
-                    public void %s(%s) %s
+                    public void %s(%s) {
+                        #{any()}
+                    }
                     """.formatted(
                     stepDefinitionMethodName,
                     literalMethodName,
-                    nCopiesOfAnyArgument,
-                    bodyWrappedInBlockIfNecessary);
+                    nCopiesOfAnyArgument);
             List<J> templateParameters = new ArrayList<>();
             templateParameters.add(literal);
             templateParameters.add(lambdaBody);
@@ -162,11 +156,12 @@ public class CucumberJava8ToCucumberJava extends Recipe {
                         // We aren't looking at the specified class so return without making any modifications
                         return classDeclaration;
                     }
-
+                    maybeAddImport(replacementImport);
                     return classDeclaration.withTemplate(
                             JavaTemplate.builder(this::getCursor, template)
                                     .javaParser(() -> JavaParser.fromJavaVersion()
                                             .classpath("junit", "cucumber-java").build())
+                                    .imports(replacementImport)
                                     .build(),
                             classDeclaration.getBody().getCoordinates().lastStatement(),
                             templateParameters.toArray());

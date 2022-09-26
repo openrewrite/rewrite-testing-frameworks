@@ -54,7 +54,9 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                 """
                         package com.example.app;
 
-                        import io.cucumber.java.en.*;
+                        import io.cucumber.java.en.Given;
+                        import io.cucumber.java.en.Then;
+                        import io.cucumber.java.en.When;
 
                         import static org.junit.jupiter.api.Assertions.assertEquals;
 
