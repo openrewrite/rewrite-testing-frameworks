@@ -9,11 +9,11 @@ import org.junit.jupiter.api.Test;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.version;
 
-class CucumberJava8ToCucumberJavaTest implements RewriteTest {
+class CucumberJava8StepDefinitionBodyToCucumberJavaTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new CucumberJava8ToCucumberJava());
+        spec.recipe(new CucumberJava8StepDefinitionBodyToCucumberJava());
         spec.parser(JavaParser.fromJavaVersion()
                 .logCompilationWarningsAndErrors(true)
                 .classpath("junit", "cucumber-java8", "cucumber-java"));
@@ -21,7 +21,7 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
 
     @Test
     void run() {
-        rewriteRun(spec -> spec.cycles(3), version(java(
+        rewriteRun(version(java(
                 """
                         package com.example.app;
 
