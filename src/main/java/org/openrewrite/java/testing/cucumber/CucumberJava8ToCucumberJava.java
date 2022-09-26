@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import io.vavr.Predicates;
 import org.openrewrite.ExecutionContext;
@@ -15,6 +16,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.java.tree.J.*;
 import org.openrewrite.java.tree.J.Lambda.Parameters;
+import org.openrewrite.java.tree.J.VariableDeclarations.NamedVariable;
 import org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId;
 
 public class CucumberJava8ToCucumberJava extends Recipe {
@@ -79,7 +81,7 @@ public class CucumberJava8ToCucumberJava extends Recipe {
             }
             return classDecl.withImplements(retained);
         }
-        
+
         @Override
         public J visitMethodDeclaration(MethodDeclaration md, ExecutionContext p) {
             // Remove empty constructor
@@ -107,7 +109,8 @@ public class CucumberJava8ToCucumberJava extends Recipe {
             String literalValue = (String) literal.getValue();
 
             // Extract step definition body
-            Expression possibleStepDefinitionBody = arguments.get(1); // TODO Prevent index out of bounds
+            // TODO Prevent index out of bounds for non StepDefinitionBody
+            Expression possibleStepDefinitionBody = arguments.get(1);
             if (!(possibleStepDefinitionBody instanceof Lambda lambda)
                     || !TypeUtils.isAssignableTo("io.cucumber.java8.StepDefinitionBody",
                             possibleStepDefinitionBody.getType())) {
@@ -116,10 +119,21 @@ public class CucumberJava8ToCucumberJava extends Recipe {
             J lambdaBody = lambda.getBody();
 
             // Convert cucumber expression into a generated method name
-            String literalMethodName = literalValue.replaceAll("\s+", "_").replaceAll("[^A-Za-z0-9_]", "");
-            List<J> lambdaParameters = lambda.getParameters().getParameters().stream()
-                    .filter(j -> !(j instanceof J.Empty)).toList(); // TODO Is this empty filter really necessary?
-            String nCopiesOfAnyArgument = String.join(", ", Collections.nCopies(lambdaParameters.size(), "#{any()}"));
+            String literalMethodName = literalValue
+                    .replaceAll("\s+", "_")
+                    .replaceAll("[^A-Za-z0-9_]", "")
+                    .toLowerCase();
+            List<TypeTree> lambdaParameters = lambda.getParameters().getParameters().stream()
+                    .filter(j -> j instanceof J.VariableDeclarations)
+                    .map(j -> (J.VariableDeclarations) j)
+                    .flatMap(vd -> {
+                        TypeTree typeExpression = vd.getTypeExpression();
+                        List<NamedVariable> variables = vd.getVariables();
+                        return Stream.of(typeExpression, variables.get(0).getName());
+                    })
+                    .toList();
+            String nCopiesOfAnyArgument = String.join(", ",
+                    Collections.nCopies(lambdaParameters.size() / 2, "#{any()} #{any()}"));
             String bodyWrappedInBlockIfNecessary = lambdaBody instanceof J.Block ? "#{any()}" : """
                     {
                         #{any()}

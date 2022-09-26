@@ -67,7 +67,7 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                             }
 
                             @Given("a calculator I just turned on")
-                            public void a_calculator_I_just_turned_on() {
+                            public void a_calculator_i_just_turned_on() {
                                 calc = new RpnCalculator();
                             }
 
@@ -88,6 +88,8 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
 
     // TODO Test with method calls not in constructor
     // TODO Test with non string literal argument
+    // TODO Test with non lambda second argument (method invocation, method reference, etc)
+    // TODO Test with non StepDefinitionBody second argument 
     // TODO Test with before/after hooks
     // TODO Test with Parameter types
     // TODO Test with DataTable
