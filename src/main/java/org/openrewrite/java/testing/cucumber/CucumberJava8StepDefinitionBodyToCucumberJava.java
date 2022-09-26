@@ -58,17 +58,6 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
     }
 
     static final class CucumberStepDefinitionBodyVisitor extends JavaVisitor<ExecutionContext> {
-
-        @Override
-        public J visitMethodDeclaration(MethodDeclaration md, ExecutionContext p) {
-            // Remove empty constructor which might be left over after removing method invocations
-            J.MethodDeclaration methodDeclaration = (J.MethodDeclaration) super.visitMethodDeclaration(md, p);
-            if (methodDeclaration.isConstructor() && methodDeclaration.getBody().getStatements().isEmpty()) {
-                return null;
-            }
-            return methodDeclaration;
-        }
-
         @Override
         public J visitMethodInvocation(MethodInvocation mi, ExecutionContext p) {
             J.MethodInvocation methodInvocation = (MethodInvocation) super.visitMethodInvocation(mi, p);
@@ -174,6 +163,17 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
                             .build(),
                             classDeclaration.getBody().getCoordinates().lastStatement(),
                             templateParameters);
+        }
+
+        @Override
+        public J.MethodDeclaration visitMethodDeclaration(MethodDeclaration md, ExecutionContext p) {
+            // Remove empty constructor which might be left over after removing method invocations
+            J.MethodDeclaration methodDeclaration = (J.MethodDeclaration) super.visitMethodDeclaration(md, p);
+            // TODO Should we also remove now empty methods? And how to remove callers?
+            if (methodDeclaration.isConstructor() && methodDeclaration.getBody().getStatements().isEmpty()) {
+                return null;
+            }
+            return methodDeclaration;
         }
 
         private List<TypeTree> filterImplementingInterfaces(ClassDeclaration classDeclaration) {

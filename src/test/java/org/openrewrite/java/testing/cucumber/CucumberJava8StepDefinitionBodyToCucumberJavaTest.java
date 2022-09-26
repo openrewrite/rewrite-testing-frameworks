@@ -20,7 +20,7 @@ class CucumberJava8StepDefinitionBodyToCucumberJavaTest implements RewriteTest {
     }
 
     @Test
-    void run() {
+    void should_convert_cucumber_java8_sample_to_java_sample() {
         rewriteRun(version(java(
                 """
                         package com.example.app;
@@ -88,7 +88,50 @@ class CucumberJava8StepDefinitionBodyToCucumberJavaTest implements RewriteTest {
                 17));
     }
 
-    // TODO Test with method calls not in constructor
+    @Test
+    void should_convert_method_invocations_outside_constructor() {
+        rewriteRun(version(java(
+                """
+                        package com.example.app;
+
+                        import io.cucumber.java8.En;
+
+                        public class CalculatorStepDefinitions implements En {
+                            private int cakes = 0;
+
+                            public CalculatorStepDefinitions() {
+                                delegated();
+                            }
+                            
+                            private void delegated(){
+                                Given("{int} cakes", (Integer i) -> {
+                                    cakes = i;
+                                });
+                            }
+                        }""",
+                """
+                        package com.example.app;
+
+                        import io.cucumber.java.en.Given;
+
+                        public class CalculatorStepDefinitions {
+                            private int cakes = 0;
+
+                            public CalculatorStepDefinitions() {
+                                delegated();
+                            }
+                            
+                            private void delegated(){
+                            }
+
+                            @Given("{int} cakes")
+                            public void int_cakes(Integer i) {
+                                cakes = i;
+                            }
+                        }"""),
+                17));
+    }
+
     // TODO Test with non string literal argument
     // TODO Test with non lambda second argument (method invocation, method reference, etc)
     // TODO Test with non StepDefinitionBody second argument 
