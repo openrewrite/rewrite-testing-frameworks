@@ -123,17 +123,15 @@ public class CucumberJava8ToCucumberJava extends Recipe {
                     .replaceAll("\s+", "_")
                     .replaceAll("[^A-Za-z0-9_]", "")
                     .toLowerCase();
-            List<TypeTree> lambdaParameters = lambda.getParameters().getParameters().stream()
+            List<String> lambdaParameters = lambda.getParameters().getParameters().stream()
                     .filter(j -> j instanceof J.VariableDeclarations)
                     .map(j -> (J.VariableDeclarations) j)
-                    .flatMap(vd -> {
-                        TypeTree typeExpression = vd.getTypeExpression();
-                        List<NamedVariable> variables = vd.getVariables();
-                        return Stream.of(typeExpression, variables.get(0).getName());
+                    .peek(vd -> {
+                        System.out.println(vd);
                     })
-                    .toList();
-            String nCopiesOfAnyArgument = String.join(", ",
-                    Collections.nCopies(lambdaParameters.size() / 2, "#{any()} #{any()}"));
+                    .map(VariableDeclarations::toString)
+                    .toList(); // TODO Type loss here, but my attempts to pass these as J failed
+            String nCopiesOfAnyArgument = String.join(", ", lambdaParameters);
             String bodyWrappedInBlockIfNecessary = lambdaBody instanceof J.Block ? "#{any()}" : """
                     {
                         #{any()}
@@ -149,7 +147,6 @@ public class CucumberJava8ToCucumberJava extends Recipe {
                     bodyWrappedInBlockIfNecessary);
             List<J> templateParameters = new ArrayList<>();
             templateParameters.add(literal);
-            templateParameters.addAll(lambdaParameters);
             templateParameters.add(lambdaBody);
 
             // TODO Determine step definitions class name

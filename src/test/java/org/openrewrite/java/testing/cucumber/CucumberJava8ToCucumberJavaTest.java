@@ -72,14 +72,14 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                             }
 
                             @When("I add {int} and {int}")
-                            public void i_add_int_and_int(int arg1, int arg2) {
+                            public void i_add_int_and_int(Integer arg1, Integer arg2) {
                                 calc.push(arg1);
                                 calc.push(arg2);
                                 calc.push("+");
                             }
 
-                            @Then("the result is {int}")
-                            public void the_result_is_int(double expected) {
+                            @Then("the result is {double}")
+                            public void the_result_is_double(Double expected) {
                                 assertEquals(expected, calc.value());
                             }
                         }"""),
