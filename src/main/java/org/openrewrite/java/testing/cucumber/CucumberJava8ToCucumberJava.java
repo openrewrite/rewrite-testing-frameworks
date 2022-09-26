@@ -57,7 +57,9 @@ public class CucumberJava8ToCucumberJava extends Recipe {
 
     static class CucumberJava8Visitor extends JavaVisitor<ExecutionContext> {
         @Override
-        public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext p) {
+        public J visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext p) {
+            J.ClassDeclaration classDecl = (ClassDeclaration) super.visitClassDeclaration(cd, p);
+
             List<TypeTree> interfaces = classDecl.getImplements();
             if (interfaces == null || interfaces.isEmpty()) {
                 return super.visitClassDeclaration(classDecl, p);
@@ -77,12 +79,13 @@ public class CucumberJava8ToCucumberJava extends Recipe {
         }
 
         @Override
-        public J visitMethodDeclaration(MethodDeclaration method, ExecutionContext p) {
+        public J visitMethodDeclaration(J.MethodDeclaration m, ExecutionContext p) {
+            J.MethodDeclaration method = (J.MethodDeclaration) super.visitMethodDeclaration(m, p);
             if (!method.isConstructor()) {
-                return super.visitMethodDeclaration(method, p);
+                return method;
             }
 
-            Block body = method.getBody();
+            J.Block body = method.getBody();
             List<Statement> statements = body.getStatements();
             var methodMatcher = new MethodMatcher(IO_CUCUMBER_JAVA8_STEP_DEFINITION);
             List<Statement> replaced = new ArrayList<>();
