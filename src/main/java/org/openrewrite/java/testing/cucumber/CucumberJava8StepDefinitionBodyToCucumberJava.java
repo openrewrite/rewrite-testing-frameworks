@@ -76,8 +76,6 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
                 return methodInvocation;
             }
 
-            String stepDefinitionMethodName = mi.getSimpleName();
-
             // Annotations require a String literal
             List<Expression> arguments = mi.getArguments();
             Expression stringExpression = arguments.get(0);
@@ -85,9 +83,8 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
                 return methodInvocation;
             }
 
-            // Extract step definition body
-            // TODO Prevent index out of bounds for non StepDefinitionBody
-            Expression possibleStepDefinitionBody = arguments.get(1);
+            // Extract step definition body, when applicable
+            Expression possibleStepDefinitionBody = arguments.get(1); // Always available after a first String argument
             if (!(possibleStepDefinitionBody instanceof Lambda lambda)
                     || !TypeUtils.isAssignableTo(IO_CUCUMBER_JAVA8_STEP_DEFINITION_BODY,
                             possibleStepDefinitionBody.getType())) {
@@ -106,6 +103,8 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
                     .map(j -> (J.VariableDeclarations) j)
                     .map(VariableDeclarations::toString)
                     .collect(Collectors.joining(", "));
+            String stepDefinitionMethodName = mi.getSimpleName();
+            // TODO J.Block lambda bodies are needlessly wrapped here, but leaving out the {} breaks the generated code
             String template = """
                     @%s(#{any()})
                     public void %s(%s) {
@@ -119,30 +118,34 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
             J.ClassDeclaration parentClass = getCursor()
                     .dropParentUntil(J.ClassDeclaration.class::isInstance)
                     .getValue();
+            // TODO Are we able to use Java 17+ "".formatted() already?
             String replacementImport = "%s.%s".formatted(
                     methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName()
                             .replace("java8", "java").toLowerCase(),
                     stepDefinitionMethodName);
-            doAfterVisit(new CucumberClassDeclarationVisitor(
+            doAfterVisit(new CucumberStepDefinitionClassVisitor(
                     parentClass.getType(),
                     replacementImport,
                     template,
                     new Object[] { literal, lambda.getBody() }));
 
+            // Remove original method invocation; it's replaced in the above visitor
             return null;
         }
     }
 
-    static final class CucumberClassDeclarationVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final FullyQualified stepDefinitionsClassName;
+    static final class CucumberStepDefinitionClassVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private final FullyQualified stepDefinitionsClass;
         private final String replacementImport;
         private final String template;
         private final Object[] templateParameters;
 
-        private CucumberClassDeclarationVisitor(FullyQualified stepDefinitionsClassName, String replacementImport,
+        private CucumberStepDefinitionClassVisitor(
+                FullyQualified stepDefinitionsClassName,
+                String replacementImport,
                 String template,
                 Object[] templateParameters) {
-            this.stepDefinitionsClassName = stepDefinitionsClassName;
+            this.stepDefinitionsClass = stepDefinitionsClassName;
             this.replacementImport = replacementImport;
             this.template = template;
             this.templateParameters = templateParameters;
@@ -151,11 +154,12 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
         @Override
         public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext p) {
             ClassDeclaration classDeclaration = super.visitClassDeclaration(classDecl, p);
-            if (!TypeUtils.isOfType(classDeclaration.getType(), stepDefinitionsClassName)) {
+            if (!TypeUtils.isOfType(classDeclaration.getType(), stepDefinitionsClass)) {
                 // We aren't looking at the specified class so return without making any modifications
                 return classDeclaration;
             }
 
+            // Remove implement of Java8 interfaces & imports; return retained
             List<TypeTree> retained = filterImplementingInterfaces(classDeclaration);
 
             // Import Given/When/Then as applicable
@@ -173,7 +177,6 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
         }
 
         private List<TypeTree> filterImplementingInterfaces(ClassDeclaration classDeclaration) {
-            // Remove implements & imports
             List<TypeTree> retained = new ArrayList<>();
             for (TypeTree typeTree : Optional.ofNullable(classDeclaration.getImplements()).orElse(List.of())) {
                 if (typeTree.getType() instanceof JavaType.Class clazz
