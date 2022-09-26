@@ -104,24 +104,14 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
                 // TODO Lambda statement unpacking loses any comments/whitespace
                 String lambdaStatements = Collections.nCopies(statements.size(), "#{any()}").stream()
                         .collect(Collectors.joining());
-                template = """
-                        @%s(#{any()})
-                        public void %s(%s) {
-                            %s
-                        }
-                        """.formatted(
+                template = String.format("@%s(#{any()})\npublic void %s(%s) {\n\t%s\n}",
                         stepDefinitionMethodName,
                         literalMethodName,
                         lambdaParameters,
                         lambdaStatements);
                 templateParameters.addAll(statements);
             } else {
-                template = """
-                        @%s(#{any()})
-                        public void %s(%s) {
-                            #{any()}
-                        }
-                        """.formatted(
+                template = String.format("@%s(#{any()})\npublic void %s(%s) {\n\t#{any()\n}",
                         stepDefinitionMethodName,
                         literalMethodName,
                         lambdaParameters);
@@ -131,8 +121,7 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
             J.ClassDeclaration parentClass = getCursor()
                     .dropParentUntil(J.ClassDeclaration.class::isInstance)
                     .getValue();
-            // TODO Are we able to use Java 17+ "".formatted() already?
-            String replacementImport = "%s.%s".formatted(
+            String replacementImport = String.format("%s.%s",
                     methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName()
                             .replace("java8", "java").toLowerCase(),
                     stepDefinitionMethodName);
