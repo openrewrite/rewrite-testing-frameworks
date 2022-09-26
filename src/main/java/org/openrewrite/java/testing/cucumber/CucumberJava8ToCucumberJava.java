@@ -21,6 +21,8 @@ public class CucumberJava8ToCucumberJava extends Recipe {
 
     private static final String IO_CUCUMBER_JAVA8 = "io.cucumber.java8";
     private static final String IO_CUCUMBER_JAVA8_STEP_DEFINITION = IO_CUCUMBER_JAVA8 + ".* *(String, ..)";
+    private static final MethodMatcher STEP_DEFINITION_METHOD_MATCHER = new MethodMatcher(
+            IO_CUCUMBER_JAVA8_STEP_DEFINITION);
 
     public CucumberJava8ToCucumberJava() {
         doNext(new ChangeDependencyGroupIdAndArtifactId(
@@ -62,7 +64,7 @@ public class CucumberJava8ToCucumberJava extends Recipe {
 
             List<TypeTree> interfaces = classDecl.getImplements();
             if (interfaces == null || interfaces.isEmpty()) {
-                return super.visitClassDeclaration(classDecl, p);
+                return classDecl;
             }
 
             List<TypeTree> retained = new ArrayList<>();
@@ -77,90 +79,90 @@ public class CucumberJava8ToCucumberJava extends Recipe {
             }
             return classDecl.withImplements(retained);
         }
+        
+        @Override
+        public J visitMethodDeclaration(MethodDeclaration md, ExecutionContext p) {
+            // Remove empty constructor
+            J.MethodDeclaration methodDeclaration = (J.MethodDeclaration) super.visitMethodDeclaration(md, p);
+            if (methodDeclaration.isConstructor() && methodDeclaration.getBody().getStatements().isEmpty()) {
+                return null;
+            }
+            return methodDeclaration;
+        }
 
         @Override
-        public J visitMethodDeclaration(J.MethodDeclaration m, ExecutionContext p) {
-            J.MethodDeclaration method = (J.MethodDeclaration) super.visitMethodDeclaration(m, p);
-            if (!method.isConstructor()) {
-                return method;
+        public J visitMethodInvocation(MethodInvocation mi, ExecutionContext p) {
+            J.MethodInvocation methodInvocation = (MethodInvocation) super.visitMethodInvocation(mi, p);
+            if (!STEP_DEFINITION_METHOD_MATCHER.matches(methodInvocation)) {
+                return methodInvocation;
             }
 
-            J.Block body = method.getBody();
-            List<Statement> statements = body.getStatements();
-            var methodMatcher = new MethodMatcher(IO_CUCUMBER_JAVA8_STEP_DEFINITION);
-            List<Statement> replaced = new ArrayList<>();
-
-            StringBuilder newMethodsTemplate = new StringBuilder();
-            List<J> newMethodsParameters = new ArrayList<>();
-
-            for (Statement statement : statements) {
-                if (statement instanceof MethodInvocation mi
-                        && methodMatcher.matches(mi)) {
-
-                    // Annotations require a String literal
-                    final String stepDefinitionMethodName = mi.getSimpleName();
-                    List<Expression> arguments = mi.getArguments();
-                    Expression stringExpression = arguments.get(0);
-                    final String literalValue;
-                    if (stringExpression instanceof Literal literal) {
-                        literalValue = (String) literal.getValue();
-                    } else
-                        continue;
-
-                    // Extract step definition body
-                    Expression possibleStepDefinitionBody = arguments.get(1);
-                    final Parameters parameters;
-                    final J lambdaBody;
-                    if (possibleStepDefinitionBody instanceof Lambda lambda
-                            && TypeUtils.isAssignableTo("io.cucumber.java8.StepDefinitionBody",
-                                    possibleStepDefinitionBody.getType())) {
-                        parameters = lambda.getParameters();
-                        lambdaBody = lambda.getBody();
-                    } else
-                        continue;
-                    boolean isBlock = lambdaBody instanceof J.Block;
-
-                    // Convert cucumber expression into a generated method name
-                    String literalMethodName = literalValue.replaceAll("\s+", "_").replaceAll("[^A-Za-z0-9_]", "");
-                    List<J> lambdaParameters = parameters.getParameters();
-                    String nCopies = String.join(", ", Collections.nCopies(lambdaParameters.size(), "#{any()}"));
-                    String block = isBlock ? "#{any()}" : """
-                            {
-                                #{any()}
-                            }
-                            """;
-                    newMethodsTemplate.append("""
-                            @%s
-                            public void %s(%s) %s
-                            """.formatted(
-                            stepDefinitionMethodName,
-                            literalMethodName,
-                            nCopies,
-                            block));
-                    // Add parameters
-                    newMethodsParameters.addAll(lambdaParameters);
-                    newMethodsParameters.add(lambdaBody);
-
-                    replaced.add(statement);
-                }
+            // Annotations require a String literal
+            final String stepDefinitionMethodName = mi.getSimpleName();
+            List<Expression> arguments = mi.getArguments();
+            Expression stringExpression = arguments.get(0);
+            if (!(stringExpression instanceof Literal literal)) {
+                return methodInvocation;
             }
+            String literalValue = (String) literal.getValue();
+
+            // Extract step definition body
+            Expression possibleStepDefinitionBody = arguments.get(1); // TODO Prevent index out of bounds
+            if (!(possibleStepDefinitionBody instanceof Lambda lambda)
+                    || !TypeUtils.isAssignableTo("io.cucumber.java8.StepDefinitionBody",
+                            possibleStepDefinitionBody.getType())) {
+                return methodInvocation;
+            }
+            J lambdaBody = lambda.getBody();
+
+            // Convert cucumber expression into a generated method name
+            String literalMethodName = literalValue.replaceAll("\s+", "_").replaceAll("[^A-Za-z0-9_]", "");
+            List<J> lambdaParameters = lambda.getParameters().getParameters().stream()
+                    .filter(j -> !(j instanceof J.Empty)).toList(); // TODO Is this empty filter really necessary?
+            String nCopiesOfAnyArgument = String.join(", ", Collections.nCopies(lambdaParameters.size(), "#{any()}"));
+            String bodyWrappedInBlockIfNecessary = lambdaBody instanceof J.Block ? "#{any()}" : """
+                    {
+                        #{any()}
+                    }
+                    """;
+            String template = """
+                    @%s(#{any()})
+                    public void %s(%s) %s
+                    """.formatted(
+                    stepDefinitionMethodName,
+                    literalMethodName,
+                    nCopiesOfAnyArgument,
+                    bodyWrappedInBlockIfNecessary);
+            List<J> templateParameters = new ArrayList<>();
+            templateParameters.add(literal);
+            templateParameters.addAll(lambdaParameters);
+            templateParameters.add(lambdaBody);
+
+            // TODO Determine step definitions class name
+            String stepDefinitionsClassName = "com.example.app.CalculatorStepDefinitions";
 
             doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
                 @Override
                 public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext p) {
-                    // TOOD Only apply once on correct class, not on all classes
                     ClassDeclaration classDeclaration = super.visitClassDeclaration(classDecl, p);
+
+                    if (classDecl.getType() == null
+                            || !stepDefinitionsClassName.equals(classDecl.getType().getFullyQualifiedName())) {
+                        // We aren't looking at the specified class so return without making any modifications
+                        return classDeclaration;
+                    }
+
                     return classDeclaration.withTemplate(
-                            JavaTemplate.builder(this::getCursor, newMethodsTemplate.toString())
+                            JavaTemplate.builder(this::getCursor, template)
                                     .javaParser(() -> JavaParser.fromJavaVersion()
                                             .classpath("junit", "cucumber-java").build())
                                     .build(),
                             classDeclaration.getBody().getCoordinates().lastStatement(),
-                            newMethodsParameters.toArray());
+                            templateParameters.toArray());
                 }
             });
-            return method.withBody(body.withStatements(statements.stream()
-                    .filter(Predicates.not(replaced::contains)).toList()));
+
+            return null;
         }
     }
 }

@@ -61,6 +61,11 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                         public class CalculatorStepDefinitions {
                             private RpnCalculator calc;
 
+                            static class RpnCalculator {
+                                void push(Object string) { }
+                                public Double value() { return Double.NaN; }
+                            }
+
                             @Given("a calculator I just turned on")
                             public void a_calculator_I_just_turned_on() {
                                 calc = new RpnCalculator();
@@ -77,13 +82,15 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                             public void the_result_is_int(double expected) {
                                 assertEquals(expected, calc.value());
                             }
-
-                            static class RpnCalculator {
-                                void push(Object string) { }
-                                public Double value() { return Double.NaN; }
-                            }
                         }"""),
                 17));
     }
+
+    // TODO Test with method calls not in constructor
+    // TODO Test with non string literal argument
+    // TODO Test with before/after hooks
+    // TODO Test with Parameter types
+    // TODO Test with DataTable
+    // TODO Test with DocStringType
 
 }
