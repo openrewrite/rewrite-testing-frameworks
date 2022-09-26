@@ -6,3 +6,4 @@ out/
 .project
 .settings/
 bin/
+*.log
