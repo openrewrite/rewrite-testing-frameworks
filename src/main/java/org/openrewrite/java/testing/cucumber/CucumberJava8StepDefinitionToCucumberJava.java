@@ -83,7 +83,7 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
             }
 
             // Annotations require a String literal
-            List<Expression> arguments = mi.getArguments();
+            List<Expression> arguments = methodInvocation.getArguments();
             Expression stringExpression = arguments.get(0);
             if (!(stringExpression instanceof Literal)) {
                 return methodInvocation;
@@ -111,7 +111,7 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
                     .map(j -> (J.VariableDeclarations) j)
                     .map(VariableDeclarations::toString)
                     .collect(Collectors.joining(", "));
-            String stepDefinitionMethodName = mi.getSimpleName();
+            String stepDefinitionMethodName = methodInvocation.getSimpleName();
             // TODO J.Block lambda bodies are needlessly wrapped here, but leaving out the {} breaks the generated code
             J lambdaBody = lambda.getBody();
             final String template;
@@ -173,8 +173,8 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
         }
 
         @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext p) {
-            J.ClassDeclaration classDeclaration = super.visitClassDeclaration(classDecl, p);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext p) {
+            J.ClassDeclaration classDeclaration = super.visitClassDeclaration(cd, p);
             if (!TypeUtils.isOfType(classDeclaration.getType(), stepDefinitionsClass)) {
                 // We aren't looking at the specified class so return without making any modifications
                 return classDeclaration;
