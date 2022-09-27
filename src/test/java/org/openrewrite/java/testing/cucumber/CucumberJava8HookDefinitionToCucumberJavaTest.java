@@ -52,9 +52,9 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                             a = 0;
                         });
 
-                        Before("tag", () -> a = 0);
+                        Before("abc", () -> a = 0);
 
-                        Before("tag", 0, () -> {
+                        Before("not abc", 0, () -> {
                             a = 0;
                         });
 
@@ -66,7 +66,7 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                             a = 0;
                         });
 
-                        Before(scn -> {
+                        AfterStep(scn -> {
                             a = 0;
                         });
                     }
@@ -74,6 +74,7 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                 }""", """
                 package com.example.app;
 
+                import io.cucumber.java.AfterStep;
                 import io.cucumber.java.Before;
                 import io.cucumber.java.Scenario;
 
@@ -86,30 +87,31 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                         a = 0;
                     }
 
-                    @Before("tag")
-                    public void beforeTag() {
+                    @Before("abc")
+                    public void before_tag_abc() {
                         a = 0;
                     }
 
-                    @Before(order = 0, value = "tag")
-                    public void beforeOrderTag() {
+                    @Before(order = 0, value = "not abc")
+                    public void before_tag_not_abc_order_0() {
                         a = 0;
                     }
 
                     @Before(order = 1)
-                    public void beforeOrder() {
+                    public void before_order_1() {
                         a = 0;
                     }
 
                     @Before(order = 2)
-                    public void beforeOrderScenario(Scenario scn) {
+                    public void before_order_2(Scenario scn) {
                         a = 0;
                     }
 
-                    @Before
-                    public void beforeScenario(Scenario scn) {
+                    @AfterStep
+                    public void afterStep(Scenario scn) {
                         a = 0;
                     }
+
                 }"""),
                 17));
     }

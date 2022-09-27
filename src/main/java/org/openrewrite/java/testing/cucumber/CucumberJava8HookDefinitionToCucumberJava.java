@@ -212,15 +212,15 @@ class HookArguments {
                         .replaceFirst("^Before", "before")
                         .replaceFirst("^After", "after"),
                 tagExpression == null ? ""
-                        : "Tagged" + tagExpression
-                                .replaceAll("[^A-Za-z0-9]", ""),
-                order == null ? "" : "Order" + order);
+                        : "_tag_" + tagExpression
+                                .replaceAll("[^A-Za-z0-9]", "_"),
+                order == null ? "" : "_order_" + order);
     }
 
     private String formatMethodArguments() {
-        // TODO take scenario variable name from lambda
+        // TODO take scenario variable name from lambda; drop scenario boolean
         Parameters parameters = lambda.getParameters();
-        return scenario ? "(Scenario scenario)" : "()";
+        return scenario ? String.format("(Scenario %s)", "scenario") : "()";
     }
 
     private String formatMethodBody() {
