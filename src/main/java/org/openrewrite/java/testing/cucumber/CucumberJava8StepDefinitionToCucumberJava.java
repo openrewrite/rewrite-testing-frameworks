@@ -34,7 +34,7 @@ import org.openrewrite.java.tree.JavaType.Class;
 import org.openrewrite.java.tree.JavaType.FullyQualified;
 import org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId;
 
-public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
+public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
 
     private static final String IO_CUCUMBER_JAVA8 = "io.cucumber.java8";
     private static final String IO_CUCUMBER_JAVA8_STEP_DEFINITION = IO_CUCUMBER_JAVA8 + ".* *(String, ..)";
@@ -42,7 +42,7 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
     private static final MethodMatcher STEP_DEFINITION_METHOD_MATCHER = new MethodMatcher(
             IO_CUCUMBER_JAVA8_STEP_DEFINITION);
 
-    public CucumberJava8StepDefinitionBodyToCucumberJava() {
+    public CucumberJava8StepDefinitionToCucumberJava() {
         doNext(new ChangeDependencyGroupIdAndArtifactId(
                 "io.cucumber", "cucumber-java8",
                 "io.cucumber", "cucumber-java",

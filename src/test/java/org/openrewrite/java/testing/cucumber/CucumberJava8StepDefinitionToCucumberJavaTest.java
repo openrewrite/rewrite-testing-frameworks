@@ -26,11 +26,11 @@ import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.version;
 
 @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/259")
-class CucumberJava8StepDefinitionBodyToCucumberJavaTest implements RewriteTest {
+class CucumberJava8StepDefinitionToCucumberJavaTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new CucumberJava8StepDefinitionBodyToCucumberJava());
+        spec.recipe(new CucumberJava8StepDefinitionToCucumberJava());
         spec.parser(JavaParser.fromJavaVersion()
                 .logCompilationWarningsAndErrors(true)
                 .classpath("junit", "cucumber-java8", "cucumber-java"));
