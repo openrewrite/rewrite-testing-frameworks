@@ -33,10 +33,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.J.Literal;
-import org.openrewrite.java.tree.J.MethodInvocation;
 import org.openrewrite.java.tree.JavaType.Primitive;
-import org.openrewrite.java.tree.Statement;
 
 public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
 
@@ -84,7 +81,7 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
     static final class CucumberJava8HooksVisitor extends JavaVisitor<ExecutionContext> {
         @Override
         public J visitMethodInvocation(J.MethodInvocation mi, ExecutionContext p) {
-            J.MethodInvocation methodInvocation = (MethodInvocation) super.visitMethodInvocation(mi, p);
+            J.MethodInvocation methodInvocation = (J.MethodInvocation) super.visitMethodInvocation(mi, p);
             if (!HOOK_BODY_DEFINITION_METHOD_MATCHER.matches(methodInvocation)
                     && !HOOK_NO_ARGS_BODY_DEFINITION_METHOD_MATCHER.matches(methodInvocation)) {
                 return methodInvocation;
@@ -137,7 +134,7 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
                 return hookArguments;
             }
 
-            Literal firstArgument = (Literal) arguments.get(0);
+            J.Literal firstArgument = (J.Literal) arguments.get(0);
             if (argumentsSize == 2) {
                 // First argument is either a String or an int
                 if (firstArgument.getType() == Primitive.String) {
@@ -148,7 +145,7 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
             // First argument is always a String, second argument always an int
             return hookArguments
                     .withTagExpression((String) firstArgument.getValue())
-                    .withOrder((Integer) ((Literal) arguments.get(1)).getValue());
+                    .withOrder((Integer) ((J.Literal) arguments.get(1)).getValue());
         }
     }
 }
@@ -226,9 +223,8 @@ class HookArguments {
     List<J> parameters() {
         List<J> parameters = new ArrayList<>();
         if (lambda.getBody() instanceof J.Block) {
-            J.Block block = (J.Block) lambda.getBody();
-            List<Statement> statements = block.getStatements();
-            parameters.addAll(statements);
+            // XXX Comments and whitespace are lost here; not sure how to prevent that
+            parameters.addAll(((J.Block) lambda.getBody()).getStatements());
         } else {
             parameters.add(lambda.getBody());
         }
