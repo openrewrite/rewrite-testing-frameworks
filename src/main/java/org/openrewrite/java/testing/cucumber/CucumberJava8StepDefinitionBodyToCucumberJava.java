@@ -1,3 +1,18 @@
+/*
+ * Copyright 2022 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.openrewrite.java.testing.cucumber;
 
 import java.time.Duration;
@@ -60,8 +75,8 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
 
     static final class CucumberStepDefinitionBodyVisitor extends JavaVisitor<ExecutionContext> {
         @Override
-        public J visitMethodInvocation(MethodInvocation mi, ExecutionContext p) {
-            J.MethodInvocation methodInvocation = (MethodInvocation) super.visitMethodInvocation(mi, p);
+        public J visitMethodInvocation(J.MethodInvocation mi, ExecutionContext p) {
+            J.MethodInvocation methodInvocation = (J.MethodInvocation) super.visitMethodInvocation(mi, p);
             if (!STEP_DEFINITION_METHOD_MATCHER.matches(methodInvocation)) {
                 return methodInvocation;
             }
@@ -75,11 +90,12 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
 
             // Extract step definition body, when applicable
             Expression possibleStepDefinitionBody = arguments.get(1); // Always available after a first String argument
-            if (!(possibleStepDefinitionBody instanceof Lambda lambda)
+            if (!(possibleStepDefinitionBody instanceof Lambda)
                     || !TypeUtils.isAssignableTo(IO_CUCUMBER_JAVA8_STEP_DEFINITION_BODY,
                             possibleStepDefinitionBody.getType())) {
                 return methodInvocation;
             }
+            Lambda lambda = (Lambda) possibleStepDefinitionBody;
 
             // Convert cucumber expression into a generated method name
             String literalValue = (String) literal.getValue();
@@ -99,7 +115,8 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
             final String template;
             List<J> templateParameters = new ArrayList<>();
             templateParameters.add(literal);
-            if (lambdaBody instanceof J.Block block) {
+            if (lambdaBody instanceof J.Block) {
+                J.Block block = (J.Block) lambdaBody;
                 List<Statement> statements = block.getStatements();
                 // TODO Lambda statement unpacking loses any comments/whitespace
                 String lambdaStatements = Collections.nCopies(statements.size(), "#{any()}").stream()
@@ -154,8 +171,8 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
         }
 
         @Override
-        public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext p) {
-            ClassDeclaration classDeclaration = super.visitClassDeclaration(classDecl, p);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext p) {
+            J.ClassDeclaration classDeclaration = super.visitClassDeclaration(classDecl, p);
             if (!TypeUtils.isOfType(classDeclaration.getType(), stepDefinitionsClass)) {
                 // We aren't looking at the specified class so return without making any modifications
                 return classDeclaration;
@@ -183,7 +200,7 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(MethodDeclaration md, ExecutionContext p) {
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext p) {
             // Remove empty constructor which might be left over after removing method invocations
             J.MethodDeclaration methodDeclaration = (J.MethodDeclaration) super.visitMethodDeclaration(md, p);
             // TODO Should we also remove now empty methods? And how to remove callers?
@@ -193,7 +210,7 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
             return methodDeclaration;
         }
 
-        private List<TypeTree> filterImplementingInterfaces(ClassDeclaration classDeclaration) {
+        private List<TypeTree> filterImplementingInterfaces(J.ClassDeclaration classDeclaration) {
             List<TypeTree> retained = new ArrayList<>();
             for (TypeTree typeTree : Optional.ofNullable(classDeclaration.getImplements()).orElse(List.of())) {
                 if (typeTree.getType() instanceof JavaType.Class clazz
