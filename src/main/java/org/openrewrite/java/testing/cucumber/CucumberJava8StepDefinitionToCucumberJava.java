@@ -25,25 +25,19 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.*;
+import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.*;
-import org.openrewrite.java.tree.J.*;
-import org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
 public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
 
     private static final String IO_CUCUMBER_JAVA8_STEP_DEFINITION = "io.cucumber.java8.* *(String, ..)";
     private static final String IO_CUCUMBER_JAVA8_STEP_DEFINITION_BODY = "io.cucumber.java8.StepDefinitionBody";
-    private static final MethodMatcher STEP_DEFINITION_METHOD_MATCHER = new MethodMatcher(
-            IO_CUCUMBER_JAVA8_STEP_DEFINITION);
-
-    public CucumberJava8StepDefinitionToCucumberJava() {
-        doNext(new ChangeDependencyGroupIdAndArtifactId(
-                "io.cucumber", "cucumber-java8",
-                "io.cucumber", "cucumber-java",
-                null, null));
-    }
+    private static final MethodMatcher STEP_DEFINITION_METHOD_MATCHER = new MethodMatcher(IO_CUCUMBER_JAVA8_STEP_DEFINITION);
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
@@ -81,19 +75,19 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
             // Annotations require a String literal
             List<Expression> arguments = methodInvocation.getArguments();
             Expression stringExpression = arguments.get(0);
-            if (!(stringExpression instanceof Literal)) {
+            if (!(stringExpression instanceof J.Literal)) {
                 return methodInvocation;
             }
-            Literal literal = (Literal) stringExpression;
+            J.Literal literal = (J.Literal) stringExpression;
 
             // Extract step definition body, when applicable
             Expression possibleStepDefinitionBody = arguments.get(1); // Always available after a first String argument
-            if (!(possibleStepDefinitionBody instanceof Lambda)
+            if (!(possibleStepDefinitionBody instanceof J.Lambda)
                     || !TypeUtils.isAssignableTo(IO_CUCUMBER_JAVA8_STEP_DEFINITION_BODY,
                             possibleStepDefinitionBody.getType())) {
                 return methodInvocation;
             }
-            Lambda lambda = (Lambda) possibleStepDefinitionBody;
+            J.Lambda lambda = (J.Lambda) possibleStepDefinitionBody;
 
             // Convert cucumber expression into a generated method name
             String literalValue = (String) literal.getValue();
@@ -105,7 +99,7 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
             String lambdaParameters = lambda.getParameters().getParameters().stream()
                     .filter(j -> j instanceof J.VariableDeclarations)
                     .map(j -> (J.VariableDeclarations) j)
-                    .map(VariableDeclarations::toString)
+                    .map(J.VariableDeclarations::toString)
                     .collect(Collectors.joining(", "));
             String stepDefinitionMethodName = methodInvocation.getSimpleName();
             // TODO J.Block lambda bodies are needlessly wrapped here, but leaving out the {} breaks the generated code
