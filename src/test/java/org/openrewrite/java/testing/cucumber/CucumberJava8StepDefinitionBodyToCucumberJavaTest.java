@@ -166,6 +166,7 @@ class CucumberJava8StepDefinitionBodyToCucumberJavaTest implements RewriteTest {
                         // A
                         Integer a,
                         Integer b) -> {
+                            // C
                             int c = a + b;
                         });
                     }
@@ -180,6 +181,7 @@ class CucumberJava8StepDefinitionBodyToCucumberJavaTest implements RewriteTest {
                         // A
                         Integer a,
                         Integer b) {
+                        // C
                         int c = a + b;
                     }
                 }"""),

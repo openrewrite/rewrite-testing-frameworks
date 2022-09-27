@@ -30,6 +30,7 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.java.tree.J.*;
+import org.openrewrite.java.tree.JavaType.Class;
 import org.openrewrite.java.tree.JavaType.FullyQualified;
 import org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId;
 
@@ -84,9 +85,10 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
             // Annotations require a String literal
             List<Expression> arguments = mi.getArguments();
             Expression stringExpression = arguments.get(0);
-            if (!(stringExpression instanceof Literal literal)) {
+            if (!(stringExpression instanceof Literal)) {
                 return methodInvocation;
             }
+            Literal literal = (Literal) stringExpression;
 
             // Extract step definition body, when applicable
             Expression possibleStepDefinitionBody = arguments.get(1); // Always available after a first String argument
@@ -100,7 +102,7 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
             // Convert cucumber expression into a generated method name
             String literalValue = (String) literal.getValue();
             String literalMethodName = literalValue
-                    .replaceAll("\s+", "_")
+                    .replaceAll("\\s+", "_")
                     .replaceAll("[^A-Za-z0-9_]", "")
                     .toLowerCase();
             // TODO Type loss here, but my attempts to pass these as J failed
@@ -213,10 +215,12 @@ public class CucumberJava8StepDefinitionBodyToCucumberJava extends Recipe {
         private List<TypeTree> filterImplementingInterfaces(J.ClassDeclaration classDeclaration) {
             List<TypeTree> retained = new ArrayList<>();
             for (TypeTree typeTree : Optional.ofNullable(classDeclaration.getImplements()).orElse(List.of())) {
-                if (typeTree.getType() instanceof JavaType.Class clazz
-                        && IO_CUCUMBER_JAVA8.equals(clazz.getPackageName())) {
-                    maybeRemoveImport(clazz.getFullyQualifiedName());
-                    continue;
+                if (typeTree.getType() instanceof JavaType.Class) {
+                    JavaType.Class clazz = (Class) typeTree.getType();
+                    if (IO_CUCUMBER_JAVA8.equals(clazz.getPackageName())) {
+                        maybeRemoveImport(clazz.getFullyQualifiedName());
+                        continue;
+                    }
                 }
                 retained.add(typeTree);
             }
