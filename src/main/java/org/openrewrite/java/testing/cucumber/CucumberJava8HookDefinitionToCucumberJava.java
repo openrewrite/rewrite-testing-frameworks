@@ -148,10 +148,12 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
                     .withOrder((Integer) ((J.Literal) arguments.get(1)).getValue());
         }
     }
+
 }
 
 @Value
 class HookArguments {
+
     String methodName;
     @Nullable
     @With
@@ -166,15 +168,12 @@ class HookArguments {
     }
 
     String template() {
-        StringBuilder template = new StringBuilder();
-        template.append("@").append(methodName);
-        template.append(formatAnnotationArguments()).append('\n');
-        template.append("public void ").append(formatMethodName());
-        template.append(formatMethodArguments());
-        template.append(" {\n\t");
-        template.append(formatMethodBody());
-        template.append("\n}");
-        return template.toString();
+        return String.format("@%s%s\npublic void %s%s {\n\t%s\n}", 
+                methodName, 
+                formatAnnotationArguments(), 
+                formatMethodName(), 
+                formatMethodArguments(), 
+                formatMethodBody());
     }
 
     private String formatAnnotationArguments() {

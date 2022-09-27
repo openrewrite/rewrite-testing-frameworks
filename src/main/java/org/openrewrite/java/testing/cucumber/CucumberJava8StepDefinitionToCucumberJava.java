@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -30,14 +31,14 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
 public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
 
     private static final String IO_CUCUMBER_JAVA8_STEP_DEFINITION = "io.cucumber.java8.* *(String, ..)";
     private static final String IO_CUCUMBER_JAVA8_STEP_DEFINITION_BODY = "io.cucumber.java8.StepDefinitionBody";
-    private static final MethodMatcher STEP_DEFINITION_METHOD_MATCHER = new MethodMatcher(IO_CUCUMBER_JAVA8_STEP_DEFINITION);
+    private static final MethodMatcher STEP_DEFINITION_METHOD_MATCHER = new MethodMatcher(
+            IO_CUCUMBER_JAVA8_STEP_DEFINITION);
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
@@ -89,42 +90,9 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
             }
             J.Lambda lambda = (J.Lambda) possibleStepDefinitionBody;
 
-            // Convert cucumber expression into a generated method name
-            String literalValue = (String) literal.getValue();
-            String literalMethodName = literalValue
-                    .replaceAll("\\s+", "_")
-                    .replaceAll("[^A-Za-z0-9_]", "")
-                    .toLowerCase();
-            // TODO Type loss here, but my attempts to pass these as J failed
-            String lambdaParameters = lambda.getParameters().getParameters().stream()
-                    .filter(j -> j instanceof J.VariableDeclarations)
-                    .map(j -> (J.VariableDeclarations) j)
-                    .map(J.VariableDeclarations::toString)
-                    .collect(Collectors.joining(", "));
-            String stepDefinitionMethodName = methodInvocation.getSimpleName();
-            J lambdaBody = lambda.getBody();
-            final String template;
-            List<J> templateParameters = new ArrayList<>();
-            templateParameters.add(literal);
-            if (lambdaBody instanceof J.Block) {
-                J.Block block = (J.Block) lambdaBody;
-                List<Statement> statements = block.getStatements();
-                // TODO Lambda statement unpacking loses any comments/whitespace
-                String lambdaStatements = Collections.nCopies(statements.size(), "#{any()}").stream()
-                        .collect(Collectors.joining());
-                template = String.format("@%s(#{any()})\npublic void %s(%s) {\n\t%s\n}",
-                        stepDefinitionMethodName,
-                        literalMethodName,
-                        lambdaParameters,
-                        lambdaStatements);
-                templateParameters.addAll(statements);
-            } else {
-                template = String.format("@%s(#{any()})\npublic void %s(%s) {\n\t#{any()\n}",
-                        stepDefinitionMethodName,
-                        literalMethodName,
-                        lambdaParameters);
-                templateParameters.add(lambdaBody);
-            }
+            StepDefinitionArguments stepArguments = new StepDefinitionArguments(
+                    methodInvocation.getSimpleName(), literal, lambda);
+
             // Determine step definitions class name
             J.ClassDeclaration parentClass = getCursor()
                     .dropParentUntil(J.ClassDeclaration.class::isInstance)
@@ -132,15 +100,66 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
             String replacementImport = String.format("%s.%s",
                     methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName()
                             .replace("java8", "java").toLowerCase(),
-                    stepDefinitionMethodName);
+                    methodInvocation.getSimpleName());
             doAfterVisit(new CucumberJava8ClassVisitor(
                     parentClass.getType(),
                     replacementImport,
-                    template,
-                    templateParameters.toArray()));
+                    stepArguments.template(),
+                    stepArguments.parameters().toArray()));
 
             // Remove original method invocation; it's replaced in the above visitor
             return null;
         }
     }
+
+}
+
+@Value
+class StepDefinitionArguments {
+
+    String methodName;
+    J.Literal cucumberExpression;
+    J.Lambda lambda;
+
+    String template() {
+        return String.format("@%s(#{any()})\npublic void %s(%s) {\n\t%s\n}",
+                methodName,
+                formatMethodName(),
+                formatMethodArguments(),
+                formatMethodBody());
+    }
+
+    private String formatMethodName() {
+        return ((String) cucumberExpression.getValue())
+                .replaceAll("\\s+", "_")
+                .replaceAll("[^A-Za-z0-9_]", "")
+                .toLowerCase();
+    }
+
+    private String formatMethodArguments() {
+        // TODO Type loss here, but my attempts to pass these as J failed: __P__.<java.lang.Object>/*__p0__*/p <error>()
+        return lambda.getParameters().getParameters().stream()
+                .filter(j -> j instanceof J.VariableDeclarations)
+                .map(j -> (J.VariableDeclarations) j)
+                .map(J.VariableDeclarations::toString)
+                .collect(Collectors.joining(", "));
+    }
+
+    private String formatMethodBody() {
+        int copies = lambda.getBody() instanceof J.Block ? ((J.Block) lambda.getBody()).getStatements().size() : 1;
+        return Collections.nCopies(copies, "#{any()}").stream().collect(Collectors.joining());
+    }
+
+    List<J> parameters() {
+        List<J> parameters = new ArrayList<>();
+        parameters.add(cucumberExpression);
+        if (lambda.getBody() instanceof J.Block) {
+            // TODO Lambda block statement unpacking loses any comments / whitespace
+            parameters.addAll(((J.Block) lambda.getBody()).getStatements());
+        } else {
+            parameters.add(lambda.getBody());
+        }
+        return parameters;
+    }
+
 }
