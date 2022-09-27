@@ -19,12 +19,10 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import lombok.Value;
 import lombok.With;
-import org.checkerframework.checker.units.qual.A;
 import org.openrewrite.Applicability;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -35,15 +33,10 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Statement;
-import org.openrewrite.java.tree.TypeUtils;
-import org.openrewrite.java.tree.J.Lambda;
-import org.openrewrite.java.tree.J.Lambda.Parameters;
 import org.openrewrite.java.tree.J.Literal;
 import org.openrewrite.java.tree.J.MethodInvocation;
-import org.openrewrite.java.tree.J.VariableDeclarations;
 import org.openrewrite.java.tree.JavaType.Primitive;
-import org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId;
+import org.openrewrite.java.tree.Statement;
 
 public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
 
