@@ -225,11 +225,20 @@ class CucumberJava8StepDefinitionToCucumberJavaTest implements RewriteTest {
                 17));
     }
 
-    // TODO Test with non lambda second argument (method invocation, method reference, etc)
-    // TODO Test with non StepDefinitionBody second argument
-    // TODO Test with before/after hooks
-    // TODO Test with Parameter types
-    // TODO Test with DataTable
-    // TODO Test with DocStringType
+    @Test
+    void should_not_replace_method_reference() {
+        // For simplicity we only replace when using lambda for now
+        rewriteRun(version(java("""
+                package com.example.app;
+
+                import io.cucumber.java8.En;
+
+                public class CalculatorStepDefinitions implements En {
+                    public CalculatorStepDefinitions() {
+                        Given("{int} plus {int}", Integer::sum);
+                    }
+                }"""),
+                17));
+    }
 
 }
