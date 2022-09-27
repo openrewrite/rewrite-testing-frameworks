@@ -41,8 +41,6 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                 package com.example.app;
 
                 import io.cucumber.java8.En;
-                import io.cucumber.java8.HookBody;
-                import io.cucumber.java8.HookNoArgsBody;
                 import io.cucumber.java8.Scenario;
 
                 public class HookStepDefinitions implements En {
@@ -54,7 +52,9 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                             a = 0;
                         });
 
-                        Before("tag", () -> {
+                        Before("tag", () -> a = 0);
+
+                        Before("tag", 0, () -> {
                             a = 0;
                         });
 
@@ -62,11 +62,11 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                             a = 0;
                         });
 
-                        Before(2, scenario -> {
+                        Before(2, scn -> {
                             a = 0;
                         });
 
-                        Before(scenario -> {
+                        Before(scn -> {
                             a = 0;
                         });
                     }
@@ -87,7 +87,12 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                     }
 
                     @Before("tag")
-                    public void before_tag() {
+                    public void beforeTag() {
+                        a = 0;
+                    }
+
+                    @Before(order = 0, value = "tag")
+                    public void beforeOrderTag() {
                         a = 0;
                     }
 
@@ -97,12 +102,12 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                     }
 
                     @Before(order = 2)
-                    public void beforeOrderScenario(Scenario scenario) {
+                    public void beforeOrderScenario(Scenario scn) {
                         a = 0;
                     }
 
                     @Before
-                    public void beforeScenario(Scenario scenario) {
+                    public void beforeScenario(Scenario scn) {
                         a = 0;
                     }
                 }"""),

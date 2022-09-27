@@ -16,11 +16,15 @@
 package org.openrewrite.java.testing.cucumber;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import lombok.Value;
 import lombok.With;
+import org.checkerframework.checker.units.qual.A;
 import org.openrewrite.Applicability;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -31,10 +35,13 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.java.tree.J.Lambda;
+import org.openrewrite.java.tree.J.Lambda.Parameters;
 import org.openrewrite.java.tree.J.Literal;
 import org.openrewrite.java.tree.J.MethodInvocation;
+import org.openrewrite.java.tree.J.VariableDeclarations;
 import org.openrewrite.java.tree.JavaType.Primitive;
 import org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId;
 
@@ -97,23 +104,21 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
                 return methodInvocation;
             }
 
-            // Convert invoked method into new annotation
-            String stepDefinitionMethodName = methodInvocation.getSimpleName();
-            String replacementImport = String.format("%s.%s",
-                    methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName()
-                            .replace("java8", "java").toLowerCase(),
-                    stepDefinitionMethodName);
-
             // Extract arguments passed to method
-            HookArguments hookArguments = parseHookArguments(methodInvocation.getArguments());
-            System.out.println(hookArguments);
-
-            // Generate new method name based on arguments
-
-            // Generate template & template parameters based on arguments
+            HookArguments hookArguments = parseHookArguments(methodInvocation.getSimpleName(),
+                    methodInvocation.getArguments());
 
             // Add new template method at end of class declaration
+            J.ClassDeclaration parentClass = getCursor()
+                    .dropParentUntil(J.ClassDeclaration.class::isInstance)
+                    .getValue();
+            doAfterVisit(new CucumberJava8ClassVisitor(
+                    parentClass.getType(),
+                    hookArguments.replacementImport(),
+                    hookArguments.template(),
+                    hookArguments.parameters().toArray()));
 
+            // Remove original method invocation; it's replaced in the above visitor
             return null;
         }
 
@@ -126,15 +131,16 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
          * @param arguments
          * @return
          */
-        HookArguments parseHookArguments(List<Expression> arguments) {
+        HookArguments parseHookArguments(String methodName, List<Expression> arguments) {
             // Lambda is always last, and can either contain a body with Scenario argument, or without
             int argumentsSize = arguments.size();
             Expression lambdaArgument = arguments.get(argumentsSize - 1);
             HookArguments hookArguments = new HookArguments(
+                    methodName,
                     null,
                     null,
                     TypeUtils.isAssignableTo(IO_CUCUMBER_JAVA8_HOOK_BODY, lambdaArgument.getType()),
-                    ((J.Lambda) lambdaArgument).getBody());
+                    (J.Lambda) lambdaArgument);
             if (argumentsSize == 1) {
                 return hookArguments;
             }
@@ -158,10 +164,80 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
 @Value
 @With
 class HookArguments {
+    String methodName;
     @Nullable
     String tagExpression;
     @Nullable
     Integer order;
     boolean scenario;
-    J lambda;
+    J.Lambda lambda;
+
+    String replacementImport() {
+        return String.format("io.cucumber.java.%s", methodName);
+    }
+
+    String template() {
+        StringBuilder template = new StringBuilder();
+        template.append("@").append(methodName);
+        template.append(formatAnnotationArguments()).append('\n');
+        template.append("public void ").append(formatMethodName());
+        template.append(formatMethodArguments());
+        template.append(" {\n\t");
+        template.append(formatMethodBody());
+        template.append("\n}");
+        return template.toString();
+    }
+
+    private String formatAnnotationArguments() {
+        if (tagExpression == null && order == null) {
+            return "";
+        }
+        StringBuilder template = new StringBuilder();
+        template.append('(');
+        if (order != null) {
+            template.append("order = ").append(order);
+            if (tagExpression != null) {
+                template.append(", value = \"").append(tagExpression).append('"');
+            }
+        } else {
+            template.append('"').append(tagExpression).append('"');
+        }
+        template.append(')');
+        return template.toString();
+    }
+
+    private String formatMethodName() {
+        return String.format("%s%s%s",
+                methodName
+                        .replaceFirst("^Before", "before")
+                        .replaceFirst("^After", "after"),
+                tagExpression == null ? ""
+                        : "Tagged" + tagExpression
+                                .replaceAll("[^A-Za-z0-9]", ""),
+                order == null ? "" : "Order" + order);
+    }
+
+    private String formatMethodArguments() {
+        // TODO take scenario variable name from lambda
+        Parameters parameters = lambda.getParameters();
+        return scenario ? "(Scenario scenario)" : "()";
+    }
+
+    private String formatMethodBody() {
+        int copies = lambda.getBody() instanceof J.Block ? ((J.Block) lambda.getBody()).getStatements().size() : 1;
+        return Collections.nCopies(copies, "#{any()}").stream().collect(Collectors.joining());
+    }
+
+    List<J> parameters() {
+        List<J> parameters = new ArrayList<>();
+        if (lambda.getBody() instanceof J.Block) {
+            J.Block block = (J.Block) lambda.getBody();
+            List<Statement> statements = block.getStatements();
+            parameters.addAll(statements);
+        } else {
+            parameters.add(lambda.getBody());
+        }
+        return parameters;
+    }
+
 }
