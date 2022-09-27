@@ -19,7 +19,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.openrewrite.ExecutionContext;
@@ -30,14 +29,11 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.java.tree.J.*;
-import org.openrewrite.java.tree.JavaType.Class;
-import org.openrewrite.java.tree.JavaType.FullyQualified;
 import org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId;
 
 public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
 
-    private static final String IO_CUCUMBER_JAVA8 = "io.cucumber.java8";
-    private static final String IO_CUCUMBER_JAVA8_STEP_DEFINITION = IO_CUCUMBER_JAVA8 + ".* *(String, ..)";
+    private static final String IO_CUCUMBER_JAVA8_STEP_DEFINITION = "io.cucumber.java8.* *(String, ..)";
     private static final String IO_CUCUMBER_JAVA8_STEP_DEFINITION_BODY = "io.cucumber.java8.StepDefinitionBody";
     private static final MethodMatcher STEP_DEFINITION_METHOD_MATCHER = new MethodMatcher(
             IO_CUCUMBER_JAVA8_STEP_DEFINITION);
@@ -144,7 +140,7 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
                     methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName()
                             .replace("java8", "java").toLowerCase(),
                     stepDefinitionMethodName);
-            doAfterVisit(new CucumberStepDefinitionClassVisitor(
+            doAfterVisit(new CucumberJava8ClassVisitor(
                     parentClass.getType(),
                     replacementImport,
                     template,
@@ -152,79 +148,6 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
 
             // Remove original method invocation; it's replaced in the above visitor
             return null;
-        }
-    }
-
-    static final class CucumberStepDefinitionClassVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final FullyQualified stepDefinitionsClass;
-        private final String replacementImport;
-        private final String template;
-        private final Object[] templateParameters;
-
-        private CucumberStepDefinitionClassVisitor(
-                FullyQualified stepDefinitionsClassName,
-                String replacementImport,
-                String template,
-                Object[] templateParameters) {
-            this.stepDefinitionsClass = stepDefinitionsClassName;
-            this.replacementImport = replacementImport;
-            this.template = template;
-            this.templateParameters = templateParameters;
-        }
-
-        @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext p) {
-            J.ClassDeclaration classDeclaration = super.visitClassDeclaration(cd, p);
-            if (!TypeUtils.isOfType(classDeclaration.getType(), stepDefinitionsClass)) {
-                // We aren't looking at the specified class so return without making any modifications
-                return classDeclaration;
-            }
-
-            // Remove implement of Java8 interfaces & imports; return retained
-            List<TypeTree> retained = filterImplementingInterfaces(classDeclaration);
-
-            // Import Given/When/Then as applicable
-            maybeAddImport(replacementImport);
-
-            // Update implements & add new methods last
-            return maybeAutoFormat(
-                    classDeclaration,
-                    classDeclaration
-                            .withImplements(retained)
-                            .withTemplate(JavaTemplate.builder(this::getCursor, template)
-                                    .javaParser(() -> JavaParser.fromJavaVersion().classpath("junit", "cucumber-java")
-                                            .build())
-                                    .imports(replacementImport)
-                                    .build(),
-                                    classDeclaration.getBody().getCoordinates().lastStatement(),
-                                    templateParameters),
-                    p);
-        }
-
-        @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext p) {
-            // Remove empty constructor which might be left over after removing method invocations
-            J.MethodDeclaration methodDeclaration = (J.MethodDeclaration) super.visitMethodDeclaration(md, p);
-            // TODO Should we also remove now empty methods? And how to remove callers?
-            if (methodDeclaration.isConstructor() && methodDeclaration.getBody().getStatements().isEmpty()) {
-                return null;
-            }
-            return methodDeclaration;
-        }
-
-        private List<TypeTree> filterImplementingInterfaces(J.ClassDeclaration classDeclaration) {
-            List<TypeTree> retained = new ArrayList<>();
-            for (TypeTree typeTree : Optional.ofNullable(classDeclaration.getImplements()).orElse(List.of())) {
-                if (typeTree.getType() instanceof JavaType.Class) {
-                    JavaType.Class clazz = (Class) typeTree.getType();
-                    if (IO_CUCUMBER_JAVA8.equals(clazz.getPackageName())) {
-                        maybeRemoveImport(clazz.getFullyQualifiedName());
-                        continue;
-                    }
-                }
-                retained.add(typeTree);
-            }
-            return retained;
         }
     }
 }
