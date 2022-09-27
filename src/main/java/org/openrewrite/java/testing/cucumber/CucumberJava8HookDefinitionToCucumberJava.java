@@ -168,11 +168,11 @@ class HookArguments {
     }
 
     String template() {
-        return String.format("@%s%s\npublic void %s%s {\n\t%s\n}", 
-                methodName, 
-                formatAnnotationArguments(), 
-                formatMethodName(), 
-                formatMethodArguments(), 
+        return String.format("@%s%s\npublic void %s(%s) {\n\t%s\n}",
+                methodName,
+                formatAnnotationArguments(),
+                formatMethodName(),
+                formatMethodArguments(),
                 formatMethodBody());
     }
 
@@ -208,10 +208,10 @@ class HookArguments {
     private String formatMethodArguments() {
         J firstLambdaParameter = lambda.getParameters().getParameters().get(0);
         if (firstLambdaParameter instanceof J.VariableDeclarations) {
-            return String.format("(Scenario %s)",
+            return String.format("Scenario %s",
                     ((J.VariableDeclarations) firstLambdaParameter).getVariables().get(0).getName());
         }
-        return "()";
+        return "";
     }
 
     private String formatMethodBody() {
