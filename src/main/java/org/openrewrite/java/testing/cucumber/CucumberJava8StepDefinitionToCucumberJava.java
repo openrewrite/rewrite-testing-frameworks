@@ -102,7 +102,6 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
                     .map(J.VariableDeclarations::toString)
                     .collect(Collectors.joining(", "));
             String stepDefinitionMethodName = methodInvocation.getSimpleName();
-            // TODO J.Block lambda bodies are needlessly wrapped here, but leaving out the {} breaks the generated code
             J lambdaBody = lambda.getBody();
             final String template;
             List<J> templateParameters = new ArrayList<>();

@@ -154,12 +154,13 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
 }
 
 @Value
-@With
 class HookArguments {
     String methodName;
     @Nullable
+    @With
     String tagExpression;
     @Nullable
+    @With
     Integer order;
     J.Lambda lambda;
 
