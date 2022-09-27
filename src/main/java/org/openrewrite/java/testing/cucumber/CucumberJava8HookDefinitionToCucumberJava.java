@@ -139,7 +139,6 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
                     methodName,
                     null,
                     null,
-                    TypeUtils.isAssignableTo(IO_CUCUMBER_JAVA8_HOOK_BODY, lambdaArgument.getType()),
                     (J.Lambda) lambdaArgument);
             if (argumentsSize == 1) {
                 return hookArguments;
@@ -169,7 +168,6 @@ class HookArguments {
     String tagExpression;
     @Nullable
     Integer order;
-    boolean scenario;
     J.Lambda lambda;
 
     String replacementImport() {
@@ -218,9 +216,12 @@ class HookArguments {
     }
 
     private String formatMethodArguments() {
-        // TODO take scenario variable name from lambda; drop scenario boolean
-        Parameters parameters = lambda.getParameters();
-        return scenario ? String.format("(Scenario %s)", "scenario") : "()";
+        J firstLambdaParameter = lambda.getParameters().getParameters().get(0);
+        if (firstLambdaParameter instanceof J.VariableDeclarations) {
+            return String.format("(Scenario %s)",
+                    ((J.VariableDeclarations) firstLambdaParameter).getVariables().get(0).getName());
+        }
+        return "()";
     }
 
     private String formatMethodBody() {

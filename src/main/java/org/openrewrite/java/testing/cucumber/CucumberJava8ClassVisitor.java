@@ -52,7 +52,7 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
                         .withTemplate(JavaTemplate.builder(this::getCursor, template)
                                 .javaParser(() -> JavaParser.fromJavaVersion().classpath("junit", "cucumber-java")
                                         .build())
-                                .imports(replacementImport)
+                                .imports(replacementImport, "io.cucumber.java.Scenario")
                                 .build(),
                                 classDeclaration.getBody().getCoordinates().lastStatement(),
                                 templateParameters),
