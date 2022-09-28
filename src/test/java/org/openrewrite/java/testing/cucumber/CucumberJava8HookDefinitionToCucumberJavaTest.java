@@ -66,6 +66,14 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                             a = 0;
                         });
 
+                        After((Scenario scn) -> {
+                            scn.log("after scenario");
+                        });
+
+                        After("abc", (Scenario scn) -> {
+                            scn.log("after scenario");
+                        });
+
                         AfterStep(scn -> {
                             a = 0;
                         });
@@ -74,6 +82,7 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                 }""", """
                 package com.example.app;
 
+                import io.cucumber.java.After;
                 import io.cucumber.java.AfterStep;
                 import io.cucumber.java.Before;
                 import io.cucumber.java.Scenario;
@@ -105,6 +114,16 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                     @Before(order = 2)
                     public void before_order_2(Scenario scn) {
                         a = 0;
+                    }
+
+                    @After
+                    public void after(Scenario scn) {
+                        scn.log("after scenario");
+                    }
+
+                    @After("abc")
+                    public void after_tag_abc(Scenario scn) {
+                        scn.log("after scenario");
                     }
 
                     @AfterStep

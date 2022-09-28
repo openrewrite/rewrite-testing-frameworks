@@ -32,7 +32,9 @@ import org.openrewrite.java.tree.JavaType.FullyQualified;
 class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
 
     private static final String IO_CUCUMBER_JAVA = "io.cucumber.java";
+    private static final String IO_CUCUMBER_JAVA_SCENARIO = IO_CUCUMBER_JAVA + ".Scenario";
     private static final String IO_CUCUMBER_JAVA8 = "io.cucumber.java8";
+    private static final String IO_CUCUMBER_JAVA8_SCENARIO = IO_CUCUMBER_JAVA8 + ".Scenario";
 
     private final FullyQualified stepDefinitionsClass;
     private final String replacementImport;
@@ -54,8 +56,8 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
         maybeAddImport(replacementImport);
 
         // Replace any Scenario imports
-        maybeAddImport(IO_CUCUMBER_JAVA + ".Scenario");
-        maybeRemoveImport(IO_CUCUMBER_JAVA8 + ".Scenario");
+        maybeRemoveImport(IO_CUCUMBER_JAVA8_SCENARIO);
+        maybeAddImport(IO_CUCUMBER_JAVA_SCENARIO);
 
         // Remove empty constructor which might be left over after removing method invocations with typical usage
         doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
@@ -75,7 +77,7 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
                 .withTemplate(JavaTemplate.builder(this::getCursor, template)
                         .javaParser(() -> JavaParser.fromJavaVersion().classpath("junit", "cucumber-java")
                                 .build())
-                        .imports(replacementImport, "io.cucumber.java.Scenario")
+                        .imports(replacementImport, IO_CUCUMBER_JAVA_SCENARIO)
                         .build(),
                         coordinatesForNewMethod(classDeclaration.getBody()),
                         templateParameters);
