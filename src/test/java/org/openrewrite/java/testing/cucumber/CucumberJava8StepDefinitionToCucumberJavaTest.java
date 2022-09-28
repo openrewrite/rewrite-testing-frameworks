@@ -82,15 +82,6 @@ class CucumberJava8StepDefinitionToCucumberJavaTest implements RewriteTest {
                 public class CalculatorStepDefinitions {
                     private RpnCalculator calc;
 
-                    static class RpnCalculator {
-                        void push(Object string) {
-                        }
-
-                        public Double value() {
-                            return Double.NaN;
-                        }
-                    }
-
                     @Given("a calculator I just turned on")
                     public void a_calculator_i_just_turned_on() {
                         calc = new RpnCalculator();
@@ -106,6 +97,15 @@ class CucumberJava8StepDefinitionToCucumberJavaTest implements RewriteTest {
                     @Then("the result is {double}")
                     public void the_result_is_double(Double expected) {
                         assertEquals(expected, calc.value());
+                    }
+
+                    static class RpnCalculator {
+                        void push(Object string) {
+                        }
+
+                        public Double value() {
+                            return Double.NaN;
+                        }
                     }
                 }"""),
                 17));
@@ -142,12 +142,12 @@ class CucumberJava8StepDefinitionToCucumberJavaTest implements RewriteTest {
                         delegated();
                     }
 
-                    private void delegated() {
-                    }
-
                     @Given("{int} cakes")
                     public void int_cakes(Integer i) {
                         cakes = i;
+                    }
+
+                    private void delegated() {
                     }
                 }"""),
                 17));
@@ -208,6 +208,7 @@ class CucumberJava8StepDefinitionToCucumberJavaTest implements RewriteTest {
                 import io.cucumber.java.en.Given;
 
                 public class CalculatorStepDefinitions {
+
                     @Given("a thrown exception")
                     public void a_thrown_exception() throws Exception {
                         throw new Exception();
