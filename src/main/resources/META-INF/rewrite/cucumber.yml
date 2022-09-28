@@ -22,8 +22,8 @@ tags:
   - testing
   - cucumber
 recipeList:
-  - org.openrewrite.java.testing.cucumber.CucumberJava8HookDefinitionToCucumberJava
   - org.openrewrite.java.testing.cucumber.CucumberJava8StepDefinitionToCucumberJava
+  - org.openrewrite.java.testing.cucumber.CucumberJava8HookDefinitionToCucumberJava
   - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
       oldGroupId: io.cucumber
       oldArtifactId: cucumber-java8
