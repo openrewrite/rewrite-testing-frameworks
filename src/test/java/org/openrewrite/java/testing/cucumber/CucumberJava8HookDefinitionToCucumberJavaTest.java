@@ -42,6 +42,7 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
 
                 import io.cucumber.java8.En;
                 import io.cucumber.java8.Scenario;
+                import io.cucumber.java8.Status;
 
                 public class HookStepDefinitions implements En {
 
@@ -67,7 +68,9 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                         });
 
                         After((Scenario scn) -> {
-                            scn.log("after scenario");
+                            if (scn.getStatus() == Status.FAILED) {
+                                scn.log("after scenario");
+                            }
                         });
 
                         After("abc", (Scenario scn) -> {
@@ -86,6 +89,7 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                 import io.cucumber.java.AfterStep;
                 import io.cucumber.java.Before;
                 import io.cucumber.java.Scenario;
+                import io.cucumber.java.Status;
 
                 public class HookStepDefinitions {
 
@@ -118,7 +122,9 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
 
                     @After
                     public void after(Scenario scn) {
-                        scn.log("after scenario");
+                        if (scn.getStatus() == Status.FAILED) {
+                            scn.log("after scenario");
+                        }
                     }
 
                     @After("abc")
@@ -166,7 +172,7 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                         });
                     }
 
-                }""","""
+                }""", """
                 package com.example.app;
 
                 import io.cucumber.java8.En;
@@ -213,11 +219,11 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                     public HookStepDefinitions() {
                         Before(this::connect);
                     }
-                    
+
                     private void connect() {
                     }
 
-                }""","""
+                }""", """
                 package com.example.app;
 
                 import io.cucumber.java8.En;
@@ -229,7 +235,7 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                     public HookStepDefinitions() {
                         /*~~(TODO Migrate manually)~~>*/Before(this::connect);
                     }
-                    
+
                     private void connect() {
                     }
 

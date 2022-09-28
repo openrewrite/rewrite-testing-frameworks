@@ -33,8 +33,10 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
 
     private static final String IO_CUCUMBER_JAVA = "io.cucumber.java";
     private static final String IO_CUCUMBER_JAVA_SCENARIO = IO_CUCUMBER_JAVA + ".Scenario";
+    private static final String IO_CUCUMBER_JAVA_STATUS = IO_CUCUMBER_JAVA + ".Status";
     private static final String IO_CUCUMBER_JAVA8 = "io.cucumber.java8";
     private static final String IO_CUCUMBER_JAVA8_SCENARIO = IO_CUCUMBER_JAVA8 + ".Scenario";
+    private static final String IO_CUCUMBER_JAVA8_STATUS = IO_CUCUMBER_JAVA8 + ".Status";
 
     private final FullyQualified stepDefinitionsClass;
     private final String replacementImport;
@@ -55,9 +57,11 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
         // Import Given/When/Then or Before/After as applicable
         maybeAddImport(replacementImport);
 
-        // Replace any Scenario imports
+        // Replace any Scenario & Status imports
         maybeRemoveImport(IO_CUCUMBER_JAVA8_SCENARIO);
+        maybeRemoveImport(IO_CUCUMBER_JAVA8_STATUS);
         maybeAddImport(IO_CUCUMBER_JAVA_SCENARIO);
+        maybeAddImport(IO_CUCUMBER_JAVA_STATUS);
 
         // Remove empty constructor which might be left over after removing method invocations with typical usage
         doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
@@ -75,9 +79,13 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
         return classDeclaration
                 .withImplements(retained)
                 .withTemplate(JavaTemplate.builder(this::getCursor, template)
-                        .javaParser(() -> JavaParser.fromJavaVersion().classpath("junit", "cucumber-java")
+                        .javaParser(() -> JavaParser.fromJavaVersion().classpath(
+                                "cucumber-java",
+                                "cucumber-java8")
                                 .build())
-                        .imports(replacementImport, IO_CUCUMBER_JAVA_SCENARIO)
+                        .imports(replacementImport,
+                                IO_CUCUMBER_JAVA_SCENARIO,
+                                IO_CUCUMBER_JAVA_STATUS)
                         .build(),
                         coordinatesForNewMethod(classDeclaration.getBody()),
                         templateParameters);
