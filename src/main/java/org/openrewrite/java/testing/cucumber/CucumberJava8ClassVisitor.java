@@ -35,8 +35,6 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
     private static final String IO_CUCUMBER_JAVA_SCENARIO = IO_CUCUMBER_JAVA + ".Scenario";
     private static final String IO_CUCUMBER_JAVA_STATUS = IO_CUCUMBER_JAVA + ".Status";
     private static final String IO_CUCUMBER_JAVA8 = "io.cucumber.java8";
-    private static final String IO_CUCUMBER_JAVA8_SCENARIO = IO_CUCUMBER_JAVA8 + ".Scenario";
-    private static final String IO_CUCUMBER_JAVA8_STATUS = IO_CUCUMBER_JAVA8 + ".Status";
 
     private final FullyQualified stepDefinitionsClass;
     private final String replacementImport;
@@ -58,10 +56,7 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
         maybeAddImport(replacementImport);
 
         // Replace any Scenario & Status imports
-        maybeRemoveImport(IO_CUCUMBER_JAVA8_SCENARIO);
-        maybeRemoveImport(IO_CUCUMBER_JAVA8_STATUS);
-        maybeAddImport(IO_CUCUMBER_JAVA_SCENARIO);
-        maybeAddImport(IO_CUCUMBER_JAVA_STATUS);
+        doAfterVisit(new org.openrewrite.java.ChangePackage(IO_CUCUMBER_JAVA8, IO_CUCUMBER_JAVA, null));
 
         // Remove empty constructor which might be left over after removing method invocations with typical usage
         doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {

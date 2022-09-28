@@ -85,11 +85,7 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                 }""", """
                 package com.example.app;
 
-                import io.cucumber.java.After;
-                import io.cucumber.java.AfterStep;
-                import io.cucumber.java.Before;
-                import io.cucumber.java.Scenario;
-                import io.cucumber.java.Status;
+                import io.cucumber.java.*;
 
                 public class HookStepDefinitions {
 
