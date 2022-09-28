@@ -55,9 +55,6 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
         // Import Given/When/Then or Before/After as applicable
         maybeAddImport(replacementImport);
 
-        // Replace any Scenario & Status imports
-        //TODO doAfterVisit(new org.openrewrite.java.ChangePackage(IO_CUCUMBER_JAVA8, IO_CUCUMBER_JAVA, null));
-
         // Remove empty constructor which might be left over after removing method invocations with typical usage
         doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
             @Override

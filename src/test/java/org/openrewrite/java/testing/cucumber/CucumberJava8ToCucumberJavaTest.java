@@ -496,7 +496,7 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
         @Test
         void should_not_convert_anonymous_classes() {
             // For simplicity anonymous classes are not converted for now; it's not how cucumber-java8 usage was intended
-            rewriteRun(version(java("""
+            rewriteRun(spec -> spec.cycles(2), version(java("""
                     package com.example.app;
 
                     import io.cucumber.java8.En;
@@ -511,14 +511,14 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                         public HookStepDefinitions() {
                             Before(new HookNoArgsBody() {
                                 @Override
-                                public void accept() throws Throwable {
+                                public void accept() {
                                     a = 0;
                                 }
                             });
 
                             Before(new HookBody() {
                                 @Override
-                                public void accept(Scenario scenario) throws Throwable {
+                                public void accept(Scenario scenario) {
                                     a = 0;
                                 }
                             });
@@ -537,14 +537,14 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                         private int a;
 
                         public HookStepDefinitions() {
-                            /*~~(TODO Migrate manually)~~>*/Before(new HookNoArgsBody() throws Throwable {
+                            /*~~(TODO Migrate manually)~~>*/Before(new HookNoArgsBody() {
                                 @Override
                                 public void accept() {
                                     a = 0;
                                 }
                             });
 
-                            /*~~(TODO Migrate manually)~~>*/Before(new HookBody() throws Throwable {
+                            /*~~(TODO Migrate manually)~~>*/Before(new HookBody() {
                                 @Override
                                 public void accept(Scenario scenario) {
                                     a = 0;
