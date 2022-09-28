@@ -51,6 +51,10 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
     private static final MethodMatcher HOOK_NO_ARGS_BODY_DEFINITION_METHOD_MATCHER = new MethodMatcher(
             HOOK_NO_ARGS_BODY_DEFINITION);
 
+    public CucumberJava8HookDefinitionToCucumberJava() {
+        doNext(new org.openrewrite.java.cleanup.UnnecessaryThrows());
+    }
+
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return Applicability.or(
@@ -168,7 +172,7 @@ class HookArguments {
     }
 
     String template() {
-        return String.format("@%s%s\npublic void %s(%s) {\n\t%s\n}",
+        return String.format("@%s%s\npublic void %s(%s) throws Exception {\n\t%s\n}",
                 methodName,
                 formatAnnotationArguments(),
                 formatMethodName(),

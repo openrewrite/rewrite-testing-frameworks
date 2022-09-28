@@ -190,6 +190,33 @@ class CucumberJava8StepDefinitionToCucumberJavaTest implements RewriteTest {
     }
 
     @Test
+    void should_retain_throws_exception() {
+        rewriteRun(version(java("""
+                package com.example.app;
+
+                import io.cucumber.java8.En;
+
+                public class CalculatorStepDefinitions implements En {
+                    public CalculatorStepDefinitions() {
+                        Given("a thrown exception", () -> {
+                            throw new Exception();
+                        });
+                    }
+                }""", """
+                package com.example.app;
+
+                import io.cucumber.java.en.Given;
+
+                public class CalculatorStepDefinitions {
+                    @Given("a thrown exception")
+                    public void a_thrown_exception() throws Exception {
+                        throw new Exception();
+                    }
+                }"""),
+                17));
+    }
+
+    @Test
     void should_not_replace_when_not_using_string_constant() {
         rewriteRun(version(java("""
                 package com.example.app;
