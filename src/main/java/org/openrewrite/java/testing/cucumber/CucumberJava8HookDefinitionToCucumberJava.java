@@ -211,8 +211,7 @@ class HookArguments {
     private String formatMethodArguments() {
         J firstLambdaParameter = lambda.getParameters().getParameters().get(0);
         if (firstLambdaParameter instanceof J.VariableDeclarations) {
-            // FIXME this needs type information
-            return String.format("Scenario %s",
+            return String.format("io.cucumber.java.Scenario %s",
                     ((J.VariableDeclarations) firstLambdaParameter).getVariables().get(0).getName());
         }
         return "";
