@@ -32,7 +32,7 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
         spec.recipe("/META-INF/rewrite/cucumber.yml", "org.openrewrite.java.testing.cucumber.CucumberJava8ToJava");
         spec.parser(JavaParser.fromJavaVersion()
                 .logCompilationWarningsAndErrors(true)
-                .classpath("cucumber-java", "cucumber-java8"));
+                .classpath("junit-jupiter-api", "cucumber-java", "cucumber-java8"));
     }
 
     @Test
@@ -62,14 +62,13 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
 
                         After((Scenario scn) -> {
                             if (scn.getStatus() == Status.FAILED) {
-                                scn.log("failed: " + a);
+                                scn.log("failed");
                             }
                         });
 
                     }
 
-                }
-                """, """
+                }""", """
                 package com.example.app;
 
                 import io.cucumber.java.After;
@@ -93,7 +92,7 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                     @After
                     public void after(Scenario scn) {
                         if (scn.getStatus() == Status.FAILED) {
-                            scn.log("failed: " + a);
+                            scn.log("failed");
                         }
                     }
 

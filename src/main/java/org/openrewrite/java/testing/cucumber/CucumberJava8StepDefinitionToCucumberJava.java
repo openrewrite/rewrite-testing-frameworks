@@ -77,8 +77,13 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
                 return methodInvocation;
             }
 
-            // Annotations require a String literal
+            // Skip any methods not containing a second argument, such as Scenario.log(String)
             List<Expression> arguments = methodInvocation.getArguments();
+            if (arguments.size() < 2) {
+                return methodInvocation;
+            }
+
+            // Annotations require a String literal
             Expression stringExpression = arguments.get(0);
             if (!(stringExpression instanceof J.Literal)) {
                 return methodInvocation

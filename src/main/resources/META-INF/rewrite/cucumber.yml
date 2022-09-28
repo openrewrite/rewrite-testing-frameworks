@@ -29,3 +29,6 @@ recipeList:
       oldArtifactId: cucumber-java8
       newGroupId: io.cucumber
       newArtifactId: cucumber-java
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: io.cucumber.java8
+      newPackageName: io.cucumber.java
