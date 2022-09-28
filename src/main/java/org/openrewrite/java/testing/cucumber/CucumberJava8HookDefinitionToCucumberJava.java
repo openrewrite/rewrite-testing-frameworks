@@ -51,10 +51,6 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
     private static final MethodMatcher HOOK_NO_ARGS_BODY_DEFINITION_METHOD_MATCHER = new MethodMatcher(
             HOOK_NO_ARGS_BODY_DEFINITION);
 
-    public CucumberJava8HookDefinitionToCucumberJava() {
-        doNext(new org.openrewrite.java.cleanup.UnnecessaryThrows());
-    }
-
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return Applicability.or(
@@ -111,6 +107,9 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
                     hookArguments.replacementImport(),
                     hookArguments.template(),
                     hookArguments.parameters().toArray()));
+
+            // Clean up unused imports // TODO clean up only on parentClass, or only add throws when necessary in block
+            doAfterVisit(new org.openrewrite.java.cleanup.UnnecessaryThrows());
 
             // Remove original method invocation; it's replaced in the above visitor
             return null;
