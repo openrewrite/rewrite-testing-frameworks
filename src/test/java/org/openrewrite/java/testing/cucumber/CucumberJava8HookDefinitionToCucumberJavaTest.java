@@ -147,6 +147,73 @@ class CucumberJava8HookDefinitionToCucumberJavaTest implements RewriteTest {
                         });
                     }
 
+                }""","""
+                package com.example.app;
+
+                import io.cucumber.java8.En;
+                import io.cucumber.java8.HookBody;
+                import io.cucumber.java8.HookNoArgsBody;
+                import io.cucumber.java8.Scenario;
+
+                public class HookStepDefinitions implements En {
+
+                    private int a;
+
+                    public HookStepDefinitions() {
+                        /*~~(TODO Migrate manually)~~>*/Before(new HookNoArgsBody() {
+                            @Override
+                            public void accept() throws Throwable {
+                                a = 0;
+                            }
+                        });
+
+                        /*~~(TODO Migrate manually)~~>*/Before(new HookBody() {
+                            @Override
+                            public void accept(Scenario scenario) throws Throwable {
+                                a = 0;
+                            }
+                        });
+                    }
+
+                }"""),
+                17));
+    }
+
+    @Test
+    void should_not_convert_method_reference() {
+        // For simplicity anonymous classes are not converted for now; it's not how cucumber-java8 usage was intended
+        rewriteRun(version(java("""
+                package com.example.app;
+
+                import io.cucumber.java8.En;
+
+                public class HookStepDefinitions implements En {
+
+                    private int a;
+
+                    public HookStepDefinitions() {
+                        Before(this::connect);
+                    }
+                    
+                    private void connect() {
+                    }
+
+                }""","""
+                package com.example.app;
+
+                import io.cucumber.java8.En;
+
+                public class HookStepDefinitions implements En {
+
+                    private int a;
+
+                    public HookStepDefinitions() {
+                        /*~~(TODO Migrate manually)~~>*/Before(this::connect);
+                    }
+                    
+                    private void connect() {
+                    }
+
                 }"""),
                 17));
     }

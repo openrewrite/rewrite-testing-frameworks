@@ -81,7 +81,8 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
             List<Expression> arguments = methodInvocation.getArguments();
             Expression stringExpression = arguments.get(0);
             if (!(stringExpression instanceof J.Literal)) {
-                return methodInvocation;
+                return methodInvocation
+                        .withMarkers(methodInvocation.getMarkers().searchResult("TODO Migrate manually"));
             }
             J.Literal literal = (J.Literal) stringExpression;
 
@@ -90,7 +91,8 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
             if (!(possibleStepDefinitionBody instanceof J.Lambda)
                     || !TypeUtils.isAssignableTo(IO_CUCUMBER_JAVA8_STEP_DEFINITION_BODY,
                             possibleStepDefinitionBody.getType())) {
-                return methodInvocation;
+                return methodInvocation
+                        .withMarkers(methodInvocation.getMarkers().searchResult("TODO Migrate manually"));
             }
             J.Lambda lambda = (J.Lambda) possibleStepDefinitionBody;
 

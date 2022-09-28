@@ -231,6 +231,18 @@ class CucumberJava8StepDefinitionToCucumberJavaTest implements RewriteTest {
                             int c = a + b;
                         });
                     }
+                }""","""
+                package com.example.app;
+
+                import io.cucumber.java8.En;
+
+                public class CalculatorStepDefinitions implements En {
+                    public CalculatorStepDefinitions() {
+                        String expression = "{int} plus {int}";
+                        /*~~(TODO Migrate manually)~~>*/Given(expression, (Integer a, Integer b) -> {
+                            int c = a + b;
+                        });
+                    }
                 }"""),
                 17));
     }
@@ -250,6 +262,18 @@ class CucumberJava8StepDefinitionToCucumberJavaTest implements RewriteTest {
                             int c = a + b;
                         });
                     }
+                }""","""
+                package com.example.app;
+
+                import io.cucumber.java8.En;
+
+                public class CalculatorStepDefinitions implements En {
+                    private static final String expression = "{int} plus {int}";
+                    public CalculatorStepDefinitions() {
+                        /*~~(TODO Migrate manually)~~>*/Given(expression, (Integer a, Integer b) -> {
+                            int c = a + b;
+                        });
+                    }
                 }"""),
                 17));
     }
@@ -265,6 +289,15 @@ class CucumberJava8StepDefinitionToCucumberJavaTest implements RewriteTest {
                 public class CalculatorStepDefinitions implements En {
                     public CalculatorStepDefinitions() {
                         Given("{int} plus {int}", Integer::sum);
+                    }
+                }""","""
+                package com.example.app;
+
+                import io.cucumber.java8.En;
+
+                public class CalculatorStepDefinitions implements En {
+                    public CalculatorStepDefinitions() {
+                        /*~~(TODO Migrate manually)~~>*/Given("{int} plus {int}", Integer::sum);
                     }
                 }"""),
                 17));

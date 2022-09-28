@@ -94,8 +94,8 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
             // Replacement annotations can only handle literals or constants
             if (methodInvocation.getArguments().stream()
                     .anyMatch(arg -> !(arg instanceof J.Literal) && !(arg instanceof J.Lambda))) {
-                // TODO Consider adding a marker to indicate method invocation was not migrated because of argument type
-                return methodInvocation;
+                return methodInvocation
+                        .withMarkers(methodInvocation.getMarkers().searchResult("TODO Migrate manually"));
             }
 
             // Extract arguments passed to method
