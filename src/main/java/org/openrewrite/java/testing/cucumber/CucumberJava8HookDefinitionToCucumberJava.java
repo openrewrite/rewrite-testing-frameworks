@@ -16,10 +16,7 @@
 package org.openrewrite.java.testing.cucumber;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import lombok.Value;
 import lombok.With;
@@ -106,10 +103,7 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
                     parentClass.getType(),
                     hookArguments.replacementImport(),
                     hookArguments.template(),
-                    hookArguments.parameters().toArray()));
-
-            // Clean up unused imports // TODO clean up only on parentClass, or only add throws when necessary in block
-            doAfterVisit(new org.openrewrite.java.cleanup.UnnecessaryThrows());
+                    hookArguments.parameters()));
 
             // Remove original method invocation; it's replaced in the above visitor
             return null;
@@ -157,7 +151,7 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
 @Value
 class HookArguments {
 
-    String methodName;
+    String annotationName;
     @Nullable
     @With
     String tagExpression;
@@ -167,16 +161,11 @@ class HookArguments {
     J.Lambda lambda;
 
     String replacementImport() {
-        return String.format("io.cucumber.java.%s", methodName);
+        return String.format("io.cucumber.java.%s", annotationName);
     }
 
     String template() {
-        return String.format("@%s%s\npublic void %s(%s) throws Exception {\n\t%s\n}",
-                methodName,
-                formatAnnotationArguments(),
-                formatMethodName(),
-                formatMethodArguments(),
-                formatMethodBody());
+        return "@#{}#{}\npublic void #{}(#{}) throws Exception {\n\t#{any()}\n}";
     }
 
     private String formatAnnotationArguments() {
@@ -199,7 +188,7 @@ class HookArguments {
 
     private String formatMethodName() {
         return String.format("%s%s%s",
-                methodName
+                annotationName
                         .replaceFirst("^Before", "before")
                         .replaceFirst("^After", "after"),
                 tagExpression == null ? ""
@@ -217,20 +206,13 @@ class HookArguments {
         return "";
     }
 
-    private String formatMethodBody() {
-        int copies = lambda.getBody() instanceof J.Block ? ((J.Block) lambda.getBody()).getStatements().size() : 1;
-        return Collections.nCopies(copies, "#{any()}").stream().collect(Collectors.joining());
-    }
-
-    List<J> parameters() {
-        List<J> parameters = new ArrayList<>();
-        if (lambda.getBody() instanceof J.Block) {
-            // XXX Comments and whitespace are lost here; not sure how to prevent that
-            parameters.addAll(((J.Block) lambda.getBody()).getStatements());
-        } else {
-            parameters.add(lambda.getBody());
-        }
-        return parameters;
+    public Object[] parameters() {
+        return new Object[] {
+                annotationName,
+                formatAnnotationArguments(),
+                formatMethodName(),
+                formatMethodArguments(),
+                lambda.getBody() };
     }
 
 }

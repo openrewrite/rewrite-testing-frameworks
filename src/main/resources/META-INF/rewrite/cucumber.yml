@@ -24,6 +24,8 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.cucumber.CucumberJava8HookDefinitionToCucumberJava
   - org.openrewrite.java.testing.cucumber.CucumberJava8StepDefinitionToCucumberJava
+  - org.openrewrite.java.cleanup.RemoveUnneededBlock
+  - org.openrewrite.java.cleanup.UnnecessaryThrows
   - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
       oldGroupId: io.cucumber
       oldArtifactId: cucumber-java8

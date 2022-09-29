@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.cucumber;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
@@ -233,8 +232,7 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
         }
 
         @Test
-        @Disabled("not retained yet")
-        void should_retain_whitespace_and_comments_around_lambda_arguments() {
+        void should_retain_whitespace_and_comments_in_lambda_body() {
             rewriteRun(version(java("""
                     package com.example.app;
 
@@ -242,11 +240,9 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
 
                     public class CalculatorStepDefinitions implements En {
                         public CalculatorStepDefinitions() {
-                            Given("{int} plus {int}", (
-                            // A
-                            Integer a,
-                            Integer b) -> {
-                                // C
+                            Given("{int} plus {int}", (Integer a, Integer b) -> {
+
+                                // Lambda body comment
                                 int c = a + b;
                             });
                         }
@@ -256,12 +252,11 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                     import io.cucumber.java.en.Given;
 
                     public class CalculatorStepDefinitions {
+
                         @Given("{int} plus {int}")
-                        public void int_plus_int(
-                            // A
-                            Integer a,
-                            Integer b) {
-                            // C
+                        public void int_plus_int(Integer a, Integer b) {
+
+                            // Lambda body comment
                             int c = a + b;
                         }
                     }"""),
@@ -383,7 +378,7 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
         }
 
     }
-    
+
     @Nested
     class HookMigration {
 
@@ -495,7 +490,8 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
 
         @Test
         void should_not_convert_anonymous_classes() {
-            // For simplicity anonymous classes are not converted for now; it's not how cucumber-java8 usage was intended
+            // For simplicity anonymous classes are not converted for now; it's not how cucumber-java8 usage was
+            // intended
             rewriteRun(spec -> spec.cycles(2), version(java("""
                     package com.example.app;
 
@@ -558,7 +554,8 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
 
         @Test
         void should_not_convert_method_reference() {
-            // For simplicity anonymous classes are not converted for now; it's not how cucumber-java8 usage was intended
+            // For simplicity anonymous classes are not converted for now; it's not how cucumber-java8 usage was
+            // intended
             rewriteRun(version(java("""
                     package com.example.app;
 

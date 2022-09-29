@@ -16,8 +16,6 @@
 package org.openrewrite.java.testing.cucumber;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -116,7 +114,7 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
                     parentClass.getType(),
                     replacementImport,
                     stepArguments.template(),
-                    stepArguments.parameters().toArray()));
+                    stepArguments.parameters()));
 
             // Remove original method invocation; it's replaced in the above visitor
             return null;
@@ -128,16 +126,12 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
 @Value
 class StepDefinitionArguments {
 
-    String methodName;
+    String annotationName;
     J.Literal cucumberExpression;
     J.Lambda lambda;
 
     String template() {
-        return String.format("@%s(#{any()})\npublic void %s(%s) throws Exception {\n\t%s\n}",
-                methodName,
-                formatMethodName(),
-                formatMethodArguments(),
-                formatMethodBody());
+        return "@#{}(#{any()})\npublic void #{}(#{}) throws Exception {\n\t#{any()}\n}";
     }
 
     private String formatMethodName() {
@@ -156,21 +150,13 @@ class StepDefinitionArguments {
                 .collect(Collectors.joining(", "));
     }
 
-    private String formatMethodBody() {
-        int copies = lambda.getBody() instanceof J.Block ? ((J.Block) lambda.getBody()).getStatements().size() : 1;
-        return Collections.nCopies(copies, "#{any()}").stream().collect(Collectors.joining());
-    }
-
-    List<J> parameters() {
-        List<J> parameters = new ArrayList<>();
-        parameters.add(cucumberExpression);
-        if (lambda.getBody() instanceof J.Block) {
-            // TODO Lambda block statement unpacking loses any comments / whitespace
-            parameters.addAll(((J.Block) lambda.getBody()).getStatements());
-        } else {
-            parameters.add(lambda.getBody());
-        }
-        return parameters;
+    Object[] parameters() {
+        return new Object[] {
+                annotationName,
+                cucumberExpression,
+                formatMethodName(),
+                formatMethodArguments(),
+                lambda.getBody() };
     }
 
 }
