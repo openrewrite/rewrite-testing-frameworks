@@ -554,8 +554,7 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
 
         @Test
         void should_not_convert_method_reference() {
-            // For simplicity anonymous classes are not converted for now; it's not how cucumber-java8 usage was
-            // intended
+            // Not converted yet; the referred method can potentially be annotated and be made public
             rewriteRun(version(java("""
                     package com.example.app;
 

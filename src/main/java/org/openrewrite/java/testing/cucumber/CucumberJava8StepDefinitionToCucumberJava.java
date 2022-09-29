@@ -38,10 +38,6 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
     private static final MethodMatcher STEP_DEFINITION_METHOD_MATCHER = new MethodMatcher(
             IO_CUCUMBER_JAVA8_STEP_DEFINITION);
 
-    public CucumberJava8StepDefinitionToCucumberJava() {
-        doNext(new org.openrewrite.java.cleanup.UnnecessaryThrows());
-    }
-
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new UsesMethod<>(IO_CUCUMBER_JAVA8_STEP_DEFINITION, true);
