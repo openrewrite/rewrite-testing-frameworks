@@ -32,8 +32,6 @@ import org.openrewrite.java.tree.JavaType.FullyQualified;
 class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
 
     private static final String IO_CUCUMBER_JAVA = "io.cucumber.java";
-    private static final String IO_CUCUMBER_JAVA_SCENARIO = IO_CUCUMBER_JAVA + ".Scenario";
-    private static final String IO_CUCUMBER_JAVA_STATUS = IO_CUCUMBER_JAVA + ".Status";
     private static final String IO_CUCUMBER_JAVA8 = "io.cucumber.java8";
 
     private final FullyQualified stepDefinitionsClass;
@@ -75,9 +73,7 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
                                 "cucumber-java",
                                 "cucumber-java8")
                                 .build())
-                        .imports(replacementImport,
-                                IO_CUCUMBER_JAVA_SCENARIO,
-                                IO_CUCUMBER_JAVA_STATUS)
+                        .imports(replacementImport)
                         .build(),
                         coordinatesForNewMethod(classDeclaration.getBody()),
                         templateParameters);
