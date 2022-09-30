@@ -65,6 +65,12 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
             }
         });
 
+        // Remove nested braces from lambda body block inserted into new method
+        doAfterVisit(new org.openrewrite.java.cleanup.RemoveUnneededBlock());
+        
+        // Remove unnecessary throws from templates that maybe-throw-exceptions
+        doAfterVisit(new org.openrewrite.java.cleanup.UnnecessaryThrows());
+
         // Update implements & add new method
         return classDeclaration
                 .withImplements(retained)
