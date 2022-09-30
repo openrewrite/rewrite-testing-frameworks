@@ -125,6 +125,8 @@ dependencies {
     implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
     runtimeOnly("com.fasterxml.jackson.core:jackson-core:2.12.+")
     runtimeOnly("org.openrewrite:rewrite-java-17:$rewriteVersion")
+    runtimeOnly("io.cucumber:cucumber-java8:7.+")
+    runtimeOnly("io.cucumber:cucumber-java:7.+")
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
