@@ -31,6 +31,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType.Primitive;
+import org.openrewrite.marker.SearchResult;
 
 public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
 
@@ -87,8 +88,7 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
             // Replacement annotations can only handle literals or constants
             if (methodInvocation.getArguments().stream()
                     .anyMatch(arg -> !(arg instanceof J.Literal) && !(arg instanceof J.Lambda))) {
-                return methodInvocation
-                        .withMarkers(methodInvocation.getMarkers().searchResult("TODO Migrate manually"));
+                return SearchResult.found(methodInvocation,"TODO Migrate manually");
             }
 
             // Extract arguments passed to method

@@ -15,6 +15,51 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.cucumber.UpgradeCucumber7x
+displayName: Upgrade to Cucumber-JVM 7.x
+description: Upgrade to Cucumber-JVM 7.x from any previous version.
+tags:
+  - testing
+  - cucumber
+recipeList:
+  - org.openrewrite.java.testing.cucumber.UpgradeCucumber5x
+  - org.openrewrite.java.testing.cucumber.CucumberJava8ToJava
+  - org.openrewrite.java.testing.cucumber.DropSummaryPrinter
+  - org.openrewrite.java.testing.cucumber.RegexToCucumberExpression
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.cucumber.UpgradeCucumber5x
+displayName: Upgrade to Cucumber-JVM 5.x
+description: Upgrade to Cucumber-JVM 5.x from any previous version.
+tags:
+  - testing
+  - cucumber
+recipeList:
+  - org.openrewrite.java.testing.cucumber.UpgradeCucumber2x
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: cucumber.api
+      newPackageName: io.cucumber
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.cucumber.UpgradeCucumber2x
+displayName: Upgrade to Cucumber-JVM 2.x
+description: Upgrade to Cucumber-JVM 2.x from any previous version.
+tags:
+  - testing
+  - cucumber
+recipeList:
+  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+      oldGroupId: info.cukes
+      oldArtifactId: cucumber-java
+      newGroupId: io.cucumber
+      newArtifactId: cucumber-java
+  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+      oldGroupId: info.cukes
+      oldArtifactId: cucumber-java8
+      newGroupId: io.cucumber
+      newArtifactId: cucumber-java8
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.cucumber.CucumberJava8ToJava
 displayName: Cucumber-Java8 migration to Cucumber-Java
 description: Migrates Cucumber-Java8 step definitions and LambdaGlue hooks to Cucumber-Java annotated methods.
