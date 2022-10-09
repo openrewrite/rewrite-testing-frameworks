@@ -22,6 +22,19 @@ tags:
   - testing
   - cucumber
 recipeList:
+  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+      oldGroupId: info.cukes
+      oldArtifactId: cucumber-java
+      newGroupId: io.cucumber
+      newArtifactId: cucumber-java
+  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+      oldGroupId: info.cukes
+      oldArtifactId: cucumber-java8
+      newGroupId: io.cucumber
+      newArtifactId: cucumber-java8
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: cucumber.api
+      newPackageName: io.cucumber
   - org.openrewrite.java.testing.cucumber.CucumberJava8HookDefinitionToCucumberJava
   - org.openrewrite.java.testing.cucumber.CucumberJava8StepDefinitionToCucumberJava
   - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
