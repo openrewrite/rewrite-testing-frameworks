@@ -64,8 +64,18 @@ public class RegexToCucumberExpression extends Recipe {
     static final class CucumberStepDefinitionBodyVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
-        public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext p) {
-            J.Annotation annotation = super.visitAnnotation(a, p);
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration m, ExecutionContext p) {
+            J.MethodDeclaration methodDeclaration = super.visitMethodDeclaration(m, p);
+            return methodDeclaration.withLeadingAnnotations(ListUtils.map(methodDeclaration.getLeadingAnnotations(),
+                    ann -> replaceRegexWithCucumberExpression(methodDeclaration, ann, p)));
+        }
+
+        private static J.Annotation replaceRegexWithCucumberExpression(
+                // For when we want to match regexes with method arguments for replacement cucumber expressions
+                // https://github.com/cucumber/cucumber-expressions#parameter-types
+                J.MethodDeclaration methodDeclaration,
+                J.Annotation annotation,
+                ExecutionContext p) {
             List<Expression> arguments = annotation.getArguments();
             Optional<String> possibleExpression = Stream.of(arguments)
                     .filter(Objects::nonNull)
@@ -94,12 +104,9 @@ public class RegexToCucumberExpression extends Recipe {
             // Attempt to replace elements of the regular expression
             if (!replacement.contains("(")) {
                 final String finalReplacement = String.format("\"%s\"", replacement);
-                return maybeAutoFormat(
-                        annotation,
-                        annotation.withArguments(ListUtils.map(annotation.getArguments(), arg -> ((J.Literal) arg)
-                                .withValue(finalReplacement)
-                                .withValueSource(finalReplacement))),
-                        p);
+                return annotation.withArguments(ListUtils.map(annotation.getArguments(), arg -> ((J.Literal) arg)
+                        .withValue(finalReplacement)
+                        .withValueSource(finalReplacement)));
             }
 
             return annotation;
