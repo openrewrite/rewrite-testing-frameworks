@@ -33,8 +33,7 @@ import java.util.stream.Collectors;
 
 /**
  * Converts Pragmatists JUnitParamsRunner tests to their JUnit 5 ParameterizedTest and associated MethodSource equivalent
- *     https://github.com/Pragmatists/JUnitParams
- *
+ *     <a href="https://github.com/Pragmatists/JUnitParams">...</a>
  * Supports the following conversions
  *    `@Parameters` annotation with out arguments and default `parametersFor...` init-method exists
  *    `@Parameters(method = "...")` annotation with defined method references
@@ -123,7 +122,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                 } else if (anno.getArguments() != null && !anno.getArguments().isEmpty()) {
                     // This conversion is not supported add a comment to the annotation and the method name to the not supported list
                     String comment = " JunitParamsRunnerToParameterized conversion not supported";
-                    if (anno.getComments().stream().noneMatch(c -> c.printComment().endsWith(comment))) {
+                    if (anno.getComments().stream().noneMatch(c -> c.printComment(getCursor()).endsWith(comment))) {
                         anno = anno.withComments(ListUtils.concat(anno.getComments(), new TextComment(false, comment,
                                 "\n" + anno.getPrefix().getIndent(), Markers.EMPTY)));
                     }
@@ -309,7 +308,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             if (annotationArgumentValue != null) {
                 String[] methodRefs = annotationArgumentValue.split(",");
                 if (methodRefs.length > 1) {
-                    String methods = Arrays.stream(methodRefs).map(mref -> mref = "\"" + mref + "\"").collect(Collectors.joining(", "));
+                    String methods = Arrays.stream(methodRefs).map(mref -> "\"" + mref + "\"").collect(Collectors.joining(", "));
                     annotationArgumentValue = "{" + methods + "}";
                 } else {
                     annotationArgumentValue = "\"" + annotationArgumentValue + "\"";
