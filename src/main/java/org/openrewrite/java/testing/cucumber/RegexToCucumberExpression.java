@@ -34,7 +34,7 @@ import org.openrewrite.java.tree.J;
 
 public class RegexToCucumberExpression extends Recipe {
 
-    private static final String IO_CUCUMBER_JAVA_STEP_DEFINITION = "io.cucumber.java.*";
+    private static final String IO_CUCUMBER_JAVA_STEP_DEFINITION = "io.cucumber.java.*.*";
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
@@ -93,12 +93,12 @@ public class RegexToCucumberExpression extends Recipe {
 
             // Attempt to replace elements of the regular expression
             if (!replacement.contains("(")) {
-                final String finalReplacement = replacement;
+                final String finalReplacement = String.format("\"%s\"", replacement);
                 return maybeAutoFormat(
                         annotation,
-                        annotation
-                                .withArguments(ListUtils.map(annotation.getArguments(),
-                                        arg -> ((J.Literal) arg).withValue(finalReplacement))),
+                        annotation.withArguments(ListUtils.map(annotation.getArguments(), arg -> ((J.Literal) arg)
+                                .withValue(finalReplacement)
+                                .withValueSource(finalReplacement))),
                         p);
             }
 
