@@ -127,6 +127,7 @@ dependencies {
     runtimeOnly("org.openrewrite:rewrite-java-17:$rewriteVersion")
     runtimeOnly("io.cucumber:cucumber-java8:7.+")
     runtimeOnly("io.cucumber:cucumber-java:7.+")
+    runtimeOnly("io.cucumber:cucumber-plugin:7.+")
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
