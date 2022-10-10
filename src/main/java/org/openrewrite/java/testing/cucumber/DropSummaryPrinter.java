@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.cucumber;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import org.openrewrite.ExecutionContext;
@@ -66,10 +67,12 @@ public class DropSummaryPrinter extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext p) {
             J.ClassDeclaration classDeclaration = super.visitClassDeclaration(cd, p);
-            boolean implementsSummaryPrinter = Stream.ofNullable(classDeclaration.getImplements())
+            boolean implementsSummaryPrinter = Stream.of(classDeclaration.getImplements())
+                    .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
                     .anyMatch(t -> TypeUtils.isOfClassType(t.getType(), IO_CUCUMBER_PLUGIN_SUMMARY_PRINTER));
-            boolean alreadyImplementsPlugin = Stream.ofNullable(classDeclaration.getImplements())
+            boolean alreadyImplementsPlugin = Stream.of(classDeclaration.getImplements())
+                    .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
                     .anyMatch(t -> TypeUtils.isOfClassType(t.getType(), IO_CUCUMBER_PLUGIN_PLUGIN));
             if (!implementsSummaryPrinter) {
