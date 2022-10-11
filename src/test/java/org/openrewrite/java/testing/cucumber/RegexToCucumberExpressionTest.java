@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.cucumber;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -183,7 +182,6 @@ class RegexToCucumberExpressionTest implements RewriteTest {
     class ShouldNotConvert {
 
         @Test
-        @Disabled("non-standard matcher would need custom ParameterType which is out scope for now")
         void unrecognized_capturing_groups() {
             rewriteRun(version(java("""
                     package com.example.app;
@@ -192,14 +190,13 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                     public class CucumberJava8Definitions {
                         @Given("^some (foo|bar)$")
-                        public void five_cukes() {
+                        public void five_cukes(String fooOrBar) {
                         }
                     }"""),
                     17));
         }
 
         @Test
-        @Disabled("needs method arguments to convert")
         void integer_matchers() {
             rewriteRun(version(java("""
                     package com.example.app;
@@ -207,17 +204,38 @@ class RegexToCucumberExpressionTest implements RewriteTest {
                     import io.cucumber.java.en.Given;
 
                     public class CucumberJava8Definitions {
-                        @Given("^(\\d+) cukes$")
+                        @Given("^(\\\\d+) cukes$")
                         public void int_cukes(int cukes) {
                         }
-                    }""", """
+                    }"""),
+                    17));
+        }
+
+        @Test
+        void regex_question_mark_optional() {
+            rewriteRun(version(java("""
                     package com.example.app;
 
                     import io.cucumber.java.en.Given;
 
                     public class CucumberJava8Definitions {
-                        @Given("{int} cukes")
-                        public void int_cukes(int cukes) {
+                        @Given("^cukes?$")
+                        public void cukes() {
+                        }
+                    }"""),
+                    17));
+        }
+
+        @Test
+        void regex_one_or_more() {
+            rewriteRun(version(java("""
+                    package com.example.app;
+
+                    import io.cucumber.java.en.Given;
+
+                    public class CucumberJava8Definitions {
+                        @Given("^cukes+$")
+                        public void cukes() {
                         }
                     }"""),
                     17));

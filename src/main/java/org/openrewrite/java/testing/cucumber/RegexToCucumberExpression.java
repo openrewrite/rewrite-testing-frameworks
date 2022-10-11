@@ -101,15 +101,16 @@ public class RegexToCucumberExpression extends Recipe {
                 replacement = replacement.substring(0, replacement.length() - 1);
             }
 
-            // Attempt to replace elements of the regular expression
-            if (!replacement.contains("(")) {
-                final String finalReplacement = String.format("\"%s\"", replacement);
-                return annotation.withArguments(ListUtils.map(annotation.getArguments(), arg -> ((J.Literal) arg)
-                        .withValue(finalReplacement)
-                        .withValueSource(finalReplacement)));
+            // Back off when special characters are encountered in regex
+            if (Stream.of("(", ")", "{", "}", "[", "]", "?", "*", "+").anyMatch(replacement::contains)) {
+                return annotation;
             }
 
-            return annotation;
+            // Replace regular expression with cucumber expression
+            final String finalReplacement = String.format("\"%s\"", replacement);
+            return annotation.withArguments(ListUtils.map(annotation.getArguments(), arg -> ((J.Literal) arg)
+                    .withValue(finalReplacement)
+                    .withValueSource(finalReplacement)));
         }
     }
 
