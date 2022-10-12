@@ -48,7 +48,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-                public class CucumberJava8Definitions {
+                public class ExpressionDefinitions {
 
                     private int a;
 
@@ -76,7 +76,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-                public class CucumberJava8Definitions {
+                public class ExpressionDefinitions {
 
                     private int a;
 
@@ -110,7 +110,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                     import io.cucumber.java.en.Given;
 
-                    public class CucumberJava8Definitions {
+                    public class ExpressionDefinitions {
                         @Given("^five cukes")
                         public void five_cukes() {
                         }
@@ -119,7 +119,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                     import io.cucumber.java.en.Given;
 
-                    public class CucumberJava8Definitions {
+                    public class ExpressionDefinitions {
                         @Given("five cukes")
                         public void five_cukes() {
                         }
@@ -134,7 +134,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                     import io.cucumber.java.en.Given;
 
-                    public class CucumberJava8Definitions {
+                    public class ExpressionDefinitions {
                         @Given("five cukes$")
                         public void five_cukes() {
                         }
@@ -143,7 +143,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                     import io.cucumber.java.en.Given;
 
-                    public class CucumberJava8Definitions {
+                    public class ExpressionDefinitions {
                         @Given("five cukes")
                         public void five_cukes() {
                         }
@@ -158,7 +158,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                     import io.cucumber.java.en.Given;
 
-                    public class CucumberJava8Definitions {
+                    public class ExpressionDefinitions {
                         @Given("/five cukes/")
                         public void five_cukes() {
                         }
@@ -167,7 +167,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                     import io.cucumber.java.en.Given;
 
-                    public class CucumberJava8Definitions {
+                    public class ExpressionDefinitions {
                         @Given("five cukes")
                         public void five_cukes() {
                         }
@@ -188,7 +188,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                     import io.cucumber.java.en.Given;
 
-                    public class CucumberJava8Definitions {
+                    public class ExpressionDefinitions {
                         @Given("^some (foo|bar)$")
                         public void five_cukes(String fooOrBar) {
                         }
@@ -203,7 +203,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                     import io.cucumber.java.en.Given;
 
-                    public class CucumberJava8Definitions {
+                    public class ExpressionDefinitions {
                         @Given("^(\\\\d+) cukes$")
                         public void int_cukes(int cukes) {
                         }
@@ -218,7 +218,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                     import io.cucumber.java.en.Given;
 
-                    public class CucumberJava8Definitions {
+                    public class ExpressionDefinitions {
                         @Given("^cukes?$")
                         public void cukes() {
                         }
@@ -233,7 +233,7 @@ class RegexToCucumberExpressionTest implements RewriteTest {
 
                     import io.cucumber.java.en.Given;
 
-                    public class CucumberJava8Definitions {
+                    public class ExpressionDefinitions {
                         @Given("^cukes+$")
                         public void cukes() {
                         }
