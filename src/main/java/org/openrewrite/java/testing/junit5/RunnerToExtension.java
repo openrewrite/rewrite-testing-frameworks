@@ -18,10 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Option;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -97,13 +94,19 @@ public class RunnerToExtension extends Recipe {
                     extendsWithTemplate = JavaTemplate.builder(this::getCursor, "@ExtendWith(#{}.class)")
                             .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
                                     fromString("package org.junit.jupiter.api.extension;\n" +
+                                            "public interface Extension {}"),
+                                    fromString("package org.junit.jupiter.api.extension;\n" +
                                             "public @interface ExtendWith {\n" +
                                             "   Class<? extends Extension>[] value();\n" +
                                             "}"),
                                     fromString("package " + extensionType.getPackageName() + ";\n" +
-                                            "public class " + extensionType.getClassName() + " {}"
-                                    ))).build())
-                            .imports("org.junit.jupiter.api.extension.ExtendWith", extension)
+                                            "import org.junit.jupiter.api.extension.Extension;\n" +
+                                            "public class " + extensionType.getClassName() + " implements Extension {}"
+                                    )))
+                                    .classpath("junit")
+                                    .build())
+                            .imports("org.junit.jupiter.api.extension.ExtendWith",
+                                    "org.junit.jupiter.api.extension.Extension", extension)
                             .build();
                 }
                 return extendsWithTemplate;
