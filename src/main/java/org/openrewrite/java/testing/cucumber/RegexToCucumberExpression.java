@@ -111,7 +111,7 @@ public class RegexToCucumberExpression extends Recipe {
                 return initialExpression.substring(1, initialExpression.length() - 1);
             }
 
-            // The presence of anchors assumes a Regular Expression, even if only one of the anchors are present 
+            // The presence of anchors assumes a Regular Expression, even if only one of the anchors are present
             String replacement = initialExpression;
             if (replacement.startsWith("^")) {
                 replacement = replacement.substring(1);
@@ -119,6 +119,12 @@ public class RegexToCucumberExpression extends Recipe {
             if (replacement.endsWith("$")) {
                 replacement = replacement.substring(0, replacement.length() - 1);
             }
+
+            // Prevent conversion of `^/hello world/$` to `/hello world/`
+            if (leadingAndTrailingSlash(replacement)) {
+                return initialExpression;
+            }
+
             return replacement;
         }
 
