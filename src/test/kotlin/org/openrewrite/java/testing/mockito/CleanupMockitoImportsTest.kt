@@ -16,49 +16,47 @@
 package org.openrewrite.java.testing.mockito
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.Recipe
+import org.openrewrite.java.Assertions.java
 import org.openrewrite.java.JavaParser
-import org.openrewrite.java.JavaRecipeTest
+import org.openrewrite.test.RecipeSpec
+import org.openrewrite.test.RewriteTest
 
-class CleanupMockitoImportsTest : JavaRecipeTest {
-    override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .classpath("mockito")
-        .build()
-
-    override val recipe: Recipe
-        get() = CleanupMockitoImports()
-
+class CleanupMockitoImportsTest : RewriteTest {
+    override fun defaults(spec: RecipeSpec) {
+        spec.recipe(CleanupMockitoImports())
+            .parser(JavaParser.fromJavaVersion()
+                .classpath("mockito"))
+    }
     @Test
-    fun removesUnusedMockitoImport() = assertChanged(
-        before = """
+    fun removesUnusedMockitoImport() = rewriteRun(
+        java("""
             import org.mockito.Mock;
             import java.util.Arrays;
             
             public class A {}
         """,
-        after = """
+        """
             import java.util.Arrays;
             
             public class A {}
-        """
+        """)
     )
 
     @Test
-    fun leavesOtherImportsAlone() = assertUnchanged(
-        before = """
+    fun leavesOtherImportsAlone() = rewriteRun(
+        java("""
             import java.util.Arrays;
             import java.util.Collections;
             import java.util.HashSet;
             import java.util.List;
             
             public class A {}
-        """
+        """)
     )
 
     @Test
-    fun `do not remove static import when possibly associated with method invocation having a null type`() =
-        assertUnchanged(
-            before = """
+    fun doNotRemoveImportsPossiblyAssociatedWithAnUntypedMockitoMethod() = rewriteRun(
+        java("""
             import static org.mockito.Mockito.when;
 
             class MyObjectTest {
@@ -68,13 +66,12 @@ class CleanupMockitoImportsTest : JavaRecipeTest {
                 when(myObject.getSomeField()).thenReturn("testValue");
               }
             }
-        """
-        )
+        """)
+    )
 
     @Test
-    fun `do not remove static star import when possibly associated with method invocation having a null type`() =
-        assertUnchanged(
-            before = """
+    fun doNotRemoveStartImportsPossiblyAssociatedWithAnUntypedMockitoMethod() = rewriteRun(
+        java("""
             import static org.mockito.Mockito.*;
 
             class MyObjectTest {
@@ -84,19 +81,17 @@ class CleanupMockitoImportsTest : JavaRecipeTest {
                 when(myObject.getSomeField()).thenReturn("testValue");
               }
             }
-        """
-        )
+        """)
+    )
 
     @Test
-    fun `remove unused mockito static import`() = assertChanged(
-        dependsOn = arrayOf(
-            """
+    fun removeUnusedMockitoStaticImport() = rewriteRun(
+        java("""
             class MyObject {
                 String getSomeField(){return null;}
             }
-        """
-        ),
-        before = """
+        """),
+        java("""
             import static org.mockito.Mockito.when;
             import static org.mockito.Mockito.after;
             import org.junit.jupiter.api.Test;
@@ -111,7 +106,7 @@ class CleanupMockitoImportsTest : JavaRecipeTest {
               }
             }
         """,
-        after = """
+        """
             import static org.mockito.Mockito.when;
             import org.junit.jupiter.api.Test;
             import org.mockito.Mock;
@@ -124,12 +119,12 @@ class CleanupMockitoImportsTest : JavaRecipeTest {
                 when(myObject.getSomeField()).thenReturn("testValue");
               }
             }
-        """
+        """)
     )
 
     @Test
-    fun `preserve star imports`() = assertUnchanged(
-        before = """
+    fun preserveStarImports() = rewriteRun(
+        java("""
             package mockito.example;
             
             import java.util.List;
@@ -146,21 +141,21 @@ class CleanupMockitoImportsTest : JavaRecipeTest {
                     when(mockFoo.bool(anyString(), anyInt(), any(Object.class))).thenReturn(true);
                 }
             }
-        """
+        """)
     )
 
     @Test
-    fun `remove unused star import`() = assertChanged(
-        before = """
+    fun removeUnusedStarImports() = rewriteRun(
+        java("""
             import static org.mockito.Mockito.*;
             
             public class MockitoArgumentMatchersTest {
             }
         """,
-        after = """
+        """
             public class MockitoArgumentMatchersTest {
             }
-        """
+        """)
     )
 }
 
