@@ -85,24 +85,14 @@ public class RegexToCucumberExpression extends Recipe {
                     .map(e -> (J.Literal) e)
                     .map(l -> (String) l.getValue())
                     // https://github.com/cucumber/cucumber-expressions/blob/main/java/heuristics.adoc
-                    .filter(s -> (s.startsWith("^") || s.endsWith("$"))
-                            || (s.startsWith("/") && s.endsWith("/")))
+                    .filter(s -> s.startsWith("^") || s.endsWith("$") || leadingAndTrailingSlash(s))
                     .findFirst();
             if (!possibleExpression.isPresent()) {
                 return annotation;
             }
 
             // Strip leading/trailing regex anchors
-            String replacement = possibleExpression.get();
-            if (replacement.startsWith("^")) {
-                replacement = replacement.substring(1);
-            }
-            if (replacement.endsWith("$")) {
-                replacement = replacement.substring(0, replacement.length() - 1);
-            }
-            if (replacement.startsWith("/") && replacement.endsWith("/")) {
-                replacement = replacement.substring(1, replacement.length() -1);
-            }
+            String replacement = stripAnchors(possibleExpression.get());
 
             // Back off when special characters are encountered in regex
             if (Stream.of("(", ")", "{", "}", "[", "]", "?", "*", "+").anyMatch(replacement::contains)) {
@@ -114,6 +104,26 @@ public class RegexToCucumberExpression extends Recipe {
             return annotation.withArguments(ListUtils.map(annotation.getArguments(), arg -> ((J.Literal) arg)
                     .withValue(finalReplacement)
                     .withValueSource(finalReplacement)));
+        }
+
+        private static String stripAnchors(final String initialExpression) {
+            if (leadingAndTrailingSlash(initialExpression)) {
+                return initialExpression.substring(1, initialExpression.length() - 1);
+            }
+
+            // The presence of anchors assumes a Regular Expression, even if only one of the anchors are present 
+            String replacement = initialExpression;
+            if (replacement.startsWith("^")) {
+                replacement = replacement.substring(1);
+            }
+            if (replacement.endsWith("$")) {
+                replacement = replacement.substring(0, replacement.length() - 1);
+            }
+            return replacement;
+        }
+
+        private static boolean leadingAndTrailingSlash(final String initialExpression) {
+            return initialExpression.startsWith("/") && initialExpression.endsWith("/");
         }
     }
 
