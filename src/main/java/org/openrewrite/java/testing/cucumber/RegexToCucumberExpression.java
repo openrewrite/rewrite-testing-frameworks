@@ -94,11 +94,14 @@ public class RegexToCucumberExpression extends Recipe {
 
             // Strip leading/trailing regex anchors
             String replacement = possibleExpression.get();
-            if (replacement.startsWith("^") || replacement.startsWith("/")) {
+            if (replacement.startsWith("^")) {
                 replacement = replacement.substring(1);
             }
-            if (replacement.endsWith("$") || replacement.endsWith("/")) {
+            if (replacement.endsWith("$")) {
                 replacement = replacement.substring(0, replacement.length() - 1);
+            }
+            if (replacement.startsWith("/") && replacement.endsWith("/")) {
+                replacement = replacement.substring(1, replacement.length() -1);
             }
 
             // Back off when special characters are encountered in regex
