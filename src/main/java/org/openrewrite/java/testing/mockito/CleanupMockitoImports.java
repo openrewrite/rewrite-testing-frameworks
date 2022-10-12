@@ -20,15 +20,15 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.search.FindMissingTypes;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Removes unused "org.mockito" imports.
@@ -69,11 +69,9 @@ public class CleanupMockitoImports extends Recipe {
         public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
             JavaSourceFile sf = super.visitJavaSourceFile(cu, executionContext);
 
-            final List<String> unknownTypeMethodInvocationNames = FindMissingTypes.findMissingTypes(cu)
-                    .stream().map(FindMissingTypes.MissingTypeResult::getJ)
-                    .filter(J.MethodInvocation.class::isInstance)
-                    .map(J.MethodInvocation.class::cast)
-                    .map(J.MethodInvocation::getSimpleName).collect(Collectors.toList());
+            // Prevent removing mockito imports when an associated mockito method type is not well formed
+            final List<String> unknownTypeMethodInvocationNames = new ArrayList<>();
+            new WellFormedMockitoMethodTypeVisitor().visit(cu, unknownTypeMethodInvocationNames);
 
             for (J.Import _import : cu.getImports()) {
                 if (_import.getPackageName().startsWith("org.mockito")) {
@@ -100,6 +98,17 @@ public class CleanupMockitoImports extends Recipe {
             }
 
             return false;
+        }
+
+        private static class WellFormedMockitoMethodTypeVisitor extends JavaIsoVisitor<List<String>> {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, List<String> missingMethods) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, missingMethods);
+                if (MOCKITO_METHOD_NAMES.contains(mi.getSimpleName()) && !TypeUtils.isWellFormedType(mi.getType())) {
+                    missingMethods.add(mi.getSimpleName());
+                }
+                return mi;
+            }
         }
     }
 }
