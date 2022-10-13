@@ -29,7 +29,7 @@ class CucumberAnnotationToSuiteTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new DropSummaryPrinter());
+        spec.recipe(new CucumberAnnotationToSuite());
         spec.parser(JavaParser.fromJavaVersion()
                 .logCompilationWarningsAndErrors(true)
                 .classpath(
