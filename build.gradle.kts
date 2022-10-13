@@ -123,7 +123,7 @@ val rewriteVersion = if(project.hasProperty("releasing")) {
 dependencies {
     implementation("org.openrewrite:rewrite-java:$rewriteVersion")
     implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
-    runtimeOnly("com.fasterxml.jackson.core:jackson-core:2.12.+")
+    runtimeOnly("com.fasterxml.jackson.core:jackson-core:2.13.4")
     runtimeOnly("org.openrewrite:rewrite-java-17:$rewriteVersion")
 
     compileOnly("org.projectlombok:lombok:latest.release")
