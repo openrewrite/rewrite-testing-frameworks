@@ -125,8 +125,6 @@ dependencies {
     implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
     runtimeOnly("com.fasterxml.jackson.core:jackson-core:2.13.4")
     runtimeOnly("org.openrewrite:rewrite-java-17:$rewriteVersion")
-    runtimeOnly("io.cucumber:cucumber-junit-platform-engine:7.+")
-    runtimeOnly("org.junit.platform:junit-platform-suite-api:latest.release")
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
@@ -154,6 +152,9 @@ dependencies {
     testRuntimeOnly("io.cucumber:cucumber-java8:7.+")
     testRuntimeOnly("io.cucumber:cucumber-java:7.+")
     testRuntimeOnly("io.cucumber:cucumber-plugin:7.+")
+    testRuntimeOnly("io.cucumber:cucumber-junit-platform-engine:7.+")
+    testRuntimeOnly("org.junit.platform:junit-platform-suite-api:latest.release")
+
 
     "testWithMockito_3RuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:latest.release")
     "testWithMockito_3RuntimeOnly"("junit:junit:latest.release")

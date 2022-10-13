@@ -22,7 +22,6 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.java.Assertions.version;
 
 @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/264")
 class CucumberAnnotationToSuiteTest implements RewriteTest {
@@ -39,24 +38,28 @@ class CucumberAnnotationToSuiteTest implements RewriteTest {
 
     @Test
     void should_replace_cucumber_annotation_with_suite_with_selected_classpath_resource() {
-        rewriteRun(version(java("""
-                package com.example.app;
-
-                import io.cucumber.junit.platform.engine.Cucumber;
-
-                @Cucumber
-                public class CucumberJava8Definitions {
-                }""", """
-                package com.example.app;
-
-                import org.junit.platform.suite.api.SelectClasspathResource;
-                import org.junit.platform.suite.api.Suite;
-
-                @Suite
-                @SelectClasspathResource("com/example/app")
-                public class CucumberJava8Definitions {
-                }"""),
-                17));
+        rewriteRun(
+                java("""
+                    package com.example.app;
+    
+                    import io.cucumber.junit.platform.engine.Cucumber;
+    
+                    @Cucumber
+                    public class CucumberJava8Definitions {
+                    }
+                    """,
+                    """
+                    package com.example.app;
+    
+                    import org.junit.platform.suite.api.SelectClasspathResource;
+                    import org.junit.platform.suite.api.Suite;
+    
+                    @Suite
+                    @SelectClasspathResource("com/example/app")
+                    public class CucumberJava8Definitions {
+                    }
+                    """)
+        );
     }
 
 }
