@@ -253,8 +253,8 @@ class RegexToCucumberExpressionTest implements RewriteTest {
                         @Disabled("/for now/")
                         public void disabled() {
                         }
-                        @Given("^cukes$")
-                        public void cukes() {
+                        @Given("trigger getSingleSourceApplicableTest")
+                        public void trigger() {
                         }
                     }"""),
                     17));

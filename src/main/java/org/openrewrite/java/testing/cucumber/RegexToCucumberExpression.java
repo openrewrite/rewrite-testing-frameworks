@@ -31,9 +31,11 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 
 public class RegexToCucumberExpression extends Recipe {
 
+    private static final String IO_CUCUMBER_JAVA = "io.cucumber.java";
     private static final String IO_CUCUMBER_JAVA_STEP_DEFINITION = "io.cucumber.java.*.*";
 
     @Override
@@ -76,6 +78,13 @@ public class RegexToCucumberExpression extends Recipe {
                 J.MethodDeclaration methodDeclaration,
                 J.Annotation annotation,
                 ExecutionContext p) {
+
+            // Skip if not a cucumber annotation
+            if (!((JavaType.Class) annotation.getAnnotationType().getType()).getPackageName()
+                    .startsWith(IO_CUCUMBER_JAVA)) {
+                return annotation;
+            }
+
             List<Expression> arguments = annotation.getArguments();
             Optional<String> possibleExpression = Stream.of(arguments)
                     .filter(Objects::nonNull)
