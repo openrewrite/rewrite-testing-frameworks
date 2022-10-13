@@ -241,6 +241,25 @@ class RegexToCucumberExpressionTest implements RewriteTest {
                     17));
         }
 
+        @Test
+        void disabled() {
+            rewriteRun(version(java("""
+                    package com.example.app;
+
+                    import io.cucumber.java.en.Given;
+                    import org.junit.jupiter.api.Disabled;
+
+                    public class ExpressionDefinitions {
+                        @Disabled("/for now/")
+                        public void disabled() {
+                        }
+                        @Given("^cukes$")
+                        public void cukes() {
+                        }
+                    }"""),
+                    17));
+        }
+
     }
 
 }
