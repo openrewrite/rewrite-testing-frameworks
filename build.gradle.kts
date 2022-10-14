@@ -126,7 +126,7 @@ dependencies {
     runtimeOnly("com.fasterxml.jackson.core:jackson-core:2.13.4")
     runtimeOnly("org.openrewrite:rewrite-java-17:$rewriteVersion")
 
-    runtimeOnly("org.assertj:assertj-core:3.x")
+    runtimeOnly("org.assertj:assertj-core:3.+")
     runtimeOnly("io.cucumber:cucumber-java8:7.+")
     runtimeOnly("io.cucumber:cucumber-java:7.+")
     runtimeOnly("io.cucumber:cucumber-plugin:7.+")
