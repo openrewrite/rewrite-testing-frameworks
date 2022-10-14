@@ -17,23 +17,18 @@ package org.openrewrite.java.testing.cucumber;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
-import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.*;
-import static org.openrewrite.maven.Assertions.pomXml;
 
 @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/264")
 class CucumberAnnotationToSuiteTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(Environment.builder()
-                .scanRuntimeClasspath("org.openrewrite.java.testing.cucumber")
-                .build()
-                .activateRecipes("org.openrewrite.java.testing.cucumber.CucumberToJunitPlatformSuite"));
+        spec.recipe(new CucumberAnnotationToSuite());
         spec.parser(JavaParser.fromJavaVersion()
                 .logCompilationWarningsAndErrors(true)
                 .classpath(
@@ -43,69 +38,27 @@ class CucumberAnnotationToSuiteTest implements RewriteTest {
 
 @Test
 void should_replace_cucumber_annotation_with_suite_with_selected_classpath_resource() {
-    rewriteRun(
-        mavenProject("project",
-            srcTestJava(
-                    java("""
-                        package com.example.app;
-        
-                        import io.cucumber.junit.platform.engine.Cucumber;
-        
-                        @Cucumber
-                        public class CucumberJava8Definitions {
-                        }
-                        """,
-                        """
-                        package com.example.app;
-        
-                        import org.junit.platform.suite.api.SelectClasspathResource;
-                        import org.junit.platform.suite.api.Suite;
-        
-                        @Suite
-                        @SelectClasspathResource("com/example/app")
-                        public class CucumberJava8Definitions {
-                        }
-                        """)
-            ),
-            pomXml(
-                """
-                <project>
-                    <groupId>org.example</groupId>
-                    <artifactId>cucmber-test</artifactId>
-                    <version>1.0-SNAPSHOT</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>io.cucumber</groupId>
-                            <artifactId>cucumber-junit-platform-engine</artifactId>
-                            <version>6.11.0</version>
-                            <scope>test</scope>
-                        </dependency>
-                    </dependencies>
-                </project>
-                """,
-                """
-                <project>
-                    <groupId>org.example</groupId>
-                    <artifactId>cucmber-test</artifactId>
-                    <version>1.0-SNAPSHOT</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>io.cucumber</groupId>
-                            <artifactId>cucumber-junit-platform-engine</artifactId>
-                            <version>6.11.0</version>
-                            <scope>test</scope>
-                        </dependency>
-                        <dependency>
-                            <groupId>org.junit.platform</groupId>
-                            <artifactId>junit-platform-suite</artifactId>
-                            <version>1.9.1</version>
-                            <scope>test</scope>
-                        </dependency>
-                    </dependencies>
-                </project>
-                """)
-    )
-);
+    rewriteRun(java("""
+        package com.example.app;
+
+        import io.cucumber.junit.platform.engine.Cucumber;
+
+        @Cucumber
+        public class CucumberJava8Definitions {
+        }
+        """,
+        """
+        package com.example.app;
+
+        import org.junit.platform.suite.api.SelectClasspathResource;
+        import org.junit.platform.suite.api.Suite;
+
+        @Suite
+        @SelectClasspathResource("com/example/app")
+        public class CucumberJava8Definitions {
+        }
+        """)
+)   ;
 }
 
 }
