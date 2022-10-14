@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -61,8 +60,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
     }
 
     public static class AssertEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final Supplier<JavaParser> ASSERTIONS_PARSER = () -> JavaParser.fromJavaVersion()
-                .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/AssertJAssertions.java", "---")).build();
+        private static final Supplier<JavaParser> ASSERTIONS_PARSER = () -> JavaParser.fromJavaVersion().classpath("assertj-core").build();
 
         private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertEquals(..)");
 
