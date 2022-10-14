@@ -32,7 +32,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.ClassDeclaration;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
-import org.openrewrite.maven.AddDependency;
 
 public class CucumberAnnotationToSuite extends Recipe {
 
@@ -74,17 +73,13 @@ public class CucumberAnnotationToSuite extends Recipe {
                     return classDecl;
                 }
 
-                Supplier<JavaParser> javaParserSupplier = () -> JavaParser.fromJavaVersion().dependsOn(
-                                "package org.junit.platform.suite.api; public @interface Suite {}",
-                                "package org.junit.platform.suite.api; public @interface SelectClasspathResource { String value(); }").build();
+                Supplier<JavaParser> javaParserSupplier = () -> JavaParser.fromJavaVersion().classpath("junit-platform-suite-api").build();
 
                 JavaType.FullyQualified classFqn = TypeUtils.asFullyQualified(classDecl.getType());
                 if (classFqn != null) {
                     maybeRemoveImport(IO_CUCUMBER_JUNIT_PLATFORM_ENGINE_CUCUMBER);
                     maybeAddImport(SUITE);
                     maybeAddImport(SELECT_CLASSPATH_RESOURCE);
-                    doAfterVisit(new AddDependency("org.junit.platform", "junit-platform-suite", "latest.release", null,
-                            "test", true, "org.junit.platform.suite.*", null, null, false, null));
 
                     final String classDeclPath = classFqn.getPackageName().replace('.','/');
                     classDecl = classDecl.withLeadingAnnotations(ListUtils.map(classDecl.getLeadingAnnotations(), ann -> {
