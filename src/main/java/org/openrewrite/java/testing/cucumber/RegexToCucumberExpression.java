@@ -105,7 +105,8 @@ public class RegexToCucumberExpression extends Recipe {
             String replacement = stripAnchors(possibleExpression.get());
 
             // Back off when special characters are encountered in regex
-            if (Stream.of("(", ")", "{", "}", "[", "]", "?", "*", "+").anyMatch(replacement::contains)) {
+            if (Stream.of("(", ")", "{", "}", "[", "]", "?", "*", "+", "/", "\\", "^", "|")
+                    .anyMatch(replacement::contains)) {
                 return annotation;
             }
 
