@@ -27,6 +27,10 @@ recipeList:
   - org.openrewrite.java.testing.cucumber.DropSummaryPrinter
   - org.openrewrite.java.testing.cucumber.RegexToCucumberExpression
   - org.openrewrite.java.testing.cucumber.CucumberToJunitPlatformSuite
+  - org.openrewrite.maven.UpgradeDependencyVersion:
+      groupId: io.cucumber
+      artifactId: "*"
+      newVersion: 7.x
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.cucumber.UpgradeCucumber5x
