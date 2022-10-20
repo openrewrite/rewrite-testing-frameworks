@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.intellij.lang.annotations.Language;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -22,6 +23,7 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markup;
 
 import java.time.Duration;
 import java.util.Comparator;
@@ -50,6 +52,42 @@ public class UpdateTestAnnotation extends Recipe {
 
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
+
+        @Override
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+            J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
+            maybeRemoveImport("org.junit.Test");
+            doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
+                @Override
+                public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                    J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
+                    for (J.Import anImport : cu.getImports()) {
+                        if (anImport.getTypeName().equals("org.junit.Test")) {
+                            throw new IllegalStateException("This import should have been removed by this recipe.");
+                        }
+                    }
+                    return cu;
+                }
+
+                @Override
+                public JavaType visitType(@Nullable JavaType javaType, ExecutionContext executionContext) {
+                    if(TypeUtils.isOfClassType(javaType, "org.junit.Test")) {
+                        getCursor().dropParentUntil(J.class::isInstance).putMessage("danglingTestRef", true);
+                    }
+                    return javaType;
+                }
+
+                @Override
+                public J postVisit(J tree, ExecutionContext executionContext) {
+                    if(getCursor().getMessage("danglingTreeRef", false)) {
+                        return Markup.warn(tree, "This still has a type of `org.junit.Test`", null);
+                    }
+                    return tree;
+                }
+            });
+            return c;
+        }
+
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             ChangeTestAnnotation cta = new ChangeTestAnnotation();
@@ -71,19 +109,20 @@ public class UpdateTestAnnotation extends Recipe {
                     assert lambda != null;
                     lambda = lambda.withType(JavaType.ShallowClass.build("org.junit.jupiter.api.function.Executable"));
 
+                    @Language("java")
                     String[] assertionShims = {
                             "package org.junit.jupiter.api.function;" +
-                                    "public interface Executable {void execute() throws Throwable;}",
+                            "public interface Executable {void execute() throws Throwable;}",
                             "package org.junit.jupiter.api;" +
-                                    "import org.junit.jupiter.api.function.Executable;" +
-                                    "public class Assertions {" +
-                                    "   public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {return null;}" +
-                                    "   public static void assertDoesNotThrow(Executable executable) {}" +
-                                    "}"
+                            "import org.junit.jupiter.api.function.Executable;" +
+                            "public class Assertions {" +
+                            "   public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {return null;}" +
+                            "   public static void assertDoesNotThrow(Executable executable) {}" +
+                            "}"
                     };
 
                     if (cta.expectedException instanceof J.FieldAccess
-                            && TypeUtils.isAssignableTo ("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
+                        && TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
                         m = m.withTemplate(JavaTemplate.builder(this::getCursor, "assertDoesNotThrow(#{any(org.junit.jupiter.api.function.Executable)});")
                                         .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(assertionShims).build())
                                         .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
@@ -91,7 +130,7 @@ public class UpdateTestAnnotation extends Recipe {
                                 m.getCoordinates().replaceBody(), lambda);
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
                     } else {
-                        m = m.withTemplate(JavaTemplate.builder(this::getCursor,  "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
+                        m = m.withTemplate(JavaTemplate.builder(this::getCursor, "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
                                         .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(assertionShims).build())
                                         .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                         .build(),
@@ -119,7 +158,6 @@ public class UpdateTestAnnotation extends Recipe {
                     maybeAddImport("org.junit.jupiter.api.Timeout");
                 }
                 maybeAddImport("org.junit.jupiter.api.Test");
-                maybeRemoveImport("org.junit.Test");
             }
 
             return super.visitMethodDeclaration(m, ctx);
@@ -164,8 +202,8 @@ public class UpdateTestAnnotation extends Recipe {
         }
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
+    }
 }
