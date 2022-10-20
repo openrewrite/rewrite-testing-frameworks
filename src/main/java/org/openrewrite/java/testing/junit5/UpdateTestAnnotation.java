@@ -16,12 +16,14 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.intellij.lang.annotations.Language;
+import org.openrewrite.Applicability;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
+import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markup;
@@ -43,7 +45,10 @@ public class UpdateTestAnnotation extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.Test");
+        return Applicability.or(
+                new UsesType<>("org.junit.Test"),
+                new FindImports("org.junit.Test").getVisitor()
+        );
     }
 
     @Override
