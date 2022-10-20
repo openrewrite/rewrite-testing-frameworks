@@ -47,7 +47,7 @@ public class UpdateTestAnnotationJavaTest implements RewriteTest {
             """
               /*~~(This import should have been removed by this recipe.)~~>*/import org.junit.Test;
               public class MyTest {
-                 Object o = /*~~(This still has a type of `org.junit.Test`)~~>*/Test.class;
+                  Object o = /*~~(This still has a type of `org.junit.Test`)~~>*/Test.class;
               }
               """
           )
