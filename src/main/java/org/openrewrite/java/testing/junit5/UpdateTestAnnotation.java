@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.intellij.lang.annotations.Language;
 import org.openrewrite.Applicability;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -91,7 +90,7 @@ public class UpdateTestAnnotation extends Recipe {
 
                 @Override
                 public J postVisit(J tree, ExecutionContext executionContext) {
-                    if (getCursor().getMessage("danglingTreeRef", false)) {
+                    if (getCursor().getMessage("danglingTestRef", false)) {
                         return Markup.warn(tree, "This still has a type of `org.junit.Test`", null);
                     }
                     return tree;
@@ -143,29 +142,17 @@ public class UpdateTestAnnotation extends Recipe {
                     assert lambda != null;
                     lambda = lambda.withType(JavaType.ShallowClass.build("org.junit.jupiter.api.function.Executable"));
 
-                    @Language("java")
-                    String[] assertionShims = {
-                            "package org.junit.jupiter.api.function;" +
-                            "public interface Executable {void execute() throws Throwable;}",
-                            "package org.junit.jupiter.api;" +
-                            "import org.junit.jupiter.api.function.Executable;" +
-                            "public class Assertions {" +
-                            "   public static <T extends Throwable> T assertThrows(Class<T> expectedType, Executable executable) {return null;}" +
-                            "   public static void assertDoesNotThrow(Executable executable) {}" +
-                            "}"
-                    };
-
                     if (cta.expectedException instanceof J.FieldAccess
                         && TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
                         m = m.withTemplate(JavaTemplate.builder(this::getCursor, "assertDoesNotThrow(#{any(org.junit.jupiter.api.function.Executable)});")
-                                        .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(assertionShims).build())
+                                        .javaParser(() -> JavaParser.fromJavaVersion().classpath("junit-jupiter-api", "apiguardian-api").build())
                                         .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
                                         .build(),
                                 m.getCoordinates().replaceBody(), lambda);
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
                     } else {
                         m = m.withTemplate(JavaTemplate.builder(this::getCursor, "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
-                                        .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(assertionShims).build())
+                                        .javaParser(() -> JavaParser.fromJavaVersion().classpath("junit-jupiter-api", "apiguardian-api").build())
                                         .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                         .build(),
                                 m.getCoordinates().replaceBody(), cta.expectedException, lambda);
@@ -176,14 +163,7 @@ public class UpdateTestAnnotation extends Recipe {
                     m = m.withTemplate(
                             JavaTemplate.builder(this::getCursor, "@Timeout(#{any(long)})")
                                     .javaParser(() -> JavaParser.fromJavaVersion()
-                                            .dependsOn(new String[]{
-                                                    "package org.junit.jupiter.api;" +
-                                                    "import java.util.concurrent.TimeUnit;" +
-                                                    "public @interface Timeout {" +
-                                                    "    long value();" +
-                                                    "    TimeUnit unit() default TimeUnit.SECONDS;" +
-                                                    "}"
-                                            })
+                                            .classpath("junit-jupiter-api", "apiguardian-api")
                                             .build())
                                     .imports("org.junit.jupiter.api.Timeout")
                                     .build(),
@@ -205,6 +185,12 @@ public class UpdateTestAnnotation extends Recipe {
             Expression timeout;
 
             boolean found;
+
+            private final JavaTemplate fieldAccessAnnotation = JavaTemplate.builder(this::getCursor, "@org.junit.jupiter.api.Test")
+                    .javaParser(() -> JavaParser.fromJavaVersion()
+                            .classpath("junit-jupiter-api", "apiguardian-api")
+                            .build())
+                    .build();
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext context) {
@@ -228,8 +214,13 @@ public class UpdateTestAnnotation extends Recipe {
 
                         }
                     }
-                    a = a.withArguments(null)
-                            .withType(JavaType.ShallowClass.build("org.junit.jupiter.api.Test"));
+
+                    if (a.getAnnotationType() instanceof J.FieldAccess) {
+                        a = a.withTemplate(fieldAccessAnnotation, a.getCoordinates().replace());
+                    } else {
+                        a = a.withArguments(null)
+                                .withType(JavaType.ShallowClass.build("org.junit.jupiter.api.Test"));
+                    }
                 }
                 return a;
             }
