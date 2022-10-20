@@ -112,4 +112,39 @@ class AssertTrueComparisonToAssertEqualsTest : JavaRecipeTest {
             }
         """,
     )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/273")
+    @Suppress("ConstantConditions", "SimplifiableAssertion")
+    @Test
+    fun doNotChangeToEqualsWhenCheckingOnObjectIdentityWithStrings() = assertUnchanged(
+        before = """
+        import org.junit.jupiter.api.Assertions;
+        
+        public class Test {
+            void test() {
+                String a = "a";
+                String b = "a";
+                Assertions.assertTrue(a == b);
+            }
+        }
+    """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/273")
+    @Suppress("ConstantConditions", "SimplifiableAssertion")
+    @Test
+    fun doNotChangeToEqualsWhenCheckingOnObjectIdentityWithObjects() = assertUnchanged(
+        before = """
+        import org.junit.jupiter.api.Assertions;
+        
+        public class Test {
+            void test() {
+                Object a = new Object();
+                Object b = a;
+                Assertions.assertTrue(a == b);
+            }
+        }
+    """
+    )
+
 }
