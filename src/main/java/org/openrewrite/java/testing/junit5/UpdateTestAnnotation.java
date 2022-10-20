@@ -65,8 +65,9 @@ public class UpdateTestAnnotation extends Recipe {
             doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
                 @Override
                 public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                    J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
-                    // take one more pass over the imports now that we've had a chance to markup all
+                    J.CompilationUnit c = cu;
+                    c = c.withClasses(ListUtils.map(c.getClasses(), clazz -> (J.ClassDeclaration) visit(clazz, ctx)));
+                    // take one more pass over the imports now that we've had a chance to add warnings to all
                     // uses of @Test through the rest of the source file
                     c = c.withImports(ListUtils.map(c.getImports(), anImport -> (J.Import) visit(anImport, ctx)));
                     return c;
@@ -75,7 +76,7 @@ public class UpdateTestAnnotation extends Recipe {
                 @Override
                 public J.Import visitImport(J.Import anImport, ExecutionContext executionContext) {
                     if (anImport.getTypeName().equals("org.junit.Test")) {
-                        throw new IllegalStateException("This import should have been removed by this recipe.");
+                        return Markup.error(anImport, "This import should have been removed by this recipe.", null);
                     }
                     return anImport;
                 }
@@ -83,7 +84,7 @@ public class UpdateTestAnnotation extends Recipe {
                 @Override
                 public JavaType visitType(@Nullable JavaType javaType, ExecutionContext executionContext) {
                     if (TypeUtils.isOfClassType(javaType, "org.junit.Test")) {
-                        getCursor().dropParentUntil(J.class::isInstance).putMessage("danglingTestRef", true);
+                        getCursor().putMessageOnFirstEnclosing(J.class, "danglingTestRef", true);
                     }
                     return javaType;
                 }

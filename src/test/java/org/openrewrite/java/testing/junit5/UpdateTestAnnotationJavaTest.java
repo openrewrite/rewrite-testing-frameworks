@@ -33,6 +33,27 @@ public class UpdateTestAnnotationJavaTest implements RewriteTest {
           .executionContext(new InMemoryExecutionContext());
     }
 
+    @Test
+    void markUnrefactorableReferences() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              public class MyTest {
+                  Object o = Test.class;
+              }
+              """,
+            """
+              /*~~(This import should have been removed by this recipe.)~~>*/import org.junit.Test;
+              public class MyTest {
+                 Object o = /*~~(This still has a type of `org.junit.Test`)~~>*/Test.class;
+              }
+              """
+          )
+        );
+    }
+
     @SuppressWarnings("JavadocReference")
     @Test
     void usedInJavadoc() {
@@ -77,7 +98,7 @@ public class UpdateTestAnnotationJavaTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               public class MyTest {
                   @org.junit.jupiter.api.Test
                   void feature1() {
@@ -107,7 +128,7 @@ public class UpdateTestAnnotationJavaTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               public class MyTest {
                   @org.junit.jupiter.api.Test
                   void feature1() {
