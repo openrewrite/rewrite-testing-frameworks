@@ -19,6 +19,7 @@ import org.intellij.lang.annotations.Language;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
@@ -61,17 +62,23 @@ public class UpdateTestAnnotation extends Recipe {
                 @Override
                 public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                     J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
-                    for (J.Import anImport : cu.getImports()) {
-                        if (anImport.getTypeName().equals("org.junit.Test")) {
-                            throw new IllegalStateException("This import should have been removed by this recipe.");
-                        }
+                    // take one more pass over the imports now that we've had a chance to markup all
+                    // uses of @Test through the rest of the source file
+                    c = c.withImports(ListUtils.map(c.getImports(), anImport -> (J.Import) visit(anImport, ctx)));
+                    return c;
+                }
+
+                @Override
+                public J.Import visitImport(J.Import anImport, ExecutionContext executionContext) {
+                    if (anImport.getTypeName().equals("org.junit.Test")) {
+                        throw new IllegalStateException("This import should have been removed by this recipe.");
                     }
-                    return cu;
+                    return anImport;
                 }
 
                 @Override
                 public JavaType visitType(@Nullable JavaType javaType, ExecutionContext executionContext) {
-                    if(TypeUtils.isOfClassType(javaType, "org.junit.Test")) {
+                    if (TypeUtils.isOfClassType(javaType, "org.junit.Test")) {
                         getCursor().dropParentUntil(J.class::isInstance).putMessage("danglingTestRef", true);
                     }
                     return javaType;
@@ -79,7 +86,7 @@ public class UpdateTestAnnotation extends Recipe {
 
                 @Override
                 public J postVisit(J tree, ExecutionContext executionContext) {
-                    if(getCursor().getMessage("danglingTreeRef", false)) {
+                    if (getCursor().getMessage("danglingTreeRef", false)) {
                         return Markup.warn(tree, "This still has a type of `org.junit.Test`", null);
                     }
                     return tree;
