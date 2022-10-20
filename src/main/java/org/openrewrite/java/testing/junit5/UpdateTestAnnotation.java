@@ -101,6 +101,28 @@ public class UpdateTestAnnotation extends Recipe {
         }
 
         @Override
+        protected JavadocVisitor<ExecutionContext> getJavadocVisitor() {
+            return new JavadocVisitor<ExecutionContext>(this) {
+                @Override
+                public Javadoc visitReference(Javadoc.Reference reference, ExecutionContext ctx) {
+                    if (reference.getTree() instanceof TypeTree &&
+                        TypeUtils.isOfClassType(((TypeTree) reference.getTree()).getType(), "org.junit.Test")) {
+                        getCursor().getParentOrThrow().putMessageOnFirstEnclosing(Javadoc.class, "testRef", true);
+                    }
+                    return reference;
+                }
+
+                @Override
+                public Javadoc postVisit(Javadoc tree, ExecutionContext executionContext) {
+                    if (getCursor().getMessage("testRef", false)) {
+                        return null;
+                    }
+                    return super.postVisit(tree, executionContext);
+                }
+            };
+        }
+
+        @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             ChangeTestAnnotation cta = new ChangeTestAnnotation();
             J.MethodDeclaration m = (J.MethodDeclaration) cta.visitNonNull(method, ctx, getCursor().getParentOrThrow());
