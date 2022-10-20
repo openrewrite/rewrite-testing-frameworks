@@ -22,6 +22,7 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 
 import java.util.function.Supplier;
 
@@ -106,7 +107,18 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
 
                 J.Binary binary = (J.Binary) firstArgument;
                 J.Binary.Type operator = binary.getOperator();
-                return operator.equals(J.Binary.Type.Equal);
+
+                if (!operator.equals(J.Binary.Type.Equal)) {
+                    return false;
+                }
+
+                // Prevent breaking identity comparison.
+                // Objects that are compared with == should not be compared with `.equals()` instead.
+                // Out of the primitives == is not allowed when both are of type String
+                return binary.getLeft().getType() instanceof JavaType.Primitive
+                        && binary.getRight().getType() instanceof JavaType.Primitive
+                        && !(binary.getLeft().getType() == JavaType.Primitive.String
+                        && binary.getRight().getType() == JavaType.Primitive.String);
             }
         };
     }
