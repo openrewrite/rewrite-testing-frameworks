@@ -141,7 +141,7 @@ dependencies {
     testImplementation(platform("org.jetbrains.kotlin:kotlin-bom"))
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    testImplementation("org.openrewrite:rewrite-java-11:$rewriteVersion")
+    testImplementation("org.openrewrite:rewrite-java-17:$rewriteVersion")
     testImplementation("org.openrewrite:rewrite-test:$rewriteVersion")
     testImplementation("org.openrewrite:rewrite-java-tck:$rewriteVersion")
     testImplementation("org.assertj:assertj-core:latest.release")
