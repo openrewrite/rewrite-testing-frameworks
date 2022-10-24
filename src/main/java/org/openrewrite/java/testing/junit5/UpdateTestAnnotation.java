@@ -76,7 +76,7 @@ public class UpdateTestAnnotation extends Recipe {
                 @Override
                 public J.Import visitImport(J.Import anImport, ExecutionContext executionContext) {
                     if (anImport.getTypeName().equals("org.junit.Test")) {
-                        return Markup.error(anImport, "This import should have been removed by this recipe.", null);
+                        return Markup.error(anImport, new IllegalStateException("This import should have been removed by this recipe."));
                     }
                     return anImport;
                 }
@@ -92,7 +92,7 @@ public class UpdateTestAnnotation extends Recipe {
                 @Override
                 public J postVisit(J tree, ExecutionContext executionContext) {
                     if (getCursor().getMessage("danglingTestRef", false)) {
-                        return Markup.warn(tree, "This still has a type of `org.junit.Test`", null);
+                        return Markup.warn(tree, new IllegalStateException("This still has a type of `org.junit.Test`"));
                     }
                     return tree;
                 }
