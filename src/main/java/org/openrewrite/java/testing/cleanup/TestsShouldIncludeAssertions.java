@@ -70,10 +70,15 @@ public class TestsShouldIncludeAssertions extends Recipe {
         return "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertThrowDoesNotThrow(..)`.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
+    @Override
+    public Set<String> getTags() {
+        return Collections.singleton("RSPEC-2699");
+    }
+
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
+    }
 
     @Override
     public Validated validate() {
@@ -118,8 +123,8 @@ public class TestsShouldIncludeAssertions extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext
                 executionContext) {
             if ((!methodIsTest(method) || method.getBody() == null) ||
-                    methodHasAssertion(method.getBody()) ||
-                    methodInvocationInBodyContainsAssertion()) {
+                methodHasAssertion(method.getBody()) ||
+                methodInvocationInBodyContainsAssertion()) {
                 return method;
             }
 
