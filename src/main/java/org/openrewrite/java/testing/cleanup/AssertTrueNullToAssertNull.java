@@ -47,7 +47,7 @@ public class AssertTrueNullToAssertNull extends Recipe {
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
 
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return new JavaVisitor<ExecutionContext>() {
             final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
                     //language=java
                     .dependsOn("" +
@@ -61,8 +61,8 @@ public class AssertTrueNullToAssertNull extends Recipe {
                     .build();
 
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 if (ASSERT_TRUE.matches(mi) && isEqualBinary(mi)) {
                     J.Binary binary = (J.Binary) mi.getArguments().get(0);
                     Expression nonNullExpression = getNonNullExpression(binary);
@@ -96,7 +96,7 @@ public class AssertTrueNullToAssertNull extends Recipe {
                                 .javaParser(javaParser)
                                 .build();
                     }
-                    mi = mi.withTemplate(t, mi.getCoordinates().replace(), args);
+                    return mi.withTemplate(t, mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }

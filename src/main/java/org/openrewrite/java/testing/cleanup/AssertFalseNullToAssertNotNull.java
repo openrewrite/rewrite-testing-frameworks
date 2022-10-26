@@ -46,7 +46,7 @@ public class AssertFalseNullToAssertNotNull extends Recipe {
 
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return new JavaVisitor<ExecutionContext>() {
             final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
                     //language=java
                     .dependsOn("" +
@@ -60,8 +60,8 @@ public class AssertFalseNullToAssertNotNull extends Recipe {
                     .build();
 
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 if (ASSERT_FALSE.matches(mi) && isEqualBinary(mi)) {
                     StringBuilder sb = new StringBuilder();
                     
@@ -94,7 +94,7 @@ public class AssertFalseNullToAssertNotNull extends Recipe {
                                 .imports("org.junit.jupiter.api.Assertions")
                                 .javaParser(javaParser).build();
                     }
-                    mi = mi.withTemplate(t, mi.getCoordinates().replace(), args);
+                    return mi.withTemplate(t, mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }
