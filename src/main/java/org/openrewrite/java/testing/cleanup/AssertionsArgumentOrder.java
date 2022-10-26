@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.assertj;
+package org.openrewrite.java.testing.cleanup;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
