@@ -50,15 +50,7 @@ public class AssertTrueEqualsToAssertEquals extends Recipe {
 
         return new JavaVisitor<ExecutionContext>() {
             final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                    //language=java
-                    .dependsOn("" +
-                            "package org.junit.jupiter.api;" +
-                            "import java.util.function.Supplier;" +
-                            "public class Assertions {" +
-                            "public static void assertEquals(Object expected,Object actual) {}" +
-                            "public static void assertEquals(Object expected,Object actual, String message) {}" +
-                            "public static void assertEquals(Object expected,Object actual, Supplier<String> message) {}" +
-                            "}")
+                    .classpath("junit-jupiter-api")
                     .build();
 
             @Override

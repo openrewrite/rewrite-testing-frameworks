@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.*;
@@ -29,10 +30,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
-
-import static org.openrewrite.Parser.Input.fromString;
 
 @Value
 @EqualsAndHashCode(callSuper = true)
@@ -50,7 +48,7 @@ public class RunnerToExtension extends Recipe {
 
 
     @JsonCreator
-    public RunnerToExtension(List<String> runners, String extension) {
+    public RunnerToExtension(@JsonProperty("runners") List<String> runners,@JsonProperty("extension") String extension) {
         this.runners = runners;
         this.extension = extension;
     }
@@ -92,18 +90,11 @@ public class RunnerToExtension extends Recipe {
             private JavaTemplate getExtendsWithTemplate() {
                 if (extendsWithTemplate == null) {
                     extendsWithTemplate = JavaTemplate.builder(this::getCursor, "@ExtendWith(#{}.class)")
-                            .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
-                                    fromString("package org.junit.jupiter.api.extension;\n" +
-                                            "public interface Extension {}"),
-                                    fromString("package org.junit.jupiter.api.extension;\n" +
-                                            "public @interface ExtendWith {\n" +
-                                            "   Class<? extends Extension>[] value();\n" +
-                                            "}"),
-                                    fromString("package " + extensionType.getPackageName() + ";\n" +
+                            .javaParser(() -> JavaParser.fromJavaVersion()
+                                    .classpath("junit", "junit-jupiter-api")
+                                    .dependsOn( "package " + extensionType.getPackageName() + ";\n" +
                                             "import org.junit.jupiter.api.extension.Extension;\n" +
-                                            "public class " + extensionType.getClassName() + " implements Extension {}"
-                                    )))
-                                    .classpath("junit")
+                                            "public class " + extensionType.getClassName() + " implements Extension {}")
                                     .build())
                             .imports("org.junit.jupiter.api.extension.ExtendWith",
                                     "org.junit.jupiter.api.extension.Extension", extension)

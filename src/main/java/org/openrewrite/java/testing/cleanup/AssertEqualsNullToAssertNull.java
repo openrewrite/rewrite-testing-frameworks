@@ -50,15 +50,7 @@ public class AssertEqualsNullToAssertNull extends Recipe {
 
         return new JavaVisitor<ExecutionContext>() {
             final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                    //language=java
-                    .dependsOn("" +
-                            "package org.junit.jupiter.api;" +
-                            "import java.util.function.Supplier;" +
-                            "public class Assertions {" +
-                            "  public static void assertNull(Object actual) {}" +
-                            "  public static void assertNull(Object actual, String message) {}" +
-                            "  public static void assertNull(Object actual, Supplier<String> messageSupplier) {}" +
-                            "}")
+                    .classpath("junit-jupiter-api")
                     .build();
 
             @Override

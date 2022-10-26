@@ -42,15 +42,7 @@ public class AssertFalseNegationToAssertTrue extends Recipe {
 
         return new JavaVisitor<ExecutionContext>() {
             final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                    //language=java
-                    .dependsOn("" +
-                            "package org.junit.jupiter.api;" +
-                            "import java.util.function.Supplier;" +
-                            "public class Assertions {" +
-                            "public static void assertTrue(boolean condition) {}" +
-                            "public static void assertTrue(boolean condition, String message) {}" +
-                            "public static void assertTrue(boolean condition, Supplier<String> message) {}" +
-                            "}")
+                    .classpath("junit-jupiter-api")
                     .build();
 
             @Override

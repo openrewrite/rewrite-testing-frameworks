@@ -41,17 +41,8 @@ public class AssertTrueNegationToAssertFalse extends Recipe {
     protected JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaVisitor<ExecutionContext>() {
             final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                    //language=java
-                    .dependsOn("" +
-                            "package org.junit.jupiter.api;" +
-                            "import java.util.function.Supplier;" +
-                            "public class Assertions {" +
-                            "public static void assertFalse(boolean condition) {}" +
-                            "public static void assertFalse(boolean condition, String message) {}" +
-                            "public static void assertFalse(boolean condition, Supplier<String> message) {}" +
-                            "}")
+                    .classpath("junit-jupiter-api")
                     .build();
-
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);

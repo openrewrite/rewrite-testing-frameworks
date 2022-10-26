@@ -106,7 +106,8 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     private static class TestShouldIncludeAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion()
-                .dependsOn(Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---")).build();
+                .classpath("junit-jupiter-api")
+                .build();
 
         private final Map<String, Set<J.Block>> matcherPatternToClassInvocation = new HashMap<>();
         private final List<String> additionalAsserts;

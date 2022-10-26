@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -29,8 +28,6 @@ import org.openrewrite.java.tree.*;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.
@@ -73,29 +70,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
     public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final Supplier<JavaParser> ASSERTIONS_PARSER = () ->
-                JavaParser.fromJavaVersion().dependsOn(
-                        Stream.concat(
-                                Parser.Input.fromResource("/META-INF/rewrite/JupiterAssertions.java", "---").stream(),
-                                Stream.of(
-                                        Parser.Input.fromString(
-                                                "package org.junit.jupiter.api.function;" +
-                                                        "public interface Executable {" +
-                                                        "void execute() throws Throwable;" +
-                                                        "}"),
-                                        Parser.Input.fromString(
-                                                "package org.hamcrest;\n" +
-                                                        "public interface Matcher<T> {\n" +
-                                                        "    boolean matches(Object var1);\n" +
-                                                        "}"),
-                                        Parser.Input.fromString(
-                                                "package org.hamcrest;\n" +
-                                                        "public class MatcherAssert {\n" +
-                                                        "    public static <T> void assertThat(T actual, Matcher<? super T> matcher) {}\n" +
-                                                        "    public static <T> void assertThat(String reason, T actual, Matcher<? super T> matcher) {}\n" +
-                                                        "    public static void assertThat(String reason, boolean assertion) {}\n" +
-                                                        "}"))
-                        ).collect(Collectors.toList())
-                ).build();
+                JavaParser.fromJavaVersion().classpath("junit-jupiter-api", "hamcrest").build();
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
