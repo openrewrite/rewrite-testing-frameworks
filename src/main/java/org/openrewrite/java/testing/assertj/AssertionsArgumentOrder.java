@@ -66,7 +66,7 @@ public class AssertionsArgumentOrder extends Recipe {
         };
 
         private final MethodMatcher[] newListMatchers = new MethodMatcher[]{
-                new MethodMatcher("javajava.util.List of(..)"),
+                new MethodMatcher("java.util.List of(..)"),
                 new MethodMatcher("java.util.Collections singleton(..)"),
                 new MethodMatcher("java.util.Collections empty()"),
                 new MethodMatcher("java.util.Arrays asList(..)"),
