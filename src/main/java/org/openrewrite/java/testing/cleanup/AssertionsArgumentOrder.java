@@ -19,14 +19,50 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 
 public class AssertionsArgumentOrder extends Recipe {
+
+    private static final MethodMatcher[] jupiterAssertionMatchers = new MethodMatcher[] {
+            new MethodMatcher("org.junit.jupiter.api.Assertions assertArrayEquals(..)"),
+            new MethodMatcher("org.junit.jupiter.api.Assertions assertEquals(..)"),
+            new MethodMatcher("org.junit.jupiter.api.Assertions assertNotEquals(..)"),
+            new MethodMatcher("org.junit.jupiter.api.Assertions assertSame(..)"),
+            new MethodMatcher("org.junit.jupiter.api.Assertions assertNotSame(..)"),
+            new MethodMatcher("org.junit.jupiter.api.Assertions assertArrayEquals(..)")
+    };
+    private static final MethodMatcher jupiterAssertIterableEqualsMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertIterableEquals(..)");
+
+    private static final MethodMatcher[] testNgMatcher = new MethodMatcher[] {
+            new MethodMatcher("org.testng.Assert assertSame(..)"),
+            new MethodMatcher("org.testng.Assert assertNotSame(..)"),
+            new MethodMatcher("org.testng.Assert assertEquals(..)"),
+            new MethodMatcher("org.testng.Assert assertNotEquals(..)")
+    };
+
+    @Override
+    protected @Nullable TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
+                for (MethodMatcher jupiterAssertionMatcher : jupiterAssertionMatchers) {
+                    doAfterVisit(new UsesMethod<>(jupiterAssertionMatcher));
+                }
+                for (MethodMatcher testNgAssertionMatcher : testNgMatcher) {
+                    doAfterVisit(new UsesMethod<>(testNgAssertionMatcher));
+                }
+                doAfterVisit(new UsesMethod<>(jupiterAssertIterableEqualsMatcher));
+                return cu;
+            }
+        };
+    }
+
     @Override
     public String getDisplayName() {
         return "Assertion arguments should be passed in the correct order";
@@ -48,23 +84,6 @@ public class AssertionsArgumentOrder extends Recipe {
     }
 
     private static class AssertionsArgumentOrderVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final MethodMatcher[] jupiterAssertionMatchers = new MethodMatcher[] {
-                new MethodMatcher("org.junit.jupiter.api.Assertions assertArrayEquals(..)"),
-                new MethodMatcher("org.junit.jupiter.api.Assertions assertEquals(..)"),
-                new MethodMatcher("org.junit.jupiter.api.Assertions assertNotEquals(..)"),
-                new MethodMatcher("org.junit.jupiter.api.Assertions assertSame(..)"),
-                new MethodMatcher("org.junit.jupiter.api.Assertions assertNotSame(..)"),
-                new MethodMatcher("org.junit.jupiter.api.Assertions assertArrayEquals(..)")
-        };
-        private final MethodMatcher jupiterAssertIterableEqualsMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertIterableEquals(..)");
-
-        private final MethodMatcher[] testNgMatcher = new MethodMatcher[] {
-                new MethodMatcher("org.testng.Assert assertSame(..)"),
-                new MethodMatcher("org.testng.Assert assertNotSame(..)"),
-                new MethodMatcher("org.testng.Assert assertEquals(..)"),
-                new MethodMatcher("org.testng.Assert assertNotEquals(..)")
-        };
-
         private final MethodMatcher[] newListMatchers = new MethodMatcher[]{
                 new MethodMatcher("java.util.List of(..)"),
                 new MethodMatcher("java.util.Collections singleton(..)"),
