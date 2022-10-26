@@ -134,6 +134,7 @@ dependencies {
     runtimeOnly("io.cucumber:cucumber-junit-platform-engine:7.+")
     runtimeOnly("org.junit.platform:junit-platform-suite-api:latest.release")
     runtimeOnly("org.junit.jupiter:junit-jupiter-api:latest.release")
+    runtimeOnly("org.junit.jupiter:junit-jupiter-params:latest.release")
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")

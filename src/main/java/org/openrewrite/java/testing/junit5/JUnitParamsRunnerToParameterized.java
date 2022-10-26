@@ -189,7 +189,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
      */
     private static class ParametersNoArgsImplicitMethodSource extends JavaIsoVisitor<ExecutionContext> {
         private static final Supplier<JavaParser> PARAMETERIZED_TEMPLATE_PARSER = () ->
-                JavaParser.fromJavaVersion().dependsOn(Parser.Input.fromResource("/META-INF/rewrite/Parameterized.java", "---")).build();
+                JavaParser.fromJavaVersion().classpath("junit-jupiter-params").build();
 
         private final Set<String> initMethods;
         private final Set<String> unsupportedConversions;

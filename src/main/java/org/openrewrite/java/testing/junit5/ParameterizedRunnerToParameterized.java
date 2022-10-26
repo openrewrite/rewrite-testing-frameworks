@@ -151,7 +151,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
     private static class ParameterizedRunnerToParameterizedTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final Supplier<JavaParser> PARAMETERIZED_TEMPLATE_PARSER = () ->
-                JavaParser.fromJavaVersion().dependsOn(Parser.Input.fromResource("/META-INF/rewrite/Parameterized.java", "---")).build();
+                JavaParser.fromJavaVersion().classpath("junit-jupiter-params").build();
         private final J.ClassDeclaration scope;
         private final String initMethodName;
         private final List<Statement> parameterizedTestMethodParameters;
