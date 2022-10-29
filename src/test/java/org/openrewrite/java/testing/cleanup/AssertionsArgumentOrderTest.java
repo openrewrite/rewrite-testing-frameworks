@@ -34,33 +34,36 @@ public class AssertionsArgumentOrderTest implements RewriteTest {
     void junitAssertEqualsHavingPrimitiveArg() {
         rewriteRun(
           //language=java
-          java("""
-            import static org.junit.jupiter.api.Assertions.assertEquals;
-            
-            class A {
-                void someMethod() {
-                    assertEquals(result(), "result");
-                    assertEquals(result(), "result", "message");
-                    assertEquals(0L, 1L);
-                }
-                String result() {
-                    return "result";
-                }
-            }
-            """, """
-            import static org.junit.jupiter.api.Assertions.assertEquals;
-            
-            class A {
-                void someMethod() {
-                    assertEquals("result", result());
-                    assertEquals("result", result(), "message");
-                    assertEquals(0L, 1L);
-                }
-                String result() {
-                    return "result";
-                }
-            }
-            """)
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+                          
+              class MyTest {
+                  void someMethod() {
+                      assertEquals(result(), "result");
+                      assertEquals(result(), "result", "message");
+                      assertEquals(0L, 1L);
+                  }
+                  String result() {
+                      return "result";
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+                          
+              class MyTest {
+                  void someMethod() {
+                      assertEquals("result", result());
+                      assertEquals("result", result(), "message");
+                      assertEquals(0L, 1L);
+                  }
+                  String result() {
+                      return "result";
+                  }
+              }
+              """
+          )
         );
     }
 
@@ -68,49 +71,52 @@ public class AssertionsArgumentOrderTest implements RewriteTest {
     void jupiterAssertSameNotSame() {
         rewriteRun(
           //language=java
-          java("""
-            import static org.junit.jupiter.api.Assertions.assertSame;
-            import static org.junit.jupiter.api.Assertions.assertNotSame;
-            
-            class A {
-                private static final Integer LIMIT = 0;
-                private static String MESSAGE = "";
-                void someMethod() {
-                    assertSame(getCount(), LIMIT);
-                    assertSame(getCount(), A.LIMIT);
-                    assertSame(LIMIT, getCount());
-                    
-                    assertNotSame(getMsg(), MESSAGE);
-                }
-                String getMsg() {
-                    return "";
-                }
-                Integer getCount() {
-                    return 1;
-                }
-            }
-            """, """
-            import static org.junit.jupiter.api.Assertions.assertSame;
-            import static org.junit.jupiter.api.Assertions.assertNotSame;
-            
-            class A {
-                private static final Integer LIMIT = 0;
-                private static String MESSAGE = "";
-                void someMethod() {
-                    assertSame(LIMIT, getCount());
-                    assertSame(A.LIMIT, getCount());
-                    assertSame(LIMIT, getCount());
-                    
-                    assertNotSame(getMsg(), MESSAGE);
-                }
-                String getMsg() {
-                    return "";
-                }
-                Integer getCount() {
-                    return 1;
-                }
-            }
-            """)
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertSame;
+              import static org.junit.jupiter.api.Assertions.assertNotSame;
+                          
+              class MyTest {
+                  private static final Integer LIMIT = 0;
+                  private static String MESSAGE = "";
+                  void someMethod() {
+                      assertSame(getCount(), LIMIT);
+                      assertSame(getCount(), MyTest.LIMIT);
+                      assertSame(LIMIT, getCount());
+                      
+                      assertNotSame(getMsg(), MESSAGE);
+                  }
+                  String getMsg() {
+                      return "";
+                  }
+                  Integer getCount() {
+                      return 1;
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertSame;
+              import static org.junit.jupiter.api.Assertions.assertNotSame;
+                          
+              class MyTest {
+                  private static final Integer LIMIT = 0;
+                  private static String MESSAGE = "";
+                  void someMethod() {
+                      assertSame(LIMIT, getCount());
+                      assertSame(MyTest.LIMIT, getCount());
+                      assertSame(LIMIT, getCount());
+                      
+                      assertNotSame(getMsg(), MESSAGE);
+                  }
+                  String getMsg() {
+                      return "";
+                  }
+                  Integer getCount() {
+                      return 1;
+                  }
+              }
+              """
+          )
         );
     }
 
@@ -118,31 +124,34 @@ public class AssertionsArgumentOrderTest implements RewriteTest {
     void jupiterAssertArrayEquals() {
         rewriteRun(
           //language=java
-          java("""
-            import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-            
-            class A {
-                void someMethod() {
-                    assertArrayEquals(result(), new String[]{""});
-                    assertArrayEquals(result(), new String[]{""}, "message");
-                }
-                String[] result() {
-                    return null;
-                }
-            }
-            """, """
-            import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-            
-            class A {
-                void someMethod() {
-                    assertArrayEquals(new String[]{""}, result());
-                    assertArrayEquals(new String[]{""}, result(), "message");
-                }
-                String[] result() {
-                    return null;
-                }
-            }
-            """)
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+                          
+              class MyTest {
+                  void someMethod() {
+                      assertArrayEquals(result(), new String[]{""});
+                      assertArrayEquals(result(), new String[]{""}, "message");
+                  }
+                  String[] result() {
+                      return null;
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+                          
+              class MyTest {
+                  void someMethod() {
+                      assertArrayEquals(new String[]{""}, result());
+                      assertArrayEquals(new String[]{""}, result(), "message");
+                  }
+                  String[] result() {
+                      return null;
+                  }
+              }
+              """
+          )
         );
     }
 
@@ -150,44 +159,46 @@ public class AssertionsArgumentOrderTest implements RewriteTest {
     void junitIterableEquals() {
         rewriteRun(
           //language=java
-          java("""
-            import java.util.ArrayList;
-            import java.util.Collections;
-            import java.util.List;
-            
-            import static org.junit.jupiter.api.Assertions.assertIterableEquals;
-            
-            class A {
-                static final Iterable<Double> COSNT_LIST = new ArrayList<>();
-                void someTest() {
-                    assertIterableEquals(COSNT_LIST, doubleList());
-                    assertIterableEquals(doubleList(), COSNT_LIST);
-                    assertIterableEquals(doubleList(), Collections.singleton(0));
-                }
-                List<Double> doubleList() {
-                    return null;
-                }
-            }
-            """,
+          java(
             """
-            import java.util.ArrayList;
-            import java.util.Collections;
-            import java.util.List;
-            
-            import static org.junit.jupiter.api.Assertions.assertIterableEquals;
-            
-            class A {
-                static final Iterable<Double> COSNT_LIST = new ArrayList<>();
-                void someTest() {
-                    assertIterableEquals(COSNT_LIST, doubleList());
-                    assertIterableEquals(COSNT_LIST, doubleList());
-                    assertIterableEquals(Collections.singleton(0), doubleList());
-                }
-                List<Double> doubleList() {
-                    return null;
-                }
-            }
-            """)
+              import java.util.ArrayList;
+              import java.util.Collections;
+              import java.util.List;
+                          
+              import static org.junit.jupiter.api.Assertions.assertIterableEquals;
+                          
+              class MyTest {
+                  static final Iterable<Double> COSNT_LIST = new ArrayList<>();
+                  void someTest() {
+                      assertIterableEquals(COSNT_LIST, doubleList());
+                      assertIterableEquals(doubleList(), COSNT_LIST);
+                      assertIterableEquals(doubleList(), Collections.singleton(0));
+                  }
+                  List<Double> doubleList() {
+                      return null;
+                  }
+              }
+              """,
+            """
+              import java.util.ArrayList;
+              import java.util.Collections;
+              import java.util.List;
+                          
+              import static org.junit.jupiter.api.Assertions.assertIterableEquals;
+                          
+              class MyTest {
+                  static final Iterable<Double> COSNT_LIST = new ArrayList<>();
+                  void someTest() {
+                      assertIterableEquals(COSNT_LIST, doubleList());
+                      assertIterableEquals(COSNT_LIST, doubleList());
+                      assertIterableEquals(Collections.singleton(0), doubleList());
+                  }
+                  List<Double> doubleList() {
+                      return null;
+                  }
+              }
+              """
+          )
         );
     }
 
@@ -195,31 +206,34 @@ public class AssertionsArgumentOrderTest implements RewriteTest {
     void testNgAssertions() {
         rewriteRun(
           //language=java
-          java("""
-            import static org.testng.Assert.assertEquals;
-            
-            class A {
-                void someTest() {
-                    assertEquals("abc", someString());
-                    assertEquals("abc", someString(), "message");
-                }
-                String someString() {
-                    return null;
-                }
-            }
-            """, """
-            import static org.testng.Assert.assertEquals;
-            
-            class A {
-                void someTest() {
-                    assertEquals(someString(), "abc");
-                    assertEquals(someString(), "abc", "message");
-                }
-                String someString() {
-                    return null;
-                }
-            }
-            """)
+          java(
+            """
+              import static org.testng.Assert.assertEquals;
+                          
+              class MyTest {
+                  void someTest() {
+                      assertEquals("abc", someString());
+                      assertEquals("abc", someString(), "message");
+                  }
+                  String someString() {
+                      return null;
+                  }
+              }
+              """,
+            """
+              import static org.testng.Assert.assertEquals;
+                          
+              class MyTest {
+                  void someTest() {
+                      assertEquals(someString(), "abc");
+                      assertEquals(someString(), "abc", "message");
+                  }
+                  String someString() {
+                      return null;
+                  }
+              }
+              """
+          )
         );
     }
 }

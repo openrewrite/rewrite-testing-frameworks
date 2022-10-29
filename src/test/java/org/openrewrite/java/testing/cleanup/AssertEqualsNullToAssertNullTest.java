@@ -1,0 +1,93 @@
+package org.openrewrite.java.testing.cleanup;
+
+import org.junit.jupiter.api.Test;
+import org.openrewrite.Issue;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeSpec;
+import org.openrewrite.test.RewriteTest;
+
+import static org.openrewrite.java.Assertions.java;
+
+class AssertEqualsNullToAssertNullTest implements RewriteTest {
+
+    @Override
+    public void defaults(RecipeSpec spec) {
+        spec
+          .parser(JavaParser.fromJavaVersion().classpath("junit-jupiter-api"))
+          .recipe(new AssertEqualsNullToAssertNull());
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/200")
+    @SuppressWarnings({"ConstantConditions", "SimplifiableAssertion"})
+    @Test
+    void simplifyToAssertNull() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              
+              public class Test {
+                  void test() {
+                      String s = null;
+                      assertEquals(s, null);
+                      assertEquals(null, s);
+                      assertEquals(s, null, "message");
+                      assertEquals(null, s, "message");
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              
+              public class Test {
+                  void test() {
+                      String s = null;
+                      assertNull(s);
+                      assertNull(s);
+                      assertNull(s, "message");
+                      assertNull(s, "message");
+                  }
+              }
+              """
+            )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/200")
+    @SuppressWarnings({"ConstantConditions", "SimplifiableAssertion"})
+    @Test
+    void preserveStyleOfStaticImportOrNot() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              
+              public class Test {
+                  void test() {
+                      String s = null;
+                      Assertions.assertEquals(s, null);
+                      Assertions.assertEquals(null, s);
+                      Assertions.assertEquals(s, null, "message");
+                      Assertions.assertEquals(null, s, "message");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              
+              public class Test {
+                  void test() {
+                      String s = null;
+                      Assertions.assertNull(s);
+                      Assertions.assertNull(s);
+                      Assertions.assertNull(s, "message");
+                      Assertions.assertNull(s, "message");
+                  }
+              }
+              """
+            )
+        );
+    }
+}

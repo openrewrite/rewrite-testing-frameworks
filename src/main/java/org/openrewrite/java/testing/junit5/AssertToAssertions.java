@@ -36,7 +36,7 @@ public class AssertToAssertions extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "JUnit4 Assert To JUnit Jupiter Assertions";
+        return "JUnit4 `Assert` To JUnit Jupiter `Assertions`";
     }
 
     @Override
@@ -55,16 +55,16 @@ public class AssertToAssertions extends Recipe {
     }
 
     public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
-
         private static final JavaType ASSERTION_TYPE = JavaType.buildType("org.junit.Assert");
 
         private static final List<String> JUNIT_ASSERT_METHOD_NAMES = Arrays.asList(
                 "assertArrayEquals", "assertEquals", "assertFalse", "assertNotEquals", "assertNotNull", "assertNotSame",
                 "assertNull", "assertSame", "assertThrows", "assertTrue", "fail");
 
-
         @Override
         public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
+            JavaSourceFile c = super.visitJavaSourceFile(cu, executionContext);
+
             boolean hasWildcardAssertImport = false;
             for (J.Import imp : cu.getImports()) {
                 if ("org.junit.Assert.*".equals(imp.getQualid().toString())) {
@@ -76,7 +76,10 @@ public class AssertToAssertions extends Recipe {
                 maybeAddImport("org.junit.jupiter.api.Assertions", "*", false);
                 maybeRemoveImport("org.junit.Assert.*");
             }
-            return super.visitJavaSourceFile(cu, executionContext);
+
+            maybeRemoveImport("org.junit.Assert");
+
+            return c;
         }
 
         @Override
@@ -91,10 +94,10 @@ public class AssertToAssertions extends Recipe {
             Expression firstArg = args.get(0);
             // Suppress arg-switching for Assertions.assertEquals(String, String)
             if (args.size() == 2) {
-                if ("assertSame".equals(m.getSimpleName())
-                        || "assertNotSame".equals(m.getSimpleName())
-                        || "assertEquals".equals(m.getSimpleName())
-                        || "assertNotEquals".equals(m.getSimpleName())) {
+                if ("assertSame".equals(m.getSimpleName()) ||
+                    "assertNotSame".equals(m.getSimpleName()) ||
+                    "assertEquals".equals(m.getSimpleName()) ||
+                    "assertNotEquals".equals(m.getSimpleName())) {
                     return m;
                 }
             }
@@ -137,8 +140,8 @@ public class AssertToAssertions extends Recipe {
         }
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
+    }
 }

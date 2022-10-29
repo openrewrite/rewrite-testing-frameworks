@@ -29,15 +29,17 @@ class DropSummaryPrinterTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new DropSummaryPrinter());
-        spec.parser(JavaParser.fromJavaVersion()
-                .logCompilationWarningsAndErrors(true)
-                .classpath("cucumber-plugin"));
+        spec.recipe(new DropSummaryPrinter())
+          .parser(JavaParser.fromJavaVersion().classpath("cucumber-plugin"));
     }
 
     @Test
-    void should_replace_summary_printer_with_plugin() {
-        rewriteRun(version(java("""
+    void replaceSummaryPrinterWithPlugin() {
+        rewriteRun(
+          version(
+            //language=java
+            java(
+              """
                 package com.example.app;
 
                 import io.cucumber.plugin.SummaryPrinter;
@@ -49,27 +51,40 @@ class DropSummaryPrinterTest implements RewriteTest {
                 import io.cucumber.plugin.Plugin;
 
                 public class CucumberJava8Definitions implements Plugin {
-                }"""),
-                17));
+                }
+                """
+            ),
+            17
+          )
+        );
     }
 
     @Test
-    void should_not_duplicate_plugin() {
-        rewriteRun(version(java("""
+    void dontDuplicatePlugin() {
+        rewriteRun(
+          version(
+            //language=java
+            java(
+              """
                 package com.example.app;
 
                 import io.cucumber.plugin.Plugin;
                 import io.cucumber.plugin.SummaryPrinter;
 
                 public class CucumberJava8Definitions implements Plugin, SummaryPrinter {
-                }""", """
+                }
+                """,
+              """
                 package com.example.app;
 
                 import io.cucumber.plugin.Plugin;
 
                 public class CucumberJava8Definitions implements Plugin {
-                }"""),
-                17));
+                }
+                """
+            ),
+            17
+          )
+        );
     }
-
 }

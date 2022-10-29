@@ -32,13 +32,18 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe("/META-INF/rewrite/cucumber.yml", "org.openrewrite.java.testing.cucumber.CucumberJava8ToJava");
         spec.parser(JavaParser.fromJavaVersion()
-                .logCompilationWarningsAndErrors(true)
-                .classpath("junit-jupiter-api", "cucumber-java", "cucumber-java8"));
+          .logCompilationWarningsAndErrors(true)
+          .classpath("junit-jupiter-api", "cucumber-java", "cucumber-java8"));
     }
 
+    @SuppressWarnings("CodeBlock2Expr")
     @Test
-    void should_convert_cucumber_java8_hooks_and_steps() {
-        rewriteRun(version(java("""
+    void cucumberJava8HooksAndSteps() {
+        rewriteRun(
+          version(
+            //language=java
+            java(
+              """
                 package com.example.app;
 
                 import io.cucumber.java8.En;
@@ -52,7 +57,6 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                     private int a;
 
                     public CucumberJava8Definitions() {
-
                         Before(() -> {
                             a = 0;
                         });
@@ -107,16 +111,24 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                         assertEquals(c, a);
                     }
 
-                }"""),
-                17));
+                }
+                """
+            ),
+            17
+          )
+        );
     }
 
     @Nested
     class StepMigration {
-
+        @SuppressWarnings("CodeBlock2Expr")
         @Test
-        void should_convert_cucumber_java8_sample_to_java_sample() {
-            rewriteRun(version(java("""
+        void cucumberJava8SampleToJavaSample() {
+            rewriteRun(
+              version(
+                //language=java
+                java(
+                  """
                     package com.example.app;
 
                     import io.cucumber.java8.En;
@@ -148,7 +160,9 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                                 return Double.NaN;
                             }
                         }
-                    }""", """
+                    }
+                    """,
+                  """
                     package com.example.app;
 
                     import io.cucumber.java.en.Given;
@@ -185,13 +199,22 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                                 return Double.NaN;
                             }
                         }
-                    }"""),
-                    17));
+                    }
+                    """
+                ),
+                17
+              )
+            );
         }
 
+        @SuppressWarnings("CodeBlock2Expr")
         @Test
-        void should_convert_method_invocations_outside_constructor() {
-            rewriteRun(version(java("""
+        void methodInvocationsOutsideConstructor() {
+            rewriteRun(
+              version(
+                //language=java
+                java(
+                  """
                     package com.example.app;
 
                     import io.cucumber.java8.En;
@@ -208,7 +231,8 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                                 cakes = i;
                             });
                         }
-                    }""", """
+                    }""",
+                  """
                     package com.example.app;
 
                     import io.cucumber.java.en.Given;
@@ -227,13 +251,20 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
 
                         private void delegated() {
                         }
-                    }"""),
-                    17));
+                    }"""
+                ),
+                17
+              )
+            );
         }
 
         @Test
-        void should_retain_whitespace_and_comments_in_lambda_body() {
-            rewriteRun(version(java("""
+        void retainWhitespaceAndCommentsInLambdaBody() {
+            rewriteRun(
+              version(
+                //language=java
+                java(
+                  """
                     package com.example.app;
 
                     import io.cucumber.java8.En;
@@ -246,7 +277,9 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                                 int c = a + b;
                             });
                         }
-                    }""", """
+                    }
+                    """,
+                  """
                     package com.example.app;
 
                     import io.cucumber.java.en.Given;
@@ -259,13 +292,21 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                             // Lambda body comment
                             int c = a + b;
                         }
-                    }"""),
-                    17));
+                    }
+                    """
+                ),
+                17
+              )
+            );
         }
 
         @Test
-        void should_retain_throws_exception() {
-            rewriteRun(version(java("""
+        void retainThrowsException() {
+            rewriteRun(
+              version(
+                //language=java
+                java(
+                  """
                     package com.example.app;
 
                     import io.cucumber.java8.En;
@@ -276,7 +317,9 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                                 throw new Exception();
                             });
                         }
-                    }""", """
+                    }
+                    """,
+                  """
                     package com.example.app;
 
                     import io.cucumber.java.en.Given;
@@ -287,13 +330,21 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                         public void a_thrown_exception() throws Exception {
                             throw new Exception();
                         }
-                    }"""),
-                    17));
+                    }
+                    """
+                ),
+                17
+              )
+            );
         }
 
         @Test
-        void should_not_replace_when_not_using_string_constant() {
-            rewriteRun(version(java("""
+        void replaceWhenNotUsingStringConstant() {
+            rewriteRun(
+              version(
+                //language=java
+                java(
+                  """
                     package com.example.app;
 
                     import io.cucumber.java8.En;
@@ -305,7 +356,9 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                                 int c = a + b;
                             });
                         }
-                    }""", """
+                    }
+                    """,
+                  """
                     package com.example.app;
 
                     import io.cucumber.java.En;
@@ -317,14 +370,22 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                                 int c = a + b;
                             });
                         }
-                    }"""),
-                    17));
+                    }
+                    """
+                ),
+                17
+              )
+            );
         }
 
         @Test
-        void should_not_replace_when_using_string_constant() {
-            // For simplicity we only replace when using a String literal for now
-            rewriteRun(version(java("""
+        void replaceWhenUsingStringConstant() {
+            // For simplicity, we only replace when using a String literal for now
+            rewriteRun(
+              version(
+                //language=java
+                java(
+                  """
                     package com.example.app;
 
                     import io.cucumber.java8.En;
@@ -336,7 +397,9 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                                 int c = a + b;
                             });
                         }
-                    }""", """
+                    }
+                    """,
+                  """
                     package com.example.app;
 
                     import io.cucumber.java.En;
@@ -348,14 +411,22 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                                 int c = a + b;
                             });
                         }
-                    }"""),
-                    17));
+                    }
+                    """
+                ),
+                17
+              )
+            );
         }
 
         @Test
-        void should_not_replace_method_reference() {
-            // For simplicity we only replace when using lambda for now
-            rewriteRun(version(java("""
+        void replaceMethodReference() {
+            // For simplicity, we only replace when using lambda for now
+            rewriteRun(
+              version(
+                //language=java
+                java(
+                  """
                     package com.example.app;
 
                     import io.cucumber.java8.En;
@@ -373,18 +444,26 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                         public CalculatorStepDefinitions() {
                             /*~~(TODO Migrate manually)~~>*/Given("{int} plus {int}", Integer::sum);
                         }
-                    }"""),
-                    17));
+                    }
+                    """
+                ),
+                17
+              )
+            );
         }
 
     }
 
     @Nested
     class HookMigration {
-
+        @SuppressWarnings("CodeBlock2Expr")
         @Test
-        void should_convert_cucumber_java8_hooks() {
-            rewriteRun(version(java("""
+        void cucumberJava8Hooks() {
+            rewriteRun(
+              version(
+                //language=java
+                java(
+                  """
                     package com.example.app;
 
                     import io.cucumber.java8.En;
@@ -429,7 +508,9 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                             });
                         }
 
-                    }""", """
+                    }
+                    """,
+                  """
                     package com.example.app;
 
                     import io.cucumber.java.After;
@@ -484,15 +565,23 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                             a = 0;
                         }
 
-                    }"""),
-                    17));
+                    }
+                    """
+                ),
+                17
+              )
+            );
         }
 
         @Test
-        void should_not_convert_anonymous_classes() {
-            // For simplicity anonymous classes are not converted for now; it's not how cucumber-java8 usage was
-            // intended
-            rewriteRun(spec -> spec.cycles(2), version(java("""
+        void convertAnonymousClasses() {
+            // For simplicity, anonymous classes are not converted for now; it's not how cucumber-java8 usage was intended
+            rewriteRun(
+              spec -> spec.cycles(2),
+              version(
+                //language=java
+                java(
+                  """
                     package com.example.app;
 
                     import io.cucumber.java8.En;
@@ -520,7 +609,9 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                             });
                         }
 
-                    }""", """
+                    }
+                    """,
+                  """
                     package com.example.app;
 
                     import io.cucumber.java.En;
@@ -548,14 +639,22 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                             });
                         }
 
-                    }"""),
-                    17));
+                    }
+                    """
+                ),
+                17
+              )
+            );
         }
 
         @Test
-        void should_not_convert_method_reference() {
+        void convertMethodReference() {
             // Not converted yet; the referred method can potentially be annotated and be made public
-            rewriteRun(version(java("""
+            rewriteRun(
+              version(
+                //language=java
+                java(
+                  """
                     package com.example.app;
 
                     import io.cucumber.java8.En;
@@ -571,7 +670,9 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                         private void connect() {
                         }
 
-                    }""", """
+                    }
+                    """,
+                  """
                     package com.example.app;
 
                     import io.cucumber.java.En;
@@ -587,8 +688,12 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
                         private void connect() {
                         }
 
-                    }"""),
-                    17));
+                    }
+                    """
+                ),
+                17
+              )
+            );
         }
     }
 }
