@@ -91,7 +91,7 @@ class AssertToAssertionsTest implements RewriteTest {
                   T t = new T();
                   @Test
                   public void test() {
-                      assertFalse(t.getName(), A.class.isAssignableFrom(t.getClass()));
+                      assertFalse(t.getName(), MyTest.class.isAssignableFrom(t.getClass()));
                   }
 
                   class T {
@@ -103,14 +103,14 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import org.junit.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertFalse;
 
               public class MyTest {
                   T t = new T();
                   @Test
                   public void test() {
-                      assertFalse(A.class.isAssignableFrom(t.getClass()), t.getName());
+                      assertFalse(MyTest.class.isAssignableFrom(t.getClass()), t.getName());
                   }
 
                   class T {
@@ -401,7 +401,7 @@ class AssertToAssertionsTest implements RewriteTest {
     }
 
     @Test
-    void preservesWildcardImport() {
+    void missingTypeInfo() {
         //language=java
         rewriteRun(
           spec -> spec.typeValidationOptions(TypeValidation.none()),
@@ -416,7 +416,7 @@ class AssertToAssertionsTest implements RewriteTest {
               }
               """,
             """
-              import static org.junit.jupiter.api.Assertions.*;
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
                   
               class MyTest {
                   void test() {
