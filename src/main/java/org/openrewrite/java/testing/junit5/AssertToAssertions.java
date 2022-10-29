@@ -77,7 +77,7 @@ public class AssertToAssertions extends Recipe {
                 maybeRemoveImport("org.junit.Assert.*");
             }
 
-            maybeRemoveImport("org.junit.Assert");
+//            maybeRemoveImport("org.junit.Assert.*");
 
             return c;
         }

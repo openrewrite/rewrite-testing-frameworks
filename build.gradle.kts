@@ -5,7 +5,6 @@ import nebula.plugin.contacts.ContactsExtension
 import nebula.plugin.release.NetflixOssStrategies.SNAPSHOT
 import nebula.plugin.release.git.base.ReleasePluginExtension
 import nl.javadude.gradle.plugins.license.LicenseExtension
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.util.*
 
 plugins {
@@ -13,7 +12,6 @@ plugins {
     `maven-publish`
     signing
 
-    id("org.jetbrains.kotlin.jvm") version "1.6.21"
     id("nebula.maven-resolved-dependencies") version "17.3.2"
     id("nebula.release") version "15.3.1"
     id("io.github.gradle-nexus.publish-plugin") version "1.0.0"
@@ -140,9 +138,6 @@ dependencies {
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
-    testImplementation(platform("org.jetbrains.kotlin:kotlin-bom"))
-    testImplementation("org.jetbrains.kotlin:kotlin-reflect")
-    testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testImplementation("org.openrewrite:rewrite-java-17:$rewriteVersion")
     testImplementation("org.openrewrite:rewrite-test:$rewriteVersion")
     testImplementation("org.openrewrite:rewrite-java-tck:$rewriteVersion")
@@ -169,12 +164,6 @@ dependencies {
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
-    }
-}
-
-tasks.withType(KotlinCompile::class.java).configureEach {
-    kotlinOptions {
-        jvmTarget = "1.8"
     }
 }
 
@@ -263,4 +252,3 @@ configure<PublishingExtension> {
         }
     }
 }
-
