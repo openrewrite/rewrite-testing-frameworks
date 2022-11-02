@@ -23,6 +23,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class JUnit5MigrationTest implements RewriteTest {
 
@@ -77,4 +78,59 @@ class JUnit5MigrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/279")
+    void upgradeMavenPluginVersions() {
+        rewriteRun(
+          pomXml(
+            """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example.jackson</groupId>
+                    <artifactId>test-plugins</artifactId>
+                    <version>1.0.0</version>
+                    <build>
+                        <plugins>
+                            <plugin>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-surefire-plugin</artifactId>
+                                <version>2.20.1</version>
+                            </plugin>
+                            <plugin>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-failsafe-plugin</artifactId>
+                                <version>2.20.1</version>
+                            </plugin>
+                        </plugins>
+                    </build>
+                </project>
+            """,
+            """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example.jackson</groupId>
+                    <artifactId>test-plugins</artifactId>
+                    <version>1.0.0</version>
+                    <build>
+                        <plugins>
+                            <plugin>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-surefire-plugin</artifactId>
+                                <version>2.22.2</version>
+                            </plugin>
+                            <plugin>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-failsafe-plugin</artifactId>
+                                <version>2.22.2</version>
+                            </plugin>
+                        </plugins>
+                    </build>
+                </project>
+            """
+          )
+        );
+    }
+
+
 }

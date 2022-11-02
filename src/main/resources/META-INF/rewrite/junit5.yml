@@ -105,6 +105,14 @@ recipeList:
       artifactId: junit-jupiter-params
       version: 5.x
       onlyIfUsing: org.junit.jupiter.params.ParameterizedTest
+  - org.openrewrite.maven.UpgradePluginVersion:
+      groupId: org.apache.maven.plugins
+      artifactId: maven-surefire-plugin
+      newVersion: 2.22.x
+  - org.openrewrite.maven.UpgradePluginVersion:
+      groupId: org.apache.maven.plugins
+      artifactId: maven-failsafe-plugin
+      newVersion: 2.22.x
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
