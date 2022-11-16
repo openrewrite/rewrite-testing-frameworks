@@ -51,7 +51,7 @@ public class EnclosedToNested extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Removes the `Enclosed` specification from a class, and adds `Nested` to its inner classes";
+        return "Removes the `Enclosed` specification from a class, and adds `Nested` to its inner classes.";
     }
 
     @Override

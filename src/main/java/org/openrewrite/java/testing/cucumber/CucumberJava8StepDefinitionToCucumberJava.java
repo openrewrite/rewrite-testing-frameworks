@@ -15,10 +15,6 @@
  */
 package org.openrewrite.java.testing.cucumber;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -31,6 +27,10 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.SearchResult;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
 
@@ -46,12 +46,12 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Replace Cucumber-Java8 step definitions with Cucumber-Java.";
+        return "Replace Cucumber-Java8 step definitions with Cucumber-Java";
     }
 
     @Override
     public String getDescription() {
-        return "Replace StepDefinitionBody methods with StepDefinitionAnnotations on new methods with the same body";
+        return "Replace StepDefinitionBody methods with StepDefinitionAnnotations on new methods with the same body.";
     }
 
     @Override
