@@ -15,9 +15,6 @@
  */
 package org.openrewrite.java.testing.cucumber;
 
-import java.time.Duration;
-import java.util.List;
-
 import lombok.Value;
 import lombok.With;
 import org.openrewrite.Applicability;
@@ -32,6 +29,9 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType.Primitive;
 import org.openrewrite.marker.SearchResult;
+
+import java.time.Duration;
+import java.util.List;
 
 public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
 
@@ -58,12 +58,12 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Replace Cucumber-Java8 hook definition with Cucumber-Java.";
+        return "Replace Cucumber-Java8 hook definition with Cucumber-Java";
     }
 
     @Override
     public String getDescription() {
-        return "Replace LamdbaGlue hook definitions with new annotated methods with the same body";
+        return "Replace LamdbaGlue hook definitions with new annotated methods with the same body.";
     }
 
     @Override

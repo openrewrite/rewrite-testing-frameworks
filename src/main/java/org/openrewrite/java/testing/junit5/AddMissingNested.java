@@ -50,7 +50,7 @@ public class AddMissingNested extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "JUnit5 inner test classes should be annotated with `@Nested`.";
+        return "JUnit5 inner test classes should be annotated with `@Nested`";
     }
 
     @Override

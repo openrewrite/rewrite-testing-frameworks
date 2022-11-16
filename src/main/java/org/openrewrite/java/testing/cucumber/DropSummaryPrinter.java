@@ -15,11 +15,6 @@
  */
 package org.openrewrite.java.testing.cucumber;
 
-import java.time.Duration;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.stream.Stream;
-
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -31,6 +26,11 @@ import org.openrewrite.java.RemoveImport;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
+
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 public class DropSummaryPrinter extends Recipe {
 
@@ -44,7 +44,7 @@ public class DropSummaryPrinter extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Drop SummaryPrinter.";
+        return "Drop SummaryPrinter";
     }
 
     @Override
