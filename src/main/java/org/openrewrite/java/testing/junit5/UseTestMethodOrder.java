@@ -35,12 +35,12 @@ public class UseTestMethodOrder extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Migrate from JUnit4 `@FixedMethodOrder` to JUnit5 `@TestMethodOrder`";
+        return "Migrate from JUnit 4 `@FixedMethodOrder` to JUnit 5 `@TestMethodOrder`";
     }
 
     @Override
     public String getDescription() {
-        return "JUnit optionally allows test method execution order to be specified. This Recipe replaces JUnit4 test execution ordering annotations with JUnit5 replacements.";
+        return "JUnit optionally allows test method execution order to be specified. This Recipe replaces JUnit 4 test execution ordering annotations with JUnit 5 replacements.";
     }
 
   @Override

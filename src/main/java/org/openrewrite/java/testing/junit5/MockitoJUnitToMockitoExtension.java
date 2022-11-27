@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  * @implNote collector() is designed to aggregate multiple verifications into a single output.
  * Refactoring the method may be fairly complex and would likely benefit from being a separate recipe.
  * <p>
- * Must be ran in the JUnit5 suite.
+ * Must be ran in the JUnit 5 suite.
  */
 public class MockitoJUnitToMockitoExtension extends Recipe {
 

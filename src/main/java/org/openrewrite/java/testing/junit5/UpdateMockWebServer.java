@@ -38,7 +38,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
- * Recipe for converting JUnit4 okhttp3 MockWebServer Rules with their JUnit5 equivalent.
+ * Recipe for converting JUnit 4 okhttp3 MockWebServer Rules with their JUnit 5 equivalent.
  * Note this recipe upgrades okhttp3 to version 4.x there are a few backwards incompatible changes: https://square.github.io/okhttp/upgrading_to_okhttp_4/#backwards-incompatible-changes
  * - If MockWebServer Rule exists remove the Rule annotation and update okhttp3 to version 4.x
  * - If AfterEach method exists insert a close statement for the MockWebServer and throws for IOException

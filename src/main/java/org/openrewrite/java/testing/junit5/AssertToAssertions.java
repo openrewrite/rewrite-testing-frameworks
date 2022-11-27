@@ -36,7 +36,7 @@ public class AssertToAssertions extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "JUnit4 `Assert` To JUnit Jupiter `Assertions`";
+        return "JUnit 4 `Assert` To JUnit Jupiter `Assertions`";
     }
 
     @Override

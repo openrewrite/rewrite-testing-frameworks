@@ -45,7 +45,7 @@ public class RemoveTestPrefix extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Remove `test` prefix from JUnit5 tests";
+        return "Remove `test` prefix from JUnit 5 tests";
     }
 
     @Override
