@@ -63,7 +63,7 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Replace LamdbaGlue hook definitions with new annotated methods with the same body.";
+        return "Replace LambdaGlue hook definitions with new annotated methods with the same body.";
     }
 
     @Override
@@ -114,7 +114,7 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
          * - last one is always a Lambda;
          * - first can also be a String or int.
          * - second can be an int;
-         * 
+         *
          * @param arguments
          * @return
          */

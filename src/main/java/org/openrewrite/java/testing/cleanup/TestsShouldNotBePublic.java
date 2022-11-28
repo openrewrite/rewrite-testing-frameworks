@@ -53,7 +53,7 @@ public class TestsShouldNotBePublic extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Remove `public` visibility of JUnit5 tests";
+        return "Remove `public` visibility of JUnit 5 tests";
     }
 
     @Override

@@ -56,7 +56,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Convert JUnit4 parameterized runner the JUnit Jupiter parameterized test equivalent.";
+        return "Convert JUnit 4 parameterized runner the JUnit Jupiter parameterized test equivalent.";
     }
 
     @Override

@@ -50,7 +50,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
             "io.restassured",
             "org.springframework.test.web.servlet.ResultActions",
             "com.github.tomakehurst.wiremock.client.WireMock",
-            "org.junit.Assert"// rarely, the test annotation is junit5 but the assert is junit4
+            "org.junit.Assert"// rarely, the test annotation is junit 5 but the assert is junit 4
     );
 
     @Option(displayName = "Additional assertions",

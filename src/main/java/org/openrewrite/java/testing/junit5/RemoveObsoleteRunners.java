@@ -33,7 +33,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class RemoveObsoleteRunners extends Recipe {
     @Option(displayName = "Obsolete Runners",
-            description = "The fully qualified class names of the JUnit4 runners to be removed.",
+            description = "The fully qualified class names of the JUnit 4 runners to be removed.",
             example = "org.junit.runners.JUnit4")
     List<String> obsoleteRunners;
 
@@ -44,7 +44,7 @@ public class RemoveObsoleteRunners extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Some JUnit4 `@RunWith` annotations do not require replacement with an equivalent JUnit Jupiter `@ExtendsWith` annotation. " +
+        return "Some JUnit 4 `@RunWith` annotations do not require replacement with an equivalent JUnit Jupiter `@ExtendsWith` annotation. " +
                 "This can be used to remove those runners that either do not have a JUnit Jupiter equivalent or do not require a replacement as part of JUnit 4 to 5 migration.";
     }
 

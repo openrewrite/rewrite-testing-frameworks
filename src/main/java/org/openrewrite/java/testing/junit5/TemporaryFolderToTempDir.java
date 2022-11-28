@@ -40,7 +40,7 @@ public class TemporaryFolderToTempDir extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Translates JUnit4's `org.junit.rules.TemporaryFolder` into JUnit 5's `org.junit.jupiter.api.io.TempDir`.";
+        return "Translates JUnit 4's `org.junit.rules.TemporaryFolder` into JUnit 5's `org.junit.jupiter.api.io.TempDir`.";
     }
 
     @Override

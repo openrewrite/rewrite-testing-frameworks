@@ -36,7 +36,7 @@ public class CategoryToTag extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "JUnit4 `@Category` to JUnit Jupiter `@Tag`";
+        return "JUnit 4 `@Category` to JUnit Jupiter `@Tag`";
     }
 
     @Override
