@@ -49,14 +49,26 @@ recipeList:
       methodPattern: org.mockito.ArgumentMatchers anyObject()
       newMethodName: any
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.ArgumentMatchers anyListOf()
+      methodPattern: org.mockito.ArgumentMatchers anyListOf(java.lang.Class)
       newMethodName: anyList
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.ArgumentMatchers anyList(java.lang.Class)
+      argumentIndex: 0
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.ArgumentMatchers anySetOf()
+      methodPattern: org.mockito.ArgumentMatchers anySetOf(java.lang.Class)
       newMethodName: anySet
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.ArgumentMatchers anySet(java.lang.Class)
+      argumentIndex: 0
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.ArgumentMatchers anyMapOf()
+      methodPattern: org.mockito.ArgumentMatchers anyMapOf(java.lang.Class, java.lang.Class)
       newMethodName: anyMap
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.ArgumentMatchers anyMap(java.lang.Class, java.lang.Class)
+      argumentIndex: 0
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.ArgumentMatchers anyMap(java.lang.Class, java.lang.Class)
+      argumentIndex: 0
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.ArgumentMatchers anyCollectionOf()
       newMethodName: anyCollection
