@@ -37,6 +37,33 @@ class JUnit5MigrationTest implements RewriteTest {
             .activateRecipes("org.openrewrite.java.testing.junit5.JUnit4to5Migration"));
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/284")
+    @Test
+    void classReference() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              
+              public class Sample {
+                  void method() {
+                      Class<Test> c = Test.class;
+                  }
+              }
+            """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              public class Sample {
+                  void method() {
+                      Class<Test> c = Test.class;
+                  }
+              }
+            """
+          )
+        );
+    }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/145")
     void assertThatReceiver() {

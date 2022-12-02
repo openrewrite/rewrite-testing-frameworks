@@ -29,6 +29,7 @@ import org.openrewrite.marker.Markup;
 
 import java.time.Duration;
 import java.util.Comparator;
+import java.util.Set;
 
 public class UpdateTestAnnotation extends Recipe {
 
@@ -61,6 +62,13 @@ public class UpdateTestAnnotation extends Recipe {
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
             J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
+            Set<NameTree> nameTreeSet = c.findType("org.junit.Test");
+            if (!nameTreeSet.isEmpty()) {
+                // Update other references like `Test.class`.
+                c = (J.CompilationUnit) new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test", true)
+                        .getVisitor().visit(cu, executionContext);
+            }
+
             maybeRemoveImport("org.junit.Test");
             doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
                 @Override
