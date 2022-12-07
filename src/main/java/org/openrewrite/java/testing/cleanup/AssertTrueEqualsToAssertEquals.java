@@ -23,7 +23,6 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
-import java.util.List;
 import java.util.function.Supplier;
 
 public class AssertTrueEqualsToAssertEquals extends Recipe {
@@ -64,8 +63,7 @@ public class AssertTrueEqualsToAssertEquals extends Recipe {
                     } else {
                         sb.append("Assertions.");
                     }
-                    J.MethodInvocation methodInvocation = getMethodInvocation(mi);
-                    J.MethodInvocation s = (J.MethodInvocation)methodInvocation.getArguments().get(0);
+                    J.MethodInvocation s = (J.MethodInvocation) mi.getArguments().get(0);
                     sb.append("assertEquals(#{any(java.lang.Object)},#{any(java.lang.Object)}");
                     Object[] args;
                     if (mi.getArguments().size() == 2) {
@@ -90,23 +88,15 @@ public class AssertTrueEqualsToAssertEquals extends Recipe {
                 return mi;
             }
 
-            private J.MethodInvocation getMethodInvocation(Expression expr){
-                List<J> s = expr.getSideEffects();
-                return  ((J.MethodInvocation) s.get(0));
-            }
-
             private boolean isEquals(Expression expr) {
-                List<J> s = expr.getSideEffects();
-
-               if (s.isEmpty()){
+                if (!(expr instanceof J.MethodInvocation)) {
                     return false;
                 }
 
-               J.MethodInvocation methodInvocation = getMethodInvocation(expr);
+               J.MethodInvocation methodInvocation = (J.MethodInvocation) expr;
 
                return "equals".equals(methodInvocation.getName().getSimpleName())
                       && methodInvocation.getArguments().size() == 1;
-
             }
         };
     }
