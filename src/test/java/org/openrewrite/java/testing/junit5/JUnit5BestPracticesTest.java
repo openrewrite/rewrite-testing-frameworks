@@ -31,7 +31,7 @@ class JUnit5BestPracticesTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion().classpath("junit"))
           .recipe(Environment.builder()
-            .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
+            .scanRuntimeClasspath("org.openrewrite.java.testing")
             .build()
             .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices"));
     }
@@ -53,9 +53,9 @@ class JUnit5BestPracticesTest implements RewriteTest {
             """
               import org.junit.jupiter.api.BeforeEach;
 
-              public class Example {
+              class Example {
                   @BeforeEach
-                  public void initialize() {
+                  void initialize() {
                   }
               }
               """
@@ -80,9 +80,9 @@ class JUnit5BestPracticesTest implements RewriteTest {
             """
               import org.junit.jupiter.api.AfterEach;
 
-              public class Example {
+              class Example {
                   @AfterEach
-                  public void initialize() {
+                  void initialize() {
                   }
               }
               """
@@ -107,9 +107,9 @@ class JUnit5BestPracticesTest implements RewriteTest {
             """
               import org.junit.jupiter.api.BeforeAll;
 
-              public class Example {
+              class Example {
                   @BeforeAll
-                  public static void initialize() {
+                  static void initialize() {
                   }
               }
               """
@@ -134,9 +134,9 @@ class JUnit5BestPracticesTest implements RewriteTest {
             """
               import org.junit.jupiter.api.AfterAll;
 
-              public class Example {
+              class Example {
                   @AfterAll
-                  public static void initialize() {
+                  static void initialize() {
                   }
               }
               """
@@ -152,20 +152,34 @@ class JUnit5BestPracticesTest implements RewriteTest {
           java(
             """
               import org.junit.Ignore;
+              import org.junit.Test;
 
               public class Example {
-                  @Ignore @Test public void something() {}
+                  @Ignore
+                  @Test
+                  public void something() {
+                  }
                             
-                  @Ignore("not ready yet") @Test public void somethingElse() {}
+                  @Ignore("not ready yet")
+                  @Test
+                  public void somethingElse() {
+                  }
               }
               """,
             """
               import org.junit.jupiter.api.Disabled;
+              import org.junit.jupiter.api.Test;
 
-              public class Example {
-                  @Disabled @Test public void something() {}
+              class Example {
+                  @Disabled
+                  @Test
+                  void something() {
+                  }
                             
-                  @Disabled("not ready yet") @Test public void somethingElse() {}
+                  @Disabled("not ready yet")
+                  @Test
+                  void somethingElse() {
+                  }
               }
               """
           )

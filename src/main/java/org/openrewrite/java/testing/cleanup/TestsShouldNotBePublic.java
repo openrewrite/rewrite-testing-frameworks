@@ -58,7 +58,7 @@ public class TestsShouldNotBePublic extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Remove `public` and optionally `protected` modifiers from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@BeforeEach` or `@AfterEach`. They no longer have to be public visibility to be usable by JUnit 5.";
+        return "Remove `public` and optionally `protected` modifiers from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@BeforeEach`, `@AfterEach`, `@BeforeAll`, or `@AfterAll`. They no longer have to be public visibility to be usable by JUnit 5.";
     }
 
   @Override
@@ -154,7 +154,9 @@ public class TestsShouldNotBePublic extends Recipe {
                         || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest")
                         || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")
                         || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterEach")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeEach")) {
+                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeEach")
+                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterAll")
+                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeAll")) {
                     return true;
                 }
             }

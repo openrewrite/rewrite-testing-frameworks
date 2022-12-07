@@ -37,7 +37,7 @@ class AssumeToAssumptionsTest implements RewriteTest {
     void assumeToAssumptions() {
         rewriteRun(
           spec -> spec.recipe(Environment.builder()
-            .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
+            .scanRuntimeClasspath("org.openrewrite.java.testing")
             .build()
             .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices")),
           //language=java
