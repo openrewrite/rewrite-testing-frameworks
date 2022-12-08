@@ -478,4 +478,115 @@ class UpdateTestAnnotationTest implements RewriteTest {
           )
         );
     }
+
+
+    @Test
+    void migrateDotClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+                import org.junit.Test;
+                public class MyTest {
+                    Object o = Test.class;
+                }
+              """,
+            """
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                    Object o = Test.class;
+                }
+              """
+          )
+        );
+    }
+
+    @Test
+    void usedInJavadoc() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+                import org.junit.Test;
+                
+                /** @see org.junit.Test */
+                public class MyTest {
+                    @Test
+                    public void test() {
+                    }
+                }
+              """,
+            """
+                import org.junit.jupiter.api.Test;
+                
+                /** @see org.junit.jupiter.api.Test */
+                public class MyTest {
+                    @Test
+                    void test() {
+                    }
+                }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fullyQualified() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+                public class MyTest {
+                    @org.junit.Test
+                    public void feature1() {
+                    }
+                }
+              """,
+            """
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                    @org.junit.jupiter.api.Test
+                    void feature1() {
+                    }
+                }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mixedFullyQualifiedAndNot() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+              public class MyTest {
+                  @org.junit.Test
+                  public void feature1() {
+                  }
+                  
+                  @Test
+                  void feature2() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+                            
+              public class MyTest {
+                  @org.junit.jupiter.api.Test
+                  void feature1() {
+                  }
+                  
+                  @Test
+                  void feature2() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -66,7 +66,7 @@ public class UpdateTestAnnotation extends Recipe {
             if (!nameTreeSet.isEmpty()) {
                 // Update other references like `Test.class`.
                 c = (J.CompilationUnit) new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test", true)
-                        .getVisitor().visit(cu, executionContext);
+                        .getVisitor().visitNonNull(c, executionContext);
             }
 
             maybeRemoveImport("org.junit.Test");
@@ -106,28 +106,6 @@ public class UpdateTestAnnotation extends Recipe {
                 }
             });
             return c;
-        }
-
-        @Override
-        protected JavadocVisitor<ExecutionContext> getJavadocVisitor() {
-            return new JavadocVisitor<ExecutionContext>(this) {
-                @Override
-                public Javadoc visitReference(Javadoc.Reference reference, ExecutionContext ctx) {
-                    if (reference.getTree() instanceof TypeTree &&
-                        TypeUtils.isOfClassType(((TypeTree) reference.getTree()).getType(), "org.junit.Test")) {
-                        getCursor().getParentOrThrow().putMessageOnFirstEnclosing(Javadoc.class, "testRef", true);
-                    }
-                    return reference;
-                }
-
-                @Override
-                public Javadoc postVisit(Javadoc tree, ExecutionContext executionContext) {
-                    if (getCursor().getMessage("testRef", false)) {
-                        return null;
-                    }
-                    return super.postVisit(tree, executionContext);
-                }
-            };
         }
 
         @Override
