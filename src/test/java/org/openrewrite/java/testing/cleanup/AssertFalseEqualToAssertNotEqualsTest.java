@@ -99,4 +99,26 @@ class AssertFalseEqualToAssertNotEqualsTest implements RewriteTest {
           )
         );
     }
+
+    @SuppressWarnings("ConstantConditions")
+    @Test
+    void retainEqualsAndedWithSomethingElse() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.Arrays;
+              import org.junit.jupiter.api.Assertions;
+              
+              public class Test {
+                  void test() {
+                      String a = "a";
+                      String b = "b";
+                      Assertions.assertFalse(a.equals(b) && a.length() > 0);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
