@@ -63,6 +63,11 @@ recipeList:
       obsoleteRunners:
         - org.junit.runners.JUnit4
         - org.junit.runners.BlockJUnit4ClassRunner
+  - org.openrewrite.maven.RemovePluginDependency:
+      pluginGroupId: org.apache.maven.plugins
+      pluginArtifactId: maven-surefire-plugin
+      groupId: org.apache.maven.surefire
+      artifactId: surefire-junit*
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.junit5.UseTestMethodOrder
