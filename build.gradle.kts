@@ -1,55 +1,18 @@
 @file:Suppress("GradlePackageUpdate")
 
-import nebula.plugin.contacts.Contact
-import nebula.plugin.contacts.ContactsExtension
-import nebula.plugin.release.NetflixOssStrategies.SNAPSHOT
-import nebula.plugin.release.git.base.ReleasePluginExtension
-import nl.javadude.gradle.plugins.license.LicenseExtension
 import java.util.*
 
 plugins {
-    `java-library`
-    `maven-publish`
-    signing
-
-    id("nebula.maven-resolved-dependencies") version "17.3.2"
-    id("nebula.release") version "15.3.1"
-    id("io.github.gradle-nexus.publish-plugin") version "1.0.0"
-
-    id("com.github.hierynomus.license") version "0.16.1"
-    id("com.github.jk1.dependency-license-report") version "1.16"
-    id("org.owasp.dependencycheck") version "latest.release"
-
-    id("nebula.maven-publish") version "17.3.2"
-    id("nebula.contacts") version "5.1.0"
-    id("nebula.info") version "11.1.0"
-
-    id("nebula.javadoc-jar") version "17.3.2"
-    id("nebula.source-jar") version "17.3.2"
-    id("nebula.maven-apache-license") version "17.3.2"
-
+    id("org.openrewrite.build.recipe-library") version "latest.release"
     id("org.openrewrite.rewrite") version "latest.release"
 }
-
-apply(plugin = "nebula.publish-verification")
 
 rewrite {
     activeRecipe("org.openrewrite.java.format.AutoFormat", "org.openrewrite.java.cleanup.Cleanup")
 }
 
-configure<ReleasePluginExtension> {
-    defaultVersionStrategy = SNAPSHOT(project)
-}
-
-dependencyCheck {
-    analyzers.assemblyEnabled = false
-    suppressionFile = "suppressions.xml"
-    failBuildOnCVSS = 9.0F
-}
-
 group = "org.openrewrite.recipe"
-description =
-    "A rewrite module automating best practices and major version migrations for popular Java test frameworks like JUnit and Mockito"
+description = "A rewrite module automating best practices and major version migrations for popular Java test frameworks like JUnit and Mockito"
 
 val mockitoVersions: List<String> = listOf("3")
 
@@ -60,36 +23,6 @@ sourceSets {
             runtimeClasspath += sourceSets.getByName("main").output
         }
     }
-}
-
-repositories {
-    if(!project.hasProperty("releasing")) {
-        mavenLocal()
-        maven {
-            url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
-        }
-    }
-    mavenCentral()
-}
-
-nexusPublishing {
-    repositories {
-        sonatype()
-    }
-}
-
-
-val signingKey: String? by project
-val signingPassword: String? by project
-val requireSigning = project.hasProperty("forceSigning") || project.hasProperty("releasing")
-if(signingKey != null && signingPassword != null) {
-    signing {
-        isRequired = requireSigning
-        useInMemoryPgpKeys(signingKey, signingPassword)
-        sign(publishing.publications["nebula"])
-    }
-} else if(requireSigning) {
-    throw RuntimeException("Artifact signing is required, but signingKey and/or signingPassword are null")
 }
 
 configurations {
@@ -103,26 +36,15 @@ configurations {
             extendsFrom(getByName("testImplementation"))
         }
     }
-    all {
-        resolutionStrategy {
-            cacheChangingModulesFor(0, TimeUnit.SECONDS)
-            cacheDynamicVersionsFor(0, TimeUnit.SECONDS)
-        }
-    }
 }
 
 val mockito1Version = "1.10.19"
 val assertJVersion = "3.18.1"
 
-val rewriteVersion = if(project.hasProperty("releasing")) {
-    "latest.release"
-} else {
-    "latest.integration"
-}
+val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 dependencies {
     implementation("org.openrewrite:rewrite-java:$rewriteVersion")
     implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
-    runtimeOnly("com.fasterxml.jackson.core:jackson-core:2.13.4")
     runtimeOnly("org.openrewrite:rewrite-java-17:$rewriteVersion")
 
     runtimeOnly("org.assertj:assertj-core:3.+")
@@ -139,12 +61,7 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
     testImplementation("org.openrewrite:rewrite-java-17:$rewriteVersion")
-    testImplementation("org.openrewrite:rewrite-test:$rewriteVersion")
-    testImplementation("org.openrewrite:rewrite-java-tck:$rewriteVersion")
-    testImplementation("org.assertj:assertj-core:latest.release")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    testImplementation("org.openrewrite:rewrite-groovy:$rewriteVersion")
     testRuntimeOnly("com.github.tomakehurst:wiremock-jre8:latest.release")
 
     // "Before" framework dependencies
@@ -161,17 +78,6 @@ dependencies {
     "testWithMockito_3RuntimeOnly"("org.mockito:mockito-core:3.+")
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-    }
-}
-
-tasks.named<Test>("test") {
-    useJUnitPlatform()
-    jvmArgs = listOf("-Xmx1g", "-XX:+UnlockDiagnosticVMOptions", "-XX:+ShowHiddenFrames")
-}
-
 mockitoVersions.forEach { version ->
     val sourceSetName = "testWithMockito_${version}"
     val sourceSetReference = project.sourceSets.getByName(sourceSetName)
@@ -186,69 +92,5 @@ mockitoVersions.forEach { version ->
     }
     tasks.named("check").configure {
         dependsOn(testTask)
-    }
-}
-
-tasks.named<JavaCompile>("compileJava") {
-    sourceCompatibility = JavaVersion.VERSION_1_8.toString()
-    targetCompatibility = JavaVersion.VERSION_1_8.toString()
-
-    options.isFork = true
-    options.compilerArgs.addAll(listOf("--release", "8"))
-}
-
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
-    options.compilerArgs.add("-parameters")
-}
-
-tasks.withType<Javadoc> {
-    // assertTrue(boolean condition) -> assertThat(condition).isTrue()
-    // warning - invalid usage of tag >
-    // see also: https://blog.joda.org/2014/02/turning-off-doclint-in-jdk-8-javadoc.html
-    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
-}
-
-configure<ContactsExtension> {
-    val j = Contact("jkschneider@gmail.com")
-    j.moniker("Jonathan Schneider")
-
-    people["jkschneider@gmail.com"] = j
-}
-
-configure<LicenseExtension> {
-    ext.set("year", Calendar.getInstance().get(Calendar.YEAR))
-    skipExistingHeaders = true
-    header = project.rootProject.file("gradle/licenseHeader.txt")
-    mapping(mapOf("kt" to "SLASHSTAR_STYLE", "java" to "SLASHSTAR_STYLE"))
-    strictCheck = true
-}
-
-configure<PublishingExtension> {
-    publications {
-        named("nebula", MavenPublication::class.java) {
-            suppressPomMetadataWarningsFor("runtimeElements")
-
-            pom.withXml {
-                (asElement().getElementsByTagName("dependencies").item(0) as org.w3c.dom.Element).let { dependencies ->
-                    dependencies.getElementsByTagName("dependency").let { dependencyList ->
-                        var i = 0
-                        var length = dependencyList.length
-                        while (i < length) {
-                            (dependencyList.item(i) as org.w3c.dom.Element).let { dependency ->
-                                if ((dependency.getElementsByTagName("scope")
-                                        .item(0) as org.w3c.dom.Element).textContent == "provided"
-                                ) {
-                                    dependencies.removeChild(dependency)
-                                    i--
-                                    length--
-                                }
-                            }
-                            i++
-                        }
-                    }
-                }
-            }
-        }
     }
 }

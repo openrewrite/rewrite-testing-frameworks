@@ -134,7 +134,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                     return mi.withTemplate(JavaTemplate.builder(this::getCursor, "File.createTempFile(\"junit\", null, #{any(java.io.File)})")
                             .imports("java.io.File").javaParser(tempdirParser).build(), mi.getCoordinates().replace(), tempDir);
                 } else {
-                    return mi.withTemplate(JavaTemplate.builder(this::getCursor, "File.createTempFile(#{any(java.lang.String)}, null, #{any(java.io.File)})")
+                    return mi.withTemplate(JavaTemplate.builder(this::getCursor, "File.createTempFile(#{any(java.lang.String)}, null, #{any(java.io.File)});")
                                     .imports("java.io.File").javaParser(tempdirParser).build(),
                             mi.getCoordinates().replace(), args.get(0), tempDir);
                 }
