@@ -45,7 +45,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.JUnitToAssertj
 displayName: Migrate JUnit asserts to AssertJ
-description: AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability.
+description: AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability. Converts assertions from `org.junit.jupiter.api.Assertions` to `org.assertj.core.api.Assertions`.
 tags:
   - testing
   - assertj
