@@ -67,7 +67,6 @@ dependencies {
     // "Before" framework dependencies
     testRuntimeOnly("junit:junit:latest.release")
     testRuntimeOnly("org.springframework:spring-test:4.+")
-    testRuntimeOnly("ch.qos.logback:logback-classic:1.2.+")
     testRuntimeOnly("org.mockito:mockito-all:$mockito1Version")
     testRuntimeOnly("pl.pragmatists:JUnitParams:1.+")
     testRuntimeOnly("com.squareup.okhttp3:mockwebserver:3.+")
