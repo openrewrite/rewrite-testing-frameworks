@@ -91,7 +91,7 @@ public class RunnerToExtension extends Recipe {
                 if (extendsWithTemplate == null) {
                     extendsWithTemplate = JavaTemplate.builder(this::getCursor, "@ExtendWith(#{}.class)")
                             .javaParser(() -> JavaParser.fromJavaVersion()
-                                    .classpath("junit", "junit-jupiter-api")
+                                    .classpath("junit-jupiter-api")
                                     .dependsOn( "package " + extensionType.getPackageName() + ";\n" +
                                             "import org.junit.jupiter.api.extension.Extension;\n" +
                                             "public class " + extensionType.getClassName() + " implements Extension {}")
