@@ -27,6 +27,7 @@ import org.openrewrite.java.ChangeMethodAccessLevelVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Comment;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.ClassDeclaration;
 import org.openrewrite.java.tree.J.MethodDeclaration;
@@ -136,6 +137,10 @@ public class TestsShouldNotBePublic extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
+
+            if (method.getMethodType().getDeclaringType().hasFlags(Flag.Abstract, Flag.Public)) {
+                return m;
+            }
 
             if (m.getModifiers().stream().anyMatch(mod -> (mod.getType() == J.Modifier.Type.Public || (orProtected && mod.getType() == Type.Protected)))
                     && Boolean.FALSE.equals(TypeUtils.isOverride(method.getMethodType()))
