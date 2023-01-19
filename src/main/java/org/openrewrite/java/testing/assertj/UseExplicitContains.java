@@ -68,12 +68,9 @@ public class UseExplicitContains extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
             J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
-        	boolean isTrue = IS_TRUE.matches(method);
-        	boolean isFalse = IS_FALSE.matches(method);
-            if (!isTrue && !isFalse) {
+            if (!IS_TRUE.matches(method)&& !IS_FALSE.matches(method)) {
                 return method;
-            }
-            
+            }            
             
             if (!ASSERT_THAT.matches((J.MethodInvocation)method.getSelect())) {
                 return method;
