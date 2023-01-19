@@ -43,10 +43,10 @@ public class UseExplicitContains extends Recipe {
         		+ "and `assertThat(collection.contains(element)).isFalse()` with assertThat(collection).doesNotContain(element).";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
+    }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
