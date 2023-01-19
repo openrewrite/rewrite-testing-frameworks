@@ -22,6 +22,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
+@SuppressWarnings("ConstantConditions")
 class UseExplicitContainsTest implements RewriteTest {
 
     @Override
@@ -37,40 +38,40 @@ class UseExplicitContainsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-				import java.util.Collection;
-				import java.util.ArrayList;
-	
-	            import org.junit.jupiter.api.Test;        
-	
-	            import static org.assertj.core.api.Assertions.assertThat;
-	
-	            public class MyTest {
-	
-	                @Test
-	                public void test() {
-	                	Collection collection = new ArrayList();
-	                	collection.add("3");
-	                    assertThat(collection.contains("3")).isTrue();
-	                }
-	            }
+                import java.util.Collection;
+                import java.util.ArrayList;
+                
+                import org.junit.jupiter.api.Test;
+                
+                import static org.assertj.core.api.Assertions.assertThat;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                        Collection<String> collection = new ArrayList<>();
+                        collection.add("3");
+                        assertThat(collection.contains("3")).isTrue();
+                    }
+                }
               """,
             """
-				import java.util.Collection;
-				import java.util.ArrayList;
-	
-	            import org.junit.jupiter.api.Test;       
-	
-	            import static org.assertj.core.api.Assertions.assertThat;
-	
-	            public class MyTest {
-	
-	                @Test
-	                public void test() {
-	                	Collection collection = new ArrayList();
-	                	collection.add("3");
-	                    assertThat(collection).contains("3");
-	                }
-	            }
+                import java.util.Collection;
+                import java.util.ArrayList;
+                
+                import org.junit.jupiter.api.Test;
+                
+                import static org.assertj.core.api.Assertions.assertThat;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                        Collection<String> collection = new ArrayList<>();
+                        collection.add("3");
+                        assertThat(collection).contains("3");
+                    }
+                }
               """
           )
         );
@@ -82,68 +83,66 @@ class UseExplicitContainsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-				import java.util.Collection;
-				import java.util.ArrayList;
-	
-	            import org.junit.jupiter.api.Test;        
-	
-	            import static org.assertj.core.api.Assertions.assertThat;
-	
-	            public class MyTest {
-	
-	                @Test
-	                public void test() {
-	                	Collection collection = new ArrayList();
-	                    assertThat(collection.contains("3")).isFalse();
-	                }
-	            }
+                import java.util.Collection;
+                import java.util.ArrayList;
+                
+                import org.junit.jupiter.api.Test;
+                
+                import static org.assertj.core.api.Assertions.assertThat;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                        Collection<String> collection = new ArrayList<>();
+                        assertThat(collection.contains("3")).isFalse();
+                    }
+                }
               """,
             """
-				import java.util.Collection;
-				import java.util.ArrayList;
-	
-	            import org.junit.jupiter.api.Test;       
-	
-	            import static org.assertj.core.api.Assertions.assertThat;
-	
-	            public class MyTest {
-	
-	                @Test
-	                public void test() {
-	                	Collection collection = new ArrayList();
-	                    assertThat(collection).doesNotContain("3");
-	                }
-	            }
+                import java.util.Collection;
+                import java.util.ArrayList;
+                
+                import org.junit.jupiter.api.Test;
+                
+                import static org.assertj.core.api.Assertions.assertThat;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                        Collection<String> collection = new ArrayList<>();
+                        assertThat(collection).doesNotContain("3");
+                    }
+                }
               """
           )
         );
     }
-    
+
     @Test
     void IsFalseOrIsTrueWithoutContainsAreNotAffectected() {
         //language=java
         rewriteRun(
           java(
             """
-				import java.util.Collection;
-				import java.util.ArrayList;
-	
-	            import org.junit.jupiter.api.Test;        
-	
-	            import static org.assertj.core.api.Assertions.assertThat;
-	
-	            public class MyTest {
-	
-	                @Test
-	                public void test() {
-	                	Collection collection = new ArrayList();
-	                    assertThat(collection.isEmpty()).isTrue();
-	                    assertThat(!collection.isEmpty()).isFalse();
-	                }
-	            }
+                import java.util.Collection;
+                import java.util.ArrayList;
+                
+                import org.junit.jupiter.api.Test;
+                
+                import static org.assertj.core.api.Assertions.assertThat;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                        Collection<?> collection = new ArrayList<>();
+                        assertThat(collection.isEmpty()).isTrue();
+                        assertThat(!collection.isEmpty()).isFalse();
+                    }
+                }
               """)
         );
-    }    
-    
-    
+    }
 }

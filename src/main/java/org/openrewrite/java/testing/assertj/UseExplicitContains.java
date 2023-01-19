@@ -39,7 +39,7 @@ public class UseExplicitContains extends Recipe {
     @Override
     public String getDescription() {
         return "Convert AssertJ `assertThat(collection.contains(element)).isTrue()` with assertThat(collection).contains(element) "
-        		+ "and `assertThat(collection.contains(element)).isFalse()` with assertThat(collection).doesNotContain(element).";
+                + "and `assertThat(collection.contains(element)).isFalse()` with assertThat(collection).doesNotContain(element).";
     }
 
     @Override
@@ -68,10 +68,11 @@ public class UseExplicitContains extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
             J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
-            if (!IS_TRUE.matches(method)&& !IS_FALSE.matches(method)) {
+            boolean isTrue = IS_TRUE.matches(method);
+            if (!isTrue && !IS_FALSE.matches(method)) {
                 return method;
-            }            
-            
+            }
+
             if (!ASSERT_THAT.matches((J.MethodInvocation)method.getSelect())) {
                 return method;
             }
@@ -79,26 +80,26 @@ public class UseExplicitContains extends Recipe {
             J.MethodInvocation assertThat = (MethodInvocation) method.getSelect();
 
             if (!(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
-            	return method;
+                return method;
             }
-            
+
             J.MethodInvocation contains = (J.MethodInvocation) assertThat.getArguments().get(0);
             if (!CONTAINS.matches(contains)) {
                 return method;
             }
-            
+
             Expression list =  contains.getSelect();
             Expression element = contains.getArguments().get(0);
 
-            String template = isTrue?  "assertThat(#{any()}).contains(#{any()});" :
-            	"assertThat(#{any()}).doesNotContain(#{any()});";
+            String template = isTrue ? "assertThat(#{any()}).contains(#{any()});" :
+                "assertThat(#{any()}).doesNotContain(#{any()});";
             JavaTemplate builtTemplate = JavaTemplate.builder(this::getCursor, template)
-			        .javaParser(ASSERTJ_JAVA_PARSER)
-			        .build();
-			return method.withTemplate(
-            		builtTemplate,
+                    .javaParser(ASSERTJ_JAVA_PARSER)
+                    .build();
+            return method.withTemplate(
+                    builtTemplate,
                     method.getCoordinates().replace(),
-                    list, 
+                    list,
                     element);
         }
     }
