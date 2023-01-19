@@ -27,12 +27,12 @@ class UseExplicitContainsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit"))
+          .parser(JavaParser.fromJavaVersion().classpath("junit", "assertj-core"))
           .recipe(new UseExplicitContains());
     }
 
     @Test
-    void singleStaticMethodNoMessage() {
+    void containsAndIsTrueBecomeContains() {
         //language=java
         rewriteRun(
           java(
@@ -76,4 +76,74 @@ class UseExplicitContainsTest implements RewriteTest {
         );
     }
 
+    @Test
+    void containsAndIsFalseBecomeDoesNotContain() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+				import java.util.Collection;
+				import java.util.ArrayList;
+	
+	            import org.junit.jupiter.api.Test;        
+	
+	            import static org.assertj.core.api.Assertions.assertThat;
+	
+	            public class MyTest {
+	
+	                @Test
+	                public void test() {
+	                	Collection collection = new ArrayList();
+	                    assertThat(collection.contains("3")).isFalse();
+	                }
+	            }
+              """,
+            """
+				import java.util.Collection;
+				import java.util.ArrayList;
+	
+	            import org.junit.jupiter.api.Test;       
+	
+	            import static org.assertj.core.api.Assertions.assertThat;
+	
+	            public class MyTest {
+	
+	                @Test
+	                public void test() {
+	                	Collection collection = new ArrayList();
+	                    assertThat(collection).doesNotContain("3");
+	                }
+	            }
+              """
+          )
+        );
+    }
+    
+    @Test
+    void IsFalseOrIsTrueWithoutContainsAreNotAffectected() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+				import java.util.Collection;
+				import java.util.ArrayList;
+	
+	            import org.junit.jupiter.api.Test;        
+	
+	            import static org.assertj.core.api.Assertions.assertThat;
+	
+	            public class MyTest {
+	
+	                @Test
+	                public void test() {
+	                	Collection collection = new ArrayList();
+	                    assertThat(collection.isEmpty()).isTrue();
+	                    assertThat(!collection.isEmpty()).isFalse();
+	                }
+	            }
+              """)
+        );
+    }    
+    
+    
 }
