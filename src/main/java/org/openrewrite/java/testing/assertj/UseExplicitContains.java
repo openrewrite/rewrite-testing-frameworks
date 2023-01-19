@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -61,9 +60,9 @@ public class UseExplicitContains extends Recipe {
     public static class UseExplicitContainsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion().classpath("assertj-core").build();
 
-        private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions" + " assertThat(..)");
-        private static final MethodMatcher IS_TRUE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert" + " isTrue()");
-        private static final MethodMatcher IS_FALSE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert" + " isFalse()");
+        private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
+        private static final MethodMatcher IS_TRUE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isTrue()");
+        private static final MethodMatcher IS_FALSE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isFalse()");
         private static final MethodMatcher CONTAINS = new MethodMatcher("java.util.Collection contains(..)", true);
 
         @Override
