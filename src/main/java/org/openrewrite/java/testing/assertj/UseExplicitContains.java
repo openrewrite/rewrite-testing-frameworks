@@ -67,7 +67,8 @@ public class UseExplicitContains extends Recipe {
         private static final MethodMatcher CONTAINS = new MethodMatcher("java.util.Collection contains(..)", true);
 
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
+            J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
         	boolean isTrue = IS_TRUE.matches(method);
         	boolean isFalse = IS_FALSE.matches(method);
             if (!isTrue && !isFalse) {
