@@ -34,7 +34,6 @@ import java.util.function.Supplier;
 public class UseExplicitContains extends Recipe {
     @Override
     public String getDisplayName() {
-    	
         return "Use explicit contains in Assertj";
     }
 
