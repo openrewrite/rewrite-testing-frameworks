@@ -99,12 +99,11 @@ public class UseExplicitContains extends Recipe {
             JavaTemplate builtTemplate = JavaTemplate.builder(this::getCursor, template)
 			        .javaParser(ASSERTJ_JAVA_PARSER)
 			        .build();
-			MethodInvocation withTemplate = method.withTemplate(
+			return method.withTemplate(
             		builtTemplate,
                     method.getCoordinates().replace(),
                     list, 
                     element);
-			return withTemplate;
         }
     }
 }
