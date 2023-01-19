@@ -85,8 +85,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.cucumber.CucumberToJunitPlatformSuite
-displayName: Cucumber to Junit Test Suites
-description: Migrates Cucumber tests to Junit Test Suites.
+displayName: Cucumber to JUnit Test Suites
+description: Migrates Cucumber tests to JUnit Test Suites.
 tags:
   - testing
   - cucumber
