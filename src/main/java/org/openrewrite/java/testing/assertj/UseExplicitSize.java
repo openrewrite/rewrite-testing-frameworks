@@ -33,18 +33,13 @@ import java.util.function.Supplier;
 public class UseExplicitSize extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Replace AssertJ `assertTrue` to AssertJ";
+        return "Use AssertJ `hasSize()` on collections";
     }
 
     @Override
     public String getDescription() {
-        return "Convert assertJ's `assertThat(collection.size()).isEqualTo(Y)` with AssertJ's `assertThat(collection).hasSize()`.";
+        return "Convert `assertThat(collection.size()).isEqualTo(Y)` with AssertJ's `assertThat(collection).hasSize()`.";
     }
-
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
