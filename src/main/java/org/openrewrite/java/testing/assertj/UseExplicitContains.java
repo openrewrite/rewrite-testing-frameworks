@@ -72,6 +72,10 @@ public class UseExplicitContains extends Recipe {
             if (!isTrue && !IS_FALSE.matches(method)) {
                 return method;
             }
+            
+            if (!(method.getSelect() instanceof J.MethodInvocation)) {
+            	return method;
+            }
 
             if (!ASSERT_THAT.matches((J.MethodInvocation)method.getSelect())) {
                 return method;
