@@ -30,21 +30,15 @@ import org.openrewrite.java.tree.J.MethodInvocation;
 import java.time.Duration;
 import java.util.function.Supplier;
 
-public class UseExplicitContains extends Recipe {
+public class UseExplicitSize extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Use explicit contains in Assertj";
+        return "Use AssertJ `hasSize()` on collections";
     }
 
     @Override
     public String getDescription() {
-        return "Convert AssertJ `assertThat(collection.contains(element)).isTrue()` with assertThat(collection).contains(element) "
-                + "and `assertThat(collection.contains(element)).isFalse()` with assertThat(collection).doesNotContain(element).";
-    }
-
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
+        return "Convert `assertThat(collection.size()).isEqualTo(Y)` with AssertJ's `assertThat(collection).hasSize()`.";
     }
 
     @Override
@@ -54,29 +48,23 @@ public class UseExplicitContains extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new UseExplicitContainsVisitor();
+        return new UseExplicitSizeVisitor();
     }
 
-    public static class UseExplicitContainsVisitor extends JavaIsoVisitor<ExecutionContext> {
+    public static class UseExplicitSizeVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion().classpath("assertj-core").build();
 
         private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
-        private static final MethodMatcher IS_TRUE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isTrue()");
-        private static final MethodMatcher IS_FALSE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isFalse()");
-        private static final MethodMatcher CONTAINS = new MethodMatcher("java.util.Collection contains(..)", true);
+        private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.* isEqualTo(..)");
+        private static final MethodMatcher SIZE = new MethodMatcher("java.util.Collection size(..)", true);
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
-            J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
-            boolean isTrue = IS_TRUE.matches(method);
-            if (!isTrue && !IS_FALSE.matches(method)) {
+        	J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
+        	if (!IS_EQUAL_TO.matches(method)) {
                 return method;
             }
             
-            if (!(method.getSelect() instanceof J.MethodInvocation)) {
-            	return method;
-            }
-
             if (!ASSERT_THAT.matches((J.MethodInvocation)method.getSelect())) {
                 return method;
             }
@@ -84,27 +72,26 @@ public class UseExplicitContains extends Recipe {
             J.MethodInvocation assertThat = (MethodInvocation) method.getSelect();
 
             if (!(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
-                return method;
+            	return method;
             }
-
-            J.MethodInvocation contains = (J.MethodInvocation) assertThat.getArguments().get(0);
-            if (!CONTAINS.matches(contains)) {
-                return method;
+            
+            J.MethodInvocation size = (J.MethodInvocation) assertThat.getArguments().get(0);
+            
+            if (!SIZE.matches(size)) {
+            	return method;
             }
+            
+            Expression list =  size.getSelect();
+            Expression expectedSize = method.getArguments().get(0);
 
-            Expression list =  contains.getSelect();
-            Expression element = contains.getArguments().get(0);
-
-            String template = isTrue ? "assertThat(#{any()}).contains(#{any()});" :
-                "assertThat(#{any()}).doesNotContain(#{any()});";
-            JavaTemplate builtTemplate = JavaTemplate.builder(this::getCursor, template)
-                    .javaParser(ASSERTJ_JAVA_PARSER)
-                    .build();
+            String template = "assertThat(#{any(java.util.List)}).hasSize(#{any()});";
             return method.withTemplate(
-                    builtTemplate,
+            		JavaTemplate.builder(this::getCursor, template)
+                            .javaParser(ASSERTJ_JAVA_PARSER)
+                            .build(),
                     method.getCoordinates().replace(),
                     list,
-                    element);
+                    expectedSize);
         }
     }
 }
