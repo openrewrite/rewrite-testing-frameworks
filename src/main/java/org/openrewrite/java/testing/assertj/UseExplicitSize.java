@@ -60,11 +60,15 @@ public class UseExplicitSize extends Recipe {
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
-        	J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
-        	if (!IS_EQUAL_TO.matches(method)) {
+            J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
+            if (!IS_EQUAL_TO.matches(method)) {
                 return method;
             }
-            
+
+            if (!(method.getSelect() instanceof J.MethodInvocation)) {
+                return method;
+            }
+
             if (!ASSERT_THAT.matches((J.MethodInvocation)method.getSelect())) {
                 return method;
             }
@@ -72,21 +76,21 @@ public class UseExplicitSize extends Recipe {
             J.MethodInvocation assertThat = (MethodInvocation) method.getSelect();
 
             if (!(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
-            	return method;
+                return method;
             }
-            
+
             J.MethodInvocation size = (J.MethodInvocation) assertThat.getArguments().get(0);
-            
+
             if (!SIZE.matches(size)) {
-            	return method;
+                return method;
             }
-            
+
             Expression list =  size.getSelect();
             Expression expectedSize = method.getArguments().get(0);
 
             String template = "assertThat(#{any(java.util.List)}).hasSize(#{any()});";
             return method.withTemplate(
-            		JavaTemplate.builder(this::getCursor, template)
+                    JavaTemplate.builder(this::getCursor, template)
                             .javaParser(ASSERTJ_JAVA_PARSER)
                             .build(),
                     method.getCoordinates().replace(),
