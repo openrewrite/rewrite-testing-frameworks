@@ -138,7 +138,8 @@ public class TestsShouldNotBePublic extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
 
-            if (method.getMethodType().getDeclaringType().hasFlags(Flag.Abstract, Flag.Public)) {
+            if (method.getMethodType() == null ||
+                    method.getMethodType().getDeclaringType().hasFlags(Flag.Abstract, Flag.Public)) {
                 return m;
             }
 
