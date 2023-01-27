@@ -91,7 +91,7 @@ public class EnclosedToNested extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             if (hasTestMethods(cd)) {
-                cd = cd.withTemplate(getNestedJavaTemplate(), cd.getCoordinates().addAnnotation(Comparator.comparing(
+                cd = cd.withTemplate(getNestedJavaTemplate(ctx), cd.getCoordinates().addAnnotation(Comparator.comparing(
                         J.Annotation::getSimpleName)));
                 cd.getModifiers().removeIf(modifier -> modifier.getType().equals(J.Modifier.Type.Static));
             }
@@ -99,11 +99,13 @@ public class EnclosedToNested extends Recipe {
         }
 
         @NotNull
-        private JavaTemplate getNestedJavaTemplate() {
+        private JavaTemplate getNestedJavaTemplate(ExecutionContext ctx) {
             return JavaTemplate.builder(this::getCursor, "@Nested")
-                    .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
-                            fromString("package org.junit.jupiter.api;\npublic @interface Nested {}"))).build())
-                    .imports(NESTED).build();
+                    .javaParser(() -> JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                            .build())
+                    .imports(NESTED)
+                    .build();
         }
 
         private boolean hasTestMethods(final J.ClassDeclaration cd) {

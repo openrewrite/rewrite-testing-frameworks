@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -69,8 +70,18 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
     }
 
     public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final Supplier<JavaParser> ASSERTIONS_PARSER = () ->
-                JavaParser.fromJavaVersion().classpath("junit-jupiter-api", "hamcrest").build();
+
+        @Nullable
+        private Supplier<JavaParser> javaParser;
+        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+            if(javaParser == null) {
+                javaParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "hamcrest-2.2")
+                        .build();
+            }
+            return javaParser;
+
+        }
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -164,7 +175,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
             m = m.withTemplate(
                     JavaTemplate.builder(this::getCursor, templateString)
-                            .javaParser(ASSERTIONS_PARSER)
+                            .javaParser(javaParser(ctx))
                             .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                             .build(),
                     m.getCoordinates().replaceBody(),
@@ -178,7 +189,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
                 m = m.withTemplate(
                         JavaTemplate.builder(this::getCursor, "assertTrue(exception.getMessage().contains(#{any(java.lang.String)});")
-                                .javaParser(ASSERTIONS_PARSER)
+                                .javaParser(javaParser(ctx))
                                 .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
                                 .build(),
                         m.getBody().getCoordinates().lastStatement(),
@@ -188,7 +199,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             }
 
             JavaTemplate assertThatTemplate = JavaTemplate.builder(this::getCursor, "assertThat(#{}, #{any()});")
-                    .javaParser(ASSERTIONS_PARSER)
+                    .javaParser(javaParser(ctx))
                     .staticImports("org.hamcrest.MatcherAssert.assertThat")
                     .build();
 

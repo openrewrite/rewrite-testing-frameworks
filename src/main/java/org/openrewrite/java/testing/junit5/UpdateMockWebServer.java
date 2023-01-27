@@ -16,10 +16,10 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -30,20 +30,25 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.SearchResult;
 import org.openrewrite.maven.UpgradeDependencyVersion;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import static java.util.Collections.emptyList;
+
 /**
  * Recipe for converting JUnit 4 okhttp3 MockWebServer Rules with their JUnit 5 equivalent.
- * Note this recipe upgrades okhttp3 to version 4.x there are a few backwards incompatible changes: https://square.github.io/okhttp/upgrading_to_okhttp_4/#backwards-incompatible-changes
+ * Note this recipe upgrades okhttp3 to version 4.x there are a few backwards incompatible changes:
+ * https://square.github.io/okhttp/upgrading_to_okhttp_4/#backwards-incompatible-changes
+ * <p>
  * - If MockWebServer Rule exists remove the Rule annotation and update okhttp3 to version 4.x
  * - If AfterEach method exists insert a close statement for the MockWebServer and throws for IOException
  * - If AfterEach does not exist then insert new afterEachTest method closing MockWebServer
  */
+@SuppressWarnings({"JavadocBlankLines", "JavadocLinkAsPlainText"})
 public class UpdateMockWebServer extends Recipe {
     private static final AnnotationMatcher RULE_MATCHER = new AnnotationMatcher("@org.junit.Rule");
     private static final AnnotationMatcher AFTER_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.AfterEach");
@@ -52,18 +57,6 @@ public class UpdateMockWebServer extends Recipe {
     private static final String IO_EXCEPTION_FQN = "java.io.IOException";
     private static final String MOCK_WEBSERVER_VARIABLE = "mock-web-server-variable";
     private static final String AFTER_EACH_METHOD = "after-each-method";
-
-    private static final Supplier<JavaParser> OKHTTP3_PARSER = () ->
-            JavaParser.fromJavaVersion().dependsOn(Arrays.asList(
-                    Parser.Input.fromString("package okhttp3.mockwebserver;" +
-                            "public final class MockWebServer  extends ExternalResource implements Closeable {" +
-                            "   @Override" +
-                            "   public void close() throws IOException {}" +
-                            "}"
-                    ),
-                    Parser.Input.fromString("package org.junit.jupiter.api;\n" +
-                            "public @interface AfterEach {}")
-            )).build();
 
     @Override
     public String getDisplayName() {
@@ -75,10 +68,10 @@ public class UpdateMockWebServer extends Recipe {
         return "Replace usages of okhttp3 3.x @Rule MockWebServer with 4.x MockWebServer.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
+    }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
@@ -88,7 +81,7 @@ public class UpdateMockWebServer extends Recipe {
                 J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
                 if (!FindTypes.find(cu, "org.junit.Rule").isEmpty()
                         && !FindTypes.find(cu, "okhttp3.mockwebserver.MockWebServer").isEmpty()) {
-                    c = c.withMarkers(c.getMarkers().searchResult());
+                    c = SearchResult.found(c);
                 }
                 return c;
             }
@@ -99,9 +92,22 @@ public class UpdateMockWebServer extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
 
+            @Nullable
+            private Supplier<JavaParser> javaParser;
+
+            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+                if (javaParser == null) {
+                    javaParser = () -> JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-4.13.2", "junit-jupiter-api-5.9.2", "apiguardian-api-1.1.2",
+                                    "mockwebserver-3.14.9")
+                            .build();
+                }
+                return javaParser;
+            }
+
             @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                 final J.Identifier mockWebServerVariable = getCursor().pollMessage(MOCK_WEBSERVER_VARIABLE);
                 final J.MethodDeclaration afterEachMethod = getCursor().pollMessage(AFTER_EACH_METHOD);
                 if (mockWebServerVariable != null) {
@@ -109,8 +115,12 @@ public class UpdateMockWebServer extends Recipe {
                         final String closeMethod = "@AfterEach\nvoid afterEachTest() throws IOException {#{any(okhttp3.mockwebserver.MockWebServer)}.close();\n}";
                         J.Block body = cd.getBody();
                         body = maybeAutoFormat(body, body.withTemplate(JavaTemplate.builder(this::getCursor, closeMethod)
-                                .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
-                                .javaParser(OKHTTP3_PARSER).build(), body.getCoordinates().lastStatement(), mockWebServerVariable), executionContext);
+                                                .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
+                                                .javaParser(javaParser(ctx))
+                                                .build(),
+                                        body.getCoordinates().lastStatement(),
+                                        mockWebServerVariable),
+                                ctx);
                         cd = cd.withBody(body);
                         maybeAddImport(AFTER_EACH_FQN);
                         maybeAddImport(IO_EXCEPTION_FQN);
@@ -120,9 +130,13 @@ public class UpdateMockWebServer extends Recipe {
                             if (statement == afterEachMethod) {
                                 J.MethodDeclaration method = (J.MethodDeclaration) statement;
                                 if (method.getBody() != null) {
-                                    method = method.withTemplate(JavaTemplate.builder(this::getCursor, "#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
-                                            .javaParser(OKHTTP3_PARSER).build(), method.getBody()
-                                            .getCoordinates().lastStatement(), mockWebServerVariable);
+                                    method = method.withTemplate(
+                                            JavaTemplate.builder(this::getCursor, "#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
+                                                    .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
+                                                    .javaParser(javaParser(ctx))
+                                                    .build(),
+                                            method.getBody().getCoordinates().lastStatement(),
+                                            mockWebServerVariable);
 
                                     if (method.getThrows() == null || method.getThrows().stream()
                                             .noneMatch(n -> TypeUtils.isOfClassType(n.getType(), IO_EXCEPTION_FQN))) {
@@ -139,11 +153,12 @@ public class UpdateMockWebServer extends Recipe {
                                 statement = method;
                             }
                             return statement;
-                        })), executionContext);
+                        })), ctx);
                         cd = cd.withBody(body);
                     }
                     maybeRemoveImport("org.junit.Rule");
-                    doNext(new UpgradeDependencyVersion("com.squareup.okhttp3", "mockwebserver", "4.X", null, false));
+                    doNext(new UpgradeDependencyVersion("com.squareup.okhttp3", "mockwebserver", "4.X",
+                            null, false, emptyList()));
                 }
                 return cd;
             }

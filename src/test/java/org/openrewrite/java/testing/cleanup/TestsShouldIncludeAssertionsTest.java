@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.Parser;
 import org.openrewrite.java.JavaParser;
@@ -31,7 +32,8 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit", "mockito-all", "hamcrest", "assertj-core")
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.2", "junit-jupiter-api-5.9.2", "mockito-all-1.10.19", "hamcrest-2.2", "assertj-core-3.24.2")
             .dependsOn(
               List.of(
                 //language=java

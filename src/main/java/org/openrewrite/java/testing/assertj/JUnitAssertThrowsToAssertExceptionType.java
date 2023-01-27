@@ -56,12 +56,20 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
     }
 
     private static class AssertExceptionTypeVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion().classpath("assertj-core").build();
+        private Supplier<JavaParser> assertionsParser = null;
+        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
+            if(assertionsParser == null) {
+                assertionsParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "assertj-core-3.24.2")
+                        .build();
+            }
+            return assertionsParser;
+        }
         private static final MethodMatcher ASSERT_THROWS_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertThrows(..)");
 
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-            J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
             if (ASSERT_THROWS_MATCHER.matches(mi) && mi.getArguments().size() == 2) {
                 J.Lambda lambdaArg = (J.Lambda) mi.getArguments().get(1);
                 lambdaArg = lambdaArg.withType(JavaType.buildType("org.assertj.core.api.ThrowableAssert.ThrowingCallable"));
@@ -69,7 +77,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                         JavaTemplate
                                 .builder(this::getCursor,
                                         "assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(assertionsParser(ctx))
                                 .staticImports("org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType")
                                 .build(),
                         mi.getCoordinates().replace(),

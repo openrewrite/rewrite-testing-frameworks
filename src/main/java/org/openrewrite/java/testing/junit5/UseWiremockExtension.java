@@ -25,7 +25,10 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.maven.UpgradeDependencyVersion;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.function.Supplier;
+
+import static java.util.Collections.emptyList;
 
 public class UseWiremockExtension extends Recipe {
     @Override
@@ -67,7 +70,7 @@ public class UseWiremockExtension extends Recipe {
                 if (newWiremockRule.matches(n)) {
                     maybeAddImport("com.github.tomakehurst.wiremock.junit5.WireMockExtension");
                     doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true));
-                    doNext(new UpgradeDependencyVersion("com.github.tomakehurst", "wiremock-jre8", "2.x", null, true));
+                    doNext(new UpgradeDependencyVersion("com.github.tomakehurst", "wiremock-jre8", "2.x", null, true, emptyList()));
 
                     Expression arg = n.getArguments().get(0);
 

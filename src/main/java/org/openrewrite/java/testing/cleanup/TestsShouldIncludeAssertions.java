@@ -105,9 +105,16 @@ public class TestsShouldIncludeAssertions extends Recipe {
     }
 
     private static class TestShouldIncludeAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion()
-                .classpath("junit-jupiter-api")
-                .build();
+
+        Supplier<JavaParser> javaParser = null;
+        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+            if(javaParser == null) {
+                javaParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                        .build();
+            }
+            return javaParser;
+        }
 
         private final Map<String, Set<J.Block>> matcherPatternToClassInvocation = new HashMap<>();
         private final List<String> additionalAsserts;
@@ -122,19 +129,19 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext
-                executionContext) {
+                ctx) {
             if ((!methodIsTest(method) || method.getBody() == null) ||
                 methodHasAssertion(method.getBody()) ||
                 methodInvocationInBodyContainsAssertion()) {
                 return method;
             }
 
-            J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+            J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
             J.Block body = md.getBody();
             if (body != null) {
                 md = method.withTemplate(JavaTemplate.builder(this::getCursor, "assertDoesNotThrow(() -> #{any()});")
                                 .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
-                                .javaParser(ASSERTJ_JAVA_PARSER).build(),
+                                .javaParser(javaParser(ctx)).build(),
                         method.getCoordinates().replaceBody(),
                         body);
                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");

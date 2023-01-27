@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cucumber;
 
+import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -32,6 +33,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Value
+@EqualsAndHashCode(callSuper = true)
 public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
 
     private static final String IO_CUCUMBER_JAVA8_STEP_DEFINITION = "io.cucumber.java8.* *(String, ..)";
@@ -66,22 +69,22 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
 
     static final class CucumberStepDefinitionBodyVisitor extends JavaVisitor<ExecutionContext> {
         @Override
-        public J visitMethodInvocation(J.MethodInvocation mi, ExecutionContext p) {
-            J.MethodInvocation methodInvocation = (J.MethodInvocation) super.visitMethodInvocation(mi, p);
-            if (!STEP_DEFINITION_METHOD_MATCHER.matches(methodInvocation)) {
-                return methodInvocation;
+        public J visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext p) {
+            J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(methodInvocation, p);
+            if (!STEP_DEFINITION_METHOD_MATCHER.matches(m)) {
+                return m;
             }
 
             // Skip any methods not containing a second argument, such as Scenario.log(String)
-            List<Expression> arguments = methodInvocation.getArguments();
+            List<Expression> arguments = m.getArguments();
             if (arguments.size() < 2) {
-                return methodInvocation;
+                return m;
             }
 
             // Annotations require a String literal
             Expression stringExpression = arguments.get(0);
             if (!(stringExpression instanceof J.Literal)) {
-                return SearchResult.found(methodInvocation, "TODO Migrate manually");
+                return SearchResult.found(m, "TODO Migrate manually");
             }
             J.Literal literal = (J.Literal) stringExpression;
 
@@ -90,21 +93,24 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
             if (!(possibleStepDefinitionBody instanceof J.Lambda)
                     || !TypeUtils.isAssignableTo(IO_CUCUMBER_JAVA8_STEP_DEFINITION_BODY,
                             possibleStepDefinitionBody.getType())) {
-                return SearchResult.found(methodInvocation, "TODO Migrate manually");
+                return SearchResult.found(m, "TODO Migrate manually");
             }
             J.Lambda lambda = (J.Lambda) possibleStepDefinitionBody;
 
             StepDefinitionArguments stepArguments = new StepDefinitionArguments(
-                    methodInvocation.getSimpleName(), literal, lambda);
+                    m.getSimpleName(), literal, lambda);
 
             // Determine step definitions class name
             J.ClassDeclaration parentClass = getCursor()
                     .dropParentUntil(J.ClassDeclaration.class::isInstance)
                     .getValue();
+            if(m.getMethodType() == null) {
+                return m;
+            }
             String replacementImport = String.format("%s.%s",
-                    methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName()
+                    m.getMethodType().getDeclaringType().getFullyQualifiedName()
                             .replace("java8", "java").toLowerCase(),
-                    methodInvocation.getSimpleName());
+                    m.getSimpleName());
             doAfterVisit(new CucumberJava8ClassVisitor(
                     parentClass.getType(),
                     replacementImport,
@@ -112,6 +118,7 @@ public class CucumberJava8StepDefinitionToCucumberJava extends Recipe {
                     stepArguments.parameters()));
 
             // Remove original method invocation; it's replaced in the above visitor
+            //noinspection DataFlowIssue
             return null;
         }
     }

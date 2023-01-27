@@ -47,9 +47,15 @@ public class AssertFalseEqualsToAssertNotEquals extends Recipe {
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaVisitor<ExecutionContext>() {
-            final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                    .classpath("junit-jupiter-api")
-                    .build();
+            Supplier<JavaParser> javaParser = null;
+            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+                if(javaParser == null) {
+                    javaParser = () -> JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                            .build();
+                }
+                return javaParser;
+            }
 
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -74,10 +80,10 @@ public class AssertFalseEqualsToAssertNotEquals extends Recipe {
                     JavaTemplate t;
                     if (mi.getSelect() == null) {
                         t = JavaTemplate.builder(this::getCursor, sb.toString())
-                                .staticImports("org.junit.jupiter.api.Assertions.assertNotEquals").javaParser(javaParser).build();
+                                .staticImports("org.junit.jupiter.api.Assertions.assertNotEquals").javaParser(javaParser(ctx)).build();
                     } else {
                         t = JavaTemplate.builder(this::getCursor, sb.toString())
-                                .imports("org.junit.jupiter.api.Assertions").javaParser(javaParser).build();
+                                .imports("org.junit.jupiter.api.Assertions").javaParser(javaParser(ctx)).build();
                     }
                     return mi.withTemplate(t, mi.getCoordinates().replace(), args);
                 }

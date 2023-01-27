@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -29,6 +30,7 @@ import org.openrewrite.java.tree.J;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public class UseTestMethodOrder extends Recipe {
 
@@ -56,26 +58,24 @@ public class UseTestMethodOrder extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final JavaTemplate testMethodOrder = JavaTemplate.builder(this::getCursor, "@TestMethodOrder(MethodName.class)")
-                    .javaParser(() ->
-                            JavaParser.fromJavaVersion()
-                                    .dependsOn(Arrays.asList(
-                                            Parser.Input.fromString("package org.junit.jupiter.api;\n" +
-                                                    "public interface MethodOrderer {\n" +
-                                                    "  public class MethodName {}\n" +
-                                                    "}"),
-                                            Parser.Input.fromString("package org.junit.jupiter.api;\n" +
-                                                    "public @interface TestMethodOrder {}")
-                                    ))
-                                    .build())
-                    .imports("org.junit.jupiter.api.TestMethodOrder",
-                            "org.junit.jupiter.api.MethodOrderer.*")
-                    .build();
+
+
+            @Nullable
+            private Supplier<JavaParser> javaParser;
+            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+                if(javaParser == null) {
+                    javaParser = () -> JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                            .build();
+                }
+                return javaParser;
+            }
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration c = classDecl;
 
+                //noinspection DataFlowIssue
                 Set<J.Annotation> methodOrders = FindAnnotations.find(c.withBody(null), "@org.junit.FixMethodOrder");
 
                 if (!methodOrders.isEmpty()) {
@@ -83,7 +83,11 @@ public class UseTestMethodOrder extends Recipe {
                     maybeRemoveImport("org.junit.FixMethodOrder");
                     maybeRemoveImport("org.junit.runners.MethodSorters");
 
-                    c = c.withTemplate(testMethodOrder, methodOrders.iterator().next().getCoordinates().replace());
+                    c = c.withTemplate(JavaTemplate.builder(this::getCursor, "@TestMethodOrder(MethodName.class)")
+                            .javaParser(javaParser(ctx))
+                            .imports("org.junit.jupiter.api.TestMethodOrder",
+                                    "org.junit.jupiter.api.MethodOrderer.*")
+                            .build(), methodOrders.iterator().next().getCoordinates().replace());
                     maybeAddImport("org.junit.jupiter.api.MethodOrderer.MethodName");
                 }
 

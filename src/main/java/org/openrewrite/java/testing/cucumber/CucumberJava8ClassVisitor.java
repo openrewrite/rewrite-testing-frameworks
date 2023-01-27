@@ -40,8 +40,8 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
     private final Object[] templateParameters;
 
     @Override
-    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext p) {
-        J.ClassDeclaration classDeclaration = super.visitClassDeclaration(cd, p);
+    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
+        J.ClassDeclaration classDeclaration = super.visitClassDeclaration(cd, ctx);
         if (!TypeUtils.isOfType(classDeclaration.getType(), stepDefinitionsClass)) {
             // We aren't looking at the specified class so return without making any modifications
             return classDeclaration;
@@ -58,7 +58,8 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext p) {
                 J.MethodDeclaration methodDeclaration = super.visitMethodDeclaration(md, p);
-                if (methodDeclaration.isConstructor() && methodDeclaration.getBody().getStatements().isEmpty()) {
+                if (methodDeclaration.isConstructor() && (methodDeclaration.getBody() == null || methodDeclaration.getBody().getStatements().isEmpty())) {
+                    //noinspection DataFlowIssue
                     return null;
                 }
                 return methodDeclaration;
@@ -67,7 +68,7 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         // Remove nested braces from lambda body block inserted into new method
         doAfterVisit(new org.openrewrite.java.cleanup.RemoveUnneededBlock());
-        
+
         // Remove unnecessary throws from templates that maybe-throw-exceptions
         doAfterVisit(new org.openrewrite.java.cleanup.UnnecessaryThrows());
 
@@ -75,9 +76,8 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
         return classDeclaration
                 .withImplements(retained)
                 .withTemplate(JavaTemplate.builder(this::getCursor, template)
-                        .javaParser(() -> JavaParser.fromJavaVersion().classpath(
-                                "cucumber-java",
-                                "cucumber-java8")
+                        .javaParser(() -> JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "cucumber-java-7.11.0", "cucumber-java8-7.11.0")
                                 .build())
                         .imports(replacementImport)
                         .build(),
@@ -87,8 +87,7 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
 
     /**
      * Remove imports & usage of Cucumber-Java8 interfaces.
-     * 
-     * @param classDeclaration
+     *
      * @return retained implementing interfaces
      */
     private List<TypeTree> filterImplementingInterfaces(J.ClassDeclaration classDeclaration) {
@@ -109,9 +108,6 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
 
     /**
      * Place new methods after the last cucumber annotated method, or after the constructor, or at end of class.
-     * 
-     * @param classDeclaration
-     * @return
      */
     private static JavaCoordinates coordinatesForNewMethod(J.Block body) {
         // After last cucumber annotated method
@@ -119,7 +115,7 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
                 .filter(J.MethodDeclaration.class::isInstance)
                 .map(firstMethod -> (J.MethodDeclaration) firstMethod)
                 .filter(method -> method.getAllAnnotations().stream()
-                        .anyMatch(ann -> ((JavaType.Class) ann.getAnnotationType().getType()).getPackageName()
+                        .anyMatch(ann -> ann.getAnnotationType().getType() != null && ((JavaType.Class) ann.getAnnotationType().getType()).getPackageName()
                                 .startsWith(IO_CUCUMBER_JAVA)))
                 .map(method -> method.getCoordinates().after())
                 .reduce((a, b) -> b)

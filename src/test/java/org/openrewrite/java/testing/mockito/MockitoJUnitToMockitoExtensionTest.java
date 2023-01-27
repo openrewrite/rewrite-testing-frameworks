@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.Parser;
 import org.openrewrite.java.JavaParser;
@@ -33,27 +34,8 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpath("junit", "hamcrest", "mockito-core")
-            .dependsOn(
-              //language=java
-              List.of(
-                Parser.Input.fromString(
-                  """
-                    package org.junit.jupiter.api.extension;
-                    public @interface ExtendWith {
-                      Class<?>[] value();
-                    }
-                    """
-                ),
-                Parser.Input.fromString(
-                  """
-                    package org.mockito.junit.jupiter;
-                    public class MockitoExtension {
-                    }
-                    """
-                )
-              )
-            ))
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "mockito-core-3.12.4", "mockito-junit-jupiter-3.12.4", "junit-4.13.2", "hamcrest-2.2", "junit-jupiter-api-5.9.2"))
           .recipe(new MockitoJUnitToMockitoExtension());
     }
 

@@ -48,9 +48,16 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaVisitor<ExecutionContext>() {
-            final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                    .classpath("junit-jupiter-api")
-                    .build();
+
+            Supplier<JavaParser> javaParser = null;
+            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+                if(javaParser == null) {
+                    javaParser = () -> JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                            .build();
+                }
+                return javaParser;
+            }
 
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -74,10 +81,10 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
                     if (mi.getSelect() == null) {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertEquals");
-                        t = JavaTemplate.builder(this::getCursor, sb.toString()).javaParser(javaParser)
+                        t = JavaTemplate.builder(this::getCursor, sb.toString()).javaParser(javaParser(ctx))
                                 .staticImports("org.junit.jupiter.api.Assertions.assertEquals").build();
                     } else {
-                        t = JavaTemplate.builder(this::getCursor, sb.toString()).javaParser(javaParser)
+                        t = JavaTemplate.builder(this::getCursor, sb.toString()).javaParser(javaParser(ctx))
                                 .imports("org.junit.jupiter.api.Assertions").build();
 
                     }

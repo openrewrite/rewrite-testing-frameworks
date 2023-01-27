@@ -72,8 +72,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
         @SuppressWarnings("unchecked")
         @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             Map<String, Object> params = getCursor().pollMessage(classDecl.getId().toString());
             if (params != null) {
                 String parametersMethodName = (String) params.get(PARAMETERS_METHOD_NAME);
@@ -84,13 +84,13 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
                 // Constructor Injected Test
                 if (parametersMethodName != null && constructorParams != null) {
-                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true));
+                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true, ctx));
                 }
 
                 // Field Injected Test
                 else if (parametersMethodName != null && fieldInjectionParams != null) {
                     List<Statement> fieldParams = new ArrayList<>(fieldInjectionParams.values());
-                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false));
+                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false, ctx));
                 }
             }
             return cd;
@@ -150,8 +150,21 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     }
 
     private static class ParameterizedRunnerToParameterizedTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final Supplier<JavaParser> PARAMETERIZED_TEMPLATE_PARSER = () ->
-                JavaParser.fromJavaVersion().classpath("junit-jupiter-params").build();
+
+        @Nullable
+        private Supplier<JavaParser> javaParser;
+        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+            if(javaParser == null) {
+                javaParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "junit-jupiter-params-5.9.2")
+                        .build();
+            }
+            return javaParser;
+
+        }
+
+
+
         private final J.ClassDeclaration scope;
         private final String initMethodName;
         private final List<Statement> parameterizedTestMethodParameters;
@@ -171,7 +184,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                                                               String initMethodName,
                                                               @Nullable List<Expression> parameterizedTestAnnotationParameters,
                                                               List<Statement> parameterizedTestMethodParameters,
-                                                              boolean isConstructorInjection) {
+                                                              boolean isConstructorInjection,
+                                                              ExecutionContext ctx) {
             this.scope = scope;
             this.initMethodName = initMethodName;
 
@@ -192,18 +206,18 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     "@ParameterizedTest";
 
             this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, parameterizedTestAnnotationTemplate)
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
+                    .javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.params.ParameterizedTest")
                     .build();
 
             // build @MethodSource("...") template
             this.methodSourceTemplate = JavaTemplate.builder(this::getCursor, "@MethodSource(\"" + parametersMethodName + "\")")
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
+                    .javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.params.provider.MethodSource").build();
 
             // build init-method with parameters template
             this.initMethodStatementTemplate = JavaTemplate.builder(this::getCursor, initMethodName + "(#{});")
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
+                    .javaParser(javaParser(ctx))
                     .build();
 
             // If this is not a constructor injected test then build a javaTemplate for a new init-method
@@ -224,7 +238,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 }
 
                 initMethodTemplate.append("}");
-                initMethodDeclarationTemplate = JavaTemplate.builder(this::getCursor, initMethodTemplate.toString()).javaParser(PARAMETERIZED_TEMPLATE_PARSER).build();
+                initMethodDeclarationTemplate = JavaTemplate.builder(this::getCursor, initMethodTemplate.toString()).javaParser(javaParser(ctx)).build();
             } else {
                 initMethodDeclarationTemplate = null;
             }

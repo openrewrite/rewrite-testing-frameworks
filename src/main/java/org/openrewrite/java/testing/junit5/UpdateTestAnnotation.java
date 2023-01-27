@@ -30,6 +30,7 @@ import org.openrewrite.marker.Markup;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public class UpdateTestAnnotation extends Recipe {
 
@@ -58,6 +59,18 @@ public class UpdateTestAnnotation extends Recipe {
 
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
+
+        @Nullable
+        private Supplier<JavaParser> javaParser;
+        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+            if(javaParser == null) {
+                javaParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "apiguardian-api-1.1.2")
+                        .build();
+            }
+            return javaParser;
+        }
+
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
@@ -132,14 +145,14 @@ public class UpdateTestAnnotation extends Recipe {
                     if (cta.expectedException instanceof J.FieldAccess
                         && TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
                         m = m.withTemplate(JavaTemplate.builder(this::getCursor, "assertDoesNotThrow(#{any(org.junit.jupiter.api.function.Executable)});")
-                                        .javaParser(() -> JavaParser.fromJavaVersion().classpath("junit-jupiter-api", "apiguardian-api").build())
+                                        .javaParser(javaParser(ctx))
                                         .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
                                         .build(),
                                 m.getCoordinates().replaceBody(), lambda);
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
                     } else {
                         m = m.withTemplate(JavaTemplate.builder(this::getCursor, "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
-                                        .javaParser(() -> JavaParser.fromJavaVersion().classpath("junit-jupiter-api", "apiguardian-api").build())
+                                        .javaParser(javaParser(ctx))
                                         .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                         .build(),
                                 m.getCoordinates().replaceBody(), cta.expectedException, lambda);
@@ -149,9 +162,7 @@ public class UpdateTestAnnotation extends Recipe {
                 if (cta.timeout != null) {
                     m = m.withTemplate(
                             JavaTemplate.builder(this::getCursor, "@Timeout(#{any(long)})")
-                                    .javaParser(() -> JavaParser.fromJavaVersion()
-                                            .classpath("junit-jupiter-api", "apiguardian-api")
-                                            .build())
+                                    .javaParser(javaParser(ctx))
                                     .imports("org.junit.jupiter.api.Timeout")
                                     .build(),
                             m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
@@ -173,14 +184,19 @@ public class UpdateTestAnnotation extends Recipe {
 
             boolean found;
 
-            private final JavaTemplate fieldAccessAnnotation = JavaTemplate.builder(this::getCursor, "@org.junit.jupiter.api.Test")
-                    .javaParser(() -> JavaParser.fromJavaVersion()
-                            .classpath("junit-jupiter-api", "apiguardian-api")
-                            .build())
-                    .build();
+            @Nullable
+            private Supplier<JavaParser> javaParser;
+            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+                if(javaParser == null) {
+                    javaParser = () -> JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "apiguardian-api-1.1.2")
+                            .build();
+                }
+                return javaParser;
+            }
 
             @Override
-            public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext context) {
+            public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext ctx) {
                 if (!found && JUNIT4_TEST.matches(a)) {
                     // While unlikely, it's possible that a method has an inner class/lambda/etc. with methods that have test annotations
                     // Avoid considering any but the first test annotation found
@@ -203,7 +219,10 @@ public class UpdateTestAnnotation extends Recipe {
                     }
 
                     if (a.getAnnotationType() instanceof J.FieldAccess) {
-                        a = a.withTemplate(fieldAccessAnnotation, a.getCoordinates().replace());
+                        a = a.withTemplate(JavaTemplate.builder(this::getCursor, "@org.junit.jupiter.api.Test")
+                                .javaParser(javaParser(ctx))
+                                .build(),
+                                a.getCoordinates().replace());
                     } else {
                         a = a.withArguments(null)
                                 .withType(JavaType.ShallowClass.build("org.junit.jupiter.api.Test"));

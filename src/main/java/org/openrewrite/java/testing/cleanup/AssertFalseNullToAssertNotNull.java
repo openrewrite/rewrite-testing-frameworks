@@ -47,16 +47,23 @@ public class AssertFalseNullToAssertNotNull extends Recipe {
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaVisitor<ExecutionContext>() {
-            final Supplier<JavaParser> javaParser = () -> JavaParser.fromJavaVersion()
-                    .classpath("junit-jupiter-api")
-                    .build();
+
+            Supplier<JavaParser> javaParser = null;
+            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+                if(javaParser == null) {
+                    javaParser = () -> JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                            .build();
+                }
+                return javaParser;
+            }
 
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 if (ASSERT_FALSE.matches(mi) && isEqualBinary(mi)) {
                     StringBuilder sb = new StringBuilder();
-                    
+
                     J.Binary binary = (J.Binary) mi.getArguments().get(0);
                     Expression nonNullExpression = getNonNullExpression(binary);
 
@@ -80,11 +87,11 @@ public class AssertFalseNullToAssertNotNull extends Recipe {
                     if (mi.getSelect() == null) {
                         t = JavaTemplate.builder(this::getCursor, sb.toString())
                                 .staticImports("org.junit.jupiter.api.Assertions.assertNotNull")
-                                .javaParser(javaParser).build();
+                                .javaParser(javaParser(ctx)).build();
                     } else {
                         t = JavaTemplate.builder(this::getCursor, sb.toString())
                                 .imports("org.junit.jupiter.api.Assertions")
-                                .javaParser(javaParser).build();
+                                .javaParser(javaParser(ctx)).build();
                     }
                     return mi.withTemplate(t, mi.getCoordinates().replace(), args);
                 }

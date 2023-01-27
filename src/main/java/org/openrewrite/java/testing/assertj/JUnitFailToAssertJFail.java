@@ -54,7 +54,15 @@ public class JUnitFailToAssertJFail extends Recipe {
     }
 
     public static class JUnitFailToAssertJFailVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion().classpath("assertj-core").build();
+        private Supplier<JavaParser> assertionsParser = null;
+        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
+            if(assertionsParser == null) {
+                assertionsParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "assertj-core-3.24.2")
+                        .build();
+            }
+            return assertionsParser;
+        }
         private static final MethodMatcher JUNIT_FAIL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " fail(..)");
 
         @Override
@@ -72,14 +80,14 @@ public class JUnitFailToAssertJFail extends Recipe {
                 if (args.get(0) instanceof J.Empty) {
                     m = m.withTemplate(
                             JavaTemplate.builder(this::getCursor, "org.assertj.core.api.Assertions.fail(\"\");")
-                                    .javaParser(ASSERTJ_JAVA_PARSER)
+                                    .javaParser(assertionsParser(ctx))
                                     .build(),
                             m.getCoordinates().replace()
                     );
                 } else if (args.get(0) instanceof J.Literal) {
                     m = m.withTemplate(
                             JavaTemplate.builder(this::getCursor, "org.assertj.core.api.Assertions.fail(#{});")
-                                    .javaParser(ASSERTJ_JAVA_PARSER)
+                                    .javaParser(assertionsParser(ctx))
                                     .build(),
                             m.getCoordinates().replace(),
                             args.get(0)
@@ -87,7 +95,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                 } else {
                     m = m.withTemplate(
                             JavaTemplate.builder(this::getCursor, "org.assertj.core.api.Assertions.fail(\"\", #{any()});")
-                                    .javaParser(ASSERTJ_JAVA_PARSER)
+                                    .javaParser(assertionsParser(ctx))
                                     .build(),
                             m.getCoordinates().replace(),
                             args.get(0)
@@ -105,7 +113,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                 templateBuilder.append(");");
 
                 m = m.withTemplate(JavaTemplate.builder(this::getCursor, templateBuilder.toString())
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(assertionsParser(ctx))
                                 .build(),
                         m.getCoordinates().replace(),
                         args.toArray()

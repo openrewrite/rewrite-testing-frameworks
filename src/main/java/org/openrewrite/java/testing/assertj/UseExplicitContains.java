@@ -58,7 +58,15 @@ public class UseExplicitContains extends Recipe {
     }
 
     public static class UseExplicitContainsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion().classpath("assertj-core").build();
+        private Supplier<JavaParser> assertionsParser = null;
+        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
+            if(assertionsParser == null) {
+                assertionsParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "assertj-core-3.24.2")
+                        .build();
+            }
+            return assertionsParser;
+        }
 
         private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
         private static final MethodMatcher IS_TRUE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isTrue()");
@@ -98,7 +106,7 @@ public class UseExplicitContains extends Recipe {
             String template = isTrue ? "assertThat(#{any()}).contains(#{any()});" :
                 "assertThat(#{any()}).doesNotContain(#{any()});";
             JavaTemplate builtTemplate = JavaTemplate.builder(this::getCursor, template)
-                    .javaParser(ASSERTJ_JAVA_PARSER)
+                    .javaParser(assertionsParser(ctx))
                     .build();
             return method.withTemplate(
                     builtTemplate,

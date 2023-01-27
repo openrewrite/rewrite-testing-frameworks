@@ -139,28 +139,24 @@ public class MigrateJUnitTestCase extends Recipe {
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-            J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
             if (md.getSimpleName().startsWith("test") && md.getLeadingAnnotations().stream().noneMatch(JUNIT_TEST_ANNOTATION_MATCHER::matches)) {
-                md = updateMethodDeclarationAnnotationAndModifier(md, "@Test", "org.junit.jupiter.api.Test");
+                md = updateMethodDeclarationAnnotationAndModifier(md, "@Test", "org.junit.jupiter.api.Test", ctx);
             } else if ("setUp".equals(md.getSimpleName())) {
-                md = updateMethodDeclarationAnnotationAndModifier(md, "@BeforeEach", "org.junit.jupiter.api.BeforeEach");
+                md = updateMethodDeclarationAnnotationAndModifier(md, "@BeforeEach", "org.junit.jupiter.api.BeforeEach", ctx);
             } else if ("tearDown".equals(md.getSimpleName())) {
-                md = updateMethodDeclarationAnnotationAndModifier(md, "@AfterEach", "org.junit.jupiter.api.AfterEach");
+                md = updateMethodDeclarationAnnotationAndModifier(md, "@AfterEach", "org.junit.jupiter.api.AfterEach", ctx);
             }
             return md;
         }
 
-        private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation) {
+        private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation, ExecutionContext ctx) {
             J.MethodDeclaration md = methodDeclaration;
             if (FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
                 md = methodDeclaration.withTemplate(JavaTemplate.builder(this::getCursor, annotation)
                                 .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .dependsOn(Collections.singletonList(Parser.Input.fromString(
-                                                "package org.junit.jupiter.api;\n" +
-                                                        "public @interface Test {}\n" +
-                                                        "public @interface AfterEach {}\n" +
-                                                        "public @interface BeforeEach {}")))
+                                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
                                         .build())
                                 .imports(fullyQualifiedAnnotation).build(),
                         methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));

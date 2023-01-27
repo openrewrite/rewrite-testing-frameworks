@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RewriteTest;
@@ -26,7 +27,8 @@ public class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
     @Test
     void mockitoAnyListOfToListOf() {
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("mockito-core"))
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12.4"))
             .recipe(Environment.builder()
               .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
               .build()
@@ -38,13 +40,13 @@ public class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
               import java.util.List;
               import java.util.Map;
               import java.util.Set;
-              
+                            
               import static org.mockito.ArgumentMatchers.anyListOf;
               import static org.mockito.ArgumentMatchers.anySetOf;
               import static org.mockito.ArgumentMatchers.anyMapOf;
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
-              
+                            
               public class MockitoVarargMatcherTest {
                   public static class Foo {
                       public boolean addList(List<String> strings) { return true; }
@@ -65,13 +67,13 @@ public class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
               import java.util.List;
               import java.util.Map;
               import java.util.Set;
-              
+                            
               import static org.mockito.ArgumentMatchers.anyList;
               import static org.mockito.ArgumentMatchers.anySet;
               import static org.mockito.ArgumentMatchers.anyMap;
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
-              
+                            
               public class MockitoVarargMatcherTest {
                   public static class Foo {
                       public boolean addList(List<String> strings) { return true; }

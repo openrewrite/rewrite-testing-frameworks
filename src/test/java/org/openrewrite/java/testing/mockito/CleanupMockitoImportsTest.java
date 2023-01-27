@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -27,7 +28,8 @@ class CleanupMockitoImportsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("mockito"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-all-1.10.19"))
           .recipe(new CleanupMockitoImports());
     }
 
@@ -129,7 +131,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
               class MyObjectTest {
                 @Mock
                 MyObject myObject;
-              
+                            
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
                 }
@@ -143,7 +145,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
               class MyObjectTest {
                 @Mock
                 MyObject myObject;
-              
+                            
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
                 }
@@ -160,16 +162,16 @@ class CleanupMockitoImportsTest implements RewriteTest {
           java(
             """
               package mockito.example;
-              
+                            
               import java.util.List;
-              
+                            
               import static org.mockito.Mockito.*;
-              
+                            
               public class MockitoArgumentMatchersTest {
                   static class Foo {
                       boolean bool(String str, int i, Object obj) { return false; }
                   }
-              
+                            
                   public void usesMatchers() {
                       Foo mockFoo = mock(Foo.class);
                       when(mockFoo.bool(anyString(), anyInt(), any(Object.class))).thenReturn(true);
@@ -187,7 +189,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
           java(
             """
               import static org.mockito.Mockito.*;
-              
+                            
               public class MockitoArgumentMatchersTest {
               }
               """,

@@ -54,7 +54,15 @@ public class JUnitAssertNullToAssertThat extends Recipe {
     }
 
     public static class AssertNullToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion().classpath("assertj-core").build();
+        private Supplier<JavaParser> assertionsParser = null;
+        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
+            if(assertionsParser == null) {
+                assertionsParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "assertj-core-3.24.2")
+                        .build();
+            }
+            return assertionsParser;
+        }
         private static final MethodMatcher JUNIT_ASSERT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertNull(..)");
 
         @Override
@@ -70,7 +78,7 @@ public class JUnitAssertNullToAssertThat extends Recipe {
                 method = method.withTemplate(
                         JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).isNull();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(assertionsParser(ctx))
                                 .build(),
                         method.getCoordinates().replace(),
                         actual
@@ -84,7 +92,7 @@ public class JUnitAssertNullToAssertThat extends Recipe {
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(assertionsParser(ctx))
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,

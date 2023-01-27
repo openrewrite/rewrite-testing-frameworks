@@ -29,9 +29,7 @@ class UpdateMockWebServerTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpath("junit")
-            .dependsOn("package okhttp3.mockwebserver; public class MockWebServer implements Closeable {}")
-          )
+            .classpath("junit", "mockwebserver"))
           .recipe(new UpdateMockWebServer());
     }
 

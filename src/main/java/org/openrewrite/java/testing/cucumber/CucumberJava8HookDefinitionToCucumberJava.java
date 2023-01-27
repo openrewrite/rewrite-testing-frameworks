@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cucumber;
 
+import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.With;
 import org.openrewrite.Applicability;
@@ -33,6 +34,8 @@ import org.openrewrite.marker.SearchResult;
 import java.time.Duration;
 import java.util.List;
 
+@Value
+@EqualsAndHashCode(callSuper = true)
 public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
 
     private static final String IO_CUCUMBER_JAVA8 = "io.cucumber.java8";
@@ -106,6 +109,7 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
                     hookArguments.parameters()));
 
             // Remove original method invocation; it's replaced in the above visitor
+            //noinspection DataFlowIssue
             return null;
         }
 
@@ -115,8 +119,6 @@ public class CucumberJava8HookDefinitionToCucumberJava extends Recipe {
          * - first can also be a String or int.
          * - second can be an int;
          *
-         * @param arguments
-         * @return
          */
         HookArguments parseHookArguments(String methodName, List<Expression> arguments) {
             // Lambda is always last, and can either contain a body with Scenario argument, or without

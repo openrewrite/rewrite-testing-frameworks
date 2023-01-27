@@ -27,6 +27,7 @@ import org.openrewrite.java.tree.J;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.function.Supplier;
 
 public class MockitoJUnitRunnerSilentToExtension extends Recipe {
     @Override
@@ -48,28 +49,29 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
     protected JavaIsoVisitor<ExecutionContext> getVisitor() {
 
         return new JavaIsoVisitor<ExecutionContext>() {
-            final JavaParser parser = JavaParser.fromJavaVersion().dependsOn(
-                    "package org.mockito.quality;" +
-                            "public enum Strictness {" +
-                            "    LENIENT,WARN,STRICT_STUBS;" +
-                            "    private Strictness() {}" +
-                            "}",
-                    "package org.mockito.junit.jupiter;" +
-                            "import org.mockito.quality.Strictness;" +
-                            "public @interface MockitoSettings {" +
-                            "    Strictness strictness() default Strictness.STRICT_STUBS;" +
-                            "}").build();
+
+            private Supplier<JavaParser> javaParser = null;
+            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+                if(javaParser == null) {
+                    javaParser = () -> JavaParser.fromJavaVersion()
+                            .logCompilationWarningsAndErrors(true)
+                            .classpathFromResources(ctx, "mockito-junit-jupiter-3.12.4", "mockito-core-3.12.4")
+                            .build();
+                }
+                return javaParser;
+            }
+
             final AnnotationMatcher silentRunnerMatcher = new AnnotationMatcher("org.junit.runner.RunWith @RunWith(org.mockito.junit.MockitoJUnitRunner.MockitoJUnitRunner.Silent.class)");
 
             @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                 if (cd.getLeadingAnnotations().stream().anyMatch(silentRunnerMatcher::matches)) {
                     JavaTemplate template = JavaTemplate.builder(this::getCursor, "@MockitoSettings(strictness = Strictness.LENIENT)")
                             .imports("org.mockito.quality.Strictness", "org.mockito.junit.jupiter.MockitoSettings")
-                            .javaParser(() -> parser)
+                            .javaParser(javaParser(ctx))
                             .build();
-                    cd = maybeAutoFormat(cd, cd.withTemplate(template, cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))), executionContext);
+                    cd = maybeAutoFormat(cd, cd.withTemplate(template, cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))), ctx);
                     doAfterVisit(new RunnerToExtension(Collections.singletonList("org.mockito.junit.MockitoJUnitRunner$Silent"),
                             "org.mockito.junit.jupiter.MockitoExtension"));
                     maybeRemoveImport("org.mockito.junit.MockitoJUnitRunner");

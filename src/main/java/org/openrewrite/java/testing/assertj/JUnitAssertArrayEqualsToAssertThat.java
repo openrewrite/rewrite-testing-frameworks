@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -62,7 +63,17 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
 
     public static class AssertArrayEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertArrayEquals(..)");
-        private static final Supplier<JavaParser> ASSERTIONS_PARSER = () -> JavaParser.fromJavaVersion().classpath("assertj-core").build();
+
+        private Supplier<JavaParser> assertionsParser = null;
+        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
+            if(assertionsParser == null) {
+                assertionsParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "assertj-core-3.24.2")
+                        .build();
+            }
+            return assertionsParser;
+        }
+
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -79,7 +90,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).containsExactly(#{anyArray()});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTIONS_PARSER)
+                                .javaParser(assertionsParser(ctx))
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -93,7 +104,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTIONS_PARSER)
+                                .javaParser(assertionsParser(ctx))
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -105,7 +116,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 method = method.withTemplate(
                         JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .javaParser(ASSERTIONS_PARSER)
+                                .javaParser(assertionsParser(ctx))
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -122,7 +133,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .javaParser(ASSERTIONS_PARSER)
+                                .javaParser(assertionsParser(ctx))
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,

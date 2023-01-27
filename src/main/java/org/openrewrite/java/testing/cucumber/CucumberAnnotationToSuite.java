@@ -67,13 +67,15 @@ public class CucumberAnnotationToSuite extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
             @SneakyThrows
             @Override
-            public J.ClassDeclaration visitClassDeclaration(ClassDeclaration cd, ExecutionContext p) {
-                J.ClassDeclaration classDecl = super.visitClassDeclaration(cd, p);
+            public J.ClassDeclaration visitClassDeclaration(ClassDeclaration cd, ExecutionContext ctx) {
+                J.ClassDeclaration classDecl = super.visitClassDeclaration(cd, ctx);
                 if (classDecl.getAllAnnotations().stream().noneMatch(cucumberAnnoMatcher::matches)) {
                     return classDecl;
                 }
 
-                Supplier<JavaParser> javaParserSupplier = () -> JavaParser.fromJavaVersion().classpath("junit-platform-suite-api").build();
+                Supplier<JavaParser> javaParserSupplier = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-platform-suite-api-1.9.2")
+                        .build();
 
                 JavaType.FullyQualified classFqn = TypeUtils.asFullyQualified(classDecl.getType());
                 if (classFqn != null) {

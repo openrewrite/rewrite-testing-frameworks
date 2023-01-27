@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -33,24 +34,6 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public class TestRuleToTestInfo extends Recipe {
-
-    private static final Supplier<JavaParser> TEST_INFO_PARSER = () ->
-            JavaParser.fromJavaVersion().dependsOn(
-                    Arrays.asList(Parser.Input.fromString(
-                                    "package org.junit.jupiter.api;\n" +
-                                            "import java.lang.reflect.Method;\n" +
-                                            "import java.util.Optional;\n" +
-                                            "import java.util.Set;\n" +
-                                            "public interface TestInfo {\n" +
-                                            "  String getDisplayName();\n" +
-                                            "  Set<String> getTags();\n" +
-                                            "  Optional<Class<?>> getTestClass();\n" +
-                                            "  Optional<Method> getTestMethod();" +
-                                            "}"),
-                            Parser.Input.fromString(
-                                    "package org.junit.jupiter.api; public @interface BeforeEach {}"
-                            ))
-            ).build();
 
     @Override
     public String getDisplayName() {
@@ -77,6 +60,17 @@ public class TestRuleToTestInfo extends Recipe {
         private static final AnnotationMatcher RULE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Rule");
         private static final AnnotationMatcher JUNIT_BEFORE_MATCHER = new AnnotationMatcher("@org.junit.Before");
         private static final AnnotationMatcher JUPITER_BEFORE_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
+
+        @Nullable
+        private Supplier<JavaParser> javaParser;
+        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+            if(javaParser == null) {
+                javaParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                        .build();
+            }
+            return javaParser;
+        }
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
@@ -134,8 +128,8 @@ public class TestRuleToTestInfo extends Recipe {
         }
 
         @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             J.VariableDeclarations varDecls = getCursor().pollMessage("has-testName-rule");
             J.MethodDeclaration beforeMethod = getCursor().pollMessage("before-method");
             if (varDecls != null) {
@@ -146,8 +140,12 @@ public class TestRuleToTestInfo extends Recipe {
                 if (beforeMethod == null) {
                     String t = "@BeforeEach\n" +
                             "public void setup(TestInfo testInfo) {" + testMethodStatement + "}";
-                    cd = cd.withTemplate(JavaTemplate.builder(this::getCursor, t).javaParser(TEST_INFO_PARSER)
-                                    .imports("org.junit.jupiter.api.TestInfo", "org.junit.jupiter.api.BeforeEach", "java.util.Optional", "java.lang.reflect.Method")
+                    cd = cd.withTemplate(JavaTemplate.builder(this::getCursor, t)
+                                    .javaParser(javaParser(ctx))
+                                    .imports("org.junit.jupiter.api.TestInfo",
+                                            "org.junit.jupiter.api.BeforeEach",
+                                            "java.util.Optional",
+                                            "java.lang.reflect.Method")
                                     .build(),
                             cd.getBody().getCoordinates().lastStatement(),
                             varDecls.getVariables().get(0).getName().getSimpleName());
@@ -166,6 +164,17 @@ public class TestRuleToTestInfo extends Recipe {
         private final J.VariableDeclarations varDecls;
         private final String testMethodStatement;
 
+        @Nullable
+        private Supplier<JavaParser> javaParser;
+        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+            if(javaParser == null) {
+                javaParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                        .build();
+            }
+            return javaParser;
+        }
+
         public BeforeMethodToTestInfoVisitor(J.MethodDeclaration beforeMethod, J.VariableDeclarations varDecls, String testMethodStatement) {
             this.beforeMethod = beforeMethod;
             this.varDecls = varDecls;
@@ -173,18 +182,26 @@ public class TestRuleToTestInfo extends Recipe {
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-            J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
             if (md.getId().equals(beforeMethod.getId())) {
-                md = md.withTemplate(JavaTemplate.builder(this::getCursor, "TestInfo testInfo").javaParser(TEST_INFO_PARSER)
-                                .imports("org.junit.jupiter.api.TestInfo", "org.junit.jupiter.api.BeforeEach", "java.util.Optional", "java.lang.reflect.Method")
+                md = md.withTemplate(JavaTemplate.builder(this::getCursor, "TestInfo testInfo")
+                                .javaParser(javaParser(ctx))
+                                .imports("org.junit.jupiter.api.TestInfo",
+                                        "org.junit.jupiter.api.BeforeEach",
+                                        "java.util.Optional",
+                                        "java.lang.reflect.Method")
                                 .build(),
                         md.getCoordinates().replaceParameters());
+
                 //noinspection ConstantConditions
-                md = maybeAutoFormat(md, md.withTemplate(JavaTemplate.builder(this::getCursor, testMethodStatement).javaParser(TEST_INFO_PARSER)
-                                .imports("org.junit.jupiter.api.TestInfo", "java.util.Optional", "java.lang.reflect.Method")
+                md = maybeAutoFormat(md, md.withTemplate(JavaTemplate.builder(this::getCursor, testMethodStatement)
+                                .javaParser(javaParser(ctx))
+                                .imports("org.junit.jupiter.api.TestInfo",
+                                        "java.util.Optional",
+                                        "java.lang.reflect.Method")
                                 .build(),
-                        md.getBody().getCoordinates().lastStatement(), varDecls.getVariables().get(0).getName().getSimpleName()), executionContext, getCursor().getParent());
+                        md.getBody().getCoordinates().lastStatement(), varDecls.getVariables().get(0).getName().getSimpleName()), ctx, getCursor().getParent());
 
                 // Make sure the testName is initialized first in case any other piece of the method body references it
                 assert md.getBody() != null;

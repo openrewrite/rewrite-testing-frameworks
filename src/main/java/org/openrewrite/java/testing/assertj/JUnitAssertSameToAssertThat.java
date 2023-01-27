@@ -59,7 +59,15 @@ public class JUnitAssertSameToAssertThat extends Recipe {
     }
 
     public static class AssertSameToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion().classpath("assertj-core").build();
+        private Supplier<JavaParser> assertionsParser = null;
+        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
+            if(assertionsParser == null) {
+                assertionsParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "assertj-core-3.24.2")
+                        .build();
+            }
+            return assertionsParser;
+        }
         private static final MethodMatcher JUNIT_ASSERT_SAME_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertSame(..)");
 
         @Override
@@ -76,7 +84,7 @@ public class JUnitAssertSameToAssertThat extends Recipe {
                 method = method.withTemplate(
                         JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).isSameAs(#{any()});")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(assertionsParser(ctx))
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,
@@ -91,7 +99,7 @@ public class JUnitAssertSameToAssertThat extends Recipe {
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(assertionsParser(ctx))
                                 .build(),
                         method.getCoordinates().replace(),
                         actual,

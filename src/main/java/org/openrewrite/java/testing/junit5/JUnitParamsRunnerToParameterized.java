@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  * Converts Pragmatists JUnitParamsRunner tests to their JUnit 5 ParameterizedTest and associated MethodSource equivalent
  *     <a href="https://github.com/Pragmatists/JUnitParams">...</a>
  * Supports the following conversions
- *    `@Parameters` annotation with out arguments and default `parametersFor...` init-method exists
+ *    `@Parameters` annotation without arguments and default `parametersFor...` init-method exists
  *    `@Parameters(method = "...")` annotation with defined method references
  *    `@Parameters(named = "...")` and associated `@NamedParameter` init-method
  * Unsupported tests are identified with a comment on the associated `@Parameters(...)` annotation.
@@ -87,13 +87,14 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static class ParameterizedTemplateVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             Set<String> initMethods = getCursor().getMessage(INIT_METHOD_REFERENCES);
             if (initMethods != null && !initMethods.isEmpty()) {
                 doAfterVisit(new ParametersNoArgsImplicitMethodSource(initMethods,
                         getCursor().computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<>()),
-                        getCursor().computeMessageIfAbsent(CONVERSION_NOT_SUPPORTED, v -> new HashSet<>())));
+                        getCursor().computeMessageIfAbsent(CONVERSION_NOT_SUPPORTED, v -> new HashSet<>()),
+                        ctx));
             }
             return cd;
         }
@@ -181,15 +182,26 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
     /***
      * Case 1.
-     * - Test has Parameters annotation with out arguments and initMethods has match
+     * - Test has Parameters annotation without arguments and initMethods has match
      * case 2.
      * - Test has Parameters(method = "...") annotation with defined method source
      * case 3.
      * - Test has Parameters(named = "...") and NamedParameters annotation
      */
     private static class ParametersNoArgsImplicitMethodSource extends JavaIsoVisitor<ExecutionContext> {
-        private static final Supplier<JavaParser> PARAMETERIZED_TEMPLATE_PARSER = () ->
-                JavaParser.fromJavaVersion().classpath("junit-jupiter-params").build();
+
+        @Nullable
+        private Supplier<JavaParser> javaParser;
+        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+            if(javaParser == null) {
+                javaParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "hamcrest-2.2", "junit-jupiter-params-5.9.2")
+                        .build();
+            }
+            return javaParser;
+
+        }
+
 
         private final Set<String> initMethods;
         private final Set<String> unsupportedConversions;
@@ -199,25 +211,26 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         private final JavaTemplate parameterizedTestTemplateWithName;
         private final JavaTemplate methodSourceTemplate;
 
-        public ParametersNoArgsImplicitMethodSource(Set<String> initMethods, Map<String, String> initMethodReferences, Set<String> unsupportedConversions) {
+        public ParametersNoArgsImplicitMethodSource(Set<String> initMethods, Map<String, String> initMethodReferences, Set<String> unsupportedConversions, ExecutionContext ctx) {
             this.initMethods = initMethods;
             this.initMethodReferences = initMethodReferences;
             this.unsupportedConversions = unsupportedConversions;
 
             // build @ParameterizedTest template
             this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, "@ParameterizedTest")
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
+                    .javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @ParameterizedTest(#{}) template
             this.parameterizedTestTemplateWithName = JavaTemplate.builder(this::getCursor, "@ParameterizedTest(name = \"#{}\")")
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
+                    .javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @MethodSource("...") template
             this.methodSourceTemplate = JavaTemplate.builder(this::getCursor, "@MethodSource(#{})")
-                    .javaParser(PARAMETERIZED_TEMPLATE_PARSER)
+                    .javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.params.provider.MethodSource").build();
         }
 
+        @SuppressWarnings("SpellCheckingInspection")
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);

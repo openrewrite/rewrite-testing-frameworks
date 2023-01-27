@@ -16,16 +16,15 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -33,6 +32,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TemporaryFolderToTempDir extends Recipe {
+
     @Override
     public String getDisplayName() {
         return "Use JUnit Jupiter `@TempDir`";
@@ -53,14 +53,21 @@ public class TemporaryFolderToTempDir extends Recipe {
         AnnotationMatcher classRule = new AnnotationMatcher("@org.junit.ClassRule");
         AnnotationMatcher rule = new AnnotationMatcher("@org.junit.Rule");
 
-        Supplier<JavaParser> tempdirParser = () ->
-                JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
-                        Parser.Input.fromString("" +
-                                                "package org.junit.jupiter.api.io;\n" +
-                                                "public @interface TempDir {}")
-                )).build();
-
         return new JavaVisitor<ExecutionContext>() {
+
+            @Nullable
+            private Supplier<JavaParser> javaParser;
+
+            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+                if (javaParser == null) {
+                    javaParser = () -> JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                            .build();
+                }
+                return javaParser;
+
+            }
+
             @Override
             public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
                 J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, executionContext);
@@ -76,19 +83,20 @@ public class TemporaryFolderToTempDir extends Recipe {
             }
 
             @Override
-            public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
-                J.VariableDeclarations mv = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable, executionContext);
+            public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+                J.VariableDeclarations mv = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable, ctx);
                 if (!isRuleAnnotatedTemporaryFolder(mv)) {
                     return mv;
                 }
                 String fieldVars = mv.getVariables().stream()
                         .map(fv -> fv.withInitializer(null))
-                        .map(J::print).collect(Collectors.joining(","));
+                        .map(it -> it.print(getCursor()))
+                        .collect(Collectors.joining(","));
                 String modifiers = mv.getModifiers().stream().map(it -> it.getType().name().toLowerCase()).collect(Collectors.joining(" "));
                 mv = mv.withTemplate(
                         JavaTemplate.builder(this::getCursor, "@TempDir\n#{} File#{};")
                                 .imports("java.io.File", "org.junit.jupiter.api.io.TempDir")
-                                .javaParser(tempdirParser)
+                                .javaParser(javaParser(ctx))
                                 .build(),
                         mv.getCoordinates().replace(),
                         modifiers,
@@ -98,17 +106,17 @@ public class TemporaryFolderToTempDir extends Recipe {
 
             private boolean isRuleAnnotatedTemporaryFolder(J.VariableDeclarations vd) {
                 return TypeUtils.isOfClassType(vd.getTypeAsFullyQualified(), "org.junit.rules.TemporaryFolder")
-                       && vd.getLeadingAnnotations().stream().anyMatch(anno -> classRule.matches(anno) || rule.matches(anno));
+                        && vd.getLeadingAnnotations().stream().anyMatch(anno -> classRule.matches(anno) || rule.matches(anno));
             }
 
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, executionContext);
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 if (mi.getSelect() != null && mi.getMethodType() != null
-                    && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "org.junit.rules.TemporaryFolder")) {
+                        && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "org.junit.rules.TemporaryFolder")) {
                     switch (mi.getSimpleName()) {
                         case "newFile":
-                            return convertToNewFile(mi);
+                            return convertToNewFile(mi, ctx);
                         case "newFolder":
                             doAfterVisit(new AddNewFolderMethod(mi));
                             break;
@@ -124,7 +132,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                 return mi;
             }
 
-            private J convertToNewFile(J.MethodInvocation mi) {
+            private J convertToNewFile(J.MethodInvocation mi, ExecutionContext ctx) {
                 if (mi.getSelect() == null) {
                     return mi;
                 }
@@ -132,10 +140,15 @@ public class TemporaryFolderToTempDir extends Recipe {
                 List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
                 if (args.isEmpty()) {
                     return mi.withTemplate(JavaTemplate.builder(this::getCursor, "File.createTempFile(\"junit\", null, #{any(java.io.File)})")
-                            .imports("java.io.File").javaParser(tempdirParser).build(), mi.getCoordinates().replace(), tempDir);
+                                    .imports("java.io.File")
+                                    .javaParser(javaParser(ctx)).build(),
+                            mi.getCoordinates().replace(),
+                            tempDir);
                 } else {
                     return mi.withTemplate(JavaTemplate.builder(this::getCursor, "File.createTempFile(#{any(java.lang.String)}, null, #{any(java.io.File)})")
-                                    .imports("java.io.File").javaParser(tempdirParser).build(),
+                                    .imports("java.io.File")
+                                    .javaParser(javaParser(ctx))
+                                    .build(),
                             mi.getCoordinates().replace(), args.get(0), tempDir);
                 }
             }
@@ -145,11 +158,18 @@ public class TemporaryFolderToTempDir extends Recipe {
     private static class AddNewFolderMethod extends JavaIsoVisitor<ExecutionContext> {
         private final J.MethodInvocation methodInvocation;
 
-        private final Supplier<JavaParser> tempdirParser = () -> JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
-                Parser.Input.fromString("" +
-                                        "package org.junit.jupiter.api.io;\n" +
-                                        "public @interface TempDir {}")
-        )).build();
+        @Nullable
+        private Supplier<JavaParser> javaParser;
+
+        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+            if (javaParser == null) {
+                javaParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                        .build();
+            }
+            return javaParser;
+
+        }
 
         public AddNewFolderMethod(J.MethodInvocation methodInvocation) {
             this.methodInvocation = methodInvocation;
@@ -166,22 +186,25 @@ public class TemporaryFolderToTempDir extends Recipe {
                     .filter(m -> {
                         List<Statement> params = m.getParameters();
                         return "newFolder".equals(m.getSimpleName())
-                               && params.size() == 2
-                               && params.get(0).hasClassType(JavaType.ShallowClass.build("java.io.File"))
-                               && params.get(1).hasClassType(JavaType.ShallowClass.build("java.lang.String"));
+                                && params.size() == 2
+                                && params.get(0).hasClassType(JavaType.ShallowClass.build("java.io.File"))
+                                && params.get(1).hasClassType(JavaType.ShallowClass.build("java.lang.String"));
                     }).map(J.MethodDeclaration::getMethodType).filter(Objects::nonNull).findAny().orElse(null);
 
             if (newFolderMethodDeclaration == null) {
                 cd = cd.withTemplate(JavaTemplate.builder(this::getCursor,
-                        "private static File newFolder(File root, String... subDirs) throws IOException {\n" +
-                        "    String subFolder = String.join(\"/\", subDirs);\n" +
-                        "    File result = new File(root, subFolder);\n" +
-                        "    if(!result.mkdirs()) {\n" +
-                        "        throw new IOException(\"Couldn't create folders \" + root);\n" +
-                        "    }\n" +
-                        "    return result;\n" +
-                        "}"
-                ).imports("java.io.File", "java.io.IOException").javaParser(tempdirParser).build(), cd.getBody().getCoordinates().lastStatement());
+                                        "private static File newFolder(File root, String... subDirs) throws IOException {\n" +
+                                                "    String subFolder = String.join(\"/\", subDirs);\n" +
+                                                "    File result = new File(root, subFolder);\n" +
+                                                "    if(!result.mkdirs()) {\n" +
+                                                "        throw new IOException(\"Couldn't create folders \" + root);\n" +
+                                                "    }\n" +
+                                                "    return result;\n" +
+                                                "}")
+                                .imports("java.io.File", "java.io.IOException")
+                                .javaParser(javaParser(ctx))
+                                .build(),
+                        cd.getBody().getCoordinates().lastStatement());
                 newFolderMethodDeclaration = ((J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1)).getMethodType();
                 maybeAddImport("java.io.File");
                 maybeAddImport("java.io.IOException");
@@ -195,11 +218,18 @@ public class TemporaryFolderToTempDir extends Recipe {
             J.MethodInvocation methodScope;
             JavaType.Method newMethodType;
 
-            private final Supplier<JavaParser> tempdirParser = () -> JavaParser.fromJavaVersion().dependsOn(Collections.singletonList(
-                    Parser.Input.fromString("" +
-                                            "package org.junit.jupiter.api.io;\n" +
-                                            "public @interface TempDir {}")
-            )).build();
+            @Nullable
+            private Supplier<JavaParser> javaParser;
+
+            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+                if (javaParser == null) {
+                    javaParser = () -> JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                            .build();
+                }
+                return javaParser;
+
+            }
 
             public TranslateNewFolderMethodInvocation(J.MethodInvocation method, JavaType.Method newMethodType) {
                 this.methodScope = method;
@@ -207,21 +237,29 @@ public class TemporaryFolderToTempDir extends Recipe {
             }
 
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 if (!method.isScope(methodScope)) {
                     return method;
                 }
-                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, executionContext);
+                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 if (mi.getSelect() != null) {
                     J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
                     List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
                     if (args.isEmpty()) {
                         mi = mi.withTemplate(JavaTemplate.builder(this::getCursor, "newFolder(#{any(java.io.File)}, \"junit\")")
-                                .imports("java.io.File").javaParser(tempdirParser).build(), mi.getCoordinates().replace(), tempDir);
+                                        .imports("java.io.File")
+                                        .javaParser(javaParser(ctx))
+                                        .build(),
+                                mi.getCoordinates().replace(),
+                                tempDir);
                     } else if (args.size() == 1) {
                         mi = mi.withTemplate(JavaTemplate.builder(this::getCursor, "newFolder(#{any(java.io.File)}, #{any(java.lang.String)})")
-                                        .imports("java.io.File").javaParser(tempdirParser).build(),
-                                mi.getCoordinates().replace(), tempDir, args.get(0));
+                                        .imports("java.io.File")
+                                        .javaParser(javaParser(ctx))
+                                        .build(),
+                                mi.getCoordinates().replace(),
+                                tempDir,
+                                args.get(0));
                     } else {
                         final StringBuilder sb = new StringBuilder("newFolder(#{any(java.io.File)}");
                         args.forEach(arg -> sb.append(", #{any(java.lang.String)}"));
@@ -229,8 +267,11 @@ public class TemporaryFolderToTempDir extends Recipe {
                         List<Object> templateArgs = new ArrayList<>(args);
                         templateArgs.add(0, tempDir);
                         mi = mi.withTemplate(JavaTemplate.builder(this::getCursor, sb.toString())
-                                        .imports("java.io.File").javaParser(tempdirParser).build(),
-                                mi.getCoordinates().replace(), templateArgs.toArray());
+                                        .imports("java.io.File")
+                                        .javaParser(javaParser(ctx))
+                                        .build(),
+                                mi.getCoordinates().replace(),
+                                templateArgs.toArray());
                     }
                     mi = mi.withMethodType(newMethodType);
                     J.ClassDeclaration parentClass = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).getValue();

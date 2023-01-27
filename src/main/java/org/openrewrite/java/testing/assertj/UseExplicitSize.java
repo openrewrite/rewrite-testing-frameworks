@@ -52,7 +52,15 @@ public class UseExplicitSize extends Recipe {
     }
 
     public static class UseExplicitSizeVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion().classpath("assertj-core").build();
+        private Supplier<JavaParser> assertionsParser = null;
+        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
+            if(assertionsParser == null) {
+                assertionsParser = () -> JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "assertj-core-3.24.2")
+                        .build();
+            }
+            return assertionsParser;
+        }
 
         private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
         private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.* isEqualTo(..)");
@@ -91,7 +99,7 @@ public class UseExplicitSize extends Recipe {
             String template = "assertThat(#{any(java.util.List)}).hasSize(#{any()});";
             return method.withTemplate(
                     JavaTemplate.builder(this::getCursor, template)
-                            .javaParser(ASSERTJ_JAVA_PARSER)
+                            .javaParser(assertionsParser(ctx))
                             .build(),
                     method.getCoordinates().replace(),
                     list,

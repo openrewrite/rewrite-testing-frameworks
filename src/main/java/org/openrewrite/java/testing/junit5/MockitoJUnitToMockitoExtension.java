@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -107,6 +106,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                 maybeRemoveImport("org.mockito.junit.MockitoJUnit");
                 maybeRemoveImport("org.mockito.quality.Strictness");
 
+                //noinspection DataFlowIssue
                 if (classDecl.getBody().getStatements().size() != cd.getBody().getStatements().size() &&
                         (FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty() &&
                                 FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty())) {
@@ -115,15 +115,8 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                             JavaTemplate.builder(this::getCursor, "@ExtendWith(MockitoExtension.class)")
                                     .javaParser(() ->
                                             JavaParser.fromJavaVersion()
-                                                    .dependsOn(Arrays.asList(
-                                                            Parser.Input.fromString("package org.junit.jupiter.api.extension;\n" +
-                                                                    "public @interface ExtendWith {\n" +
-                                                                    "Class[] value();\n" +
-                                                                    "}"),
-                                                            Parser.Input.fromString("package org.mockito.junit.jupiter;\n" +
-                                                                    "public class MockitoExtension {\n" +
-                                                                    "}")
-                                                    )).build())
+                                                    .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "mockito-junit-jupiter-3.12.4")
+                                                    .build())
                                     .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                                     .build(),
                             cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))
