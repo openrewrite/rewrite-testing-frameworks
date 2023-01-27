@@ -119,4 +119,17 @@ recipeList:
       groupId: org.mockito
       artifactId: "*"
       newVersion: 3.x
-
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.ReplacePowerMockito
+displayName: Replace Powermock with raw Mockito
+description: Replace Powermock with raw Mockito.
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.powermock.api.mockito.PowerMockito.mockStatic
+      newFullyQualifiedTypeName: org.mockito.Mockito.mockStatic
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPatern: '@PrepareForTest(..)'
