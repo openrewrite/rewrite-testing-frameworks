@@ -54,4 +54,6 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-suite-api:latest.release")
     testRuntimeOnly("ch.qos.logback:logback-classic:latest.release")
     testRuntimeOnly("com.squareup.okhttp3:mockwebserver:3.14.9")
+    testRuntimeOnly("org.powermock:powermock-api-mockito:1.6.5")
+    testRuntimeOnly("org.powermock:powermock-core:1.6.5")
 }
