@@ -128,8 +128,11 @@ tags:
   - testing
   - mockito
 recipeList:
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.powermock.api.mockito.PowerMockito.mockStatic
-      newFullyQualifiedTypeName: org.mockito.Mockito.mockStatic
   - org.openrewrite.java.RemoveAnnotation:
-      annotationPatern: '@PrepareForTest(..)'
+      annotationPattern: '@org.powermock.core.classloader.annotationsPrepareForTest'
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+      returnType: org.mockito.MockedStatic
+      matchOverrides: null
+      matchUnknownTypes: null
