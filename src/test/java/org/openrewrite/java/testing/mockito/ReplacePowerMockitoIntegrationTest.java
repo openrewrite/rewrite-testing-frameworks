@@ -30,7 +30,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "mockito-all-1.10.19", "junit-jupiter-api-5.9.2", "powermock-core-1.6.5", "powermock-api-mockito-1.6.5"))
+              "mockito-all-1.10.19", "junit-jupiter-api-5.9.2", "junit-4.13.2", "powermock-core-1.6.5", "powermock-api-mockito-1.6.5"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
             .build()
@@ -50,11 +50,16 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             import static org.junit.jupiter.api.Assertions.assertEquals;
             import java.util.Calendar;
             
+            import org.junit.runner.RunWith;
+            import org.powermock.core.classloader.annotations.PowerMockIgnore;
             import org.powermock.core.classloader.annotations.PrepareForTest;
+            import org.powermock.modules.junit4.PowerMockRunner;
             import org.powermockito.configuration.PowerMockTestCaseConfig;
             import org.junit.jupiter.api.Test;
             
-            @PrepareForTest(Calendar.class)
+            @RunWith(PowerMockRunner.class)
+            @PowerMockIgnore({"org.apache.*", "com.sun.*", "javax.*"})
+            @PrepareForTest(value = {Calendar.class})
             public class StaticMethodTest extends PowerMockTestCaseConfig {
             
                 private Calendar calendarMock = mock(Calendar.class);
@@ -73,8 +78,8 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
             import static org.mockito.Mockito.mock;
             import static org.mockito.Mockito.mockStatic;
-            import static org.junit.jupiter.api.Assertions.assertEquals;
-            import static org.junit.jupiter.api.Assertions.assertNotEquals;
+            import static org.testng.Assert.assertEquals;
+            import static org.testng.Assert.assertNotEquals;
             import java.util.Calendar;
             
             import org.mockito.MockedStatic;
