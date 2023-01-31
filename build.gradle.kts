@@ -26,6 +26,8 @@ recipeDependencies {
     parserClasspath("org.mockito:mockito-all:1.10.19")
     parserClasspath("org.mockito:mockito-core:3.+")
     parserClasspath("org.mockito:mockito-junit-jupiter:3.+")
+    parserClasspath("org.powermock:powermock-api-mockito:1.6.5")
+    parserClasspath("org.powermock:powermock-core:1.6.5")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
@@ -54,6 +56,4 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-suite-api:latest.release")
     testRuntimeOnly("ch.qos.logback:logback-classic:latest.release")
     testRuntimeOnly("com.squareup.okhttp3:mockwebserver:3.14.9")
-    testRuntimeOnly("org.powermock:powermock-api-mockito:1.6.5")
-    testRuntimeOnly("org.powermock:powermock-core:1.6.5")
 }
