@@ -40,7 +40,11 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     @Test
     void testThatMockStaticGetsReplaced() {
         //language=java
-        rewriteRun(java(
+        rewriteRun(java("""
+          package org.powermockito.configuration;
+
+          public class PowerMockTestCaseConfig {}
+          """), java(
           """
             package mockito.example;
 
