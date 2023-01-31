@@ -97,7 +97,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             
             }
             
-"""
+          """
         ));
     }
 }
