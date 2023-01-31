@@ -27,8 +27,10 @@ import org.openrewrite.test.RewriteTest;
 class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockito-all-1.10.19", "junit-4.13.2", "hamcrest-2.2", "junit-jupiter-api-5.9.2", "powermock-core-1.6.5", "powermock-api-mockito-1.6.5"))
+        spec
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "mockito-all-1.10.19", "junit-jupiter-api-5.9.2", "powermock-core-1.6.5", "powermock-api-mockito-1.6.5"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
             .build()
@@ -45,12 +47,12 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             import static org.mockito.Mockito.mock;
             import static org.mockito.Mockito.when;
             import static org.powermock.api.mockito.PowerMockito.mockStatic;
-            import static org.testng.Assert.assertEquals;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
             import java.util.Calendar;
             
             import org.powermock.core.classloader.annotations.PrepareForTest;
             import org.powermockito.configuration.PowerMockTestCaseConfig;
-            import org.testng.annotations.Test;
+            import org.junit.jupiter.api.Test;
             
             @PrepareForTest(Calendar.class)
             public class StaticMethodTest extends PowerMockTestCaseConfig {
@@ -71,20 +73,20 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
             import static org.mockito.Mockito.mock;
             import static org.mockito.Mockito.mockStatic;
-            import static org.testng.Assert.assertEquals;
-            import static org.testng.Assert.assertNotEquals;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+            import static org.junit.jupiter.api.Assertions.assertNotEquals;
             import java.util.Calendar;
             
             import org.mockito.MockedStatic;
-            import org.testng.annotations.AfterMethod;
-            import org.testng.annotations.Test;
+            import org.junit.jupiter.api.AfterEach;
+            import org.junit.jupiter.api.Test;
             
             public class StaticMethodTest {
             
                 private final MockedStatic<Calendar> mockedStatic = mockStatic(Calendar.class);
                 private Calendar calendarMock = mock(Calendar.class);
             
-                @AfterMethod
+                @AfterEach
                 void tearDown() {
                     mockedStatic.close();
                 }
