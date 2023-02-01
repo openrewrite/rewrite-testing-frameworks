@@ -66,23 +66,14 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           """
           package mockito.example;
                
-          import org.powermock.core.classloader.annotations.PrepareForTest;
           import org.powermockito.configuration.OtherExtension;
 
           public class MyTest extends OtherExtension { }
-          """,
-          """
-          package mockito.example;
-               
-          import org.powermockito.configuration.OtherExtension;
-
-          public class MyTest extends OtherExtension { }
-          """
-        ));
+          """));
     }
 
     @Test
-    void testThat() {
+    void testThatPrepareForTestAnnotationIsReplacedByFields() {
         //language=java
         rewriteRun((java(
           """

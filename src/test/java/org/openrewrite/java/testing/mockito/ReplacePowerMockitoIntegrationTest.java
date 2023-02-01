@@ -97,7 +97,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             
             public class StaticMethodTest {
             
-                private final MockedStatic<Calendar> mockedStatic = mockStatic(Calendar.class);
+                private MockedStatic<Calendar> mockedStatic = mockStatic(Calendar.class);
                 private Calendar calendarMock = mock(Calendar.class);
             
                 @AfterEach
