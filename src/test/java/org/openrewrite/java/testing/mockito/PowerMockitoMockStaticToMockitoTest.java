@@ -29,7 +29,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "mockito-all-1.10.19", "junit-jupiter-api-5.9.2", "junit-4.13.2", "powermock-core-1.6.5", "powermock-api-mockito-1.6.5"))
+              "mockito-core-3.12.4", "junit-jupiter-api-5.9.2", "junit-4.13.2", "powermock-core-1.6.5", "powermock-api-mockito-1.6.5"))
           .recipe(new PowerMockitoMockStaticToMockito());
     }
 
@@ -44,7 +44,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           """
           package mockito.example;
                
-          import org.powermock.core.classloader.annotations.PrepareForTest;
           import org.powermockito.configuration.PowerMockTestCaseConfig;
 
           public class MyTest extends PowerMockTestCaseConfig { }
@@ -52,10 +51,77 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
         """
           package mockito.example;
             
-          import org.powermock.core.classloader.annotations.PrepareForTest;
-            
           public class MyTest { }
           """
         ));
+    }
+    @Test
+    void testThatOtherExtendsAreNotRemoved() {
+        //language=java
+        rewriteRun(java("""
+          package org.powermockito.configuration;
+
+          public class OtherExtension { }
+          """), java(
+          """
+          package mockito.example;
+               
+          import org.powermock.core.classloader.annotations.PrepareForTest;
+          import org.powermockito.configuration.OtherExtension;
+
+          public class MyTest extends OtherExtension { }
+          """,
+          """
+          package mockito.example;
+               
+          import org.powermockito.configuration.OtherExtension;
+
+          public class MyTest extends OtherExtension { }
+          """
+        ));
+    }
+
+    @Test
+    void testThat() {
+        //language=java
+        rewriteRun((java(
+          """
+            package mockito.example;
+            
+            import static org.mockito.Mockito.mockStatic;
+            
+            import java.util.Calendar;
+            
+            import org.powermock.core.classloader.annotations.PrepareForTest;
+            
+            @PrepareForTest({Calendar.class})
+            public class MyTest {
+                
+                @Test
+                void testStaticMethod() {
+                    mockStatic(Calendar.class);
+                }
+                
+            }
+            """,
+          """
+            package mockito.example;
+            
+            import static org.mockito.Mockito.mockStatic;
+            
+            import java.util.Calendar;
+            
+            public class MyTest {
+                
+                private MockedStatic<Calendar> mockedCalendar = mockStatic(Calendar.class);
+                
+                @Test
+                void testStaticMethod() {
+                    
+                }
+                
+            }
+            """
+        )));
     }
 }

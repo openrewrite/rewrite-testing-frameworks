@@ -44,7 +44,12 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           package org.powermockito.configuration;
 
           public class PowerMockTestCaseConfig {}
-          """), java(
+          """), java ("""
+          package org.powermock.modules.junit4;
+
+          public class PowerMockRunner {}
+          """
+        ), java(
           """
             package mockito.example;
 

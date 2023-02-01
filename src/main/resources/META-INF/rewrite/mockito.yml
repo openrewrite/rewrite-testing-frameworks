@@ -128,9 +128,8 @@ tags:
   - testing
   - mockito
 recipeList:
-  - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
   - org.openrewrite.java.RemoveAnnotation:
-      annotationPattern: "@org.junit.runner.RunWith(..)"
+      annotationPattern: "@org.junit.runner.RunWith(org.powermock.modules.junit4.PowerMockRunner.class)"
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.powermock.core.classloader.annotations.*(..)"
   - org.openrewrite.java.ChangeMethodTargetToStatic:
@@ -139,3 +138,4 @@ recipeList:
       returnType: org.mockito.MockedStatic
       matchOverrides: null
       matchUnknownTypes: null
+  - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
