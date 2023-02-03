@@ -1,102 +1,115 @@
 package org.openrewrite.java.testing.mockito;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.TreeVisitingPrinter;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaCoordinates;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Statement;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.*;
+import org.openrewrite.java.tree.*;
 
 public class PowerMockitoMockStaticToMockito extends Recipe {
 
-    public static final String POWER_MOCK_TEST_CASE_CONFIG = "org.powermockito.configuration.PowerMockTestCaseConfig";
+    public static final String POWER_MOCK_CONFIG = "org.powermock.configuration.PowerMockConfiguration";
 
     @Override
     public String getDisplayName() {
-        return "Replace mockStatic Method Call";
+        return "Replace PowerMock mockStatic with Mockito mockStatic";
     }
 
     @Override
     public String getDescription() {
-        return "Replaces PowerMockito.mockStatic(clazz) by Mockito.mockStatic(clazz).";
+        return "Replaces `PowerMockito.mockStatic()` by `Mockito.mockStatic()`. Removes superclasses extending " +
+                "`PowerMockConfiguration` and the `@PrepareForTest` annotation.";
     }
+
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new PowerMockitoMockStaticToMockitoVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new JavaIsoVisitor<ExecutionContext>() {
+
+            public static final String PREPARE_FOR_TEST = "org.powermock.core.classloader.annotations.PrepareForTest";
+
+            @Override
+            public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext executionContext) {
+                // Remove the @PrepareForTest annotation
+                if (annotation.getType() != null && TypeUtils.isOfClassType(annotation.getType(), PREPARE_FOR_TEST)) {
+                    maybeRemoveImport(PREPARE_FOR_TEST);
+                    // Pass the annotation to the class declaration, in order to add their arguments as fields
+                    getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, "PrepareForTestAnnotation", annotation);
+                    //noinspection DataFlowIssue
+                    return null;
+                }
+                return super.visitAnnotation(annotation, executionContext);
+            }
+
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+                System.out.println("------visitCompilationUnit LST Tree Start------");
+                System.out.println(TreeVisitingPrinter.printTree(cu));
+                System.out.println("------visitCompilationUnit LST Tree End------");
+                return super.visitCompilationUnit(cu, executionContext);
+            }
+
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+
+                // Remove the extension of class PowerMockConfiguration
+                if (cd.getExtends() != null && TypeUtils.isAssignableTo(POWER_MOCK_CONFIG, cd.getExtends().getType())) {
+                    cd = cd.withExtends(null);
+                    maybeRemoveImport(POWER_MOCK_CONFIG);
+                }
+
+                // Add the classes of the arguments in the annotation @PrepareForTest as fields
+                // e.g. @PrepareForTest(Calendar.class)
+                // becomes
+                // private MockStatic mockedCalendar = mockStatic(Calendar.class)
+                J.Annotation prepareForTest = getCursor().pollMessage("PrepareForTestAnnotation");
+                if (prepareForTest != null && prepareForTest.getArguments() != null) {
+                    List<Expression> mockTypes = prepareForTest.getArguments().stream()
+                            .filter(a -> a instanceof J.NewArray && ((J.NewArray) a).getInitializer() != null)
+                            .flatMap(a -> ((J.NewArray) a).getInitializer().stream())
+                            .collect(Collectors.toList());
+                    for (Expression mockType : mockTypes) {
+                        String typeName = mockType.toString();
+                        String classlessTypeName = removeDotClass(typeName);
+                        cd = cd.withBody(cd.getBody()
+                                .withTemplate(
+                                        JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                                                        "private MockedStatic<#{}> mocked#{} = mockStatic(#{});")
+                                                .javaParser(() -> JavaParser.fromJavaVersion()
+                                                        .classpathFromResources(ctx, "mockito-core-3.12.4")
+                                                        .build())
+                                                .staticImports("org.mockito.Mockito.mockStatic")
+                                                .imports("org.mockito.MockedStatic")
+                                                .build(),
+                                        cd.getBody().getCoordinates().firstStatement(),
+                                        classlessTypeName,
+                                        classlessTypeName,
+                                        typeName
+                                )
+                        );
+                    }
+                    maybeAddImport("org.mockito.MockedStatic");
+                    maybeAddImport("org.mockito.Mockito", "mockStatic");
+                }
+                return cd;
+            }
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
+                if (TypeUtils.isOfClassType(mi.getType(), "org.mockito.MockedStatic")) {
+                    //noinspection DataFlowIssue
+                    return null;
+                }
+                return mi;
+            }
+        };
     }
 
-    private static class PowerMockitoMockStaticToMockitoVisitor extends JavaVisitor<ExecutionContext> {
-
-        public static final String PREPARE_FOR_TEST = "org.powermock.core.classloader.annotations.PrepareForTest";
-        private final JavaTemplate jt = JavaTemplate.builder(this::getCursor,
-                "private MockedStatic<#{}> mocked#{} = #{};").build();
-
-        @Override
-        public J visitAnnotation(J.Annotation annotation, ExecutionContext executionContext) {
-            // Remove the @PrepareForTest annotation
-            if (annotation.getType() != null && TypeUtils.isOfClassType(annotation.getType(), PREPARE_FOR_TEST)) {
-                maybeRemoveImport(PREPARE_FOR_TEST);
-                // Pass the annotation to the class declaration, in order to add their arguments as fields
-                getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, "PrepareForTestAnnotation", annotation);
-                return null;
-            }
-            return super.visitAnnotation(annotation, executionContext);
-        }
-
-        @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-            System.out.println("------visitCompilationUnit LST Tree Start------");
-            System.out.println(TreeVisitingPrinter.printTree(cu));
-            System.out.println("------visitCompilationUnit LST Tree End------");
-            return (J.CompilationUnit) super.visitCompilationUnit(cu, executionContext);
-        }
-        @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-            J.ClassDeclaration cd = (J.ClassDeclaration) super.visitClassDeclaration(classDecl, executionContext);
-
-            // Remove the extension of class PowerMockTestCaseConfig
-            if (cd.getExtends() != null && cd.getExtends().getType() != null) {
-                JavaType.FullyQualified fullQualifiedExtension = TypeUtils.asFullyQualified(cd.getExtends().getType());
-                if (fullQualifiedExtension != null && POWER_MOCK_TEST_CASE_CONFIG.equals(fullQualifiedExtension.getFullyQualifiedName())) {
-                    cd = cd.withExtends(null);
-                }
-            }
-            maybeRemoveImport(POWER_MOCK_TEST_CASE_CONFIG);
-
-            // Add the classes of the arguments in the annotation @PrepareForTest as fields
-            // e.g. @PrepareForTest(Calendar.class)
-            // becomes
-            // private MockStatic mockedCalendar = mockStatic(Calendar.class)
-            J.Annotation prepareForTest = getCursor().pollMessage("PrepareForTestAnnotation");
-            if (prepareForTest != null) {
-                List<Statement> statements = cd.getBody().getStatements();
-                JavaCoordinates beforeFirstStatement = statements.get(0).getCoordinates().before();
-                prepareForTest.getArguments().stream().map(a -> ((J.NewArray)a).getInitializer()).forEach(i -> i.forEach(argument ->{
-                    String simpleClassName = ((J.Identifier)((J.FieldAccess)argument).getTarget()).getSimpleName();
-                    statements.add(0, statements.get(0).withTemplate(jt,
-                            beforeFirstStatement, simpleClassName, simpleClassName, simpleClassName)
-                   );
-                }));
-                cd.getBody().withStatements(statements);
-            }
-            return cd;
-        }
-
-        @Override
-        public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-            J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, executionContext);
-            // If the method invocation is org.mockito.Mockito.mockStatic(clazz) ...
-            if (mi.getType() != null && TypeUtils.isOfClassType(mi.getType(),"org.mockito.MockedStatic")) {
-                return null;
-            }
-            return mi;
-        }
+    private static String removeDotClass(String s) {
+        return s.endsWith(".class") ? s.substring(0, s.length() - 6) : s;
     }
 }
