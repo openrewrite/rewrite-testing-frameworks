@@ -28,6 +28,7 @@ import org.openrewrite.java.tree.*;
 public class PowerMockitoMockStaticToMockito extends Recipe {
 
     public static final String POWER_MOCK_CONFIG = "org.powermock.configuration.PowerMockConfiguration";
+    public static final String MOCKED_STATIC = "org.mockito.MockedStatic";
 
     @Override
     public String getDisplayName() {
@@ -86,6 +87,9 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     List<Expression> mockTypes = ListUtils.flatMap(prepareForTest.getArguments(), a -> {
                         if (a instanceof J.NewArray && ((J.NewArray) a).getInitializer() != null) {
                             return ((J.NewArray) a).getInitializer();
+                        } else if (a instanceof J.Assignment && ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer() != null) {
+                            return ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer();
+
                         }
                         return null;
                     });
@@ -100,7 +104,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                                                         .classpathFromResources(ctx, "mockito-core-3.12.4")
                                                         .build())
                                                 .staticImports("org.mockito.Mockito.mockStatic")
-                                                .imports("org.mockito.MockedStatic")
+                                                .imports(MOCKED_STATIC)
                                                 .build(),
                                         cd.getBody().getCoordinates().firstStatement(),
                                         classlessTypeName,
@@ -110,7 +114,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         );
                     }
                     cd = maybeAutoFormat(classDecl, cd.withPrefix(cd.getPrefix().withWhitespace("")), cd.getName(), ctx, getCursor());
-                    maybeAddImport("org.mockito.MockedStatic");
+                    maybeAddImport(MOCKED_STATIC);
                     maybeAddImport("org.mockito.Mockito", "mockStatic");
                 }
                 return cd;
@@ -119,7 +123,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
-                if (TypeUtils.isOfClassType(mi.getType(), "org.mockito.MockedStatic")) {
+                if (TypeUtils.isOfClassType(mi.getType(), MOCKED_STATIC)) {
                     Cursor declaringScope = getCursor().dropParentUntil(it -> it instanceof J.ClassDeclaration
                             || it instanceof J.MethodDeclaration || it == Cursor.ROOT_VALUE);
                     if (declaringScope.getValue() instanceof J.MethodDeclaration) {

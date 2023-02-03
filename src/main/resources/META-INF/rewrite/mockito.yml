@@ -131,7 +131,7 @@ recipeList:
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.junit.runner.RunWith(org.powermock.modules.junit4.PowerMockRunner.class)"
   - org.openrewrite.java.RemoveAnnotation:
-      annotationPattern: "@org.powermock.core.classloader.annotations.*(..)"
+      annotationPattern: "org.powermock.core.classloader.annotations.PowerMockIgnore(..)"
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito

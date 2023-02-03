@@ -41,10 +41,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     void testThatMockStaticGetsReplaced() {
         //language=java
         rewriteRun(java("""
-          package org.powermockito.configuration;
-
-          public class PowerMockTestCaseConfig {}
-          """), java ("""
           package org.powermock.modules.junit4;
 
           public class PowerMockRunner {}
@@ -57,19 +53,19 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             import static org.mockito.Mockito.when;
             import static org.powermock.api.mockito.PowerMockito.mockStatic;
             import static org.junit.jupiter.api.Assertions.assertEquals;
+            
             import java.util.Calendar;
             
             import org.junit.runner.RunWith;
             import org.powermock.core.classloader.annotations.PowerMockIgnore;
             import org.powermock.core.classloader.annotations.PrepareForTest;
             import org.powermock.modules.junit4.PowerMockRunner;
-            import org.powermockito.configuration.PowerMockTestCaseConfig;
             import org.junit.jupiter.api.Test;
             
             @RunWith(PowerMockRunner.class)
             @PowerMockIgnore({"org.apache.*", "com.sun.*", "javax.*"})
             @PrepareForTest(value = {Calendar.class})
-            public class StaticMethodTest extends PowerMockTestCaseConfig {
+            public class StaticMethodTest {
             
                 private Calendar calendarMock = mock(Calendar.class);
             
@@ -87,8 +83,8 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
             import static org.mockito.Mockito.mock;
             import static org.mockito.Mockito.mockStatic;
-            import static org.testng.Assert.assertEquals;
-            import static org.testng.Assert.assertNotEquals;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+            
             import java.util.Calendar;
             
             import org.mockito.MockedStatic;
@@ -97,7 +93,8 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             
             public class StaticMethodTest {
             
-                private MockedStatic<Calendar> mockedStatic = mockStatic(Calendar.class);
+                private MockedStatic<Calendar> mockedCalendar = mockStatic(Calendar.class);
+                
                 private Calendar calendarMock = mock(Calendar.class);
             
                 @AfterEach
