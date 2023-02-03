@@ -59,7 +59,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           java(
             """
               package org.powermockito.configuration;
-              
+                            
               public class OtherExtension { }
               """),
           java(
@@ -67,7 +67,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               package mockito.example;
                    
               import org.powermockito.configuration.OtherExtension;
-              
+                            
               public class MyTest extends OtherExtension { }
               """)
         );
@@ -85,6 +85,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               
               import java.util.Calendar;
               
+              import org.junit.jupiter.api.Test;
               import org.powermock.core.classloader.annotations.PrepareForTest;
               
               @PrepareForTest({Calendar.class})
@@ -94,17 +95,17 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   void testStaticMethod() {
                       mockStatic(Calendar.class);
                   }
-              
               }
               """,
             """
               package mockito.example;
               
-              import org.mockito.MockedStatic;
-              
               import static org.mockito.Mockito.mockStatic;
               
               import java.util.Calendar;
+              
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
               
               public class MyTest {
               
@@ -113,7 +114,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   @Test
                   void testStaticMethod() {
                   }
-                  
               }
               """
           )

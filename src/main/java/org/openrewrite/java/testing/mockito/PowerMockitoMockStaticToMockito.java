@@ -1,11 +1,12 @@
 package org.openrewrite.java.testing.mockito;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.tree.*;
 
@@ -67,10 +68,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 // private MockStatic mockedCalendar = mockStatic(Calendar.class)
                 J.Annotation prepareForTest = getCursor().pollMessage("PrepareForTestAnnotation");
                 if (prepareForTest != null && prepareForTest.getArguments() != null) {
-                    List<Expression> mockTypes = prepareForTest.getArguments().stream()
-                            .filter(a -> a instanceof J.NewArray && ((J.NewArray) a).getInitializer() != null)
-                            .flatMap(a -> ((J.NewArray) a).getInitializer().stream())
-                            .collect(Collectors.toList());
+                    List<Expression> mockTypes = ListUtils.flatMap(prepareForTest.getArguments(), a -> {
+                        if (a instanceof J.NewArray && ((J.NewArray) a).getInitializer() != null) {
+                            return ((J.NewArray) a).getInitializer();
+                        }
+                        return null;
+                    });
                     for (Expression mockType : mockTypes) {
                         String typeName = mockType.toString();
                         String classlessTypeName = removeDotClass(typeName);
@@ -91,6 +94,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                                 )
                         );
                     }
+                    cd = maybeAutoFormat(classDecl, cd.withPrefix(cd.getPrefix().withWhitespace("")), cd.getName(), ctx, getCursor());
                     maybeAddImport("org.mockito.MockedStatic");
                     maybeAddImport("org.mockito.Mockito", "mockStatic");
                 }
@@ -101,8 +105,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
                 if (TypeUtils.isOfClassType(mi.getType(), "org.mockito.MockedStatic")) {
-                    //noinspection DataFlowIssue
-                    return null;
+                    Cursor declaringScope = getCursor().dropParentUntil(it -> it instanceof J.ClassDeclaration
+                            || it instanceof J.MethodDeclaration || it == Cursor.ROOT_VALUE);
+                    if (declaringScope.getValue() instanceof J.MethodDeclaration) {
+                        //noinspection DataFlowIssue
+                        return null;
+                    }
                 }
                 return mi;
             }
