@@ -34,46 +34,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void testThatExtendsPowerMockTestCaseConfigIsRemoved() {
-        //language=java
-        rewriteRun(
-          java("""
-              package mockito.example;
-                   
-              import org.powermock.configuration.PowerMockConfiguration;
-                        
-              public class MyTest extends PowerMockConfiguration { }
-              """,
-            """
-              package mockito.example;
-                
-              public class MyTest { }
-              """)
-        );
-    }
-
-    @Test
-    void testThatOtherExtendsAreNotRemoved() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              package org.powermockito.configuration;
-                            
-              public class OtherExtension { }
-              """),
-          java(
-            """
-              package mockito.example;
-                   
-              import org.powermockito.configuration.OtherExtension;
-                            
-              public class MyTest extends OtherExtension { }
-              """)
-        );
-    }
-
-    @Test
     void testThatPrepareForTestAnnotationIsReplacedBySingleField() {
         //language=java
         rewriteRun(
@@ -110,7 +70,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               
               public class MyTest {
               
-                  private MockedStatic<Calendar> mockedCalendar = mockStatic(Calendar.class);
+                  private MockedStatic<Calendar> mockedCalendar;
               
                   @AfterEach
                   void tearDown() {
@@ -119,6 +79,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   
                   @Test
                   void testStaticMethod() {
+                      mockedCalendar = mockStatic(Calendar.class);
                   }
               }
               """
