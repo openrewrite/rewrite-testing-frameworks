@@ -56,7 +56,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
     }
 
     private static class AssertExceptionTypeVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private Supplier<JavaParser> assertionsParser = null;
+        private Supplier<JavaParser> assertionsParser;
         private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
             if(assertionsParser == null) {
                 assertionsParser = () -> JavaParser.fromJavaVersion()

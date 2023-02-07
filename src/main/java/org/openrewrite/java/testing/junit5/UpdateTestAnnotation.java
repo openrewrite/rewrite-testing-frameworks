@@ -96,7 +96,7 @@ public class UpdateTestAnnotation extends Recipe {
 
                 @Override
                 public J.Import visitImport(J.Import anImport, ExecutionContext executionContext) {
-                    if (anImport.getTypeName().equals("org.junit.Test")) {
+                    if ("org.junit.Test".equals(anImport.getTypeName())) {
                         return Markup.error(anImport, new IllegalStateException("This import should have been removed by this recipe."));
                     }
                     return anImport;
