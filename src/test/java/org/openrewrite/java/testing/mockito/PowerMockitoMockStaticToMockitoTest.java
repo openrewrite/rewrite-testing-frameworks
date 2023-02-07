@@ -74,7 +74,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void testThatPrepareForTestAnnotationIsReplacedByFields() {
+    void testThatPrepareForTestAnnotationIsReplacedBySingleField() {
         //language=java
         rewriteRun(
           java(
@@ -104,12 +104,75 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               
               import java.util.Calendar;
               
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
               
               public class MyTest {
               
                   private MockedStatic<Calendar> mockedCalendar = mockStatic(Calendar.class);
+              
+                  @AfterEach
+                  void tearDown() {
+                      mockedCalendar.close();
+                  }
+                  
+                  @Test
+                  void testStaticMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+   @Test
+    void testThatPrepareForTestAnnotationIsReplacedByFields() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package mockito.example;
+              
+              import static org.mockito.Mockito.mockStatic;
+              
+              import java.util.Calendar;
+              import java.util.Currency;
+              
+              import org.junit.jupiter.api.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              
+              @PrepareForTest({Calendar.class, Currency.class})
+              public class MyTest {
+              
+                  @Test
+                  void testStaticMethod() {
+                      mockStatic(Calendar.class);
+                      mockStatic(Currency.class);
+                  }
+              }
+              """,
+            """
+              package mockito.example;
+              
+              import static org.mockito.Mockito.mockStatic;
+              
+              import java.util.Calendar;
+              import java.util.Currency;
+              
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+              
+              public class MyTest {
+              
+                  private MockedStatic<Currency> mockedCurrency = mockStatic(Currency.class);
+              
+                  private MockedStatic<Calendar> mockedCalendar = mockStatic(Calendar.class);
+                  
+                  @AfterEach
+                  void tearDown() {
+                      mockedCalendar.close();
+                  }
               
                   @Test
                   void testStaticMethod() {
