@@ -99,7 +99,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             
                 @AfterEach
                 void tearDown() {
-                    mockedStatic.close();
+                    mockedCalendar.close();
                 }
                 
                 @Test
@@ -110,7 +110,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                 }
             
             }
-            
           """
         ));
     }

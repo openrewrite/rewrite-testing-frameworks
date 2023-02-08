@@ -40,17 +40,17 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           java(
             """
               package mockito.example;
-              
+                            
               import static org.mockito.Mockito.mockStatic;
-              
+                            
               import java.util.Calendar;
-              
+                            
               import org.junit.jupiter.api.Test;
               import org.powermock.core.classloader.annotations.PrepareForTest;
-              
+                            
               @PrepareForTest({Calendar.class})
               public class MyTest {
-              
+                            
                   @Test
                   void testStaticMethod() {
                       mockStatic(Calendar.class);
@@ -59,19 +59,19 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               """,
             """
               package mockito.example;
-              
+                            
               import static org.mockito.Mockito.mockStatic;
-              
+                            
               import java.util.Calendar;
-              
+                            
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
-              
+                            
               public class MyTest {
-              
+                            
                   private MockedStatic<Calendar> mockedCalendar;
-              
+                            
                   @AfterEach
                   void tearDown() {
                       mockedCalendar.close();
@@ -86,25 +86,26 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           )
         );
     }
-   @Test
+
+    @Test
     void testThatPrepareForTestAnnotationIsReplacedByFields() {
         //language=java
         rewriteRun(
           java(
             """
               package mockito.example;
-              
+                            
               import static org.mockito.Mockito.mockStatic;
-              
+                            
               import java.util.Calendar;
               import java.util.Currency;
-              
+                            
               import org.junit.jupiter.api.Test;
               import org.powermock.core.classloader.annotations.PrepareForTest;
-              
+                            
               @PrepareForTest({Calendar.class, Currency.class})
               public class MyTest {
-              
+                            
                   @Test
                   void testStaticMethod() {
                       mockStatic(Calendar.class);
@@ -114,29 +115,86 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               """,
             """
               package mockito.example;
-              
+                            
               import static org.mockito.Mockito.mockStatic;
-              
+                            
               import java.util.Calendar;
               import java.util.Currency;
-              
+                            
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
-              
+                            
               public class MyTest {
-              
-                  private MockedStatic<Currency> mockedCurrency = mockStatic(Currency.class);
-              
-                  private MockedStatic<Calendar> mockedCalendar = mockStatic(Calendar.class);
+                            
+                  private MockedStatic<Currency> mockedCurrency;
+                            
+                  private MockedStatic<Calendar> mockedCalendar;
                   
                   @AfterEach
                   void tearDown() {
                       mockedCalendar.close();
+                      mockedCurrency.close();
                   }
-              
+                            
                   @Test
                   void testStaticMethod() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                      mockedCurrency = mockStatic(Currency.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void testThatTearDownMethodHasCorrectPositionIfNoTestMethodIsPresent() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package mockito.example;
+                            
+              import static org.mockito.Mockito.mockStatic;
+                            
+              import java.util.Calendar;
+                            
+              import org.junit.jupiter.api.BeforeEach;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+                            
+              @PrepareForTest({Calendar.class})
+              public class MyTest {
+                            
+                  @BeforeEach
+                  void testStaticMethod() {
+                      mockStatic(Calendar.class);
+                  }
+              }
+              """,
+            """
+              package mockito.example;
+                            
+              import static org.mockito.Mockito.mockStatic;
+                            
+              import java.util.Calendar;
+                            
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.mockito.MockedStatic;
+                            
+              public class MyTest {
+                            
+                  private MockedStatic<Calendar> mockedCalendar;
+                 
+                  @BeforeEach
+                  void testStaticMethod() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                  }
+                  
+                  @AfterEach
+                  void tearDown() {
+                      mockedCalendar.close();
                   }
               }
               """
