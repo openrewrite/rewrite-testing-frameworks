@@ -64,7 +64,8 @@ public class CleanupMockitoImports extends Recipe {
         private static final List<String> MOCKITO_METHOD_NAMES = Arrays.asList("mock", "mockingDetails", "spy",
                 "stub", "when", "verify", "reset", "verifyNoMoreInteractions", "verifyZeroInteractions", "stubVoid",
                 "doThrow", "doCallRealMethod", "doAnswer", "doNothing", "doReturn", "inOrder", "ignoreStubs",
-                "times", "never", "atLeastOnce", "atLeast", "atMost", "calls", "only", "timeout", "after");
+                "times", "never", "atLeastOnce", "atLeast", "atMost", "calls", "only", "timeout", "after",
+                "given", "then", "will", "willAnswer", "willCallRealMethod", "willDoNothing", "willReturn", "willThrow");
         @Override
         public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
             JavaSourceFile sf = super.visitJavaSourceFile(cu, executionContext);

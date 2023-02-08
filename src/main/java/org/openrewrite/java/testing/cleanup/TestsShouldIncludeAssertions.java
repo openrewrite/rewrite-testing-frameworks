@@ -106,7 +106,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     private static class TestShouldIncludeAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        Supplier<JavaParser> javaParser = null;
+        Supplier<JavaParser> javaParser;
         private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
             if(javaParser == null) {
                 javaParser = () -> JavaParser.fromJavaVersion()

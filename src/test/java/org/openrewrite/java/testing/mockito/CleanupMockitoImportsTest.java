@@ -77,12 +77,14 @@ class CleanupMockitoImportsTest implements RewriteTest {
           java(
             """
               import static org.mockito.Mockito.when;
+              import static org.mockito.BDDMockito.given;
 
               class MyObjectTest {
                 MyObject myObject;
                             
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
+                  given(myObject.getSomeField()).willReturn("testValue");
                 }
               }
               """

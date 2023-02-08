@@ -60,7 +60,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
     }
 
     public static class AssertNotEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private Supplier<JavaParser> assertionsParser = null;
+        private Supplier<JavaParser> assertionsParser;
         private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
             if(assertionsParser == null) {
                 assertionsParser = () -> JavaParser.fromJavaVersion()
@@ -154,7 +154,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
             JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
             if (fullyQualified != null) {
                 String typeName = fullyQualified.getFullyQualifiedName();
-                return ("java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName));
+                return "java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName);
             }
 
             JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());

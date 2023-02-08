@@ -58,7 +58,7 @@ public class UseExplicitContains extends Recipe {
     }
 
     public static class UseExplicitContainsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private Supplier<JavaParser> assertionsParser = null;
+        private Supplier<JavaParser> assertionsParser;
         private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
             if(assertionsParser == null) {
                 assertionsParser = () -> JavaParser.fromJavaVersion()

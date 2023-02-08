@@ -77,7 +77,7 @@ public class TestsShouldNotBePublic extends Recipe {
         return new TestsNotPublicVisitor(Boolean.TRUE.equals(removeProtectedModifiers));
     }
 
-    private static class TestsNotPublicVisitor extends JavaIsoVisitor<ExecutionContext> {
+    private static final class TestsNotPublicVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final Boolean orProtected;
 
         private TestsNotPublicVisitor(Boolean orProtected) {

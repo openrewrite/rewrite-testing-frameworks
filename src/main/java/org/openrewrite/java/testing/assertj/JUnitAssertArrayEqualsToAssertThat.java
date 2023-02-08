@@ -64,7 +64,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
     public static class AssertArrayEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertArrayEquals(..)");
 
-        private Supplier<JavaParser> assertionsParser = null;
+        private Supplier<JavaParser> assertionsParser;
         private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
             if(assertionsParser == null) {
                 assertionsParser = () -> JavaParser.fromJavaVersion()
@@ -161,7 +161,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
             JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
             if (fullyQualified != null) {
                 String typeName = fullyQualified.getFullyQualifiedName();
-                return ("java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName));
+                return "java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName);
             }
 
             JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
