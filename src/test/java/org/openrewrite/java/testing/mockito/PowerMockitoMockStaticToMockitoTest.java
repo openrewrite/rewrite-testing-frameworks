@@ -275,51 +275,56 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
         );
     }
     @Test
-    void argumentOfWhenOnParameterlessStaticMethodIsReplacedBySimpleLambda() {
+    void argumentOfVerifyOnParameterlessStaticMethodIsReplacedBySimpleLambda() {
         //language=java
         rewriteRun(
           java(
             """
               import static org.mockito.Mockito.*;
                             
-              import java.util.Calendar;
+              import java.util.Currency;
+              import java.util.Locale;
                             
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
                             
               public class MyTest {
                             
-                  private MockedStatic<Calendar> mockedCalendar;
+                  private MockedStatic<Currency> mockedCurrency;
                 
-                  private Calendar calendarMock = mock(Calendar.class);
+                  private Currency currencyMock = mock(Currency.class);
                             
                   @Test
                   void testStaticMethod() {
-                      when(Calendar.getInstance()).thenReturn(calendarMock);
+                      verify(Currency.getInstance(Locale.ENGLISH), never());
+                      verify(Currency.getAvailableCurrencies(), atLeastOnce());
                   }
               }
               """,
             """
-              import static org.mockito.Mockito.*;
+               import static org.mockito.Mockito.*;
                             
-              import java.util.Calendar;
+              import java.util.Currency;
+              import java.util.Locale;
                             
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
                             
               public class MyTest {
                             
-                  private MockedStatic<Calendar> mockedCalendar;
-                  
-                  private Calendar calendarMock = mock(Calendar.class);
-                  
+                  private MockedStatic<Currency> mockedCurrency;
+                
+                  private Currency currencyMock = mock(Currency.class);
+                            
                   @Test
                   void testStaticMethod() {
-                      mockedCalendar.when(Calendar::getInstance).thenReturn(calendarMock);
+                      mockedCurrency.verify(() -> Currency.getInstance(Locale.ENGLISH), never());
+                      mockedCurrency.verify(Currency::getAvailableCurrencies, atLeastOnce());
                   }
               }
-              """
+             """
           )
         );
     }
+
 }
