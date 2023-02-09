@@ -126,7 +126,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               import java.io.File;
                             
               class MyTest {
-                  File parentDir = new File();
+                  File parentDir = new File("foo");
                   @Rule
                   TemporaryFolder tempDir = new TemporaryFolder(parentDir);
               }
@@ -137,7 +137,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               import java.io.File;
                             
               class MyTest {
-                  File parentDir = new File();
+                  File parentDir = new File("foo");
                   @TempDir
                   File tempDir;
               }
