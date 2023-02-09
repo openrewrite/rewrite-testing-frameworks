@@ -299,11 +299,13 @@ class UpdateTestAnnotationTest implements RewriteTest {
     void testAnnotationWithImportedException() {
         //language=java
         rewriteRun(
-
           java(
             """
               package com.abc;
               public class MyException extends Exception {
+                    public MyException(String message) {
+                        super(message);
+                    }
               }
               """
           ),
