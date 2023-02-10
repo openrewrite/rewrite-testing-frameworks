@@ -289,8 +289,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     J.FieldAccess fieldAccess = (J.FieldAccess) methodArguments.get(0);
                     String className = fieldAccess.getTarget().toString();
                     J.Assignment assignment = method.withTemplate(
-                            JavaTemplate.builder(this::getCursor, "mocked#{} = #{any(" +
-                                    methodType.getReturnType() + ")};").build(),
+                            JavaTemplate.builder(this::getCursor,
+                                    "mocked#{} = #{any(org.mockito.MockedStatic)};").build(),
                             method.getCoordinates().replace(),
                             className,
                             method
@@ -343,15 +343,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 }
                 if (Collections.replaceAll(methodArguments, staticMI, lambdaInvocation)) {
                     J.Identifier mockedField = getFieldIdentifier("mocked" + declaringClassName);
-                    whenMethod = whenMethod.withTemplate(
-                            JavaTemplate.builder(
-                                            this::getCursor,
-                                            "#{any(org.mockito.MockedStatic)}.#{any(org.mockito.OngoingStubbing)}")
-                                    .build(),
-                            whenMethod.getCoordinates().replace(),
-                            mockedField,
-                            whenMethod
-                    );
+                    whenMethod = whenMethod.withSelect(mockedField);
                     whenMethod = whenMethod.withArguments(methodArguments);
                 }
             }

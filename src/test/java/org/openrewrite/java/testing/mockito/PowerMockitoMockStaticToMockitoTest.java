@@ -302,7 +302,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               }
               """,
             """
-               import static org.mockito.Mockito.*;
+              import static org.mockito.Mockito.*;
                             
               import java.util.Currency;
               import java.util.Locale;
