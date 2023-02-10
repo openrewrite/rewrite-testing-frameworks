@@ -30,7 +30,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "mockito-core-3.12.4", "junit-jupiter-api-5.9.2", "junit-4.13.2", "powermock-core-1.6.5", "powermock-api-mockito-1.6.5"))
+              "mockito-core-3.12.4", "junit-jupiter-api-5.9.2", "junit-4.13.2", "powermock-core-1.7.4", "powermock-api-mockito-1.7.4"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
             .build()
@@ -92,6 +92,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import java.util.Locale;
               
               import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
               
@@ -103,6 +104,12 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   
                   private Calendar calendarMock = mock(Calendar.class);
               
+                  @BeforeEach
+                  void setUp() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                      mockedCurrency = mockStatic(Currency.class);
+                  }
+              
                   @AfterEach
                   void tearDown() {
                       mockedCalendar.close();
@@ -111,14 +118,12 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   
                   @Test
                   void testWithCalendar() {
-                      mockedCalendar = mockStatic(Calendar.class);
                       mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                   }
                   
                   @Test
                   void testWithCurrency() {
-                      mockedCurrency = mockStatic(Currency.class);
                       mockedCurrency.verify(Currency::getAvailableCurrencies, never());
                   }
               
@@ -140,6 +145,12 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               package org.testng.annotations;
 
               public @interface AfterMethod {}
+              """
+          ), java(
+            """
+              package org.testng.annotations;
+
+              public @interface BeforeMethod {}
               """
           ), java(
             """
@@ -196,6 +207,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                 
                 import org.mockito.MockedStatic;
                 import org.testng.annotations.AfterMethod;
+                import org.testng.annotations.BeforeMethod;
                 import org.testng.annotations.Test;
                 
                 public class StaticMethodTest {
@@ -206,6 +218,12 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                     
                     private Calendar calendarMock = mock(Calendar.class);
                 
+                    @BeforeMethod
+                    void setUp() {
+                        mockedCalendar = mockStatic(Calendar.class);
+                        mockedCurrency = mockStatic(Currency.class);
+                    }
+                
                     @AfterMethod
                     void tearDown() {
                         mockedCalendar.close();
@@ -214,14 +232,12 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                     
                     @Test
                     void testWithCalendar() {
-                        mockedCalendar = mockStatic(Calendar.class);
                         mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
                         assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                     }
                     
                     @Test
                     void testWithCurrency() {
-                        mockedCurrency = mockStatic(Currency.class);
                         mockedCurrency.verify(Currency::getAvailableCurrencies, never());
                     }
                 

@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.jetbrains.annotations.NotNull;
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -29,7 +28,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class PowerMockitoMockStaticToMockito extends Recipe {
-
 
     @Override
     public String getDisplayName() {
@@ -49,7 +47,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
     private static class PowerMockitoToMockitoVisitor extends JavaVisitor<ExecutionContext> {
 
-        private static final String AFTER_EACH = "org.junit.jupiter.api.AfterEach";
         private static final String MOCKED_STATIC = "org.mockito.MockedStatic";
         private static final String POWER_MOCK_RUNNER = "org.powermock.modules.junit4.PowerMockRunner";
         private static final MethodMatcher MOCKED_STATIC_MATCHER = new MethodMatcher("org.mockito.Mockito mockStatic(..)");
@@ -59,11 +56,55 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 new AnnotationMatcher("@org.powermock.core.classloader.annotations.PrepareForTest");
         private static final AnnotationMatcher RUN_WITH_POWER_MOCK_RUNNER_MATCHER =
                 new AnnotationMatcher("@org.junit.runner.RunWith(" + POWER_MOCK_RUNNER + ".class)");
-        private static final AnnotationMatcher tearDownAnnotationMatcher = new AnnotationMatcher("@" + AFTER_EACH);
 
         private static final MethodMatcher MOCKITO_WHEN_MATCHER = new MethodMatcher("org.mockito.Mockito when(..)");
         private static final MethodMatcher MOCKITO_STATIC_METHOD_MATCHER = new MethodMatcher("org.mockito.Mockito *(..)");
         public static final String MOCKED_TYPES_FIELDS = "mockedTypesFields";
+
+        private boolean useTestNgAnnotations = false;
+
+        private TestFrameworkInfo testFrameworkInfo;
+
+        private static class TestFrameworkInfo {
+            private final String setUpMethodAnnotationSignature;
+
+            private final String setUpMethodAnnotation;
+
+            private final String tearDownMethodAnnotationSignature;
+
+            private final String tearDownMethodAnnotation;
+
+            private final String additionalClasspathResource;
+
+            private final String setUpImportToAdd;
+
+            private final String tearDownImportToAdd;
+
+            public TestFrameworkInfo(String setUpMethodAnnotationSignature, String setUpMethodAnnotation, String tearDownMethodAnnotationSignature,
+              String tearDownMethodAnnotation, String additionalClasspathResource, String setUpimportToAdd,
+              String tearDownImportToAdd) {
+                this.setUpMethodAnnotationSignature = setUpMethodAnnotationSignature;
+                this.setUpMethodAnnotation = setUpMethodAnnotation;
+                this.tearDownMethodAnnotationSignature = tearDownMethodAnnotationSignature;
+                this.tearDownMethodAnnotation = tearDownMethodAnnotation;
+                this.additionalClasspathResource = additionalClasspathResource;
+                this.setUpImportToAdd = setUpimportToAdd;
+                this.tearDownImportToAdd = tearDownImportToAdd;
+            }
+        }
+
+        private void initTestFrameworkInfo() {
+
+            if (useTestNgAnnotations) {
+                testFrameworkInfo = new TestFrameworkInfo("@org.testng.annotations.BeforeMethod", "@BeforeMethod",
+                  "@org.testng.annotations.AfterMethod", "@AfterMethod", "testng-7.7.1",
+                  "org.testng.annotations.BeforeMethod", "org.testng.annotations.AfterMethod");
+            } else {
+                testFrameworkInfo = new TestFrameworkInfo("@org.junit.jupiter.api.BeforeEach", "@BeforeEach",
+                  "@org.junit.jupiter.api.AfterEach", "@AfterEach", "junit-jupiter-api-5.9.2",
+                  "org.junit.jupiter.api.BeforeEach", "org.junit.jupiter.api.AfterEach");
+            }
+        }
 
         private List<J.Identifier> getMockedTypesFields() {
             if (mockedTypesFields == null) {
@@ -91,11 +132,17 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 }
             }
 
+            useTestNgAnnotations = containsTestNgTestMethods(classDecl.getBody().getStatements().stream()
+              .filter(statement -> statement instanceof J.MethodDeclaration)
+              .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
+            initTestFrameworkInfo();
+
             if (!prepareForTestAnnotations.isEmpty()) {
                 List<Expression> mockedTypes = getMockedTypesFromPrepareForTestAnnotation(prepareForTestAnnotations);
 
-                // If there are mocked types, add an empty tearDown() method if not yet present
+                // If there are mocked types, add empty setUp() and tearDown() methods if not yet present
                 if (!mockedTypes.isEmpty()) {
+                    classDecl = maybeAddSetUpMethodBody(classDecl, ctx);
                     classDecl = maybeAddTearDownMethodBody(classDecl, ctx);
                     classDecl = addFieldDeclarationForMockedTypes(classDecl, ctx, mockedTypes);
                 }
@@ -165,29 +212,43 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         }
 
         @NotNull
-        private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            if (hasTearDownMethod(classDecl)) {
+        private J.ClassDeclaration maybeAddSetUpMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            return maybeAddMethodWithAnnotation(classDecl, ctx, "setUp",
+              testFrameworkInfo.setUpMethodAnnotation, testFrameworkInfo.additionalClasspathResource,
+              testFrameworkInfo.setUpImportToAdd);
+        }
+
+        @NotNull
+        private J.ClassDeclaration maybeAddMethodWithAnnotation(J.ClassDeclaration classDecl, ExecutionContext ctx,
+          String methodName, String methodAnnotationSignature, String additionalClasspathResource, String importToAdd) {
+            if (hasMethodWithAnnotation(classDecl, new AnnotationMatcher(methodAnnotationSignature))) {
                 return classDecl;
             }
-            J.MethodDeclaration firstTestMethod = getFirstTestMethod(classDecl.getBody().getStatements().stream().filter(statement -> statement instanceof J.MethodDeclaration)
-                    .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
 
-            // Tear down only makes sen
+            J.MethodDeclaration firstTestMethod = getFirstTestMethod(classDecl.getBody().getStatements().stream().filter(statement -> statement instanceof J.MethodDeclaration)
+              .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
+
             JavaCoordinates tearDownCoordinates = (firstTestMethod != null) ?
-                    firstTestMethod.getCoordinates().before() :
-                    classDecl.getBody().getCoordinates().lastStatement();
+              firstTestMethod.getCoordinates().before() :
+              classDecl.getBody().getCoordinates().lastStatement();
             classDecl = classDecl.withBody(classDecl.getBody()
-                    .withTemplate(
-                            JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                                            "@AfterEach void tearDown() {}")
-                                    .javaParser(() -> JavaParser.fromJavaVersion()
-                                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                                            .build())
-                                    .imports(AFTER_EACH)
-                                    .build(),
-                            tearDownCoordinates));
-            maybeAddImport(AFTER_EACH);
+              .withTemplate(
+                JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                    methodAnnotationSignature + " void " + methodName + "() {}")
+                  .javaParser(() -> JavaParser.fromJavaVersion()
+                    .classpathFromResources(ctx, additionalClasspathResource)
+                    .build())
+                  .imports(importToAdd)
+                  .build(),
+                tearDownCoordinates));
+            maybeAddImport(importToAdd);
             return classDecl;
+        }
+
+        @NotNull
+        private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            return maybeAddMethodWithAnnotation(classDecl, ctx, "tearDown", testFrameworkInfo.tearDownMethodAnnotation,
+              testFrameworkInfo.additionalClasspathResource, testFrameworkInfo.tearDownImportToAdd);
         }
 
         @Nullable
@@ -202,12 +263,25 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             return null;
         }
 
-        private static boolean hasTearDownMethod(J.ClassDeclaration classDecl) {
+        private static boolean containsTestNgTestMethods(List<J.MethodDeclaration> methods) {
+            for (J.MethodDeclaration methodDeclaration : methods) {
+                for (J.Annotation annotation : methodDeclaration.getAllAnnotations()) {
+                    JavaType annotationType = annotation.getAnnotationType().getType();
+                    if (annotationType instanceof JavaType.Class && ((JavaType.Class) annotationType)
+                      .getFullyQualifiedName().equals("org.testng.annotations.Test")) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private static boolean hasMethodWithAnnotation(J.ClassDeclaration classDecl, AnnotationMatcher annotationMatcher) {
             for (Statement statement : classDecl.getBody().getStatements()) {
                 if (statement instanceof J.MethodDeclaration) {
                     J.MethodDeclaration methodDeclaration = (J.MethodDeclaration) statement;
                     if (methodDeclaration.getAllAnnotations().stream()
-                            .anyMatch(tearDownAnnotationMatcher::matches)) {
+                            .anyMatch(annotationMatcher::matches)) {
                         return true;
                     }
                 }
@@ -238,9 +312,13 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = (J.MethodDeclaration) super.visitMethodDeclaration(method, ctx);
 
-            // Only the @AfterEach or @AfterMethod is relevant
+            AnnotationMatcher tearDownAnnotationMatcher = new AnnotationMatcher(testFrameworkInfo.tearDownMethodAnnotationSignature);
             if (m.getAllAnnotations().stream().anyMatch(tearDownAnnotationMatcher::matches)) {
                 List<J.Identifier> mockedTypesIdentifiers = getCursor().pollNearestMessage(MOCKED_TYPES_FIELDS);
+                if (mockedTypesIdentifiers == null) {
+                    mockedTypesIdentifiers = getMockedTypesFields();
+                }
+
                 if (mockedTypesIdentifiers != null) {
                     for (J.Identifier mockedTypesField : mockedTypesIdentifiers) {
                         // Only add close method invocation if not already exists
@@ -259,9 +337,46 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                                 mockedTypesField
                         ));
                     }
-                    // The mocked field are needed for other visitors
-                    setMockedTypesFields(mockedTypesIdentifiers);
                 }
+                // The mocked field are needed for other visitors
+                setMockedTypesFields(mockedTypesIdentifiers);
+                return m;
+            }
+
+            AnnotationMatcher setUpAnnotationMatcher = new AnnotationMatcher(
+              testFrameworkInfo.setUpMethodAnnotationSignature);
+            if (m.getAllAnnotations().stream().anyMatch(setUpAnnotationMatcher::matches)) {
+                List<J.Identifier> mockedTypesIdentifiers = getCursor().pollNearestMessage(MOCKED_TYPES_FIELDS);
+                if (mockedTypesIdentifiers == null) {
+                    mockedTypesIdentifiers = getMockedTypesFields();
+                }
+
+                if (mockedTypesIdentifiers != null) {
+                    for (J.Identifier mockedTypesField : mockedTypesIdentifiers) {
+                        // Only add close method invocation if not already exists
+                        J.Block methodBody = m.getBody();
+                        if (methodBody == null || isStaticMockAlreadyOpened(mockedTypesField, methodBody)) {
+                            continue;
+                        }
+
+                        String className = ((JavaType.Class) ((JavaType.Parameterized) mockedTypesField.getType()).getTypeParameters()
+                          .get(0)).getClassName();
+                        m = m.withBody(methodBody.withTemplate(
+                          JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                              "mocked#{any(org.mockito.MockedStatic)} = mockStatic(#{}.class);")
+                            .javaParser(() -> JavaParser.fromJavaVersion()
+                              .classpathFromResources(ctx, "mockito-core-3.*")
+                              .build())
+                            .build(),
+                          methodBody.getCoordinates().lastStatement(),
+                          mockedTypesField,
+                          className
+                        ));
+                    }
+                }
+                // The mocked field are needed for other visitors
+                setMockedTypesFields(mockedTypesIdentifiers);
+                return m;
             }
             return m;
         }
@@ -279,28 +394,28 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                             .equals(staticMock.getSimpleName()));
         }
 
+        private static boolean isStaticMockAlreadyOpened(J.Identifier staticMock, J.Block methodBody) {
+            return methodBody.getStatements().stream().filter(statement -> statement instanceof J.MethodInvocation)
+              .map(J.MethodInvocation.class::cast)
+              .filter(MOCKED_STATIC_MATCHER::matches)
+              .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
+              .anyMatch(methodInvocation -> ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
+                .equals(staticMock.getSimpleName()));
+        }
+
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (MOCKED_STATIC_MATCHER.matches(method) && isUnassignedInMethod()) {
-                List<Expression> methodArguments = method.getArguments();
-                JavaType.Method methodType = method.getMethodType();
-                if (methodArguments.size() == 1 && !(methodArguments.get(0) instanceof J.Empty) &&
-                        methodType != null) {
-                    J.FieldAccess fieldAccess = (J.FieldAccess) methodArguments.get(0);
-                    String className = fieldAccess.getTarget().toString();
-                    J.Assignment assignment = method.withTemplate(
-                            JavaTemplate.builder(this::getCursor,
-                                    "mocked#{} = #{any(org.mockito.MockedStatic)};").build(),
-                            method.getCoordinates().replace(),
-                            className,
-                            method
-                    );
-                    return assignment.withVariable(assignment.getVariable().withType(fieldAccess.getType()));
-                }
-            }
             if (MOCKITO_WHEN_MATCHER.matches(method)
                     || MOCKITO_VERIFY_MATCHER.matches(method)) {
                 method = modifyWhenMethodInvocation(method);
+            } else if (MOCKED_STATIC_MATCHER.matches(method)) {
+                AnnotationMatcher setUpMethodAnnotationMatcher = new AnnotationMatcher(
+                  testFrameworkInfo.setUpMethodAnnotationSignature);
+                if (getCursor().firstEnclosing(J.MethodDeclaration.class).getAllAnnotations().stream()
+                  .anyMatch(setUpMethodAnnotationMatcher::matches)) {
+                    return super.visitMethodInvocation(method, ctx);
+                }
+                return null;
             }
             return super.visitMethodInvocation(method, ctx);
         }
@@ -358,15 +473,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 return declaringType.getClassName();
             }
             return null;
-        }
-
-        private boolean isUnassignedInMethod() {
-            if (getCursor().getParentTreeCursor().getValue() instanceof J.Assignment) {
-                return false;
-            }
-            Cursor declaringScope = getCursor().dropParentUntil(it -> it instanceof J.ClassDeclaration
-                    || it instanceof J.MethodDeclaration || it == Cursor.ROOT_VALUE);
-            return declaringScope.getValue() instanceof J.MethodDeclaration;
         }
 
         @Nullable
