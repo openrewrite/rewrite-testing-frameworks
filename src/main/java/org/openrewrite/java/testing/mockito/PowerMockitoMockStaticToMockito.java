@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.jetbrains.annotations.NotNull;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -47,6 +48,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
     private static class PowerMockitoToMockitoVisitor extends JavaVisitor<ExecutionContext> {
 
+        private static final TestFrameworkInfo TESTNG_FRAMEWORK_INFO = new TestFrameworkInfo("BeforeMethod",
+          "AfterMethod", "org.testng.annotations", "testng-7.7.1");
+
+        private static final TestFrameworkInfo JUNIT_FRAMEWORK_INFO = new TestFrameworkInfo("BeforeEach", "AfterEach",
+          "org.junit.jupiter.api", "junit-jupiter-api-5.9.2");
+
         private static final String MOCKED_STATIC = "org.mockito.MockedStatic";
         private static final String POWER_MOCK_RUNNER = "org.powermock.modules.junit4.PowerMockRunner";
         private static final MethodMatcher MOCKED_STATIC_MATCHER = new MethodMatcher("org.mockito.Mockito mockStatic(..)");
@@ -60,8 +67,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private static final MethodMatcher MOCKITO_WHEN_MATCHER = new MethodMatcher("org.mockito.Mockito when(..)");
         private static final MethodMatcher MOCKITO_STATIC_METHOD_MATCHER = new MethodMatcher("org.mockito.Mockito *(..)");
         public static final String MOCKED_TYPES_FIELDS = "mockedTypesFields";
-
-        private boolean useTestNgAnnotations = false;
 
         private TestFrameworkInfo testFrameworkInfo;
 
@@ -80,29 +85,26 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
             private final String tearDownImportToAdd;
 
-            public TestFrameworkInfo(String setUpMethodAnnotationSignature, String setUpMethodAnnotation, String tearDownMethodAnnotationSignature,
-              String tearDownMethodAnnotation, String additionalClasspathResource, String setUpimportToAdd,
-              String tearDownImportToAdd) {
-                this.setUpMethodAnnotationSignature = setUpMethodAnnotationSignature;
-                this.setUpMethodAnnotation = setUpMethodAnnotation;
-                this.tearDownMethodAnnotationSignature = tearDownMethodAnnotationSignature;
-                this.tearDownMethodAnnotation = tearDownMethodAnnotation;
+            public TestFrameworkInfo(String setUpMethodAnnotationName, String tearDownMethodAnnotationName,
+              String annotationPackage, String additionalClasspathResource) {
+                this.setUpMethodAnnotation = "@" + setUpMethodAnnotationName;
+                this.tearDownMethodAnnotation = "@" + tearDownMethodAnnotationName;
+
+                this.setUpMethodAnnotationSignature = "@" + annotationPackage + "." + setUpMethodAnnotationName;
+                this.tearDownMethodAnnotationSignature = "@" + annotationPackage + "." + tearDownMethodAnnotationName;
+
+                this.setUpImportToAdd = annotationPackage + "." + setUpMethodAnnotationName;
+                this.tearDownImportToAdd = annotationPackage + "." + tearDownMethodAnnotationName;
+
                 this.additionalClasspathResource = additionalClasspathResource;
-                this.setUpImportToAdd = setUpimportToAdd;
-                this.tearDownImportToAdd = tearDownImportToAdd;
             }
         }
 
-        private void initTestFrameworkInfo() {
-
-            if (useTestNgAnnotations) {
-                testFrameworkInfo = new TestFrameworkInfo("@org.testng.annotations.BeforeMethod", "@BeforeMethod",
-                  "@org.testng.annotations.AfterMethod", "@AfterMethod", "testng-7.7.1",
-                  "org.testng.annotations.BeforeMethod", "org.testng.annotations.AfterMethod");
+        private void initTestFrameworkInfo(boolean useTestNg) {
+            if (useTestNg) {
+                testFrameworkInfo = TESTNG_FRAMEWORK_INFO;
             } else {
-                testFrameworkInfo = new TestFrameworkInfo("@org.junit.jupiter.api.BeforeEach", "@BeforeEach",
-                  "@org.junit.jupiter.api.AfterEach", "@AfterEach", "junit-jupiter-api-5.9.2",
-                  "org.junit.jupiter.api.BeforeEach", "org.junit.jupiter.api.AfterEach");
+                testFrameworkInfo = JUNIT_FRAMEWORK_INFO;
             }
         }
 
@@ -132,10 +134,10 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 }
             }
 
-            useTestNgAnnotations = containsTestNgTestMethods(classDecl.getBody().getStatements().stream()
+            boolean useTestNg = containsTestNgTestMethods(classDecl.getBody().getStatements().stream()
               .filter(statement -> statement instanceof J.MethodDeclaration)
               .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
-            initTestFrameworkInfo();
+            initTestFrameworkInfo(useTestNg);
 
             if (!prepareForTestAnnotations.isEmpty()) {
                 List<Expression> mockedTypes = getMockedTypesFromPrepareForTestAnnotation(prepareForTestAnnotations);
@@ -214,19 +216,21 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         @NotNull
         private J.ClassDeclaration maybeAddSetUpMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             return maybeAddMethodWithAnnotation(classDecl, ctx, "setUp",
-              testFrameworkInfo.setUpMethodAnnotation, testFrameworkInfo.additionalClasspathResource,
-              testFrameworkInfo.setUpImportToAdd);
+              testFrameworkInfo.setUpMethodAnnotationSignature, testFrameworkInfo.setUpMethodAnnotation,
+              testFrameworkInfo.additionalClasspathResource, testFrameworkInfo.setUpImportToAdd);
         }
 
         @NotNull
         private J.ClassDeclaration maybeAddMethodWithAnnotation(J.ClassDeclaration classDecl, ExecutionContext ctx,
-          String methodName, String methodAnnotationSignature, String additionalClasspathResource, String importToAdd) {
+          String methodName, String methodAnnotationSignature, String methodAnnotationToAdd,
+          String additionalClasspathResource, String importToAdd) {
             if (hasMethodWithAnnotation(classDecl, new AnnotationMatcher(methodAnnotationSignature))) {
                 return classDecl;
             }
 
-            J.MethodDeclaration firstTestMethod = getFirstTestMethod(classDecl.getBody().getStatements().stream().filter(statement -> statement instanceof J.MethodDeclaration)
-              .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
+            J.MethodDeclaration firstTestMethod = getFirstTestMethod(
+              classDecl.getBody().getStatements().stream().filter(statement -> statement instanceof J.MethodDeclaration)
+                .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
 
             JavaCoordinates tearDownCoordinates = (firstTestMethod != null) ?
               firstTestMethod.getCoordinates().before() :
@@ -234,7 +238,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             classDecl = classDecl.withBody(classDecl.getBody()
               .withTemplate(
                 JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                    methodAnnotationSignature + " void " + methodName + "() {}")
+                    methodAnnotationToAdd + " void " + methodName + "() {}")
                   .javaParser(() -> JavaParser.fromJavaVersion()
                     .classpathFromResources(ctx, additionalClasspathResource)
                     .build())
@@ -247,7 +251,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         @NotNull
         private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            return maybeAddMethodWithAnnotation(classDecl, ctx, "tearDown", testFrameworkInfo.tearDownMethodAnnotation,
+            return maybeAddMethodWithAnnotation(classDecl, ctx, "tearDown",
+              testFrameworkInfo.tearDownMethodAnnotationSignature, testFrameworkInfo.tearDownMethodAnnotation,
               testFrameworkInfo.additionalClasspathResource, testFrameworkInfo.tearDownImportToAdd);
         }
 
@@ -409,10 +414,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     || MOCKITO_VERIFY_MATCHER.matches(method)) {
                 method = modifyWhenMethodInvocation(method);
             } else if (MOCKED_STATIC_MATCHER.matches(method)) {
-                AnnotationMatcher setUpMethodAnnotationMatcher = new AnnotationMatcher(
-                  testFrameworkInfo.setUpMethodAnnotationSignature);
-                if (getCursor().firstEnclosing(J.MethodDeclaration.class).getAllAnnotations().stream()
-                  .anyMatch(setUpMethodAnnotationMatcher::matches)) {
+                J.Assignment assignment = getCursor().firstEnclosing(J.Assignment.class);
+                if (assignment != null) {
                     return super.visitMethodInvocation(method, ctx);
                 }
                 return null;
