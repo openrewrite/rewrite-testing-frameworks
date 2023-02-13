@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -28,7 +29,14 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
-            .classpath("apiguardian-api", "mockito-core", "powermock-api-mockito", "junit-jupiter-api", "junit", "powermock-core"))
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "apiguardian-api-1.1.2",
+              "junit-4.13.2",
+              "junit-jupiter-api-5.9.2",
+              "mockito-core-3.12.4",
+              "powermock-api-mockito-1.7.4",
+              "powermock-core-1.7.4"
+            ))
           .recipe(new PowerMockitoMockStaticToMockito());
     }
 
@@ -60,12 +68,18 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import java.util.Calendar;
               
               import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
               
               public class MyTest {
                             
                   private MockedStatic<Calendar> mockedCalendar;
+              
+                  @BeforeEach
+                  void setUp() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                  }
               
                   @AfterEach
                   void tearDown() {
@@ -74,7 +88,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               
                   @Test
                   void testStaticMethod() {
-                      mockedCalendar = mockStatic(Calendar.class);
                   }
               }
               """
@@ -113,6 +126,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import java.util.Currency;
               
               import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
               
@@ -122,6 +136,12 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               
                   private MockedStatic<Calendar> mockedCalendar;
               
+                  @BeforeEach
+                  void setUp() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                      mockedCurrency = mockStatic(Currency.class);
+                  }
+              
                   @AfterEach
                   void tearDown() {
                       mockedCalendar.close();
@@ -130,8 +150,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               
                   @Test
                   void testStaticMethod() {
-                      mockedCalendar = mockStatic(Calendar.class);
-                      mockedCurrency = mockStatic(Currency.class);
                   }
               }
               """
@@ -188,4 +206,135 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void argumentOfWhenOnStaticMethodWithParametersIsReplacedByLambda() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.mockito.Mockito.*;
+                            
+              import java.util.Calendar;
+              import java.util.Locale;
+                            
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+                            
+              public class MyTest {
+                            
+                  private MockedStatic<Calendar> mockedCalendar;
+                
+                  private Calendar calendarMock = mock(Calendar.class);
+                            
+                  @Test
+                  void testStaticMethod() {
+                      when(Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.*;
+                            
+              import java.util.Calendar;
+              import java.util.Locale;
+                            
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+                            
+              public class MyTest {
+                            
+                  private MockedStatic<Calendar> mockedCalendar;
+                  
+                  private Calendar calendarMock = mock(Calendar.class);
+                  
+                  @Test
+                  void testStaticMethod() {
+                      mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void argumentOfWhenOnInstanceMethodsAreNotReplaced() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.mockito.Mockito.*;
+                            
+              import java.util.Calendar;
+              import java.util.Locale;
+                            
+              import org.junit.jupiter.api.Test;
+                            
+              public class MyTest {
+                            
+                  private Calendar calendarMock = mock(Calendar.class);
+                            
+                  @Test
+                  void testStaticMethod() {
+                    when(calendarMock.toString()).thenReturn(null);
+                  }
+              }
+              """
+          )
+        );
+    }
+    @Test
+    void argumentOfVerifyOnParameterlessStaticMethodIsReplacedBySimpleLambda() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.mockito.Mockito.*;
+                            
+              import java.util.Currency;
+              import java.util.Locale;
+                            
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+                            
+              public class MyTest {
+                            
+                  private MockedStatic<Currency> mockedCurrency;
+                
+                  private Currency currencyMock = mock(Currency.class);
+                            
+                  @Test
+                  void testStaticMethod() {
+                      verify(Currency.getInstance(Locale.ENGLISH), never());
+                      verify(Currency.getAvailableCurrencies(), atLeastOnce());
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.*;
+                            
+              import java.util.Currency;
+              import java.util.Locale;
+                            
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+                            
+              public class MyTest {
+                            
+                  private MockedStatic<Currency> mockedCurrency;
+                
+                  private Currency currencyMock = mock(Currency.class);
+                            
+                  @Test
+                  void testStaticMethod() {
+                      mockedCurrency.verify(() -> Currency.getInstance(Locale.ENGLISH), never());
+                      mockedCurrency.verify(Currency::getAvailableCurrencies, atLeastOnce());
+                  }
+              }
+             """
+          )
+        );
+    }
+
 }

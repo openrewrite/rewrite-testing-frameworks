@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package org.openrewrite.java.testing.mockito;
+package org.openrewrite.java.testing.mockito;
 
 import static org.openrewrite.java.Assertions.java;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
@@ -25,14 +24,18 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-@Disabled("TODO - this test is failing")
 class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "mockito-all-1.10.19", "junit-jupiter-api-5.9.2", "junit-4.13.2", "powermock-core-1.6.5", "powermock-api-mockito-1.6.5"))
+              "mockito-core-3.12.4",
+              "junit-jupiter-api-5.9.2",
+              "junit-4.13.2",
+              "powermock-core-1.7.4",
+              "powermock-api-mockito-1.7.4",
+              "testng-7.7.1"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
             .build()
@@ -40,7 +43,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     }
 
     @Test
-    void testThatMockStaticGetsReplaced() {
+    void testThatPowerMockitoIsReplacedInJunitTests() {
         //language=java
         rewriteRun(java("""
           package org.powermock.modules.junit4;
@@ -49,70 +52,184 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           """
         ), java(
           """
-            package mockito.example;
-
-            import static org.mockito.Mockito.mock;
-            import static org.mockito.Mockito.when;
-            import static org.powermock.api.mockito.PowerMockito.mockStatic;
-            import static org.junit.jupiter.api.Assertions.assertEquals;
-            
-            import java.util.Calendar;
-            
-            import org.junit.runner.RunWith;
-            import org.powermock.core.classloader.annotations.PowerMockIgnore;
-            import org.powermock.core.classloader.annotations.PrepareForTest;
-            import org.powermock.modules.junit4.PowerMockRunner;
-            import org.junit.jupiter.api.Test;
-            
-            @RunWith(PowerMockRunner.class)
-            @PowerMockIgnore({"org.apache.*", "com.sun.*", "javax.*"})
-            @PrepareForTest(value = {Calendar.class})
-            public class StaticMethodTest {
-            
-                private Calendar calendarMock = mock(Calendar.class);
-            
-                @Test
-                void testWithCalendar() {
-                    mockStatic(Calendar.class);
-                    when(Calendar.getInstance()).thenReturn(calendarMock);
-                    assertEquals(Calendar.getInstance(), calendarMock);
-                }
-            
-            }
-          """,
+              import static org.mockito.Mockito.*;
+              import static org.powermock.api.mockito.PowerMockito.mockStatic;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              
+              import java.util.Calendar;
+              import java.util.Currency;
+              import java.util.Locale;
+              
+              import org.junit.runner.RunWith;
+              import org.junit.jupiter.api.Test;
+              import org.powermock.core.classloader.annotations.PowerMockIgnore;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+              
+              @RunWith(PowerMockRunner.class)
+              @PowerMockIgnore({"org.apache.*", "com.sun.*", "javax.*"})
+              @PrepareForTest(value = {Calendar.class, Currency.class})
+              public class StaticMethodTest {
+              
+                  private Calendar calendarMock = mock(Calendar.class);
+              
+                  @Test
+                  void testWithCalendar() {
+                      mockStatic(Calendar.class);
+                      when(Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                      assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
+                  }
+                  
+                  @Test
+                  void testWithCurrency() {
+                      mockStatic(Currency.class);
+                      verify(Currency.getAvailableCurrencies(), never());
+                  }
+              
+              }
+            """,
           """
-            package mockito.example;
-
-            import static org.mockito.Mockito.mock;
-            import static org.mockito.Mockito.mockStatic;
-            import static org.junit.jupiter.api.Assertions.assertEquals;
-            
-            import java.util.Calendar;
-            
-            import org.mockito.MockedStatic;
-            import org.junit.jupiter.api.AfterEach;
-            import org.junit.jupiter.api.Test;
-            
-            public class StaticMethodTest {
-            
-                private MockedStatic<Calendar> mockedCalendar;
-                
-                private Calendar calendarMock = mock(Calendar.class);
-            
-                @AfterEach
-                void tearDown() {
-                    mockedCalendar.close();
-                }
-                
-                @Test
-                void testWithCalendar() {
-                    mockedCalendar = mockStatic(Calendar.class);
-                    mockedStatic.when(Calendar::getInstance).thenReturn(calendarMock);
-                    assertEquals(Calendar.getInstance(), calendarMock);
-                }
-            
-            }
-          """
+              import static org.mockito.Mockito.*;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              
+              import java.util.Calendar;
+              import java.util.Currency;
+              import java.util.Locale;
+              
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+              
+              public class StaticMethodTest {
+              
+                  private MockedStatic<Currency> mockedCurrency;
+                  
+                  private MockedStatic<Calendar> mockedCalendar;
+                  
+                  private Calendar calendarMock = mock(Calendar.class);
+              
+                  @BeforeEach
+                  void setUp() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                      mockedCurrency = mockStatic(Currency.class);
+                  }
+              
+                  @AfterEach
+                  void tearDown() {
+                      mockedCalendar.close();
+                      mockedCurrency.close();
+                  }
+                  
+                  @Test
+                  void testWithCalendar() {
+                      mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                      assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
+                  }
+                  
+                  @Test
+                  void testWithCurrency() {
+                      mockedCurrency.verify(Currency::getAvailableCurrencies, never());
+                  }
+              
+              }
+            """
         ));
+    }
+
+    @Test
+    void testThatPowerMockitoIsReplacedInTestNGTests() {
+        //language=java
+        rewriteRun(java("""
+            package org.powermock.modules.junit4;
+
+            public class PowerMockRunner {}
+            """
+          ),
+          java(
+            """
+                import static org.mockito.Mockito.*;
+                import static org.powermock.api.mockito.PowerMockito.mockStatic;
+                import static org.junit.jupiter.api.Assertions.assertEquals;
+                
+                import java.util.Calendar;
+                import java.util.Currency;
+                import java.util.Locale;
+                
+                import org.junit.runner.RunWith;
+                import org.powermock.core.classloader.annotations.PowerMockIgnore;
+                import org.powermock.core.classloader.annotations.PrepareForTest;
+                import org.powermock.modules.junit4.PowerMockRunner;
+                import org.testng.annotations.Test;
+                
+                @RunWith(PowerMockRunner.class)
+                @PowerMockIgnore({"org.apache.*", "com.sun.*", "javax.*"})
+                @PrepareForTest(value = {Calendar.class, Currency.class})
+                public class StaticMethodTest {
+                
+                    private Calendar calendarMock = mock(Calendar.class);
+                
+                    @Test
+                    void testWithCalendar() {
+                        mockStatic(Calendar.class);
+                        when(Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                        assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
+                    }
+                    
+                    @Test
+                    void testWithCurrency() {
+                        mockStatic(Currency.class);
+                        verify(Currency.getAvailableCurrencies(), never());
+                    }
+                
+                }
+              """,
+            """
+                import static org.mockito.Mockito.*;
+                import static org.junit.jupiter.api.Assertions.assertEquals;
+                
+                import java.util.Calendar;
+                import java.util.Currency;
+                import java.util.Locale;
+                
+                import org.mockito.MockedStatic;
+                import org.testng.annotations.AfterMethod;
+                import org.testng.annotations.BeforeMethod;
+                import org.testng.annotations.Test;
+                
+                public class StaticMethodTest {
+                
+                    private MockedStatic<Currency> mockedCurrency;
+                    
+                    private MockedStatic<Calendar> mockedCalendar;
+                    
+                    private Calendar calendarMock = mock(Calendar.class);
+                
+                    @BeforeMethod
+                    void setUp() {
+                        mockedCalendar = mockStatic(Calendar.class);
+                        mockedCurrency = mockStatic(Currency.class);
+                    }
+                
+                    @AfterMethod
+                    void tearDown() {
+                        mockedCalendar.close();
+                        mockedCurrency.close();
+                    }
+                    
+                    @Test
+                    void testWithCalendar() {
+                        mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                        assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
+                    }
+                    
+                    @Test
+                    void testWithCurrency() {
+                        mockedCurrency.verify(Currency::getAvailableCurrencies, never());
+                    }
+                
+                }
+              """
+          ));
     }
 }
