@@ -68,12 +68,18 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import java.util.Calendar;
               
               import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
               
               public class MyTest {
                             
                   private MockedStatic<Calendar> mockedCalendar;
+              
+                  @BeforeEach
+                  void setUp() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                  }
               
                   @AfterEach
                   void tearDown() {
@@ -82,7 +88,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               
                   @Test
                   void testStaticMethod() {
-                      mockedCalendar = mockStatic(Calendar.class);
                   }
               }
               """
@@ -121,6 +126,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import java.util.Currency;
               
               import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
               
@@ -130,6 +136,12 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               
                   private MockedStatic<Calendar> mockedCalendar;
               
+                  @BeforeEach
+                  void setUp() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                      mockedCurrency = mockStatic(Currency.class);
+                  }
+              
                   @AfterEach
                   void tearDown() {
                       mockedCalendar.close();
@@ -138,8 +150,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               
                   @Test
                   void testStaticMethod() {
-                      mockedCalendar = mockStatic(Calendar.class);
-                      mockedCurrency = mockStatic(Currency.class);
                   }
               }
               """
