@@ -17,10 +17,10 @@ package org.openrewrite.java.testing.junit5;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.NonNull;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -98,7 +98,7 @@ public class EnclosedToNested extends Recipe {
             return cd;
         }
 
-        @NotNull
+        @NonNull
         private JavaTemplate getNestedJavaTemplate(ExecutionContext ctx) {
             return JavaTemplate.builder(this::getCursor, "@Nested")
                     .javaParser(() -> JavaParser.fromJavaVersion()

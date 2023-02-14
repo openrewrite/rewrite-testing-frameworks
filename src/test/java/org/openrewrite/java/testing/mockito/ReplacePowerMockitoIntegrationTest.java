@@ -30,7 +30,12 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "mockito-core-3.12.4", "junit-jupiter-api-5.9.2", "junit-4.13.2", "powermock-core-1.7.4", "powermock-api-mockito-1.7.4"))
+              "mockito-core-3.12.4",
+              "junit-jupiter-api-5.9.2",
+              "junit-4.13.2",
+              "powermock-core-1.7.4",
+              "powermock-api-mockito-1.7.4",
+              "testng-7.7.1"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
             .build()
@@ -140,24 +145,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
             public class PowerMockRunner {}
             """
-          ), java(
-            """
-              package org.testng.annotations;
-
-              public @interface AfterMethod {}
-              """
-          ), java(
-            """
-              package org.testng.annotations;
-
-              public @interface BeforeMethod {}
-              """
-          ), java(
-            """
-              package org.testng.annotations;
-
-              public @interface Test {}
-              """
           ),
           java(
             """

@@ -129,7 +129,7 @@ tags:
   - mockito
 recipeList:
   - org.openrewrite.java.RemoveAnnotation:
-      annotationPattern: "org.powermock.core.classloader.annotations.PowerMockIgnore(..)"
+      annotationPattern: "@org.powermock.core.classloader.annotations.PowerMockIgnore"
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
