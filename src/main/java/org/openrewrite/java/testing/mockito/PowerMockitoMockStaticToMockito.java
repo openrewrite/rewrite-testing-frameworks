@@ -420,65 +420,13 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (MOCKITO_WHEN_MATCHER.matches(method)
-                    || MOCKITO_VERIFY_MATCHER.matches(method)) {
-                method = modifyWhenMethodInvocation(method);
-            } else if (MOCKED_STATIC_MATCHER.matches(method)) {
+            if (MOCKED_STATIC_MATCHER.matches(method)) {
                 J.Assignment assignment = getCursor().firstEnclosing(J.Assignment.class);
-                if (assignment != null) {
-                    return super.visitMethodInvocation(method, ctx);
+                if (assignment == null) {
+                    return null;
                 }
-                return null;
             }
             return super.visitMethodInvocation(method, ctx);
-        }
-
-        @NotNull
-        private J.MethodInvocation modifyWhenMethodInvocation(J.MethodInvocation whenMethod) {
-            List<Expression> methodArguments = whenMethod.getArguments();
-            List<J.MethodInvocation> staticMethodInvocationsInArguments = methodArguments.stream()
-                    .filter(expression -> expression instanceof J.MethodInvocation).map(J.MethodInvocation.class::cast)
-                    .filter(methodInvocation -> !MOCKITO_STATIC_METHOD_MATCHER.matches(methodInvocation))
-                    .filter(methodInvocation -> methodInvocation.getMethodType() != null)
-                    .filter(methodInvocation -> methodInvocation.getMethodType().hasFlags(Flag.Static))
-                    .collect(Collectors.toList());
-            if (staticMethodInvocationsInArguments.size() == 1) {
-                J.MethodInvocation staticMI = staticMethodInvocationsInArguments.get(0);
-                Expression lambdaInvocation;
-                String declaringClassName = getDeclaringClassName(staticMI);
-                if (staticMI.getArguments().stream().map(Expression::getType)
-                        .noneMatch(Objects::nonNull)) {
-                    // If the method invocation has no arguments
-                    lambdaInvocation = staticMI.withTemplate(
-                            JavaTemplate.builder(this::getCursor,
-                                    declaringClassName + "::" + staticMI.getSimpleName()).build(),
-                            staticMI.getCoordinates().replace()
-                    );
-                } else {
-                    JavaType.Method methodType = staticMI.getMethodType();
-                    JavaType returnType = methodType.getReturnType();
-                    JavaType returnTypeForTemplate = returnType instanceof JavaType.Parameterized ?
-                      ((JavaType.Parameterized) returnType).getType() : returnType;
-                    if (methodType != null) {
-                        lambdaInvocation = staticMI.withTemplate(
-                                JavaTemplate.builder(this::getCursor,
-                                        "() -> #{any(" + returnTypeForTemplate + ")}")
-                                  .build(),
-                                staticMI.getCoordinates().replace(),
-                                staticMI
-                        );
-                    } else {
-                        // do nothing
-                        lambdaInvocation = staticMI;
-                    }
-                }
-                if (Collections.replaceAll(methodArguments, staticMI, lambdaInvocation)) {
-                    J.Identifier mockedField = getFieldIdentifier("mocked" + declaringClassName);
-                    whenMethod = whenMethod.withSelect(mockedField);
-                    whenMethod = whenMethod.withArguments(methodArguments);
-                }
-            }
-            return whenMethod;
         }
 
         @Nullable
