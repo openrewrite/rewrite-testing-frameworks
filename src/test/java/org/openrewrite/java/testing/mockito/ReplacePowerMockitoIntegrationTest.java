@@ -15,14 +15,14 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import static org.openrewrite.java.Assertions.java;
-
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+
+import static org.openrewrite.java.Assertions.java;
 
 class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     @Override
@@ -231,5 +231,93 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                 }
               """
           ));
+    }
+
+    @Test
+    void testThatPowerMockitoMockStaticIsReplaced() {
+        //language=java
+        rewriteRun(java(
+          """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              
+              import static org.testng.Assert.assertEquals;
+              
+              import java.util.Calendar;
+              import java.util.Currency;
+              import java.util.Locale;
+              
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.testng.annotations.BeforeClass;
+              import org.testng.annotations.Test;
+              
+              @PrepareForTest(value = {Calendar.class, Currency.class})
+              public class StaticMethodTest {
+              
+                  private Calendar calendarMock;
+                  
+                  @BeforeClass
+                  void setUp() {
+                      calendarMock = Mockito.mock(Calendar.class);
+                  }
+                  
+                  @Test
+                  void testWithCalendar() {
+                      PowerMockito.mockStatic(Calendar.class);
+                      PowerMockito.mockStatic(Currency.class);
+                      Mockito.when(Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                      assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
+                      Mockito.verify(Currency.getAvailableCurrencies(), Mockito.never());
+                  }
+              
+              }
+            """,
+          """
+              import static org.testng.Assert.assertEquals;
+              
+              import java.util.Calendar;
+              import java.util.Currency;
+              import java.util.Locale;
+              
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.testng.annotations.BeforeClass;
+              import org.testng.annotations.Test;
+              
+              @PrepareForTest(value = {Calendar.class, Currency.class})
+              public class StaticMethodTest {
+              
+                  private MockedStatic<Currency> mockedCurrency;
+              
+                  private MockedStatic<Calendar> mockedCalendar;
+              
+                  private Calendar calendarMock;
+                  
+                  @BeforeClass
+                  void setUp() {
+                      calendarMock = Mockito.mock(Calendar.class);
+                  }
+                  
+                  @BeforeMethod
+                  void setUp() {
+                        mockedCalendar = Mockito.mockStatic(Calendar.class);
+                        mockedCurrency = Mockito.mockStatic(Currency.class);
+                  }
+                
+                  @AfterMethod
+                  void tearDown() {
+                      mockedCalendar.close();
+                      mockedCurrency.close();
+                  }
+                 
+                  @Test
+                  void testWithCalendar() {
+                      mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                      assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
+                      mockedCurrency.verify(Currency::getAvailableCurrencies, never());
+                  }
+              
+              }
+            """
+        ));
     }
 }
