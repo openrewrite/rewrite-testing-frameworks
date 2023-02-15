@@ -150,6 +150,10 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         }
 
         private void findMockStaticInvocations(J.ClassDeclaration classDecl) {
+            // Interfaces have null bodies
+            if (classDecl.getKind() == J.ClassDeclaration.Kind.Type.Interface) {
+                return;
+            }
             J.Block classBody = classDecl.getBody();
             List<J.Block> methodBodies = classBody.getStatements().stream()
               .filter(statement -> statement instanceof J.MethodDeclaration)
@@ -157,6 +161,9 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
               .map(J.MethodDeclaration::getBody).collect(Collectors.toList());
             Set<J.MethodInvocation> mockStaticMethodInvocations = new HashSet<>();
             for (J.Block methodBody : methodBodies) {
+                if (methodBody == null) {
+                    continue;
+                }
                 mockStaticMethodInvocations.addAll(
                   methodBody.getStatements()
                     .stream().filter(statement -> statement instanceof J.MethodInvocation)
