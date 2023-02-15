@@ -271,7 +271,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             if (initMethods.contains(m.getSimpleName()) || initMethodReferences.containsValue(m.getSimpleName())) {
                 if (m.getModifiers().stream().noneMatch(it -> J.Modifier.Type.Static.equals(it.getType()))) {
                     J.Modifier staticModifier = new J.Modifier(UUID.randomUUID(), Space.format(" "), Markers.EMPTY, J.Modifier.Type.Static, new ArrayList<>());
-                    m = maybeAutoFormat(m, m.withModifiers(ListUtils.concat(m.getModifiers(), staticModifier)), executionContext, getCursor().dropParentUntil(J.class::isInstance));
+                    m = maybeAutoFormat(m, m.withModifiers(ListUtils.concat(m.getModifiers(), staticModifier)), executionContext, getCursor().getParentTreeCursor());
                 }
             }
             return m;
