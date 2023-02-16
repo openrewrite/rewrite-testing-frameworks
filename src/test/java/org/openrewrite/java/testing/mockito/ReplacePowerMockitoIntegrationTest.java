@@ -112,13 +112,13 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   private Calendar calendarMock = mock(Calendar.class);
               
                   @BeforeEach
-                  void setUp() {
-                      mockedCalendar = mockStatic(Calendar.class);
+                  void setUpStaticMocks() {
                       mockedCurrency = mockStatic(Currency.class);
+                      mockedCalendar = mockStatic(Calendar.class);
                   }
               
                   @AfterEach
-                  void tearDown() {
+                  void tearDownStaticMocks() {
                       mockedCalendar.close();
                       mockedCurrency.close();
                   }
@@ -208,13 +208,13 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                     private Calendar calendarMock = mock(Calendar.class);
                 
                     @BeforeMethod
-                    void setUp() {
-                        mockedCalendar = mockStatic(Calendar.class);
+                    void setUpStaticMocks() {
                         mockedCurrency = mockStatic(Currency.class);
+                        mockedCalendar = mockStatic(Calendar.class);
                     }
                 
                     @AfterMethod
-                    void tearDown() {
+                    void tearDownStaticMocks() {
                         mockedCalendar.close();
                         mockedCurrency.close();
                     }
@@ -301,13 +301,13 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   }
                   
                   @BeforeMethod
-                  void setUp() {
-                      mockedCalendar = Mockito.mockStatic(Calendar.class);
+                  void setUpStaticMocks() {
                       mockedCurrency = Mockito.mockStatic(Currency.class);
+                      mockedCalendar = Mockito.mockStatic(Calendar.class);
                   }
                 
                   @AfterMethod
-                  void tearDown() {
+                  void tearDownStaticMocks() {
                       mockedCalendar.close();
                       mockedCurrency.close();
                   }

@@ -173,13 +173,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             Map<String, J.MethodInvocation> mockStaticInvocationsByClassName = new HashMap<>();
             for (J.MethodInvocation mockStaticMethodInvocation : mockStaticMethodInvocations) {
                 Optional<Expression> firstArgument = mockStaticMethodInvocation.getArguments().stream().findFirst();
-                if (firstArgument.isPresent()) {
-                    J.Identifier targetIdentifier = (J.Identifier) ((J.FieldAccess) firstArgument.get()).getTarget();
-                    JavaType argumentType = targetIdentifier.getType();
-                    if (argumentType != null) {
-                        mockStaticInvocationsByClassName.put(((JavaType.FullyQualified) argumentType).getClassName(), mockStaticMethodInvocation);
-                    }
-                }
+                firstArgument.ifPresent(expression -> mockStaticInvocationsByClassName.put(expression.toString(), mockStaticMethodInvocation));
             }
             getCursor().putMessage(MOCK_STATIC_INVOCATIONS, mockStaticInvocationsByClassName);
         }
@@ -247,7 +241,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         @NotNull
         private J.ClassDeclaration maybeAddSetUpMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            return maybeAddMethodWithAnnotation(classDecl, ctx, "setUp",
+            return maybeAddMethodWithAnnotation(classDecl, ctx, "setUpStaticMocks",
               setUpMethodAnnotationSignature, setUpMethodAnnotation,
               additionalClasspathResource, setUpImportToAdd);
         }
@@ -452,6 +446,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             } else if (MOCKED_STATIC_MATCHER.matches(method)) {
                 J.Assignment assignment = getCursor().firstEnclosing(J.Assignment.class);
                 if (assignment == null) {
+                    //noinspection DataFlowIssue
                     return null;
                 }
             }
