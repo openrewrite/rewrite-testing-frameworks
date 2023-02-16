@@ -128,7 +128,7 @@ public class TestsShouldNotBePublic extends Recipe {
                     if (!modifierComments.isEmpty()) {
                         c = c.withComments(ListUtils.concatAll(c.getComments(), modifierComments));
                     }
-                    c = maybeAutoFormat(c, c.withModifiers(modifiers), executionContext, getCursor().dropParentUntil(J.class::isInstance));
+                    c = maybeAutoFormat(c, c.withModifiers(modifiers), c.getName(), executionContext, getCursor().getParentTreeCursor());
                 }
             }
             return c;

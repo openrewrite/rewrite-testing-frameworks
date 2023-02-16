@@ -275,11 +275,14 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             if (initMethodDeclarationTemplate != null) {
                 cd = cd.withBody(cd.getBody().withTemplate(initMethodDeclarationTemplate,
                         cd.getBody().getCoordinates().lastStatement()));
+                J.Block finalBody = cd.getBody();
                 cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), stmt -> {
                     if (stmt instanceof J.MethodDeclaration) {
                         J.MethodDeclaration md = (J.MethodDeclaration) stmt;
                         if (md.getName().getSimpleName().equals(initMethodName)) {
-                            return md.withParameters(parameterizedTestMethodParameters);
+                            J.Block body = md.getBody(); // Preserve body formatting
+                            return autoFormat(md.withParameters(parameterizedTestMethodParameters).withBody(null),
+                                    executionContext, new Cursor(getCursor(), finalBody)).withBody(body);
                         }
                     }
                     return stmt;
@@ -289,18 +292,19 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             // if a constructor was converted to an init method then remove final modifiers from any associated field variables.
             final Set<String> fieldNames = getCursor().pollMessage("INIT_VARS");
             if (fieldNames != null && !fieldNames.isEmpty()) {
+                J.Block finalBody = cd.getBody();
                 cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
                     if (statement instanceof J.VariableDeclarations) {
                         J.VariableDeclarations varDecls = (J.VariableDeclarations) statement;
                         if (varDecls.getVariables().stream().anyMatch(it -> fieldNames.contains(it.getSimpleName()))
                                 && (varDecls.hasModifier(J.Modifier.Type.Final))) {
-                            statement = varDecls.withModifiers(ListUtils.map(varDecls.getModifiers(), mod -> mod.getType() == J.Modifier.Type.Final ? null : mod));
+                            varDecls = varDecls.withModifiers(ListUtils.map(varDecls.getModifiers(), mod -> mod.getType() == J.Modifier.Type.Final ? null : mod));
+                            statement = maybeAutoFormat(statement, varDecls, executionContext, new Cursor(getCursor(), finalBody));
                         }
                     }
                     return statement;
                 })));
             }
-            cd = maybeAutoFormat(classDecl, cd, executionContext);
             return cd;
         }
 
@@ -356,14 +360,14 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 assert m.getBody() != null;
                 JavaCoordinates newStatementCoordinates = !m.getBody().getStatements().isEmpty() ? m.getBody().getStatements().get(0).getCoordinates().before() : m.getBody().getCoordinates().lastStatement();
                 m = m.withTemplate(initMethodStatementTemplate, newStatementCoordinates, initStatementParamString);
-                m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), executionContext, getCursor().dropParentUntil(J.class::isInstance));
+                m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), m.getName(), executionContext, getCursor().getParentTreeCursor());
             }
 
             // Change constructor to test init method
             if (initMethodDeclarationTemplate == null && m.isConstructor()) {
                 m = m.withName(m.getName().withSimpleName(initMethodName));
                 m = maybeAutoFormat(m, m.withReturnTypeExpression(new J.Primitive(randomId(), Space.EMPTY, Markers.EMPTY, JavaType.Primitive.Void)),
-                        executionContext, getCursor().dropParentUntil(J.class::isInstance));
+                        m.getName(), executionContext, getCursor().getParentTreeCursor());
 
                 // converting a constructor to a void init method may require removing final modifiers from field vars.
                 if (m.getBody() != null) {
