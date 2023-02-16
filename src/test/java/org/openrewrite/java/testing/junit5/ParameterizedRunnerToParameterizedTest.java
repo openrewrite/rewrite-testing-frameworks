@@ -131,8 +131,8 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                             
                   public static List<Object[]> parameters() {
                       return Arrays.asList(
-                              new Object[]{"Otis", "TheDog", 124},
-                              new Object[]{"Garfield", "TheBoss", 126});
+                          new Object[] { "Otis", "TheDog", 124 },
+                          new Object[] { "Garfield", "TheBoss", 126 });
                   }
               }
               """
@@ -215,8 +215,8 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                             
                   public static List<Object[]> parameters() {
                       return Arrays.asList(
-                              new Object[]{"Otis", "TheDog", 124},
-                              new Object[]{"Garfield", "TheBoss", 126});
+                          new Object[] { "Otis", "TheDog", 124 },
+                          new Object[] { "Garfield", "TheBoss", 126 });
                   }
               }
               """
