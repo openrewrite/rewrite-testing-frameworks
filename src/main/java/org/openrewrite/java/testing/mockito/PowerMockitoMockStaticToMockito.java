@@ -158,12 +158,11 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             List<J.Block> methodBodies = classBody.getStatements().stream()
               .filter(statement -> statement instanceof J.MethodDeclaration)
               .map(J.MethodDeclaration.class::cast)
-              .map(J.MethodDeclaration::getBody).collect(Collectors.toList());
+              .map(J.MethodDeclaration::getBody)
+              .filter(Objects::nonNull)
+              .collect(Collectors.toList());
             Set<J.MethodInvocation> mockStaticMethodInvocations = new HashSet<>();
             for (J.Block methodBody : methodBodies) {
-                if (methodBody == null) {
-                    continue;
-                }
                 mockStaticMethodInvocations.addAll(
                   methodBody.getStatements()
                     .stream().filter(statement -> statement instanceof J.MethodInvocation)

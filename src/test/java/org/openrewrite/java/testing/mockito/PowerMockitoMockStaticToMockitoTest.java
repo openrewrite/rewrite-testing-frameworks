@@ -336,5 +336,28 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           )
         );
     }
-
+@Test
+    void interfacesAndAbstractClassesWithEmptyMethodBodiesRemainsUntouched() {
+        rewriteRun(java(
+          //language=java
+          """
+            public interface MyInterface {
+            
+                public void checkThis();
+            
+            }
+           """)
+          , java(
+            //language=java
+            """ 
+            public abstract class MyAbstractClass {
+            
+                public boolean isItTrue() { return true; }
+                
+                public abstract boolean isItImplemented();
+            
+            }
+            """
+        ));
+}
 }
