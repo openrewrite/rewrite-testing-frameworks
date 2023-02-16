@@ -362,7 +362,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 for (Map.Entry<J.Identifier, Expression> mockedTypesField : mockedTypesIdentifiers.entrySet()) {
                     // Only add close method invocation if not already exists
                     J.Block methodBody = m.getBody();
-                        if (methodBody == null || isStaticMockAlreadyClosed(mockedTypesField.getKey(), methodBody)) {
+                    if (methodBody == null || isStaticMockAlreadyClosed(mockedTypesField.getKey(), methodBody)) {
                         continue;
                     }
                     m = m.withBody(methodBody.withTemplate(
@@ -373,7 +373,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                           .build())
                         .build(),
                       methodBody.getCoordinates().lastStatement(),
-                                mockedTypesField.getKey()
+                      mockedTypesField.getKey()
                     ));
                 }
                 // The mocked field are needed for other visitors
@@ -398,21 +398,21 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                             continue;
                         }
 
-                            String className = mockedTypesFieldEntry.getValue().toString();
-                            J.MethodInvocation methodInvocation = mockStaticInvocations.get(className);
-                            if (methodInvocation != null) {
-                                m = m.withBody(methodBody.withTemplate(
-                                  JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                                      "mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
-                                    .javaParser(() -> JavaParser.fromJavaVersion()
-                                      .classpathFromResources(ctx, "mockito-core-3.*")
-                                      .build())
-                                    .build(),
-                                  methodBody.getCoordinates().firstStatement(),
-                                  mockedTypesFieldEntry.getKey(),
-                                  methodInvocation
-                                ));
-                            }
+                        String className = mockedTypesFieldEntry.getValue().toString();
+                        J.MethodInvocation methodInvocation = mockStaticInvocations.get(className);
+                        if (methodInvocation != null) {
+                            m = m.withBody(methodBody.withTemplate(
+                              JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                                  "mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
+                                .javaParser(() -> JavaParser.fromJavaVersion()
+                                  .classpathFromResources(ctx, "mockito-core-3.*")
+                                  .build())
+                                .build(),
+                              methodBody.getCoordinates().firstStatement(),
+                              mockedTypesFieldEntry.getKey(),
+                              methodInvocation
+                            ));
+                        }
                     }
                 }
                 // The mocked field are needed for other visitors
