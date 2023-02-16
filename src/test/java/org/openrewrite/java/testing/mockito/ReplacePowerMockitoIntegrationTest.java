@@ -36,6 +36,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               "junit-4.13.2",
               "powermock-core-1.7.4",
               "powermock-api-mockito-1.7.4",
+              "powermock-api-support-1.7.4",
               "testng-7.7.1"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
@@ -301,8 +302,8 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   
                   @BeforeMethod
                   void setUp() {
-                        mockedCalendar = Mockito.mockStatic(Calendar.class);
-                        mockedCurrency = Mockito.mockStatic(Currency.class);
+                      mockedCalendar = Mockito.mockStatic(Calendar.class);
+                      mockedCurrency = Mockito.mockStatic(Currency.class);
                   }
                 
                   @AfterMethod

@@ -47,15 +47,15 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           java(
             """
               import static org.mockito.Mockito.mockStatic;
-              
+                            
               import java.util.Calendar;
-              
+                            
               import org.junit.jupiter.api.Test;
               import org.powermock.core.classloader.annotations.PrepareForTest;
-              
+                            
               @PrepareForTest({Calendar.class})
               public class MyTest {
-              
+                            
                   @Test
                   void testStaticMethod() {
                       mockStatic(Calendar.class);
@@ -64,28 +64,28 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               """,
             """
               import static org.mockito.Mockito.mockStatic;
-              
+                            
               import java.util.Calendar;
-              
+                            
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
-              
+                            
               public class MyTest {
                             
                   private MockedStatic<Calendar> mockedCalendar;
-              
+                            
                   @BeforeEach
                   void setUp() {
                       mockedCalendar = mockStatic(Calendar.class);
                   }
-              
+                            
                   @AfterEach
                   void tearDown() {
                       mockedCalendar.close();
                   }
-              
+                            
                   @Test
                   void testStaticMethod() {
                   }
@@ -102,16 +102,16 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           java(
             """
               import static org.mockito.Mockito.mockStatic;
-              
+                            
               import java.util.Calendar;
               import java.util.Currency;
-              
+                            
               import org.junit.jupiter.api.Test;
               import org.powermock.core.classloader.annotations.PrepareForTest;
-              
+                            
               @PrepareForTest({Calendar.class, Currency.class})
               class MyTest {
-              
+                            
                   @Test
                   void testStaticMethod() {
                       mockStatic(Calendar.class);
@@ -121,33 +121,33 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               """,
             """
               import static org.mockito.Mockito.mockStatic;
-              
+                            
               import java.util.Calendar;
               import java.util.Currency;
-              
+                            
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
-              
+                            
               class MyTest {
-              
+                            
                   private MockedStatic<Currency> mockedCurrency;
-              
+                            
                   private MockedStatic<Calendar> mockedCalendar;
-              
+                            
                   @BeforeEach
                   void setUp() {
                       mockedCalendar = mockStatic(Calendar.class);
                       mockedCurrency = mockStatic(Currency.class);
                   }
-              
+                            
                   @AfterEach
                   void tearDown() {
                       mockedCalendar.close();
                       mockedCurrency.close();
                   }
-              
+                            
                   @Test
                   void testStaticMethod() {
                   }
@@ -164,15 +164,15 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           java(
             """
               import static org.mockito.Mockito.mockStatic;
-              
+                            
               import java.util.Calendar;
-              
+                            
               import org.junit.jupiter.api.BeforeEach;
               import org.powermock.core.classloader.annotations.PrepareForTest;
-              
+                            
               @PrepareForTest({Calendar.class})
               class MyTest {
-              
+                            
                   @BeforeEach
                   void testStaticMethod() {
                       mockStatic(Calendar.class);
@@ -181,22 +181,22 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               """,
             """
               import static org.mockito.Mockito.mockStatic;
-              
+                            
               import java.util.Calendar;
-              
+                            
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.mockito.MockedStatic;
-              
+                            
               class MyTest {
-              
+                            
                   private MockedStatic<Calendar> mockedCalendar;
-              
+                            
                   @BeforeEach
                   void testStaticMethod() {
                       mockedCalendar = mockStatic(Calendar.class);
                   }
-              
+                            
                   @AfterEach
                   void tearDown() {
                       mockedCalendar.close();
@@ -284,6 +284,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void argumentOfVerifyOnParameterlessStaticMethodIsReplacedBySimpleLambda() {
         //language=java
@@ -312,52 +313,53 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import static org.mockito.Mockito.*;
-                            
-              import java.util.Currency;
-              import java.util.Locale;
-                            
-              import org.junit.jupiter.api.Test;
-              import org.mockito.MockedStatic;
-                            
-              public class MyTest {
-                            
-                  private MockedStatic<Currency> mockedCurrency;
-                
-                  private Currency currencyMock = mock(Currency.class);
-                            
-                  @Test
-                  void testStaticMethod() {
-                      mockedCurrency.verify(() -> Currency.getInstance(Locale.ENGLISH), never());
-                      mockedCurrency.verify(Currency::getAvailableCurrencies, atLeastOnce());
-                  }
-              }
-             """
+               import static org.mockito.Mockito.*;
+                             
+               import java.util.Currency;
+               import java.util.Locale;
+                             
+               import org.junit.jupiter.api.Test;
+               import org.mockito.MockedStatic;
+                             
+               public class MyTest {
+                             
+                   private MockedStatic<Currency> mockedCurrency;
+                 
+                   private Currency currencyMock = mock(Currency.class);
+                             
+                   @Test
+                   void testStaticMethod() {
+                       mockedCurrency.verify(() -> Currency.getInstance(Locale.ENGLISH), never());
+                       mockedCurrency.verify(Currency::getAvailableCurrencies, atLeastOnce());
+                   }
+               }
+              """
           )
         );
     }
-@Test
+
+    @Test
     void interfacesAndAbstractClassesWithEmptyMethodBodiesRemainsUntouched() {
         rewriteRun(java(
-          //language=java
-          """
-            public interface MyInterface {
-            
-                public void checkThis();
-            
-            }
-           """)
+            //language=java
+            """
+               public interface MyInterface {
+               
+                   void checkThis();
+               
+               }
+              """)
           , java(
             //language=java
             """ 
-            public abstract class MyAbstractClass {
-            
-                public boolean isItTrue() { return true; }
-                
-                public abstract boolean isItImplemented();
-            
-            }
-            """
-        ));
-}
+              public abstract class MyAbstractClass {
+                          
+                  public boolean isItTrue() { return true; }
+                  
+                  public abstract boolean isItImplemented();
+                          
+              }
+              """
+          ));
+    }
 }
