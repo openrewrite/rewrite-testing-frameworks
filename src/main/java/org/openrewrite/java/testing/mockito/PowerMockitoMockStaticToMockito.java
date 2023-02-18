@@ -348,12 +348,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
             AnnotationMatcher tearDownAnnotationMatcher = new AnnotationMatcher(tearDownMethodAnnotationSignature);
             if (m.getAllAnnotations().stream().anyMatch(tearDownAnnotationMatcher::matches)) {
-                Map<J.Identifier, Expression> mockedTypesIdentifiers = getCursor().getNearestMessage(MOCKED_TYPES_FIELDS);
-                if (mockedTypesIdentifiers == null) {
-                    mockedTypesIdentifiers = getMockedTypesFields();
-                }
-
-                for (Map.Entry<J.Identifier, Expression> mockedTypesField : mockedTypesIdentifiers.entrySet()) {
+                // Add close statements to the static mocks in the tear down method
+                for (Map.Entry<J.Identifier, Expression> mockedTypesField : getMockedTypesFields().entrySet()) {
                     // Only add close method invocation if not already exists
                     J.Block methodBody = m.getBody();
                     if (methodBody == null || isStaticMockAlreadyClosed(mockedTypesField.getKey(), methodBody)) {
@@ -370,22 +366,17 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                       mockedTypesField.getKey()
                     ));
                 }
-                // The mocked field are needed for other visitors
-                setMockedTypesFields(mockedTypesIdentifiers);
                 return m;
             }
 
             AnnotationMatcher setUpAnnotationMatcher = new AnnotationMatcher(
               setUpMethodAnnotationSignature);
             if (m.getAllAnnotations().stream().anyMatch(setUpAnnotationMatcher::matches)) {
-                Map<J.Identifier, Expression> mockedTypesIdentifiers = getCursor().getNearestMessage(MOCKED_TYPES_FIELDS);
-                if (mockedTypesIdentifiers == null) {
-                    mockedTypesIdentifiers = getMockedTypesFields();
-                }
-
+                // Move the mockStatic method to the setUp method
                 Map<String, J.MethodInvocation> mockStaticInvocations = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
+
                 if (mockStaticInvocations != null) {
-                    for (Map.Entry<J.Identifier, Expression> mockedTypesFieldEntry : mockedTypesIdentifiers.entrySet()) {
+                    for (Map.Entry<J.Identifier, Expression> mockedTypesFieldEntry : getMockedTypesFields().entrySet()) {
                         // Only add close method invocation if not already exists
                         J.Block methodBody = m.getBody();
                         if (methodBody == null || isStaticMockAlreadyOpened(mockedTypesFieldEntry.getKey(), methodBody)) {
@@ -409,15 +400,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         }
                     }
                 }
-                // The mocked field are needed for other visitors
-                setMockedTypesFields(mockedTypesIdentifiers);
-                return m;
             }
             return m;
-        }
-
-        private void setMockedTypesFields(Map<J.Identifier, Expression> mockedTypesFields) {
-            this.mockedTypesFields = mockedTypesFields;
         }
 
         private static boolean isStaticMockAlreadyClosed(J.Identifier staticMock, J.Block methodBody) {
@@ -512,22 +496,20 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         }
 
         @Nullable
-        private J.Identifier getFieldIdentifier(String name) {
-            Optional<J.Identifier> optionalFieldIdentifier = getMockedTypesFields().keySet().stream().filter(identifier -> identifier.getSimpleName().equals(name)).findFirst();
-            if (optionalFieldIdentifier.isPresent()) {
-                return optionalFieldIdentifier.get();
-            }
-            J.ClassDeclaration cd = getCursor().dropParentUntil(it -> it instanceof J.ClassDeclaration).getValue();
-            List<List<J.VariableDeclarations.NamedVariable>> collect = cd.getBody().getStatements().stream().filter(statement -> statement instanceof J.VariableDeclarations)
-              .map(variableDeclarations -> ((J.VariableDeclarations) variableDeclarations).getVariables()).collect(Collectors.toList());
-            for (List<J.VariableDeclarations.NamedVariable> namedVariables : collect) {
-                for (J.VariableDeclarations.NamedVariable namedVariable : namedVariables) {
-                    if (namedVariable.getSimpleName().equals(name)) {
-                        return namedVariable.getName();
-                    }
-                }
-            }
-            return null;
+        private J.Identifier getFieldIdentifier(String fieldName) {
+            return getMockedTypesFields().keySet().stream()
+              .filter(identifier -> identifier.getSimpleName().equals(fieldName)).findFirst()
+              .orElseGet(() -> {
+                  J.ClassDeclaration cd = getCursor().dropParentUntil(it -> it instanceof J.ClassDeclaration).getValue();
+                  return cd.getBody().getStatements().stream()
+                    .filter(statement -> statement instanceof J.VariableDeclarations)
+                    .map(variableDeclarations -> ((J.VariableDeclarations) variableDeclarations).getVariables())
+                    .flatMap(Collection::stream)
+                    .filter(namedVariable -> namedVariable.getSimpleName().equals(fieldName))
+                    .map(J.VariableDeclarations.NamedVariable::getName)
+                    .findFirst()
+                    .orElse(null);
+              });
         }
     }
 }
