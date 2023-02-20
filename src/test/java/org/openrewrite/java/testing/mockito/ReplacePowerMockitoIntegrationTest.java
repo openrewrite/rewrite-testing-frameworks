@@ -236,7 +236,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     }
 
     @Test
-    void testThatPowerMockitoMockStaticIsReplaced() {
+    void testThatPowerMockitoMockStaticIsReplacedInTestMethod() {
         //language=java
         rewriteRun(java(
           """
@@ -319,6 +319,78 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       mockedCurrency.verify(Currency::getAvailableCurrencies, Mockito.never());
                   }
               
+              }
+            """
+        ));
+    }
+    @Test
+    void testThatPowerMockitoMockStaticIsReplacedInSetUpMethod() {
+        //language=java
+        rewriteRun(java(
+          """
+              import static org.testng.Assert.assertEquals;
+              
+              import java.util.Calendar;
+              
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+              
+              @PrepareForTest(value = {Calendar.class})
+              public class StaticMethodTest {
+              
+                  private Calendar calendarMock;
+                  
+                  @BeforeMethod
+                  void setUp() {
+                      PowerMockito.mockStatic(Calendar.class);
+                      calendarMock = Mockito.mock(Calendar.class);
+                      Mockito.when(Calendar.getInstance()).thenReturn(calendarMock);
+                  }
+                  
+                  @Test
+                  void testWithCalendar() {
+                      assertEquals(Calendar.getInstance(), calendarMock);
+                      Mockito.verify(Calendar.getInstance());
+                  }
+              }
+            """,
+          """
+              import static org.testng.Assert.assertEquals;
+              
+              import java.util.Calendar;
+              
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+              
+              public class StaticMethodTest {
+              
+                  private MockedStatic<Calendar> mockedCalendar;
+              
+                  private Calendar calendarMock;
+                  
+                  @BeforeMethod
+                  void setUp() {
+                      mockedCalendar = Mockito.mockStatic(Calendar.class);
+                      calendarMock = Mockito.mock(Calendar.class);
+                      mockedCalendar.when(Calendar::getInstance).thenReturn(calendarMock);
+                  }
+                  
+                  @AfterMethod
+                  void tearDownStaticMocks() {
+                      mockedCalendar.close();
+                  }
+                 
+                  @Test
+                  void testWithCalendar() {
+                      assertEquals(Calendar.getInstance(), calendarMock);
+                      mockedCalendar.verify(Calendar::getInstance);
+                  }
               }
             """
         ));
