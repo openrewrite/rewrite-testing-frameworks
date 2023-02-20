@@ -83,7 +83,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                             
                   @AfterEach
                   void tearDownStaticMocks() {
-                      mockedCalendar.close();
+                      mockedCalendar.closeOnDemand();
                   }
                             
                   @Test
@@ -144,8 +144,8 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                             
                   @AfterEach
                   void tearDownStaticMocks() {
-                      mockedCalendar.close();
-                      mockedCurrency.close();
+                      mockedCalendar.closeOnDemand();
+                      mockedCurrency.closeOnDemand();
                   }
                             
                   @Test
@@ -199,7 +199,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                             
                   @AfterEach
                   void tearDownStaticMocks() {
-                      mockedCalendar.close();
+                      mockedCalendar.closeOnDemand();
                   }
               }
               """

@@ -20,6 +20,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.NonNull;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.tree.*;
@@ -74,6 +75,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private String setUpImportToAdd;
 
         private String tearDownImportToAdd;
+        private String tearDownMethodAnnotationParameters = "";
 
 
         private void initTestFrameworkInfo(boolean useTestNg) {
@@ -91,6 +93,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 tearDownMethodAnnotationName = "AfterMethod";
                 annotationPackage = "org.testng.annotations";
                 additionalClasspathResource = "testng-7.7.1";
+                tearDownMethodAnnotationParameters = "(alwaysRun = true)";
             }
 
             this.setUpMethodAnnotation = "@" + setUpMethodAnnotationName;
@@ -243,13 +246,14 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private J.ClassDeclaration maybeAddSetUpMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             return maybeAddMethodWithAnnotation(classDecl, ctx, "setUpStaticMocks",
               setUpMethodAnnotationSignature, setUpMethodAnnotation,
-              additionalClasspathResource, setUpImportToAdd);
+              additionalClasspathResource, setUpImportToAdd, "");
         }
 
-        @NotNull
         private J.ClassDeclaration maybeAddMethodWithAnnotation(J.ClassDeclaration classDecl, ExecutionContext ctx,
-                                                                String methodName, String methodAnnotationSignature, String methodAnnotationToAdd,
-                                                                String additionalClasspathResource, String importToAdd) {
+                                                                String methodName, String methodAnnotationSignature,
+                                                                String methodAnnotationToAdd,
+                                                                String additionalClasspathResource, String importToAdd,
+                                                                @NonNull String methodAnnotationParameters) {
             if (hasMethodWithAnnotation(classDecl, new AnnotationMatcher(methodAnnotationSignature))) {
                 return classDecl;
             }
@@ -264,7 +268,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             classDecl = classDecl.withBody(classDecl.getBody()
               .withTemplate(
                 JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                    methodAnnotationToAdd + " void " + methodName + "() {}")
+                    methodAnnotationToAdd + methodAnnotationParameters + " void " + methodName + "() {}")
                   .javaParser(() -> JavaParser.fromJavaVersion()
                     .classpathFromResources(ctx, additionalClasspathResource)
                     .build())
@@ -278,8 +282,9 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         @NotNull
         private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             return maybeAddMethodWithAnnotation(classDecl, ctx, "tearDownStaticMocks",
-              tearDownMethodAnnotationSignature, tearDownMethodAnnotation,
-              additionalClasspathResource, tearDownImportToAdd);
+              tearDownMethodAnnotationSignature,
+              tearDownMethodAnnotation,
+              additionalClasspathResource, tearDownImportToAdd, tearDownMethodAnnotationParameters);
         }
 
         @Nullable
@@ -308,16 +313,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         }
 
         private static boolean hasMethodWithAnnotation(J.ClassDeclaration classDecl, AnnotationMatcher annotationMatcher) {
-            for (Statement statement : classDecl.getBody().getStatements()) {
-                if (statement instanceof J.MethodDeclaration) {
-                    J.MethodDeclaration methodDeclaration = (J.MethodDeclaration) statement;
-                    if (methodDeclaration.getAllAnnotations().stream()
-                      .anyMatch(annotationMatcher::matches)) {
-                        return true;
-                    }
-                }
-            }
-            return false;
+            return classDecl.getBody().getStatements().stream()
+              .filter(statement -> statement instanceof J.MethodDeclaration)
+              .map(J.MethodDeclaration.class::cast)
+              .map(J.MethodDeclaration::getAllAnnotations)
+              .flatMap(Collection::stream)
+              .anyMatch(annotationMatcher::matches);
         }
 
         private static List<Expression> getMockedTypesFromPrepareForTestAnnotation(List<J.Annotation> prepareForTestAnnotations) {
@@ -357,7 +358,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     }
                     m = m.withBody(methodBody.withTemplate(
                       JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                          "#{any(org.mockito.MockedStatic)}.close();")
+                          "#{any(org.mockito.MockedStatic)}.closeOnDemand();")
                         .javaParser(() -> JavaParser.fromJavaVersion()
                           .classpathFromResources(ctx, "mockito-core-3.*")
                           .build())

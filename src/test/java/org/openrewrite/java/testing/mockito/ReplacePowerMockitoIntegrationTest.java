@@ -119,8 +119,8 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               
                   @AfterEach
                   void tearDownStaticMocks() {
-                      mockedCalendar.close();
-                      mockedCurrency.close();
+                      mockedCalendar.closeOnDemand();
+                      mockedCurrency.closeOnDemand();
                   }
                   
                   @Test
@@ -213,10 +213,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                         mockedCalendar = mockStatic(Calendar.class);
                     }
                 
-                    @AfterMethod
+                    @AfterMethod(alwaysRun = true)
                     void tearDownStaticMocks() {
-                        mockedCalendar.close();
-                        mockedCurrency.close();
+                        mockedCalendar.closeOnDemand();
+                        mockedCurrency.closeOnDemand();
                     }
                     
                     @Test
@@ -306,10 +306,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       mockedCalendar = Mockito.mockStatic(Calendar.class);
                   }
                 
-                  @AfterMethod
+                  @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.close();
-                      mockedCurrency.close();
+                      mockedCalendar.closeOnDemand();
+                      mockedCurrency.closeOnDemand();
                   }
                  
                   @Test
@@ -381,9 +381,9 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       mockedCalendar.when(Calendar::getInstance).thenReturn(calendarMock);
                   }
                   
-                  @AfterMethod
+                  @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.close();
+                      mockedCalendar.closeOnDemand();
                   }
                  
                   @Test
