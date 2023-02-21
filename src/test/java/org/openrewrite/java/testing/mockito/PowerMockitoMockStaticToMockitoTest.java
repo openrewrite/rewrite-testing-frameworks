@@ -35,7 +35,8 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               "junit-jupiter-api-5.9.2",
               "mockito-core-3.12.4",
               "powermock-api-mockito-1.7.4",
-              "powermock-core-1.7.4"
+              "powermock-core-1.7.4",
+              "testng-7.7.1"
             ))
           .recipe(new PowerMockitoMockStaticToMockito());
     }
@@ -203,6 +204,126 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void tearDownMethodOfTestNGHasAnnotationWithArgument() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.Calendar;
+                            
+              import org.testng.annotations.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+                            
+              @PrepareForTest({Calendar.class})
+              public class MyTest {
+                            
+                  @Test
+                  void testSomething() { }
+                    
+              }
+              """,
+            """
+              import java.util.Calendar;
+              
+              import org.mockito.MockedStatic;
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+              
+              public class MyTest {
+
+                  private MockedStatic<Calendar> mockedCalendar;
+
+                  @BeforeMethod
+                  void setUpStaticMocks() {
+                  }
+
+                  @AfterMethod(alwaysRun = true)
+                  void tearDownStaticMocks() {
+                      mockedCalendar.closeOnDemand();
+                  }
+
+                  @Test
+                  void testSomething() { }
+              
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void tearDownMethodOfTestNGWithAnnotationRemainsUntouched() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.Calendar;
+                            
+              import static org.mockito.Mockito.*;
+              
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+                            
+              @PrepareForTest({Calendar.class})
+              public class MyTest {
+                            
+                  private Calendar calendarMock;
+                  
+                  @BeforeMethod( groups = "checkin")
+                  void setUp() {
+                      calendarMock = mock(Calendar.class);
+                  }
+                  
+                  @AfterMethod( groups = "checkin")
+                  void tearDown() {
+                      calendarMock = null;
+                  }
+                  
+                  @Test
+                  void testSomething() { }
+                    
+              }
+              """,
+            """
+              import java.util.Calendar;
+                            
+              import static org.mockito.Mockito.*;
+              
+              import org.mockito.MockedStatic;
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+
+              public class MyTest {
+
+                  private MockedStatic<Calendar> mockedCalendar;
+
+                  private Calendar calendarMock;
+
+                  @BeforeMethod( groups = "checkin")
+                  void setUp() {
+                      calendarMock = mock(Calendar.class);
+                  }
+
+                  @AfterMethod( groups = "checkin")
+                  void tearDown() {
+                      calendarMock = null;
+                      mockedCalendar.closeOnDemand();
+                  }
+
+                  @Test
+                  void testSomething() { }
+
+              }
+                           """
           )
         );
     }
