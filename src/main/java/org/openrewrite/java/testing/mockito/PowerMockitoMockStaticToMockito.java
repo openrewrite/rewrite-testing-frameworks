@@ -49,6 +49,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
     private static class PowerMockitoToMockitoVisitor extends JavaVisitor<ExecutionContext> {
         private static final String MOCKED_STATIC = "org.mockito.MockedStatic";
         private static final String POWER_MOCK_RUNNER = "org.powermock.modules.junit4.PowerMockRunner";
+        private static final String POWER_MOCK_CONFIG = "org.powermock.configuration.PowerMockConfiguration";
+        private static final String POWER_MOCK_TEST_CASE = "org.powermock.modules.testng.PowerMockTestCase";
         private static final MethodMatcher MOCKED_STATIC_MATCHER = new MethodMatcher("org.mockito.Mockito mockStatic(..)");
         private static final MethodMatcher MOCKED_STATIC_CLOSE_MATCHER = new MethodMatcher("org.mockito.ScopedMock close(..)", true);
         private static final MethodMatcher MOCKITO_VERIFY_MATCHER = new MethodMatcher("org.mockito.Mockito verify(..)");
@@ -72,6 +74,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         @Override
         public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+
+            // Remove the extension of class PowerMockConfiguration
+            classDecl = removeExtension(classDecl, POWER_MOCK_CONFIG);
+            // Remove teh extension of class PowerMockTestCase
+            classDecl = removeExtension(classDecl, POWER_MOCK_TEST_CASE);
+
             // Add the classes of the arguments in the annotation @PrepareForTest as fields
             // e.g. `@PrepareForTest(Calendar.class)`
             // becomes
@@ -268,6 +276,16 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
               .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
               .anyMatch(methodInvocation -> ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
                 .equals(staticMock.getSimpleName()));
+        }
+
+        @NotNull
+        private J.ClassDeclaration removeExtension(J.ClassDeclaration classDecl, String extensionFQN) {
+            TypeTree extension = classDecl.getExtends();
+            if (extension != null && TypeUtils.isAssignableTo(extensionFQN, extension.getType())) {
+                classDecl = classDecl.withExtends(null);
+                maybeRemoveImport(extensionFQN);
+            }
+            return classDecl;
         }
 
         private void initTestFrameworkInfo(boolean useTestNg) {

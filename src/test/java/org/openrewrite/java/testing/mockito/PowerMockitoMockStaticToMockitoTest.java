@@ -229,12 +229,12 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               """,
             """
               import java.util.Calendar;
-              
+                            
               import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
-              
+                            
               public class MyTest {
 
                   private MockedStatic<Calendar> mockedCalendar;
@@ -250,7 +250,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
                   @Test
                   void testSomething() { }
-              
+                            
               }
               """
           )
@@ -266,7 +266,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import java.util.Calendar;
                             
               import static org.mockito.Mockito.*;
-              
+                            
               import org.testng.annotations.AfterMethod;
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
@@ -296,7 +296,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import java.util.Calendar;
                             
               import static org.mockito.Mockito.*;
-              
+                            
               import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
               import org.testng.annotations.BeforeMethod;
@@ -461,8 +461,8 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
     @Test
     void interfacesAndAbstractClassesWithEmptyMethodBodiesRemainsUntouched() {
+        //language=java
         rewriteRun(java(
-            //language=java
             """
                public interface MyInterface {
                
@@ -471,7 +471,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                }
               """)
           , java(
-            //language=java
             """ 
               public abstract class MyAbstractClass {
                           
@@ -480,6 +479,51 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   public abstract boolean isItImplemented();
                           
               }
+              """
+          ));
+    }
+
+    @Test
+    void extensionOfPowerMockTestCaseGetsRemoved() {
+        //language=java
+        rewriteRun(java(
+            """
+              package org.powermock.modules.testng;
+
+              public class PowerMockTestCase {}
+              """
+          ),
+         java(
+            """
+              import org.powermock.modules.testng.PowerMockTestCase;
+
+              public class MyPowerMockTestCase extends PowerMockTestCase {}
+              """,
+            """
+              public class MyPowerMockTestCase {}
+              """)
+         );
+    }
+
+    @Test
+    void extensionOfPowerMockConfigurationGetsRemoved() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.powermock.configuration;
+
+              public class PowerMockConfiguration {}
+              """
+          ),
+         java(
+            """
+              import org.powermock.configuration.PowerMockConfiguration;
+                
+              public class MyPowerMockConfiguration extends PowerMockConfiguration {}
+              """,
+            """
+              public class MyPowerMockConfiguration {}
               """
           ));
     }
