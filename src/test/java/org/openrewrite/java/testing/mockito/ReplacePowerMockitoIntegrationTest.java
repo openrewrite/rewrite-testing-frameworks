@@ -323,6 +323,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
         ));
     }
+
     @Test
     void testThatPowerMockitoMockStaticIsReplacedInSetUpMethod() {
         //language=java
@@ -468,6 +469,67 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                   }
               
+              }
+            """
+        ));
+    }
+
+    @Test
+    void staticMethodReturningArrayShallNotThrowAnIllegalArgumentException() {
+        //language=java
+        rewriteRun(java(
+          """
+              public class StringFilter {
+                  public static String[] splitFilterStringValues(String filterValue) {
+                    if (filterValue.equals("")) {
+                      return new String[0];
+                    } else {
+                      return filterValue.split(".");
+                    }
+                  }
+              }
+            """), java("""
+
+              import static org.mockito.Mockito.*;
+              import static org.powermock.api.mockito.PowerMockito.mockStatic;
+                                            
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.testng.annotations.Test;
+              
+              @PrepareForTest(value = {StringFilter.class})
+              public class MyTest {
+                  @Test
+                  public void testStaticMock() {
+                      mockStatic(StringFilter.class);
+                      when(StringFilter.splitFilterStringValues(anyString())).thenReturn(new String[]{"Fee", "Faa","Foo"});
+                  }
+              }
+              """,
+          """
+              import static org.mockito.Mockito.*;
+              
+              import org.mockito.MockedStatic;
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+
+              public class MyTest {
+
+                  private MockedStatic<StringFilter> mockedStringFilter;
+
+                  @BeforeMethod
+                  void setUpStaticMocks() {
+                      mockedStringFilter = mockStatic(StringFilter.class);
+                  }
+
+                  @AfterMethod(alwaysRun = true)
+                  void tearDownStaticMocks() {
+                      mockedStringFilter.closeOnDemand();
+                  }
+                  @Test
+                  public void testStaticMock() {
+                      mockedStringFilter.when(() -> StringFilter.splitFilterStringValues(anyString())).thenReturn(new String[]{"Fee", "Faa","Foo"});
+                  }
               }
             """
         ));

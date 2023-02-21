@@ -469,12 +469,9 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 } else {
                     JavaType.Method methodType = staticMI.getMethodType();
                     if (methodType != null) {
-                        JavaType returnType = methodType.getReturnType();
-                        JavaType returnTypeForTemplate = returnType instanceof JavaType.Parameterized ?
-                          ((JavaType.Parameterized) returnType).getType() : returnType;
                         lambdaInvocation = staticMI.withTemplate(
                           JavaTemplate.builder(this::getCursor,
-                              "() -> #{any(" + returnTypeForTemplate + ")}")
+                              "() -> #{any()}")
                             .build(),
                           staticMI.getCoordinates().replace(),
                           staticMI

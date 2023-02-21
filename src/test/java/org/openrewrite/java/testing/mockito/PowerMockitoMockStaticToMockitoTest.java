@@ -34,8 +34,8 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               "junit-4.13.2",
               "junit-jupiter-api-5.9.2",
               "mockito-core-3.12.4",
-              "powermock-api-mockito-1.7.4",
-              "powermock-core-1.7.4",
+              "powermock-api-mockito-1.6.5",
+              "powermock-core-1.6.5",
               "testng-7.7.1"
             ))
           .recipe(new PowerMockitoMockStaticToMockito());
