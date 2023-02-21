@@ -34,9 +34,9 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               "mockito-core-3.12.4",
               "junit-jupiter-api-5.9.2",
               "junit-4.13.2",
-              "powermock-core-1.7.4",
-              "powermock-api-mockito-1.7.4",
-              "powermock-api-support-1.7.4",
+              "powermock-core-1.6.5",
+              "powermock-api-mockito-1.6.5",
+              "powermock-api-support-1.6.5",
               "testng-7.7.1"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
@@ -395,4 +395,82 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
         ));
     }
+
+    @Test
+    void testThatPowerMockitoSpyIsReplaced() {
+        //language=java
+        rewriteRun(java(
+          """
+              import static org.testng.Assert.assertEquals;
+              
+              import java.util.Calendar;
+              import java.util.Locale;
+              
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+              
+              @PrepareForTest(value = {Calendar.class})
+              public class StaticMethodTest {
+              
+                  private Calendar calendarMock;
+                  
+                  @BeforeMethod
+                  void setUp() {
+                      calendarMock = Mockito.mock(Calendar.class);
+                  }
+                  
+                  @Test
+                  void testWithCalendar() {
+                      PowerMockito.spy(Calendar.class);
+                      PowerMockito.mockStatic(Calendar.class);
+                      PowerMockito.when(Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                      assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
+                  }
+              
+              }
+            """,
+          """
+              import static org.testng.Assert.assertEquals;
+              
+              import java.util.Calendar;
+              import java.util.Locale;
+              
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+              
+              public class StaticMethodTest {
+              
+                  private MockedStatic<Calendar> mockedCalendar;
+              
+                  private Calendar calendarMock;
+                  
+                  @BeforeMethod
+                  void setUp() {
+                      mockedCalendar = Mockito.mockStatic(Calendar.class);
+                      calendarMock = Mockito.mock(Calendar.class);
+                  }
+                
+                  @AfterMethod(alwaysRun = true)
+                  void tearDownStaticMocks() {
+                      mockedCalendar.closeOnDemand();
+                  }
+                 
+                  @Test
+                  void testWithCalendar() {
+                      Mockito.spy(Calendar.class);
+                      mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                      assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
+                  }
+              
+              }
+            """
+        ));
+    }
+
 }

@@ -171,8 +171,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (MOCKITO_WHEN_MATCHER.matches(method)
-              || MOCKITO_VERIFY_MATCHER.matches(method)) {
+            if (MOCKITO_WHEN_MATCHER.matches(method) || MOCKITO_VERIFY_MATCHER.matches(method)) {
                 method = modifyWhenMethodInvocation(method);
             } else if (MOCKED_STATIC_MATCHER.matches(method)) {
                 J.Assignment assignment = getCursor().firstEnclosing(J.Assignment.class);

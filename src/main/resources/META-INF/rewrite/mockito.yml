@@ -141,4 +141,14 @@ recipeList:
       fullyQualifiedTargetTypeName: org.mockito.Mockito
       matchOverrides: null
       matchUnknownTypes: null
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito spy(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+      matchOverrides: null
+      matchUnknownTypes: null
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito when(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+      matchOverrides: null
+      matchUnknownTypes: null
   - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
