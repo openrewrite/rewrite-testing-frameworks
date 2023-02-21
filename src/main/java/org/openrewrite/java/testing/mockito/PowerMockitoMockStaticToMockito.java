@@ -56,63 +56,18 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
           new AnnotationMatcher("@org.powermock.core.classloader.annotations.PrepareForTest");
         private static final AnnotationMatcher RUN_WITH_POWER_MOCK_RUNNER_MATCHER =
           new AnnotationMatcher("@org.junit.runner.RunWith(" + POWER_MOCK_RUNNER + ".class)");
-
         private static final MethodMatcher MOCKITO_WHEN_MATCHER = new MethodMatcher("org.mockito.Mockito when(..)");
         private static final MethodMatcher MOCKITO_STATIC_METHOD_MATCHER = new MethodMatcher("org.mockito.Mockito *(..)");
-        public static final String MOCKED_TYPES_FIELDS = "mockedTypesFields";
+        private static final String MOCKED_TYPES_FIELDS = "mockedTypesFields";
         private static final String MOCK_STATIC_INVOCATIONS = "mockStaticInvocationsByClassName";
-
         private String setUpMethodAnnotationSignature;
-
         private String setUpMethodAnnotation;
-
         private String tearDownMethodAnnotationSignature;
-
         private String tearDownMethodAnnotation;
-
         private String additionalClasspathResource;
-
         private String setUpImportToAdd;
-
         private String tearDownImportToAdd;
         private String tearDownMethodAnnotationParameters = "";
-
-
-        private void initTestFrameworkInfo(boolean useTestNg) {
-            String setUpMethodAnnotationName;
-            String tearDownMethodAnnotationName;
-            String annotationPackage;
-
-            if (!useTestNg) {
-                setUpMethodAnnotationName = "BeforeEach";
-                tearDownMethodAnnotationName = "AfterEach";
-                annotationPackage = "org.junit.jupiter.api";
-                additionalClasspathResource = "junit-jupiter-api-5.9.2";
-            } else {
-                setUpMethodAnnotationName = "BeforeMethod";
-                tearDownMethodAnnotationName = "AfterMethod";
-                annotationPackage = "org.testng.annotations";
-                additionalClasspathResource = "testng-7.7.1";
-                tearDownMethodAnnotationParameters = "(alwaysRun = true)";
-            }
-
-            this.setUpMethodAnnotation = "@" + setUpMethodAnnotationName;
-            this.tearDownMethodAnnotation = "@" + tearDownMethodAnnotationName;
-
-            this.setUpMethodAnnotationSignature = "@" + annotationPackage + "." + setUpMethodAnnotationName;
-            this.tearDownMethodAnnotationSignature = "@" + annotationPackage + "." + tearDownMethodAnnotationName;
-
-            this.setUpImportToAdd = annotationPackage + "." + setUpMethodAnnotationName;
-            this.tearDownImportToAdd = annotationPackage + "." + tearDownMethodAnnotationName;
-        }
-
-        private Map<J.Identifier, Expression> getMockedTypesFields() {
-            if (mockedTypesFields == null) {
-                mockedTypesFields = getCursor().getNearestMessage(MOCKED_TYPES_FIELDS, new LinkedHashMap<>());
-            }
-            return mockedTypesFields;
-        }
-
         private Map<J.Identifier, Expression> mockedTypesFields;
 
         @Override
@@ -150,6 +105,205 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 }
             }
             return super.visitClassDeclaration(classDecl, ctx);
+        }
+
+        @Override
+        public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration m = (J.MethodDeclaration) super.visitMethodDeclaration(method, ctx);
+
+            AnnotationMatcher tearDownAnnotationMatcher = new AnnotationMatcher(tearDownMethodAnnotationSignature);
+            if (m.getAllAnnotations().stream().anyMatch(tearDownAnnotationMatcher::matches)) {
+                // Add close statements to the static mocks in the tear down method
+                for (Map.Entry<J.Identifier, Expression> mockedTypesField : getMockedTypesFields().entrySet()) {
+                    // Only add close method invocation if not already exists
+                    J.Block methodBody = m.getBody();
+                    if (methodBody == null || isStaticMockAlreadyClosed(mockedTypesField.getKey(), methodBody)) {
+                        continue;
+                    }
+                    m = m.withBody(methodBody.withTemplate(
+                      JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                          "#{any(org.mockito.MockedStatic)}.closeOnDemand();")
+                        .javaParser(() -> JavaParser.fromJavaVersion()
+                          .classpathFromResources(ctx, "mockito-core-3.*")
+                          .build())
+                        .build(),
+                      methodBody.getCoordinates().lastStatement(),
+                      mockedTypesField.getKey()
+                    ));
+                }
+                return m;
+            }
+
+            AnnotationMatcher setUpAnnotationMatcher = new AnnotationMatcher(
+              setUpMethodAnnotationSignature);
+            if (m.getAllAnnotations().stream().anyMatch(setUpAnnotationMatcher::matches)) {
+                // Move the mockStatic method to the setUp method
+                Map<String, J.MethodInvocation> mockStaticInvocations = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
+
+                if (mockStaticInvocations != null) {
+                    for (Map.Entry<J.Identifier, Expression> mockedTypesFieldEntry : getMockedTypesFields().entrySet()) {
+                        // Only add close method invocation if not already exists
+                        J.Block methodBody = m.getBody();
+                        if (methodBody == null || isStaticMockAlreadyOpened(mockedTypesFieldEntry.getKey(), methodBody)) {
+                            continue;
+                        }
+
+                        String className = mockedTypesFieldEntry.getValue().toString();
+                        J.MethodInvocation methodInvocation = mockStaticInvocations.get(className);
+                        if (methodInvocation != null) {
+                            m = m.withBody(methodBody.withTemplate(
+                              JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                                  "mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
+                                .javaParser(() -> JavaParser.fromJavaVersion()
+                                  .classpathFromResources(ctx, "mockito-core-3.*")
+                                  .build())
+                                .build(),
+                              methodBody.getCoordinates().firstStatement(),
+                              mockedTypesFieldEntry.getKey(),
+                              methodInvocation
+                            ));
+                        }
+                    }
+                }
+            }
+            return m;
+        }
+
+        @Override
+        public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            if (MOCKITO_WHEN_MATCHER.matches(method)
+              || MOCKITO_VERIFY_MATCHER.matches(method)) {
+                method = modifyWhenMethodInvocation(method);
+            } else if (MOCKED_STATIC_MATCHER.matches(method)) {
+                J.Assignment assignment = getCursor().firstEnclosing(J.Assignment.class);
+                if (assignment == null) {
+                    //noinspection DataFlowIssue
+                    return null;
+                }
+            }
+            return super.visitMethodInvocation(method, ctx);
+        }
+
+        private static boolean isFieldAlreadyDefined(J.Block classBody, String fieldName) {
+            for (Statement statement : classBody.getStatements()) {
+                if (statement instanceof J.VariableDeclarations) {
+                    for (J.VariableDeclarations.NamedVariable namedVariable : ((J.VariableDeclarations) statement).getVariables()) {
+                        if (namedVariable.getSimpleName().equals(fieldName)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        @Nullable
+        private static J.MethodDeclaration getFirstTestMethod(List<J.MethodDeclaration> methods) {
+            for (J.MethodDeclaration methodDeclaration : methods) {
+                for (J.Annotation annotation : methodDeclaration.getLeadingAnnotations()) {
+                    if (annotation.getSimpleName().equals("Test")) {
+                        return methodDeclaration;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static boolean containsTestNgTestMethods(List<J.MethodDeclaration> methods) {
+            for (J.MethodDeclaration methodDeclaration : methods) {
+                for (J.Annotation annotation : methodDeclaration.getAllAnnotations()) {
+                    JavaType annotationType = annotation.getAnnotationType().getType();
+                    if (annotationType instanceof JavaType.Class && ((JavaType.Class) annotationType)
+                      .getFullyQualifiedName().equals("org.testng.annotations.Test")) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private static boolean hasMethodWithAnnotation(J.ClassDeclaration classDecl, AnnotationMatcher annotationMatcher) {
+            return classDecl.getBody().getStatements().stream()
+              .filter(statement -> statement instanceof J.MethodDeclaration)
+              .map(J.MethodDeclaration.class::cast)
+              .map(J.MethodDeclaration::getAllAnnotations)
+              .flatMap(Collection::stream)
+              .anyMatch(annotationMatcher::matches);
+        }
+
+        private static List<Expression> getMockedTypesFromPrepareForTestAnnotation(List<J.Annotation> prepareForTestAnnotations) {
+            List<Expression> mockedTypes = new ArrayList<>();
+            for (J.Annotation prepareForTest : prepareForTestAnnotations) {
+                if (prepareForTest != null && prepareForTest.getArguments() != null) {
+                    mockedTypes.addAll(ListUtils.flatMap(prepareForTest.getArguments(), a -> {
+                        if (a instanceof J.NewArray && ((J.NewArray) a).getInitializer() != null) {
+                            // case `@PrepareForTest( {Object1.class, Object2.class ...} )`
+                            return ((J.NewArray) a).getInitializer();
+                        } else if (a instanceof J.Assignment && ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer() != null) {
+                            // case `@PrepareForTest( value = {Object1.class, Object2.class ...} }`
+                            return ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer();
+                        } else if (a instanceof J.FieldAccess) {
+                            // case `@PrepareForTest(Object1.class)`
+                            return a;
+                        }
+                        return null;
+                    }));
+                }
+            }
+            return mockedTypes;
+        }
+
+        private static boolean isStaticMockAlreadyClosed(J.Identifier staticMock, J.Block methodBody) {
+            return methodBody.getStatements().stream().filter(statement -> statement instanceof J.MethodInvocation)
+              .map(J.MethodInvocation.class::cast)
+              .filter(MOCKED_STATIC_CLOSE_MATCHER::matches)
+              .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
+              .anyMatch(methodInvocation -> ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
+                .equals(staticMock.getSimpleName()));
+        }
+
+        private static boolean isStaticMockAlreadyOpened(J.Identifier staticMock, J.Block methodBody) {
+            return methodBody.getStatements().stream().filter(statement -> statement instanceof J.MethodInvocation)
+              .map(J.MethodInvocation.class::cast)
+              .filter(MOCKED_STATIC_MATCHER::matches)
+              .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
+              .anyMatch(methodInvocation -> ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
+                .equals(staticMock.getSimpleName()));
+        }
+
+        private void initTestFrameworkInfo(boolean useTestNg) {
+            String setUpMethodAnnotationName;
+            String tearDownMethodAnnotationName;
+            String annotationPackage;
+
+            if (!useTestNg) {
+                setUpMethodAnnotationName = "BeforeEach";
+                tearDownMethodAnnotationName = "AfterEach";
+                annotationPackage = "org.junit.jupiter.api";
+                additionalClasspathResource = "junit-jupiter-api-5.9.2";
+            } else {
+                setUpMethodAnnotationName = "BeforeMethod";
+                tearDownMethodAnnotationName = "AfterMethod";
+                annotationPackage = "org.testng.annotations";
+                additionalClasspathResource = "testng-7.7.1";
+                tearDownMethodAnnotationParameters = "(alwaysRun = true)";
+            }
+
+            this.setUpMethodAnnotation = "@" + setUpMethodAnnotationName;
+            this.tearDownMethodAnnotation = "@" + tearDownMethodAnnotationName;
+
+            this.setUpMethodAnnotationSignature = "@" + annotationPackage + "." + setUpMethodAnnotationName;
+            this.tearDownMethodAnnotationSignature = "@" + annotationPackage + "." + tearDownMethodAnnotationName;
+
+            this.setUpImportToAdd = annotationPackage + "." + setUpMethodAnnotationName;
+            this.tearDownImportToAdd = annotationPackage + "." + tearDownMethodAnnotationName;
+        }
+
+        private Map<J.Identifier, Expression> getMockedTypesFields() {
+            if (mockedTypesFields == null) {
+                mockedTypesFields = getCursor().getNearestMessage(MOCKED_TYPES_FIELDS, new LinkedHashMap<>());
+            }
+            return mockedTypesFields;
         }
 
         private void findMockStaticInvocations(J.ClassDeclaration classDecl) {
@@ -229,19 +383,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             return classDecl;
         }
 
-        private static boolean isFieldAlreadyDefined(J.Block classBody, String fieldName) {
-            for (Statement statement : classBody.getStatements()) {
-                if (statement instanceof J.VariableDeclarations) {
-                    for (J.VariableDeclarations.NamedVariable namedVariable : ((J.VariableDeclarations) statement).getVariables()) {
-                        if (namedVariable.getSimpleName().equals(fieldName)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
         @NotNull
         private J.ClassDeclaration maybeAddSetUpMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             return maybeAddMethodWithAnnotation(classDecl, ctx, "setUpStaticMocks",
@@ -285,157 +426,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
               tearDownMethodAnnotationSignature,
               tearDownMethodAnnotation,
               additionalClasspathResource, tearDownImportToAdd, tearDownMethodAnnotationParameters);
-        }
-
-        @Nullable
-        private static J.MethodDeclaration getFirstTestMethod(List<J.MethodDeclaration> methods) {
-            for (J.MethodDeclaration methodDeclaration : methods) {
-                for (J.Annotation annotation : methodDeclaration.getLeadingAnnotations()) {
-                    if (annotation.getSimpleName().equals("Test")) {
-                        return methodDeclaration;
-                    }
-                }
-            }
-            return null;
-        }
-
-        private static boolean containsTestNgTestMethods(List<J.MethodDeclaration> methods) {
-            for (J.MethodDeclaration methodDeclaration : methods) {
-                for (J.Annotation annotation : methodDeclaration.getAllAnnotations()) {
-                    JavaType annotationType = annotation.getAnnotationType().getType();
-                    if (annotationType instanceof JavaType.Class && ((JavaType.Class) annotationType)
-                      .getFullyQualifiedName().equals("org.testng.annotations.Test")) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        private static boolean hasMethodWithAnnotation(J.ClassDeclaration classDecl, AnnotationMatcher annotationMatcher) {
-            return classDecl.getBody().getStatements().stream()
-              .filter(statement -> statement instanceof J.MethodDeclaration)
-              .map(J.MethodDeclaration.class::cast)
-              .map(J.MethodDeclaration::getAllAnnotations)
-              .flatMap(Collection::stream)
-              .anyMatch(annotationMatcher::matches);
-        }
-
-        private static List<Expression> getMockedTypesFromPrepareForTestAnnotation(List<J.Annotation> prepareForTestAnnotations) {
-            List<Expression> mockedTypes = new ArrayList<>();
-            for (J.Annotation prepareForTest : prepareForTestAnnotations) {
-                if (prepareForTest != null && prepareForTest.getArguments() != null) {
-                    mockedTypes.addAll(ListUtils.flatMap(prepareForTest.getArguments(), a -> {
-                        if (a instanceof J.NewArray && ((J.NewArray) a).getInitializer() != null) {
-                            // case `@PrepareForTest( {Object1.class, Object2.class ...} )`
-                            return ((J.NewArray) a).getInitializer();
-                        } else if (a instanceof J.Assignment && ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer() != null) {
-                            // case `@PrepareForTest( value = {Object1.class, Object2.class ...} }`
-                            return ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer();
-                        } else if (a instanceof J.FieldAccess) {
-                            // case `@PrepareForTest(Object1.class)`
-                            return a;
-                        }
-                        return null;
-                    }));
-                }
-            }
-            return mockedTypes;
-        }
-
-        @Override
-        public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-            J.MethodDeclaration m = (J.MethodDeclaration) super.visitMethodDeclaration(method, ctx);
-
-            AnnotationMatcher tearDownAnnotationMatcher = new AnnotationMatcher(tearDownMethodAnnotationSignature);
-            if (m.getAllAnnotations().stream().anyMatch(tearDownAnnotationMatcher::matches)) {
-                // Add close statements to the static mocks in the tear down method
-                for (Map.Entry<J.Identifier, Expression> mockedTypesField : getMockedTypesFields().entrySet()) {
-                    // Only add close method invocation if not already exists
-                    J.Block methodBody = m.getBody();
-                    if (methodBody == null || isStaticMockAlreadyClosed(mockedTypesField.getKey(), methodBody)) {
-                        continue;
-                    }
-                    m = m.withBody(methodBody.withTemplate(
-                      JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                          "#{any(org.mockito.MockedStatic)}.closeOnDemand();")
-                        .javaParser(() -> JavaParser.fromJavaVersion()
-                          .classpathFromResources(ctx, "mockito-core-3.*")
-                          .build())
-                        .build(),
-                      methodBody.getCoordinates().lastStatement(),
-                      mockedTypesField.getKey()
-                    ));
-                }
-                return m;
-            }
-
-            AnnotationMatcher setUpAnnotationMatcher = new AnnotationMatcher(
-              setUpMethodAnnotationSignature);
-            if (m.getAllAnnotations().stream().anyMatch(setUpAnnotationMatcher::matches)) {
-                // Move the mockStatic method to the setUp method
-                Map<String, J.MethodInvocation> mockStaticInvocations = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
-
-                if (mockStaticInvocations != null) {
-                    for (Map.Entry<J.Identifier, Expression> mockedTypesFieldEntry : getMockedTypesFields().entrySet()) {
-                        // Only add close method invocation if not already exists
-                        J.Block methodBody = m.getBody();
-                        if (methodBody == null || isStaticMockAlreadyOpened(mockedTypesFieldEntry.getKey(), methodBody)) {
-                            continue;
-                        }
-
-                        String className = mockedTypesFieldEntry.getValue().toString();
-                        J.MethodInvocation methodInvocation = mockStaticInvocations.get(className);
-                        if (methodInvocation != null) {
-                            m = m.withBody(methodBody.withTemplate(
-                              JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                                  "mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
-                                .javaParser(() -> JavaParser.fromJavaVersion()
-                                  .classpathFromResources(ctx, "mockito-core-3.*")
-                                  .build())
-                                .build(),
-                              methodBody.getCoordinates().firstStatement(),
-                              mockedTypesFieldEntry.getKey(),
-                              methodInvocation
-                            ));
-                        }
-                    }
-                }
-            }
-            return m;
-        }
-
-        private static boolean isStaticMockAlreadyClosed(J.Identifier staticMock, J.Block methodBody) {
-            return methodBody.getStatements().stream().filter(statement -> statement instanceof J.MethodInvocation)
-              .map(J.MethodInvocation.class::cast)
-              .filter(MOCKED_STATIC_CLOSE_MATCHER::matches)
-              .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
-              .anyMatch(methodInvocation -> ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
-                .equals(staticMock.getSimpleName()));
-        }
-
-        private static boolean isStaticMockAlreadyOpened(J.Identifier staticMock, J.Block methodBody) {
-            return methodBody.getStatements().stream().filter(statement -> statement instanceof J.MethodInvocation)
-              .map(J.MethodInvocation.class::cast)
-              .filter(MOCKED_STATIC_MATCHER::matches)
-              .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
-              .anyMatch(methodInvocation -> ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
-                .equals(staticMock.getSimpleName()));
-        }
-
-        @Override
-        public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (MOCKITO_WHEN_MATCHER.matches(method)
-              || MOCKITO_VERIFY_MATCHER.matches(method)) {
-                method = modifyWhenMethodInvocation(method);
-            } else if (MOCKED_STATIC_MATCHER.matches(method)) {
-                J.Assignment assignment = getCursor().firstEnclosing(J.Assignment.class);
-                if (assignment == null) {
-                    //noinspection DataFlowIssue
-                    return null;
-                }
-            }
-            return super.visitMethodInvocation(method, ctx);
         }
 
         @NotNull
