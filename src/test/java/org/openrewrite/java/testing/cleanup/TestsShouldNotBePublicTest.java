@@ -158,6 +158,59 @@ class TestsShouldNotBePublicTest implements RewriteTest {
     }
 
     @Test
+    void ignoreInterface() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              public interface ATest {
+
+                  @BeforeEach
+                  public void beforeEach_public() {
+                  }
+
+                  @BeforeEach
+                  protected void beforeEach_protected() {
+                  }
+
+                  @BeforeEach
+                  void beforeEach_packagePrivate() {
+                  }
+
+                  @AfterEach
+                  public void afterEach_public() {
+                  }
+
+                  @AfterEach
+                  protected void afterEach_protected() {
+                  }
+
+                  @AfterEach
+                  void afterEach_packagePrivate() {
+                  }
+
+                  @Test
+                  void testMethod_packagePrivate() {
+                  }
+
+                  @Test
+                  public void testMethod_public() {
+                  }
+
+                  @Test
+                  protected void testMethod_protected() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void ignoreOverriddenMethod() {
         //language=java
         rewriteRun(
