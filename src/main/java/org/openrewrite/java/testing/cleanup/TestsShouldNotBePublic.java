@@ -88,7 +88,8 @@ public class TestsShouldNotBePublic extends Recipe {
         public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext executionContext) {
             ClassDeclaration c = super.visitClassDeclaration(classDecl, executionContext);
 
-            if (c.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public)
+            if (c.getKind() != ClassDeclaration.Kind.Type.Interface
+                    && c.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public)
                     && c.getModifiers().stream().noneMatch(mod -> mod.getType() == Type.Abstract)) {
 
                 boolean hasTestMethods = c.getBody().getStatements().stream()
