@@ -62,6 +62,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
           new AnnotationMatcher("@org.junit.runner.RunWith(" + POWER_MOCK_RUNNER + ".class)");
         private static final String MOCKED_TYPES_FIELDS = "mockedTypesFields";
         private static final String MOCK_STATIC_INVOCATIONS = "mockStaticInvocationsByClassName";
+        private static final MethodMatcher DYNAMIC_WHEN_METHOD_MATCHER = new MethodMatcher("org.mockito.Mockito when(java.lang.Class, String, ..)");
         private String setUpMethodAnnotationSignature;
         private String setUpMethodAnnotation;
         private String tearDownMethodAnnotationSignature;
@@ -179,16 +180,51 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (MOCKITO_WHEN_MATCHER.matches(method) || MOCKITO_VERIFY_MATCHER.matches(method)) {
-                method = modifyWhenMethodInvocation(method);
-            } else if (MOCKED_STATIC_MATCHER.matches(method)) {
+            J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+            if (DYNAMIC_WHEN_METHOD_MATCHER.matches(mi)) {
+                return modifyDynamicWhenMethodInvocation(mi);
+            }
+
+            if (MOCKITO_WHEN_MATCHER.matches(mi) || MOCKITO_VERIFY_MATCHER.matches(mi)) {
+                return modifyWhenMethodInvocation(mi);
+            }
+
+            if (MOCKED_STATIC_MATCHER.matches(mi)) {
                 J.Assignment assignment = getCursor().firstEnclosing(J.Assignment.class);
                 if (assignment == null) {
                     //noinspection DataFlowIssue
                     return null;
                 }
             }
-            return super.visitMethodInvocation(method, ctx);
+            return mi;
+        }
+
+        private J.MethodInvocation modifyDynamicWhenMethodInvocation(J.MethodInvocation method) {
+            // Example
+            // Mockito.mockStatic(Calendar.class, "getInstance")
+            // is modified to
+            // Mockito.mockStatic(Calendar.getInstance())
+            List<Expression> arguments = method.getArguments();
+            String declaringClassName = ((J.FieldAccess) arguments.get(0)).getTarget().toString();
+            arguments.remove(0);
+            J.Literal calledMethod = (J.Literal)arguments.get(0);
+            arguments.remove(0);
+            String stringOfArguments = arguments.stream().map(argument -> argument.toString()).collect(Collectors.joining(","));
+            method = method.withTemplate(
+                JavaTemplate.builder(this::getCursor,
+                    "() -> #{}.#{}(#{})")
+                  .javaParser(() -> JavaParser.fromJavaVersion()
+                    .build())
+                  .build(),
+                method.getCoordinates().replaceArguments(),
+              declaringClassName,
+                calledMethod.getValue().toString(),
+                stringOfArguments
+              );
+            J.Identifier mockedField = getFieldIdentifier("mocked" + declaringClassName);
+            method = method.withSelect(mockedField);
+
+            return method;
         }
 
         private static boolean isFieldAlreadyDefined(J.Block classBody, String fieldName) {

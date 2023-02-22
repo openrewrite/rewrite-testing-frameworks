@@ -564,4 +564,63 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
         ));
     }
+    @Test
+    void dynamicPowerMockitoWhenCallsGetReplaced() {
+        //language=java
+        rewriteRun(java(
+          """
+           import static org.mockito.Mockito.any;
+           import static org.mockito.Mockito.mock;
+           import static org.powermock.api.mockito.PowerMockito.*;
+           
+           import java.util.Calendar;
+           import java.util.Locale;
+           
+           import org.powermock.core.classloader.annotations.PrepareForTest;
+           import org.testng.annotations.Test;
+           
+           @PrepareForTest({Calendar.class})
+           public class MyTest {
+           
+               @Test
+               public void testCalendarDynamic() throws Exception {
+                   Calendar calendarMock = mock(Calendar.class);
+                   mockStatic(Calendar.class);
+                   when(Calendar.class, "getInstance", any(Locale.class)).thenReturn(calendarMock);
+               }
+           }
+""",
+          """
+           import static org.mockito.Mockito.*;
+           import java.util.Calendar;
+           import java.util.Locale;
+           
+           import org.mockito.MockedStatic;
+           import org.testng.annotations.AfterMethod;
+           import org.testng.annotations.BeforeMethod;
+           import org.testng.annotations.Test;
+           
+           public class MyTest {
+           
+               private MockedStatic<Calendar> mockedCalendar;
+           
+               @BeforeMethod
+               void setUpStaticMocks() {
+                   mockedCalendar = mockStatic(Calendar.class);
+               }
+           
+               @AfterMethod(alwaysRun = true)
+               void tearDownStaticMocks() {
+                   mockedCalendar.closeOnDemand();
+               }
+           
+               @Test
+               public void testCalendarDynamic() throws Exception {
+                   Calendar calendarMock = mock(Calendar.class);
+                   mockedCalendar.when(() -> Calendar.getInstance(any(Locale.class))).thenReturn(calendarMock);
+               }
+           }
+"""
+        ));
+    }
 }
