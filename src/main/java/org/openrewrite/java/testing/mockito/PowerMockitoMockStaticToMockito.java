@@ -54,12 +54,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private static final MethodMatcher MOCKED_STATIC_MATCHER = new MethodMatcher("org.mockito.Mockito mockStatic(..)");
         private static final MethodMatcher MOCKED_STATIC_CLOSE_MATCHER = new MethodMatcher("org.mockito.ScopedMock close(..)", true);
         private static final MethodMatcher MOCKITO_VERIFY_MATCHER = new MethodMatcher("org.mockito.Mockito verify(..)");
+        private static final MethodMatcher MOCKITO_WHEN_MATCHER = new MethodMatcher("org.mockito.Mockito when(..)");
+        private static final MethodMatcher MOCKITO_STATIC_METHOD_MATCHER = new MethodMatcher("org.mockito..* *(..)");
         private static final AnnotationMatcher PREPARE_FOR_TEST_MATCHER =
           new AnnotationMatcher("@org.powermock.core.classloader.annotations.PrepareForTest");
         private static final AnnotationMatcher RUN_WITH_POWER_MOCK_RUNNER_MATCHER =
           new AnnotationMatcher("@org.junit.runner.RunWith(" + POWER_MOCK_RUNNER + ".class)");
-        private static final MethodMatcher MOCKITO_WHEN_MATCHER = new MethodMatcher("org.mockito.Mockito when(..)");
-        private static final MethodMatcher MOCKITO_STATIC_METHOD_MATCHER = new MethodMatcher("org.mockito.Mockito *(..)");
         private static final String MOCKED_TYPES_FIELDS = "mockedTypesFields";
         private static final String MOCK_STATIC_INVOCATIONS = "mockStaticInvocationsByClassName";
         private String setUpMethodAnnotationSignature;

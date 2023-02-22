@@ -487,7 +487,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                      return filterValue.split(".");
                    }
                  }
-            } 
+            }
             """), java("""
             import static org.mockito.Mockito.*;
 
@@ -505,21 +505,21 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """,
           """
             import static org.mockito.Mockito.*;
-            
+                        
             import org.mockito.MockedStatic;
             import org.testng.annotations.AfterMethod;
             import org.testng.annotations.BeforeMethod;
             import org.testng.annotations.Test;
-            
+                        
             public class MyTest {
-            
+                        
                 private MockedStatic<StringFilter> mockedStringFilter;
-            
+                        
                 @BeforeMethod
                 void setUpStaticMocks() {
                     mockedStringFilter = mockStatic(StringFilter.class);
                 }
-            
+                        
                 @AfterMethod(alwaysRun = true)
                 void tearDownStaticMocks() {
                     mockedStringFilter.closeOnDemand();
@@ -528,9 +528,40 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                 public void testStaticMock() {
                     mockedStringFilter.when(() -> StringFilter.splitFilterStringValues(anyString())).thenReturn(new String[]{"Fee", "Faa", "Foo"});
                 }
-            }  
+            }
             """
         ));
     }
 
+    @Test
+    void verifyOnMocksRemainsUntouched() {
+        //language=java
+        rewriteRun(java(
+          """
+            import static org.mockito.Mockito.spy;
+            import static org.mockito.Mockito.verify;
+            import static org.mockito.internal.verification.VerificationModeFactory.times;
+            import java.util.Calendar;
+            import java.util.Date;
+                        
+            import org.testng.annotations.BeforeMethod;
+            import org.testng.annotations.Test;
+                        
+            public class MyTest {
+                        
+              private Calendar cut;
+                        
+              @BeforeMethod
+              void setUp() {
+                cut = spy(Calendar.getInstance());
+              }
+               @Test
+                public void testCalendar() {
+                   cut.getTime();
+                   verify(cut, times(1)).getTimeInMillis();
+                }
+            }
+            """
+        ));
+    }
 }
