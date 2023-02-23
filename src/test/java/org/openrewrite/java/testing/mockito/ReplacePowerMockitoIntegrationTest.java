@@ -67,6 +67,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import java.util.Calendar;
               import java.util.Currency;
               import java.util.Locale;
+              import java.util.UUID;
               
               import org.junit.runner.RunWith;
               import org.junit.jupiter.api.Test;
@@ -76,7 +77,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               
               @RunWith(PowerMockRunner.class)
               @PowerMockIgnore({"org.apache.*", "com.sun.*", "javax.*"})
-              @PrepareForTest(value = {Calendar.class, Currency.class})
+              @PrepareForTest(value = {Calendar.class, Currency.class, UUID.class})
               public class StaticMethodTest {
               
                   private Calendar calendarMock = mock(Calendar.class);

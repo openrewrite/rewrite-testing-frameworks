@@ -63,6 +63,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private static final String MOCKED_TYPES_FIELDS = "mockedTypesFields";
         private static final String MOCK_STATIC_INVOCATIONS = "mockStaticInvocationsByClassName";
         private static final MethodMatcher DYNAMIC_WHEN_METHOD_MATCHER = new MethodMatcher("org.mockito.Mockito when(java.lang.Class, String, ..)");
+        private static final String MOCK_PREFIX = "mocked";
         private String setUpMethodAnnotationSignature;
         private String setUpMethodAnnotation;
         private String tearDownMethodAnnotationSignature;
@@ -209,7 +210,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             arguments.remove(0);
             J.Literal calledMethod = (J.Literal)arguments.get(0);
             arguments.remove(0);
-            String stringOfArguments = arguments.stream().map(argument -> argument.toString()).collect(Collectors.joining(","));
+            String stringOfArguments = arguments.stream().map(Object::toString).collect(Collectors.joining(","));
             method = method.withTemplate(
                 JavaTemplate.builder(this::getCursor,
                     "() -> #{}.#{}(#{})")
@@ -218,10 +219,10 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                   .build(),
                 method.getCoordinates().replaceArguments(),
               declaringClassName,
-                calledMethod.getValue().toString(),
+                Objects.requireNonNull(calledMethod.getValue()).toString(),
                 stringOfArguments
               );
-            J.Identifier mockedField = getFieldIdentifier("mocked" + declaringClassName);
+            J.Identifier mockedField = getFieldIdentifier(MOCK_PREFIX + declaringClassName);
             method = method.withSelect(mockedField);
 
             return method;
@@ -390,9 +391,14 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         @NotNull
         private J.ClassDeclaration addFieldDeclarationForMockedTypes(J.ClassDeclaration classDecl, ExecutionContext ctx, List<Expression> mockedTypes) {
+            // Get the actually invoked staticMethod by class
+            Map<String, J.MethodInvocation> invocationByClassName = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
+            if (invocationByClassName == null || invocationByClassName.isEmpty()) {
+                // If there are no invocations, nothing needs to be done here
+                return classDecl;
+            }
             // Add field declarations of mocked types
             Map<J.Identifier, Expression> mockedTypesIdentifiers = new LinkedHashMap<>();
-
             for (Expression mockedType : mockedTypes) {
                 JavaType.Parameterized classType = TypeUtils.asParameterized(mockedType.getType());
                 if (classType == null) {
@@ -403,14 +409,20 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     continue;
                 }
                 String classlessTypeName = fullyQualifiedMockedType.getClassName();
-                String mockedTypedFieldName = "mocked" + classlessTypeName;
+                if (invocationByClassName.get(classlessTypeName + ".class") == null) {
+                    // Only add fields for classes that are actually invoked by mockStatic()
+                    // The not mocked class can be removed from import
+                    maybeRemoveImport(fullyQualifiedMockedType.getFullyQualifiedName());
+                    continue;
+                }
+                String mockedTypedFieldName = MOCK_PREFIX + classlessTypeName;
                 if (isFieldAlreadyDefined(classDecl.getBody(), mockedTypedFieldName)) {
                     continue;
                 }
                 classDecl = classDecl.withBody(classDecl.getBody()
                   .withTemplate(
                     JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                        "private MockedStatic<#{}> mocked#{};")
+                        "private MockedStatic<#{}> " + MOCK_PREFIX + "#{};")
                       .javaParser(() -> JavaParser.fromJavaVersion()
                         .classpathFromResources(ctx, "mockito-core-3.12.4")
                         .build())
@@ -518,7 +530,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     }
                 }
                 if (Collections.replaceAll(methodArguments, staticMI, lambdaInvocation)) {
-                    J.Identifier mockedField = getFieldIdentifier("mocked" + declaringClassName);
+                    J.Identifier mockedField = getFieldIdentifier(MOCK_PREFIX + declaringClassName);
                     whenMethod = whenMethod.withSelect(mockedField);
                     whenMethod = whenMethod.withArguments(methodArguments);
                 }

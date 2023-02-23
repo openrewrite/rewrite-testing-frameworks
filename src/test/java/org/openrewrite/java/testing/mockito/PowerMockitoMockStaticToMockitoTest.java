@@ -230,14 +230,11 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
             """
               import java.util.Calendar;
                             
-              import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
                             
               public class MyTest {
-
-                  private MockedStatic<Calendar> mockedCalendar;
 
                   @BeforeMethod
                   void setUpStaticMocks() {
@@ -245,7 +242,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.closeOnDemand();
                   }
 
                   @Test
@@ -297,14 +293,11 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                             
               import static org.mockito.Mockito.*;
                             
-              import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               public class MyTest {
-
-                  private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
 
@@ -316,7 +309,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   @AfterMethod( groups = "checkin")
                   void tearDown() {
                       calendarMock = null;
-                      mockedCalendar.closeOnDemand();
                   }
 
                   @Test
