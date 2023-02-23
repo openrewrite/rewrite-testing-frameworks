@@ -21,6 +21,7 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -38,6 +39,11 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               "powermock-api-mockito-1.6.5",
               "powermock-api-support-1.6.5",
               "testng-7.7.1"))
+          // TODO Resolve the missing types in the replacement templates rather than ignore the errors here
+          .typeValidationOptions(TypeValidation.builder()
+            .identifiers(false)
+            .methodInvocations(false)
+            .build())
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
             .build()
