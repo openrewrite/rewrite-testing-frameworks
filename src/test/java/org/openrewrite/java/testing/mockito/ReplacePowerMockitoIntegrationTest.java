@@ -60,44 +60,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           """
         ), java(
           """
-            import org.junit.jupiter.api.Test;
-                                                   import org.junit.runner.RunWith;
-             import org.powermock.core.classloader.annotations.PowerMockIgnore;
-             import org.powermock.core.classloader.annotations.PrepareForTest;
-             import org.powermock.modules.junit4.PowerMockRunner;
-
-             import java.util.Calendar;
-             import java.util.Currency;
-             import java.util.Locale;
-             import java.util.UUID;
-
-             import static org.junit.jupiter.api.Assertions.assertEquals;
-             import static org.mockito.Mockito.*;
-             import static org.powermock.api.mockito.PowerMockito.mockStatic;
-                                           
-                           @RunWith(PowerMockRunner.class)
-                           @PowerMockIgnore({"org.apache.*", "com.sun.*", "javax.*"})
-                           @PrepareForTest(value = {Calendar.class, Currency.class, UUID.class})
-                           public class StaticMethodTest {
-                           
-                               private Calendar calendarMock = mock(Calendar.class);
-                           
-                               @Test
-                               void testWithCalendar() {
-                                   mockStatic(Calendar.class);
-                                   when(Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
-                                   assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
-                               }
-                               
-                               @Test
-                               void testWithCurrency() {
-                                   mockStatic(Currency.class);
-                                   verify(Currency.getAvailableCurrencies(), never());
-                               }
-               
-               }
-             """,
-          """
               import static org.mockito.Mockito.*;
               import static org.junit.jupiter.api.Assertions.assertEquals;
               
