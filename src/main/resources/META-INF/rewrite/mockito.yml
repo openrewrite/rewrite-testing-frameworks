@@ -23,7 +23,7 @@ tags:
   - mockito
 recipeList:
   - org.openrewrite.java.testing.mockito.Mockito1to3Migration
-  - org.openrewrite.maven.UpgradeDependencyVersion:
+  - org.openrecwrite.maven.UpgradeDependencyVersion:
       groupId: org.mockito
       artifactId: "*"
       newVersion: 4.x
@@ -136,6 +136,11 @@ recipeList:
       returnType: org.mockito.MockedStatic
       matchOverrides: null
       matchUnknownTypes:
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito do*(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+      matchOverrides: null
+      matchUnknownTypes: null
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mock(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito

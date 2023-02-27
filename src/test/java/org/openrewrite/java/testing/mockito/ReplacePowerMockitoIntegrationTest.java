@@ -630,4 +630,47 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 """
         ));
     }
+
+    @Test
+    void powerMockitoCallsAreReplacedByMockitoCalls() {
+        //language=java
+        rewriteRun(java(
+          """
+            import org.junit.jupiter.api.BeforeEach;
+            import org.powermock.api.mockito.PowerMockito;
+            import java.util.Calendar;
+            
+            public class MyTest {
+            
+                private Calendar calendarMock;
+            
+                @BeforeEach
+                void setUp() {
+                    calendarMock = PowerMockito.mock(Calendar.class);
+                    PowerMockito.doCallRealMethod().when(calendarMock).getTime();
+                    PowerMockito.doNothing().when(calendarMock).clear();
+                    PowerMockito.doThrow(new NullPointerException()).when(calendarMock.getCalendarType());
+                }
+            }
+""",
+          """
+            import org.junit.jupiter.api.BeforeEach;
+            import org.mockito.Mockito;
+            import java.util.Calendar;
+            
+            public class MyTest {
+            
+                private Calendar calendarMock;
+            
+                @BeforeEach
+                void setUp() {
+                    calendarMock = Mockito.mock(Calendar.class);
+                    Mockito.doCallRealMethod().when(calendarMock).getTime();
+                    Mockito.doNothing().when(calendarMock).clear();
+                    Mockito.doThrow(new NullPointerException()).when(calendarMock.getCalendarType());
+                }
+            }
+ """
+          ));
+    }
 }
