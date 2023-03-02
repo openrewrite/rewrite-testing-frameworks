@@ -47,27 +47,27 @@ class AnyStringToNullableTest implements RewriteTest {
             """),
           java(
             """
+              import static org.mockito.ArgumentMatchers.anyString;
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
-              import static org.mockito.Mockito.anyString;
 
               class MyTest {
-                   void test() {
+                  void test() {
                       Example example = mock(Example.class);
                       when(example.greet(anyString())).thenReturn("Hello world");
-                   }
+                  }
               }
               """,
             """
+              import static org.mockito.ArgumentMatchers.nullable;
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
-              import static org.mockito.ArgumentMatchers.nullable;
-                            
+
               class MyTest {
-                   void test() {
+                  void test() {
                       Example example = mock(Example.class);
                       when(example.greet(nullable(String.class))).thenReturn("Hello world");
-                   }
+                  }
               }
               """
           )

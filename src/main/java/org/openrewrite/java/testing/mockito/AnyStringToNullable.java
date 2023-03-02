@@ -15,24 +15,20 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 
 import java.time.Duration;
 
 /**
- * S
+ * Replace Mockito 1.x `anyString()` with `nullable(String.class)`
  */
 public class AnyStringToNullable extends Recipe {
-
-    public static final String ARGUMENT_MATCHERS_ANY_STRING = "org.mockito.Mockito anyString()";
+    private static final MethodMatcher ANY_STRING = new MethodMatcher("org.mockito.ArgumentMatchers anyString()");
+    private static final String MOCKITO_CLASS_PATH = "mockito-core-3.12.4";
 
     @Override
     public String getDisplayName() {
@@ -52,29 +48,33 @@ public class AnyStringToNullable extends Recipe {
     @Nullable
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesMethod<>(ARGUMENT_MATCHERS_ANY_STRING);
+        return new UsesMethod<>(ANY_STRING);
     }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new AnyStringToNullableVisitor();
+        return new JavaIsoVisitor<ExecutionContext>() {
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
+
+                if (ANY_STRING.matches(mi)) {
+                    maybeAddImport("org.mockito.ArgumentMatchers", "nullable", false);
+                    maybeRemoveImport("org.mockito.ArgumentMatchers.anyString");
+                    return getNullableMethodTemplate().withPrefix(mi.getPrefix());
+                }
+                return mi;
+            }
+        };
     }
 
-    private static class AnyStringToNullableVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        private final JavaTemplate template = JavaTemplate.builder(this::getCursor, "nullable(String.class)")
-                .staticImports("org.mockito.ArgumentMatchers.nullable")
-                .build();
-
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-            J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
-            if (new MethodMatcher(ARGUMENT_MATCHERS_ANY_STRING).matches(mi)) {
-                maybeAddImport("org.mockito.ArgumentMatchers", "nullable", false);
-                maybeRemoveImport("org.mockito.Mockito.anyString");
-                return mi.withTemplate(template, mi.getCoordinates().replace());
-            }
-            return mi;
-        }
+    private static J.MethodInvocation getNullableMethodTemplate() {
+        return PartProvider.buildPart("import static org.mockito.ArgumentMatchers.nullable;\n" +
+                                      "public class A {\n" +
+                                      "    void method() {\n" +
+                                      "        Object x = nullable(String.class);\n" +
+                                      "    }\n" +
+                                      "}", J.MethodInvocation.class, MOCKITO_CLASS_PATH);
     }
 }
