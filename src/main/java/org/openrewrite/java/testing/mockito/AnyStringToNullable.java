@@ -29,6 +29,7 @@ import java.time.Duration;
 public class AnyStringToNullable extends Recipe {
     private static final MethodMatcher ANY_STRING = new MethodMatcher("org.mockito.ArgumentMatchers anyString()");
     private static final String MOCKITO_CLASS_PATH = "mockito-core-3.12.4";
+    private static J.MethodInvocation nullableStringMethodTemplate = null;
 
     @Override
     public String getDisplayName() {
@@ -70,11 +71,15 @@ public class AnyStringToNullable extends Recipe {
     }
 
     private static J.MethodInvocation getNullableMethodTemplate() {
-        return PartProvider.buildPart("import static org.mockito.ArgumentMatchers.nullable;\n" +
-                                      "public class A {\n" +
-                                      "    void method() {\n" +
-                                      "        Object x = nullable(String.class);\n" +
-                                      "    }\n" +
-                                      "}", J.MethodInvocation.class, MOCKITO_CLASS_PATH);
+        if (nullableStringMethodTemplate == null) {
+            nullableStringMethodTemplate = PartProvider.buildPart("import static org.mockito.ArgumentMatchers" +
+                                                                  ".nullable;\n" +
+                                                                  "public class A {\n" +
+                                                                  "    void method() {\n" +
+                                                                  "        Object x = nullable(String.class);\n" +
+                                                                  "    }\n" +
+                                                                  "}", J.MethodInvocation.class, MOCKITO_CLASS_PATH);
+        }
+        return nullableStringMethodTemplate;
     }
 }
