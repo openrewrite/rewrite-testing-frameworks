@@ -246,18 +246,15 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   // some comments
                   @Issue("some issue")
                   @Test
-                  void test() {
-                  }
+                  void test() { }
               
                   // some comments
                   @Test
-                  void test1() {
-                  }
+                  void test1() { }
               
                   // some comments
                   @Test
-                  void test2() {
-                  }
+                  void test2() { }
               }
               """
           )
