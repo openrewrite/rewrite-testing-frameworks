@@ -39,6 +39,7 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.mockito.MockitoAnnotations.Mock
       newFullyQualifiedTypeName: org.mockito.Mock
+  - org.openrewrite.java.testing.mockito.AnyToNullable
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.mockito.Matchers
       newFullyQualifiedTypeName: org.mockito.ArgumentMatchers
@@ -119,6 +120,19 @@ recipeList:
       groupId: org.mockito
       artifactId: "*"
       newVersion: 3.x
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.AnyToNullable
+displayName: Replace Mockito 1.x `any(Class)` and `anyString()` with `nullable(Class)`
+description: Since Mockito 2.10 `any(Class)` and `anyString()` no longer match null values. Use `nullable(Class)` instead.
+recipeList:
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.Mockito any(java.lang.Class)
+      newMethodName: nullable
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.mockito.Mockito nullable(java.lang.Class)
+      fullyQualifiedTargetTypeName: org.mockito.ArgumentMatchers
+  - org.openrewrite.java.testing.mockito.AnyStringToNullable
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplacePowerMockito
