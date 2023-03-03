@@ -125,6 +125,17 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.AnyToNullable
 displayName: Replace Mockito 1.x `any(Class)` and `anyString()` with `nullable(Class)`
 description: Since Mockito 2.10 `any(Class)` and `anyString()` no longer match null values. Use `nullable(Class)` instead.
+tags:
+  - testing
+  - mockito
+applicability:
+  anySource:
+    - org.openrewrite.maven.search.FindDependency:
+        groupId: org.mockito
+        artifactId: mockito-all
+#    - org.openrewrite.gradle.search.FindDependency:
+#        groupId: org.mockito
+#        artifactId: mockito-all
 recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.Mockito any(java.lang.Class)

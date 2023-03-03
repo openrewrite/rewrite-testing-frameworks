@@ -23,6 +23,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class AnyToNullableTest implements RewriteTest {
 
@@ -42,6 +43,23 @@ class AnyToNullableTest implements RewriteTest {
     void replaceAnyClassWithNullableClass() {
         //language=java
         rewriteRun(
+          //language=xml
+          pomXml("""
+            <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example</groupId>
+                <artifactId>foo</artifactId>
+                <version>1.0.0</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-all</artifactId>
+                        <version>1.10.19</version>
+                    </dependency>
+                </dependencies>
+            </project>
+            """),
+          //language=java
           java("""
             class Example {
                 String greet(Object obj) {
@@ -49,6 +67,7 @@ class AnyToNullableTest implements RewriteTest {
                 }
             }
             """),
+          //language=java
           java(
             """
               import static org.mockito.Mockito.mock;
