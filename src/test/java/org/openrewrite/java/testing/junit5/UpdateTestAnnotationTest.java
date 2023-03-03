@@ -108,17 +108,17 @@ class UpdateTestAnnotationTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-        """
-              import org.junit.Test;
-              
-              public class MyTest {
-              
-                  @Test(expected = IndexOutOfBoundsException.class)
-                  public void test() {
-                      int arr = new int[]{}[0];
+            """
+                  import org.junit.Test;
+                  
+                  public class MyTest {
+                  
+                      @Test(expected = IndexOutOfBoundsException.class)
+                      public void test() {
+                          int arr = new int[]{}[0];
+                      }
                   }
-              }
-              """,
+                  """,
             """
               import org.junit.jupiter.api.Test;
               
