@@ -141,7 +141,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
                       int bar(byte[] bytes, String[] s, int i) { return 0; }
                       boolean baz(String ... strings) { return true; }
                   }
-              
+
                   public void usesMatchers() {
                       Foo mockFoo = mock(Foo.class);
                       when(mockFoo.bool(anyString(), anyInt(), any(Object.class))).thenReturn(true);
