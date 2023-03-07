@@ -42,36 +42,36 @@ class StaticImportsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                  import java.util.List;
-                  import org.assertj.core.api.AssertionsForClassTypes;
-                  import org.assertj.core.api.AssertionsForInterfaceTypes;
-                  import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-                  import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+              import java.util.List;
+              import org.assertj.core.api.AssertionsForClassTypes;
+              import org.assertj.core.api.AssertionsForInterfaceTypes;
+              import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+              import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
-                  public class Test {
-                      List<String> exampleList;
-                      void method() {
-                          AssertionsForInterfaceTypes.assertThat(exampleList).hasSize(0);
-                          AssertionsForClassTypes.assertThat(true).isTrue();
-                          assertThat(true).isTrue();
-                          assertThat(exampleList).hasSize(0);
-                      }
+              public class Test {
+                  List<String> exampleList;
+                  void method() {
+                      AssertionsForInterfaceTypes.assertThat(exampleList).hasSize(0);
+                      AssertionsForClassTypes.assertThat(true).isTrue();
+                      assertThat(true).isTrue();
+                      assertThat(exampleList).hasSize(0);
                   }
+              }
               """,
             """
-                  import java.util.List;
-                  
-                  import static org.assertj.core.api.Assertions.assertThat;
+              import java.util.List;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
 
-                  public class Test {
-                      List<String> exampleList;
-                      void method() {
-                          assertThat(exampleList).hasSize(0);
-                          assertThat(true).isTrue();
-                          assertThat(true).isTrue();
-                          assertThat(exampleList).hasSize(0);
-                      }
+              public class Test {
+                  List<String> exampleList;
+                  void method() {
+                      assertThat(exampleList).hasSize(0);
+                      assertThat(true).isTrue();
+                      assertThat(true).isTrue();
+                      assertThat(exampleList).hasSize(0);
                   }
+              }
               """
           )
         );

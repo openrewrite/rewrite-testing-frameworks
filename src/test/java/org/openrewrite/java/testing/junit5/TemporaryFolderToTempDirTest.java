@@ -56,19 +56,19 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Rule
-              import org.junit.rules.TemporaryFolder
-                          
-              class AbstractIntegrationTest {
-                  @TempDir
-                  File temporaryFolder
-                          
-                  def setup() {
-                      projectDir = temporaryFolder.root
-                      buildFile = File.createTempFile('build.gradle', null, temporaryFolder)
-                      settingsFile = File.createTempFile('settings.gradle', null, temporaryFolder)
-                  }
-              }
+            import org.junit.Rule
+            import org.junit.rules.TemporaryFolder
+                        
+            class AbstractIntegrationTest {
+                @TempDir
+                File temporaryFolder
+                        
+                def setup() {
+                    projectDir = temporaryFolder.root
+                    buildFile = File.createTempFile('build.gradle', null, temporaryFolder)
+                    settingsFile = File.createTempFile('settings.gradle', null, temporaryFolder)
+                }
+            }
             """
           )
         );

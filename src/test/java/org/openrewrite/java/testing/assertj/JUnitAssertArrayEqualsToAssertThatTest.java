@@ -180,20 +180,20 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-                  import org.junit.Test;
+              import org.junit.Test;
 
-                  import static org.assertj.core.api.Assertions.assertThat;
-                  import static org.assertj.core.api.Assertions.within;
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.within;
 
-                  public class MyTest {
-                      @Test
-                      public void test() {
-                          assertThat(notification()).as("These should be close").containsExactly(new double[]{1.0d, 2.0d, 3.0d}, within(.2d));
-                      }
-                      private double[] notification() {
-                          return new double[]{1.1d, 2.1d, 3.1d};
-                      }
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertThat(notification()).as("These should be close").containsExactly(new double[]{1.0d, 2.0d, 3.0d}, within(.2d));
                   }
+                  private double[] notification() {
+                      return new double[]{1.1d, 2.1d, 3.1d};
+                  }
+              }
               """
           )
         );
@@ -206,19 +206,19 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-                  import org.junit.Test;
+              import org.junit.Test;
 
-                  import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+              import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
-                  public class MyTest {
-                      @Test
-                      public void test() {
-                          assertArrayEquals(new Double[]{1.0d, 2.0d, 3.0d}, notification(), "These arrays should be equal");
-                      }
-                      private Double[] notification() {
-                          return new Double[]{1.0d, 2.0d, 3.0d};
-                      }
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertArrayEquals(new Double[]{1.0d, 2.0d, 3.0d}, notification(), "These arrays should be equal");
                   }
+                  private Double[] notification() {
+                      return new Double[]{1.0d, 2.0d, 3.0d};
+                  }
+              }
               """,
             """
               import org.junit.Test;

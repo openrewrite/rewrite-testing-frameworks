@@ -39,34 +39,34 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                  import org.junit.Test;
+              import org.junit.Test;
 
-                  import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.jupiter.api.Assertions.assertNull;
 
-                  public class MyTest {
-                      @Test
-                      public void test() {
-                          assertNull(notification());
-                      }
-                      private String notification() {
-                          return null;
-                      }
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertNull(notification());
                   }
+                  private String notification() {
+                      return null;
+                  }
+              }
               """,
             """
-                  import org.junit.Test;
+              import org.junit.Test;
 
-                  import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.assertThat;
 
-                  public class MyTest {
-                      @Test
-                      public void test() {
-                          assertThat(notification()).isNull();
-                      }
-                      private String notification() {
-                          return null;
-                      }
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertThat(notification()).isNull();
                   }
+                  private String notification() {
+                      return null;
+                  }
+              }
               """
           )
         );

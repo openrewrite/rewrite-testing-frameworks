@@ -73,15 +73,15 @@ class CleanupAssertionsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                  import org.junit.jupiter.api.Assertions;
-                  import org.junit.jupiter.api.Test;
-                
-                  class ExampleTest {
-                      @Test
-                      void test() {
-                          Assertions.assertFalse(!"".equals(""));
-                      }
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+            
+              class ExampleTest {
+                  @Test
+                  void test() {
+                      Assertions.assertFalse(!"".equals(""));
                   }
+              }
               """,
             """
               import org.junit.jupiter.api.Assertions;

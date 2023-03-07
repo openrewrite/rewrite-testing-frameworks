@@ -195,23 +195,23 @@ class CategoryToTagTest implements RewriteTest {
           ),
           java(
             """
-                  package b;
-                  
-                  import a.FastTests;
-                  import org.junit.experimental.categories.Category;
-                  
-                  @Category({FastTests.class})
-                  public class B {
-                  }
+              package b;
+              
+              import a.FastTests;
+              import org.junit.experimental.categories.Category;
+              
+              @Category({FastTests.class})
+              public class B {
+              }
               """,
             """
-                  package b;
-                  
-                  import org.junit.jupiter.api.Tag;
-                  
-                  @Tag("FastTests")
-                  public class B {
-                  }
+              package b;
+              
+              import org.junit.jupiter.api.Tag;
+              
+              @Tag("FastTests")
+              public class B {
+              }
               """
           )
         );

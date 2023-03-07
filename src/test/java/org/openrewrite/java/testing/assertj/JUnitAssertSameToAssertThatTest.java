@@ -81,36 +81,36 @@ class JUnitAssertSameToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-                  import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.Test;
 
-                  import static org.junit.jupiter.api.Assertions.assertSame;
+              import static org.junit.jupiter.api.Assertions.assertSame;
 
-                  public class MyTest {
-                      @Test
-                      public void test() {
-                          String str = "string";
-                          assertSame(notification(), str, "Should be the same");
-                      }
-                      private String notification() {
-                          return "String";
-                      }
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      String str = "string";
+                      assertSame(notification(), str, "Should be the same");
                   }
+                  private String notification() {
+                      return "String";
+                  }
+              }
               """,
             """
-                  import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.Test;
 
-                  import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.assertThat;
 
-                  public class MyTest {
-                      @Test
-                      public void test() {
-                          String str = "string";
-                          assertThat(str).as("Should be the same").isSameAs(notification());
-                      }
-                      private String notification() {
-                          return "String";
-                      }
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      String str = "string";
+                      assertThat(str).as("Should be the same").isSameAs(notification());
                   }
+                  private String notification() {
+                      return "String";
+                  }
+              }
               """
           )
         );
@@ -208,41 +208,41 @@ class JUnitAssertSameToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-                  import org.junit.jupiter.api.Test;
-                  
-                  import static org.assertj.core.api.Assertions.*;
-                  import static org.junit.jupiter.api.Assertions.assertSame;
-                  
-                  public class MyTest {
-                      @Test
-                      public void test() {
-                          String str = "string";
-                          assertSame(notification(), str);
-                          org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be the same");
-                          assertSame(notification(), str, () -> "Should be the same");
-                      }
-                      private String notification() {
-                          return "String";
-                      }
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.*;
+              import static org.junit.jupiter.api.Assertions.assertSame;
+              
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      String str = "string";
+                      assertSame(notification(), str);
+                      org.junit.jupiter.api.Assertions.assertSame(notification(), str, "Should be the same");
+                      assertSame(notification(), str, () -> "Should be the same");
                   }
+                  private String notification() {
+                      return "String";
+                  }
+              }
               """,
             """
-                  import org.junit.jupiter.api.Test;
-                  
-                  import static org.assertj.core.api.Assertions.*;
-                  
-                  public class MyTest {
-                      @Test
-                      public void test() {
-                          String str = "string";
-                          assertThat(str).isSameAs(notification());
-                          assertThat(str).as("Should be the same").isSameAs(notification());
-                          assertThat(str).as(() -> "Should be the same").isSameAs(notification());
-                      }
-                      private String notification() {
-                          return "String";
-                      }
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.*;
+              
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      String str = "string";
+                      assertThat(str).isSameAs(notification());
+                      assertThat(str).as("Should be the same").isSameAs(notification());
+                      assertThat(str).as(() -> "Should be the same").isSameAs(notification());
                   }
+                  private String notification() {
+                      return "String";
+                  }
+              }
               """
           )
         );

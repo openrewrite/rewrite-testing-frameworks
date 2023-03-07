@@ -254,20 +254,20 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-                  import org.junit.Test;
+              import org.junit.Test;
 
-                  import static org.assertj.core.api.Assertions.assertThat;
-                  import static org.assertj.core.api.Assertions.within;
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.within;
 
-                  public class MyTest {
-                      @Test
-                      public void test() {
-                          assertThat(notification()).isCloseTo(0.0f, within(0.2f));
-                      }
-                      private Float notification() {
-                          return 0.1f;
-                      }
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertThat(notification()).isCloseTo(0.0f, within(0.2f));
                   }
+                  private Float notification() {
+                      return 0.1f;
+                  }
+              }
               """
           )
         );

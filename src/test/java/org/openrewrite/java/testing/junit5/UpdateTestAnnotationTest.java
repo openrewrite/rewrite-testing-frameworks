@@ -485,17 +485,17 @@ class UpdateTestAnnotationTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                import org.junit.Test;
-                public class MyTest {
-                    Object o = Test.class;
-                }
+              import org.junit.Test;
+              public class MyTest {
+                  Object o = Test.class;
+              }
               """,
             """
-                import org.junit.jupiter.api.Test;
-                
-                public class MyTest {
-                    Object o = Test.class;
-                }
+              import org.junit.jupiter.api.Test;
+              
+              public class MyTest {
+                  Object o = Test.class;
+              }
               """
           )
         );
@@ -507,24 +507,24 @@ class UpdateTestAnnotationTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                import org.junit.Test;
-                
-                /** @see org.junit.Test */
-                public class MyTest {
-                    @Test
-                    public void test() {
-                    }
-                }
+              import org.junit.Test;
+              
+              /** @see org.junit.Test */
+              public class MyTest {
+                  @Test
+                  public void test() {
+                  }
+              }
               """,
             """
-                import org.junit.jupiter.api.Test;
-                
-                /** @see org.junit.jupiter.api.Test */
-                public class MyTest {
-                    @Test
-                    void test() {
-                    }
-                }
+              import org.junit.jupiter.api.Test;
+              
+              /** @see org.junit.jupiter.api.Test */
+              public class MyTest {
+                  @Test
+                  void test() {
+                  }
+              }
               """
           )
         );
@@ -536,20 +536,20 @@ class UpdateTestAnnotationTest implements RewriteTest {
           //language=java
           java(
             """
-                public class MyTest {
-                    @org.junit.Test
-                    public void feature1() {
-                    }
-                }
+              public class MyTest {
+                  @org.junit.Test
+                  public void feature1() {
+                  }
+              }
               """,
             """
-                import org.junit.jupiter.api.Test;
-                
-                public class MyTest {
-                    @org.junit.jupiter.api.Test
-                    void feature1() {
-                    }
-                }
+              import org.junit.jupiter.api.Test;
+              
+              public class MyTest {
+                  @org.junit.jupiter.api.Test
+                  void feature1() {
+                  }
+              }
               """
           )
         );
