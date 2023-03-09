@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -27,7 +28,8 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit", "hamcrest"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9+", "hamcrest-2.2+"))
           .recipe(new JUnitAssertThrowsToAssertExceptionType());
     }
 

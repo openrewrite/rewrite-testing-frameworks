@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -28,7 +29,8 @@ class UpdateTestAnnotationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.+"))
           .recipe(new UpdateTestAnnotation());
     }
 
@@ -226,15 +228,18 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   // some comments
                   @Issue("some issue")
                   @Test
-                  public void test() { }
+                  public void test() {
+                  }
                   
                   // some comments
                   @Test
-                  public void test1() { }
+                  public void test1() {
+                  }
                   
                   @Test
                   // some comments
-                  public void test2() { }
+                  public void test2() {
+                  }
               }
               """,
             """
@@ -246,15 +251,18 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   // some comments
                   @Issue("some issue")
                   @Test
-                  void test() { }
+                  void test() {
+                  }
               
                   // some comments
                   @Test
-                  void test1() { }
+                  void test1() {
+                  }
               
                   // some comments
                   @Test
-                  void test2() { }
+                  void test2() {
+                  }
               }
               """
           )

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cucumber;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -29,7 +30,8 @@ class CucumberAnnotationToSuiteTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new CucumberAnnotationToSuite())
-          .parser(JavaParser.fromJavaVersion().classpath("cucumber-junit-platform-engine", "junit-platform-suite-api"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "cucumber-junit-platform-engine-7.11.+", "junit-platform-suite-api-1.9.+"));
     }
 
     @Test

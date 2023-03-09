@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -28,7 +29,8 @@ class UseExplicitContainsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit", "assertj-core"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9+", "assertj-core-3.24+"))
           .recipe(new UseExplicitContains());
     }
 

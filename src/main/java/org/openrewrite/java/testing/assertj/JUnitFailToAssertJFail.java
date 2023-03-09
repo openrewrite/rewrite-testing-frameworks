@@ -126,7 +126,6 @@ public class JUnitFailToAssertJFail extends Recipe {
         }
 
         private static class UnqualifiedMethodInvocations extends JavaIsoVisitor<ExecutionContext> {
-            private final Supplier<JavaParser> ASSERTJ_JAVA_PARSER = () -> JavaParser.fromJavaVersion().classpath("assertj-core").build();
             private static final MethodMatcher ASSERTJ_FAIL_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions" + " fail(..)");
 
             @Override
@@ -147,7 +146,9 @@ public class JUnitFailToAssertJFail extends Recipe {
 
                 method = method.withTemplate(JavaTemplate.builder(this::getCursor, templateBuilder.toString())
                                 .staticImports("org.assertj.core.api.Assertions" + ".fail")
-                                .javaParser(ASSERTJ_JAVA_PARSER)
+                                .javaParser(() -> JavaParser.fromJavaVersion()
+                                        .classpathFromResources(executionContext, "assertj-core-3.24.2")
+                                        .build())
                                 .build(),
                         method.getCoordinates().replace(),
                         arguments.toArray()

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -23,13 +24,14 @@ import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings({"NewClassNamingConvention", "UnnecessaryBoxing", "ExcessiveLambdaUsage"})
+@SuppressWarnings({"UnnecessaryBoxing", "ExcessiveLambdaUsage"})
 class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.+"))
           .recipe(new JUnitAssertNotEqualsToAssertThat());
     }
 
@@ -39,7 +41,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
@@ -54,7 +56,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
@@ -78,7 +80,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
@@ -93,7 +95,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
@@ -117,7 +119,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
@@ -132,7 +134,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
@@ -158,7 +160,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
@@ -173,7 +175,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
@@ -200,7 +202,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
@@ -215,7 +217,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
@@ -240,10 +242,10 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
-
+              import org.junit.jupiter.api.Test;
+              
               import static org.junit.jupiter.api.Assertions.assertNotEquals;
-
+              
               public class MyTest {
                   @Test
                   public void test() {
@@ -255,11 +257,11 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
-
+              import org.junit.jupiter.api.Test;
+              
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
-
+              
               public class MyTest {
                   @Test
                   public void test() {
@@ -281,7 +283,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
@@ -296,7 +298,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
@@ -322,7 +324,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
               import java.io.File;
 
               public class MyTest {
@@ -336,7 +338,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
               import java.io.File;
 
               import static org.assertj.core.api.Assertions.assertThat;

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -29,7 +30,8 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.+"))
           .recipe(new JUnitAssertArrayEqualsToAssertThat());
     }
 
@@ -39,7 +41,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
@@ -56,7 +58,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
@@ -83,7 +85,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
@@ -98,7 +100,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
@@ -122,7 +124,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
@@ -138,7 +140,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
@@ -165,7 +167,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
@@ -180,7 +182,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
@@ -206,7 +208,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
@@ -221,7 +223,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
@@ -245,10 +247,10 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
-
+              import org.junit.jupiter.api.Test;
+              
               import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-
+              
               public class MyTest {
                   @Test
                   public void test() {
@@ -260,11 +262,11 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
-
+              import org.junit.jupiter.api.Test;
+              
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
-
+              
               public class MyTest {
                   @Test
                   public void test() {
@@ -286,7 +288,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
@@ -301,7 +303,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
@@ -327,7 +329,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               public class MyTest {
                   @Test
@@ -341,7 +343,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 

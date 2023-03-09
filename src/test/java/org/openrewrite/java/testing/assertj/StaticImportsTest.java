@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.assertj;
 
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -29,7 +30,8 @@ class StaticImportsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("assertj-core"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24.+"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()
