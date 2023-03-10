@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -28,7 +29,8 @@ class UseExplicitContainsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit", "assertj-core"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9+", "assertj-core-3.24+"))
           .recipe(new UseExplicitContains());
     }
 
@@ -38,40 +40,40 @@ class UseExplicitContainsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                import java.util.Collection;
-                import java.util.ArrayList;
-                
-                import org.junit.jupiter.api.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                
-                public class MyTest {
-                
-                    @Test
-                    public void test() {
-                        Collection<String> collection = new ArrayList<>();
-                        collection.add("3");
-                        assertThat(collection.contains("3")).isTrue();
-                    }
-                }
+              import java.util.Collection;
+              import java.util.ArrayList;
+              
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              public class MyTest {
+              
+                  @Test
+                  public void test() {
+                      Collection<String> collection = new ArrayList<>();
+                      collection.add("3");
+                      assertThat(collection.contains("3")).isTrue();
+                  }
+              }
               """,
             """
-                import java.util.Collection;
-                import java.util.ArrayList;
-                
-                import org.junit.jupiter.api.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                
-                public class MyTest {
-                
-                    @Test
-                    public void test() {
-                        Collection<String> collection = new ArrayList<>();
-                        collection.add("3");
-                        assertThat(collection).contains("3");
-                    }
-                }
+              import java.util.Collection;
+              import java.util.ArrayList;
+              
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              public class MyTest {
+              
+                  @Test
+                  public void test() {
+                      Collection<String> collection = new ArrayList<>();
+                      collection.add("3");
+                      assertThat(collection).contains("3");
+                  }
+              }
               """
           )
         );
@@ -83,38 +85,38 @@ class UseExplicitContainsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                import java.util.Collection;
-                import java.util.ArrayList;
-                
-                import org.junit.jupiter.api.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                
-                public class MyTest {
-                
-                    @Test
-                    public void test() {
-                        Collection<String> collection = new ArrayList<>();
-                        assertThat(collection.contains("3")).isFalse();
-                    }
-                }
+              import java.util.Collection;
+              import java.util.ArrayList;
+              
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              public class MyTest {
+              
+                  @Test
+                  public void test() {
+                      Collection<String> collection = new ArrayList<>();
+                      assertThat(collection.contains("3")).isFalse();
+                  }
+              }
               """,
             """
-                import java.util.Collection;
-                import java.util.ArrayList;
-                
-                import org.junit.jupiter.api.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                
-                public class MyTest {
-                
-                    @Test
-                    public void test() {
-                        Collection<String> collection = new ArrayList<>();
-                        assertThat(collection).doesNotContain("3");
-                    }
-                }
+              import java.util.Collection;
+              import java.util.ArrayList;
+              
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              public class MyTest {
+              
+                  @Test
+                  public void test() {
+                      Collection<String> collection = new ArrayList<>();
+                      assertThat(collection).doesNotContain("3");
+                  }
+              }
               """
           )
         );
@@ -126,22 +128,22 @@ class UseExplicitContainsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                import java.util.Collection;
-                import java.util.ArrayList;
-                
-                import org.junit.jupiter.api.Test;
-                
-                import static org.assertj.core.api.Assertions.assertThat;
-                
-                public class MyTest {
-                
-                    @Test
-                    public void test() {
-                        Collection<?> collection = new ArrayList<>();
-                        assertThat(collection.isEmpty()).isTrue();
-                        assertThat(!collection.isEmpty()).isFalse();
-                    }
-                }
+              import java.util.Collection;
+              import java.util.ArrayList;
+              
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              public class MyTest {
+              
+                  @Test
+                  public void test() {
+                      Collection<?> collection = new ArrayList<>();
+                      assertThat(collection.isEmpty()).isTrue();
+                      assertThat(!collection.isEmpty()).isFalse();
+                  }
+              }
               """)
         );
     }

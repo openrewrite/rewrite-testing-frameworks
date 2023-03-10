@@ -245,7 +245,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private static J.MethodDeclaration getFirstTestMethod(List<J.MethodDeclaration> methods) {
             for (J.MethodDeclaration methodDeclaration : methods) {
                 for (J.Annotation annotation : methodDeclaration.getLeadingAnnotations()) {
-                    if (annotation.getSimpleName().equals("Test")) {
+                    if ("Test".equals(annotation.getSimpleName())) {
                         return methodDeclaration;
                     }
                 }
@@ -257,8 +257,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             for (J.MethodDeclaration methodDeclaration : methods) {
                 for (J.Annotation annotation : methodDeclaration.getAllAnnotations()) {
                     JavaType annotationType = annotation.getAnnotationType().getType();
-                    if (annotationType instanceof JavaType.Class && ((JavaType.Class) annotationType)
-                      .getFullyQualifiedName().equals("org.testng.annotations.Test")) {
+                    if (annotationType instanceof JavaType.Class && "org.testng.annotations.Test".equals(((JavaType.Class) annotationType)
+                      .getFullyQualifiedName())) {
                         return true;
                     }
                 }

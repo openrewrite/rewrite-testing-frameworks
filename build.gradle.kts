@@ -12,6 +12,7 @@ description = "A rewrite module automating best practices and major version migr
 recipeDependencies {
     parserClasspath("org.assertj:assertj-core:3.+")
     parserClasspath("junit:junit:latest.release")
+    parserClasspath("pl.pragmatists:JUnitParams:1.+")
     parserClasspath("org.junit.platform:junit-platform-suite-api:latest.release")
     parserClasspath("org.junit.jupiter:junit-jupiter-api:latest.release")
     parserClasspath("org.junit.jupiter:junit-jupiter-params:latest.release")
@@ -33,6 +34,7 @@ recipeDependencies {
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 dependencies {
     implementation("org.openrewrite:rewrite-java:$rewriteVersion")
+    implementation("org.openrewrite:rewrite-gradle:$rewriteVersion")
     implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
     runtimeOnly("org.openrewrite:rewrite-java-17:$rewriteVersion")
 
@@ -41,21 +43,4 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-java-17:$rewriteVersion")
     testImplementation("org.openrewrite:rewrite-groovy:$rewriteVersion")
-    testRuntimeOnly("com.github.tomakehurst:wiremock-jre8:latest.release")
-
-    // "Before" framework dependencies
-    testRuntimeOnly("junit:junit:latest.release")
-    testRuntimeOnly("org.springframework:spring-test:4.+")
-    testRuntimeOnly("pl.pragmatists:JUnitParams:1.+")
-    testRuntimeOnly("com.squareup.okhttp3:mockwebserver:3.+")
-    testRuntimeOnly("org.testng:testng:6.8")
-    testRuntimeOnly("io.cucumber:cucumber-java8:7.+")
-    testRuntimeOnly("io.cucumber:cucumber-java:7.+")
-    testRuntimeOnly("io.cucumber:cucumber-plugin:7.+")
-    testRuntimeOnly("io.cucumber:cucumber-junit-platform-engine:7.+")
-    testRuntimeOnly("org.junit.platform:junit-platform-suite-api:latest.release")
-    testRuntimeOnly("ch.qos.logback:logback-classic:latest.release")
-    testRuntimeOnly("com.squareup.okhttp3:mockwebserver:3.14.9")
-    testRuntimeOnly("org.powermock:powermock-api-mockito:1.7.+")
-    testRuntimeOnly("org.mockito:mockito-core:3.+")
 }

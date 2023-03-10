@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.cucumber;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -30,10 +31,10 @@ class CucumberJava8ToCucumberJavaTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe("/META-INF/rewrite/cucumber.yml", "org.openrewrite.java.testing.cucumber.CucumberJava8ToJava");
-        spec.parser(JavaParser.fromJavaVersion()
-          .logCompilationWarningsAndErrors(true)
-          .classpath("junit-jupiter-api", "cucumber-java", "cucumber-java8"));
+        spec.recipeFromResource("/META-INF/rewrite/cucumber.yml", "org.openrewrite.java.testing.cucumber.CucumberJava8ToJava")
+          .parser(JavaParser.fromJavaVersion()
+            .logCompilationWarningsAndErrors(true)
+            .classpathFromResources(new InMemoryExecutionContext(), "cucumber-java-7.11.+", "junit-jupiter-api-5.9.+", "cucumber-java8-7.11.+"));
     }
 
     @SuppressWarnings("CodeBlock2Expr")

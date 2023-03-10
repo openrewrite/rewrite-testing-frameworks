@@ -77,7 +77,7 @@ class CucumberJava8ClassVisitor extends JavaIsoVisitor<ExecutionContext> {
                 .withImplements(retained)
                 .withTemplate(JavaTemplate.builder(this::getCursor, template)
                         .javaParser(() -> JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "cucumber-java-7.11.0", "cucumber-java8-7.11.0")
+                                .classpathFromResources(ctx, "cucumber-java-7.+", "cucumber-java8-7.+")
                                 .build())
                         .imports(replacementImport)
                         .build(),

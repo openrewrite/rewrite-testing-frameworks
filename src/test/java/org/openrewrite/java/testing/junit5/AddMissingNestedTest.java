@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -28,7 +29,9 @@ class AddMissingNestedTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AddMissingNested())
-          .parser(JavaParser.fromJavaVersion().classpath("junit"));
+          .parser(JavaParser.fromJavaVersion()
+            .logCompilationWarningsAndErrors(true)
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.+"));
     }
 
     @Test

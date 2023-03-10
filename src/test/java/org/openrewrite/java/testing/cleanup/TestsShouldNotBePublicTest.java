@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -27,7 +28,8 @@ class TestsShouldNotBePublicTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit-jupiter-api", "junit-jupiter-params"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.+", "junit-jupiter-params-5.9.+"))
           .recipe(new TestsShouldNotBePublic(false));
     }
 
@@ -151,6 +153,31 @@ class TestsShouldNotBePublicTest implements RewriteTest {
                   @Test
                   protected void testMethod_protected() {
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ignoreInterface() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              public interface ATest {
+
+                  @BeforeEach
+                  default void beforeEach_public() {
+                  }
+
+                  @Test
+                  default void testMethod_packagePrivate() {
+                  }
+
               }
               """
           )

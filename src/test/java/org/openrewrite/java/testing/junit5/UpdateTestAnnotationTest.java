@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -28,7 +29,8 @@ class UpdateTestAnnotationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.+"))
           .recipe(new UpdateTestAnnotation());
     }
 
@@ -108,17 +110,17 @@ class UpdateTestAnnotationTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-        """
-              import org.junit.Test;
-              
-              public class MyTest {
-              
-                  @Test(expected = IndexOutOfBoundsException.class)
-                  public void test() {
-                      int arr = new int[]{}[0];
+            """
+                  import org.junit.Test;
+                  
+                  public class MyTest {
+                  
+                      @Test(expected = IndexOutOfBoundsException.class)
+                      public void test() {
+                          int arr = new int[]{}[0];
+                      }
                   }
-              }
-              """,
+                  """,
             """
               import org.junit.jupiter.api.Test;
               
@@ -226,15 +228,18 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   // some comments
                   @Issue("some issue")
                   @Test
-                  public void test() { }
+                  public void test() {
+                  }
                   
                   // some comments
                   @Test
-                  public void test1() { }
+                  public void test1() {
+                  }
                   
                   @Test
                   // some comments
-                  public void test2() { }
+                  public void test2() {
+                  }
               }
               """,
             """
@@ -488,17 +493,17 @@ class UpdateTestAnnotationTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                import org.junit.Test;
-                public class MyTest {
-                    Object o = Test.class;
-                }
+              import org.junit.Test;
+              public class MyTest {
+                  Object o = Test.class;
+              }
               """,
             """
-                import org.junit.jupiter.api.Test;
-                
-                public class MyTest {
-                    Object o = Test.class;
-                }
+              import org.junit.jupiter.api.Test;
+              
+              public class MyTest {
+                  Object o = Test.class;
+              }
               """
           )
         );
@@ -510,24 +515,24 @@ class UpdateTestAnnotationTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                import org.junit.Test;
-                
-                /** @see org.junit.Test */
-                public class MyTest {
-                    @Test
-                    public void test() {
-                    }
-                }
+              import org.junit.Test;
+              
+              /** @see org.junit.Test */
+              public class MyTest {
+                  @Test
+                  public void test() {
+                  }
+              }
               """,
             """
-                import org.junit.jupiter.api.Test;
-                
-                /** @see org.junit.jupiter.api.Test */
-                public class MyTest {
-                    @Test
-                    void test() {
-                    }
-                }
+              import org.junit.jupiter.api.Test;
+              
+              /** @see org.junit.jupiter.api.Test */
+              public class MyTest {
+                  @Test
+                  void test() {
+                  }
+              }
               """
           )
         );
@@ -539,20 +544,20 @@ class UpdateTestAnnotationTest implements RewriteTest {
           //language=java
           java(
             """
-                public class MyTest {
-                    @org.junit.Test
-                    public void feature1() {
-                    }
-                }
+              public class MyTest {
+                  @org.junit.Test
+                  public void feature1() {
+                  }
+              }
               """,
             """
-                import org.junit.jupiter.api.Test;
-                
-                public class MyTest {
-                    @org.junit.jupiter.api.Test
-                    void feature1() {
-                    }
-                }
+              import org.junit.jupiter.api.Test;
+              
+              public class MyTest {
+                  @org.junit.jupiter.api.Test
+                  void feature1() {
+                  }
+              }
               """
           )
         );

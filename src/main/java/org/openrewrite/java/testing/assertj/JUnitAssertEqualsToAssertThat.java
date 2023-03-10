@@ -39,11 +39,6 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
         return "JUnit `assertEquals` to AssertJ";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
     public String getDescription() {
         return "Convert JUnit-style `assertEquals()` to AssertJ's `assertThat().isEqualTo()`.";

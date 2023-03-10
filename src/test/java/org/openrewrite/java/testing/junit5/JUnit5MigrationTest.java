@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
@@ -30,7 +31,8 @@ class JUnit5MigrationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit", "hamcrest"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.+", "hamcrest-2.2"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()
@@ -43,22 +45,22 @@ class JUnit5MigrationTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
-              
-              public class Sample {
-                  void method() {
-                      Class<Test> c = Test.class;
-                  }
-              }
+            import org.junit.Test;
+            
+            public class Sample {
+                void method() {
+                    Class<Test> c = Test.class;
+                }
+            }
             """,
             """
-              import org.junit.jupiter.api.Test;
-              
-              public class Sample {
-                  void method() {
-                      Class<Test> c = Test.class;
-                  }
-              }
+            import org.junit.jupiter.api.Test;
+            
+            public class Sample {
+                void method() {
+                    Class<Test> c = Test.class;
+                }
+            }
             """
           )
         );
@@ -112,48 +114,48 @@ class JUnit5MigrationTest implements RewriteTest {
         rewriteRun(
           pomXml(
             """
-                <project>
-                    <modelVersion>4.0.0</modelVersion>
-                    <groupId>com.example.jackson</groupId>
-                    <artifactId>test-plugins</artifactId>
-                    <version>1.0.0</version>
-                    <build>
-                        <plugins>
-                            <plugin>
-                                <groupId>org.apache.maven.plugins</groupId>
-                                <artifactId>maven-surefire-plugin</artifactId>
-                                <version>2.20.1</version>
-                            </plugin>
-                            <plugin>
-                                <groupId>org.apache.maven.plugins</groupId>
-                                <artifactId>maven-failsafe-plugin</artifactId>
-                                <version>2.20.1</version>
-                            </plugin>
-                        </plugins>
-                    </build>
-                </project>
+            <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example.jackson</groupId>
+                <artifactId>test-plugins</artifactId>
+                <version>1.0.0</version>
+                <build>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-surefire-plugin</artifactId>
+                            <version>2.20.1</version>
+                        </plugin>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-failsafe-plugin</artifactId>
+                            <version>2.20.1</version>
+                        </plugin>
+                    </plugins>
+                </build>
+            </project>
             """,
             """
-                <project>
-                    <modelVersion>4.0.0</modelVersion>
-                    <groupId>com.example.jackson</groupId>
-                    <artifactId>test-plugins</artifactId>
-                    <version>1.0.0</version>
-                    <build>
-                        <plugins>
-                            <plugin>
-                                <groupId>org.apache.maven.plugins</groupId>
-                                <artifactId>maven-surefire-plugin</artifactId>
-                                <version>2.22.2</version>
-                            </plugin>
-                            <plugin>
-                                <groupId>org.apache.maven.plugins</groupId>
-                                <artifactId>maven-failsafe-plugin</artifactId>
-                                <version>2.22.2</version>
-                            </plugin>
-                        </plugins>
-                    </build>
-                </project>
+            <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example.jackson</groupId>
+                <artifactId>test-plugins</artifactId>
+                <version>1.0.0</version>
+                <build>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-surefire-plugin</artifactId>
+                            <version>2.22.2</version>
+                        </plugin>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-failsafe-plugin</artifactId>
+                            <version>2.22.2</version>
+                        </plugin>
+                    </plugins>
+                </build>
+            </project>
             """
           )
         );

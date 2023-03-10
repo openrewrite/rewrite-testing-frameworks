@@ -45,20 +45,20 @@ class RunnerToExtensionTest implements RewriteTest {
           //language=java
           java(
             """
-                  import org.junit.runner.RunWith;
-                  import org.mockito.runners.MockitoJUnitRunner;
-                  
-                  @RunWith(MockitoJUnitRunner.class)
-                  public class MyTest {
-                  }
+              import org.junit.runner.RunWith;
+              import org.mockito.runners.MockitoJUnitRunner;
+              
+              @RunWith(MockitoJUnitRunner.class)
+              public class MyTest {
+              }
               """,
             """
-                  import org.junit.jupiter.api.extension.ExtendWith;
-                  import org.mockito.junit.jupiter.MockitoExtension;
-                  
-                  @ExtendWith(MockitoExtension.class)
-                  public class MyTest {
-                  }
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              
+              @ExtendWith(MockitoExtension.class)
+              public class MyTest {
+              }
               """
           )
         );

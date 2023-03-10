@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -28,7 +29,8 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9+"))
           .recipe(new JUnitFailToAssertJFail());
     }
 
@@ -38,7 +40,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.fail;
 
@@ -50,7 +52,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.fail;
 
@@ -71,7 +73,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.fail;
 
@@ -83,7 +85,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.fail;
 
@@ -104,7 +106,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.fail;
 
@@ -117,7 +119,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.fail;
 
@@ -139,7 +141,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.fail;
 
@@ -153,7 +155,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.fail;
 
@@ -176,7 +178,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               public class MyTest {
                   @Test
@@ -189,7 +191,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.fail;
               
@@ -213,7 +215,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
               
               import static org.junit.jupiter.api.Assertions.fail;
               
@@ -228,7 +230,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.fail;
               

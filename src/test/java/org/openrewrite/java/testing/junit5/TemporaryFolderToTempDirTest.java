@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -31,7 +32,8 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.+"))
           .recipe(new TemporaryFolderToTempDir());
     }
 
@@ -56,19 +58,19 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Rule
-              import org.junit.rules.TemporaryFolder
-                          
-              class AbstractIntegrationTest {
-                  @TempDir
-                  File temporaryFolder
-                          
-                  def setup() {
-                      projectDir = temporaryFolder.root
-                      buildFile = File.createTempFile('build.gradle', null, temporaryFolder)
-                      settingsFile = File.createTempFile('settings.gradle', null, temporaryFolder)
-                  }
-              }
+            import org.junit.Rule
+            import org.junit.rules.TemporaryFolder
+                        
+            class AbstractIntegrationTest {
+                @TempDir
+                File temporaryFolder
+                        
+                def setup() {
+                    projectDir = temporaryFolder.root
+                    buildFile = File.createTempFile('build.gradle', null, temporaryFolder)
+                    settingsFile = File.createTempFile('settings.gradle', null, temporaryFolder)
+                }
+            }
             """
           )
         );

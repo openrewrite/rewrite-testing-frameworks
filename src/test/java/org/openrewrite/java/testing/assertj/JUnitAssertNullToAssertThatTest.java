@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -29,7 +30,8 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9+"))
           .recipe(new JUnitAssertNullToAssertThat());
     }
 
@@ -39,34 +41,34 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                  import org.junit.Test;
+                  import org.junit.jupiter.api.Test;
 
-                  import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.jupiter.api.Assertions.assertNull;
 
-                  public class MyTest {
-                      @Test
-                      public void test() {
-                          assertNull(notification());
-                      }
-                      private String notification() {
-                          return null;
-                      }
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertNull(notification());
                   }
+                  private String notification() {
+                      return null;
+                  }
+              }
               """,
             """
-                  import org.junit.Test;
+                  import org.junit.jupiter.api.Test;
 
-                  import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.assertThat;
 
-                  public class MyTest {
-                      @Test
-                      public void test() {
-                          assertThat(notification()).isNull();
-                      }
-                      private String notification() {
-                          return null;
-                      }
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertThat(notification()).isNull();
                   }
+                  private String notification() {
+                      return null;
+                  }
+              }
               """
           )
         );
@@ -79,7 +81,7 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
                             
               import static org.junit.jupiter.api.Assertions.assertNull;
                             
@@ -94,7 +96,7 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
                             
               import static org.assertj.core.api.Assertions.assertThat;
                             
@@ -118,7 +120,7 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -133,7 +135,7 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
@@ -158,7 +160,7 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
 
               public class MyTest {
                   @Test
@@ -173,7 +175,7 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
                             
               import static org.assertj.core.api.Assertions.assertThat;
                             
@@ -200,7 +202,7 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
                             
               import static org.assertj.core.api.Assertions.*;
               import static org.junit.jupiter.api.Assertions.assertNull;
@@ -218,7 +220,7 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
+              import org.junit.jupiter.api.Test;
                             
               import static org.assertj.core.api.Assertions.*;
                             
