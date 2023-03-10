@@ -100,7 +100,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             findMockStaticInvocations(classDecl);
 
             boolean useTestNg = containsTestNgTestMethods(classDecl.getBody().getStatements().stream()
-              .filter(statement -> statement instanceof J.MethodDeclaration)
+              .filter(J.MethodDeclaration.class::isInstance)
               .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
             initTestFrameworkInfo(useTestNg);
 
@@ -268,7 +268,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         private static boolean hasMethodWithAnnotation(J.ClassDeclaration classDecl, AnnotationMatcher annotationMatcher) {
             return classDecl.getBody().getStatements().stream()
-              .filter(statement -> statement instanceof J.MethodDeclaration)
+              .filter(J.MethodDeclaration.class::isInstance)
               .map(J.MethodDeclaration.class::cast)
               .map(J.MethodDeclaration::getAllAnnotations)
               .flatMap(Collection::stream)
@@ -298,7 +298,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         }
 
         private static boolean isStaticMockAlreadyClosed(J.Identifier staticMock, J.Block methodBody) {
-            return methodBody.getStatements().stream().filter(statement -> statement instanceof J.MethodInvocation)
+            return methodBody.getStatements().stream().filter(J.MethodInvocation.class::isInstance)
               .map(J.MethodInvocation.class::cast)
               .filter(MOCKED_STATIC_CLOSE_MATCHER::matches)
               .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
@@ -307,7 +307,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         }
 
         private static boolean isStaticMockAlreadyOpened(J.Identifier staticMock, J.Block methodBody) {
-            return methodBody.getStatements().stream().filter(statement -> statement instanceof J.MethodInvocation)
+            return methodBody.getStatements().stream().filter(J.MethodInvocation.class::isInstance)
               .map(J.MethodInvocation.class::cast)
               .filter(MOCKED_STATIC_MATCHER::matches)
               .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
@@ -363,7 +363,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private void findMockStaticInvocations(J.ClassDeclaration classDecl) {
             J.Block classBody = classDecl.getBody();
             List<J.Block> methodBodies = classBody.getStatements().stream()
-              .filter(statement -> statement instanceof J.MethodDeclaration)
+              .filter(J.MethodDeclaration.class::isInstance)
               .map(J.MethodDeclaration.class::cast)
               .map(J.MethodDeclaration::getBody)
               .filter(Objects::nonNull)
@@ -372,7 +372,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             for (J.Block methodBody : methodBodies) {
                 mockStaticMethodInvocations.addAll(
                   methodBody.getStatements()
-                    .stream().filter(statement -> statement instanceof J.MethodInvocation)
+                    .stream().filter(J.MethodInvocation.class::isInstance)
                     .map(J.MethodInvocation.class::cast)
                     .filter(MOCKED_STATIC_MATCHER::matches)
                     .collect(Collectors.toSet()));
@@ -461,7 +461,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             }
 
             J.MethodDeclaration firstTestMethod = getFirstTestMethod(
-              classDecl.getBody().getStatements().stream().filter(statement -> statement instanceof J.MethodDeclaration)
+              classDecl.getBody().getStatements().stream().filter(J.MethodDeclaration.class::isInstance)
                 .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
 
             JavaCoordinates tearDownCoordinates = (firstTestMethod != null) ?
@@ -493,7 +493,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private J.MethodInvocation modifyWhenMethodInvocation(J.MethodInvocation whenMethod) {
             List<Expression> methodArguments = whenMethod.getArguments();
             List<J.MethodInvocation> staticMethodInvocationsInArguments = methodArguments.stream()
-              .filter(expression -> expression instanceof J.MethodInvocation).map(J.MethodInvocation.class::cast)
+              .filter(J.MethodInvocation.class::isInstance).map(J.MethodInvocation.class::cast)
               .filter(methodInvocation -> !MOCKITO_STATIC_METHOD_MATCHER.matches(methodInvocation))
               .filter(methodInvocation -> methodInvocation.getMethodType() != null)
               .filter(methodInvocation -> methodInvocation.getMethodType().hasFlags(Flag.Static))
@@ -549,9 +549,9 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             return getMockedTypesFields().keySet().stream()
               .filter(identifier -> identifier.getSimpleName().equals(fieldName)).findFirst()
               .orElseGet(() -> {
-                  J.ClassDeclaration cd = getCursor().dropParentUntil(it -> it instanceof J.ClassDeclaration).getValue();
+                  J.ClassDeclaration cd = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).getValue();
                   return cd.getBody().getStatements().stream()
-                    .filter(statement -> statement instanceof J.VariableDeclarations)
+                    .filter(J.VariableDeclarations.class::isInstance)
                     .map(variableDeclarations -> ((J.VariableDeclarations) variableDeclarations).getVariables())
                     .flatMap(Collection::stream)
                     .filter(namedVariable -> namedVariable.getSimpleName().equals(fieldName))
