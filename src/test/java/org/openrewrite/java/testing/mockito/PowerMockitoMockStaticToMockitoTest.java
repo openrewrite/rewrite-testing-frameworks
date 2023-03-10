@@ -78,13 +78,13 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   private MockedStatic<Calendar> mockedCalendar;
               
                   @BeforeEach
-                  void setUp() {
+                  void setUpStaticMocks() {
                       mockedCalendar = mockStatic(Calendar.class);
                   }
               
                   @AfterEach
-                  void tearDown() {
-                      mockedCalendar.close();
+                  void tearDownStaticMocks() {
+                      mockedCalendar.closeOnDemand();
                   }
               
                   @Test
@@ -141,7 +141,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   void setUpStaticMocks() {
                       mockedCurrency = mockStatic(Currency.class);
                       mockedCalendar = mockStatic(Calendar.class);
-                      mockedCurrency = mockStatic(Currency.class);
                   }
               
                   @AfterEach
