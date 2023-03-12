@@ -252,9 +252,55 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           )
         );
     }
-
     @Test
     void tearDownMethodOfTestNGWithAnnotationRemainsUntouched() {
+       //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.Calendar;
+                            
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+                            
+              @PrepareForTest({Calendar.class})
+              public class MyTest {
+                            
+                  @AfterMethod(groups = "irrelevant")
+                  void tearDown() {}
+                  
+                  @Test
+                  void testSomething() { }
+                    
+              }
+              """,
+            """
+              import java.util.Calendar;
+                            
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+                            
+              public class MyTest {
+
+                  @AfterMethod(groups = "irrelevant")
+                  void tearDown() {}
+                  
+                  @BeforeMethod
+                  void setUpStaticMocks() {
+                  }
+
+                  @Test
+                  void testSomething() { }
+                            
+              }
+              """
+          )
+        );
+    }
+    @Test
+    void tearDownMethodOfTestNGHasAnnotationWithSameArgumentsAsTheTestThatCallsMockStatic() {
         //language=java
         rewriteRun(
           java(
@@ -273,19 +319,15 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                             
                   private Calendar calendarMock;
                   
-                  @BeforeMethod( groups = "checkin")
-                  void setUp() {
+                  @Test(groups = "irrelevant")
+                  void testSomethingIrrelevantForCheckin() { }
+                  
+                  @Test(groups = "checkin")
+                  void testStaticMethod() {
                       calendarMock = mock(Calendar.class);
+                      mockStatic(Calendar.class);
+                      when(Calendar.getInstance()).thenReturn(calendarMock);
                   }
-                  
-                  @AfterMethod( groups = "checkin")
-                  void tearDown() {
-                      calendarMock = null;
-                  }
-                  
-                  @Test
-                  void testSomething() { }
-                    
               }
               """,
             """
@@ -293,27 +335,35 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                             
               import static org.mockito.Mockito.*;
                             
+              import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               public class MyTest {
 
+                  private MockedStatic<Calendar> mockedCalendar;
+                  
                   private Calendar calendarMock;
 
-                  @BeforeMethod( groups = "checkin")
-                  void setUp() {
+                  @BeforeMethod(groups = "checkin")
+                  void setUpStaticMocks() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                  }
+
+                  @AfterMethod(groups = "checkin")
+                  void tearDownStaticMocks() {
+                      mockedCalendar.closeOnDemand();
+                  }
+
+                  @Test(groups = "irrelevant")
+                  void testSomethingIrrelevantForCheckin() { }
+                  
+                  @Test(groups = "checkin")
+                  void testStaticMethod() {
                       calendarMock = mock(Calendar.class);
+                      mockedCalendar.when(Calendar::getInstance).thenReturn(calendarMock);
                   }
-
-                  @AfterMethod( groups = "checkin")
-                  void tearDown() {
-                      calendarMock = null;
-                  }
-
-                  @Test
-                  void testSomething() { }
-
               }
               """
           )

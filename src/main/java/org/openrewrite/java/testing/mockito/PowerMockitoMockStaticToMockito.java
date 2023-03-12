@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -63,6 +64,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private static final String MOCK_STATIC_INVOCATIONS = "mockStaticInvocationsByClassName";
         private static final MethodMatcher DYNAMIC_WHEN_METHOD_MATCHER = new MethodMatcher("org.mockito.Mockito when(java.lang.Class, String, ..)");
         private static final String MOCK_PREFIX = "mocked";
+        private static final String TEST_GROUP = "testGroup";
         private String setUpMethodAnnotationSignature;
         private String setUpMethodAnnotation;
         private String tearDownMethodAnnotationSignature;
@@ -203,8 +205,10 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 Optional<Expression> firstArgument = mi.getArguments().stream().findFirst();
                 firstArgument.ifPresent(expression -> {
                     Map<String, J.MethodInvocation> mockStaticInvocationsByClassName = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
-                    mockStaticInvocationsByClassName.put(expression.toString(), mi);
-                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCK_STATIC_INVOCATIONS, mockStaticInvocationsByClassName);
+                    if (mockStaticInvocationsByClassName != null) {
+                        mockStaticInvocationsByClassName.put(expression.toString(), mi);
+                        getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCK_STATIC_INVOCATIONS, mockStaticInvocationsByClassName);
+                    }
                 });
             }
 
@@ -217,6 +221,20 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             }
 
             if (MOCKED_STATIC_MATCHER.matches(mi)) {
+                if (getCursor().getNearestMessage(TEST_GROUP) == null) {
+                    J.MethodDeclaration methodDeclarationCursor = getCursor().firstEnclosing(J.MethodDeclaration.class);
+                    if (methodDeclarationCursor != null) {
+                        Optional<J.Annotation> testAnnotation = methodDeclarationCursor
+                          .getLeadingAnnotations().stream()
+                          .filter(annotation -> annotation.getSimpleName().equals("Test")).findFirst();
+                        testAnnotation.ifPresent(
+                          ta -> {
+                              if (ta.getArguments() != null) {
+                                  getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, TEST_GROUP, ta.getArguments());
+                              }
+                          });
+                    }
+                }
                 J.Assignment assignment = getCursor().firstEnclosing(J.Assignment.class);
                 if (assignment == null) {
                     //noinspection DataFlowIssue
@@ -228,9 +246,9 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         private J.MethodInvocation modifyDynamicWhenMethodInvocation(J.MethodInvocation method) {
             // Example
-            // Mockito.mockStatic(Calendar.class, "getInstance")
+            // `Mockito.when(Calendar.class, "getInstance")`
             // is modified to
-            // Mockito.mockStatic(Calendar.getInstance())
+            // `mockedCalendar.when(() -> Calendar.getInstance())`
             List<Expression> arguments = method.getArguments();
             String declaringClassName = ((J.FieldAccess) arguments.get(0)).getTarget().toString();
             J.Identifier mockedField = getFieldIdentifier(MOCK_PREFIX + declaringClassName);
@@ -423,9 +441,32 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         @NonNull
         private J.ClassDeclaration maybeAddSetUpMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            String testGroupsAsString = getTestGroupsAsString();
+
             return maybeAddMethodWithAnnotation(classDecl, ctx, "setUpStaticMocks",
               setUpMethodAnnotationSignature, setUpMethodAnnotation,
-              additionalClasspathResource, setUpImportToAdd, "");
+              additionalClasspathResource, setUpImportToAdd, testGroupsAsString);
+        }
+
+        @NotNull
+        private String getTestGroupsAsString() {
+            List<Expression> testGroups = getCursor().getNearestMessage(TEST_GROUP);
+            String testGroupsAsString = "";
+            if (testGroups != null) {
+                testGroupsAsString = "(" +
+                  testGroups.stream().map(Object::toString).collect(Collectors.joining(",")) +
+                    ")";
+            }
+            return testGroupsAsString;
+        }
+
+        @NonNull
+        private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            String testGroupsAsString = (getTestGroupsAsString().isEmpty())? tearDownMethodAnnotationParameters : getTestGroupsAsString();
+            return maybeAddMethodWithAnnotation(classDecl, ctx, "tearDownStaticMocks",
+              tearDownMethodAnnotationSignature,
+              tearDownMethodAnnotation,
+              additionalClasspathResource, tearDownImportToAdd, testGroupsAsString);
         }
 
         private J.ClassDeclaration maybeAddMethodWithAnnotation(J.ClassDeclaration classDecl, ExecutionContext ctx,
@@ -456,14 +497,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 tearDownCoordinates));
             maybeAddImport(importToAdd);
             return classDecl;
-        }
-
-        @NonNull
-        private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            return maybeAddMethodWithAnnotation(classDecl, ctx, "tearDownStaticMocks",
-              tearDownMethodAnnotationSignature,
-              tearDownMethodAnnotation,
-              additionalClasspathResource, tearDownImportToAdd, tearDownMethodAnnotationParameters);
         }
 
         @NonNull
