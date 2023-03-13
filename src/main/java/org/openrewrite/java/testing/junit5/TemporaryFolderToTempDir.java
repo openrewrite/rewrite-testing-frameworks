@@ -238,10 +238,10 @@ public class TemporaryFolderToTempDir extends Recipe {
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (!method.isScope(methodScope)) {
-                    return method;
-                }
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+                if (!mi.isScope(methodScope)) {
+                    return mi;
+                }
                 if (mi.getSelect() != null) {
                     J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
                     List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
