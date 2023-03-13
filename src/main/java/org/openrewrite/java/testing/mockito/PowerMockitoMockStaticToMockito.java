@@ -88,30 +88,32 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             // becomes
             // `private MockStatic mockedCalendar;`
             List<Expression> mockedStaticClasses = new ArrayList<>();
-            for (J.Annotation annotation : classDecl.getAllAnnotations()) {
-                if (PREPARE_FOR_TEST_MATCHER.matches(annotation)) {
-                    List<Expression> arguments = annotation.getArguments();
-                    if (arguments != null && !arguments.isEmpty()) {
-                        mockedStaticClasses.addAll(ListUtils.flatMap(arguments, a -> {
-                            if (a instanceof J.NewArray && ((J.NewArray) a).getInitializer() != null) {
-                                // case `@PrepareForTest( {Object1.class, Object2.class ...} )`
-                                return ((J.NewArray) a).getInitializer();
-                            } else if (a instanceof J.Assignment && ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer() != null) {
-                                // case `@PrepareForTest( value = {Object1.class, Object2.class ...} }`
-                                return ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer();
-                            } else if (a instanceof J.FieldAccess) {
-                                // case `@PrepareForTest(Object1.class)`
-                                return a;
-                            }
-                            return null;
-                        }));
-                    }
-                    doAfterVisit(new RemoveAnnotationVisitor(PREPARE_FOR_TEST_MATCHER));
-                } else if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
-                    doAfterVisit(new RemoveAnnotationVisitor(RUN_WITH_POWER_MOCK_RUNNER_MATCHER));
-                    maybeRemoveImport(POWER_MOCK_RUNNER);
-                }
-            }
+            classDecl.getAllAnnotations().stream().filter(PREPARE_FOR_TEST_MATCHER::matches)
+              .map(J.Annotation::getArguments)
+              .filter(arguments -> arguments != null && !arguments.isEmpty())
+              .forEach(arguments -> {
+                  mockedStaticClasses.addAll(ListUtils.flatMap(arguments, a -> {
+                      if (a instanceof J.NewArray && ((J.NewArray) a).getInitializer() != null) {
+                          // case `@PrepareForTest( {Object1.class, Object2.class ...} )`
+                          return ((J.NewArray) a).getInitializer();
+                      } else if (a instanceof J.Assignment && ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer() != null) {
+                          // case `@PrepareForTest( value = {Object1.class, Object2.class ...} }`
+                          return ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer();
+                      } else if (a instanceof J.FieldAccess) {
+                          // case `@PrepareForTest(Object1.class)`
+                          return a;
+                      }
+                      return null;
+                  }));
+                  doAfterVisit(new RemoveAnnotationVisitor(PREPARE_FOR_TEST_MATCHER));
+              });
+
+            // Remove `@RunWithPowerMockRunner`
+            classDecl.getAllAnnotations().stream().filter(RUN_WITH_POWER_MOCK_RUNNER_MATCHER::matches)
+              .forEach((annotation) -> {
+                  doAfterVisit(new RemoveAnnotationVisitor(RUN_WITH_POWER_MOCK_RUNNER_MATCHER));
+                  maybeRemoveImport(POWER_MOCK_RUNNER);
+              });
 
             J.ClassDeclaration cd = (J.ClassDeclaration) super.visitClassDeclaration(classDecl, ctx);
 
@@ -141,24 +143,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             AnnotationMatcher tearDownAnnotationMatcher = new AnnotationMatcher(tearDownMethodAnnotationSignature);
             if (m.getAllAnnotations().stream().anyMatch(tearDownAnnotationMatcher::matches)) {
                 // Add close statements to the static mocks in the tear down method
-                for (Map.Entry<J.Identifier, Expression> mockedTypesField : getMockedTypesFields().entrySet()) {
-                    // Only add close method invocation if not already exists
-                    J.Block methodBody = m.getBody();
-                    if (methodBody == null || isStaticMockAlreadyClosed(mockedTypesField.getKey(), methodBody)) {
-                        continue;
-                    }
-                    m = m.withBody(methodBody.withTemplate(
-                      JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                          "#{any(org.mockito.MockedStatic)}.closeOnDemand();")
-                        .javaParser(() -> JavaParser.fromJavaVersion()
-                          .classpathFromResources(ctx, "mockito-core-3.*")
-                          .build())
-                        .build(),
-                      methodBody.getCoordinates().lastStatement(),
-                      mockedTypesField.getKey()
-                    ));
-                }
-                return m;
+                return addCloseStaticMocksOnDemandStatement(m, ctx);
             }
 
             // Initialize the static mocks in the setup method
@@ -166,33 +151,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
               setUpMethodAnnotationSignature);
             if (m.getAllAnnotations().stream().anyMatch(setUpAnnotationMatcher::matches)) {
                 // Move the mockStatic method to the setUp method
-                Map<String, J.MethodInvocation> mockStaticInvocations = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
-
-                if (mockStaticInvocations != null) {
-                    for (Map.Entry<J.Identifier, Expression> mockedTypesFieldEntry : getMockedTypesFields().entrySet()) {
-                        // Only add close method invocation if not already exists
-                        J.Block methodBody = m.getBody();
-                        if (methodBody == null || isStaticMockAlreadyOpened(mockedTypesFieldEntry.getKey(), methodBody)) {
-                            continue;
-                        }
-
-                        String className = mockedTypesFieldEntry.getValue().toString();
-                        J.MethodInvocation methodInvocation = mockStaticInvocations.get(className);
-                        if (methodInvocation != null) {
-                            m = m.withBody(methodBody.withTemplate(
-                              JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                                  "mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
-                                .javaParser(() -> JavaParser.fromJavaVersion()
-                                  .classpathFromResources(ctx, "mockito-core-3.*")
-                                  .build())
-                                .build(),
-                              methodBody.getCoordinates().firstStatement(),
-                              mockedTypesFieldEntry.getKey(),
-                              methodInvocation
-                            ));
-                        }
-                    }
-                }
+                m = moveMockStaticMethodToSetUp(m, ctx);
             }
             return m;
         }
@@ -201,14 +160,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
 
-            if (MOCKED_STATIC_MATCHER.matches(mi)) {
+            Map<String, J.MethodInvocation> mockStaticInvocationsByClassName = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
+            if (mockStaticInvocationsByClassName != null && MOCKED_STATIC_MATCHER.matches(mi)) {
                 Optional<Expression> firstArgument = mi.getArguments().stream().findFirst();
                 firstArgument.ifPresent(expression -> {
-                    Map<String, J.MethodInvocation> mockStaticInvocationsByClassName = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
-                    if (mockStaticInvocationsByClassName != null) {
-                        mockStaticInvocationsByClassName.put(expression.toString(), mi);
-                        getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCK_STATIC_INVOCATIONS, mockStaticInvocationsByClassName);
-                    }
+                    mockStaticInvocationsByClassName.put(expression.toString(), mi);
+                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCK_STATIC_INVOCATIONS, mockStaticInvocationsByClassName);
                 });
             }
 
@@ -221,56 +178,13 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             }
 
             if (MOCKED_STATIC_MATCHER.matches(mi)) {
-                if (getCursor().getNearestMessage(TEST_GROUP) == null) {
-                    J.MethodDeclaration methodDeclarationCursor = getCursor().firstEnclosing(J.MethodDeclaration.class);
-                    if (methodDeclarationCursor != null) {
-                        Optional<J.Annotation> testAnnotation = methodDeclarationCursor
-                          .getLeadingAnnotations().stream()
-                          .filter(annotation -> annotation.getSimpleName().equals("Test")).findFirst();
-                        testAnnotation.ifPresent(
-                          ta -> {
-                              if (ta.getArguments() != null) {
-                                  getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, TEST_GROUP, ta.getArguments());
-                              }
-                          });
-                    }
-                }
-                J.Assignment assignment = getCursor().firstEnclosing(J.Assignment.class);
-                if (assignment == null) {
+                determineTestGroups();
+                if (getCursor().firstEnclosing(J.Assignment.class) == null) {
                     //noinspection DataFlowIssue
                     return null;
                 }
             }
             return mi;
-        }
-
-        private J.MethodInvocation modifyDynamicWhenMethodInvocation(J.MethodInvocation method) {
-            // Example
-            // `Mockito.when(Calendar.class, "getInstance")`
-            // is modified to
-            // `mockedCalendar.when(() -> Calendar.getInstance())`
-            List<Expression> arguments = method.getArguments();
-            String declaringClassName = ((J.FieldAccess) arguments.get(0)).getTarget().toString();
-            J.Identifier mockedField = getFieldIdentifier(MOCK_PREFIX + declaringClassName);
-            if (mockedField != null) {
-                arguments.remove(0);
-                J.Literal calledMethod = (J.Literal) arguments.get(0);
-                arguments.remove(0);
-                String stringOfArguments = arguments.stream().map(Object::toString).collect(Collectors.joining(","));
-                method = method.withTemplate(
-                  JavaTemplate.builder(this::getCursor,
-                      "() -> #{}.#{}(#{})")
-                    .javaParser(() -> JavaParser.fromJavaVersion()
-                      .build())
-                    .build(),
-                  method.getCoordinates().replaceArguments(),
-                  declaringClassName,
-                  Objects.requireNonNull(calledMethod.getValue()).toString(),
-                  stringOfArguments
-                );
-                method = method.withSelect(mockedField);
-            }
-            return method;
         }
 
         private static boolean isFieldAlreadyDefined(J.Block classBody, String fieldName) {
@@ -336,6 +250,104 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
               .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
               .anyMatch(methodInvocation -> ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
                 .equals(staticMock.getSimpleName()));
+        }
+
+        private J.MethodDeclaration moveMockStaticMethodToSetUp(J.MethodDeclaration m, ExecutionContext ctx) {
+            Map<String, J.MethodInvocation> mockStaticInvocations = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
+
+            if (mockStaticInvocations != null) {
+                for (Map.Entry<J.Identifier, Expression> mockedTypesFieldEntry : getMockedTypesFields().entrySet()) {
+                    // Only add close method invocation if not already exists
+                    J.Block methodBody = m.getBody();
+                    if (methodBody == null || isStaticMockAlreadyOpened(mockedTypesFieldEntry.getKey(), methodBody)) {
+                        continue;
+                    }
+
+                    String className = mockedTypesFieldEntry.getValue().toString();
+                    J.MethodInvocation methodInvocation = mockStaticInvocations.get(className);
+                    if (methodInvocation != null) {
+                        m = m.withBody(methodBody.withTemplate(
+                          JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                              "mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
+                            .javaParser(() -> JavaParser.fromJavaVersion()
+                              .classpathFromResources(ctx, "mockito-core-3.*")
+                              .build())
+                            .build(),
+                          methodBody.getCoordinates().firstStatement(),
+                          mockedTypesFieldEntry.getKey(),
+                          methodInvocation
+                        ));
+                    }
+                }
+            }
+            return m;
+        }
+
+        private J.MethodDeclaration addCloseStaticMocksOnDemandStatement(J.MethodDeclaration m, ExecutionContext ctx) {
+            for (Map.Entry<J.Identifier, Expression> mockedTypesField : getMockedTypesFields().entrySet()) {
+                // Only add close method invocation if not already exists
+                J.Block methodBody = m.getBody();
+                if (methodBody == null || isStaticMockAlreadyClosed(mockedTypesField.getKey(), methodBody)) {
+                    continue;
+                }
+                m = m.withBody(methodBody.withTemplate(
+                  JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                      "#{any(org.mockito.MockedStatic)}.closeOnDemand();")
+                    .javaParser(() -> JavaParser.fromJavaVersion()
+                      .classpathFromResources(ctx, "mockito-core-3.*")
+                      .build())
+                    .build(),
+                  methodBody.getCoordinates().lastStatement(),
+                  mockedTypesField.getKey()
+                ));
+            }
+            return m;
+        }
+
+        private void determineTestGroups() {
+            if (getCursor().getNearestMessage(TEST_GROUP) == null) {
+                J.MethodDeclaration methodDeclarationCursor = getCursor().firstEnclosing(J.MethodDeclaration.class);
+                if (methodDeclarationCursor != null) {
+                    Optional<J.Annotation> testAnnotation = methodDeclarationCursor
+                      .getLeadingAnnotations().stream()
+                      .filter(annotation -> annotation.getSimpleName().equals("Test")).findFirst();
+                    testAnnotation.ifPresent(
+                      ta -> {
+                          if (ta.getArguments() != null) {
+                              getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, TEST_GROUP, ta.getArguments());
+                          }
+                      });
+                }
+            }
+        }
+
+        private J.MethodInvocation modifyDynamicWhenMethodInvocation(J.MethodInvocation method) {
+            // Example
+            // `Mockito.when(Calendar.class, "getInstance")`
+            // is modified to
+            // `mockedCalendar.when(() -> Calendar.getInstance())`
+            List<Expression> arguments = method.getArguments();
+            String declaringClassName = ((J.FieldAccess) arguments.get(0)).getTarget().toString();
+            J.Identifier mockedField = getFieldIdentifier(MOCK_PREFIX + declaringClassName);
+            if (mockedField != null) {
+                arguments.remove(0);
+                J.Literal calledMethod = (J.Literal) arguments.get(0);
+                arguments.remove(0);
+                String stringOfArguments = arguments.stream().map(Object::toString).collect(Collectors.joining(","));
+                method = method.withTemplate(
+                  JavaTemplate.builder(this::getCursor,
+                      "() -> #{}.#{}(#{})")
+                    .javaParser(() -> JavaParser.fromJavaVersion()
+                      .build())
+                    .build(),
+                  method.getCoordinates().replaceArguments(),
+                  declaringClassName,
+                  Objects.requireNonNull(calledMethod.getValue()).toString(),
+                  stringOfArguments
+                );
+                method = method.withSelect(mockedField);
+            }
+            return method;
         }
 
         @NonNull
@@ -455,14 +467,14 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             if (testGroups != null) {
                 testGroupsAsString = "(" +
                   testGroups.stream().map(Object::toString).collect(Collectors.joining(",")) +
-                    ")";
+                  ")";
             }
             return testGroupsAsString;
         }
 
         @NonNull
         private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            String testGroupsAsString = (getTestGroupsAsString().isEmpty())? tearDownMethodAnnotationParameters : getTestGroupsAsString();
+            String testGroupsAsString = (getTestGroupsAsString().isEmpty()) ? tearDownMethodAnnotationParameters : getTestGroupsAsString();
             return maybeAddMethodWithAnnotation(classDecl, ctx, "tearDownStaticMocks",
               tearDownMethodAnnotationSignature,
               tearDownMethodAnnotation,
