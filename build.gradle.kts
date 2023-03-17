@@ -33,14 +33,15 @@ recipeDependencies {
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 dependencies {
-    implementation("org.openrewrite:rewrite-java:$rewriteVersion")
-    implementation("org.openrewrite:rewrite-gradle:$rewriteVersion")
-    implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
-    runtimeOnly("org.openrewrite:rewrite-java-17:$rewriteVersion")
+    implementation(platform("org.openrewrite:rewrite-bom:$rewriteVersion"))
+    implementation("org.openrewrite:rewrite-java")
+    implementation("org.openrewrite:rewrite-gradle")
+    implementation("org.openrewrite:rewrite-maven")
+    runtimeOnly("org.openrewrite:rewrite-java-17")
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
-    testImplementation("org.openrewrite:rewrite-java-17:$rewriteVersion")
-    testImplementation("org.openrewrite:rewrite-groovy:$rewriteVersion")
+    testImplementation("org.openrewrite:rewrite-java-17")
+    testImplementation("org.openrewrite:rewrite-groovy")
 }
