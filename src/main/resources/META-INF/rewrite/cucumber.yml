@@ -97,3 +97,4 @@ recipeList:
       artifactId: junit-platform-suite
       version: 1.9.x
       onlyIfUsing: org.junit.platform.suite.api.*
+      acceptTransitive: true

@@ -28,3 +28,4 @@ recipeList:
       artifactId: hamcrest
       version: 2.x
       onlyIfUsing: org.hamcrest.Matchers
+      acceptTransitive: true

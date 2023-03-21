@@ -106,11 +106,13 @@ recipeList:
       artifactId: junit-jupiter
       version: 5.x
       onlyIfUsing: org.junit.jupiter.api.Test
+      acceptTransitive: true
   - org.openrewrite.maven.AddDependency:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter-params
       version: 5.x
       onlyIfUsing: org.junit.jupiter.params.ParameterizedTest
+      acceptTransitive: true
   - org.openrewrite.maven.UpgradePluginVersion:
       groupId: org.apache.maven.plugins
       artifactId: maven-surefire-plugin
@@ -184,6 +186,7 @@ recipeList:
       artifactId: vertx-junit5
       version: 4.x
       onlyIfUsing: io.vertx.junit5.VertxExtension
+      acceptTransitive: true
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.CleanupAssertions
