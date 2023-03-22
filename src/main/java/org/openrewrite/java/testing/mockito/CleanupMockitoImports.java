@@ -62,7 +62,7 @@ public class CleanupMockitoImports extends Recipe {
 
     public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final List<String> MOCKITO_METHOD_NAMES = Arrays.asList("mock", "mockingDetails", "spy",
-                "stub", "when", "verify", "reset", "verifyNoMoreInteractions", "verifyZeroInteractions", "stubVoid",
+                "stub", "when", "verify", "reset", "verifyNoMoreInteractions", "verifyZeroInteractions", "verifyNoInteractions", "stubVoid",
                 "doThrow", "doCallRealMethod", "doAnswer", "doNothing", "doReturn", "inOrder", "ignoreStubs",
                 "times", "never", "atLeastOnce", "atLeast", "atMost", "calls", "only", "timeout", "after",
                 "given", "then", "will", "willAnswer", "willCallRealMethod", "willDoNothing", "willReturn", "willThrow");
