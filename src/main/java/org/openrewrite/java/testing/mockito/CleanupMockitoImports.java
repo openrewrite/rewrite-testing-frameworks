@@ -44,10 +44,10 @@ public class CleanupMockitoImports extends Recipe {
         return "Removes unused `org.mockito` import symbols, unless its possible they are associated with method invocations having null or unknown type information.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
+    }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -61,11 +61,44 @@ public class CleanupMockitoImports extends Recipe {
     }
 
     public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final List<String> MOCKITO_METHOD_NAMES = Arrays.asList("mock", "mockingDetails", "spy",
-                "stub", "when", "verify", "reset", "verifyNoMoreInteractions", "verifyZeroInteractions", "verifyNoInteractions", "stubVoid",
-                "doThrow", "doCallRealMethod", "doAnswer", "doNothing", "doReturn", "inOrder", "ignoreStubs",
-                "times", "never", "atLeastOnce", "atLeast", "atMost", "calls", "only", "timeout", "after",
-                "given", "then", "will", "willAnswer", "willCallRealMethod", "willDoNothing", "willReturn", "willThrow");
+        private static final List<String> MOCKITO_METHOD_NAMES = Arrays.asList(
+                "after",
+                "atLeast",
+                "atLeastOnce",
+                "atMost",
+                "calls",
+                "clearInvocations",
+                "doAnswer",
+                "doCallRealMethod",
+                "doNothing",
+                "doReturn",
+                "doThrow",
+                "given",
+                "ignoreStubs",
+                "inOrder",
+                "mock",
+                "mockingDetails",
+                "never",
+                "only",
+                "reset",
+                "spy",
+                "stub",
+                "stubVoid",
+                "then",
+                "timeout",
+                "times",
+                "verify",
+                "verifyNoInteractions",
+                "verifyNoMoreInteractions",
+                "verifyZeroInteractions",
+                "when",
+                "will",
+                "willAnswer",
+                "willCallRealMethod",
+                "willDoNothing",
+                "willReturn",
+                "willThrow");
+
         @Override
         public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
             JavaSourceFile sf = super.visitJavaSourceFile(cu, executionContext);
