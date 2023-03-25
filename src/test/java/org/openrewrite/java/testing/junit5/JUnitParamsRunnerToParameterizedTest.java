@@ -35,7 +35,7 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
     }
 
     @Test
-    void testHasAssociatedMethodSource() {
+    void hasAssociatedMethodSource() {
         //language=java
         rewriteRun(
           java(
@@ -97,7 +97,7 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
     }
 
     @Test
-    void testHasSpecifiedMethodSource() {
+    void hasSpecifiedMethodSource() {
         //language=java
         rewriteRun(
           java(

@@ -35,7 +35,7 @@ class TestRuleToTestInfoTest implements RewriteTest {
     }
 
     @Test
-    void testRuleToTestInfo() {
+    void ruleToTestInfo() {
         //language=java
         rewriteRun(
           java(
@@ -85,7 +85,7 @@ class TestRuleToTestInfoTest implements RewriteTest {
     }
 
     @Test
-    void testRuleHasBeforeMethodToTestInfo() {
+    void ruleHasBeforeMethodToTestInfo() {
         //language=java
         rewriteRun(
           java(

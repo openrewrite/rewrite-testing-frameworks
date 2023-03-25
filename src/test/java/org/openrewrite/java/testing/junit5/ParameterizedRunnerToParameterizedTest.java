@@ -301,7 +301,7 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
     }
 
     @Test
-    void testParamsAreFinalFields() {
+    void paramsAreFinalFields() {
         //language=java
         rewriteRun(
           spec -> spec.typeValidationOptions(TypeValidation.none()),
