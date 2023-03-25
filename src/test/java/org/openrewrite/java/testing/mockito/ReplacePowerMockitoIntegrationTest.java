@@ -43,7 +43,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     }
 
     @Test
-    void testThatPowerMockitoIsReplacedInJunitTests() {
+    void thatPowerMockitoIsReplacedInJunitTests() {
         //language=java
         rewriteRun(java("""
           package org.powermock.modules.junit4;
@@ -138,7 +138,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     }
 
     @Test
-    void testThatPowerMockitoIsReplacedInTestNGTests() {
+    void thatPowerMockitoIsReplacedInTestNGTests() {
         //language=java
         rewriteRun(java("""
             package org.powermock.modules.junit4;

@@ -270,7 +270,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
     }
 
     @Test
-    void testAnnotationWithTimeout() {
+    void annotationWithTimeout() {
         //language=java
         rewriteRun(
           java(
@@ -301,7 +301,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
     }
 
     @Test
-    void testAnnotationWithImportedException() {
+    void annotationWithImportedException() {
         //language=java
         rewriteRun(
           java(
@@ -348,7 +348,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
     }
 
     @Test
-    void testAnnotationWithTimeoutAndException() {
+    void annotationWithTimeoutAndException() {
         //language=java
         rewriteRun(
           java(
