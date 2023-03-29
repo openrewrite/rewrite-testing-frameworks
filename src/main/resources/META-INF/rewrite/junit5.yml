@@ -48,17 +48,6 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
-  - org.openrewrite.java.ReorderMethodArguments:
-      methodPattern: org.junit.Assume assume*(String, boolean)
-      oldParameterNames:
-        - message
-        - b
-      newParameterNames:
-        - b
-        - message
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.junit.Assume
-      newFullyQualifiedTypeName: org.junit.jupiter.api.Assumptions
   - org.openrewrite.java.testing.junit5.RemoveObsoleteRunners:
       obsoleteRunners:
         - org.junit.runners.JUnit4
@@ -69,6 +58,7 @@ recipeList:
       groupId: org.apache.maven.surefire
       artifactId: surefire-junit*
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
+  - org.openrewrite.java.testing.junit5.MigrateAssumptions
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.junit5.UseTestMethodOrder
   - org.openrewrite.java.testing.junit5.MigrateJUnitTestCase
@@ -137,6 +127,42 @@ recipeList:
       fullyQualifiedTargetTypeName: org.hamcrest.MatcherAssert
   - org.openrewrite.java.UseStaticImport:
       methodPattern: org.hamcrest.MatcherAssert assertThat(..)
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.MigrateAssumptions
+displayName: Use `Assertions#assume*(..)` and Hamcrest's `MatcherAssume#assume*(..)`
+description: Many of JUnit 4's `Assume#assume(..)` methods have no direct counterpart in JUnit 5 and require Hamcrest JUnit's `MatcherAssume`.
+tags:
+  - testing
+  - junit
+  - hamcrest
+recipeList:
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.hamcrest
+      artifactId: hamcrest-junit
+      version: 2.x
+      scope: test
+      onlyIfUsing: org.junit.Assume
+      acceptTransitive: true
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.junit.Assume assumeThat(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.junit.MatcherAssume
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.junit.Assume assumeThat(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.junit.MatcherAssume
+  - org.openrewrite.java.ReorderMethodArguments:
+      methodPattern: org.junit.Assume assume*(String, boolean)
+      oldParameterNames:
+        - message
+        - assumption
+      newParameterNames:
+        - assumption
+        - message
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junit.Assume
+      newFullyQualifiedTypeName: org.junit.jupiter.api.Assumptions
+
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseMockitoExtension
