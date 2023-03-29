@@ -148,9 +148,6 @@ recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.junit.Assume assumeThat(..)
       fullyQualifiedTargetTypeName: org.hamcrest.junit.MatcherAssume
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.junit.Assume assumeThat(..)
-      fullyQualifiedTargetTypeName: org.hamcrest.junit.MatcherAssume
   - org.openrewrite.java.ReorderMethodArguments:
       methodPattern: org.junit.Assume assume*(String, boolean)
       oldParameterNames:
