@@ -69,8 +69,8 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoTestRule"));
-                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoRule"));
+                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoTestRule", false));
+                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoRule", false));
                 return cu;
             }
         };

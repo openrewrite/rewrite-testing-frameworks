@@ -76,7 +76,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("junitparams.*");
+        return new UsesType<>("junitparams.*", false);
     }
 
     @Override

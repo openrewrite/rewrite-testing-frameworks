@@ -27,7 +27,6 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodInvocation;
 
-import java.time.Duration;
 import java.util.function.Supplier;
 
 public class UseExplicitSize extends Recipe {
@@ -43,7 +42,7 @@ public class UseExplicitSize extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.assertj.core.api.Assertions");
+        return new UsesType<>("org.assertj.core.api.Assertions", false);
     }
 
     @Override

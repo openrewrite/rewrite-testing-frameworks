@@ -57,7 +57,7 @@ public class CleanupMockitoImports extends Recipe {
     @Nullable
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.mockito.*");
+        return new UsesType<>("org.mockito.*", false);
     }
 
     public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {

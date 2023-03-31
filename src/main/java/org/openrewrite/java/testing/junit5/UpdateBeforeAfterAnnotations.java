@@ -46,10 +46,10 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesType<>("org.junit.BeforeClass"));
-                doAfterVisit(new UsesType<>("org.junit.Before"));
-                doAfterVisit(new UsesType<>("org.junit.After"));
-                doAfterVisit(new UsesType<>("org.junit.AfterClass"));
+                doAfterVisit(new UsesType<>("org.junit.BeforeClass", false));
+                doAfterVisit(new UsesType<>("org.junit.Before", false));
+                doAfterVisit(new UsesType<>("org.junit.After", false));
+                doAfterVisit(new UsesType<>("org.junit.AfterClass", false));
                 return cu;
             }
         };

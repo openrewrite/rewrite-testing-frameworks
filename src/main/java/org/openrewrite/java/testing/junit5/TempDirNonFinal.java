@@ -44,7 +44,7 @@ public class TempDirNonFinal extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.jupiter.api.io.TempDir");
+        return new UsesType<>("org.junit.jupiter.api.io.TempDir", false);
     }
 
     @Override

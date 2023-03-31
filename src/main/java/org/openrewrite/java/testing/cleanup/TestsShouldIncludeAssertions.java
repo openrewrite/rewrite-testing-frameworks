@@ -96,7 +96,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.jupiter.api.Test");
+        return new UsesType<>("org.junit.jupiter.api.Test", false);
     }
 
     @Override

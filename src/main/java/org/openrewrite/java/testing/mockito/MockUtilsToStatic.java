@@ -59,7 +59,7 @@ public class MockUtilsToStatic extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.mockito.internal.util.MockUtil");
+        return new UsesType<>("org.mockito.internal.util.MockUtil", false);
     }
 
     public static class MockUtilsToStaticVisitor extends JavaVisitor<ExecutionContext> {
