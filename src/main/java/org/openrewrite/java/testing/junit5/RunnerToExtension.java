@@ -60,7 +60,7 @@ public class RunnerToExtension extends Recipe {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
                 for (String runner : runners) {
-                    doAfterVisit(new UsesType<>(runner));
+                    doAfterVisit(new UsesType<>(runner, false));
                 }
                 return cu;
             }

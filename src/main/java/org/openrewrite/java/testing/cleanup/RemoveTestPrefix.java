@@ -58,11 +58,11 @@ public class RemoveTestPrefix extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.Test"));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestTemplate"));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.RepeatedTest"));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.params.ParameterizedTest"));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestFactory"));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.Test", false));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestTemplate", false));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.RepeatedTest", false));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.params.ParameterizedTest", false));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestFactory", false));
                 return cu;
             }
         };

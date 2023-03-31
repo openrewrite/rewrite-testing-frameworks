@@ -49,7 +49,7 @@ public class UseExplicitContains extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.assertj.core.api.Assertions");
+        return new UsesType<>("org.assertj.core.api.Assertions", false);
     }
 
     @Override

@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -29,9 +28,9 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.SearchResult;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -73,12 +72,12 @@ public class MigrateJUnitTestCase extends Recipe {
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
                 for (J.ClassDeclaration clazz : cu.getClasses()) {
                     if (TypeUtils.isAssignableTo(JavaType.ShallowClass.build("junit.framework.TestCase"), clazz.getType())) {
-                        return cu.withMarkers(cu.getMarkers().searchResult());
+                        return SearchResult.found(cu);
                     }
                 }
 
-                doAfterVisit(new UsesType<>("junit.framework.TestCase"));
-                doAfterVisit(new UsesType<>("junit.framework.Assert"));
+                doAfterVisit(new UsesType<>("junit.framework.TestCase", false));
+                doAfterVisit(new UsesType<>("junit.framework.Assert", false));
                 return cu;
             }
         };

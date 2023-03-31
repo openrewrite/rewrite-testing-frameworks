@@ -46,7 +46,7 @@ public class AssertToAssertions extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.Assert");
+        return new UsesType<>("org.junit.Assert", false);
     }
 
     @Override

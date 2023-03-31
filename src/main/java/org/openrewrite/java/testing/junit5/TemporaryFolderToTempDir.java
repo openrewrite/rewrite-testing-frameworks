@@ -45,7 +45,7 @@ public class TemporaryFolderToTempDir extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.rules.TemporaryFolder");
+        return new UsesType<>("org.junit.rules.TemporaryFolder", false);
     }
 
     @Override

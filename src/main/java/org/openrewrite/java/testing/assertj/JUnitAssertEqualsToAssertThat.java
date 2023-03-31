@@ -28,7 +28,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -46,7 +45,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.jupiter.api.Assertions");
+        return new UsesType<>("org.junit.jupiter.api.Assertions", false);
     }
 
     @Override

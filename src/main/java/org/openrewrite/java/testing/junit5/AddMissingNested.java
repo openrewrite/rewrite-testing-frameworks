@@ -60,7 +60,7 @@ public class AddMissingNested extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
-                TEST_ANNOTATIONS.forEach(ann -> doAfterVisit(new UsesType<>(ann)));
+                TEST_ANNOTATIONS.forEach(ann -> doAfterVisit(new UsesType<>(ann, false)));
                 return cu;
             }
         };

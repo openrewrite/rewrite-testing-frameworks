@@ -61,7 +61,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.runners.Parameterized");
+        return new UsesType<>("org.junit.runners.Parameterized", false);
     }
 
     @Override

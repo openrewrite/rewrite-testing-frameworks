@@ -56,7 +56,7 @@ public class LifecycleNonPrivate extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
-                ANNOTATION_TYPES.forEach(ann -> doAfterVisit(new UsesType<>(ann)));
+                ANNOTATION_TYPES.forEach(ann -> doAfterVisit(new UsesType<>(ann, false)));
                 return cu;
             }
         };
