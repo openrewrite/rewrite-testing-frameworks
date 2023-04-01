@@ -68,7 +68,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 doAfterVisit(new UsesType<>("org.mockito.junit.MockitoTestRule", false));
                 doAfterVisit(new UsesType<>("org.mockito.junit.MockitoRule", false));
                 return cu;

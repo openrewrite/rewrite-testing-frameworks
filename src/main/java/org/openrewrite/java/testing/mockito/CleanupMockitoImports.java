@@ -100,8 +100,8 @@ public class CleanupMockitoImports extends Recipe {
                 "willThrow");
 
         @Override
-        public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
-            JavaSourceFile sf = super.visitJavaSourceFile(cu, executionContext);
+        public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
+            JavaSourceFile sf = super.visitJavaSourceFile(cu, ctx);
 
             // Prevent removing mockito imports when an associated mockito method type is not well formed
             final List<String> unknownTypeMethodInvocationNames = new ArrayList<>();

@@ -85,8 +85,8 @@ public class TestsShouldNotBePublic extends Recipe {
         }
 
         @Override
-        public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext executionContext) {
-            ClassDeclaration c = super.visitClassDeclaration(classDecl, executionContext);
+        public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext ctx) {
+            ClassDeclaration c = super.visitClassDeclaration(classDecl, ctx);
 
             if (c.getKind() != ClassDeclaration.Kind.Type.Interface
                     && c.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public)
@@ -129,15 +129,15 @@ public class TestsShouldNotBePublic extends Recipe {
                     if (!modifierComments.isEmpty()) {
                         c = c.withComments(ListUtils.concatAll(c.getComments(), modifierComments));
                     }
-                    c = maybeAutoFormat(c, c.withModifiers(modifiers), c.getName(), executionContext, getCursor().getParentTreeCursor());
+                    c = maybeAutoFormat(c, c.withModifiers(modifiers), c.getName(), ctx, getCursor().getParentTreeCursor());
                 }
             }
             return c;
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-            J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
             if (method.getMethodType() == null ||
                     method.getMethodType().getDeclaringType().hasFlags(Flag.Abstract, Flag.Public)) {

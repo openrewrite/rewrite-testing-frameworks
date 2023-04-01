@@ -58,7 +58,7 @@ public class RunnerToExtension extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 for (String runner : runners) {
                     doAfterVisit(new UsesType<>(runner, false));
                 }

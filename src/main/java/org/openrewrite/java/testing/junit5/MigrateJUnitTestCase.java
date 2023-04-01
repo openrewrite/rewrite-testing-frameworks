@@ -69,7 +69,7 @@ public class MigrateJUnitTestCase extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 for (J.ClassDeclaration clazz : cu.getClasses()) {
                     if (TypeUtils.isAssignableTo(JavaType.ShallowClass.build("junit.framework.TestCase"), clazz.getType())) {
                         return SearchResult.found(cu);
@@ -87,8 +87,8 @@ public class MigrateJUnitTestCase extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
                 doAfterVisit(new TestCaseVisitor());
                 // ChangeType for org.junit.Assert method invocations because TestCase extends org.junit.Assert
                 doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert", true));
@@ -101,8 +101,8 @@ public class MigrateJUnitTestCase extends Recipe {
 
             @SuppressWarnings("ConstantConditions")
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-                J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if ((mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase"))
                         || (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"))) {
                     String name = mi.getSimpleName();
@@ -122,11 +122,11 @@ public class MigrateJUnitTestCase extends Recipe {
         private static final AnnotationMatcher OVERRIDE_ANNOTATION_MATCHER = new AnnotationMatcher("@java.lang.Override");
 
         @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             if (!isSupertypeTestCase(classDecl.getType())) {
                 return classDecl;
             }
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             if (cd.getExtends() != null && cd.getExtends().getType() != null) {
                 JavaType.FullyQualified fullQualifiedExtension = TypeUtils.asFullyQualified(cd.getExtends().getType());
                 if (fullQualifiedExtension != null && "junit.framework.TestCase".equals(fullQualifiedExtension.getFullyQualifiedName())) {

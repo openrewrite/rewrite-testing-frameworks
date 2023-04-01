@@ -56,7 +56,7 @@ public class RemoveEmptyTests extends Recipe {
     protected @Nullable TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
+            public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
                 doAfterVisit(new FindEmptyMethods(false));
                 return cu;
             }
@@ -67,12 +67,12 @@ public class RemoveEmptyTests extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaVisitor<ExecutionContext>() {
             @Override
-            public J visitMethodDeclaration(MethodDeclaration method, ExecutionContext executionContext) {
+            public J visitMethodDeclaration(MethodDeclaration method, ExecutionContext ctx) {
                 if (hasTestAnnotation(method) && isEmptyMethod(method)) {
                     //noinspection ConstantConditions
                     return null;
                 }
-                return super.visitMethodDeclaration(method, executionContext);
+                return super.visitMethodDeclaration(method, ctx);
             }
 
             private boolean hasTestAnnotation(J.MethodDeclaration method) {

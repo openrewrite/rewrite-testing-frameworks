@@ -56,15 +56,15 @@ public class UseWiremockExtension extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
 
             @Override
-            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext context) {
+            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
                 doNext(new ChangeType("com.github.tomakehurst.wiremock.junit.WireMockRule",
                         "com.github.tomakehurst.wiremock.junit5.WireMockExtension", true));
-                return super.visitJavaSourceFile(cu, context);
+                return super.visitJavaSourceFile(cu, ctx);
             }
 
             @Override
-            public J visitNewClass(J.NewClass newClass, ExecutionContext executionContext) {
-                J.NewClass n = (J.NewClass) super.visitNewClass(newClass, executionContext);
+            public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                J.NewClass n = (J.NewClass) super.visitNewClass(newClass, ctx);
                 if (newWiremockRule.matches(n)) {
                     maybeAddImport("com.github.tomakehurst.wiremock.junit5.WireMockExtension");
                     doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true));

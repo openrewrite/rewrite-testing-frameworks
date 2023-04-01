@@ -62,8 +62,8 @@ public class AssertToAssertions extends Recipe {
                 "assertNull", "assertSame", "assertThrows", "assertTrue", "fail");
 
         @Override
-        public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
-            JavaSourceFile c = super.visitJavaSourceFile(cu, executionContext);
+        public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
+            JavaSourceFile c = super.visitJavaSourceFile(cu, ctx);
 
             boolean hasWildcardAssertImport = false;
             for (J.Import imp : cu.getImports()) {

@@ -57,7 +57,7 @@ public class RemoveObsoleteRunners extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 for (String runner : obsoleteRunners) {
                     doAfterVisit(new UsesType<>(runner, false));
                 }
@@ -74,7 +74,7 @@ public class RemoveObsoleteRunners extends Recipe {
     public class RemoveObsoleteRunnersVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             for (String runner : obsoleteRunners) {
                 //noinspection ConstantConditions
                 doAfterVisit(new RemoveAnnotation("@org.junit.runner.RunWith(" + runner + ".class)"));
