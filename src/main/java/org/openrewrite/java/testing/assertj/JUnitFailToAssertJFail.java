@@ -146,9 +146,8 @@ public class JUnitFailToAssertJFail extends Recipe {
 
                 method = method.withTemplate(JavaTemplate.builder(this::getCursor, templateBuilder.toString())
                                 .staticImports("org.assertj.core.api.Assertions" + ".fail")
-                                .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "assertj-core-3.24.2")
-                                        .build())
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(ctx, "assertj-core-3.24.2"))
                                 .build(),
                         method.getCoordinates().replace(),
                         arguments.toArray()

@@ -189,9 +189,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         .withTemplate(
                                 JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
                                                 "private MockedStatic<#{}> mocked#{};")
-                                        .javaParser(() -> JavaParser.fromJavaVersion()
-                                                .classpathFromResources(ctx, "mockito-core-3.12.4")
-                                                .build())
+                                        .javaParser(JavaParser.fromJavaVersion()
+                                                .classpathFromResources(ctx, "mockito-core-3.12.4"))
                                         .staticImports("org.mockito.Mockito.mockStatic")
                                         .imports(MOCKED_STATIC)
                                         .build(),
@@ -253,9 +252,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
               .withTemplate(
                 JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
                     methodAnnotationToAdd + " void " + methodName + "() {}")
-                  .javaParser(() -> JavaParser.fromJavaVersion()
-                    .classpathFromResources(ctx, additionalClasspathResource)
-                    .build())
+                  .javaParser(JavaParser.fromJavaVersion()
+                    .classpathFromResources(ctx, additionalClasspathResource))
                   .imports(importToAdd)
                   .build(),
                 tearDownCoordinates));
@@ -348,9 +346,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         m = m.withBody(methodBody.withTemplate(
                                 JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
                                                 "#{any(org.mockito.MockedStatic)}.close();")
-                                        .javaParser(() -> JavaParser.fromJavaVersion()
-                                                .classpathFromResources(ctx, "mockito-core-3.*")
-                                                .build())
+                                        .javaParser(JavaParser.fromJavaVersion()
+                                                .classpathFromResources(ctx, "mockito-core-3.*"))
                                         .build(),
                                 methodBody.getCoordinates().lastStatement(),
                                 mockedTypesField
@@ -383,9 +380,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         m = m.withBody(methodBody.withTemplate(
                           JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
                               "mocked#{any(org.mockito.MockedStatic)} = mockStatic(#{}.class);")
-                            .javaParser(() -> JavaParser.fromJavaVersion()
-                              .classpathFromResources(ctx, "mockito-core-3.*")
-                              .build())
+                            .javaParser(JavaParser.fromJavaVersion()
+                              .classpathFromResources(ctx, "mockito-core-3.*"))
                             .build(),
                           methodBody.getCoordinates().lastStatement(),
                           mockedTypesField,

@@ -98,9 +98,8 @@ public class EnclosedToNested extends Recipe {
         @NonNull
         private JavaTemplate getNestedJavaTemplate(ExecutionContext ctx) {
             return JavaTemplate.builder(this::getCursor, "@Nested")
-                    .javaParser(() -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                            .build())
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2"))
                     .imports(NESTED)
                     .build();
         }
