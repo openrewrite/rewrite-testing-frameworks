@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -34,6 +35,8 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.+"))
+          .parser(GroovyParser.builder()
+            .classpathFromResource(new InMemoryExecutionContext(), "junit-4.13.+"))
           .recipe(new TemporaryFolderToTempDir());
     }
 

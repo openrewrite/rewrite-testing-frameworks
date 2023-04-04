@@ -56,13 +56,12 @@ public class TemporaryFolderToTempDir extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
 
             @Nullable
-            private Supplier<JavaParser> javaParser;
+            private JavaParser.Builder<?, ?> javaParser;
 
-            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {
-                    javaParser = () -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                            .build();
+                    javaParser = JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2");
                 }
                 return javaParser;
 
