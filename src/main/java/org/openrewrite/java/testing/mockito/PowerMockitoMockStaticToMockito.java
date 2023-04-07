@@ -271,8 +271,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                               "mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
                             .javaParser(JavaParser.fromJavaVersion()
                               .classpathFromResources(ctx, "mockito-core-3.*"))
-                              .build())
-                            .build(),
+                              .build(),
                           methodBody.getCoordinates().firstStatement(),
                           mockedTypesFieldEntry.getKey(),
                           methodInvocation
