@@ -76,7 +76,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("junitparams.*");
+        return new UsesType<>("junitparams.*", false);
     }
 
     @Override
@@ -100,8 +100,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-            J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
             // methods having names starting with parametersFor... are init methods
             if (m.getSimpleName().startsWith(PARAMETERS_FOR_PREFIX)) {
@@ -111,8 +111,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         }
 
         @Override
-        public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext executionContext) {
-            J.Annotation anno = super.visitAnnotation(annotation, executionContext);
+        public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
+            J.Annotation anno = super.visitAnnotation(annotation, ctx);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
             if (PARAMETERS_MATCHER.matches(anno)) {
                 String annotationArgumentValue = getAnnotationArgumentForInitMethod(anno, "method", "named");
@@ -232,8 +232,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
         @SuppressWarnings("SpellCheckingInspection")
         @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             // Remove @RunWith(JUnitParamsRunner.class) annotation
             doAfterVisit(new RemoveAnnotationVisitor(RUN_WITH_JUNIT_PARAMS_ANNOTATION_MATCHER));
 
@@ -251,11 +251,11 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             if (unsupportedConversions.contains(method.getSimpleName())) {
                 return method;
             }
-            J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             final String paramTestName = initMethodReferences.get(m.getSimpleName());
 
             m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), anno -> {
@@ -271,7 +271,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             if (initMethods.contains(m.getSimpleName()) || initMethodReferences.containsValue(m.getSimpleName())) {
                 if (m.getModifiers().stream().noneMatch(it -> J.Modifier.Type.Static.equals(it.getType()))) {
                     J.Modifier staticModifier = new J.Modifier(UUID.randomUUID(), Space.format(" "), Markers.EMPTY, J.Modifier.Type.Static, new ArrayList<>());
-                    m = maybeAutoFormat(m, m.withModifiers(ListUtils.concat(m.getModifiers(), staticModifier)), executionContext, getCursor().getParentTreeCursor());
+                    m = maybeAutoFormat(m, m.withModifiers(ListUtils.concat(m.getModifiers(), staticModifier)), ctx, getCursor().getParentTreeCursor());
                 }
             }
             return m;

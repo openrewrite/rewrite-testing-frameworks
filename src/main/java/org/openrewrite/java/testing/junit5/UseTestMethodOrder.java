@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
@@ -28,7 +27,6 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -52,7 +50,7 @@ public class UseTestMethodOrder extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.FixMethodOrder");
+        return new UsesType<>("org.junit.FixMethodOrder", false);
     }
 
     @Override

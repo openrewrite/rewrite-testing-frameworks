@@ -77,8 +77,8 @@ public class UpdateMockWebServer extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
                 if (!FindTypes.find(cu, "org.junit.Rule").isEmpty()
                         && !FindTypes.find(cu, "okhttp3.mockwebserver.MockWebServer").isEmpty()) {
                     c = SearchResult.found(c);
@@ -164,8 +164,8 @@ public class UpdateMockWebServer extends Recipe {
             }
 
             @Override
-            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
-                J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, executionContext);
+            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+                J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, ctx);
                 JavaType.FullyQualified fieldType = variableDeclarations.getTypeAsFullyQualified();
                 if (TypeUtils.isOfClassType(fieldType, "okhttp3.mockwebserver.MockWebServer")) {
                     variableDeclarations = variableDeclarations.withLeadingAnnotations(ListUtils.map(variableDeclarations.getLeadingAnnotations(), annotation -> {
@@ -182,8 +182,8 @@ public class UpdateMockWebServer extends Recipe {
             }
 
             @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-                J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
                 if (md.getLeadingAnnotations().stream().anyMatch(AFTER_EACH_MATCHER::matches)) {
                     getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, AFTER_EACH_METHOD, md);
                 }

@@ -47,7 +47,7 @@ public class UpdateTestAnnotation extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return Applicability.or(
-                new UsesType<>("org.junit.Test"),
+                new UsesType<>("org.junit.Test", false),
                 new FindImports("org.junit.Test").getVisitor()
         );
     }
@@ -73,13 +73,13 @@ public class UpdateTestAnnotation extends Recipe {
 
 
         @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-            J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
             Set<NameTree> nameTreeSet = c.findType("org.junit.Test");
             if (!nameTreeSet.isEmpty()) {
                 // Update other references like `Test.class`.
                 c = (J.CompilationUnit) new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test", true)
-                        .getVisitor().visitNonNull(c, executionContext);
+                        .getVisitor().visitNonNull(c, ctx);
             }
 
             maybeRemoveImport("org.junit.Test");
@@ -95,7 +95,7 @@ public class UpdateTestAnnotation extends Recipe {
                 }
 
                 @Override
-                public J.Import visitImport(J.Import anImport, ExecutionContext executionContext) {
+                public J.Import visitImport(J.Import anImport, ExecutionContext ctx) {
                     if ("org.junit.Test".equals(anImport.getTypeName())) {
                         return Markup.error(anImport, new IllegalStateException("This import should have been removed by this recipe."));
                     }
@@ -103,7 +103,7 @@ public class UpdateTestAnnotation extends Recipe {
                 }
 
                 @Override
-                public JavaType visitType(@Nullable JavaType javaType, ExecutionContext executionContext) {
+                public JavaType visitType(@Nullable JavaType javaType, ExecutionContext ctx) {
                     if (TypeUtils.isOfClassType(javaType, "org.junit.Test")) {
                         getCursor().putMessageOnFirstEnclosing(J.class, "danglingTestRef", true);
                     }
@@ -111,7 +111,7 @@ public class UpdateTestAnnotation extends Recipe {
                 }
 
                 @Override
-                public J postVisit(J tree, ExecutionContext executionContext) {
+                public J postVisit(J tree, ExecutionContext ctx) {
                     if (getCursor().getMessage("danglingTestRef", false)) {
                         return Markup.warn(tree, new IllegalStateException("This still has a type of `org.junit.Test`"));
                     }

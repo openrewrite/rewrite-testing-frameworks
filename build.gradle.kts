@@ -13,13 +13,8 @@ recipeDependencies {
     parserClasspath("org.assertj:assertj-core:3.+")
     parserClasspath("junit:junit:latest.release")
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
-    parserClasspath("org.junit.platform:junit-platform-suite-api:latest.release")
     parserClasspath("org.junit.jupiter:junit-jupiter-api:latest.release")
     parserClasspath("org.junit.jupiter:junit-jupiter-params:latest.release")
-    parserClasspath("io.cucumber:cucumber-java8:7.+")
-    parserClasspath("io.cucumber:cucumber-java:7.+")
-    parserClasspath("io.cucumber:cucumber-plugin:7.+")
-    parserClasspath("io.cucumber:cucumber-junit-platform-engine:7.+")
     parserClasspath("org.hamcrest:hamcrest:latest.release")
     parserClasspath("com.squareup.okhttp3:mockwebserver:3.14.9")
     parserClasspath("org.apiguardian:apiguardian-api:1.1.2")
@@ -33,14 +28,15 @@ recipeDependencies {
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 dependencies {
-    implementation("org.openrewrite:rewrite-java:$rewriteVersion")
-    implementation("org.openrewrite:rewrite-gradle:$rewriteVersion")
-    implementation("org.openrewrite:rewrite-maven:$rewriteVersion")
-    runtimeOnly("org.openrewrite:rewrite-java-17:$rewriteVersion")
+    implementation(platform("org.openrewrite:rewrite-bom:$rewriteVersion"))
+    implementation("org.openrewrite:rewrite-java")
+    implementation("org.openrewrite:rewrite-gradle")
+    implementation("org.openrewrite:rewrite-maven")
+    runtimeOnly("org.openrewrite:rewrite-java-17")
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
-    testImplementation("org.openrewrite:rewrite-java-17:$rewriteVersion")
-    testImplementation("org.openrewrite:rewrite-groovy:$rewriteVersion")
+    testImplementation("org.openrewrite:rewrite-java-17")
+    testImplementation("org.openrewrite:rewrite-groovy")
 }

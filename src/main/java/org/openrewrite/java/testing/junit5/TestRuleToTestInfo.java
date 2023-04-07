@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
@@ -29,7 +28,6 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -47,7 +45,7 @@ public class TestRuleToTestInfo extends Recipe {
 
     @Override
     protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.rules.TestName");
+        return new UsesType<>("org.junit.rules.TestName", false);
     }
 
     @Override
@@ -73,15 +71,15 @@ public class TestRuleToTestInfo extends Recipe {
         }
 
         @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-            J.CompilationUnit compilationUnit = super.visitCompilationUnit(cu, executionContext);
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            J.CompilationUnit compilationUnit = super.visitCompilationUnit(cu, ctx);
             maybeRemoveImport("org.junit.Rule");
             maybeRemoveImport("org.junit.rules.TestName");
             maybeAddImport("org.junit.jupiter.api.TestInfo");
             doAfterVisit(new JavaVisitor<ExecutionContext>() {
                 @Override
-                public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-                    J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, executionContext);
+                public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                    J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                     if (TEST_NAME_GET_NAME.matches(mi) && mi.getSelect() != null) {
                         return mi.getSelect().withPrefix(Space.format(" "));
                     }
@@ -94,8 +92,8 @@ public class TestRuleToTestInfo extends Recipe {
         }
 
         @Override
-        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
-            J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, executionContext);
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+            J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, ctx);
             if (varDecls.getType() != null && TypeUtils.isOfClassType(varDecls.getType(), "org.junit.rules.TestName")) {
                 varDecls = varDecls.withLeadingAnnotations(ListUtils.map(varDecls.getLeadingAnnotations(), anno -> {
                     if (RULE_ANNOTATION_MATCHER.matches(anno)) {
@@ -109,8 +107,8 @@ public class TestRuleToTestInfo extends Recipe {
         }
 
         @Override
-        public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext executionContext) {
-            J.NewClass nc = super.visitNewClass(newClass, executionContext);
+        public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+            J.NewClass nc = super.visitNewClass(newClass, ctx);
             if (TypeUtils.isOfClassType(nc.getType(), "org.junit.rules.TestName")) {
                 //noinspection ConstantConditions
                 return null;
@@ -119,8 +117,8 @@ public class TestRuleToTestInfo extends Recipe {
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-            J.MethodDeclaration md = super.visitMethodDeclaration(method, executionContext);
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
             if (md.getLeadingAnnotations().stream().anyMatch(anno -> JUNIT_BEFORE_MATCHER.matches(anno) || JUPITER_BEFORE_EACH_MATCHER.matches(anno))) {
                 getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("before-method", md);
             }

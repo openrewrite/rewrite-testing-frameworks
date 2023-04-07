@@ -50,7 +50,7 @@ public class AssertionsArgumentOrder extends Recipe {
     protected @Nullable TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
+            public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
                 for (MethodMatcher jupiterAssertionMatcher : jupiterAssertionMatchers) {
                     doAfterVisit(new UsesMethod<>(jupiterAssertionMatcher));
                 }
@@ -92,8 +92,8 @@ public class AssertionsArgumentOrder extends Recipe {
         };
 
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-            J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
 
             final Expression expected;
             final Expression actual;
@@ -115,7 +115,7 @@ public class AssertionsArgumentOrder extends Recipe {
                         return actual;
                     }
                     return arg;
-                })), executionContext, getCursor().getParentOrThrow());
+                })), ctx, getCursor().getParentOrThrow());
             }
             return mi;
         }

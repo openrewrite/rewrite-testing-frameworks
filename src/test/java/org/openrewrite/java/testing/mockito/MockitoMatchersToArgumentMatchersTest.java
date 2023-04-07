@@ -23,7 +23,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-public class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
+class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
     @Test
     void mockitoAnyListOfToListOf() {
         rewriteRun(

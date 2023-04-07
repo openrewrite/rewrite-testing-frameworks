@@ -49,7 +49,7 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.jupiter.api.Assertions");
+        return new UsesType<>("org.junit.jupiter.api.Assertions", false);
     }
 
     @Override

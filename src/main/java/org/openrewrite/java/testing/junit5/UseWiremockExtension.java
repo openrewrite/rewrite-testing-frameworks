@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.intellij.lang.annotations.Language;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -25,7 +24,6 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.maven.UpgradeDependencyVersion;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.function.Supplier;
 
 import static java.util.Collections.emptyList;
@@ -48,7 +46,7 @@ public class UseWiremockExtension extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("com.github.tomakehurst.wiremock.junit.WireMockRule");
+        return new UsesType<>("com.github.tomakehurst.wiremock.junit.WireMockRule", false);
     }
 
     @Override
@@ -58,15 +56,15 @@ public class UseWiremockExtension extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
 
             @Override
-            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext context) {
+            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
                 doNext(new ChangeType("com.github.tomakehurst.wiremock.junit.WireMockRule",
                         "com.github.tomakehurst.wiremock.junit5.WireMockExtension", true));
-                return super.visitJavaSourceFile(cu, context);
+                return super.visitJavaSourceFile(cu, ctx);
             }
 
             @Override
-            public J visitNewClass(J.NewClass newClass, ExecutionContext executionContext) {
-                J.NewClass n = (J.NewClass) super.visitNewClass(newClass, executionContext);
+            public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                J.NewClass n = (J.NewClass) super.visitNewClass(newClass, ctx);
                 if (newWiremockRule.matches(n)) {
                     maybeAddImport("com.github.tomakehurst.wiremock.junit5.WireMockExtension");
                     doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true));

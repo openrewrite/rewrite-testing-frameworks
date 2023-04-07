@@ -68,9 +68,9 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoTestRule"));
-                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoRule"));
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoTestRule", false));
+                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoRule", false));
                 return cu;
             }
         };
@@ -113,10 +113,8 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
 
                     cd = cd.withTemplate(
                             JavaTemplate.builder(this::getCursor, "@ExtendWith(MockitoExtension.class)")
-                                    .javaParser(() ->
-                                            JavaParser.fromJavaVersion()
-                                                    .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "mockito-junit-jupiter-3.12.4")
-                                                    .build())
+                                    .javaParser(JavaParser.fromJavaVersion()
+                                                    .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "mockito-junit-jupiter-3.12.4"))
                                     .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                                     .build(),
                             cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))

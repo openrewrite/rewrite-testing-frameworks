@@ -68,3 +68,4 @@ recipeList:
       artifactId: assertj-core
       version: 3.x
       onlyIfUsing: org.assertj.core.api.Assertions
+      acceptTransitive: true

@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -34,6 +35,8 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.+"))
+          .parser(GroovyParser.builder()
+            .classpathFromResource(new InMemoryExecutionContext(), "junit-4.13.+"))
           .recipe(new TemporaryFolderToTempDir());
     }
 
@@ -607,6 +610,62 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
                   }
                   void doSomething(TemporaryFolder tempFolder) {
                   
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/311")
+    void newFolderChainedCall() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.File;
+              import java.io.IOException;
+              import java.nio.file.Path;
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.TemporaryFolder;
+
+              public class TempDirTest
+              {
+                  @Rule
+                  public TemporaryFolder folder = new TemporaryFolder();
+              
+                  @Test
+                  public void testPath() throws IOException {
+                      Path newFolder = folder.newFolder().toPath();
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+              import java.io.IOException;
+              import java.nio.file.Path;
+              import org.junit.Test;
+              import org.junit.jupiter.api.io.TempDir;
+
+              public class TempDirTest
+              {
+                  @TempDir
+                  public File folder;
+              
+                  @Test
+                  public void testPath() throws IOException {
+                      Path newFolder = newFolder(folder, "junit").toPath();
+                  }
+
+                  private static File newFolder(File root, String... subDirs) throws IOException {
+                      String subFolder = String.join("/", subDirs);
+                      File result = new File(root, subFolder);
+                      if (!result.mkdirs()) {
+                          throw new IOException("Couldn't create folders " + root);
+                      }
+                      return result;
                   }
               }
               """

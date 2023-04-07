@@ -116,6 +116,7 @@ recipeList:
       artifactId: mockito-junit-jupiter
       version: 3.x
       onlyIfUsing: org.mockito.junit.jupiter.MockitoExtension
+      acceptTransitive: true
   - org.openrewrite.maven.UpgradeDependencyVersion:
       groupId: org.mockito
       artifactId: "*"

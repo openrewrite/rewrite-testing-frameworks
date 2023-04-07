@@ -45,7 +45,7 @@ public class TemporaryFolderToTempDir extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.rules.TemporaryFolder");
+        return new UsesType<>("org.junit.rules.TemporaryFolder", false);
     }
 
     @Override
@@ -56,21 +56,20 @@ public class TemporaryFolderToTempDir extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
 
             @Nullable
-            private Supplier<JavaParser> javaParser;
+            private JavaParser.Builder<?, ?> javaParser;
 
-            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {
-                    javaParser = () -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                            .build();
+                    javaParser = JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2");
                 }
                 return javaParser;
 
             }
 
             @Override
-            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, executionContext);
+            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, ctx);
                 if (c != cu) {
                     doAfterVisit(new ChangeType("org.junit.rules.TemporaryFolder", "java.io.File", true));
                     maybeAddImport("java.io.File");
@@ -238,10 +237,10 @@ public class TemporaryFolderToTempDir extends Recipe {
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (!method.isScope(methodScope)) {
-                    return method;
-                }
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+                if (!mi.isScope(methodScope)) {
+                    return mi;
+                }
                 if (mi.getSelect() != null) {
                     J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
                     List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());

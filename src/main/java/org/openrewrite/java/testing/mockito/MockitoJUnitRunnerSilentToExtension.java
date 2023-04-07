@@ -42,7 +42,7 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
 
     @Override
     protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.mockito.junit.MockitoJUnitRunner$Silent");
+        return new UsesType<>("org.mockito.junit.MockitoJUnitRunner$Silent", false);
     }
 
     @Override

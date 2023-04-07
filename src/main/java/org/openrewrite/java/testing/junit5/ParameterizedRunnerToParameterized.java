@@ -61,7 +61,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.runners.Parameterized");
+        return new UsesType<>("org.junit.runners.Parameterized", false);
     }
 
     @Override
@@ -97,8 +97,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-            J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
             if (m.isConstructor()) {
                 Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
@@ -116,8 +116,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
 
         @Override
-        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
-            J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, executionContext);
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+            J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, ctx);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
             J.Annotation parameterAnnotation = null;
             Integer position = 0;
@@ -245,8 +245,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
 
         @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-            J.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
             if (c != cu) {
                 doAfterVisit(new RemoveAnnotationVisitor(PARAMETERS));
                 doAfterVisit(new RemoveAnnotationVisitor(PARAMETER));
@@ -265,8 +265,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
 
         @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, executionContext);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             if (!scope.isScope(classDecl)) {
                 return cd;
             }
@@ -282,7 +282,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                         if (md.getName().getSimpleName().equals(initMethodName)) {
                             J.Block body = md.getBody(); // Preserve body formatting
                             return autoFormat(md.withParameters(parameterizedTestMethodParameters).withBody(null),
-                                    executionContext, new Cursor(getCursor(), finalBody)).withBody(body);
+                                    ctx, new Cursor(getCursor(), finalBody)).withBody(body);
                         }
                     }
                     return stmt;
@@ -299,7 +299,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                         if (varDecls.getVariables().stream().anyMatch(it -> fieldNames.contains(it.getSimpleName()))
                                 && (varDecls.hasModifier(J.Modifier.Type.Final))) {
                             varDecls = varDecls.withModifiers(ListUtils.map(varDecls.getModifiers(), mod -> mod.getType() == J.Modifier.Type.Final ? null : mod));
-                            statement = maybeAutoFormat(statement, varDecls, executionContext, new Cursor(getCursor(), finalBody));
+                            statement = maybeAutoFormat(statement, varDecls, ctx, new Cursor(getCursor(), finalBody));
                         }
                     }
                     return statement;
@@ -309,8 +309,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
 
         @Override
-        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
-            J.VariableDeclarations vdecls = super.visitVariableDeclarations(multiVariable, executionContext);
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+            J.VariableDeclarations vdecls = super.visitVariableDeclarations(multiVariable, ctx);
             if (!getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).isScopeInPath(scope)) {
                 return vdecls;
             }
@@ -330,8 +330,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-            J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             if (!getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).isScopeInPath(scope)) {
                 return m;
             }
@@ -360,14 +360,14 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 assert m.getBody() != null;
                 JavaCoordinates newStatementCoordinates = !m.getBody().getStatements().isEmpty() ? m.getBody().getStatements().get(0).getCoordinates().before() : m.getBody().getCoordinates().lastStatement();
                 m = m.withTemplate(initMethodStatementTemplate, newStatementCoordinates, initStatementParamString);
-                m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), m.getName(), executionContext, getCursor().getParentTreeCursor());
+                m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), m.getName(), ctx, getCursor().getParentTreeCursor());
             }
 
             // Change constructor to test init method
             if (initMethodDeclarationTemplate == null && m.isConstructor()) {
                 m = m.withName(m.getName().withSimpleName(initMethodName));
                 m = maybeAutoFormat(m, m.withReturnTypeExpression(new J.Primitive(randomId(), Space.EMPTY, Markers.EMPTY, JavaType.Primitive.Void)),
-                        m.getName(), executionContext, getCursor().getParentTreeCursor());
+                        m.getName(), ctx, getCursor().getParentTreeCursor());
 
                 // converting a constructor to a void init method may require removing final modifiers from field vars.
                 if (m.getBody() != null) {

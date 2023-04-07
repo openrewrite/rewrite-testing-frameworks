@@ -78,13 +78,16 @@ class CleanupMockitoImportsTest implements RewriteTest {
             """
               import static org.mockito.Mockito.when;
               import static org.mockito.BDDMockito.given;
+              import static org.mockito.Mockito.verifyNoInteractions;
 
               class MyObjectTest {
                 MyObject myObject;
+                MyMockClass myMock;
                             
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
                   given(myObject.getSomeField()).willReturn("testValue");
+                  verifyNoInteractions(myMock);
                 }
               }
               """

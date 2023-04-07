@@ -56,7 +56,7 @@ public class CategoryToTag extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.experimental.categories.Category");
+        return new UsesType<>("org.junit.experimental.categories.Category", false);
     }
 
     public static class CategoryToTagVisitor extends JavaIsoVisitor<ExecutionContext> {

@@ -29,11 +29,8 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Set;
-
-import static org.openrewrite.Parser.Input.fromString;
 
 @Value
 @EqualsAndHashCode(callSuper = true)
@@ -56,7 +53,7 @@ public class EnclosedToNested extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>(ENCLOSED);
+        return new UsesType<>(ENCLOSED, false);
     }
 
     @Override
@@ -101,9 +98,8 @@ public class EnclosedToNested extends Recipe {
         @NonNull
         private JavaTemplate getNestedJavaTemplate(ExecutionContext ctx) {
             return JavaTemplate.builder(this::getCursor, "@Nested")
-                    .javaParser(() -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                            .build())
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2"))
                     .imports(NESTED)
                     .build();
         }

@@ -68,6 +68,54 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         );
     }
 
+    @Test
+    void expectedExceptionRule() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              class MyTest {
+              
+                  @Rule
+                  ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testEmptyPath() {
+                      this.thrown.expect(IllegalArgumentException.class);
+                      this.thrown.expectMessage("Invalid location: gs://");
+                      foo();
+                  }
+                  void foo() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class MyTest {
+              
+                  @Test
+                  public void testEmptyPath() {
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
+                          foo();
+                      });
+                      assertTrue(exception.getMessage().contains("Invalid location: gs://"));
+                  }
+                  void foo() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
     @Test
     void removeExpectedExceptionAndLeaveMethodAlone() {

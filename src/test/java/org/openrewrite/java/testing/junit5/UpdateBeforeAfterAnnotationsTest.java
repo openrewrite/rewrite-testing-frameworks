@@ -184,7 +184,7 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
 
     @Test
     @Disabled("Issue #59")
-    void testBeforeMethodOverridesPublicAbstract() {
+    void beforeMethodOverridesPublicAbstract() {
         //language=java
         rewriteRun(
 

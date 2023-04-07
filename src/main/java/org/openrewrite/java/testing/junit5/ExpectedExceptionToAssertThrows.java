@@ -61,7 +61,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.rules.ExpectedException");
+        return new UsesType<>("org.junit.rules.ExpectedException", false);
     }
 
     @Override
@@ -188,7 +188,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
             if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
                 m = m.withTemplate(
-                        JavaTemplate.builder(this::getCursor, "assertTrue(exception.getMessage().contains(#{any(java.lang.String)});")
+                        JavaTemplate.builder(this::getCursor, "assertTrue(exception.getMessage().contains(#{any(java.lang.String)}));")
                                 .javaParser(javaParser(ctx))
                                 .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
                                 .build(),

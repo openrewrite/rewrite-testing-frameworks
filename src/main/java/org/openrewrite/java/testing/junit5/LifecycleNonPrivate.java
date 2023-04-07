@@ -55,8 +55,8 @@ public class LifecycleNonPrivate extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new JavaVisitor<ExecutionContext>() {
             @Override
-            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
-                ANNOTATION_TYPES.forEach(ann -> doAfterVisit(new UsesType<>(ann)));
+            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
+                ANNOTATION_TYPES.forEach(ann -> doAfterVisit(new UsesType<>(ann, false)));
                 return cu;
             }
         };
@@ -71,8 +71,8 @@ public class LifecycleNonPrivate extends Recipe {
         final List<AnnotationMatcher> lifeCycleAnnotationMatchers = ANNOTATION_TYPES.stream()
                 .map(annoFqn -> "@" + annoFqn).map(AnnotationMatcher::new).collect(Collectors.toList());
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(MethodDeclaration method, ExecutionContext p) {
-            J.MethodDeclaration md = super.visitMethodDeclaration(method, p);
+        public J.MethodDeclaration visitMethodDeclaration(MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
 
             if (J.Modifier.hasModifier(md.getModifiers(), Type.Private)
                     && md.getLeadingAnnotations().stream().anyMatch(ann -> lifeCycleAnnotationMatchers.stream()
@@ -80,7 +80,7 @@ public class LifecycleNonPrivate extends Recipe {
                 return maybeAutoFormat(md,
                         md.withModifiers(ListUtils.map(md.getModifiers(),
                                 modifier -> modifier.getType() == Type.Private ? null : modifier)),
-                        p, getCursor().getParentOrThrow());
+                        ctx, getCursor().getParentOrThrow());
             }
             return md;
         }

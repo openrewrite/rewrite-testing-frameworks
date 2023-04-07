@@ -59,8 +59,8 @@ public class AddMissingNested extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new JavaVisitor<ExecutionContext>() {
             @Override
-            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
-                TEST_ANNOTATIONS.forEach(ann -> doAfterVisit(new UsesType<>(ann)));
+            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
+                TEST_ANNOTATIONS.forEach(ann -> doAfterVisit(new UsesType<>(ann, false)));
                 return cu;
             }
         };
@@ -106,9 +106,8 @@ public class AddMissingNested extends Recipe {
         @NonNull
         private JavaTemplate getNestedJavaTemplate(ExecutionContext ctx) {
             return JavaTemplate.builder(this::getCursor, "@Nested")
-                    .javaParser(() -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                            .build())
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2"))
                     .imports(NESTED)
                     .build();
         }

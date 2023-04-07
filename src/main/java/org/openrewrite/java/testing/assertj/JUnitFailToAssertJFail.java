@@ -45,7 +45,7 @@ public class JUnitFailToAssertJFail extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.jupiter.api.Assertions");
+        return new UsesType<>("org.junit.jupiter.api.Assertions", false);
     }
 
     @Override
@@ -129,7 +129,7 @@ public class JUnitFailToAssertJFail extends Recipe {
             private static final MethodMatcher ASSERTJ_FAIL_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions" + " fail(..)");
 
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 if (!ASSERTJ_FAIL_MATCHER.matches(method)) {
                     return method;
                 }
@@ -146,15 +146,14 @@ public class JUnitFailToAssertJFail extends Recipe {
 
                 method = method.withTemplate(JavaTemplate.builder(this::getCursor, templateBuilder.toString())
                                 .staticImports("org.assertj.core.api.Assertions" + ".fail")
-                                .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .classpathFromResources(executionContext, "assertj-core-3.24.2")
-                                        .build())
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(ctx, "assertj-core-3.24.2"))
                                 .build(),
                         method.getCoordinates().replace(),
                         arguments.toArray()
                 );
                 maybeAddImport("org.assertj.core.api.Assertions", "fail");
-                return super.visitMethodInvocation(method, executionContext);
+                return super.visitMethodInvocation(method, ctx);
             }
         }
     }

@@ -53,8 +53,8 @@ public class CleanupJUnitImports extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                doAfterVisit(new UsesType<>("org.junit.*"));
-                doAfterVisit(new UsesType<>("junit.*"));
+                doAfterVisit(new UsesType<>("org.junit.*", false));
+                doAfterVisit(new UsesType<>("junit.*", false));
                 return cu;
             }
         };

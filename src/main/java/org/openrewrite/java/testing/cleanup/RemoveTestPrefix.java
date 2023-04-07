@@ -57,12 +57,12 @@ public class RemoveTestPrefix extends Recipe {
     protected @Nullable TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new JavaVisitor<ExecutionContext>() {
             @Override
-            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.Test"));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestTemplate"));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.RepeatedTest"));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.params.ParameterizedTest"));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestFactory"));
+            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.Test", false));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestTemplate", false));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.RepeatedTest", false));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.params.ParameterizedTest", false));
+                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestFactory", false));
                 return cu;
             }
         };
@@ -81,8 +81,8 @@ public class RemoveTestPrefix extends Recipe {
     private static class RemoveTestPrefixVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method,
-                ExecutionContext executionContext) {
-            J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
+                ExecutionContext ctx) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
             // Quickly reject invalid methods
             String simpleName = method.getSimpleName();

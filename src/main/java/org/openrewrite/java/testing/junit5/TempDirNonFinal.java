@@ -44,7 +44,7 @@ public class TempDirNonFinal extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.jupiter.api.io.TempDir");
+        return new UsesType<>("org.junit.jupiter.api.io.TempDir", false);
     }
 
     @Override
@@ -54,13 +54,13 @@ public class TempDirNonFinal extends Recipe {
 
     private static class TempDirVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
-        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
-            J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, executionContext);
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+            J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, ctx);
             if (varDecls.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches)
                     && varDecls.hasModifier(Type.Final)) {
                 return maybeAutoFormat(varDecls, varDecls.withModifiers(ListUtils
                         .map(varDecls.getModifiers(), modifier -> modifier.getType() == Type.Final ? null : modifier)),
-                        executionContext, getCursor().getParentOrThrow());
+                        ctx, getCursor().getParentOrThrow());
             }
             return varDecls;
         }

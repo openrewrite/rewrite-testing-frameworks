@@ -205,7 +205,7 @@ public class AssertionsArgumentOrderTest implements RewriteTest {
     }
 
     @Test
-    void testNgAssertions() {
+    void ngAssertions() {
         rewriteRun(
           //language=java
           java(
