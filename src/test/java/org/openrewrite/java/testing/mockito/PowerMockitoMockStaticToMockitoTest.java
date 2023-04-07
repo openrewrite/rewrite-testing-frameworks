@@ -34,8 +34,9 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               "junit-4.13.2",
               "junit-jupiter-api-5.9.2",
               "mockito-core-3.12.4",
-              "powermock-api-mockito-1.7.4",
-              "powermock-core-1.7.4"
+              "powermock-api-mockito-1.6.5",
+              "powermock-core-1.6.5",
+              "testng-7.7.1"
             ))
           .recipe(new PowerMockitoMockStaticToMockito());
     }
@@ -77,13 +78,13 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   private MockedStatic<Calendar> mockedCalendar;
               
                   @BeforeEach
-                  void setUp() {
+                  void setUpStaticMocks() {
                       mockedCalendar = mockStatic(Calendar.class);
                   }
               
                   @AfterEach
-                  void tearDown() {
-                      mockedCalendar.close();
+                  void tearDownStaticMocks() {
+                      mockedCalendar.closeOnDemand();
                   }
               
                   @Test
@@ -137,15 +138,15 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   private MockedStatic<Calendar> mockedCalendar;
               
                   @BeforeEach
-                  void setUp() {
-                      mockedCalendar = mockStatic(Calendar.class);
+                  void setUpStaticMocks() {
                       mockedCurrency = mockStatic(Currency.class);
+                      mockedCalendar = mockStatic(Calendar.class);
                   }
               
                   @AfterEach
-                  void tearDown() {
-                      mockedCalendar.close();
-                      mockedCurrency.close();
+                  void tearDownStaticMocks() {
+                      mockedCalendar.closeOnDemand();
+                      mockedCurrency.closeOnDemand();
                   }
               
                   @Test
@@ -198,8 +199,170 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   }
               
                   @AfterEach
-                  void tearDown() {
-                      mockedCalendar.close();
+                  void tearDownStaticMocks() {
+                      mockedCalendar.closeOnDemand();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void tearDownMethodOfTestNGHasAnnotationWithArgument() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.Calendar;
+                            
+              import org.testng.annotations.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+                            
+              @PrepareForTest({Calendar.class})
+              public class MyTest {
+                            
+                  @Test
+                  void testSomething() { }
+                    
+              }
+              """,
+            """
+              import java.util.Calendar;
+                            
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+                            
+              public class MyTest {
+
+                  @BeforeMethod
+                  void setUpStaticMocks() {
+                  }
+
+                  @AfterMethod(alwaysRun = true)
+                  void tearDownStaticMocks() {
+                  }
+
+                  @Test
+                  void testSomething() { }
+                            
+              }
+              """
+          )
+        );
+    }
+    @Test
+    void tearDownMethodOfTestNGWithAnnotationRemainsUntouched() {
+       //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.Calendar;
+                            
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+                            
+              @PrepareForTest({Calendar.class})
+              public class MyTest {
+                            
+                  @AfterMethod(groups = "irrelevant")
+                  void tearDown() {}
+                  
+                  @Test
+                  void testSomething() { }
+                    
+              }
+              """,
+            """
+              import java.util.Calendar;
+                            
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+                            
+              public class MyTest {
+
+                  @AfterMethod(groups = "irrelevant")
+                  void tearDown() {}
+                  
+                  @BeforeMethod
+                  void setUpStaticMocks() {
+                  }
+
+                  @Test
+                  void testSomething() { }
+                            
+              }
+              """
+          )
+        );
+    }
+    @Test
+    void tearDownMethodOfTestNGHasAnnotationWithSameArgumentsAsTheTestThatCallsMockStatic() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.Calendar;
+                            
+              import static org.mockito.Mockito.*;
+                            
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+                            
+              @PrepareForTest({Calendar.class})
+              public class MyTest {
+                            
+                  private Calendar calendarMock;
+                  
+                  @Test(groups = "irrelevant")
+                  void testSomethingIrrelevantForCheckin() { }
+                  
+                  @Test(groups = "checkin")
+                  void testStaticMethod() {
+                      calendarMock = mock(Calendar.class);
+                      mockStatic(Calendar.class);
+                      when(Calendar.getInstance()).thenReturn(calendarMock);
+                  }
+              }
+              """,
+            """
+              import java.util.Calendar;
+                            
+              import static org.mockito.Mockito.*;
+                            
+              import org.mockito.MockedStatic;
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+
+              public class MyTest {
+
+                  private MockedStatic<Calendar> mockedCalendar;
+                  
+                  private Calendar calendarMock;
+
+                  @BeforeMethod(groups = "checkin")
+                  void setUpStaticMocks() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                  }
+
+                  @AfterMethod(groups = "checkin")
+                  void tearDownStaticMocks() {
+                      mockedCalendar.closeOnDemand();
+                  }
+
+                  @Test(groups = "irrelevant")
+                  void testSomethingIrrelevantForCheckin() { }
+                  
+                  @Test(groups = "checkin")
+                  void testStaticMethod() {
+                      calendarMock = mock(Calendar.class);
+                      mockedCalendar.when(Calendar::getInstance).thenReturn(calendarMock);
                   }
               }
               """
@@ -284,6 +447,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void argumentOfVerifyOnParameterlessStaticMethodIsReplacedBySimpleLambda() {
         //language=java
@@ -312,29 +476,97 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               }
               """,
             """
-             import static org.mockito.Mockito.*;
-                           
-             import java.util.Currency;
-             import java.util.Locale;
-                           
-             import org.junit.jupiter.api.Test;
-             import org.mockito.MockedStatic;
-                           
-             public class MyTest {
-                           
-                 private MockedStatic<Currency> mockedCurrency;
-               
-                 private Currency currencyMock = mock(Currency.class);
-                           
-                 @Test
-                 void testStaticMethod() {
-                     mockedCurrency.verify(() -> Currency.getInstance(Locale.ENGLISH), never());
-                     mockedCurrency.verify(Currency::getAvailableCurrencies, atLeastOnce());
-                 }
-             }
-             """
+               import static org.mockito.Mockito.*;
+                             
+               import java.util.Currency;
+               import java.util.Locale;
+                             
+               import org.junit.jupiter.api.Test;
+               import org.mockito.MockedStatic;
+                             
+               public class MyTest {
+                             
+                   private MockedStatic<Currency> mockedCurrency;
+                 
+                   private Currency currencyMock = mock(Currency.class);
+                             
+                   @Test
+                   void testStaticMethod() {
+                       mockedCurrency.verify(() -> Currency.getInstance(Locale.ENGLISH), never());
+                       mockedCurrency.verify(Currency::getAvailableCurrencies, atLeastOnce());
+                   }
+               }
+              """
           )
         );
     }
 
+    @Test
+    void interfacesAndAbstractClassesWithEmptyMethodBodiesRemainsUntouched() {
+        //language=java
+        rewriteRun(java(
+            """
+               public interface MyInterface {
+               
+                   void checkThis();
+               
+               }
+              """)
+          , java(
+            """ 
+              public abstract class MyAbstractClass {
+                          
+                  public boolean isItTrue() { return true; }
+                  
+                  public abstract boolean isItImplemented();
+                          
+              }
+              """
+          ));
+    }
+
+    @Test
+    void extensionOfPowerMockTestCaseGetsRemoved() {
+        //language=java
+        rewriteRun(java(
+            """
+              package org.powermock.modules.testng;
+
+              public class PowerMockTestCase {}
+              """
+          ),
+         java(
+            """
+              import org.powermock.modules.testng.PowerMockTestCase;
+
+              public class MyPowerMockTestCase extends PowerMockTestCase {}
+              """,
+            """
+              public class MyPowerMockTestCase {}
+              """)
+         );
+    }
+
+    @Test
+    void extensionOfPowerMockConfigurationGetsRemoved() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.powermock.configuration;
+
+              public class PowerMockConfiguration {}
+              """
+          ),
+         java(
+            """
+              import org.powermock.configuration.PowerMockConfiguration;
+                
+              public class MyPowerMockConfiguration extends PowerMockConfiguration {}
+              """,
+            """
+              public class MyPowerMockConfiguration {}
+              """
+          ));
+    }
 }
