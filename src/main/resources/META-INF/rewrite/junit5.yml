@@ -79,6 +79,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.EnclosedToNested
   - org.openrewrite.java.testing.junit5.AddMissingNested
   - org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
+  - org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
   - org.openrewrite.maven.RemoveDependency:
       groupId: junit
       artifactId: junit
@@ -210,6 +211,25 @@ recipeList:
       version: 4.x
       onlyIfUsing: io.vertx.junit5.VertxExtension
       acceptTransitive: true
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
+displayName: Use OkHttp 3 MockWebServer for JUnit 5
+description: Migrates OkHttp 3 `MockWebServer` to the JUnit Jupiter compatible version.
+tags:
+  - testing
+  - junit
+  - okhttp
+recipeList:
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: okhttp3.mockwebserver
+      newPackageName: mockwebserver3
+      recursive: true
+  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+      oldGroupId: com.squareup.okhttp3
+      oldArtifactId: mockwebserver
+      newArtifactId: mockwebserver3-junit5
+      newVersion: 5.0.0-alpha.11
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.CleanupAssertions
