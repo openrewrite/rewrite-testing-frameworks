@@ -67,23 +67,34 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
         }
         private static final MethodMatcher ASSERT_THROWS_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertThrows(..)");
 
+        private static final JavaType THROWING_CALLABLE_TYPE = JavaType.buildType("org.assertj.core.api.ThrowableAssert.ThrowingCallable");
+
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
             if (ASSERT_THROWS_MATCHER.matches(mi) && mi.getArguments().size() == 2) {
-                J.Lambda lambdaArg = (J.Lambda) mi.getArguments().get(1);
-                lambdaArg = lambdaArg.withType(JavaType.buildType("org.assertj.core.api.ThrowableAssert.ThrowingCallable"));
-                mi = mi.withTemplate(
-                        JavaTemplate
-                                .builder(this::getCursor,
-                                        "assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
-                                .javaParser(assertionsParser(ctx))
-                                .staticImports("org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType")
-                                .build(),
-                        mi.getCoordinates().replace(),
-                        mi.getArguments().get(0), lambdaArg);
-                maybeAddImport("org.assertj.core.api.AssertionsForClassTypes", "assertThatExceptionOfType");
-                maybeRemoveImport("org.junit.jupiter.api.Assertions.assertThrows");
+                J executable = mi.getArguments().get(1);
+                if (executable instanceof J.Lambda) {
+                    executable = ((J.Lambda) executable).withType(THROWING_CALLABLE_TYPE);
+                } else if (executable instanceof J.MemberReference) {
+                    executable = ((J.MemberReference) executable).withType(THROWING_CALLABLE_TYPE);
+                } else {
+                    executable = null;
+                }
+
+                if (executable != null) {
+                    mi = mi.withTemplate(
+                      JavaTemplate
+                        .builder(this::getCursor,
+                          "assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
+                        .javaParser(assertionsParser(ctx))
+                        .staticImports("org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType")
+                        .build(),
+                      mi.getCoordinates().replace(),
+                      mi.getArguments().get(0), executable);
+                    maybeAddImport("org.assertj.core.api.AssertionsForClassTypes", "assertThatExceptionOfType");
+                    maybeRemoveImport("org.junit.jupiter.api.Assertions.assertThrows");
+                }
             }
             return mi;
         }

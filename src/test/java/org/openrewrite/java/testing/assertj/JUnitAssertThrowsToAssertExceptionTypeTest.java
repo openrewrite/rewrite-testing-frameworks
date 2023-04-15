@@ -63,4 +63,39 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void memberReference() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+              import java.util.concurrent.CompletableFuture;
+              import java.util.concurrent.ExecutionException;
+
+              public class MemberReferenceTest {
+
+                  public void throwsWithMemberReference() {
+                      CompletableFuture<Boolean> future = new CompletableFuture<>();
+                      assertThrows(ExecutionException.class, future::get);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+              import java.util.concurrent.CompletableFuture;
+              import java.util.concurrent.ExecutionException;
+
+              public class MemberReferenceTest {
+
+                  public void throwsWithMemberReference() {
+                      CompletableFuture<Boolean> future = new CompletableFuture<>();
+                      assertThatExceptionOfType(ExecutionException.class).isThrownBy(future::get);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
