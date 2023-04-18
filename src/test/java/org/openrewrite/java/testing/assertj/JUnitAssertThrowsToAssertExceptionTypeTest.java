@@ -98,4 +98,24 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void assertThrowsAssignment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      NullPointerException npe = assertThrows(NullPointerException.class, () -> {
+                          throw new NullPointerException();
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
 }
