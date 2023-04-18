@@ -118,4 +118,30 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
           )
         );
     }
+
+    /**
+     * A degenerate case showing we need to make sure the <code>assertThrows</code> appears
+     * immediately inside a J.Block.
+     */
+    @Test
+    void assertThrowsTernaryAssignment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      NullPointerException npe = hashCode() == 42
+                        ? new NullPointerException()
+                        : assertThrows(NullPointerException.class, () -> {
+                          throw new NullPointerException();
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
 }
