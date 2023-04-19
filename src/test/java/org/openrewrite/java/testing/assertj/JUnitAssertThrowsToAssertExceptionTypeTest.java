@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -92,6 +93,54 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                   public void throwsWithMemberReference() {
                       CompletableFuture<Boolean> future = new CompletableFuture<>();
                       assertThatExceptionOfType(ExecutionException.class).isThrownBy(future::get);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/pull/331")
+    void assertThrowsAssignment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      NullPointerException npe = assertThrows(NullPointerException.class, () -> {
+                          throw new NullPointerException();
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    /**
+     * A degenerate case showing we need to make sure the <code>assertThrows</code> appears
+     * immediately inside a J.Block.
+     */
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/pull/331")
+    void assertThrowsTernaryAssignment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      NullPointerException npe = hashCode() == 42
+                        ? new NullPointerException()
+                        : assertThrows(NullPointerException.class, () -> {
+                          throw new NullPointerException();
+                      });
                   }
               }
               """
