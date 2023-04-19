@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -100,6 +101,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
     }
 
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/pull/331")
     void assertThrowsAssignment() {
         //language=java
         rewriteRun(
@@ -124,6 +126,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
      * immediately inside a J.Block.
      */
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/pull/331")
     void assertThrowsTernaryAssignment() {
         //language=java
         rewriteRun(
