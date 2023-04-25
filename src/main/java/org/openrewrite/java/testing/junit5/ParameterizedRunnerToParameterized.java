@@ -195,6 +195,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     .collect(Collectors.toList());
 
             initStatementParamString = parameterizedTestMethodParameters.stream()
+                    .filter(J.VariableDeclarations.class::isInstance)
                     .map(J.VariableDeclarations.class::cast)
                     .map(v -> v.getVariables().get(0).getSimpleName())
                     .collect(Collectors.joining(", "));
