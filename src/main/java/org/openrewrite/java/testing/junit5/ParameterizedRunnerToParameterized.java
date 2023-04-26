@@ -83,7 +83,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 String initMethodName = "init" + cd.getSimpleName();
 
                 // Constructor Injected Test
-                if (parametersMethodName != null && constructorParams != null) {
+                if (parametersMethodName != null && constructorParams != null && constructorParams.stream().anyMatch(p -> p instanceof J.VariableDeclarations)) {
                     doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true, ctx));
                 }
 
