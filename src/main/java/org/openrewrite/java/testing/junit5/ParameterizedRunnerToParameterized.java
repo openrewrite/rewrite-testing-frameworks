@@ -26,7 +26,6 @@ import org.openrewrite.marker.Markers;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.openrewrite.Tree.randomId;
@@ -151,20 +150,6 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
     private static class ParameterizedRunnerToParameterizedTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        @Nullable
-        private Supplier<JavaParser> javaParser;
-        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-            if(javaParser == null) {
-                javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "junit-jupiter-params-5.9.2")
-                        .build();
-            }
-            return javaParser;
-
-        }
-
-
-
         private final J.ClassDeclaration scope;
         private final String initMethodName;
         private final List<Statement> parameterizedTestMethodParameters;
@@ -206,19 +191,22 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     "@ParameterizedTest(#{any()})" :
                     "@ParameterizedTest";
 
+            JavaParser.Builder<?, ?> javaParserBuilder = JavaParser.fromJavaVersion()
+              .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "junit-jupiter-params-5.9.2");
+
             this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, parameterizedTestAnnotationTemplate)
-                    .javaParser(javaParser(ctx))
+                    .javaParser(javaParserBuilder)
                     .imports("org.junit.jupiter.params.ParameterizedTest")
                     .build();
 
             // build @MethodSource("...") template
             this.methodSourceTemplate = JavaTemplate.builder(this::getCursor, "@MethodSource(\"" + parametersMethodName + "\")")
-                    .javaParser(javaParser(ctx))
+                    .javaParser(javaParserBuilder)
                     .imports("org.junit.jupiter.params.provider.MethodSource").build();
 
             // build init-method with parameters template
             this.initMethodStatementTemplate = JavaTemplate.builder(this::getCursor, initMethodName + "(#{});")
-                    .javaParser(javaParser(ctx))
+                    .javaParser(javaParserBuilder)
                     .build();
 
             // If this is not a constructor injected test then build a javaTemplate for a new init-method
@@ -239,7 +227,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 }
 
                 initMethodTemplate.append("}");
-                initMethodDeclarationTemplate = JavaTemplate.builder(this::getCursor, initMethodTemplate.toString()).javaParser(javaParser(ctx)).build();
+                initMethodDeclarationTemplate = JavaTemplate.builder(this::getCursor, initMethodTemplate.toString()).javaParser(javaParserBuilder).build();
             } else {
                 initMethodDeclarationTemplate = null;
             }
