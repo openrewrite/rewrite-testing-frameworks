@@ -526,29 +526,34 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
         rewriteRun(
           //language=java
           java("""
-            import org.junit.runners.Parameterized;
-            
-            class SampleTestClass {
-                @Parameterized.Parameter(value = 0)
-                public int num1;
-                @Parameterized.Parameter(value = 1)
-                public int num2;
-                @Parameterized.Parameter(value = 2)
-                public int num3;
-                
-                public SampleTestClass() {
-                }
-            
-                @Parameterized.Parameters
-                public static Collection<Object[]> data() {
-                    return Arrays.asList(new Object[][]{
-                            {1, 2, 3},
-                            {4, 5, 6},
-                    });
-                }
-            }
-            """,
+              import java.util.Arrays;
+              import java.util.Collection;
+              import org.junit.runners.Parameterized;
+                          
+              class SampleTestClass {
+                  @Parameterized.Parameter(value = 0)
+                  public int num1;
+                  @Parameterized.Parameter(value = 1)
+                  public int num2;
+                  @Parameterized.Parameter(value = 2)
+                  public int num3;
+                  
+                  public SampleTestClass() {
+                  }
+                          
+                  @Parameterized.Parameters
+                  public static Collection<Object[]> data() {
+                      return Arrays.asList(new Object[][]{
+                              {1, 2, 3},
+                              {4, 5, 6},
+                      });
+                  }
+              }
+              """,
             """
+              import java.util.Arrays;
+              import java.util.Collection;
+            
               class SampleTestClass {
                   public int num1;
                   public int num2;
