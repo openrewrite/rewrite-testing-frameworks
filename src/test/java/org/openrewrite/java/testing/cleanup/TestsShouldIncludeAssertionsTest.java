@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.Parser;
@@ -51,6 +52,7 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
           .recipe(new TestsShouldIncludeAssertions(null));
     }
 
+    @DocumentExample
     @Test
     void noAssertions() {
         //language=java

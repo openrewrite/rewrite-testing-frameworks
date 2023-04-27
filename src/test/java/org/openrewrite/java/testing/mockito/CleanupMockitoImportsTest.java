@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -33,6 +34,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
           .recipe(new CleanupMockitoImports());
     }
 
+    @DocumentExample
     @Test
     void removesUnusedMockitoImport() {
         //language=java

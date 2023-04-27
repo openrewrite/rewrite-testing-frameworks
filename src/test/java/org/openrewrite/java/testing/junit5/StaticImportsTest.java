@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
@@ -36,6 +37,7 @@ class StaticImportsTest implements RewriteTest {
             .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices"));
     }
 
+    @DocumentExample
     @Test
     void useAssertionsStaticImport() {
         //language=java

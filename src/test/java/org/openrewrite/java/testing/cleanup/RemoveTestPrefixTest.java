@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -32,6 +33,7 @@ class RemoveTestPrefixTest implements RewriteTest {
           .recipe(new RemoveTestPrefix());
     }
 
+    @DocumentExample
     @Test
     void removeTestPrefixes() {
         //language=java

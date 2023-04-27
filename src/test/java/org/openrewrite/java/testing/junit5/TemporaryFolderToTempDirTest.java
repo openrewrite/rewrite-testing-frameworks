@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.groovy.GroovyParser;
@@ -40,6 +41,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
           .recipe(new TemporaryFolderToTempDir());
     }
 
+    @DocumentExample
     @Test
     void spockTest() {
         rewriteRun(

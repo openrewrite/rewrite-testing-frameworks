@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
@@ -45,6 +46,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
     /**
      * Replace org.mockito.MockitoAnnotations.Mock with org.mockito.Mock
      */
+    @DocumentExample
     @Test
     void replaceMockAnnotation() {
         //language=java

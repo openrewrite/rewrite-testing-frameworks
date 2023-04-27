@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
@@ -24,6 +25,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
+    @DocumentExample
     @Test
     void mockitoAnyListOfToListOf() {
         rewriteRun(

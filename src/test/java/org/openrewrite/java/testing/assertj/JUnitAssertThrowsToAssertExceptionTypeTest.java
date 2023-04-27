@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -34,6 +35,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
           .recipe(new JUnitAssertThrowsToAssertExceptionType());
     }
 
+    @DocumentExample
     @Test
     void toAssertExceptionOfType() {
         //language=java

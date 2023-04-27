@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -36,6 +37,7 @@ class UseWiremockExtensionTest implements RewriteTest {
           .recipe(new UseWiremockExtension());
     }
 
+    @DocumentExample
     @Test
     void optionsArg() {
         //language=java

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -99,6 +100,7 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
         );
     }
 
+    @DocumentExample
     @SuppressWarnings({"ConstantConditions", "SimplifiableAssertion"})
     @Test
     void preserveMessage() {

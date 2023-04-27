@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -32,6 +33,7 @@ public class AssertionsArgumentOrderTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.+", "testng-7.7.+"));
     }
 
+    @DocumentExample
     @Test
     void junitAssertEqualsHavingPrimitiveArg() {
         rewriteRun(

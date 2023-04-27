@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
@@ -37,6 +38,7 @@ class UseHamcrestAssertThatTest implements RewriteTest {
         .activateRecipes("org.openrewrite.java.testing.junit5.UseHamcrestAssertThat"));
     }
 
+    @DocumentExample
     @Test
     void assertAssertThatToHamcrestMatcherAssert() {
         //language=java
