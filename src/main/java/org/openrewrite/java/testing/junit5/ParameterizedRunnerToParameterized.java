@@ -23,7 +23,6 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -41,11 +40,6 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final String PARAMETERS_ANNOTATION_ARGUMENTS = "parameters-annotation-args";
     private static final String CONSTRUCTOR_ARGUMENTS = "constructor-args";
     private static final String FIELD_INJECTION_ARGUMENTS = "field-injection-args";
-
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
     private static final String PARAMETERS_METHOD_NAME = "parameters-method-name";
 
     @Override
@@ -59,13 +53,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.runners.Parameterized", false);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new ParameterizedRunnerVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.runners.Parameterized", false), new ParameterizedRunnerVisitor());
     }
 
     private static class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -192,7 +181,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     "@ParameterizedTest";
 
             JavaParser.Builder<?, ?> javaParserBuilder = JavaParser.fromJavaVersion()
-              .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "junit-jupiter-params-5.9.2");
+                    .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "junit-jupiter-params-5.9.2");
 
             this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, parameterizedTestAnnotationTemplate)
                     .javaParser(javaParserBuilder)

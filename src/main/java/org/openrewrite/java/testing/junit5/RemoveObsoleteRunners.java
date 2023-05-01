@@ -17,16 +17,12 @@ package org.openrewrite.java.testing.junit5;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Option;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.RemoveAnnotation;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
-import java.time.Duration;
 import java.util.List;
 
 @Value
@@ -48,27 +44,11 @@ public class RemoveObsoleteRunners extends Recipe {
                 "This can be used to remove those runners that either do not have a JUnit Jupiter equivalent or do not require a replacement as part of JUnit 4 to 5 migration.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                for (String runner : obsoleteRunners) {
-                    doAfterVisit(new UsesType<>(runner, false));
-                }
-                return cu;
-            }
-        };
-    }
-
-    @Override
-    protected RemoveObsoleteRunnersVisitor getVisitor() {
-        return new RemoveObsoleteRunnersVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        @SuppressWarnings("unchecked") TreeVisitor<?, ExecutionContext> check =
+                Preconditions.or(obsoleteRunners.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new));
+        return Preconditions.check(check, new RemoveObsoleteRunnersVisitor());
     }
 
     public class RemoveObsoleteRunnersVisitor extends JavaIsoVisitor<ExecutionContext> {

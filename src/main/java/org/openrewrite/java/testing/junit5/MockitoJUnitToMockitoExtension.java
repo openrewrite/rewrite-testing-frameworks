@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -29,8 +30,10 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -45,7 +48,7 @@ import java.util.stream.Collectors;
  * @implNote collector() is designed to aggregate multiple verifications into a single output.
  * Refactoring the method may be fairly complex and would likely benefit from being a separate recipe.
  * <p>
- * Must be ran in the JUnit 5 suite.
+ * Must be run in the JUnit 5 suite.
  */
 public class MockitoJUnitToMockitoExtension extends Recipe {
 
@@ -59,26 +62,13 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
         return "Replaces `MockitoJUnit` rules with `MockitoExtension`.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoTestRule", false));
-                doAfterVisit(new UsesType<>("org.mockito.junit.MockitoRule", false));
-                return cu;
-            }
-        };
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new MockitoRuleToMockitoExtensionVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(Preconditions.or(
+                        new UsesType<>("org.mockito.junit.MockitoTestRule", false),
+                        new UsesType<>("org.mockito.junit.MockitoRule", false)
+                ),
+                new MockitoRuleToMockitoExtensionVisitor());
     }
 
     public static class MockitoRuleToMockitoExtensionVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -114,7 +104,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                     cd = cd.withTemplate(
                             JavaTemplate.builder(this::getCursor, "@ExtendWith(MockitoExtension.class)")
                                     .javaParser(JavaParser.fromJavaVersion()
-                                                    .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "mockito-junit-jupiter-3.12.4"))
+                                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "mockito-junit-jupiter-3.12.4"))
                                     .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                                     .build(),
                             cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))

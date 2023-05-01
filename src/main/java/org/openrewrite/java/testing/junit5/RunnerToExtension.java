@@ -29,7 +29,6 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
-import java.time.Duration;
 import java.util.List;
 
 @SuppressWarnings("DuplicatedCode")
@@ -49,22 +48,9 @@ public class RunnerToExtension extends Recipe {
 
 
     @JsonCreator
-    public RunnerToExtension(@JsonProperty("runners") List<String> runners,@JsonProperty("extension") String extension) {
+    public RunnerToExtension(@JsonProperty("runners") List<String> runners, @JsonProperty("extension") String extension) {
         this.runners = runners;
         this.extension = extension;
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                for (String runner : runners) {
-                    doAfterVisit(new UsesType<>(runner, false));
-                }
-                return cu;
-            }
-        };
     }
 
     @Override
@@ -77,23 +63,21 @@ public class RunnerToExtension extends Recipe {
         return "Replace runners with the JUnit Jupiter extension equivalent.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        @SuppressWarnings("unchecked") TreeVisitor<?, ExecutionContext> precondition =
+                Preconditions.or(runners.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new));
+        return Preconditions.check(precondition, new JavaIsoVisitor<ExecutionContext>() {
             private final JavaType.Class extensionType = JavaType.ShallowClass.build(extension);
             @Nullable
             private JavaTemplate extendsWithTemplate;
+
             private JavaTemplate getExtendsWithTemplate(ExecutionContext ctx) {
                 if (extendsWithTemplate == null) {
                     extendsWithTemplate = JavaTemplate.builder(this::getCursor, "@ExtendWith(#{}.class)")
                             .javaParser(JavaParser.fromJavaVersion()
                                     .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                                    .dependsOn( "package " + extensionType.getPackageName() + ";\n" +
+                                    .dependsOn("package " + extensionType.getPackageName() + ";\n" +
                                             "import org.junit.jupiter.api.extension.Extension;\n" +
                                             "public class " + extensionType.getClassName() + " implements Extension {}"))
                             .imports("org.junit.jupiter.api.extension.ExtendWith",
@@ -142,6 +126,6 @@ public class RunnerToExtension extends Recipe {
 
                 return md;
             }
-        };
+        });
     }
 }

@@ -35,7 +35,6 @@ import org.openrewrite.java.tree.J.Modifier;
 import org.openrewrite.java.tree.J.Modifier.Type;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -62,18 +61,13 @@ public class TestsShouldNotBePublic extends Recipe {
         return "Remove `public` and optionally `protected` modifiers from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@BeforeEach`, `@AfterEach`, `@BeforeAll`, or `@AfterAll`. They no longer have to be public visibility to be usable by JUnit 5.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
     public Set<String> getTags() {
         return Collections.singleton("RSPEC-5786");
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new TestsNotPublicVisitor(Boolean.TRUE.equals(removeProtectedModifiers));
     }
 

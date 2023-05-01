@@ -16,20 +16,23 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.Flag;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 
 import java.util.*;
 
 public class AssertionsArgumentOrder extends Recipe {
 
-    private static final MethodMatcher[] jupiterAssertionMatchers = new MethodMatcher[] {
+    private static final MethodMatcher[] jupiterAssertionMatchers = new MethodMatcher[]{
             new MethodMatcher("org.junit.jupiter.api.Assertions assertArrayEquals(..)"),
             new MethodMatcher("org.junit.jupiter.api.Assertions assertEquals(..)"),
             new MethodMatcher("org.junit.jupiter.api.Assertions assertNotEquals(..)"),
@@ -39,28 +42,21 @@ public class AssertionsArgumentOrder extends Recipe {
     };
     private static final MethodMatcher jupiterAssertIterableEqualsMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertIterableEquals(..)");
 
-    private static final MethodMatcher[] testNgMatcher = new MethodMatcher[] {
+    private static final MethodMatcher[] testNgMatcher = new MethodMatcher[]{
             new MethodMatcher("org.testng.Assert assertSame(..)"),
             new MethodMatcher("org.testng.Assert assertNotSame(..)"),
             new MethodMatcher("org.testng.Assert assertEquals(..)"),
             new MethodMatcher("org.testng.Assert assertNotEquals(..)")
     };
 
-    @Override
-    protected @Nullable TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
-                for (MethodMatcher jupiterAssertionMatcher : jupiterAssertionMatchers) {
-                    doAfterVisit(new UsesMethod<>(jupiterAssertionMatcher));
-                }
-                for (MethodMatcher testNgAssertionMatcher : testNgMatcher) {
-                    doAfterVisit(new UsesMethod<>(testNgAssertionMatcher));
-                }
-                doAfterVisit(new UsesMethod<>(jupiterAssertIterableEqualsMatcher));
-                return cu;
-            }
-        };
+    private static final TreeVisitor<?, ExecutionContext> precondition;
+
+    static {
+        List<MethodMatcher> matchers = new ArrayList<>(Arrays.asList(jupiterAssertionMatchers));
+        matchers.add(jupiterAssertIterableEqualsMatcher);
+        matchers.addAll(Arrays.asList(testNgMatcher));
+        //noinspection unchecked
+        precondition = Preconditions.or(matchers.stream().map(UsesMethod::new).toArray(TreeVisitor[]::new));
     }
 
     @Override
@@ -79,8 +75,8 @@ public class AssertionsArgumentOrder extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new AssertionsArgumentOrderVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(precondition, new AssertionsArgumentOrderVisitor());
     }
 
     private static class AssertionsArgumentOrderVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -136,7 +132,7 @@ public class AssertionsArgumentOrder extends Recipe {
             // static final field
             JavaType.Variable var = null;
             if (expression instanceof J.Identifier) {
-                var = ((J.Identifier)expression).getFieldType();
+                var = ((J.Identifier) expression).getFieldType();
             } else if (expression instanceof J.FieldAccess) {
                 var = ((J.FieldAccess) expression).getName().getFieldType();
             }
@@ -146,7 +142,7 @@ public class AssertionsArgumentOrder extends Recipe {
 
             if (jupiterAssertIterableEqualsMatcher.matches(mi)) {
                 for (MethodMatcher iterableMatcher : newListMatchers) {
-                    if (iterableMatcher.matches(expression)){
+                    if (iterableMatcher.matches(expression)) {
                         return true;
                     }
                 }

@@ -16,7 +16,9 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
@@ -26,10 +28,8 @@ import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 public class TestRuleToTestInfo extends Recipe {
 
@@ -44,13 +44,8 @@ public class TestRuleToTestInfo extends Recipe {
     }
 
     @Override
-    protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.rules.TestName", false);
-    }
-
-    @Override
-    protected TestRuleToTestInfoVisitor getVisitor() {
-        return new TestRuleToTestInfoVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.rules.TestName", false), new TestRuleToTestInfoVisitor());
     }
 
     private static class TestRuleToTestInfoVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -60,12 +55,12 @@ public class TestRuleToTestInfo extends Recipe {
         private static final AnnotationMatcher JUPITER_BEFORE_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
 
         @Nullable
-        private Supplier<JavaParser> javaParser;
-        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-            if(javaParser == null) {
-                javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                        .build();
+        private JavaParser.Builder<?, ?> javaParser;
+
+        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+            if (javaParser == null) {
+                javaParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2");
             }
             return javaParser;
         }
@@ -149,6 +144,7 @@ public class TestRuleToTestInfo extends Recipe {
                             varDecls.getVariables().get(0).getName().getSimpleName());
                     maybeAddImport("java.lang.reflect.Method");
                     maybeAddImport("java.util.Optional");
+                    maybeAddImport("org.junit.jupiter.api.BeforeEach");
                 } else {
                     doAfterVisit(new BeforeMethodToTestInfoVisitor(beforeMethod, varDecls, testMethodStatement));
                 }
@@ -163,12 +159,12 @@ public class TestRuleToTestInfo extends Recipe {
         private final String testMethodStatement;
 
         @Nullable
-        private Supplier<JavaParser> javaParser;
-        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-            if(javaParser == null) {
-                javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                        .build();
+        private JavaParser.Builder<?, ?> javaParser;
+
+        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+            if (javaParser == null) {
+                javaParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2");
             }
             return javaParser;
         }
@@ -216,9 +212,4 @@ public class TestRuleToTestInfo extends Recipe {
             return md;
         }
     }
-
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
 }

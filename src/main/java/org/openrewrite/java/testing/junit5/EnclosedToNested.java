@@ -18,9 +18,9 @@ package org.openrewrite.java.testing.junit5;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.NonNull;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -28,7 +28,6 @@ import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
-import java.time.Duration;
 import java.util.Comparator;
 import java.util.Set;
 
@@ -52,18 +51,8 @@ public class EnclosedToNested extends Recipe {
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>(ENCLOSED, false);
-    }
-
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
-    @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(ENCLOSED, false), new JavaIsoVisitor<ExecutionContext>() {
             @SuppressWarnings("ConstantConditions")
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -80,7 +69,7 @@ public class EnclosedToNested extends Recipe {
                 }
                 return cd;
             }
-        };
+        });
     }
 
     public static class AddNestedAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -95,7 +84,6 @@ public class EnclosedToNested extends Recipe {
             return cd;
         }
 
-        @NonNull
         private JavaTemplate getNestedJavaTemplate(ExecutionContext ctx) {
             return JavaTemplate.builder(this::getCursor, "@Nested")
                     .javaParser(JavaParser.fromJavaVersion()

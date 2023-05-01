@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
@@ -23,11 +24,9 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,16 +43,11 @@ public class TemporaryFolderToTempDir extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.rules.TemporaryFolder", false);
-    }
-
-    @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        AnnotationMatcher classRule = new AnnotationMatcher("@org.junit.ClassRule");
-        AnnotationMatcher rule = new AnnotationMatcher("@org.junit.Rule");
+        return Preconditions.check(new UsesType<>("org.junit.rules.TemporaryFolder", false), new JavaVisitor<ExecutionContext>() {
 
-        return new JavaVisitor<ExecutionContext>() {
+            final AnnotationMatcher classRule = new AnnotationMatcher("@org.junit.ClassRule");
+            final AnnotationMatcher rule = new AnnotationMatcher("@org.junit.Rule");
 
             @Nullable
             private JavaParser.Builder<?, ?> javaParser;
@@ -151,20 +145,19 @@ public class TemporaryFolderToTempDir extends Recipe {
                             mi.getCoordinates().replace(), args.get(0), tempDir);
                 }
             }
-        };
+        });
     }
 
     private static class AddNewFolderMethod extends JavaIsoVisitor<ExecutionContext> {
         private final J.MethodInvocation methodInvocation;
 
         @Nullable
-        private Supplier<JavaParser> javaParser;
+        private JavaParser.Builder<?, ?> javaParser;
 
-        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
-                javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                        .build();
+                javaParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2");
             }
             return javaParser;
 
@@ -218,13 +211,12 @@ public class TemporaryFolderToTempDir extends Recipe {
             JavaType.Method newMethodType;
 
             @Nullable
-            private Supplier<JavaParser> javaParser;
+            private JavaParser.Builder<?, ?> javaParser;
 
-            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
+            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {
-                    javaParser = () -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                            .build();
+                    javaParser = JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2");
                 }
                 return javaParser;
 
@@ -279,10 +271,5 @@ public class TemporaryFolderToTempDir extends Recipe {
                 return mi;
             }
         }
-    }
-
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
     }
 }

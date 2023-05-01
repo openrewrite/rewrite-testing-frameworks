@@ -16,17 +16,16 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodDeclaration;
 import org.openrewrite.java.tree.J.Modifier.Type;
-import org.openrewrite.java.tree.JavaSourceFile;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -40,6 +39,9 @@ public class LifecycleNonPrivate extends Recipe {
             "org.junit.jupiter.api.AfterEach",
             "org.junit.jupiter.api.BeforeAll",
             "org.junit.jupiter.api.BeforeEach");
+    @SuppressWarnings("unchecked")
+    private static final TreeVisitor<?, ExecutionContext> PRECONDITION =
+            Preconditions.or(ANNOTATION_TYPES.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new));
 
     @Override
     public String getDisplayName() {
@@ -52,31 +54,21 @@ public class LifecycleNonPrivate extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaVisitor<ExecutionContext>() {
-            @Override
-            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
-                ANNOTATION_TYPES.forEach(ann -> doAfterVisit(new UsesType<>(ann, false)));
-                return cu;
-            }
-        };
-    }
-
-    @Override
-    protected LifecycleNonPrivateVisitor getVisitor() {
-        return new LifecycleNonPrivateVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(PRECONDITION, new LifecycleNonPrivateVisitor());
     }
 
     private static class LifecycleNonPrivateVisitor extends JavaIsoVisitor<ExecutionContext> {
         final List<AnnotationMatcher> lifeCycleAnnotationMatchers = ANNOTATION_TYPES.stream()
                 .map(annoFqn -> "@" + annoFqn).map(AnnotationMatcher::new).collect(Collectors.toList());
+
         @Override
         public J.MethodDeclaration visitMethodDeclaration(MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
 
             if (J.Modifier.hasModifier(md.getModifiers(), Type.Private)
                     && md.getLeadingAnnotations().stream().anyMatch(ann -> lifeCycleAnnotationMatchers.stream()
-                            .anyMatch(matcher -> matcher.matches(ann)))) {
+                    .anyMatch(matcher -> matcher.matches(ann)))) {
                 return maybeAutoFormat(md,
                         md.withModifiers(ListUtils.map(md.getModifiers(),
                                 modifier -> modifier.getType() == Type.Private ? null : modifier)),

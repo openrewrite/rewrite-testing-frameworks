@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -26,9 +27,6 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodInvocation;
-
-import java.time.Duration;
-import java.util.function.Supplier;
 
 public class UseExplicitContains extends Recipe {
     @Override
@@ -43,27 +41,17 @@ public class UseExplicitContains extends Recipe {
     }
 
     @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.assertj.core.api.Assertions", false);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new UseExplicitContainsVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.assertj.core.api.Assertions", false), new UseExplicitContainsVisitor());
     }
 
     public static class UseExplicitContainsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private Supplier<JavaParser> assertionsParser;
-        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
-            if(assertionsParser == null) {
-                assertionsParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24.2")
-                        .build();
+        private JavaParser.Builder<?, ?> assertionsParser;
+
+        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
+            if (assertionsParser == null) {
+                assertionsParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "assertj-core-3.24.2");
             }
             return assertionsParser;
         }
@@ -85,7 +73,7 @@ public class UseExplicitContains extends Recipe {
                 return method;
             }
 
-            if (!ASSERT_THAT.matches((J.MethodInvocation)method.getSelect())) {
+            if (!ASSERT_THAT.matches((J.MethodInvocation) method.getSelect())) {
                 return method;
             }
 
@@ -100,11 +88,11 @@ public class UseExplicitContains extends Recipe {
                 return method;
             }
 
-            Expression list =  contains.getSelect();
+            Expression list = contains.getSelect();
             Expression element = contains.getArguments().get(0);
 
             String template = isTrue ? "assertThat(#{any()}).contains(#{any()});" :
-                "assertThat(#{any()}).doesNotContain(#{any()});";
+                    "assertThat(#{any()}).doesNotContain(#{any()});";
             JavaTemplate builtTemplate = JavaTemplate.builder(this::getCursor, template)
                     .javaParser(assertionsParser(ctx))
                     .build();

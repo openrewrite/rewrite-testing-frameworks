@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -28,9 +29,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.time.Duration;
 import java.util.List;
-import java.util.function.Supplier;
 
 public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
     private static final String JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.junit.jupiter.api.Assertions";
@@ -45,30 +44,20 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
         return "Convert JUnit-style `assertArrayEquals()` to AssertJ's `assertThat().contains()` equivalents.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME, false);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new AssertArrayEqualsToAssertThatVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME, false), new AssertArrayEqualsToAssertThatVisitor());
     }
 
     public static class AssertArrayEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertArrayEquals(..)");
 
-        private Supplier<JavaParser> assertionsParser;
-        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
-            if(assertionsParser == null) {
-                assertionsParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24.2")
-                        .build();
+        private JavaParser.Builder<?, ?> assertionsParser;
+
+        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
+            if (assertionsParser == null) {
+                assertionsParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "assertj-core-3.24.2");
             }
             return assertionsParser;
         }

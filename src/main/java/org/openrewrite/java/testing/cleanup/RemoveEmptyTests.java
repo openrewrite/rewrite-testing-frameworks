@@ -16,15 +16,13 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.FindEmptyMethods;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodDeclaration;
-import org.openrewrite.java.tree.JavaSourceFile;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -53,19 +51,8 @@ public class RemoveEmptyTests extends Recipe {
     }
 
     @Override
-    protected @Nullable TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
-                doAfterVisit(new FindEmptyMethods(false));
-                return cu;
-            }
-        };
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaVisitor<ExecutionContext>() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new FindEmptyMethods(false), new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitMethodDeclaration(MethodDeclaration method, ExecutionContext ctx) {
                 if (hasTestAnnotation(method) && isEmptyMethod(method)) {
@@ -85,6 +72,6 @@ public class RemoveEmptyTests extends Recipe {
                 return !method.isConstructor() &&
                         (method.getBody() == null || method.getBody().getStatements().isEmpty() && method.getBody().getEnd().getComments().isEmpty());
             }
-        };
+        });
     }
 }

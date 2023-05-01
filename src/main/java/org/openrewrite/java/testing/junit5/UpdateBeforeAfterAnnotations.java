@@ -16,14 +16,13 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-
-import java.time.Duration;
 
 public class UpdateBeforeAfterAnnotations extends Recipe {
     @Override
@@ -36,28 +35,15 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         return "Replace JUnit 4's `@Before`, `@BeforeClass`, `@After`, and `@AfterClass` annotations with their JUnit Jupiter equivalents.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                doAfterVisit(new UsesType<>("org.junit.BeforeClass", false));
-                doAfterVisit(new UsesType<>("org.junit.Before", false));
-                doAfterVisit(new UsesType<>("org.junit.After", false));
-                doAfterVisit(new UsesType<>("org.junit.AfterClass", false));
-                return cu;
-            }
-        };
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new UpdateBeforeAfterAnnotationsVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(Preconditions.or(
+                        new UsesType<>("org.junit.BeforeClass", false),
+                        new UsesType<>("org.junit.Before", false),
+                        new UsesType<>("org.junit.After", false),
+                        new UsesType<>("org.junit.AfterClass", false)
+                ),
+                new UpdateBeforeAfterAnnotationsVisitor());
     }
 
     public static class UpdateBeforeAfterAnnotationsVisitor extends JavaIsoVisitor<ExecutionContext> {

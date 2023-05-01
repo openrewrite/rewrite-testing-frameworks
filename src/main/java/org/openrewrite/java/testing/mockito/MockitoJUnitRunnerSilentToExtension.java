@@ -16,7 +16,9 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -27,7 +29,6 @@ import org.openrewrite.java.tree.J;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.function.Supplier;
 
 public class MockitoJUnitRunnerSilentToExtension extends Recipe {
     @Override
@@ -41,22 +42,16 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
     }
 
     @Override
-    protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.mockito.junit.MockitoJUnitRunner$Silent", false);
-    }
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.mockito.junit.MockitoJUnitRunner$Silent", false), new JavaIsoVisitor<ExecutionContext>() {
 
-    @Override
-    protected JavaIsoVisitor<ExecutionContext> getVisitor() {
+            private JavaParser.Builder<?, ?> javaParser = null;
 
-        return new JavaIsoVisitor<ExecutionContext>() {
-
-            private Supplier<JavaParser> javaParser = null;
-            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-                if(javaParser == null) {
-                    javaParser = () -> JavaParser.fromJavaVersion()
+            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+                if (javaParser == null) {
+                    javaParser = JavaParser.fromJavaVersion()
                             .logCompilationWarningsAndErrors(true)
-                            .classpathFromResources(ctx, "mockito-junit-jupiter-3.12.4", "mockito-core-3.12.4")
-                            .build();
+                            .classpathFromResources(ctx, "mockito-junit-jupiter-3.12.4", "mockito-core-3.12.4");
                 }
                 return javaParser;
             }
@@ -80,6 +75,6 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
                 }
                 return cd;
             }
-        };
+        });
     }
 }

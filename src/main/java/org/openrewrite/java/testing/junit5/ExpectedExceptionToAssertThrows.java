@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -26,9 +27,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
-import java.time.Duration;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.
@@ -49,35 +48,25 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         return "JUnit 4 `ExpectedException` To JUnit Jupiter's `assertThrows()`";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
     public String getDescription() {
         return "Replace usages of JUnit 4's `@Rule ExpectedException` with JUnit 5's `Assertions.assertThrows()`.";
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.rules.ExpectedException", false);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new ExpectedExceptionToAssertThrowsVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.rules.ExpectedException", false), new ExpectedExceptionToAssertThrowsVisitor());
     }
 
     public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Nullable
-        private Supplier<JavaParser> javaParser;
-        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-            if(javaParser == null) {
-                javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "hamcrest-2.2")
-                        .build();
+        private JavaParser.Builder<?, ?> javaParser;
+
+        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+            if (javaParser == null) {
+                javaParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "hamcrest-2.2");
             }
             return javaParser;
 

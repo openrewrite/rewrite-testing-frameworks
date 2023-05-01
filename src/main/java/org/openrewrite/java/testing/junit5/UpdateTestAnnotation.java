@@ -15,8 +15,8 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.Applicability;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -27,10 +27,8 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markup;
 
-import java.time.Duration;
 import java.util.Comparator;
 import java.util.Set;
-import java.util.function.Supplier;
 
 public class UpdateTestAnnotation extends Recipe {
 
@@ -45,28 +43,23 @@ public class UpdateTestAnnotation extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return Applicability.or(
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(Preconditions.or(
                 new UsesType<>("org.junit.Test", false),
                 new FindImports("org.junit.Test").getVisitor()
-        );
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new UpdateTestAnnotationVisitor();
+        ), new UpdateTestAnnotationVisitor());
     }
 
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
 
         @Nullable
-        private Supplier<JavaParser> javaParser;
-        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-            if(javaParser == null) {
-                javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "apiguardian-api-1.1.2")
-                        .build();
+        private JavaParser.Builder<?, ?> javaParser;
+
+        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+            if (javaParser == null) {
+                javaParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "apiguardian-api-1.1.2");
             }
             return javaParser;
         }
@@ -143,7 +136,7 @@ public class UpdateTestAnnotation extends Recipe {
                     lambda = lambda.withType(JavaType.ShallowClass.build("org.junit.jupiter.api.function.Executable"));
 
                     if (cta.expectedException instanceof J.FieldAccess
-                        && TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
+                            && TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
                         m = m.withTemplate(JavaTemplate.builder(this::getCursor, "assertDoesNotThrow(#{any(org.junit.jupiter.api.function.Executable)});")
                                         .javaParser(javaParser(ctx))
                                         .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
@@ -185,12 +178,12 @@ public class UpdateTestAnnotation extends Recipe {
             boolean found;
 
             @Nullable
-            private Supplier<JavaParser> javaParser;
-            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-                if(javaParser == null) {
-                    javaParser = () -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "apiguardian-api-1.1.2")
-                            .build();
+            private JavaParser.Builder<?, ?> javaParser;
+
+            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+                if (javaParser == null) {
+                    javaParser = JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "apiguardian-api-1.1.2");
                 }
                 return javaParser;
             }
@@ -220,8 +213,8 @@ public class UpdateTestAnnotation extends Recipe {
 
                     if (a.getAnnotationType() instanceof J.FieldAccess) {
                         a = a.withTemplate(JavaTemplate.builder(this::getCursor, "@org.junit.jupiter.api.Test")
-                                .javaParser(javaParser(ctx))
-                                .build(),
+                                        .javaParser(javaParser(ctx))
+                                        .build(),
                                 a.getCoordinates().replace());
                     } else {
                         a = a.withArguments(null)
@@ -231,10 +224,5 @@ public class UpdateTestAnnotation extends Recipe {
                 return a;
             }
         }
-    }
-
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
     }
 }

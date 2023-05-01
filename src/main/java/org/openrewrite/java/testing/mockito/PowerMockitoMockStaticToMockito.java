@@ -38,7 +38,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
     @Override
     public String getDescription() {
         return "Replaces `PowerMockito.mockStatic()` by `Mockito.mockStatic()`. Removes " +
-          "the `@PrepareForTest` annotation.";
+                "the `@PrepareForTest` annotation.";
     }
 
     @Override
@@ -57,9 +57,9 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private static final MethodMatcher MOCKITO_WHEN_MATCHER = new MethodMatcher("org.mockito.Mockito when(..)");
         private static final MethodMatcher MOCKITO_STATIC_METHOD_MATCHER = new MethodMatcher("org.mockito..* *(..)");
         private static final AnnotationMatcher PREPARE_FOR_TEST_MATCHER =
-          new AnnotationMatcher("@org.powermock.core.classloader.annotations.PrepareForTest");
+                new AnnotationMatcher("@org.powermock.core.classloader.annotations.PrepareForTest");
         private static final AnnotationMatcher RUN_WITH_POWER_MOCK_RUNNER_MATCHER =
-          new AnnotationMatcher("@org.junit.runner.RunWith(" + POWER_MOCK_RUNNER + ".class)");
+                new AnnotationMatcher("@org.junit.runner.RunWith(" + POWER_MOCK_RUNNER + ".class)");
         private static final String MOCKED_TYPES_FIELDS = "mockedTypesFields";
         private static final String MOCK_STATIC_INVOCATIONS = "mockStaticInvocationsByClassName";
         private static final MethodMatcher DYNAMIC_WHEN_METHOD_MATCHER = new MethodMatcher("org.mockito.Mockito when(java.lang.Class, String, ..)");
@@ -78,8 +78,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
 
             boolean useTestNg = containsTestNgTestMethods(classDecl.getBody().getStatements().stream()
-              .filter(J.MethodDeclaration.class::isInstance)
-              .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
+                    .filter(J.MethodDeclaration.class::isInstance)
+                    .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
             initTestFrameworkInfo(useTestNg);
             getCursor().putMessage(MOCK_STATIC_INVOCATIONS, new HashMap<>());
 
@@ -89,31 +89,31 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             // `private MockStatic mockedCalendar;`
             List<Expression> mockedStaticClasses = new ArrayList<>();
             classDecl.getAllAnnotations().stream().filter(PREPARE_FOR_TEST_MATCHER::matches)
-              .map(J.Annotation::getArguments)
-              .filter(arguments -> arguments != null && !arguments.isEmpty())
-              .forEach(arguments -> {
-                  mockedStaticClasses.addAll(ListUtils.flatMap(arguments, a -> {
-                      if (a instanceof J.NewArray && ((J.NewArray) a).getInitializer() != null) {
-                          // case `@PrepareForTest( {Object1.class, Object2.class ...} )`
-                          return ((J.NewArray) a).getInitializer();
-                      } else if (a instanceof J.Assignment && ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer() != null) {
-                          // case `@PrepareForTest( value = {Object1.class, Object2.class ...} }`
-                          return ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer();
-                      } else if (a instanceof J.FieldAccess) {
-                          // case `@PrepareForTest(Object1.class)`
-                          return a;
-                      }
-                      return null;
-                  }));
-                  doAfterVisit(new RemoveAnnotationVisitor(PREPARE_FOR_TEST_MATCHER));
-              });
+                    .map(J.Annotation::getArguments)
+                    .filter(arguments -> arguments != null && !arguments.isEmpty())
+                    .forEach(arguments -> {
+                        mockedStaticClasses.addAll(ListUtils.flatMap(arguments, a -> {
+                            if (a instanceof J.NewArray && ((J.NewArray) a).getInitializer() != null) {
+                                // case `@PrepareForTest( {Object1.class, Object2.class ...} )`
+                                return ((J.NewArray) a).getInitializer();
+                            } else if (a instanceof J.Assignment && ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer() != null) {
+                                // case `@PrepareForTest( value = {Object1.class, Object2.class ...} }`
+                                return ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer();
+                            } else if (a instanceof J.FieldAccess) {
+                                // case `@PrepareForTest(Object1.class)`
+                                return a;
+                            }
+                            return null;
+                        }));
+                        doAfterVisit(new RemoveAnnotationVisitor(PREPARE_FOR_TEST_MATCHER));
+                    });
 
             // Remove `@RunWithPowerMockRunner`
             classDecl.getAllAnnotations().stream().filter(RUN_WITH_POWER_MOCK_RUNNER_MATCHER::matches)
-              .forEach((annotation) -> {
-                  doAfterVisit(new RemoveAnnotationVisitor(RUN_WITH_POWER_MOCK_RUNNER_MATCHER));
-                  maybeRemoveImport(POWER_MOCK_RUNNER);
-              });
+                    .forEach((annotation) -> {
+                        doAfterVisit(new RemoveAnnotationVisitor(RUN_WITH_POWER_MOCK_RUNNER_MATCHER));
+                        maybeRemoveImport(POWER_MOCK_RUNNER);
+                    });
 
             J.ClassDeclaration cd = (J.ClassDeclaration) super.visitClassDeclaration(classDecl, ctx);
 
@@ -148,7 +148,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
             // Initialize the static mocks in the setup method
             AnnotationMatcher setUpAnnotationMatcher = new AnnotationMatcher(
-              setUpMethodAnnotationSignature);
+                    setUpMethodAnnotationSignature);
             if (m.getAllAnnotations().stream().anyMatch(setUpAnnotationMatcher::matches)) {
                 // Move the mockStatic method to the setUp method
                 m = moveMockStaticMethodToSetUp(m, ctx);
@@ -217,7 +217,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 for (J.Annotation annotation : methodDeclaration.getAllAnnotations()) {
                     JavaType annotationType = annotation.getAnnotationType().getType();
                     if (annotationType instanceof JavaType.Class && "org.testng.annotations.Test".equals(((JavaType.Class) annotationType)
-                      .getFullyQualifiedName())) {
+                            .getFullyQualifiedName())) {
                         return true;
                     }
                 }
@@ -227,29 +227,29 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         private static boolean hasMethodWithAnnotation(J.ClassDeclaration classDecl, AnnotationMatcher annotationMatcher) {
             return classDecl.getBody().getStatements().stream()
-              .filter(J.MethodDeclaration.class::isInstance)
-              .map(J.MethodDeclaration.class::cast)
-              .map(J.MethodDeclaration::getAllAnnotations)
-              .flatMap(Collection::stream)
-              .anyMatch(annotationMatcher::matches);
+                    .filter(J.MethodDeclaration.class::isInstance)
+                    .map(J.MethodDeclaration.class::cast)
+                    .map(J.MethodDeclaration::getAllAnnotations)
+                    .flatMap(Collection::stream)
+                    .anyMatch(annotationMatcher::matches);
         }
 
         private static boolean isStaticMockAlreadyClosed(J.Identifier staticMock, J.Block methodBody) {
             return methodBody.getStatements().stream().filter(J.MethodInvocation.class::isInstance)
-              .map(J.MethodInvocation.class::cast)
-              .filter(MOCKED_STATIC_CLOSE_MATCHER::matches)
-              .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
-              .anyMatch(methodInvocation -> ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
-                .equals(staticMock.getSimpleName()));
+                    .map(J.MethodInvocation.class::cast)
+                    .filter(MOCKED_STATIC_CLOSE_MATCHER::matches)
+                    .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
+                    .anyMatch(methodInvocation -> ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
+                            .equals(staticMock.getSimpleName()));
         }
 
         private static boolean isStaticMockAlreadyOpened(J.Identifier staticMock, J.Block methodBody) {
             return methodBody.getStatements().stream().filter(J.MethodInvocation.class::isInstance)
-              .map(J.MethodInvocation.class::cast)
-              .filter(MOCKED_STATIC_MATCHER::matches)
-              .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
-              .anyMatch(methodInvocation -> ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
-                .equals(staticMock.getSimpleName()));
+                    .map(J.MethodInvocation.class::cast)
+                    .filter(MOCKED_STATIC_MATCHER::matches)
+                    .filter(methodInvocation -> methodInvocation.getSelect() instanceof J.Identifier)
+                    .anyMatch(methodInvocation -> ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
+                            .equals(staticMock.getSimpleName()));
         }
 
         private J.MethodDeclaration moveMockStaticMethodToSetUp(J.MethodDeclaration m, ExecutionContext ctx) {
@@ -267,14 +267,14 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     J.MethodInvocation methodInvocation = mockStaticInvocations.get(className);
                     if (methodInvocation != null) {
                         m = m.withBody(methodBody.withTemplate(
-                          JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                              "mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
-                            .javaParser(JavaParser.fromJavaVersion()
-                              .classpathFromResources(ctx, "mockito-core-3.*"))
-                              .build(),
-                          methodBody.getCoordinates().firstStatement(),
-                          mockedTypesFieldEntry.getKey(),
-                          methodInvocation
+                                JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                                                "mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
+                                        .javaParser(JavaParser.fromJavaVersion()
+                                                .classpathFromResources(ctx, "mockito-core-3.*"))
+                                        .build(),
+                                methodBody.getCoordinates().firstStatement(),
+                                mockedTypesFieldEntry.getKey(),
+                                methodInvocation
                         ));
                     }
                 }
@@ -290,14 +290,13 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     continue;
                 }
                 m = m.withBody(methodBody.withTemplate(
-                  JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                      "#{any(org.mockito.MockedStatic)}.closeOnDemand();")
-                    .javaParser(() -> JavaParser.fromJavaVersion()
-                      .classpathFromResources(ctx, "mockito-core-3.*")
-                      .build())
-                    .build(),
-                  methodBody.getCoordinates().lastStatement(),
-                  mockedTypesField.getKey()
+                        JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                                        "#{any(org.mockito.MockedStatic)}.closeOnDemand();")
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(ctx, "mockito-core-3.*"))
+                                .build(),
+                        methodBody.getCoordinates().lastStatement(),
+                        mockedTypesField.getKey()
                 ));
             }
             return m;
@@ -308,14 +307,14 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 J.MethodDeclaration methodDeclarationCursor = getCursor().firstEnclosing(J.MethodDeclaration.class);
                 if (methodDeclarationCursor != null) {
                     Optional<J.Annotation> testAnnotation = methodDeclarationCursor
-                      .getLeadingAnnotations().stream()
-                      .filter(annotation -> annotation.getSimpleName().equals("Test")).findFirst();
+                            .getLeadingAnnotations().stream()
+                            .filter(annotation -> annotation.getSimpleName().equals("Test")).findFirst();
                     testAnnotation.ifPresent(
-                      ta -> {
-                          if (ta.getArguments() != null) {
-                              getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, TEST_GROUP, ta.getArguments());
-                          }
-                      });
+                            ta -> {
+                                if (ta.getArguments() != null) {
+                                    getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, TEST_GROUP, ta.getArguments());
+                                }
+                            });
                 }
             }
         }
@@ -334,15 +333,13 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 arguments.remove(0);
                 String stringOfArguments = arguments.stream().map(Object::toString).collect(Collectors.joining(","));
                 method = method.withTemplate(
-                  JavaTemplate.builder(this::getCursor,
-                      "() -> #{}.#{}(#{})")
-                    .javaParser(() -> JavaParser.fromJavaVersion()
-                      .build())
-                    .build(),
-                  method.getCoordinates().replaceArguments(),
-                  declaringClassName,
-                  Objects.requireNonNull(calledMethod.getValue()).toString(),
-                  stringOfArguments
+                        JavaTemplate.builder(this::getCursor,
+                                        "() -> #{}.#{}(#{})")
+                                .build(),
+                        method.getCoordinates().replaceArguments(),
+                        declaringClassName,
+                        Objects.requireNonNull(calledMethod.getValue()).toString(),
+                        stringOfArguments
                 );
                 method = method.withSelect(mockedField);
             }
@@ -422,19 +419,18 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     continue;
                 }
                 classDecl = classDecl.withBody(classDecl.getBody()
-                  .withTemplate(
-                    JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                        "private MockedStatic<#{}> " + MOCK_PREFIX + "#{};")
-                      .javaParser(() -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "mockito-core-3.12.4")
-                        .build())
-                      .staticImports("org.mockito.Mockito.mockStatic")
-                      .imports(MOCKED_STATIC)
-                      .build(),
-                    classDecl.getBody().getCoordinates().firstStatement(),
-                    classlessTypeName,
-                    classlessTypeName
-                  )
+                        .withTemplate(
+                                JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                                                "private MockedStatic<#{}> " + MOCK_PREFIX + "#{};")
+                                        .javaParser(JavaParser.fromJavaVersion()
+                                                .classpathFromResources(ctx, "mockito-core-3.12.4"))
+                                        .staticImports("org.mockito.Mockito.mockStatic")
+                                        .imports(MOCKED_STATIC)
+                                        .build(),
+                                classDecl.getBody().getCoordinates().firstStatement(),
+                                classlessTypeName,
+                                classlessTypeName
+                        )
 
                 );
 
@@ -444,7 +440,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             getCursor().putMessage(MOCKED_TYPES_FIELDS, mockedTypesIdentifiers);
 
             maybeAutoFormat(classDecl, classDecl.withPrefix(classDecl.getPrefix().
-              withWhitespace("")), classDecl.getName(), ctx, getCursor());
+                    withWhitespace("")), classDecl.getName(), ctx, getCursor());
             maybeAddImport(MOCKED_STATIC);
             maybeAddImport("org.mockito.Mockito", "mockStatic");
             return classDecl;
@@ -455,8 +451,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             String testGroupsAsString = getTestGroupsAsString();
 
             return maybeAddMethodWithAnnotation(classDecl, ctx, "setUpStaticMocks",
-              setUpMethodAnnotationSignature, setUpMethodAnnotation,
-              additionalClasspathResource, setUpImportToAdd, testGroupsAsString);
+                    setUpMethodAnnotationSignature, setUpMethodAnnotation,
+                    additionalClasspathResource, setUpImportToAdd, testGroupsAsString);
         }
 
         @NotNull
@@ -465,8 +461,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             String testGroupsAsString = "";
             if (testGroups != null) {
                 testGroupsAsString = "(" +
-                  testGroups.stream().map(Object::toString).collect(Collectors.joining(",")) +
-                  ")";
+                        testGroups.stream().map(Object::toString).collect(Collectors.joining(",")) +
+                        ")";
             }
             return testGroupsAsString;
         }
@@ -475,9 +471,9 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             String testGroupsAsString = (getTestGroupsAsString().isEmpty()) ? tearDownMethodAnnotationParameters : getTestGroupsAsString();
             return maybeAddMethodWithAnnotation(classDecl, ctx, "tearDownStaticMocks",
-              tearDownMethodAnnotationSignature,
-              tearDownMethodAnnotation,
-              additionalClasspathResource, tearDownImportToAdd, testGroupsAsString);
+                    tearDownMethodAnnotationSignature,
+                    tearDownMethodAnnotation,
+                    additionalClasspathResource, tearDownImportToAdd, testGroupsAsString);
         }
 
         private J.ClassDeclaration maybeAddMethodWithAnnotation(J.ClassDeclaration classDecl, ExecutionContext ctx,
@@ -490,22 +486,21 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             }
 
             J.MethodDeclaration firstTestMethod = getFirstTestMethod(
-              classDecl.getBody().getStatements().stream().filter(J.MethodDeclaration.class::isInstance)
-                .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
+                    classDecl.getBody().getStatements().stream().filter(J.MethodDeclaration.class::isInstance)
+                            .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
 
             JavaCoordinates tearDownCoordinates = (firstTestMethod != null) ?
-              firstTestMethod.getCoordinates().before() :
-              classDecl.getBody().getCoordinates().lastStatement();
+                    firstTestMethod.getCoordinates().before() :
+                    classDecl.getBody().getCoordinates().lastStatement();
             classDecl = classDecl.withBody(classDecl.getBody()
-              .withTemplate(
-                JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                    methodAnnotationToAdd + methodAnnotationParameters + " void " + methodName + "() {}")
-                  .javaParser(() -> JavaParser.fromJavaVersion()
-                    .classpathFromResources(ctx, additionalClasspathResource)
-                    .build())
-                  .imports(importToAdd)
-                  .build(),
-                tearDownCoordinates));
+                    .withTemplate(
+                            JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
+                                            methodAnnotationToAdd + methodAnnotationParameters + " void " + methodName + "() {}")
+                                    .javaParser(JavaParser.fromJavaVersion()
+                                            .classpathFromResources(ctx, additionalClasspathResource))
+                                    .imports(importToAdd)
+                                    .build(),
+                            tearDownCoordinates));
             maybeAddImport(importToAdd);
             return classDecl;
         }
@@ -514,11 +509,11 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private J.MethodInvocation modifyWhenMethodInvocation(J.MethodInvocation whenMethod) {
             List<Expression> methodArguments = whenMethod.getArguments();
             List<J.MethodInvocation> staticMethodInvocationsInArguments = methodArguments.stream()
-              .filter(J.MethodInvocation.class::isInstance).map(J.MethodInvocation.class::cast)
-              .filter(methodInvocation -> !MOCKITO_STATIC_METHOD_MATCHER.matches(methodInvocation))
-              .filter(methodInvocation -> methodInvocation.getMethodType() != null)
-              .filter(methodInvocation -> methodInvocation.getMethodType().hasFlags(Flag.Static))
-              .collect(Collectors.toList());
+                    .filter(J.MethodInvocation.class::isInstance).map(J.MethodInvocation.class::cast)
+                    .filter(methodInvocation -> !MOCKITO_STATIC_METHOD_MATCHER.matches(methodInvocation))
+                    .filter(methodInvocation -> methodInvocation.getMethodType() != null)
+                    .filter(methodInvocation -> methodInvocation.getMethodType().hasFlags(Flag.Static))
+                    .collect(Collectors.toList());
             if (staticMethodInvocationsInArguments.size() == 1) {
                 J.MethodInvocation staticMI = staticMethodInvocationsInArguments.get(0);
                 Expression lambdaInvocation;
@@ -530,22 +525,22 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     return whenMethod;
                 }
                 if (staticMI.getArguments().stream().map(Expression::getType)
-                  .noneMatch(Objects::nonNull)) {
+                        .noneMatch(Objects::nonNull)) {
                     // If the method invocation has no arguments
                     lambdaInvocation = staticMI.withTemplate(
-                      JavaTemplate.builder(this::getCursor,
-                        declaringClassName + "::" + staticMI.getSimpleName()).build(),
-                      staticMI.getCoordinates().replace()
+                            JavaTemplate.builder(this::getCursor,
+                                    declaringClassName + "::" + staticMI.getSimpleName()).build(),
+                            staticMI.getCoordinates().replace()
                     );
                 } else {
                     JavaType.Method methodType = staticMI.getMethodType();
                     if (methodType != null) {
                         lambdaInvocation = staticMI.withTemplate(
-                          JavaTemplate.builder(this::getCursor,
-                              "() -> #{any()}")
-                            .build(),
-                          staticMI.getCoordinates().replace(),
-                          staticMI
+                                JavaTemplate.builder(this::getCursor,
+                                                "() -> #{any()}")
+                                        .build(),
+                                staticMI.getCoordinates().replace(),
+                                staticMI
                         );
                     } else {
                         // do nothing
@@ -573,18 +568,18 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         @Nullable
         private J.Identifier getFieldIdentifier(String fieldName) {
             return getMockedTypesFields().keySet().stream()
-              .filter(identifier -> identifier.getSimpleName().equals(fieldName)).findFirst()
-              .orElseGet(() -> {
-                  J.ClassDeclaration cd = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).getValue();
-                  return cd.getBody().getStatements().stream()
-                    .filter(J.VariableDeclarations.class::isInstance)
-                    .map(variableDeclarations -> ((J.VariableDeclarations) variableDeclarations).getVariables())
-                    .flatMap(Collection::stream)
-                    .filter(namedVariable -> namedVariable.getSimpleName().equals(fieldName))
-                    .map(J.VariableDeclarations.NamedVariable::getName)
-                    .findFirst()
-                    .orElse(null);
-              });
+                    .filter(identifier -> identifier.getSimpleName().equals(fieldName)).findFirst()
+                    .orElseGet(() -> {
+                        J.ClassDeclaration cd = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).getValue();
+                        return cd.getBody().getStatements().stream()
+                                .filter(J.VariableDeclarations.class::isInstance)
+                                .map(variableDeclarations -> ((J.VariableDeclarations) variableDeclarations).getVariables())
+                                .flatMap(Collection::stream)
+                                .filter(namedVariable -> namedVariable.getSimpleName().equals(fieldName))
+                                .map(J.VariableDeclarations.NamedVariable::getName)
+                                .findFirst()
+                                .orElse(null);
+                    });
         }
     }
 }

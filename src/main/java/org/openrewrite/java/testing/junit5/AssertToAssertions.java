@@ -16,18 +16,15 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaSourceFile;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -45,13 +42,8 @@ public class AssertToAssertions extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.Assert", false);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new AssertToAssertionsVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.Assert", false), new AssertToAssertionsVisitor());
     }
 
     public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -62,22 +54,22 @@ public class AssertToAssertions extends Recipe {
                 "assertNull", "assertSame", "assertThrows", "assertTrue", "fail");
 
         @Override
-        public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
-            JavaSourceFile c = super.visitJavaSourceFile(cu, ctx);
-
-            boolean hasWildcardAssertImport = false;
-            for (J.Import imp : cu.getImports()) {
-                if ("org.junit.Assert.*".equals(imp.getQualid().toString())) {
-                    hasWildcardAssertImport = true;
-                    break;
+        public @Nullable J preVisit(J tree, ExecutionContext ctx) {
+            if (tree instanceof JavaSourceFile) {
+                JavaSourceFile c = (JavaSourceFile) tree;
+                boolean hasWildcardAssertImport = false;
+                for (J.Import imp : c.getImports()) {
+                    if ("org.junit.Assert.*".equals(imp.getQualid().toString())) {
+                        hasWildcardAssertImport = true;
+                        break;
+                    }
+                }
+                if (hasWildcardAssertImport) {
+                    maybeAddImport("org.junit.jupiter.api.Assertions", "*", false);
+                    maybeRemoveImport("org.junit.Assert.*");
                 }
             }
-            if (hasWildcardAssertImport) {
-                maybeAddImport("org.junit.jupiter.api.Assertions", "*", false);
-                maybeRemoveImport("org.junit.Assert.*");
-            }
-
-            return c;
+            return tree;
         }
 
         @Override
@@ -93,9 +85,9 @@ public class AssertToAssertions extends Recipe {
             // Suppress arg-switching for Assertions.assertEquals(String, String)
             if (args.size() == 2) {
                 if ("assertSame".equals(m.getSimpleName()) ||
-                    "assertNotSame".equals(m.getSimpleName()) ||
-                    "assertEquals".equals(m.getSimpleName()) ||
-                    "assertNotEquals".equals(m.getSimpleName())) {
+                        "assertNotSame".equals(m.getSimpleName()) ||
+                        "assertEquals".equals(m.getSimpleName()) ||
+                        "assertNotEquals".equals(m.getSimpleName())) {
                     return m;
                 }
             }
@@ -136,10 +128,5 @@ public class AssertToAssertions extends Recipe {
             JavaType.FullyQualified receiverType = (JavaType.FullyQualified) receiver.getType();
             return "org.junit.Assert".equals(receiverType.getFullyQualifiedName());
         }
-    }
-
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
     }
 }

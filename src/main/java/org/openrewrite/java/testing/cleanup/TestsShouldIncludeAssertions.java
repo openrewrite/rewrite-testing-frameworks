@@ -28,10 +28,8 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 
 @SuppressWarnings("SimplifyStreamApiCallChains")
 @Value
@@ -76,11 +74,6 @@ public class TestsShouldIncludeAssertions extends Recipe {
     }
 
     @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
-    @Override
     public Validated validate() {
         Validated validated = super.validate()
                 .and(Validated.required("assertions", DEFAULT_ASSERTIONS));
@@ -95,23 +88,18 @@ public class TestsShouldIncludeAssertions extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.jupiter.api.Test", false);
-    }
-
-    @Override
-    protected TestShouldIncludeAssertionsVisitor getVisitor() {
-        return new TestShouldIncludeAssertionsVisitor(additionalAsserts);
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Test", false), new TestShouldIncludeAssertionsVisitor(additionalAsserts));
     }
 
     private static class TestShouldIncludeAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        Supplier<JavaParser> javaParser;
-        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-            if(javaParser == null) {
-                javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                        .build();
+        JavaParser.Builder<?, ?> javaParser;
+
+        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+            if (javaParser == null) {
+                javaParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2");
             }
             return javaParser;
         }
@@ -131,8 +119,8 @@ public class TestsShouldIncludeAssertions extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext
                 ctx) {
             if ((!methodIsTest(method) || method.getBody() == null) ||
-                methodHasAssertion(method.getBody()) ||
-                methodInvocationInBodyContainsAssertion()) {
+                    methodHasAssertion(method.getBody()) ||
+                    methodInvocationInBodyContainsAssertion()) {
                 return method;
             }
 

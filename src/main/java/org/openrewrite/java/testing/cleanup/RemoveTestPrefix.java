@@ -15,22 +15,20 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.J.MethodDeclaration;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
+
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
-
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaSourceFile;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.J.MethodDeclaration;
-import org.openrewrite.java.tree.TypeUtils;
 
 public class RemoveTestPrefix extends Recipe {
 
@@ -54,34 +52,27 @@ public class RemoveTestPrefix extends Recipe {
     }
 
     @Override
-    protected @Nullable TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaVisitor<ExecutionContext>() {
-            @Override
-            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.Test", false));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestTemplate", false));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.RepeatedTest", false));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.params.ParameterizedTest", false));
-                doAfterVisit(new UsesType<>("org.junit.jupiter.api.TestFactory", false));
-                return cu;
-            }
-        };
-    }
-
-    @Override
     public Duration getEstimatedEffortPerOccurrence() {
         return Duration.ofMinutes(1);
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new RemoveTestPrefixVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(
+                Preconditions.or(
+                        new UsesType<>("org.junit.jupiter.api.Test", false),
+                        new UsesType<>("org.junit.jupiter.api.TestTemplate", false),
+                        new UsesType<>("org.junit.jupiter.api.RepeatedTest", false),
+                        new UsesType<>("org.junit.jupiter.params.ParameterizedTest", false),
+                        new UsesType<>("org.junit.jupiter.api.TestFactory", false)
+                ),
+                new RemoveTestPrefixVisitor());
     }
 
     private static class RemoveTestPrefixVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method,
-                ExecutionContext ctx) {
+                                                          ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
             // Quickly reject invalid methods
@@ -118,7 +109,7 @@ public class RemoveTestPrefix extends Recipe {
 
             type = type.withName(newMethodName);
             return m.withName(m.getName()
-                    .withSimpleName(newMethodName))
+                            .withSimpleName(newMethodName))
                     .withMethodType(type);
         }
 

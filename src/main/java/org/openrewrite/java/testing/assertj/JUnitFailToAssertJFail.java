@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
@@ -23,9 +24,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
-import java.time.Duration;
 import java.util.List;
-import java.util.function.Supplier;
 
 public class JUnitFailToAssertJFail extends Recipe {
     @Override
@@ -38,31 +37,22 @@ public class JUnitFailToAssertJFail extends Recipe {
         return "Convert JUnit-style `fail()` to AssertJ's `fail()`.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.jupiter.api.Assertions", false);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JUnitFailToAssertJFailVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Assertions", false), new JUnitFailToAssertJFailVisitor());
     }
 
     public static class JUnitFailToAssertJFailVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private Supplier<JavaParser> assertionsParser;
-        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
-            if(assertionsParser == null) {
-                assertionsParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24.2")
-                        .build();
+        private JavaParser.Builder<?, ?> assertionsParser;
+
+        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
+            if (assertionsParser == null) {
+                assertionsParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "assertj-core-3.24.2");
             }
             return assertionsParser;
         }
+
         private static final MethodMatcher JUNIT_FAIL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " fail(..)");
 
         @Override

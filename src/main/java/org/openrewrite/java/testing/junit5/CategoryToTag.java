@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -24,7 +25,6 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -44,19 +44,9 @@ public class CategoryToTag extends Recipe {
         return "Transforms the JUnit 4 `@Category`, which can list multiple categories, into one `@Tag` annotation per category listed.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new CategoryToTagVisitor();
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.experimental.categories.Category", false);
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.experimental.categories.Category", false), new CategoryToTagVisitor());
     }
 
     public static class CategoryToTagVisitor extends JavaIsoVisitor<ExecutionContext> {

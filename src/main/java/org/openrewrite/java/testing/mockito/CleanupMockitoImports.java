@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
@@ -25,7 +26,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -45,19 +45,8 @@ public class CleanupMockitoImports extends Recipe {
     }
 
     @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new CleanupMockitoImportsVisitor();
-    }
-
-    @Nullable
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.mockito.*", false);
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.mockito.*", false), new CleanupMockitoImportsVisitor());
     }
 
     public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -100,28 +89,31 @@ public class CleanupMockitoImports extends Recipe {
                 "willThrow");
 
         @Override
-        public JavaSourceFile visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
-            JavaSourceFile sf = super.visitJavaSourceFile(cu, ctx);
+        public @Nullable J preVisit(J tree, ExecutionContext ctx) {
+            stopAfterPreVisit();
+            if (tree instanceof JavaSourceFile) {
+                JavaSourceFile sf = (JavaSourceFile) tree;
 
-            // Prevent removing mockito imports when an associated mockito method type is not well formed
-            final List<String> unknownTypeMethodInvocationNames = new ArrayList<>();
-            new WellFormedMockitoMethodTypeVisitor().visit(cu, unknownTypeMethodInvocationNames);
+                // Prevent removing mockito imports when an associated mockito method type is not well formed
+                final List<String> unknownTypeMethodInvocationNames = new ArrayList<>();
+                new WellFormedMockitoMethodTypeVisitor().visit(sf, unknownTypeMethodInvocationNames);
 
-            for (J.Import _import : cu.getImports()) {
-                if (_import.getPackageName().startsWith("org.mockito")) {
-                    if (_import.isStatic()) {
-                        String staticName = _import.getQualid().getSimpleName();
-                        if ("*".equals(staticName) && !possibleMockitoMethod(unknownTypeMethodInvocationNames)) {
+                for (J.Import _import : sf.getImports()) {
+                    if (_import.getPackageName().startsWith("org.mockito")) {
+                        if (_import.isStatic()) {
+                            String staticName = _import.getQualid().getSimpleName();
+                            if ("*".equals(staticName) && !possibleMockitoMethod(unknownTypeMethodInvocationNames)) {
+                                maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
+                            } else if (!"*".equals(staticName) && !unknownTypeMethodInvocationNames.contains(staticName)) {
+                                maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName() + "." + staticName);
+                            }
+                        } else {
                             maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
-                        } else if (!"*".equals(staticName) && !unknownTypeMethodInvocationNames.contains(staticName)) {
-                            maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName() + "." + staticName);
                         }
-                    } else {
-                        maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
                     }
                 }
             }
-            return sf;
+            return tree;
         }
 
         private boolean possibleMockitoMethod(List<String> methodNamesHavingNullType) {

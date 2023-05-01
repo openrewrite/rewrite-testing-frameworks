@@ -15,9 +15,13 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.openrewrite.*;
-import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.PartProvider;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 
@@ -46,15 +50,9 @@ public class AnyStringToNullable extends Recipe {
         return Duration.ofMinutes(1);
     }
 
-    @Nullable
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesMethod<>(ANY_STRING);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesMethod<>(ANY_STRING), new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -67,18 +65,18 @@ public class AnyStringToNullable extends Recipe {
                 }
                 return mi;
             }
-        };
+        });
     }
 
     private static J.MethodInvocation getNullableMethodTemplate() {
         if (nullableStringMethodTemplate == null) {
             nullableStringMethodTemplate = PartProvider.buildPart("import static org.mockito.ArgumentMatchers" +
-                                                                  ".nullable;\n" +
-                                                                  "public class A {\n" +
-                                                                  "    void method() {\n" +
-                                                                  "        Object x = nullable(String.class);\n" +
-                                                                  "    }\n" +
-                                                                  "}", J.MethodInvocation.class, MOCKITO_CLASS_PATH);
+                    ".nullable;\n" +
+                    "public class A {\n" +
+                    "    void method() {\n" +
+                    "        Object x = nullable(String.class);\n" +
+                    "    }\n" +
+                    "}", J.MethodInvocation.class, MOCKITO_CLASS_PATH);
         }
         return nullableStringMethodTemplate;
     }

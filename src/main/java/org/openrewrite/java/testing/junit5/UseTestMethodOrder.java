@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
@@ -26,9 +27,7 @@ import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
-import java.time.Duration;
 import java.util.Set;
-import java.util.function.Supplier;
 
 public class UseTestMethodOrder extends Recipe {
 
@@ -43,28 +42,17 @@ public class UseTestMethodOrder extends Recipe {
         return "JUnit optionally allows test method execution order to be specified. This Recipe replaces JUnit 4 test execution ordering annotations with JUnit 5 replacements.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.FixMethodOrder", false);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.FixMethodOrder", false), new JavaIsoVisitor<ExecutionContext>() {
 
             @Nullable
-            private Supplier<JavaParser> javaParser;
-            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-                if(javaParser == null) {
-                    javaParser = () -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                            .build();
+            private JavaParser.Builder<?, ?> javaParser;
+
+            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+                if (javaParser == null) {
+                    javaParser = JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2");
                 }
                 return javaParser;
             }
@@ -91,6 +79,6 @@ public class UseTestMethodOrder extends Recipe {
 
                 return super.visitClassDeclaration(c, ctx);
             }
-        };
+        });
     }
 }

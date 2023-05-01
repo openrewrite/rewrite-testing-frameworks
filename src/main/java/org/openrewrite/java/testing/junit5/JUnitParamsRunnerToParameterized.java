@@ -26,18 +26,16 @@ import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.marker.Markers;
 
-import java.time.Duration;
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
  * Converts Pragmatists JUnitParamsRunner tests to their JUnit 5 ParameterizedTest and associated MethodSource equivalent
- *     <a href="https://github.com/Pragmatists/JUnitParams">...</a>
+ * <a href="https://github.com/Pragmatists/JUnitParams">...</a>
  * Supports the following conversions
- *    `@Parameters` annotation without arguments and default `parametersFor...` init-method exists
- *    `@Parameters(method = "...")` annotation with defined method references
- *    `@Parameters(named = "...")` and associated `@NamedParameter` init-method
+ * `@Parameters` annotation without arguments and default `parametersFor...` init-method exists
+ * `@Parameters(method = "...")` annotation with defined method references
+ * `@Parameters(named = "...")` and associated `@NamedParameter` init-method
  * Unsupported tests are identified with a comment on the associated `@Parameters(...)` annotation.
  */
 public class JUnitParamsRunnerToParameterized extends Recipe {
@@ -65,23 +63,13 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         return "Convert Pragmatists Parameterized test to the JUnit Jupiter ParameterizedTest equivalent.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     private static String junitParamsDefaultInitMethodName(String methodName) {
         return PARAMETERS_FOR_PREFIX + methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("junitparams.*", false);
-    }
-
-    @Override
-    protected ParameterizedTemplateVisitor getVisitor() {
-        return new ParameterizedTemplateVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("junitparams.*", false), new ParameterizedTemplateVisitor());
     }
 
     private static class ParameterizedTemplateVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -191,12 +179,12 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static class ParametersNoArgsImplicitMethodSource extends JavaIsoVisitor<ExecutionContext> {
 
         @Nullable
-        private Supplier<JavaParser> javaParser;
-        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-            if(javaParser == null) {
-                javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "hamcrest-2.2", "junit-jupiter-params-5.9.2")
-                        .build();
+        private JavaParser.Builder<?, ?> javaParser;
+
+        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+            if (javaParser == null) {
+                javaParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "hamcrest-2.2", "junit-jupiter-params-5.9.2");
             }
             return javaParser;
 
