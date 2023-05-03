@@ -61,7 +61,7 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
                 return javaParser;
             }
 
-            final AnnotationMatcher silentRunnerMatcher = new AnnotationMatcher("org.junit.runner.RunWith @RunWith(org.mockito.junit.MockitoJUnitRunner.MockitoJUnitRunner.Silent.class)");
+            final AnnotationMatcher silentRunnerMatcher = new AnnotationMatcher("@org.junit.runner.RunWith(org.mockito.junit.MockitoJUnitRunner.Silent.class)");
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
