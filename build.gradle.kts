@@ -40,4 +40,5 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
+    testImplementation("org.junit-pioneer:junit-pioneer:2.0.1")
 }

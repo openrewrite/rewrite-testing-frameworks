@@ -16,8 +16,10 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -202,6 +204,58 @@ class CleanupMockitoImportsTest implements RewriteTest {
               """,
             """
               public class MockitoArgumentMatchersTest {
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("#3111") //maybe not exactly the same issue though?
+    @ExpectedToFail
+    @Test
+    void removeUnusedArgumentMatchersOnly() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyObject {
+                  String doAThing(Object other, String value){return value;}
+              }
+              """
+          ),
+          java(
+            """
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.after;
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.ArgumentMatchers.anyString;
+              import static org.mockito.ArgumentMatchers.eq;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+
+              class MyObjectTest {
+                @Mock
+                MyObject myObject;
+                            
+                void test() {
+                  when(myObject.doAThing(any(), eq("testValue"))).thenReturn("testValue");
+                }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.when;
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.ArgumentMatchers.eq;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+
+              class MyObjectTest {
+                @Mock
+                MyObject myObject;
+                            
+                void test() {
+                  when(myObject.doAThing(any(), eq("testValue"))).thenReturn("testValue");
+                }
               }
               """
           )
