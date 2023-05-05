@@ -210,9 +210,9 @@ class CleanupMockitoImportsTest implements RewriteTest {
         );
     }
 
-    @Issue("#3111") //maybe not exactly the same issue though?
-    @ExpectedToFail
     @Test
+    @ExpectedToFail
+    @Issue("https://github.com/openrewrite/rewrite/issues/3111") // maybe not exactly the same issue
     void removeUnusedArgumentMatchersOnly() {
         //language=java
         rewriteRun(
