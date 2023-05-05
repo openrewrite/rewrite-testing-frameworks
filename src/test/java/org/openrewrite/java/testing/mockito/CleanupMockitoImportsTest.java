@@ -213,15 +213,16 @@ class CleanupMockitoImportsTest implements RewriteTest {
     @Test
     @ExpectedToFail
     @Issue("https://github.com/openrewrite/rewrite/issues/3111") // maybe not exactly the same issue
-    void removeUnusedArgumentMatchersOnly() {
+    void removeUnusedArgumentMatchersOnlyWithLombok() {
         //language=java
         rewriteRun(
           java(
             """
-              import lombok.Builder;
-              @Builder
+              import lombok.RequiredArgsConstructor;
+              @RequiredArgsConstructor
               class MyObject {
-                  String field;
+                  private final String field;
+                  
                   String doAThing(Object other, MyObject myObject){return value;}
               }
               """
@@ -237,13 +238,13 @@ class CleanupMockitoImportsTest implements RewriteTest {
               import org.mockito.Mock;
 
               class MyObjectTest {
-                  @Mock
-                  MyObject myObject;
-                  
-                  void test() {
-                      var testObject = MyObject.builder().field("field").build();
-                      when(myObject.doAThing(any(), eq(testObject))).thenReturn("testValue");
-                  }
+                @Mock
+                MyObject myObject;
+                
+                void test() {
+                    MyObject testObject = new MyObject("field");
+                    when(myObject.doAThing(any(), eq(testObject))).thenReturn("testValue");
+                }
               }
               """,
             """
@@ -258,7 +259,66 @@ class CleanupMockitoImportsTest implements RewriteTest {
                 MyObject myObject;
                 
                 void test() {
-                    MyObject testObject = MyObject.builder().field("field").build();
+                    MyObject testObject = new MyObject("field");
+                    when(myObject.doAThing(any(), eq(testObject))).thenReturn("testValue");
+                }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeUnusedArgumentMatchersOnlyWithoutLombok() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              
+              class MyObject {
+                  private final String field;
+                  
+                  MyObject(String field){
+                    this.field = field;
+                  }
+                  
+                  String doAThing(Object other, MyObject myObject){return value;}
+              }
+              """
+          ),
+          java(
+            """
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.after;
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.ArgumentMatchers.anyString;
+              import static org.mockito.ArgumentMatchers.eq;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+
+              class MyObjectTest {
+                @Mock
+                MyObject myObject;
+                
+                void test() {
+                    MyObject testObject = new MyObject("field");
+                    when(myObject.doAThing(any(), eq(testObject))).thenReturn("testValue");
+                }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.when;
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.ArgumentMatchers.eq;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+
+              class MyObjectTest {
+                @Mock
+                MyObject myObject;
+                
+                void test() {
+                    MyObject testObject = new MyObject("field");
                     when(myObject.doAThing(any(), eq(testObject))).thenReturn("testValue");
                 }
               }
