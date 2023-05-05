@@ -32,7 +32,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockito-all-1.10.19"))
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12.4"))
           .recipe(new CleanupMockitoImports());
     }
 
@@ -218,8 +218,11 @@ class CleanupMockitoImportsTest implements RewriteTest {
         rewriteRun(
           java(
             """
+              import lombok.Builder;
+              @Builder
               class MyObject {
-                  String doAThing(Object other, String value){return value;}
+                  String field;
+                  String doAThing(Object other, MyObject myObject){return value;}
               }
               """
           ),
@@ -234,12 +237,13 @@ class CleanupMockitoImportsTest implements RewriteTest {
               import org.mockito.Mock;
 
               class MyObjectTest {
-                @Mock
-                MyObject myObject;
-                            
-                void test() {
-                  when(myObject.doAThing(any(), eq("testValue"))).thenReturn("testValue");
-                }
+                  @Mock
+                  MyObject myObject;
+                  
+                  void test() {
+                      var testObject = MyObject.builder().field("field").build();
+                      when(myObject.doAThing(any(), eq(testObject))).thenReturn("testValue");
+                  }
               }
               """,
             """
@@ -252,9 +256,10 @@ class CleanupMockitoImportsTest implements RewriteTest {
               class MyObjectTest {
                 @Mock
                 MyObject myObject;
-                            
+                
                 void test() {
-                  when(myObject.doAThing(any(), eq("testValue"))).thenReturn("testValue");
+                    MyObject testObject = MyObject.builder().field("field").build();
+                    when(myObject.doAThing(any(), eq(testObject))).thenReturn("testValue");
                 }
               }
               """
