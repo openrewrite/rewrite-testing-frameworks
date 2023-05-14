@@ -22,7 +22,6 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -32,7 +31,7 @@ class JUnit5BestPracticesTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.+"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.+", "junit-jupiter-api-5.9.2"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing")
             .build()
@@ -152,13 +151,12 @@ class JUnit5BestPracticesTest implements RewriteTest {
     void changeIgnoreToDisabled() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.Ignore;
               import org.junit.Test;
 
-              public class Example {
+              public class ExampleTest {
                   @Ignore
                   @Test
                   public void something() {
@@ -174,7 +172,7 @@ class JUnit5BestPracticesTest implements RewriteTest {
               import org.junit.jupiter.api.Disabled;
               import org.junit.jupiter.api.Test;
 
-              class Example {
+              class ExampleTest {
                   @Disabled
                   @Test
                   void something() {
@@ -194,27 +192,28 @@ class JUnit5BestPracticesTest implements RewriteTest {
     void changeThrowingRunnableToExecutable() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
+              import java.io.IOException;
               import org.junit.function.ThrowingRunnable;
               import org.junit.jupiter.api.Test;
 
-              public class Example {
+              class ExampleTest {
                 @Test
-                public void testExpectedIOException() {
-                  ThrowingRunnable runnable = () -> throwsIOException("Simply throw an IOException");
+                void testExpectedIOException() {
+                  ThrowingRunnable runnable = () -> { throw new IOException("Simply throw an IOException"); };
                 }
               }
               """,
             """
+              import java.io.IOException;
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.function.Executable;
 
-              public class Example {
+              class ExampleTest {
                 @Test
-                public void testExpectedIOException() {
-                  Executable runnable = () -> throwsIOException("Simply throw an IOException");
+                void testExpectedIOException() {
+                  Executable runnable = () -> { throw new IOException("Simply throw an IOException"); };
                 }
               }
               """
