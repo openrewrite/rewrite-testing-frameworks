@@ -189,4 +189,36 @@ class JUnit5BestPracticesTest implements RewriteTest {
           )
         );
     }
+    
+    @Test
+    void changeThrowingRunnableToExecutable() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.function.ThrowingRunnable;
+              import org.junit.jupiter.api.Test;
+
+              public class Example {
+                @Test
+                public void testExpectedIOException() {
+                  ThrowingRunnable runnable = () -> throwsIOException("Simply throw an IOException");
+                }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.function.Executable;
+
+              public class Example {
+                @Test
+                public void testExpectedIOException() {
+                  Executable runnable = () -> throwsIOException("Simply throw an IOException");
+                }
+              }
+              """
+          )
+        );
+    }
 }

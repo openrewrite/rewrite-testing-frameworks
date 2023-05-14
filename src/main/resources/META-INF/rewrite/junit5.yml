@@ -48,6 +48,7 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
+  - org.openrewrite.java.testing.junit5.ThrowingRunnableToExecutable
   - org.openrewrite.java.testing.junit5.RemoveObsoleteRunners:
       obsoleteRunners:
         - org.junit.runners.JUnit4
@@ -192,6 +193,18 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junit.Ignore
       newFullyQualifiedTypeName: org.junit.jupiter.api.Disabled
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.ThrowingRunnableToExecutable
+displayName: Use JUnit Jupiter `Executable`
+description: Migrates JUnit 4.x `ThrowingRunnable` to JUnit Jupiter `Executable`.
+tags:
+  - testing
+  - junit
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junit.function.ThrowingRunnable
+      newFullyQualifiedTypeName: org.junit.jupiter.api.function.Executable
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
