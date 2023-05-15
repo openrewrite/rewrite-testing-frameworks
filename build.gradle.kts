@@ -10,7 +10,7 @@ group = "org.openrewrite.recipe"
 description = "A rewrite module automating best practices and major version migrations for popular Java test frameworks like JUnit and Mockito"
 
 recipeDependencies {
-    parserClasspath("org.assertj:assertj-core:3.+")
+    parserClasspath("org.assertj:assertj-core:3.24.2")
     parserClasspath("junit:junit:latest.release")
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
     parserClasspath("org.junit.jupiter:junit-jupiter-api:5.9.3")
