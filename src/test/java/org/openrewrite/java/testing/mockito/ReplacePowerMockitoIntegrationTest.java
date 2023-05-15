@@ -36,9 +36,9 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               "mockito-core-3.12.4",
               "junit-jupiter-api-5.9.3",
               "junit-4.13.2",
-              "powermock-core-1.7.4",
-              "powermock-api-mockito-1.7.4",
-              "powermock-api-support-1.7.4",
+              "powermock-core-1.6.5",
+              "powermock-api-mockito-1.6.5",
+              "powermock-api-support-1.6.5",
               "testng-7.7.1"))
           // TODO Resolve the missing types in the replacement templates rather than ignore the errors here
           .typeValidationOptions(TypeValidation.builder()
