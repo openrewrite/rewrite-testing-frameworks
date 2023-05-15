@@ -30,7 +30,7 @@ class TestsShouldNotBePublicTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.3", "junit-jupiter-params-5.9.+"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.3", "junit-jupiter-params-5.9.3"))
           .recipe(new TestsShouldNotBePublic(false));
     }
 
