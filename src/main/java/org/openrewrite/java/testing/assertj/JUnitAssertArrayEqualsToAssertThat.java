@@ -63,16 +63,9 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
     public static class AssertArrayEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME + " assertArrayEquals(..)");
 
-        private Supplier<JavaParser> assertionsParser;
-        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
-            if(assertionsParser == null) {
-                assertionsParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24.2")
-                        .build();
-            }
-            return assertionsParser;
+        private JavaParser.Builder assertionsParser(ExecutionContext ctx) {
+            return JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24.2");
         }
-
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
