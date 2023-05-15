@@ -32,7 +32,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.3"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.3", "assertj-core-3.24.2"))
           .recipe(new JUnitAssertArrayEqualsToAssertThat());
     }
 
@@ -84,7 +84,6 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
     void singleStaticMethodWithMessageLambda() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -166,7 +165,6 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
     void doublesWithinAndWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -207,7 +205,6 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
     void doublesObjectsWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -287,7 +284,6 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
     void floatCloseToWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -328,7 +324,6 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
     void fullyQualifiedMethodWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
