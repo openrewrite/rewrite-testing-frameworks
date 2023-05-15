@@ -13,8 +13,8 @@ recipeDependencies {
     parserClasspath("org.assertj:assertj-core:3.+")
     parserClasspath("junit:junit:latest.release")
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
-    parserClasspath("org.junit.jupiter:junit-jupiter-api:latest.release")
-    parserClasspath("org.junit.jupiter:junit-jupiter-params:latest.release")
+    parserClasspath("org.junit.jupiter:junit-jupiter-api:5.9.+")
+    parserClasspath("org.junit.jupiter:junit-jupiter-params:5.9.+")
     parserClasspath("org.hamcrest:hamcrest:latest.release")
     parserClasspath("com.squareup.okhttp3:mockwebserver:3.14.9")
     parserClasspath("org.apiguardian:apiguardian-api:1.1.2")
@@ -23,6 +23,7 @@ recipeDependencies {
     parserClasspath("org.mockito:mockito-core:3.+")
     parserClasspath("org.mockito:mockito-junit-jupiter:3.+")
     parserClasspath("org.powermock:powermock-api-mockito:1.7.+")
+    parserClasspath("org.powermock:powermock-api-support:1.7.+")
     parserClasspath("org.powermock:powermock-core:1.7.+")
     parserClasspath("com.squareup.okhttp3:mockwebserver:4.10.0")
 }

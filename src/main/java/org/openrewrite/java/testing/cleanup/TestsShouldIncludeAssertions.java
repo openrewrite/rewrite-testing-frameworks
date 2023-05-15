@@ -110,7 +110,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
         private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
             if(javaParser == null) {
                 javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.+")
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.3")
                         .build();
             }
             return javaParser;

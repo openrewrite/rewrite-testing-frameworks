@@ -33,7 +33,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "apiguardian-api-1.1.2",
               "junit-4.13.2",
-              "junit-jupiter-api-5.9.+",
+              "junit-jupiter-api-5.9.3",
               "mockito-core-3.12.4",
               "powermock-api-mockito-1.6.5",
               "powermock-core-1.6.5",
