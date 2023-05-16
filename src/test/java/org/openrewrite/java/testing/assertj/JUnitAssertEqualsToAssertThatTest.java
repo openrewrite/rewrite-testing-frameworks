@@ -32,7 +32,7 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.3"))
+            .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24.2", "junit-jupiter-api-5.9.3"))
           .recipe(new JUnitAssertEqualsToAssertThat());
     }
 
