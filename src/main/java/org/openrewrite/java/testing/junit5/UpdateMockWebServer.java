@@ -95,10 +95,12 @@ public class UpdateMockWebServer extends Recipe {
                             if (afterEachMethod == null) {
                                 final String closeMethod = "@AfterEach\nvoid afterEachTest() throws IOException {#{any(okhttp3.mockwebserver.MockWebServer)}.close();\n}";
                                 J.Block body = cd.getBody();
-                                body = maybeAutoFormat(body, body.withTemplate(JavaTemplate.builder(this::getCursor, closeMethod)
+                                body = maybeAutoFormat(body, body.withTemplate(JavaTemplate.builder(closeMethod)
+                                                        .context(getCursor())
                                                         .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
                                                         .javaParser(javaParser(ctx))
                                                         .build(),
+                                                getCursor(),
                                                 body.getCoordinates().lastStatement(),
                                                 mockWebServerVariable),
                                         ctx);
@@ -112,10 +114,12 @@ public class UpdateMockWebServer extends Recipe {
                                         J.MethodDeclaration method = (J.MethodDeclaration) statement;
                                         if (method.getBody() != null) {
                                             method = method.withTemplate(
-                                                    JavaTemplate.builder(this::getCursor, "#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
+                                                    JavaTemplate.builder("#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
+                                                            .context(getCursor())
                                                             .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
                                                             .javaParser(javaParser(ctx))
                                                             .build(),
+                                                    getCursor(),
                                                     method.getBody().getCoordinates().lastStatement(),
                                                     mockWebServerVariable);
 

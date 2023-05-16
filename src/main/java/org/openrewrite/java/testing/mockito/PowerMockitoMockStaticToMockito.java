@@ -267,11 +267,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     J.MethodInvocation methodInvocation = mockStaticInvocations.get(className);
                     if (methodInvocation != null) {
                         m = m.withBody(methodBody.withTemplate(
-                                JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                                                "mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
+                                JavaTemplate.builder("mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
+                                        .context(getCursor())
                                         .javaParser(JavaParser.fromJavaVersion()
                                                 .classpathFromResources(ctx, "mockito-core-3.*"))
                                         .build(),
+                                getCursor(),
                                 methodBody.getCoordinates().firstStatement(),
                                 mockedTypesFieldEntry.getKey(),
                                 methodInvocation
@@ -290,11 +291,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     continue;
                 }
                 m = m.withBody(methodBody.withTemplate(
-                        JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                                        "#{any(org.mockito.MockedStatic)}.closeOnDemand();")
+                        JavaTemplate.builder("#{any(org.mockito.MockedStatic)}.closeOnDemand();")
+                                .context(getCursor())
                                 .javaParser(JavaParser.fromJavaVersion()
                                         .classpathFromResources(ctx, "mockito-core-3.*"))
                                 .build(),
+                        getCursor(),
                         methodBody.getCoordinates().lastStatement(),
                         mockedTypesField.getKey()
                 ));
@@ -333,9 +335,10 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 arguments.remove(0);
                 String stringOfArguments = arguments.stream().map(Object::toString).collect(Collectors.joining(","));
                 method = method.withTemplate(
-                        JavaTemplate.builder(this::getCursor,
-                                        "() -> #{}.#{}(#{})")
+                        JavaTemplate.builder("() -> #{}.#{}(#{})")
+                                .context(getCursor())
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replaceArguments(),
                         declaringClassName,
                         Objects.requireNonNull(calledMethod.getValue()).toString(),
@@ -420,13 +423,14 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 }
                 classDecl = classDecl.withBody(classDecl.getBody()
                         .withTemplate(
-                                JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                                                "private MockedStatic<#{}> " + MOCK_PREFIX + "#{};")
+                                JavaTemplate.builder("private MockedStatic<#{}> " + MOCK_PREFIX + "#{};")
+                                        .context(getCursor())
                                         .javaParser(JavaParser.fromJavaVersion()
                                                 .classpathFromResources(ctx, "mockito-core-3.12.4"))
                                         .staticImports("org.mockito.Mockito.mockStatic")
                                         .imports(MOCKED_STATIC)
                                         .build(),
+                                getCursor(),
                                 classDecl.getBody().getCoordinates().firstStatement(),
                                 classlessTypeName,
                                 classlessTypeName
@@ -494,12 +498,13 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     classDecl.getBody().getCoordinates().lastStatement();
             classDecl = classDecl.withBody(classDecl.getBody()
                     .withTemplate(
-                            JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
-                                            methodAnnotationToAdd + methodAnnotationParameters + " void " + methodName + "() {}")
+                            JavaTemplate.builder(methodAnnotationToAdd + methodAnnotationParameters + " void " + methodName + "() {}")
+                                    .context(getCursor())
                                     .javaParser(JavaParser.fromJavaVersion()
                                             .classpathFromResources(ctx, additionalClasspathResource))
                                     .imports(importToAdd)
                                     .build(),
+                            getCursor(),
                             tearDownCoordinates));
             maybeAddImport(importToAdd);
             return classDecl;
@@ -528,17 +533,19 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         .noneMatch(Objects::nonNull)) {
                     // If the method invocation has no arguments
                     lambdaInvocation = staticMI.withTemplate(
-                            JavaTemplate.builder(this::getCursor,
-                                    declaringClassName + "::" + staticMI.getSimpleName()).build(),
+                            JavaTemplate.builder(declaringClassName + "::" + staticMI.getSimpleName())
+                                    .context(getCursor()).build(),
+                            getCursor(),
                             staticMI.getCoordinates().replace()
                     );
                 } else {
                     JavaType.Method methodType = staticMI.getMethodType();
                     if (methodType != null) {
                         lambdaInvocation = staticMI.withTemplate(
-                                JavaTemplate.builder(this::getCursor,
-                                                "() -> #{any()}")
+                                JavaTemplate.builder("() -> #{any()}")
+                                        .context(getCursor())
                                         .build(),
+                                getCursor(),
                                 staticMI.getCoordinates().replace(),
                                 staticMI
                         );

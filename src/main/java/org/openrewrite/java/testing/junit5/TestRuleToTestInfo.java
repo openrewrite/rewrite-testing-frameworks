@@ -133,13 +133,15 @@ public class TestRuleToTestInfo extends Recipe {
                 if (beforeMethod == null) {
                     String t = "@BeforeEach\n" +
                             "public void setup(TestInfo testInfo) {" + testMethodStatement + "}";
-                    cd = cd.withTemplate(JavaTemplate.builder(this::getCursor, t)
+                    cd = cd.withTemplate(JavaTemplate.builder(t)
+                                    .context(getCursor())
                                     .javaParser(javaParser(ctx))
                                     .imports("org.junit.jupiter.api.TestInfo",
                                             "org.junit.jupiter.api.BeforeEach",
                                             "java.util.Optional",
                                             "java.lang.reflect.Method")
                                     .build(),
+                            getCursor(),
                             cd.getBody().getCoordinates().lastStatement(),
                             varDecls.getVariables().get(0).getName().getSimpleName());
                     maybeAddImport("java.lang.reflect.Method");
@@ -179,23 +181,28 @@ public class TestRuleToTestInfo extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
             if (md.getId().equals(beforeMethod.getId())) {
-                md = md.withTemplate(JavaTemplate.builder(this::getCursor, "TestInfo testInfo")
+                md = md.withTemplate(JavaTemplate.builder("TestInfo testInfo")
+                                .context(getCursor())
                                 .javaParser(javaParser(ctx))
                                 .imports("org.junit.jupiter.api.TestInfo",
                                         "org.junit.jupiter.api.BeforeEach",
                                         "java.util.Optional",
                                         "java.lang.reflect.Method")
                                 .build(),
+                        getCursor(),
                         md.getCoordinates().replaceParameters());
 
                 //noinspection ConstantConditions
-                md = maybeAutoFormat(md, md.withTemplate(JavaTemplate.builder(this::getCursor, testMethodStatement)
+                md = maybeAutoFormat(md, md.withTemplate(JavaTemplate.builder(testMethodStatement)
+                                .context(getCursor())
                                 .javaParser(javaParser(ctx))
                                 .imports("org.junit.jupiter.api.TestInfo",
                                         "java.util.Optional",
                                         "java.lang.reflect.Method")
                                 .build(),
-                        md.getBody().getCoordinates().lastStatement(), varDecls.getVariables().get(0).getName().getSimpleName()), ctx, getCursor().getParent());
+                        getCursor(),
+                        md.getBody().getCoordinates().lastStatement(),
+                        varDecls.getVariables().get(0).getName().getSimpleName()), ctx, getCursor().getParent());
 
                 // Make sure the testName is initialized first in case any other piece of the method body references it
                 assert md.getBody() != null;

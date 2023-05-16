@@ -91,9 +91,11 @@ public class UseExplicitSize extends Recipe {
 
             String template = "assertThat(#{any(java.util.List)}).hasSize(#{any()});";
             return method.withTemplate(
-                    JavaTemplate.builder(this::getCursor, template)
+                    JavaTemplate.builder(template)
+                            .context(getCursor())
                             .javaParser(assertionsParser(ctx))
                             .build(),
+                    getCursor(),
                     method.getCoordinates().replace(),
                     list,
                     expectedSize);

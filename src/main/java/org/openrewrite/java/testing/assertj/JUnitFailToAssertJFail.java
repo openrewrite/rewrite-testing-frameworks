@@ -69,24 +69,28 @@ public class JUnitFailToAssertJFail extends Recipe {
                 // fail(), fail(String), fail(Supplier<String>), fail(Throwable)
                 if (args.get(0) instanceof J.Empty) {
                     m = m.withTemplate(
-                            JavaTemplate.builder(this::getCursor, "org.assertj.core.api.Assertions.fail(\"\");")
+                            JavaTemplate.builder("org.assertj.core.api.Assertions.fail(\"\");")
                                     .javaParser(assertionsParser(ctx))
                                     .build(),
+                            getCursor(),
                             m.getCoordinates().replace()
                     );
                 } else if (args.get(0) instanceof J.Literal) {
                     m = m.withTemplate(
-                            JavaTemplate.builder(this::getCursor, "org.assertj.core.api.Assertions.fail(#{});")
+                            JavaTemplate.builder("org.assertj.core.api.Assertions.fail(#{});")
                                     .javaParser(assertionsParser(ctx))
                                     .build(),
+                            getCursor(),
                             m.getCoordinates().replace(),
                             args.get(0)
                     );
                 } else {
                     m = m.withTemplate(
-                            JavaTemplate.builder(this::getCursor, "org.assertj.core.api.Assertions.fail(\"\", #{any()});")
+                            JavaTemplate.builder("org.assertj.core.api.Assertions.fail(\"\", #{any()});")
+                                    .context(getCursor())
                                     .javaParser(assertionsParser(ctx))
                                     .build(),
+                            getCursor(),
                             m.getCoordinates().replace(),
                             args.get(0)
                     );
@@ -102,9 +106,10 @@ public class JUnitFailToAssertJFail extends Recipe {
                 }
                 templateBuilder.append(");");
 
-                m = m.withTemplate(JavaTemplate.builder(this::getCursor, templateBuilder.toString())
+                m = m.withTemplate(JavaTemplate.builder(templateBuilder.toString())
                                 .javaParser(assertionsParser(ctx))
                                 .build(),
+                        getCursor(),
                         m.getCoordinates().replace(),
                         args.toArray()
                 );
@@ -134,11 +139,12 @@ public class JUnitFailToAssertJFail extends Recipe {
                 }
                 templateBuilder.append(");");
 
-                method = method.withTemplate(JavaTemplate.builder(this::getCursor, templateBuilder.toString())
+                method = method.withTemplate(JavaTemplate.builder(templateBuilder.toString())
                                 .staticImports("org.assertj.core.api.Assertions" + ".fail")
                                 .javaParser(JavaParser.fromJavaVersion()
                                         .classpathFromResources(ctx, "assertj-core-3.24.2"))
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replace(),
                         arguments.toArray()
                 );

@@ -88,8 +88,8 @@ public class AddMissingNested extends Recipe {
             boolean alreadyNested = classDecl.getLeadingAnnotations().stream()
                     .anyMatch(a -> TypeUtils.isOfClassType(a.getType(), NESTED));
             if (!alreadyNested && hasTestMethods(cd)) {
-                cd = cd.withTemplate(getNestedJavaTemplate(ctx), cd.getCoordinates().addAnnotation(Comparator.comparing(
-                        J.Annotation::getSimpleName)));
+                cd = cd.withTemplate(getNestedJavaTemplate(ctx), getCursor(),
+                        cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 cd.getModifiers().removeIf(modifier -> modifier.getType().equals(J.Modifier.Type.Static));
             }
             return cd;
@@ -97,7 +97,7 @@ public class AddMissingNested extends Recipe {
 
         @NonNull
         private JavaTemplate getNestedJavaTemplate(ExecutionContext ctx) {
-            return JavaTemplate.builder(this::getCursor, "@Nested")
+            return JavaTemplate.builder("@Nested")
                     .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "junit-jupiter-api-5.9.2"))
                     .imports(NESTED)

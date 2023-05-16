@@ -205,15 +205,15 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             this.unsupportedConversions = unsupportedConversions;
 
             // build @ParameterizedTest template
-            this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, "@ParameterizedTest")
+            this.parameterizedTestTemplate = JavaTemplate.builder("@ParameterizedTest")
                     .javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @ParameterizedTest(#{}) template
-            this.parameterizedTestTemplateWithName = JavaTemplate.builder(this::getCursor, "@ParameterizedTest(name = \"#{}\")")
+            this.parameterizedTestTemplateWithName = JavaTemplate.builder("@ParameterizedTest(name = \"#{}\")")
                     .javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @MethodSource("...") template
-            this.methodSourceTemplate = JavaTemplate.builder(this::getCursor, "@MethodSource(#{})")
+            this.methodSourceTemplate = JavaTemplate.builder("@MethodSource(#{})")
                     .javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.params.provider.MethodSource").build();
         }
@@ -268,9 +268,9 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         private J.Annotation maybeReplaceTestAnnotation(J.Annotation anno, @Nullable String parameterizedTestArgument) {
             if (JUPITER_TEST_ANNOTATION_MATCHER.matches(anno) || JUNIT_TEST_ANNOTATION_MATCHER.matches(anno)) {
                 if (parameterizedTestArgument == null) {
-                    anno = anno.withTemplate(parameterizedTestTemplate, anno.getCoordinates().replace());
+                    anno = anno.withTemplate(parameterizedTestTemplate, getCursor(), anno.getCoordinates().replace());
                 } else {
-                    anno = anno.withTemplate(parameterizedTestTemplateWithName, anno.getCoordinates().replace(), parameterizedTestArgument);
+                    anno = anno.withTemplate(parameterizedTestTemplateWithName, getCursor(), anno.getCoordinates().replace(), parameterizedTestArgument);
                 }
             }
             return anno;
@@ -280,11 +280,11 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             if (PARAMETERS_MATCHER.matches(annotation)) {
                 String initMethodName = junitParamsDefaultInitMethodName(methodName);
                 if (initMethods.contains(initMethodName)) {
-                    annotation = annotation.withTemplate(methodSourceTemplate, annotation.getCoordinates().replace(), "\"" + initMethodName + "\"");
+                    annotation = annotation.withTemplate(methodSourceTemplate, getCursor(), annotation.getCoordinates().replace(), "\"" + initMethodName + "\"");
                 } else {
                     String annotationArg = getAnnotationArgumentValueForMethodTemplate(annotation);
                     if (annotationArg != null) {
-                        annotation = annotation.withTemplate(methodSourceTemplate, annotation.getCoordinates().replace(), annotationArg);
+                        annotation = annotation.withTemplate(methodSourceTemplate, getCursor(), annotation.getCoordinates().replace(), annotationArg);
                     }
                 }
             }

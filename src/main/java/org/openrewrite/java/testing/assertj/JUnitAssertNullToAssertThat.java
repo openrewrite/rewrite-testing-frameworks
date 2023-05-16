@@ -71,10 +71,12 @@ public class JUnitAssertNullToAssertThat extends Recipe {
 
             if (args.size() == 1) {
                 method = method.withTemplate(
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).isNull();")
+                        JavaTemplate.builder("assertThat(#{any()}).isNull();")
+                                .context(getCursor())
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(assertionsParser(ctx))
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replace(),
                         actual
                 );
@@ -82,13 +84,15 @@ public class JUnitAssertNullToAssertThat extends Recipe {
                 Expression message = args.get(1);
 
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isNull();") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNull();");
+                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNull();") :
+                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNull();");
 
                 method = method.withTemplate(template
+                                .context(getCursor())
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(assertionsParser(ctx))
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replace(),
                         actual,
                         message

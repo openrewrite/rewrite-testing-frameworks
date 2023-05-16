@@ -102,11 +102,12 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                                 FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty())) {
 
                     cd = cd.withTemplate(
-                            JavaTemplate.builder(this::getCursor, "@ExtendWith(MockitoExtension.class)")
+                            JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
                                     .javaParser(JavaParser.fromJavaVersion()
                                             .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "mockito-junit-jupiter-3.12.4"))
                                     .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                                     .build(),
+                            getCursor(),
                             cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))
                     );
 

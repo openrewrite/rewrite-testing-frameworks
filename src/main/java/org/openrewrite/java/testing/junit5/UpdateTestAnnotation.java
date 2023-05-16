@@ -124,7 +124,8 @@ public class UpdateTestAnnotation extends Recipe {
                             .visitNonNull(m, ctx, getCursor().getParentOrThrow());
                 }
                 if (cta.expectedException != null) {
-                    m = m.withTemplate(JavaTemplate.builder(this::getCursor, "Object o = () -> #{}").build(),
+                    m = m.withTemplate(JavaTemplate.builder("Object o = () -> #{}").context(getCursor()).build(),
+                            getCursor(),
                             m.getCoordinates().replaceBody(),
                             m.getBody());
 
@@ -137,28 +138,30 @@ public class UpdateTestAnnotation extends Recipe {
 
                     if (cta.expectedException instanceof J.FieldAccess
                             && TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
-                        m = m.withTemplate(JavaTemplate.builder(this::getCursor, "assertDoesNotThrow(#{any(org.junit.jupiter.api.function.Executable)});")
+                        m = m.withTemplate(JavaTemplate.builder("assertDoesNotThrow(#{any(org.junit.jupiter.api.function.Executable)});")
+//                                        .context(getCursor())
                                         .javaParser(javaParser(ctx))
                                         .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
                                         .build(),
-                                m.getCoordinates().replaceBody(), lambda);
+                                getCursor(), m.getCoordinates().replaceBody(), lambda);
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
                     } else {
-                        m = m.withTemplate(JavaTemplate.builder(this::getCursor, "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
+                        m = m.withTemplate(JavaTemplate.builder("assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
+//                                        .context(getCursor())
                                         .javaParser(javaParser(ctx))
                                         .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                         .build(),
-                                m.getCoordinates().replaceBody(), cta.expectedException, lambda);
+                                getCursor(), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                     }
                 }
                 if (cta.timeout != null) {
                     m = m.withTemplate(
-                            JavaTemplate.builder(this::getCursor, "@Timeout(#{any(long)})")
+                            JavaTemplate.builder("@Timeout(#{any(long)})")
                                     .javaParser(javaParser(ctx))
                                     .imports("org.junit.jupiter.api.Timeout")
                                     .build(),
-                            m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
+                            getCursor(), m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
                             cta.timeout);
                     maybeAddImport("org.junit.jupiter.api.Timeout");
                 }
@@ -212,9 +215,10 @@ public class UpdateTestAnnotation extends Recipe {
                     }
 
                     if (a.getAnnotationType() instanceof J.FieldAccess) {
-                        a = a.withTemplate(JavaTemplate.builder(this::getCursor, "@org.junit.jupiter.api.Test")
+                        a = a.withTemplate(JavaTemplate.builder("@org.junit.jupiter.api.Test")
                                         .javaParser(javaParser(ctx))
                                         .build(),
+                                getCursor(),
                                 a.getCoordinates().replace());
                     } else {
                         a = a.withArguments(null)

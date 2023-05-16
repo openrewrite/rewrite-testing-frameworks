@@ -133,10 +133,11 @@ public class MigrateJUnitTestCase extends Recipe {
         private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation, ExecutionContext ctx) {
             J.MethodDeclaration md = methodDeclaration;
             if (FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
-                md = methodDeclaration.withTemplate(JavaTemplate.builder(this::getCursor, annotation)
+                md = methodDeclaration.withTemplate(JavaTemplate.builder(annotation)
                                 .javaParser(JavaParser.fromJavaVersion()
                                         .classpathFromResources(ctx, "junit-jupiter-api-5.9.2"))
                                 .imports(fullyQualifiedAnnotation).build(),
+                        getCursor(),
                         methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 md = maybeAddPublicModifier(md);
                 md = maybeRemoveOverrideAnnotation(md);

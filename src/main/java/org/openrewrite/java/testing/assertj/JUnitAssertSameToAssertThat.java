@@ -72,10 +72,12 @@ public class JUnitAssertSameToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = method.withTemplate(
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).isSameAs(#{any()});")
+                        JavaTemplate.builder("assertThat(#{any()}).isSameAs(#{any()});")
+                                .context(getCursor())
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(assertionsParser(ctx))
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replace(),
                         actual,
                         expected
@@ -84,13 +86,15 @@ public class JUnitAssertSameToAssertThat extends Recipe {
                 Expression message = args.get(2);
 
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(String)}).isSameAs(#{any()});") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isSameAs(#{any()});");
+                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isSameAs(#{any()});") :
+                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isSameAs(#{any()});");
 
                 method = method.withTemplate(template
+                                .context(getCursor())
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(assertionsParser(ctx))
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replace(),
                         actual,
                         message,

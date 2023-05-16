@@ -62,11 +62,11 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                 if (cd.getLeadingAnnotations().stream().anyMatch(silentRunnerMatcher::matches)) {
-                    JavaTemplate template = JavaTemplate.builder(this::getCursor, "@MockitoSettings(strictness = Strictness.LENIENT)")
+                    JavaTemplate template = JavaTemplate.builder("@MockitoSettings(strictness = Strictness.LENIENT)")
                             .imports("org.mockito.quality.Strictness", "org.mockito.junit.jupiter.MockitoSettings")
                             .javaParser(javaParser(ctx))
                             .build();
-                    cd = maybeAutoFormat(cd, cd.withTemplate(template, cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))), ctx);
+                    cd = maybeAutoFormat(cd, cd.withTemplate(template, getCursor(), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))), ctx);
                     doAfterVisit(new RunnerToExtension(Collections.singletonList("org.mockito.junit.MockitoJUnitRunner$Silent"),
                             "org.mockito.junit.jupiter.MockitoExtension"));
                     maybeRemoveImport("org.mockito.junit.MockitoJUnitRunner");

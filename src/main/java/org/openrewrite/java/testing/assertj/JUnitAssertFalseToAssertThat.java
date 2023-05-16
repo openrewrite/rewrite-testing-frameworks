@@ -71,23 +71,25 @@ public class JUnitAssertFalseToAssertThat extends Recipe {
 
             if (args.size() == 1) {
                 method = method.withTemplate(
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).isFalse();")
+                        JavaTemplate.builder("assertThat(#{any(boolean)}).isFalse();")
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(assertionsParser(ctx))
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replace(),
                         actual
                 );
             } else {
                 Expression message = args.get(1);
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).as(#{any(String)}).isFalse();") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{any(boolean)}).as(#{any(java.util.function.Supplier)}).isFalse();");
+                        JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(String)}).isFalse();") :
+                        JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(java.util.function.Supplier)}).isFalse();");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(assertionsParser(ctx))
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replace(),
                         actual,
                         message

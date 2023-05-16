@@ -76,10 +76,12 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = method.withTemplate(
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).containsExactly(#{anyArray()});")
+                        JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()});")
+                                .context(getCursor())
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(assertionsParser(ctx))
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replace(),
                         actual,
                         expected
@@ -87,13 +89,14 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
             } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
                 Expression message = args.get(2);
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()});") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).as(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()});");
+                        JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()});") :
+                        JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()});");
 
                 method = method.withTemplate(template
                                 .staticImports("org.assertj.core.api.Assertions.assertThat")
                                 .javaParser(assertionsParser(ctx))
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replace(),
                         actual,
                         message,
@@ -102,10 +105,12 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
             } else if (args.size() == 3) {
                 // assert is using floating points with a delta and no message.
                 method = method.withTemplate(
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
+                        JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
+                                .context(getCursor())
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                                 .javaParser(assertionsParser(ctx))
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replace(),
                         actual,
                         expected,
@@ -116,13 +121,15 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 // The assertEquals is using a floating point with a delta argument and a message.
                 Expression message = args.get(3);
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()}, within(#{any()}));") :
-                        JavaTemplate.builder(this::getCursor, "assertThat(#{anyArray()}).as(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()}, within(#{}));");
+                        JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()}, within(#{any()}));") :
+                        JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any(java.util.function.Supplier)}).containsExactly(#{anyArray()}, within(#{}));");
 
                 method = method.withTemplate(template
+                                .context(getCursor())
                                 .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                                 .javaParser(assertionsParser(ctx))
                                 .build(),
+                        getCursor(),
                         method.getCoordinates().replace(),
                         actual,
                         message,

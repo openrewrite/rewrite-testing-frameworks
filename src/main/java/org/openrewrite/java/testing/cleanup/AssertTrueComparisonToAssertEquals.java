@@ -78,14 +78,14 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
                     if (mi.getSelect() == null) {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertEquals");
-                        t = JavaTemplate.builder(this::getCursor, sb.toString()).javaParser(javaParser(ctx))
+                        t = JavaTemplate.builder(sb.toString()).context(getCursor()).javaParser(javaParser(ctx))
                                 .staticImports("org.junit.jupiter.api.Assertions.assertEquals").build();
                     } else {
-                        t = JavaTemplate.builder(this::getCursor, sb.toString()).javaParser(javaParser(ctx))
+                        t = JavaTemplate.builder(sb.toString()).context(getCursor()).javaParser(javaParser(ctx))
                                 .imports("org.junit.jupiter.api.Assertions").build();
 
                     }
-                    return mi.withTemplate(t, mi.getCoordinates().replace(), args);
+                    return mi.withTemplate(t, getCursor(), mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }
