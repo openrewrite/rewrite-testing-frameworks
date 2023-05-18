@@ -129,7 +129,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 cd = maybeAddTearDownMethodBody(cd, ctx);
                 cd = addFieldDeclarationForMockedTypes(cd, ctx, mockedStaticClasses);
 
-                // Invoke the vistitors of the child tree a 2nd time to fill the new methods
+                // Invoke the visitors of the child tree a 2nd time to fill the new methods
                 return super.visitClassDeclaration(cd, ctx);
             }
             return cd;
