@@ -83,7 +83,7 @@ class UseExplicitSizeTest implements RewriteTest {
 
 
     @Test
-    void sizeWithoutContainsIsNotAffectected() {
+    void sizeWithoutContainsIsNotAffected() {
         //language=java
         rewriteRun(
           java(
