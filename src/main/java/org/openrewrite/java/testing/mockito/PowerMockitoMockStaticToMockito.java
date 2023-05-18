@@ -119,7 +119,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
             // Remove the extension of class PowerMockConfiguration
             cd = removeExtension(cd, POWER_MOCK_CONFIG);
-            // Remove teh extension of class PowerMockTestCase
+            // Remove the extension of class PowerMockTestCase
             cd = removeExtension(cd, POWER_MOCK_TEST_CASE);
 
             if (!mockedStaticClasses.isEmpty()) {
