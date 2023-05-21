@@ -125,7 +125,7 @@ class UseExplicitContainsTest implements RewriteTest {
     }
 
     @Test
-    void IsFalseOrIsTrueWithoutContainsAreNotAffectected() {
+    void IsFalseOrIsTrueWithoutContainsAreNotAffected() {
         //language=java
         rewriteRun(
           java(
