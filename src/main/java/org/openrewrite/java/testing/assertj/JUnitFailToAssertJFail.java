@@ -58,7 +58,7 @@ public class JUnitFailToAssertJFail extends Recipe {
         private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
             if(assertionsParser == null) {
                 assertionsParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24.2")
+                        .classpathFromResources(ctx, "assertj-core-3.24")
                         .build();
             }
             return assertionsParser;
@@ -147,7 +147,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                 method = method.withTemplate(JavaTemplate.builder(this::getCursor, templateBuilder.toString())
                                 .staticImports("org.assertj.core.api.Assertions" + ".fail")
                                 .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "assertj-core-3.24.2"))
+                                        .classpathFromResources(ctx, "assertj-core-3.24"))
                                 .build(),
                         method.getCoordinates().replace(),
                         arguments.toArray()

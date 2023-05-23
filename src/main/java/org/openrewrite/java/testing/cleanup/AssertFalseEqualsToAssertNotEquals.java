@@ -51,7 +51,7 @@ public class AssertFalseEqualsToAssertNotEquals extends Recipe {
             private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
                 if(javaParser == null) {
                     javaParser = () -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9")
                             .build();
                 }
                 return javaParser;

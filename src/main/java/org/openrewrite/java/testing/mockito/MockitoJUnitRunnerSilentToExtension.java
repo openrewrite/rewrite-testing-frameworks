@@ -55,7 +55,7 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
                 if(javaParser == null) {
                     javaParser = () -> JavaParser.fromJavaVersion()
                             .logCompilationWarningsAndErrors(true)
-                            .classpathFromResources(ctx, "mockito-junit-jupiter-3.12.4", "mockito-core-3.12.4")
+                            .classpathFromResources(ctx, "mockito-junit-jupiter-3.12", "mockito-core-3.12")
                             .build();
                 }
                 return javaParser;

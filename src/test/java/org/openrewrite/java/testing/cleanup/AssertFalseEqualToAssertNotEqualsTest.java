@@ -29,7 +29,7 @@ class AssertFalseEqualToAssertNotEqualsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.+"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
           .recipe(new AssertFalseEqualsToAssertNotEquals());
     }
 

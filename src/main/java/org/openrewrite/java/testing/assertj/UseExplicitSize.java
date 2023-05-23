@@ -55,7 +55,7 @@ public class UseExplicitSize extends Recipe {
         private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
             if(assertionsParser == null) {
                 assertionsParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24.2")
+                        .classpathFromResources(ctx, "assertj-core-3.24")
                         .build();
             }
             return assertionsParser;

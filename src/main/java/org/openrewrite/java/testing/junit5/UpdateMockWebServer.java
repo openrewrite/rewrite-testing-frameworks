@@ -98,8 +98,8 @@ public class UpdateMockWebServer extends Recipe {
             private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {
                     javaParser = () -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-4.13.2", "junit-jupiter-api-5.9.2", "apiguardian-api-1.1.2",
-                                    "mockwebserver-3.14.9")
+                            .classpathFromResources(ctx, "junit-4.13", "junit-jupiter-api-5.9", "apiguardian-api-1.1",
+                                    "mockwebserver-3.14")
                             .build();
                 }
                 return javaParser;

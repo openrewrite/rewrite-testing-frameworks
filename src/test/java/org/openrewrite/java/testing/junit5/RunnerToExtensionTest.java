@@ -32,7 +32,7 @@ class RunnerToExtensionTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.2", "mockito-all-1.10.19"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "mockito-all-1.10"))
           .recipe(new RunnerToExtension(
               List.of("org.mockito.runners.MockitoJUnitRunner"),
               "org.mockito.junit.jupiter.MockitoExtension"

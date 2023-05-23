@@ -35,9 +35,9 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.+"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
           .parser(GroovyParser.builder()
-            .classpathFromResource(new InMemoryExecutionContext(), "junit-4.13.+"))
+            .classpathFromResource(new InMemoryExecutionContext(), "junit-4.13"))
           .recipe(new TemporaryFolderToTempDir());
     }
 
