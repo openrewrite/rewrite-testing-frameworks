@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -27,7 +26,6 @@ import org.openrewrite.test.TypeValidation;
 import static org.openrewrite.java.Assertions.java;
 
 @SuppressWarnings({"ExcessiveLambdaUsage", "RedundantArrayCreation"})
-@Disabled
 class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
 
     @Override
