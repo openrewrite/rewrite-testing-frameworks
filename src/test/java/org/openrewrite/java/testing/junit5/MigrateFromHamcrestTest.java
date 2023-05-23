@@ -48,7 +48,7 @@ class MigrateFromHamcrestTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.hamcrest.Matchers.Matchers.equalTo;
+              import static org.hamcrest.Matchers.equalTo;
               
               class BiscuitTest {
                   @Test
