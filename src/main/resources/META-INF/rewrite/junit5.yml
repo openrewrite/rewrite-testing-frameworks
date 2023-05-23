@@ -81,25 +81,25 @@ recipeList:
   - org.openrewrite.java.testing.junit5.AddMissingNested
   - org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
   - org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
-  - org.openrewrite.maven.RemoveDependency:
+  - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: junit
       artifactId: junit
   - org.openrewrite.maven.ExcludeDependency:
       groupId: junit
       artifactId: junit
-  - org.openrewrite.maven.RemoveDependency:
+  - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
   - org.openrewrite.maven.ExcludeDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
-  - org.openrewrite.maven.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter
       version: 5.x
       onlyIfUsing: org.junit.jupiter.api.Test
       acceptTransitive: true
-  - org.openrewrite.maven.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter-params
       version: 5.x
@@ -140,7 +140,7 @@ tags:
   - junit
   - hamcrest
 recipeList:
-  - org.openrewrite.maven.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.hamcrest
       artifactId: hamcrest-junit
       version: 2.x
@@ -218,7 +218,7 @@ recipeList:
       runners:
         - org.vertx.testtools.VertxUnitRunner
       extension: org.vertx.testtools.VertxExtension
-  - org.openrewrite.maven.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: io.vertx
       artifactId: vertx-junit5
       version: 4.x

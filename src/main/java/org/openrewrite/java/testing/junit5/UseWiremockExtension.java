@@ -19,9 +19,9 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
+import org.openrewrite.java.dependencies.UpgradeDependencyVersion;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.maven.UpgradeDependencyVersion;
 
 import java.time.Duration;
 import java.util.function.Supplier;

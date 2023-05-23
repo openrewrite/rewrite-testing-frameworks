@@ -24,6 +24,7 @@ import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.dependencies.UpgradeDependencyVersion;
 import org.openrewrite.java.search.FindTypes;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -31,7 +32,6 @@ import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.marker.SearchResult;
-import org.openrewrite.maven.UpgradeDependencyVersion;
 
 import java.time.Duration;
 import java.util.UUID;
