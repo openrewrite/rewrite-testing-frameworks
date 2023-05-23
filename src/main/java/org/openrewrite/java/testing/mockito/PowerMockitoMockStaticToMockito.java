@@ -270,7 +270,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                           JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
                               "mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
                             .javaParser(JavaParser.fromJavaVersion()
-                              .classpathFromResources(ctx, "mockito-core-3.*"))
+                              .classpathFromResources(ctx, "mockito-core-3.12"))
                               .build(),
                           methodBody.getCoordinates().firstStatement(),
                           mockedTypesFieldEntry.getKey(),
@@ -293,7 +293,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                   JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
                       "#{any(org.mockito.MockedStatic)}.closeOnDemand();")
                     .javaParser(() -> JavaParser.fromJavaVersion()
-                      .classpathFromResources(ctx, "mockito-core-3.*")
+                      .classpathFromResources(ctx, "mockito-core-3.12")
                       .build())
                     .build(),
                   methodBody.getCoordinates().lastStatement(),
@@ -368,12 +368,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 setUpMethodAnnotationName = "BeforeEach";
                 tearDownMethodAnnotationName = "AfterEach";
                 annotationPackage = "org.junit.jupiter.api";
-                additionalClasspathResource = "junit-jupiter-api-5.9.2";
+                additionalClasspathResource = "junit-jupiter-api-5.9";
             } else {
                 setUpMethodAnnotationName = "BeforeMethod";
                 tearDownMethodAnnotationName = "AfterMethod";
                 annotationPackage = "org.testng.annotations";
-                additionalClasspathResource = "testng-7.7.1";
+                additionalClasspathResource = "testng-7.7";
                 tearDownMethodAnnotationParameters = "(alwaysRun = true)";
             }
 
@@ -426,7 +426,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     JavaTemplate.builder(() -> getCursor().getParentTreeCursor(),
                         "private MockedStatic<#{}> " + MOCK_PREFIX + "#{};")
                       .javaParser(() -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "mockito-core-3.12.4")
+                        .classpathFromResources(ctx, "mockito-core-3.12")
                         .build())
                       .staticImports("org.mockito.Mockito.mockStatic")
                       .imports(MOCKED_STATIC)

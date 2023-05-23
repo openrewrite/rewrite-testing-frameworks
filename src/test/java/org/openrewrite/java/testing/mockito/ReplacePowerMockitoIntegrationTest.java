@@ -33,13 +33,13 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
             .classpathFromResources(new InMemoryExecutionContext(),
-              "mockito-core-3.12.4",
-              "junit-jupiter-api-5.9.2",
-              "junit-4.13.2",
-              "powermock-core-1.6.5",
-              "powermock-api-mockito-1.6.5",
-              "powermock-api-support-1.6.5",
-              "testng-7.7.1"))
+              "mockito-core-3.12",
+              "junit-jupiter-api-5.9",
+              "junit-4.13",
+              "powermock-core-1.6",
+              "powermock-api-mockito-1.6",
+              "powermock-api-support-1.6",
+              "testng-7.7"))
           // TODO Resolve the missing types in the replacement templates rather than ignore the errors here
           .typeValidationOptions(TypeValidation.builder()
             .identifiers(false)

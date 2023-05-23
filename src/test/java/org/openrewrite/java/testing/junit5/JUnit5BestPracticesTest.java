@@ -32,7 +32,7 @@ class JUnit5BestPracticesTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.+"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing")
             .build()

@@ -32,7 +32,7 @@ class AddMissingNestedTest implements RewriteTest {
         spec.recipe(new AddMissingNested())
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.+"));
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"));
     }
 
     @DocumentExample

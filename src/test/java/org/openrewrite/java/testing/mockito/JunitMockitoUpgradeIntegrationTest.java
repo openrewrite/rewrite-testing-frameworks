@@ -36,7 +36,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockito-all-1.10.19", "junit-4.13.2", "hamcrest-2.2", "junit-jupiter-api-5.9.2"))
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-all-1.10", "junit-4.13", "hamcrest-2.2", "junit-jupiter-api-5.9"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()

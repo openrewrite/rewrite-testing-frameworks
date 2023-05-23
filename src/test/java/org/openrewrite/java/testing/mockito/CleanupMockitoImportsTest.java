@@ -30,7 +30,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockito-all-1.10.19"))
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-all-1.10"))
           .recipe(new CleanupMockitoImports());
     }
 

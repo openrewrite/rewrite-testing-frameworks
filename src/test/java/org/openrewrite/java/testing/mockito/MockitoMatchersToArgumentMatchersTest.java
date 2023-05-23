@@ -30,7 +30,7 @@ class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
     void mockitoAnyListOfToListOf() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12.4"))
+              .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12"))
             .recipe(Environment.builder()
               .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
               .build()

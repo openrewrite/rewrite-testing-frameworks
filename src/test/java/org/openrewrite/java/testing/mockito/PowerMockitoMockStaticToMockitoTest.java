@@ -31,13 +31,13 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
             .classpathFromResources(new InMemoryExecutionContext(),
-              "apiguardian-api-1.1.2",
-              "junit-4.13.2",
-              "junit-jupiter-api-5.9.2",
-              "mockito-core-3.12.4",
-              "powermock-api-mockito-1.6.5",
-              "powermock-core-1.6.5",
-              "testng-7.7.1"
+              "apiguardian-api-1.1",
+              "junit-4.13",
+              "junit-jupiter-api-5.9",
+              "mockito-core-3.12",
+              "powermock-api-mockito-1.6",
+              "powermock-core-1.6",
+              "testng-7.7"
             ))
           .recipe(new PowerMockitoMockStaticToMockito());
     }
