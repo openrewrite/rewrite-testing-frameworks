@@ -19,14 +19,13 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.shaded.jgit.transport.URIish;
-import org.openrewrite.template.SourceTemplate;
 
-import java.util.UUID;
+import java.util.List;
 
 public class MigrateFromHamcrest extends Recipe {
     @Override
@@ -49,22 +48,72 @@ public class MigrateFromHamcrest extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
-            //desired matcher for assertThat
-            MethodMatcher matcherAssertMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
-            //primitive matcher
-            MethodMatcher everythingMatcher = new MethodMatcher("*..* *(..)");
-            //desired matcher for org.hamcrest.Matchers methods, for example equalTo()
-            MethodMatcher matcherMatcher = new MethodMatcher("org.hamcrest.Matchers *(..)");
+            MethodMatcher matcherAssertTrue = new MethodMatcher("org.hamcrest.MatchAssert assertThat(String, boolean)");
+            MethodMatcher matcherAssertMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(*, org.hamcrest.Matcher)");
+            MethodMatcher matcherAssertMatcherWithReason = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(String,*,org.hamcrest.Matcher)");
 
-            //this never gets matched
-            if (matcherAssertMatcher.matches(mi)) {
-                int i = 0; //placeholder
-            }
-            //but neither does this
-            if (everythingMatcher.matches(mi)) {
-                int j = 0; //placeholder
+            if (matcherAssertTrue.matches(mi)) {
+                //TODO simple
+            } else if (matcherAssertMatcher.matches(mi)) {
+                Expression hamcrestMatcher = mi.getArguments().get(1);
+                if (hamcrestMatcher instanceof J.MethodInvocation) {
+                    J.MethodInvocation matcherInvocation = (J.MethodInvocation)hamcrestMatcher;
+                    maybeRemoveImport("org.hamcrest.Matchers." + matcherInvocation.getSimpleName());
+                    maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
+                    String targetAssertion = getTranslatedAssert(matcherInvocation);
+                    JavaTemplate template = JavaTemplate.builder(this::getCursor, getTemplateForTranslatedAssertion(targetAssertion))
+                      .javaParser(JavaParser.fromJavaVersion().classpathFromResources(executionContext, "junit-jupiter-api-5.9"))
+                      .imports("org.junit.jupiter.api.Assertions." + targetAssertion)
+                      .build();
+                    mi = withTemplate(mi, template, mi.getArguments().get(0), stripMatcherInvocation(mi.getArguments().get(1)));
+                    maybeAddImport("org.junit.jupiter.api.Assertions", targetAssertion);
+                }
+                else throw new IllegalArgumentException("Parameter mismatch for " + mi + ".");
             }
             return mi;
+        }
+
+        private J.MethodInvocation withTemplate(J.MethodInvocation method, JavaTemplate template, Expression firstArg, List<Expression> matcherArgs) {
+            switch (matcherArgs.size()) {
+                case 0:
+                    return method.withTemplate(template, method.getCoordinates().replace(), firstArg);
+                case 1:
+                    return method.withTemplate(template, method.getCoordinates().replace(), firstArg, matcherArgs.get(0));
+                case 2 :
+                    return method.withTemplate(template, method.getCoordinates().replace(), firstArg, matcherArgs.get(0), matcherArgs.get(1));
+                case 3 :
+                    return method.withTemplate(template, method.getCoordinates().replace(), firstArg, matcherArgs.get(0), matcherArgs.get(1), matcherArgs.get(2));
+                default:
+                    throw new IllegalArgumentException("List of matcher arguments is too long for " + method + ".");
+            }
+        }
+
+        private List<Expression> stripMatcherInvocation(Expression e) {
+            if (e instanceof J.MethodInvocation) {
+                MethodMatcher matchesMatcher = new MethodMatcher("org.hamcrest.Matchers *(..)");
+                if (matchesMatcher.matches(e)) {
+                    return ((J.MethodInvocation) e).getArguments();
+                }
+            }
+            throw new IllegalArgumentException("Trying to strip an expression which is not a matcher invocation:\n" + e);
+        }
+
+        private String getTranslatedAssert(J.MethodInvocation methodInvocation) {
+            //to be replaced with a static map
+            switch (methodInvocation.getSimpleName()) {
+                case "equalTo":
+                    return "assertEquals";
+            }
+            throw new IllegalArgumentException("Translation of matcher " + methodInvocation.getSimpleName() + " not yet supported.");
+        }
+
+        private String getTemplateForTranslatedAssertion(String translatedAssertion) {
+            //to be replaced with a static map
+            switch (translatedAssertion) {
+                case "assertEquals":
+                    return "assertEquals(#{any()}, #{any()})";
+            }
+            throw new IllegalArgumentException("There is no template defined for assertion " + translatedAssertion);
         }
     }
 }
