@@ -63,7 +63,7 @@ public class MigrateFromHamcrest extends Recipe {
                     String targetAssertion = getTranslatedAssert(matcherInvocation);
                     JavaTemplate template = JavaTemplate.builder(this::getCursor, getTemplateForTranslatedAssertion(targetAssertion))
                       .javaParser(JavaParser.fromJavaVersion().classpathFromResources(executionContext, "junit-jupiter-api-5.9"))
-                      .imports("org.junit.jupiter.api.Assertions." + targetAssertion)
+                      .staticImports("org.junit.jupiter.api.Assertions." + targetAssertion)
                       .build();
                     mi = withTemplate(mi, template, mi.getArguments().get(0), stripMatcherInvocation(mi.getArguments().get(1)));
                     maybeAddImport("org.junit.jupiter.api.Assertions", targetAssertion);
@@ -111,7 +111,7 @@ public class MigrateFromHamcrest extends Recipe {
             //to be replaced with a static map
             switch (translatedAssertion) {
                 case "assertEquals":
-                    return "assertEquals(#{any()}, #{any()})";
+                    return "assertEquals(#{any(java.lang.Object)}, #{any(java.lang.Object)})";
             }
             throw new IllegalArgumentException("There is no template defined for assertion " + translatedAssertion);
         }
