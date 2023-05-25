@@ -38,7 +38,7 @@ public class UseExplicitIsEmpty extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Convert AssertJ `assertThat(collection.isEmpty()).isTrue()` with assertThat(collection).isEmpty() "
+        return "Convert AssertJ `assertThat(collection.isEmpty()).isTrue()` to `assertThat(collection).isEmpty()` "
                 + "and `assertThat(collection.isEmpty()).isFalse()` to `assertThat(collection).isNotEmpty()`.";
     }
 
