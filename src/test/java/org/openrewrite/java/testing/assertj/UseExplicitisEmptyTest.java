@@ -28,7 +28,7 @@ class UseExplicitisEmptyTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("junit", "assertj-core"))
+          .parser(JavaParser.fromJavaVersion().classpath("junit-jupiter-api", "assertj-core"))
           .recipe(new UseExplicitIsEmpty());
     }
 
