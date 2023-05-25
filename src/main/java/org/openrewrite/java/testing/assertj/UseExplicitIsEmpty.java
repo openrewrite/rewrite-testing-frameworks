@@ -30,16 +30,16 @@ import org.openrewrite.java.tree.J.MethodInvocation;
 import java.time.Duration;
 import java.util.function.Supplier;
 
-public class UseExplicitContains extends Recipe {
+public class UseExplicitIsEmpty extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Use AssertJ `contains()` on collections";
+        return "Use AssertJ `isEmpty()` on collections";
     }
 
     @Override
     public String getDescription() {
-        return "Convert AssertJ `assertThat(collection.contains(element)).isTrue()` with assertThat(collection).contains(element) "
-                + "and `assertThat(collection.contains(element)).isFalse()` with assertThat(collection).doesNotContain(element).";
+        return "Convert AssertJ `assertThat(collection.isEmpty()).isTrue()` with assertThat(collection).isEmpty() "
+                + "and `assertThat(collection.isEmpty()).isFalse()` with assertThat(collection).isNotEmpty().";
     }
 
     @Override
@@ -54,15 +54,15 @@ public class UseExplicitContains extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new UseExplicitContainsVisitor();
+        return new UseExplicitContainsIsEmpty();
     }
 
-    public static class UseExplicitContainsVisitor extends JavaIsoVisitor<ExecutionContext> {
+    public static class UseExplicitContainsIsEmpty extends JavaIsoVisitor<ExecutionContext> {
         private Supplier<JavaParser> assertionsParser;
         private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
             if(assertionsParser == null) {
                 assertionsParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24")
+                        .classpathFromResources(ctx, "assertj-core-3.24.2")
                         .build();
             }
             return assertionsParser;
@@ -71,7 +71,7 @@ public class UseExplicitContains extends Recipe {
         private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
         private static final MethodMatcher IS_TRUE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isTrue()");
         private static final MethodMatcher IS_FALSE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isFalse()");
-        private static final MethodMatcher CONTAINS = new MethodMatcher("java.util.Collection contains(..)", true);
+        private static final MethodMatcher IS_EMPTY = new MethodMatcher("java.util.Collection isEmpty()");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
@@ -95,24 +95,22 @@ public class UseExplicitContains extends Recipe {
                 return method;
             }
 
-            J.MethodInvocation contains = (J.MethodInvocation) assertThat.getArguments().get(0);
-            if (!CONTAINS.matches(contains)) {
+            J.MethodInvocation isEmpty = (J.MethodInvocation) assertThat.getArguments().get(0);
+            if (!IS_EMPTY.matches(isEmpty)) {
                 return method;
             }
 
-            Expression list =  contains.getSelect();
-            Expression element = contains.getArguments().get(0);
+            Expression list =  isEmpty.getSelect();
 
-            String template = isTrue ? "assertThat(#{any()}).contains(#{any()});" :
-                "assertThat(#{any()}).doesNotContain(#{any()});";
+            String template = isTrue ? "assertThat(#{any()}).isEmpty();" :
+                "assertThat(#{any()}).isNotEmpty();";
             JavaTemplate builtTemplate = JavaTemplate.builder(this::getCursor, template)
                     .javaParser(assertionsParser(ctx))
                     .build();
             return method.withTemplate(
                     builtTemplate,
                     method.getCoordinates().replace(),
-                    list,
-                    element);
+                    list);
         }
     }
 }
