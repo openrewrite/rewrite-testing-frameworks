@@ -37,7 +37,7 @@ public class UseExplicitSize extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Convert `assertThat(collection.size()).isEqualTo(Y)` with AssertJ's `assertThat(collection).hasSize()`.";
+        return "Convert `assertThat(collection.size()).isEqualTo(Y)` to AssertJ's `assertThat(collection).hasSize()`.";
     }
 
     @Override

@@ -38,8 +38,8 @@ public class UseExplicitContains extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Convert AssertJ `assertThat(collection.contains(element)).isTrue()` with assertThat(collection).contains(element) "
-                + "and `assertThat(collection.contains(element)).isFalse()` with assertThat(collection).doesNotContain(element).";
+        return "Convert AssertJ `assertThat(collection.contains(element)).isTrue()` to `assertThat(collection).contains(element)` "
+                + "and `assertThat(collection.contains(element)).isFalse()` to `assertThat(collection).doesNotContain(element)`.";
     }
 
     @Override
