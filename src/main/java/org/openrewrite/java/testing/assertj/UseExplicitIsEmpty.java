@@ -100,7 +100,7 @@ public class UseExplicitIsEmpty extends Recipe {
                 return method;
             }
 
-            Expression list =  isEmpty.getSelect();
+            Expression collection =  isEmpty.getSelect();
 
             String template = isTrue ? "assertThat(#{any()}).isEmpty();" :
                 "assertThat(#{any()}).isNotEmpty();";
@@ -110,7 +110,7 @@ public class UseExplicitIsEmpty extends Recipe {
             return method.withTemplate(
                     builtTemplate,
                     method.getCoordinates().replace(),
-                    list);
+                    collection);
         }
     }
 }
