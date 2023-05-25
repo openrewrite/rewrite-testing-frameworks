@@ -80,7 +80,6 @@ class UseExplicitisEmptyTest implements RewriteTest {
     }
 
     @Test
-    @DocumentExample
     void IsEmptyAndIsFalseBecomeIsNotEmpty() {
         //language=java
         rewriteRun(
