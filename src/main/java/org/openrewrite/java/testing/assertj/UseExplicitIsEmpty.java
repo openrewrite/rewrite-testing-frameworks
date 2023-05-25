@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2023 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,17 +27,24 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodInvocation;
 
+import java.time.Duration;
 import java.util.function.Supplier;
 
-public class UseExplicitSize extends Recipe {
+public class UseExplicitIsEmpty extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Use AssertJ `hasSize()` on collections";
+        return "Use AssertJ `isEmpty()` on collections";
     }
 
     @Override
     public String getDescription() {
-        return "Convert `assertThat(collection.size()).isEqualTo(Y)` to AssertJ's `assertThat(collection).hasSize()`.";
+        return "Convert AssertJ `assertThat(collection.isEmpty()).isTrue()` to `assertThat(collection).isEmpty()` "
+                + "and `assertThat(collection.isEmpty()).isFalse()` to `assertThat(collection).isNotEmpty()`.";
+    }
+
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
     }
 
     @Override
@@ -47,28 +54,30 @@ public class UseExplicitSize extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new UseExplicitSizeVisitor();
+        return new UseExplicitContainsIsEmpty();
     }
 
-    public static class UseExplicitSizeVisitor extends JavaIsoVisitor<ExecutionContext> {
+    public static class UseExplicitContainsIsEmpty extends JavaIsoVisitor<ExecutionContext> {
         private Supplier<JavaParser> assertionsParser;
         private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
             if(assertionsParser == null) {
                 assertionsParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24")
+                        .classpathFromResources(ctx, "assertj-core-3.24.2")
                         .build();
             }
             return assertionsParser;
         }
 
         private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
-        private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.* isEqualTo(..)");
-        private static final MethodMatcher SIZE = new MethodMatcher("java.util.Collection size(..)", true);
+        private static final MethodMatcher IS_TRUE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isTrue()");
+        private static final MethodMatcher IS_FALSE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isFalse()");
+        private static final MethodMatcher IS_EMPTY = new MethodMatcher("java.util.Collection isEmpty()");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
             J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
-            if (!IS_EQUAL_TO.matches(method)) {
+            boolean isTrue = IS_TRUE.matches(method);
+            if (!isTrue && !IS_FALSE.matches(method)) {
                 return method;
             }
 
@@ -86,23 +95,22 @@ public class UseExplicitSize extends Recipe {
                 return method;
             }
 
-            J.MethodInvocation size = (J.MethodInvocation) assertThat.getArguments().get(0);
-
-            if (!SIZE.matches(size)) {
+            J.MethodInvocation isEmpty = (J.MethodInvocation) assertThat.getArguments().get(0);
+            if (!IS_EMPTY.matches(isEmpty)) {
                 return method;
             }
 
-            Expression list =  size.getSelect();
-            Expression expectedSize = method.getArguments().get(0);
+            Expression collection =  isEmpty.getSelect();
 
-            String template = "assertThat(#{any(java.util.List)}).hasSize(#{any()});";
+            String template = isTrue ? "assertThat(#{any()}).isEmpty();" :
+                "assertThat(#{any()}).isNotEmpty();";
+            JavaTemplate builtTemplate = JavaTemplate.builder(this::getCursor, template)
+                    .javaParser(assertionsParser(ctx))
+                    .build();
             return method.withTemplate(
-                    JavaTemplate.builder(this::getCursor, template)
-                            .javaParser(assertionsParser(ctx))
-                            .build(),
+                    builtTemplate,
                     method.getCoordinates().replace(),
-                    list,
-                    expectedSize);
+                    collection);
         }
     }
 }
