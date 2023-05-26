@@ -25,13 +25,13 @@ import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.dependencies.UpgradeDependencyVersion;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
-import org.openrewrite.maven.UpgradeDependencyVersion;
 
 import java.util.UUID;
 
@@ -80,8 +80,8 @@ public class UpdateMockWebServer extends Recipe {
                     private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                         if (javaParser == null) {
                             javaParser = JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "junit-4.13.2", "junit-jupiter-api-5.9.2", "apiguardian-api-1.1.2",
-                                            "mockwebserver-3.14.9");
+                                    .classpathFromResources(ctx, "junit-4.13", "junit-jupiter-api-5.9", "apiguardian-api-1.1",
+                                            "mockwebserver-3.14");
                         }
                         return javaParser;
                     }

@@ -119,7 +119,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
             // Remove the extension of class PowerMockConfiguration
             cd = removeExtension(cd, POWER_MOCK_CONFIG);
-            // Remove teh extension of class PowerMockTestCase
+            // Remove the extension of class PowerMockTestCase
             cd = removeExtension(cd, POWER_MOCK_TEST_CASE);
 
             if (!mockedStaticClasses.isEmpty()) {
@@ -129,7 +129,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 cd = maybeAddTearDownMethodBody(cd, ctx);
                 cd = addFieldDeclarationForMockedTypes(cd, ctx, mockedStaticClasses);
 
-                // Invoke the vistitors of the child tree a 2nd time to fill the new methods
+                // Invoke the visitors of the child tree a 2nd time to fill the new methods
                 return super.visitClassDeclaration(cd, ctx);
             }
             return cd;
@@ -270,7 +270,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                                 JavaTemplate.builder("mocked#{any(org.mockito.MockedStatic)} = #{any(org.mockito.Mockito)};")
                                         .context(getCursor())
                                         .javaParser(JavaParser.fromJavaVersion()
-                                                .classpathFromResources(ctx, "mockito-core-3.*"))
+                                                .classpathFromResources(ctx, "mockito-core-3.12"))
                                         .build(),
                                 getCursor(),
                                 methodBody.getCoordinates().firstStatement(),
@@ -294,7 +294,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         JavaTemplate.builder("#{any(org.mockito.MockedStatic)}.closeOnDemand();")
                                 .context(getCursor())
                                 .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "mockito-core-3.*"))
+                                        .classpathFromResources(ctx, "mockito-core-3.12"))
                                 .build(),
                         getCursor(),
                         methodBody.getCoordinates().lastStatement(),
@@ -368,12 +368,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 setUpMethodAnnotationName = "BeforeEach";
                 tearDownMethodAnnotationName = "AfterEach";
                 annotationPackage = "org.junit.jupiter.api";
-                additionalClasspathResource = "junit-jupiter-api-5.9.2";
+                additionalClasspathResource = "junit-jupiter-api-5.9";
             } else {
                 setUpMethodAnnotationName = "BeforeMethod";
                 tearDownMethodAnnotationName = "AfterMethod";
                 annotationPackage = "org.testng.annotations";
-                additionalClasspathResource = "testng-7.7.1";
+                additionalClasspathResource = "testng-7.7";
                 tearDownMethodAnnotationParameters = "(alwaysRun = true)";
             }
 
@@ -426,7 +426,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                                 JavaTemplate.builder("private MockedStatic<#{}> " + MOCK_PREFIX + "#{};")
                                         .context(getCursor())
                                         .javaParser(JavaParser.fromJavaVersion()
-                                                .classpathFromResources(ctx, "mockito-core-3.12.4"))
+                                                .classpathFromResources(ctx, "mockito-core-3.12"))
                                         .staticImports("org.mockito.Mockito.mockStatic")
                                         .imports(MOCKED_STATIC)
                                         .build(),

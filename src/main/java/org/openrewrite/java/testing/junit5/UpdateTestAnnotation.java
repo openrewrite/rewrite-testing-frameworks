@@ -59,7 +59,7 @@ public class UpdateTestAnnotation extends Recipe {
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
                 javaParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "apiguardian-api-1.1.2");
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9", "apiguardian-api-1.1");
             }
             return javaParser;
         }
@@ -186,7 +186,7 @@ public class UpdateTestAnnotation extends Recipe {
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {
                     javaParser = JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "apiguardian-api-1.1.2");
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9", "apiguardian-api-1.1");
                 }
                 return javaParser;
             }

@@ -36,7 +36,7 @@ public class UseExplicitSize extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Convert `assertThat(collection.size()).isEqualTo(Y)` with AssertJ's `assertThat(collection).hasSize()`.";
+        return "Convert `assertThat(collection.size()).isEqualTo(Y)` to AssertJ's `assertThat(collection).hasSize()`.";
     }
 
     @Override
@@ -50,7 +50,7 @@ public class UseExplicitSize extends Recipe {
         private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
             if (assertionsParser == null) {
                 assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24.2");
+                        .classpathFromResources(ctx, "assertj-core-3.24");
             }
             return assertionsParser;
         }

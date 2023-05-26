@@ -135,7 +135,7 @@ public class MigrateJUnitTestCase extends Recipe {
             if (FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
                 md = methodDeclaration.withTemplate(JavaTemplate.builder(annotation)
                                 .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2"))
+                                        .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
                                 .imports(fullyQualifiedAnnotation).build(),
                         getCursor(),
                         methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));

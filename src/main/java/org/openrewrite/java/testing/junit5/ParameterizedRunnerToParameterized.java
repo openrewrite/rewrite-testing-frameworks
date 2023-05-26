@@ -181,7 +181,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     "@ParameterizedTest";
 
             JavaParser.Builder<?, ?> javaParserBuilder = JavaParser.fromJavaVersion()
-                    .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "junit-jupiter-params-5.9.2");
+                    .classpathFromResources(ctx, "junit-jupiter-api-5.9", "junit-jupiter-params-5.9");
 
             this.parameterizedTestTemplate = JavaTemplate.builder(parameterizedTestAnnotationTemplate)
                     .javaParser(javaParserBuilder)

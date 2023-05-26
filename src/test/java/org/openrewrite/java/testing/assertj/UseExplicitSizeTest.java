@@ -31,7 +31,7 @@ class UseExplicitSizeTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9+", "assertj-core-3.24+"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "assertj-core-3.24"))
           .recipe(new UseExplicitSize());
     }
 
@@ -83,7 +83,7 @@ class UseExplicitSizeTest implements RewriteTest {
 
 
     @Test
-    void sizeWithoutContainsIsNotAffectected() {
+    void sizeWithoutContainsIsNotAffected() {
         //language=java
         rewriteRun(
           java(

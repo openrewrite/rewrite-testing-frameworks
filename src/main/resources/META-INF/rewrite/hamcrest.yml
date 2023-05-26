@@ -23,7 +23,7 @@ tags:
   - hamcrest
   - junit
 recipeList:
-  - org.openrewrite.maven.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.hamcrest
       artifactId: hamcrest
       version: 2.x

@@ -50,7 +50,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
         private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
             if (assertionsParser == null) {
                 assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24.2");
+                        .classpathFromResources(ctx, "assertj-core-3.24");
             }
             return assertionsParser;
         }

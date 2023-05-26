@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2023 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,24 +28,31 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodInvocation;
 
-public class UseExplicitContains extends Recipe {
+import java.time.Duration;
+
+public class UseExplicitIsEmpty extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Use AssertJ `contains()` on collections";
+        return "Use AssertJ `isEmpty()` on collections";
     }
 
     @Override
     public String getDescription() {
-        return "Convert AssertJ `assertThat(collection.contains(element)).isTrue()` to `assertThat(collection).contains(element)` "
-                + "and `assertThat(collection.contains(element)).isFalse()` to `assertThat(collection).doesNotContain(element)`.";
+        return "Convert AssertJ `assertThat(collection.isEmpty()).isTrue()` to `assertThat(collection).isEmpty()` "
+               + "and `assertThat(collection.isEmpty()).isFalse()` to `assertThat(collection).isNotEmpty()`.";
+    }
+
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.assertj.core.api.Assertions", false), new UseExplicitContainsVisitor());
+        return Preconditions.check(new UsesType<>("org.assertj.core.api.Assertions", false), new UseExplicitContainsIsEmpty());
     }
 
-    public static class UseExplicitContainsVisitor extends JavaIsoVisitor<ExecutionContext> {
+    public static class UseExplicitContainsIsEmpty extends JavaIsoVisitor<ExecutionContext> {
         private JavaParser.Builder<?, ?> assertionsParser;
 
         private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
@@ -59,7 +66,7 @@ public class UseExplicitContains extends Recipe {
         private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
         private static final MethodMatcher IS_TRUE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isTrue()");
         private static final MethodMatcher IS_FALSE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isFalse()");
-        private static final MethodMatcher CONTAINS = new MethodMatcher("java.util.Collection contains(..)", true);
+        private static final MethodMatcher IS_EMPTY = new MethodMatcher("java.util.Collection isEmpty()");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
@@ -83,26 +90,24 @@ public class UseExplicitContains extends Recipe {
                 return method;
             }
 
-            J.MethodInvocation contains = (J.MethodInvocation) assertThat.getArguments().get(0);
-            if (!CONTAINS.matches(contains)) {
+            J.MethodInvocation isEmpty = (J.MethodInvocation) assertThat.getArguments().get(0);
+            if (!IS_EMPTY.matches(isEmpty)) {
                 return method;
             }
 
-            Expression list = contains.getSelect();
-            Expression element = contains.getArguments().get(0);
+            Expression collection = isEmpty.getSelect();
 
-            String template = isTrue ? "assertThat(#{any()}).contains(#{any()});" :
-                    "assertThat(#{any()}).doesNotContain(#{any()});";
+            String template = isTrue ? "assertThat(#{any()}).isEmpty();" :
+                    "assertThat(#{any()}).isNotEmpty();";
             JavaTemplate builtTemplate = JavaTemplate.builder(template)
-                    .context(getCursor())
+                    .context(this::getCursor)
                     .javaParser(assertionsParser(ctx))
                     .build();
             return method.withTemplate(
                     builtTemplate,
                     getCursor(),
                     method.getCoordinates().replace(),
-                    list,
-                    element);
+                    collection);
         }
     }
 }
