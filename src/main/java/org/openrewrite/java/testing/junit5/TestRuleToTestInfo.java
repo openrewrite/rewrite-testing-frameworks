@@ -81,8 +81,8 @@ public class TestRuleToTestInfo extends Recipe {
                     return mi;
                 }
             });
-            doAfterVisit(new ChangeType("org.junit.rules.TestName", "java.lang.String", true));
-            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true));
+            doAfterVisit(new ChangeType("org.junit.rules.TestName", "java.lang.String", true).getVisitor());
+            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true).getVisitor());
             return compilationUnit;
         }
 

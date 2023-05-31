@@ -33,9 +33,11 @@ import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 
+import java.util.List;
 import java.util.UUID;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 /**
  * Recipe for converting JUnit 4 okhttp3 MockWebServer Rules with their JUnit 5 equivalent.
@@ -142,8 +144,6 @@ public class UpdateMockWebServer extends Recipe {
                                 cd = cd.withBody(body);
                             }
                             maybeRemoveImport("org.junit.Rule");
-                            doAfterVisit(new UpgradeDependencyVersion("com.squareup.okhttp3", "mockwebserver", "4.X",
-                                    null, false, emptyList()));
                         }
                         return cd;
                     }
@@ -175,5 +175,11 @@ public class UpdateMockWebServer extends Recipe {
                         return md;
                     }
                 });
+    }
+
+    @Override
+    public List<Recipe> getRecipeList() {
+        return singletonList(new UpgradeDependencyVersion("com.squareup.okhttp3", "mockwebserver", "4.X",
+                null, false, emptyList()));
     }
 }

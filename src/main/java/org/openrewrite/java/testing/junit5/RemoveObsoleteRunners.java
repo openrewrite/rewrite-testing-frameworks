@@ -57,7 +57,7 @@ public class RemoveObsoleteRunners extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             for (String runner : obsoleteRunners) {
                 //noinspection ConstantConditions
-                doAfterVisit(new RemoveAnnotation("@org.junit.runner.RunWith(" + runner + ".class)"));
+                doAfterVisit(new RemoveAnnotation("@org.junit.runner.RunWith(" + runner + ".class)").getVisitor());
                 maybeRemoveImport(runner);
             }
             maybeRemoveImport("org.junit.runner.RunWith");

@@ -24,7 +24,11 @@ import org.openrewrite.java.dependencies.UpgradeDependencyVersion;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
+import java.util.Collections;
+import java.util.List;
+
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 public class UseWiremockExtension extends Recipe {
 
@@ -48,7 +52,7 @@ public class UseWiremockExtension extends Recipe {
             public J preVisit(J tree, ExecutionContext ctx) {
                 if (tree instanceof JavaSourceFile) {
                     doAfterVisit(new ChangeType("com.github.tomakehurst.wiremock.junit.WireMockRule",
-                            "com.github.tomakehurst.wiremock.junit5.WireMockExtension", true));
+                            "com.github.tomakehurst.wiremock.junit5.WireMockExtension", true).getVisitor());
                 }
                 return tree;
             }
@@ -59,8 +63,8 @@ public class UseWiremockExtension extends Recipe {
                 J.NewClass n = (J.NewClass) super.visitNewClass(newClass, ctx);
                 if (newWiremockRule.matches(n)) {
                     maybeAddImport("com.github.tomakehurst.wiremock.junit5.WireMockExtension");
-                    doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true));
-                    doAfterVisit(new UpgradeDependencyVersion("com.github.tomakehurst", "wiremock-jre8", "2.x", null, true, emptyList()));
+                    doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true)
+                            .getVisitor());
 
                     Expression arg = n.getArguments().get(0);
 
@@ -162,5 +166,11 @@ public class UseWiremockExtension extends Recipe {
                 return n;
             }
         });
+    }
+
+    @Override
+    public List<Recipe> getRecipeList() {
+        return singletonList(new UpgradeDependencyVersion("com.github.tomakehurst", "wiremock*",
+                "2.x", null, true, emptyList()));
     }
 }

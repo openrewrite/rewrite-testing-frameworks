@@ -52,10 +52,10 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             //This visitor handles changing the method visibility for any method annotated with one of the four before/after
             //annotations. It registers visitors that will sweep behind it making the type changes.
-            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true));
-            doAfterVisit(new ChangeType("org.junit.After", "org.junit.jupiter.api.AfterEach", true));
-            doAfterVisit(new ChangeType("org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll", true));
-            doAfterVisit(new ChangeType("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll", true));
+            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true).getVisitor());
+            doAfterVisit(new ChangeType("org.junit.After", "org.junit.jupiter.api.AfterEach", true).getVisitor());
+            doAfterVisit(new ChangeType("org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll", true).getVisitor());
+            doAfterVisit(new ChangeType("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll", true).getVisitor());
 
             return super.visitCompilationUnit(cu, ctx);
         }
