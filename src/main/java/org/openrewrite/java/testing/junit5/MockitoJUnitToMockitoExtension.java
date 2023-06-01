@@ -98,18 +98,15 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
 
                 //noinspection DataFlowIssue
                 if (classDecl.getBody().getStatements().size() != cd.getBody().getStatements().size() &&
-                        (FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty() &&
-                                FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty())) {
+                    (FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty() &&
+                     FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty())) {
 
-                    cd = cd.withTemplate(
-                            JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
-                                    .javaParser(JavaParser.fromJavaVersion()
-                                            .classpathFromResources(ctx, "junit-jupiter-api-5.9", "mockito-junit-jupiter-3.12"))
-                                    .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
-                                    .build(),
-                            getCursor(),
-                            cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))
-                    );
+                    cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
+                            .javaParser(JavaParser.fromJavaVersion()
+                                    .classpathFromResources(ctx, "junit-jupiter-api-5.9", "mockito-junit-jupiter-3.12"))
+                            .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
+                            .build()
+                            .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
 
                     maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                     maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
@@ -161,7 +158,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
             }
 
             return TypeUtils.isOfClassType(m.getMethodType().getDeclaringType(), "org.mockito.junit.MockitoRule") ||
-                    TypeUtils.isOfClassType(m.getMethodType().getDeclaringType(), "org.mockito.junit.MockitoTestRule");
+                   TypeUtils.isOfClassType(m.getMethodType().getDeclaringType(), "org.mockito.junit.MockitoTestRule");
         }
 
     }

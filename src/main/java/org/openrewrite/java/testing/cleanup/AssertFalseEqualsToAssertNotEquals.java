@@ -77,14 +77,18 @@ public class AssertFalseEqualsToAssertNotEquals extends Recipe {
                     JavaTemplate t;
                     if (mi.getSelect() == null) {
                         t = JavaTemplate.builder(sb.toString())
-                                .context(getCursor())
-                                .staticImports("org.junit.jupiter.api.Assertions.assertNotEquals").javaParser(javaParser(ctx)).build();
+                                .contextSensitive()
+                                .staticImports("org.junit.jupiter.api.Assertions.assertNotEquals")
+                                .javaParser(javaParser(ctx))
+                                .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
-                                .context(getCursor())
-                                .imports("org.junit.jupiter.api.Assertions").javaParser(javaParser(ctx)).build();
+                                .contextSensitive()
+                                .imports("org.junit.jupiter.api.Assertions")
+                                .javaParser(javaParser(ctx))
+                                .build();
                     }
-                    return mi.withTemplate(t, getCursor(), mi.getCoordinates().replace(), args);
+                    return  t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }

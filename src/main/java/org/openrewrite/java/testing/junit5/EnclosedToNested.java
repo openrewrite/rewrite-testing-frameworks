@@ -77,7 +77,7 @@ public class EnclosedToNested extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             if (hasTestMethods(cd)) {
-                cd = cd.withTemplate(getNestedJavaTemplate(ctx), getCursor(), cd.getCoordinates().addAnnotation(Comparator.comparing(
+                cd = getNestedJavaTemplate(ctx).apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(
                         J.Annotation::getSimpleName)));
                 cd.getModifiers().removeIf(modifier -> modifier.getType().equals(J.Modifier.Type.Static));
             }

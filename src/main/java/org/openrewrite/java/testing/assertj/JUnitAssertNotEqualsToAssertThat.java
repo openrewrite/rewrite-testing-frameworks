@@ -73,17 +73,16 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
             Expression actual = args.get(1);
 
             if (args.size() == 2) {
-                method = method.withTemplate(
-                        JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
-                                .context(getCursor())
-                                .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(assertionsParser(ctx))
-                                .build(),
-                        getCursor(),
-                        method.getCoordinates().replace(),
-                        actual,
-                        expected
-                );
+                method = JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
+                        .staticImports("org.assertj.core.api.Assertions.assertThat")
+                        .javaParser(assertionsParser(ctx))
+                        .build()
+                        .apply(
+                                getCursor(),
+                                method.getCoordinates().replace(),
+                                actual,
+                                expected
+                        );
             } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
                 Expression message = args.get(2);
 
@@ -92,30 +91,29 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotEqualTo(#{any()});");
 
 
-                method = method.withTemplate(template
-                                .context(getCursor())
-                                .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(assertionsParser(ctx))
-                                .build(),
-                        getCursor(),
-                        method.getCoordinates().replace(),
-                        actual,
-                        message,
-                        expected
-                );
+                method = template
+                        .staticImports("org.assertj.core.api.Assertions.assertThat")
+                        .javaParser(assertionsParser(ctx))
+                        .build()
+                        .apply(
+                                getCursor(),
+                                method.getCoordinates().replace(),
+                                actual,
+                                message,
+                                expected
+                        );
             } else if (args.size() == 3) {
-                method = method.withTemplate(
-                        JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
-                                .context(getCursor())
-                                .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .javaParser(assertionsParser(ctx))
-                                .build(),
-                        getCursor(),
-                        method.getCoordinates().replace(),
-                        actual,
-                        expected,
-                        args.get(2)
-                );
+                method = JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
+                        .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
+                        .javaParser(assertionsParser(ctx))
+                        .build()
+                        .apply(
+                                getCursor(),
+                                method.getCoordinates().replace(),
+                                actual,
+                                expected,
+                                args.get(2)
+                        );
                 maybeAddImport("org.assertj.core.api.Assertions", "within");
             } else {
                 Expression message = args.get(3);
@@ -124,18 +122,18 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));") :
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotCloseTo(#{any()}, within(#{any()}));");
 
-                method = method.withTemplate(template
-                                .context(getCursor())
-                                .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                                .javaParser(assertionsParser(ctx))
-                                .build(),
-                        getCursor(),
-                        method.getCoordinates().replace(),
-                        actual,
-                        message,
-                        expected,
-                        args.get(2)
-                );
+                method = template
+                        .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
+                        .javaParser(assertionsParser(ctx))
+                        .build()
+                        .apply(
+                                getCursor(),
+                                method.getCoordinates().replace(),
+                                actual,
+                                message,
+                                expected,
+                                args.get(2)
+                        );
 
                 maybeAddImport("org.assertj.core.api.Assertions", "within");
             }

@@ -44,13 +44,13 @@ class UseExplicitSizeTest implements RewriteTest {
             """
               import java.util.Collection;
               import java.util.ArrayList;
-              
+                            
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               public class MyTest {
-              
+                            
                   @Test
                   public void test() {
                       Collection<String> collection = new ArrayList<>();
@@ -62,13 +62,13 @@ class UseExplicitSizeTest implements RewriteTest {
             """
               import java.util.Collection;
               import java.util.ArrayList;
-              
+                            
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               public class MyTest {
-              
+                            
                   @Test
                   public void test() {
                       Collection<String> collection = new ArrayList<>();
@@ -90,20 +90,21 @@ class UseExplicitSizeTest implements RewriteTest {
             """
               import java.util.Collection;
               import java.util.ArrayList;
-              
+                            
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               public class MyTest {
-              
+                            
                   @Test
                   public void test() {
                       Collection<?> collection = new ArrayList<>();
                       assertThat(collection.isEmpty()).isTrue();
                   }
               }
-              """)
+              """
+          )
         );
     }
 }

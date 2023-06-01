@@ -57,7 +57,6 @@ class UpdateMockWebServerTest implements RewriteTest {
               import java.io.IOException;
               
               class MyTest {
-              
                   public MockWebServer server = new MockWebServer();
               
                   @AfterEach
@@ -95,7 +94,6 @@ class UpdateMockWebServerTest implements RewriteTest {
               import java.io.IOException;
                   
               class MyTest {
-              
                   public MockWebServer server = new MockWebServer();
               
                   @AfterEach

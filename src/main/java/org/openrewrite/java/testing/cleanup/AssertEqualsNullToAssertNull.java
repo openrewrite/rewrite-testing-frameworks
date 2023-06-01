@@ -78,16 +78,16 @@ public class AssertEqualsNullToAssertNull extends Recipe {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertNull");
                         t = JavaTemplate.builder(sb.toString())
-                                .context(getCursor())
+                                .contextSensitive()
                                 .javaParser(javaParser(ctx))
                                 .staticImports("org.junit.jupiter.api.Assertions.assertNull").build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
-                                .context(getCursor())
+                                .contextSensitive()
                                 .javaParser(javaParser(ctx))
                                 .imports("org.junit.jupiter.api.Assertions.assertNull").build();
                     }
-                    return mi.withTemplate(t, getCursor(), mi.getCoordinates().replace(), args);
+                    return t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }

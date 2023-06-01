@@ -101,8 +101,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             J.MethodInvocation expectCauseMethodInvocation = getCursor().pollMessage("expectCauseMethodInvocation");
 
             if (expectMethodInvocation == null &&
-                    expectMessageMethodInvocation == null &&
-                    expectCauseMethodInvocation == null) {
+                expectMessageMethodInvocation == null &&
+                expectCauseMethodInvocation == null) {
                 return m;
             }
 
@@ -154,66 +154,66 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             }
 
             String exceptionDeclParam = ((isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher)
-                    || expectMessageMethodInvocation != null) ?
-                    "Throwable exception =" : "";
+                                         || expectMessageMethodInvocation != null) ?
+                    "Throwable exception = " : "";
 
             Object expectedExceptionParam = (expectMethodInvocation == null || isExpectArgAMatcher) ?
                     "Exception.class" : expectMethodInvocation.getArguments().get(0);
 
-            String templateString = expectedExceptionParam instanceof String ? "#{} assertThrows(#{}, () -> #{});" : "#{} assertThrows(#{any()}, () -> #{});";
+            String templateString = expectedExceptionParam instanceof String ? "#{}assertThrows(#{}, () -> #{});" : "#{}assertThrows(#{any()}, () -> #{});";
 
-            m = m.withTemplate(
-                    JavaTemplate.builder(templateString)
-                            .context(getCursor())
-                            .javaParser(javaParser(ctx))
-                            .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
-                            .build(),
-                    getCursor(),
-                    m.getCoordinates().replaceBody(),
-                    exceptionDeclParam,
-                    expectedExceptionParam,
-                    bodyWithoutExpectedExceptionCalls
-            );
+            m = JavaTemplate.builder(templateString)
+                    .contextSensitive()
+                    .javaParser(javaParser(ctx))
+                    .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
+                    .build()
+                    .apply(
+                            updateCursor(m),
+                            m.getCoordinates().replaceBody(),
+                            exceptionDeclParam,
+                            expectedExceptionParam,
+                            bodyWithoutExpectedExceptionCalls
+                    );
 
             maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
 
             if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
-                m = m.withTemplate(
-                        JavaTemplate.builder("assertTrue(exception.getMessage().contains(#{any(java.lang.String)}));")
-                                .context(getCursor())
-                                .javaParser(javaParser(ctx))
-                                .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
-                                .build(),
-                        getCursor(),
-                        m.getBody().getCoordinates().lastStatement(),
-                        expectMessageMethodInvocation.getArguments().get(0)
-                );
+                m = JavaTemplate.builder("assertTrue(exception.getMessage().contains(#{any(java.lang.String)}));")
+                        .contextSensitive()
+                        .javaParser(javaParser(ctx))
+                        .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
+                        .build()
+                        .apply(
+                                updateCursor(m),
+                                m.getBody().getCoordinates().lastStatement(),
+                                expectMessageMethodInvocation.getArguments().get(0)
+                        );
                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertTrue");
             }
 
             JavaTemplate assertThatTemplate = JavaTemplate.builder("assertThat(#{}, #{any()});")
-                    .context(getCursor())
+                    .contextSensitive()
                     .javaParser(javaParser(ctx))
                     .staticImports("org.hamcrest.MatcherAssert.assertThat")
                     .build();
 
             assert m.getBody() != null;
             if (isExpectArgAMatcher) {
-                m = m.withTemplate(assertThatTemplate, getCursor(), m.getBody().getCoordinates().lastStatement(),
+                m = assertThatTemplate.apply(updateCursor(m), m.getBody().getCoordinates().lastStatement(),
                         "exception", expectMethodInvocation.getArguments().get(0));
                 maybeAddImport("org.hamcrest.MatcherAssert", "assertThat");
             }
 
             assert m.getBody() != null;
             if (isExpectMessageArgAMatcher) {
-                m = m.withTemplate(assertThatTemplate, getCursor(), m.getBody().getCoordinates().lastStatement(),
+                m = assertThatTemplate.apply(updateCursor(m), m.getBody().getCoordinates().lastStatement(),
                         "exception.getMessage()", expectMessageMethodInvocation.getArguments().get(0));
                 maybeAddImport("org.hamcrest.MatcherAssert", "assertThat");
             }
 
             assert m.getBody() != null;
             if (isExpectedCauseArgAMatcher) {
-                m = m.withTemplate(assertThatTemplate, getCursor(), m.getBody().getCoordinates().lastStatement(),
+                m = assertThatTemplate.apply(updateCursor(m), m.getBody().getCoordinates().lastStatement(),
                         "exception.getCause()", expectCauseMethodInvocation.getArguments().get(0));
                 maybeAddImport("org.hamcrest.MatcherAssert", "assertThat");
             }
@@ -246,8 +246,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
             final J.MethodInvocation method = (J.MethodInvocation) j;
             return method.getArguments().size() == 1 &&
-                    method.getMethodType() != null &&
-                    TypeUtils.isOfClassType(method.getMethodType().getDeclaringType(), "org.hamcrest.Matchers");
+                   method.getMethodType() != null &&
+                   TypeUtils.isOfClassType(method.getMethodType().getDeclaringType(), "org.hamcrest.Matchers");
         }
 
         private static boolean isExpectedExceptionMethodInvocation(Statement statement) {

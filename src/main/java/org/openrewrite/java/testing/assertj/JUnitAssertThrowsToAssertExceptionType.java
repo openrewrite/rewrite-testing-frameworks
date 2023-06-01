@@ -63,8 +63,8 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
             if (ASSERT_THROWS_MATCHER.matches(mi)
-                    && mi.getArguments().size() == 2
-                    && getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
+                && mi.getArguments().size() == 2
+                && getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
                 J executable = mi.getArguments().get(1);
                 if (executable instanceof J.Lambda) {
                     executable = ((J.Lambda) executable).withType(THROWING_CALLABLE_TYPE);
@@ -75,15 +75,16 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                 }
 
                 if (executable != null) {
-                    mi = mi.withTemplate(
-                            JavaTemplate
-                                    .builder("assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
-                                    .javaParser(assertionsParser(ctx))
-                                    .staticImports("org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType")
-                                    .build(),
-                            getCursor(),
-                            mi.getCoordinates().replace(),
-                            mi.getArguments().get(0), executable);
+                    mi = JavaTemplate
+                            .builder("assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
+                            .javaParser(assertionsParser(ctx))
+                            .staticImports("org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType")
+                            .build()
+                            .apply(
+                                    getCursor(),
+                                    mi.getCoordinates().replace(),
+                                    mi.getArguments().get(0), executable
+                            );
                     maybeAddImport("org.assertj.core.api.AssertionsForClassTypes", "assertThatExceptionOfType");
                     maybeRemoveImport("org.junit.jupiter.api.Assertions.assertThrows");
                 }

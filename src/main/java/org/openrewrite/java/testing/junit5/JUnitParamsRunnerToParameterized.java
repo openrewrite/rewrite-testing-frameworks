@@ -151,9 +151,9 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         private String getAnnotationArgumentForInitMethod(J.Annotation anno, String... variableNames) {
             String value = null;
             if (anno.getArguments() != null && anno.getArguments().size() == 1
-                    && anno.getArguments().get(0) instanceof J.Assignment
-                    && ((J.Assignment) anno.getArguments().get(0)).getVariable() instanceof J.Identifier
-                    && ((J.Assignment) anno.getArguments().get(0)).getAssignment() instanceof J.Literal) {
+                && anno.getArguments().get(0) instanceof J.Assignment
+                && ((J.Assignment) anno.getArguments().get(0)).getVariable() instanceof J.Identifier
+                && ((J.Assignment) anno.getArguments().get(0)).getAssignment() instanceof J.Literal) {
                 J.Assignment annoArg = (J.Assignment) anno.getArguments().get(0);
                 J.Literal assignment = (J.Literal) annoArg.getAssignment();
                 String identifier = ((J.Identifier) annoArg.getVariable()).getSimpleName();
@@ -250,8 +250,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                 if (TEST_CASE_NAME_MATCHER.matches(anno) || NAMED_PARAMETERS_MATCHER.matches(anno)) {
                     return null;
                 }
-                anno = maybeReplaceTestAnnotation(anno, paramTestName);
-                anno = maybeReplaceParametersAnnotation(anno, method.getSimpleName());
+                anno = maybeReplaceTestAnnotation(new Cursor(getCursor(), anno), paramTestName);
+                anno = maybeReplaceParametersAnnotation(new Cursor(getCursor(), anno), method.getSimpleName());
                 return anno;
             }));
 
@@ -265,30 +265,31 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             return m;
         }
 
-        private J.Annotation maybeReplaceTestAnnotation(J.Annotation anno, @Nullable String parameterizedTestArgument) {
-            if (JUPITER_TEST_ANNOTATION_MATCHER.matches(anno) || JUNIT_TEST_ANNOTATION_MATCHER.matches(anno)) {
+        private J.Annotation maybeReplaceTestAnnotation(Cursor anno, @Nullable String parameterizedTestArgument) {
+            if (JUPITER_TEST_ANNOTATION_MATCHER.matches(anno.getValue()) || JUNIT_TEST_ANNOTATION_MATCHER.matches(anno.getValue())) {
                 if (parameterizedTestArgument == null) {
-                    anno = anno.withTemplate(parameterizedTestTemplate, getCursor(), anno.getCoordinates().replace());
+                    return parameterizedTestTemplate.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace());
                 } else {
-                    anno = anno.withTemplate(parameterizedTestTemplateWithName, getCursor(), anno.getCoordinates().replace(), parameterizedTestArgument);
+                    return parameterizedTestTemplateWithName.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(),
+                            parameterizedTestArgument);
                 }
             }
-            return anno;
+            return anno.getValue();
         }
 
-        private J.Annotation maybeReplaceParametersAnnotation(J.Annotation annotation, String methodName) {
-            if (PARAMETERS_MATCHER.matches(annotation)) {
+        private J.Annotation maybeReplaceParametersAnnotation(Cursor anno, String methodName) {
+            if (PARAMETERS_MATCHER.matches(anno.getValue())) {
                 String initMethodName = junitParamsDefaultInitMethodName(methodName);
                 if (initMethods.contains(initMethodName)) {
-                    annotation = annotation.withTemplate(methodSourceTemplate, getCursor(), annotation.getCoordinates().replace(), "\"" + initMethodName + "\"");
+                    return methodSourceTemplate.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(), "\"" + initMethodName + "\"");
                 } else {
-                    String annotationArg = getAnnotationArgumentValueForMethodTemplate(annotation);
+                    String annotationArg = getAnnotationArgumentValueForMethodTemplate(anno.getValue());
                     if (annotationArg != null) {
-                        annotation = annotation.withTemplate(methodSourceTemplate, getCursor(), annotation.getCoordinates().replace(), annotationArg);
+                        return methodSourceTemplate.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(), annotationArg);
                     }
                 }
             }
-            return annotation;
+            return anno.getValue();
         }
 
         @Nullable
