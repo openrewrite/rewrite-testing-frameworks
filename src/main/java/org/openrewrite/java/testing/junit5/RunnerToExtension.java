@@ -69,6 +69,7 @@ public class RunnerToExtension extends Recipe {
                 Preconditions.or(runners.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new));
         return Preconditions.check(precondition, new JavaIsoVisitor<ExecutionContext>() {
             private final JavaType.Class extensionType = JavaType.ShallowClass.build(extension);
+
             @Nullable
             private JavaTemplate extendsWithTemplate;
 
@@ -78,8 +79,8 @@ public class RunnerToExtension extends Recipe {
                             .javaParser(JavaParser.fromJavaVersion()
                                     .classpathFromResources(ctx, "junit-jupiter-api-5.9")
                                     .dependsOn("package " + extensionType.getPackageName() + ";\n" +
-                                            "import org.junit.jupiter.api.extension.Extension;\n" +
-                                            "public class " + extensionType.getClassName() + " implements Extension {}"))
+                                               "import org.junit.jupiter.api.extension.Extension;\n" +
+                                               "public class " + extensionType.getClassName() + " implements Extension {}"))
                             .imports("org.junit.jupiter.api.extension.ExtendWith",
                                     "org.junit.jupiter.api.extension.Extension",
                                     extension)
@@ -95,10 +96,11 @@ public class RunnerToExtension extends Recipe {
                 for (String runner : runners) {
                     //noinspection ConstantConditions
                     for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                        cd = cd.withTemplate(getExtendsWithTemplate(ctx),
-                                getCursor(),
+                        cd = getExtendsWithTemplate(ctx).apply(
+                                updateCursor(cd),
                                 runWith.getCoordinates().replace(),
-                                extensionType.getClassName());
+                                extensionType.getClassName()
+                        );
                         maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                         maybeAddImport(extension);
                         maybeRemoveImport("org.junit.runner.RunWith");
@@ -115,10 +117,11 @@ public class RunnerToExtension extends Recipe {
 
                 for (String runner : runners) {
                     for (J.Annotation runWith : FindAnnotations.find(method.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                        md = md.withTemplate(getExtendsWithTemplate(ctx),
-                                getCursor(),
+                        md = getExtendsWithTemplate(ctx).apply(
+                                updateCursor(md),
                                 runWith.getCoordinates().replace(),
-                                extensionType.getClassName());
+                                extensionType.getClassName()
+                        );
                         maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                         maybeAddImport(extension);
                         maybeRemoveImport("org.junit.runner.RunWith");

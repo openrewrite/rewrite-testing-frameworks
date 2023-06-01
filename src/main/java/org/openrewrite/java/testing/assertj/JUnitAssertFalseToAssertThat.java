@@ -70,30 +70,31 @@ public class JUnitAssertFalseToAssertThat extends Recipe {
             Expression actual = args.get(0);
 
             if (args.size() == 1) {
-                method = method.withTemplate(
-                        JavaTemplate.builder("assertThat(#{any(boolean)}).isFalse();")
-                                .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(assertionsParser(ctx))
-                                .build(),
-                        getCursor(),
-                        method.getCoordinates().replace(),
-                        actual
-                );
+                method = JavaTemplate.builder("assertThat(#{any(boolean)}).isFalse();")
+                        .staticImports("org.assertj.core.api.Assertions.assertThat")
+                        .javaParser(assertionsParser(ctx))
+                        .build()
+                        .apply(
+                                getCursor(),
+                                method.getCoordinates().replace(),
+                                actual
+                        );
             } else {
                 Expression message = args.get(1);
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                         JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(String)}).isFalse();") :
                         JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(java.util.function.Supplier)}).isFalse();");
 
-                method = method.withTemplate(template
-                                .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(assertionsParser(ctx))
-                                .build(),
-                        getCursor(),
-                        method.getCoordinates().replace(),
-                        actual,
-                        message
-                );
+                method = template
+                        .staticImports("org.assertj.core.api.Assertions.assertThat")
+                        .javaParser(assertionsParser(ctx))
+                        .build()
+                        .apply(
+                                getCursor(),
+                                method.getCoordinates().replace(),
+                                actual,
+                                message
+                        );
             }
 
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");

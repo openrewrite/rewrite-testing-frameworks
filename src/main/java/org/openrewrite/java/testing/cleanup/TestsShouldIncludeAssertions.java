@@ -119,22 +119,20 @@ public class TestsShouldIncludeAssertions extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext
                 ctx) {
             if ((!methodIsTest(method) || method.getBody() == null) ||
-                    methodHasAssertion(method.getBody()) ||
-                    methodInvocationInBodyContainsAssertion()) {
+                methodHasAssertion(method.getBody()) ||
+                methodInvocationInBodyContainsAssertion()) {
                 return method;
             }
 
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
             J.Block body = md.getBody();
             if (body != null) {
-                md = method.withTemplate(JavaTemplate.builder("assertDoesNotThrow(() -> #{any()});")
-                                .context(getCursor())
-                                .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
-                                .javaParser(javaParser(ctx)).build(),
-                        getCursor(),
-                        method.getCoordinates().replaceBody(),
-                        body);
                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
+                md = JavaTemplate.builder("assertDoesNotThrow(() -> #{any()});")
+                        .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
+                        .javaParser(javaParser(ctx))
+                        .build()
+                        .apply(updateCursor(md), md.getCoordinates().replaceBody(), body);
             }
             return md;
         }

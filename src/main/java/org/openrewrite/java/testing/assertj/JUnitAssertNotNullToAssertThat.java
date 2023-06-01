@@ -70,16 +70,15 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
             Expression actual = args.get(0);
 
             if (args.size() == 1) {
-                method = method.withTemplate(
-                        JavaTemplate.builder("assertThat(#{any()}).isNotNull();")
-                                .context(getCursor())
-                                .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(assertionsParser(ctx))
-                                .build(),
-                        getCursor(),
-                        method.getCoordinates().replace(),
-                        actual
-                );
+                method = JavaTemplate.builder("assertThat(#{any()}).isNotNull();")
+                        .staticImports("org.assertj.core.api.Assertions.assertThat")
+                        .javaParser(assertionsParser(ctx))
+                        .build()
+                        .apply(
+                                getCursor(),
+                                method.getCoordinates().replace(),
+                                actual
+                        );
 
             } else {
                 Expression message = args.get(1);
@@ -88,16 +87,16 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotNull();") :
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotNull();");
 
-                method = method.withTemplate(template
-                                .context(getCursor())
-                                .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(assertionsParser(ctx))
-                                .build(),
-                        getCursor(),
-                        method.getCoordinates().replace(),
-                        actual,
-                        message
-                );
+                method = template
+                        .staticImports("org.assertj.core.api.Assertions.assertThat")
+                        .javaParser(assertionsParser(ctx))
+                        .build()
+                        .apply(
+                                getCursor(),
+                                method.getCoordinates().replace(),
+                                actual,
+                                message
+                        );
             }
 
             maybeRemoveImport("org.junit.jupiter.api.Assertions");

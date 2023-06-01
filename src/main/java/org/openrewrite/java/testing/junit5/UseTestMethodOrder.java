@@ -31,7 +31,6 @@ import java.util.Set;
 
 public class UseTestMethodOrder extends Recipe {
 
-
     @Override
     public String getDisplayName() {
         return "Migrate from JUnit 4 `@FixedMethodOrder` to JUnit 5 `@TestMethodOrder`";
@@ -39,7 +38,7 @@ public class UseTestMethodOrder extends Recipe {
 
     @Override
     public String getDescription() {
-        return "JUnit optionally allows test method execution order to be specified. This Recipe replaces JUnit 4 test execution ordering annotations with JUnit 5 replacements.";
+        return "JUnit optionally allows test method execution order to be specified. This replaces JUnit 4 test execution ordering annotations with JUnit 5 replacements.";
     }
 
     @Override
@@ -59,25 +58,26 @@ public class UseTestMethodOrder extends Recipe {
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                J.ClassDeclaration c = classDecl;
+                J.ClassDeclaration cd = classDecl;
 
                 //noinspection DataFlowIssue
-                Set<J.Annotation> methodOrders = FindAnnotations.find(c.withBody(null), "@org.junit.FixMethodOrder");
+                Set<J.Annotation> methodOrders = FindAnnotations.find(cd.withBody(null), "@org.junit.FixMethodOrder");
 
                 if (!methodOrders.isEmpty()) {
                     maybeAddImport("org.junit.jupiter.api.TestMethodOrder");
                     maybeRemoveImport("org.junit.FixMethodOrder");
                     maybeRemoveImport("org.junit.runners.MethodSorters");
 
-                    c = c.withTemplate(JavaTemplate.builder("@TestMethodOrder(MethodName.class)")
+                    cd = JavaTemplate.builder("@TestMethodOrder(MethodName.class)")
                             .javaParser(javaParser(ctx))
                             .imports("org.junit.jupiter.api.TestMethodOrder",
                                     "org.junit.jupiter.api.MethodOrderer.*")
-                            .build(), getCursor(), methodOrders.iterator().next().getCoordinates().replace());
+                            .build()
+                            .apply(getCursor(), methodOrders.iterator().next().getCoordinates().replace());
                     maybeAddImport("org.junit.jupiter.api.MethodOrderer.MethodName");
                 }
 
-                return super.visitClassDeclaration(c, ctx);
+                return super.visitClassDeclaration(cd, ctx);
             }
         });
     }

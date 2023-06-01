@@ -88,7 +88,7 @@ public class AddMissingNested extends Recipe {
             boolean alreadyNested = classDecl.getLeadingAnnotations().stream()
                     .anyMatch(a -> TypeUtils.isOfClassType(a.getType(), NESTED));
             if (!alreadyNested && hasTestMethods(cd)) {
-                cd = cd.withTemplate(getNestedJavaTemplate(ctx), getCursor(),
+                cd = getNestedJavaTemplate(ctx).apply(updateCursor(cd),
                         cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 cd.getModifiers().removeIf(modifier -> modifier.getType().equals(J.Modifier.Type.Static));
             }

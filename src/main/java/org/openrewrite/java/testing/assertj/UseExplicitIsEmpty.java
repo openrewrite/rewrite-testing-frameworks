@@ -31,6 +31,11 @@ import org.openrewrite.java.tree.J.MethodInvocation;
 import java.time.Duration;
 
 public class UseExplicitIsEmpty extends Recipe {
+    private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
+    private static final MethodMatcher IS_TRUE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isTrue()");
+    private static final MethodMatcher IS_FALSE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isFalse()");
+    private static final MethodMatcher IS_EMPTY = new MethodMatcher("java.util.Collection isEmpty()");
+
     @Override
     public String getDisplayName() {
         return "Use AssertJ `isEmpty()` on collections";
@@ -49,65 +54,46 @@ public class UseExplicitIsEmpty extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.assertj.core.api.Assertions", false), new UseExplicitContainsIsEmpty());
-    }
+        return Preconditions.check(new UsesType<>("org.assertj.core.api.Assertions", false), new JavaIsoVisitor<ExecutionContext>() {
 
-    public static class UseExplicitContainsIsEmpty extends JavaIsoVisitor<ExecutionContext> {
-        private JavaParser.Builder<?, ?> assertionsParser;
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
+                J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
+                boolean isTrue = IS_TRUE.matches(method);
+                if (!isTrue && !IS_FALSE.matches(method)) {
+                    return method;
+                }
 
-        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
-            if (assertionsParser == null) {
-                assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24");
+                if (!(method.getSelect() instanceof J.MethodInvocation)) {
+                    return method;
+                }
+
+                if (!ASSERT_THAT.matches((J.MethodInvocation) method.getSelect())) {
+                    return method;
+                }
+
+                J.MethodInvocation assertThat = (MethodInvocation) method.getSelect();
+
+                if (!(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
+                    return method;
+                }
+
+                J.MethodInvocation isEmpty = (J.MethodInvocation) assertThat.getArguments().get(0);
+                if (!IS_EMPTY.matches(isEmpty)) {
+                    return method;
+                }
+
+                Expression collection = isEmpty.getSelect();
+
+                String template = isTrue ?
+                        "assertThat(#{any()}).isEmpty();" :
+                        "assertThat(#{any()}).isNotEmpty();";
+                return JavaTemplate.builder(template)
+                        .contextSensitive()
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .build()
+                        .apply(updateCursor(method), method.getCoordinates().replace(), collection);
             }
-            return assertionsParser;
-        }
-
-        private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
-        private static final MethodMatcher IS_TRUE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isTrue()");
-        private static final MethodMatcher IS_FALSE = new MethodMatcher("org.assertj.core.api.AbstractBooleanAssert isFalse()");
-        private static final MethodMatcher IS_EMPTY = new MethodMatcher("java.util.Collection isEmpty()");
-
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
-            J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
-            boolean isTrue = IS_TRUE.matches(method);
-            if (!isTrue && !IS_FALSE.matches(method)) {
-                return method;
-            }
-
-            if (!(method.getSelect() instanceof J.MethodInvocation)) {
-                return method;
-            }
-
-            if (!ASSERT_THAT.matches((J.MethodInvocation) method.getSelect())) {
-                return method;
-            }
-
-            J.MethodInvocation assertThat = (MethodInvocation) method.getSelect();
-
-            if (!(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
-                return method;
-            }
-
-            J.MethodInvocation isEmpty = (J.MethodInvocation) assertThat.getArguments().get(0);
-            if (!IS_EMPTY.matches(isEmpty)) {
-                return method;
-            }
-
-            Expression collection = isEmpty.getSelect();
-
-            String template = isTrue ? "assertThat(#{any()}).isEmpty();" :
-                    "assertThat(#{any()}).isNotEmpty();";
-            JavaTemplate builtTemplate = JavaTemplate.builder(template)
-                    .context(this::getCursor)
-                    .javaParser(assertionsParser(ctx))
-                    .build();
-            return method.withTemplate(
-                    builtTemplate,
-                    getCursor(),
-                    method.getCoordinates().replace(),
-                    collection);
-        }
+        });
     }
 }

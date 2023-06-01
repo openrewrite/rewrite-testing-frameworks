@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
@@ -124,10 +121,14 @@ public class UpdateTestAnnotation extends Recipe {
                             .visitNonNull(m, ctx, getCursor().getParentOrThrow());
                 }
                 if (cta.expectedException != null) {
-                    m = m.withTemplate(JavaTemplate.builder("Object o = () -> #{}").context(getCursor()).build(),
-                            getCursor(),
-                            m.getCoordinates().replaceBody(),
-                            m.getBody());
+                    m = JavaTemplate.builder("Object o = () -> #{}")
+                            .contextSensitive()
+                            .build()
+                            .apply(
+                                    updateCursor(m),
+                                    m.getCoordinates().replaceBody(),
+                                    m.getBody()
+                            );
 
                     assert m.getBody() != null;
                     J.Lambda lambda = (J.Lambda) ((J.VariableDeclarations) m.getBody().getStatements().get(0))
@@ -137,32 +138,32 @@ public class UpdateTestAnnotation extends Recipe {
                     lambda = lambda.withType(JavaType.ShallowClass.build("org.junit.jupiter.api.function.Executable"));
 
                     if (cta.expectedException instanceof J.FieldAccess
-                            && TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
-                        m = m.withTemplate(JavaTemplate.builder("assertDoesNotThrow(#{any(org.junit.jupiter.api.function.Executable)});")
-//                                        .context(getCursor())
-                                        .javaParser(javaParser(ctx))
-                                        .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
-                                        .build(),
-                                getCursor(), m.getCoordinates().replaceBody(), lambda);
+                        && TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
+                        m = JavaTemplate.builder("assertDoesNotThrow(#{any(org.junit.jupiter.api.function.Executable)});")
+                                .javaParser(javaParser(ctx))
+                                .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
+                                .build()
+                                .apply(updateCursor(m), m.getCoordinates().replaceBody(), lambda);
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
                     } else {
-                        m = m.withTemplate(JavaTemplate.builder("assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
-//                                        .context(getCursor())
-                                        .javaParser(javaParser(ctx))
-                                        .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
-                                        .build(),
-                                getCursor(), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
+                        m = JavaTemplate.builder("assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
+                                .javaParser(javaParser(ctx))
+                                .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
+                                .build()
+                                .apply(updateCursor(m), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                     }
                 }
                 if (cta.timeout != null) {
-                    m = m.withTemplate(
-                            JavaTemplate.builder("@Timeout(#{any(long)})")
-                                    .javaParser(javaParser(ctx))
-                                    .imports("org.junit.jupiter.api.Timeout")
-                                    .build(),
-                            getCursor(), m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
-                            cta.timeout);
+                    m = JavaTemplate.builder("@Timeout(#{any(long)})")
+                            .javaParser(javaParser(ctx))
+                            .imports("org.junit.jupiter.api.Timeout")
+                            .build()
+                            .apply(
+                                    updateCursor(m),
+                                    m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
+                                    cta.timeout
+                            );
                     maybeAddImport("org.junit.jupiter.api.Timeout");
                 }
                 maybeAddImport("org.junit.jupiter.api.Test");
@@ -210,16 +211,14 @@ public class UpdateTestAnnotation extends Recipe {
                             } else if ("timeout".equals(assignParamName)) {
                                 timeout = e;
                             }
-
                         }
                     }
 
                     if (a.getAnnotationType() instanceof J.FieldAccess) {
-                        a = a.withTemplate(JavaTemplate.builder("@org.junit.jupiter.api.Test")
-                                        .javaParser(javaParser(ctx))
-                                        .build(),
-                                getCursor(),
-                                a.getCoordinates().replace());
+                        a = JavaTemplate.builder("@org.junit.jupiter.api.Test")
+                                .javaParser(javaParser(ctx))
+                                .build()
+                                .apply(getCursor(), a.getCoordinates().replace());
                     } else {
                         a = a.withArguments(null)
                                 .withType(JavaType.ShallowClass.build("org.junit.jupiter.api.Test"));

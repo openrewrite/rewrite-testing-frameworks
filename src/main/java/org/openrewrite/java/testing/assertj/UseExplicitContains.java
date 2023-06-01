@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -37,7 +38,7 @@ public class UseExplicitContains extends Recipe {
     @Override
     public String getDescription() {
         return "Convert AssertJ `assertThat(collection.contains(element)).isTrue()` to `assertThat(collection).contains(element)` "
-                + "and `assertThat(collection.contains(element)).isFalse()` to `assertThat(collection).doesNotContain(element)`.";
+               + "and `assertThat(collection.contains(element)).isFalse()` to `assertThat(collection).doesNotContain(element)`.";
     }
 
     @Override
@@ -64,6 +65,7 @@ public class UseExplicitContains extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
             J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
+
             boolean isTrue = IS_TRUE.matches(method);
             if (!isTrue && !IS_FALSE.matches(method)) {
                 return method;
@@ -91,18 +93,15 @@ public class UseExplicitContains extends Recipe {
             Expression list = contains.getSelect();
             Expression element = contains.getArguments().get(0);
 
-            String template = isTrue ? "assertThat(#{any()}).contains(#{any()});" :
+            String template = isTrue ?
+                    "assertThat(#{any()}).contains(#{any()});" :
                     "assertThat(#{any()}).doesNotContain(#{any()});";
-            JavaTemplate builtTemplate = JavaTemplate.builder(template)
-                    .context(getCursor())
+
+            return JavaTemplate.builder(template)
+                    .contextSensitive()
                     .javaParser(assertionsParser(ctx))
-                    .build();
-            return method.withTemplate(
-                    builtTemplate,
-                    getCursor(),
-                    method.getCoordinates().replace(),
-                    list,
-                    element);
+                    .build()
+                    .apply(updateCursor(method), method.getCoordinates().replace(), list, element);
         }
     }
 }

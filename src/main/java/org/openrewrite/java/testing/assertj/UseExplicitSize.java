@@ -29,6 +29,10 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodInvocation;
 
 public class UseExplicitSize extends Recipe {
+    private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
+    private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.* isEqualTo(..)");
+    private static final MethodMatcher SIZE = new MethodMatcher("java.util.Collection size(..)", true);
+
     @Override
     public String getDisplayName() {
         return "Use AssertJ `hasSize()` on collections";
@@ -41,64 +45,48 @@ public class UseExplicitSize extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.assertj.core.api.Assertions", false), new UseExplicitSizeVisitor());
-    }
+        return Preconditions.check(new UsesType<>("org.assertj.core.api.Assertions", false), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
+                J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
+                if (!IS_EQUAL_TO.matches(method)) {
+                    return method;
+                }
 
-    public static class UseExplicitSizeVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private JavaParser.Builder<?, ?> assertionsParser;
+                if (!(method.getSelect() instanceof J.MethodInvocation)) {
+                    return method;
+                }
 
-        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
-            if (assertionsParser == null) {
-                assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24");
+                if (!ASSERT_THAT.matches((J.MethodInvocation) method.getSelect())) {
+                    return method;
+                }
+
+                J.MethodInvocation assertThat = (MethodInvocation) method.getSelect();
+
+                if (!(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
+                    return method;
+                }
+
+                J.MethodInvocation size = (J.MethodInvocation) assertThat.getArguments().get(0);
+
+                if (!SIZE.matches(size)) {
+                    return method;
+                }
+
+                Expression list = size.getSelect();
+                Expression expectedSize = method.getArguments().get(0);
+
+                return JavaTemplate.builder("assertThat(#{any(java.util.List)}).hasSize(#{any()});")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .staticImports("org.assertj.core.api.Assertions.assertThat")
+                        .build()
+                        .apply(
+                                updateCursor(method),
+                                method.getCoordinates().replace(),
+                                list,
+                                expectedSize
+                        );
             }
-            return assertionsParser;
-        }
-
-        private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
-        private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.* isEqualTo(..)");
-        private static final MethodMatcher SIZE = new MethodMatcher("java.util.Collection size(..)", true);
-
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
-            J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
-            if (!IS_EQUAL_TO.matches(method)) {
-                return method;
-            }
-
-            if (!(method.getSelect() instanceof J.MethodInvocation)) {
-                return method;
-            }
-
-            if (!ASSERT_THAT.matches((J.MethodInvocation) method.getSelect())) {
-                return method;
-            }
-
-            J.MethodInvocation assertThat = (MethodInvocation) method.getSelect();
-
-            if (!(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
-                return method;
-            }
-
-            J.MethodInvocation size = (J.MethodInvocation) assertThat.getArguments().get(0);
-
-            if (!SIZE.matches(size)) {
-                return method;
-            }
-
-            Expression list = size.getSelect();
-            Expression expectedSize = method.getArguments().get(0);
-
-            String template = "assertThat(#{any(java.util.List)}).hasSize(#{any()});";
-            return method.withTemplate(
-                    JavaTemplate.builder(template)
-                            .context(getCursor())
-                            .javaParser(assertionsParser(ctx))
-                            .build(),
-                    getCursor(),
-                    method.getCoordinates().replace(),
-                    list,
-                    expectedSize);
-        }
+        });
     }
 }

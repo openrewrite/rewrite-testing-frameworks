@@ -84,7 +84,7 @@ public class MigrateJUnitTestCase extends Recipe {
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if ((mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase"))
-                                || (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"))) {
+                            || (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"))) {
                             String name = mi.getSimpleName();
                             // setUp and tearDown will be invoked via Before and After annotations
                             if ("setUp".equals(name) || "tearDown".equals(name)) {
@@ -120,6 +120,7 @@ public class MigrateJUnitTestCase extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
+            updateCursor(md);
             if (md.getSimpleName().startsWith("test") && md.getLeadingAnnotations().stream().noneMatch(JUNIT_TEST_ANNOTATION_MATCHER::matches)) {
                 md = updateMethodDeclarationAnnotationAndModifier(md, "@Test", "org.junit.jupiter.api.Test", ctx);
             } else if ("setUp".equals(md.getSimpleName())) {
@@ -133,12 +134,11 @@ public class MigrateJUnitTestCase extends Recipe {
         private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation, ExecutionContext ctx) {
             J.MethodDeclaration md = methodDeclaration;
             if (FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
-                md = methodDeclaration.withTemplate(JavaTemplate.builder(annotation)
-                                .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
-                                .imports(fullyQualifiedAnnotation).build(),
-                        getCursor(),
-                        methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                md = JavaTemplate.builder(annotation)
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                        .imports(fullyQualifiedAnnotation).build()
+                        .apply(getCursor(), methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 md = maybeAddPublicModifier(md);
                 md = maybeRemoveOverrideAnnotation(md);
                 maybeAddImport(fullyQualifiedAnnotation);
