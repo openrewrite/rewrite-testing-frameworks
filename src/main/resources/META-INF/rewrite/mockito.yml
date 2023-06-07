@@ -145,9 +145,6 @@ description: Since Mockito 2.10 `any(Class)` and `anyString()` no longer match n
 tags:
   - testing
   - mockito
-applicability:
-  anySource:
-    - org.openrewrite.java.testing.mockito.UsesMockitoAll
 recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.Mockito any(java.lang.Class)
