@@ -48,11 +48,18 @@ public class AddParameterizedTestAnnotation extends Recipe {
                     if (foundTestAnnotation) {
                         // replace @Test with @ParameterizedTest
                         System.out.println("REPLACING");
-                        //JavaTemplate test = JavaTemplate.builder("@ParameterizedTest").build();
-                        //test.apply(getCursor(), annotation.getCoordinates().replace(), annotation);
+                        JavaTemplate replaceTemplate = JavaTemplate.builder("@ParameterizedTest").build();
+                        replaceTemplate.apply(getCursor(), annotation.getCoordinates().replace(), annotation);
                     }else {
                         // add @ParameterizedTest
                         System.out.println("ADDING");
+                        maybeAddImport("@org.junit.jupiter.params.ParameterizedTest");
+                        //return JavaTemplate.builder("@ParameterizedTest")
+                        //        .imports("@org.junit.jupiter.params.ParameterizedTest")
+                        //        .build().apply(
+                        //                getCursor(),
+                        //                annotation.getCoordinates().addAnnotation(annotation)
+                        //        );
                     }
                 }
 
