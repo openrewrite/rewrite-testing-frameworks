@@ -14,7 +14,7 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
           .recipe(new AddParameterizedTestAnnotation());
     }
 
@@ -58,34 +58,50 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
         This test ensures that the recipe will only run on code that includes a
         @ValueSource(...) annotation.
          */
+        //language=java
         rewriteRun(
           java(
             """
-              @Test
-              void testIsOdd(int number) {
-                assertTrue(number % 2 != 0);
+              import org.junit.jupiter.api.Test;
+              
+              class NumbersTest {
+                @Test
+                void testIsOdd(int number) {
+                  assertTrue(number % 2 != 0);
+                }
               }
-              """
+             """
           )
         );
     }
 
     @Test
     void replacesCsvSource() {
+        //language=java
         rewriteRun(
           java(
             """
-              @Test
-              @CsvSource({"test@test.com"})
-              void processUserData(String email) {
-                System.out.println(email);
+              import org.junit.jupiter.params.provider.CsvSource;
+              import org.junit.jupiter.api.Test;
+              
+              class TestClass {
+                @Test
+                @CsvSource({"test@test.com"})
+                void processUserData(String email) {
+                  System.out.println(email);
+                }
               }
-              """,
+             """,
             """
-              @ParameterizedTest
-              @CsvSource({"test@test.com"})
-              void processUserData(String email) {
-                System.out.println(email);
+              import org.junit.jupiter.params.provider.CsvSource;
+              import org.junit.jupiter.params.ParameterizedTest;
+              
+              class TestClass {
+                @ParameterizedTest
+                @CsvSource({"test@test.com"})
+                void processUserData(String email) {
+                  System.out.println(email);
+                }
               }
               """
           )
@@ -94,22 +110,64 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
 
     @Test
     void replacesMethodSource() {
+        //language=java
         rewriteRun(
           java(
             """
-              @Test
-              @MethodSource()
-              void foo() {
-                System.out.println("bar");
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.params.provider.MethodSource;
+              
+              class TestClass {
+                @Test
+                @MethodSource()
+                void foo() {
+                  System.out.println("bar");
+                }
               }
-              """,
+             """,
             """
-              @ParameterizedTest
-              @MethodSource()
-              void foo() {
-                System.out.println("bar");
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+              
+              class TestClass {
+                @ParameterizedTest
+                @MethodSource("someMethod")
+                void foo() {
+                  System.out.println("bar");
+                }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void addMissingAnnotation() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+             import org.junit.jupiter.params.provider.ValueSource;
+             
+             class TestClass {
+                @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
+                void testIsOdd(int number) {
+                    assertTrue(number % 2 != 0);
+                }
+             }
+             """,
+            """
+             import org.junit.jupiter.params.provider.ValueSource;
+             import org.junit.jupiter.params.ParameterizedTest;
+             
+             class TestClass {
+                @ParameterizedTest
+                @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
+                void testIsOdd(int number) {
+                    assertTrue(number % 2 != 0);
+                }
+             }
+             """
           )
         );
     }
