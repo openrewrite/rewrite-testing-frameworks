@@ -14,7 +14,7 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.+"))
           .recipe(new AddParameterizedTestAnnotation());
     }
 
@@ -66,8 +66,8 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
               
               class NumbersTest {
                 @Test
-                void testIsOdd(int number) {
-                  assertTrue(number % 2 != 0);
+                void printMessage() {
+                    System.out.println("message");
                 }
               }
              """
@@ -128,12 +128,17 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
+              import java.util.stream.Stream;
               
               class TestClass {
                 @ParameterizedTest
                 @MethodSource("someMethod")
                 void foo() {
                   System.out.println("bar");
+                }
+                
+                static Stream<String> someMethod() {
+                    return Stream.of("data1", "data2", "data3");
                 }
               }
               """

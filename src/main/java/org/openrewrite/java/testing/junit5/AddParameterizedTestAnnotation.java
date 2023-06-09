@@ -1,6 +1,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaParser;
@@ -42,7 +43,8 @@ public class AddParameterizedTestAnnotation extends Recipe {
                    maybeRemoveImport("org.junit.jupiter.api.Test");
                    maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
                    return JavaTemplate.builder("@ParameterizedTest")
-                           .javaParser(JavaParser.fromJavaVersion())
+                           .javaParser(JavaParser.fromJavaVersion()
+                                   .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.+"))
                            .build()
                            .apply(getCursor(), firstAnn.getCoordinates().replace());
                 }else if (firstAnn.getArguments() != null && annotations.size() == 1) {
