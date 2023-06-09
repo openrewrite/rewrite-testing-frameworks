@@ -1,6 +1,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -20,9 +21,10 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/314")
     @Test
+    @DocumentExample
     void replaceTestWithParameterizedTest() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -53,13 +55,46 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
     }
 
     @Test
+    void replaceTestWithParameterizedTestRegardlessOfOrder() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.params.provider.ValueSource;
+              
+              class NumbersTest {
+                @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
+                @Test
+                void testIsOdd(int number) {
+                    assertTrue(number % 2 != 0);
+                }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.ValueSource;
+              
+              class NumbersTest {
+                @ParameterizedTest
+                @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
+                void testIsOdd(int number) {
+                    assertTrue(number % 2 != 0);
+                }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void onlyReplacesWithValueSourceAnnotation() {
         /*
         This test ensures that the recipe will only run on code that includes a
         @ValueSource(...) annotation.
          */
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -77,8 +112,8 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
 
     @Test
     void replacesCsvSource() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.params.provider.CsvSource;
@@ -110,8 +145,8 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
 
     @Test
     void replacesMethodSource() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -148,8 +183,8 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
 
     @Test
     void addMissingAnnotation() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
              import org.junit.jupiter.params.provider.ValueSource;
