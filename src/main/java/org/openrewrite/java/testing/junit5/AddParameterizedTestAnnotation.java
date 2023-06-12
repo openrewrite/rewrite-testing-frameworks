@@ -29,6 +29,7 @@ public class AddParameterizedTestAnnotation extends Recipe {
     @Override
     public JavaIsoVisitor<ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
+            // checks if annotations matches ValueSource, CsvSource or MethodSource
             public boolean checkForValueAnnotations(J.Annotation ann) {
                 boolean valSourceCheck = (ann.getSimpleName().equals("ValueSource"));
                 boolean csvSourceCheck = (ann.getSimpleName().equals("CsvSource"));
