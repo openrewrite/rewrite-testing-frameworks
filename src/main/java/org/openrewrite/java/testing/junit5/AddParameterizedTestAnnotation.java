@@ -1,11 +1,16 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Recipe;
-import org.openrewrite.java.*;
+import org.openrewrite.java.AnnotationMatcher;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaCoordinates;
 
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class AddParameterizedTestAnnotation extends Recipe {
@@ -37,41 +42,53 @@ public class AddParameterizedTestAnnotation extends Recipe {
 
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
-                J.MethodDeclaration m = (J.MethodDeclaration) super.visitMethodDeclaration(md, ctx);
+                J.MethodDeclaration m = super.visitMethodDeclaration(md, ctx);
 
-                // TODO Figure out if we're using @Test combined with @ValueSource and siblings; if not, return early
+                // return early if @ValueSource and siblings are not detected
+                if (
+                        m.getLeadingAnnotations().stream().noneMatch(VALUE_SOURCE_ANNOTATION_MATCHER::matches) ||
+                        m.getLeadingAnnotations().stream().noneMatch(CSV_SOURCE_ANNOTATION_MATCHER::matches)   ||
+                        m.getLeadingAnnotations().stream().noneMatch(METHOD_SOURCE_ANNOTATION_MATCHER::matches)
+                ) {
+                    return m;
+                }
 
-                List<J.Annotation> oldAnnotations = md.getLeadingAnnotations();
-                List<J.Annotation> newAnnotations = new ArrayList<>(oldAnnotations);
+                List<J.Annotation> annotations = m.getLeadingAnnotations();
 
-                for (int i = 0; i < oldAnnotations.size(); i++) {
-                    J.Annotation currAnn = oldAnnotations.get(i);
+                for (int i = 0; i < annotations.size(); i++) {
+                    J.Annotation ann = annotations.get(i);
 
-                    if (TEST_ANNOTATION_MATCHER.matches(currAnn)) {
-                        if (i + 1 >= oldAnnotations.size()) {break;}
+                    if (TEST_ANNOTATION_MATCHER.matches(ann)) {
+                        if (i+1 >= annotations.size()) { continue; }
 
-                        if (checkForValueAnnotations(oldAnnotations.get(i + 1))) {
+                        if (checkForValueAnnotations(annotations.get(i+1))) {
                             // replace @Test with @ParameterizedTest
-                            newAnnotations.remove(currAnn);
-                            J.Annotation parameterizedTest = JavaTemplate.builder("@ParameterizedTest")
-                                            .build()
-                                            .apply(getCursor(), currAnn.getCoordinates().replace());
-                            newAnnotations.add(parameterizedTest);
-                            maybeRemoveImport("org.junit.jupiter.api.Test");
+                            JavaCoordinates coordinates = ann.getCoordinates().replace();
+                            m = JavaTemplate.builder("@ParameterizedTest")
+                                    .javaParser(JavaParser.fromJavaVersion()
+                                            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+                                    .imports("org.junit.jupiter.params.ParameterizedTest")
+                                    .build()
+                                    .apply(getCursor(), coordinates);
                             maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
+                            maybeRemoveImport("org.junit.jupiter.api.Test");
+                            break;
                         }
-                    } else if (checkForValueAnnotations(currAnn)) {
-                        // value source annotations being used without @ParameterizedTest
-                        J.Annotation parameterizedTest = JavaTemplate.builder("@ParameterizedTest")
+                   }else if (checkForValueAnnotations(ann)) {
+                        // add missing @ParameterizedTest annotation
+                        JavaCoordinates coordinates = m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName));
+                        m = JavaTemplate.builder("@ParameterizedTest")
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+                                .imports("org.junit.jupiter.params.ParameterizedTest")
                                 .build()
-                                .apply(getCursor(), currAnn.getCoordinates().replace());
-                        newAnnotations.add(0, parameterizedTest);
+                                .apply(getCursor(), coordinates);
                         maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
                         break;
                     }
                 }
 
-                return m.withLeadingAnnotations(newAnnotations);
+                return m;
             }
         };
     }
