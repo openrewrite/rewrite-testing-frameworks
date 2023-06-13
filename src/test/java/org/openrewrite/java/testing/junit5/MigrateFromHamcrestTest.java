@@ -75,4 +75,74 @@ class MigrateFromHamcrestTest implements RewriteTest {
               """
           ));
     }
+
+    @Test
+    void equalToString() {
+        //language=java
+        rewriteRun(
+          java(
+          """
+            import org.junit.jupiter.api.Test;
+            import static org.hamcrest.MatcherAssert.assertThat;
+            import static org.hamcrest.Matchers.equalTo;
+            
+            class BiscuitTest {
+                @Test
+                void testEquals() {
+                    String str1 = "Hello world!";
+                    String str2 = "Hello world!";
+                    assertThat(str1, equalTo(str2));
+                }
+            }
+            """,
+          """
+            import org.junit.jupiter.api.Test;
+            
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+            
+            class BiscuitTest {
+                @Test
+                void testEquals() {
+                    String str1 = "Hello world!";
+                    String str2 = "Hello world!";
+                    assertEquals(str1, str2);
+                }
+            }
+            """
+        ));
+    }
+
+    @Test
+    void greaterThan() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.greaterThan;
+              
+              class BiscuitTest {
+                  @Test
+                  void testEquals() {
+                      int intt = 7;
+                      assertThat(10, greaterThan(intt));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class BiscuitTest {
+                  @Test
+                  void testEquals() {
+                      int intt = 7;
+                      assertTrue(10 > intt);
+                  }
+              }
+              """
+          ));
+    }
 }

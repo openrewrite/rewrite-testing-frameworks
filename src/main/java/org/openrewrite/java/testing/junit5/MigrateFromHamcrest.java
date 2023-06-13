@@ -25,8 +25,6 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
-import java.util.List;
-
 public class MigrateFromHamcrest extends Recipe {
     @Override
     public String getDisplayName() {
@@ -39,7 +37,7 @@ public class MigrateFromHamcrest extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new MigrationFromHamcrestVisitor();
     }
 
@@ -61,11 +59,22 @@ public class MigrateFromHamcrest extends Recipe {
                     maybeRemoveImport("org.hamcrest.Matchers." + matcherInvocation.getSimpleName());
                     maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
                     String targetAssertion = getTranslatedAssert(matcherInvocation);
-                    JavaTemplate template = JavaTemplate.builder(this::getCursor, getTemplateForTranslatedAssertion(targetAssertion))
+                    if (targetAssertion.equals("")) {
+                        return mi;
+                    }
+
+                    JavaTemplate template = JavaTemplate.builder(getTemplateForMatcher(matcherInvocation.getSimpleName()))
                       .javaParser(JavaParser.fromJavaVersion().classpathFromResources(executionContext, "junit-jupiter-api-5.9"))
                       .staticImports("org.junit.jupiter.api.Assertions." + targetAssertion)
                       .build();
-                    mi = withTemplate(mi, template, mi.getArguments().get(0), stripMatcherInvocation(mi.getArguments().get(1)));
+
+                    Expression strippedMatcher = mi.getArguments().get(1);
+                    if (strippedMatcher instanceof J.MethodInvocation) {
+                        strippedMatcher = ((J.MethodInvocation) strippedMatcher).getArguments().get(0);
+                    } else {
+                        throw new IllegalArgumentException("Second parameter expected to be a matcher constructor call.");
+                    }
+                    template.apply(getCursor(), method.getCoordinates().replace(), mi.getArguments().get(0), strippedMatcher);
                     maybeAddImport("org.junit.jupiter.api.Assertions", targetAssertion);
                 }
                 else throw new IllegalArgumentException("Parameter mismatch for " + mi + ".");
@@ -73,47 +82,26 @@ public class MigrateFromHamcrest extends Recipe {
             return mi;
         }
 
-        private J.MethodInvocation withTemplate(J.MethodInvocation method, JavaTemplate template, Expression firstArg, List<Expression> matcherArgs) {
-            switch (matcherArgs.size()) {
-                case 0:
-                    return method.withTemplate(template, method.getCoordinates().replace(), firstArg);
-                case 1:
-                    return method.withTemplate(template, method.getCoordinates().replace(), firstArg, matcherArgs.get(0));
-                case 2 :
-                    return method.withTemplate(template, method.getCoordinates().replace(), firstArg, matcherArgs.get(0), matcherArgs.get(1));
-                case 3 :
-                    return method.withTemplate(template, method.getCoordinates().replace(), firstArg, matcherArgs.get(0), matcherArgs.get(1), matcherArgs.get(2));
-                default:
-                    throw new IllegalArgumentException("List of matcher arguments is too long for " + method + ".");
-            }
-        }
-
-        private List<Expression> stripMatcherInvocation(Expression e) {
-            if (e instanceof J.MethodInvocation) {
-                MethodMatcher matchesMatcher = new MethodMatcher("org.hamcrest.Matchers *(..)");
-                if (matchesMatcher.matches(e)) {
-                    return ((J.MethodInvocation) e).getArguments();
-                }
-            }
-            throw new IllegalArgumentException("Trying to strip an expression which is not a matcher invocation:\n" + e);
-        }
-
         private String getTranslatedAssert(J.MethodInvocation methodInvocation) {
             //to be replaced with a static map
             switch (methodInvocation.getSimpleName()) {
                 case "equalTo":
                     return "assertEquals";
+                case "greaterThan":
+                    return "assertTrue";
             }
-            throw new IllegalArgumentException("Translation of matcher " + methodInvocation.getSimpleName() + " not yet supported.");
+            return "";
         }
 
-        private String getTemplateForTranslatedAssertion(String translatedAssertion) {
+        private String getTemplateForMatcher(String translatedAssertion) {
             //to be replaced with a static map
             switch (translatedAssertion) {
-                case "assertEquals":
+                case "equalTo":
                     return "assertEquals(#{any(java.lang.Object)}, #{any(java.lang.Object)})";
+                case "greaterThan":
+                    return "assertTrue(#{any(java.lang.Object)} > #{any(java.lang.Object)})";
             }
-            throw new IllegalArgumentException("There is no template defined for assertion " + translatedAssertion);
+            return "";
         }
     }
 }
