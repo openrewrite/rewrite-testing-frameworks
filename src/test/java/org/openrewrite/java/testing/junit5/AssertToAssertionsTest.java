@@ -34,7 +34,7 @@ class AssertToAssertionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.+", "hamcrest-2.2"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-2.2"))
           .recipe(new AssertToAssertions());
     }
 
@@ -420,7 +420,7 @@ class AssertToAssertionsTest implements RewriteTest {
               }
               """,
             """
-              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              import static org.junit.jupiter.api.Assertions.*;
                   
               class MyTest {
                   void test() {

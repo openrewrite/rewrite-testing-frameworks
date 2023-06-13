@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -43,13 +44,8 @@ public class TempDirNonFinal extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.jupiter.api.io.TempDir", false);
-    }
-
-    @Override
-    protected TempDirVisitor getVisitor() {
-        return new TempDirVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.io.TempDir", false), new TempDirVisitor());
     }
 
     private static class TempDirVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -59,7 +55,7 @@ public class TempDirNonFinal extends Recipe {
             if (varDecls.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches)
                     && varDecls.hasModifier(Type.Final)) {
                 return maybeAutoFormat(varDecls, varDecls.withModifiers(ListUtils
-                        .map(varDecls.getModifiers(), modifier -> modifier.getType() == Type.Final ? null : modifier)),
+                                .map(varDecls.getModifiers(), modifier -> modifier.getType() == Type.Final ? null : modifier)),
                         ctx, getCursor().getParentOrThrow());
             }
             return varDecls;

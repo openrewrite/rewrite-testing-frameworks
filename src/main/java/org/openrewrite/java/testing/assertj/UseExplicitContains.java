@@ -16,8 +16,10 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -27,43 +29,30 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodInvocation;
 
-import java.time.Duration;
-import java.util.function.Supplier;
-
 public class UseExplicitContains extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Use explicit contains in Assertj";
+        return "Use AssertJ `contains()` on collections";
     }
 
     @Override
     public String getDescription() {
-        return "Convert AssertJ `assertThat(collection.contains(element)).isTrue()` with assertThat(collection).contains(element) "
-                + "and `assertThat(collection.contains(element)).isFalse()` with assertThat(collection).doesNotContain(element).";
+        return "Convert AssertJ `assertThat(collection.contains(element)).isTrue()` to `assertThat(collection).contains(element)` "
+               + "and `assertThat(collection.contains(element)).isFalse()` to `assertThat(collection).doesNotContain(element)`.";
     }
 
     @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.assertj.core.api.Assertions", false);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new UseExplicitContainsVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.assertj.core.api.Assertions", false), new UseExplicitContainsVisitor());
     }
 
     public static class UseExplicitContainsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private Supplier<JavaParser> assertionsParser;
-        private Supplier<JavaParser> assertionsParser(ExecutionContext ctx) {
-            if(assertionsParser == null) {
-                assertionsParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24.2")
-                        .build();
+        private JavaParser.Builder<?, ?> assertionsParser;
+
+        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
+            if (assertionsParser == null) {
+                assertionsParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "assertj-core-3.24");
             }
             return assertionsParser;
         }
@@ -76,6 +65,7 @@ public class UseExplicitContains extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
             J.MethodInvocation method = super.visitMethodInvocation(m, ctx);
+
             boolean isTrue = IS_TRUE.matches(method);
             if (!isTrue && !IS_FALSE.matches(method)) {
                 return method;
@@ -85,7 +75,7 @@ public class UseExplicitContains extends Recipe {
                 return method;
             }
 
-            if (!ASSERT_THAT.matches((J.MethodInvocation)method.getSelect())) {
+            if (!ASSERT_THAT.matches((J.MethodInvocation) method.getSelect())) {
                 return method;
             }
 
@@ -100,19 +90,18 @@ public class UseExplicitContains extends Recipe {
                 return method;
             }
 
-            Expression list =  contains.getSelect();
+            Expression list = contains.getSelect();
             Expression element = contains.getArguments().get(0);
 
-            String template = isTrue ? "assertThat(#{any()}).contains(#{any()});" :
-                "assertThat(#{any()}).doesNotContain(#{any()});";
-            JavaTemplate builtTemplate = JavaTemplate.builder(this::getCursor, template)
+            String template = isTrue ?
+                    "assertThat(#{any()}).contains(#{any()});" :
+                    "assertThat(#{any()}).doesNotContain(#{any()});";
+
+            return JavaTemplate.builder(template)
+                    .contextSensitive()
                     .javaParser(assertionsParser(ctx))
-                    .build();
-            return method.withTemplate(
-                    builtTemplate,
-                    method.getCoordinates().replace(),
-                    list,
-                    element);
+                    .build()
+                    .apply(updateCursor(method), method.getCoordinates().replace(), list, element);
         }
     }
 }

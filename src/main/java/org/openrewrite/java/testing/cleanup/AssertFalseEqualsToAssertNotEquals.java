@@ -16,14 +16,16 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.*;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-
-import java.util.function.Supplier;
 
 public class AssertFalseEqualsToAssertNotEquals extends Recipe {
     private static final MethodMatcher ASSERT_FALSE = new MethodMatcher(
@@ -40,19 +42,14 @@ public class AssertFalseEqualsToAssertNotEquals extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesMethod<>(ASSERT_FALSE);
-    }
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesMethod<>(ASSERT_FALSE), new JavaVisitor<ExecutionContext>() {
+            JavaParser.Builder<?, ?> javaParser = null;
 
-    @Override
-    protected JavaVisitor<ExecutionContext> getVisitor() {
-        return new JavaVisitor<ExecutionContext>() {
-            Supplier<JavaParser> javaParser = null;
-            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-                if(javaParser == null) {
-                    javaParser = () -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                            .build();
+            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+                if (javaParser == null) {
+                    javaParser = JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9");
                 }
                 return javaParser;
             }
@@ -79,13 +76,19 @@ public class AssertFalseEqualsToAssertNotEquals extends Recipe {
                     args = method.getArguments().size() == 2 ? new Object[]{s.getSelect(), s.getArguments().get(0), mi.getArguments().get(1)} : new Object[]{s.getSelect(), s.getArguments().get(0)};
                     JavaTemplate t;
                     if (mi.getSelect() == null) {
-                        t = JavaTemplate.builder(this::getCursor, sb.toString())
-                                .staticImports("org.junit.jupiter.api.Assertions.assertNotEquals").javaParser(javaParser(ctx)).build();
+                        t = JavaTemplate.builder(sb.toString())
+                                .contextSensitive()
+                                .staticImports("org.junit.jupiter.api.Assertions.assertNotEquals")
+                                .javaParser(javaParser(ctx))
+                                .build();
                     } else {
-                        t = JavaTemplate.builder(this::getCursor, sb.toString())
-                                .imports("org.junit.jupiter.api.Assertions").javaParser(javaParser(ctx)).build();
+                        t = JavaTemplate.builder(sb.toString())
+                                .contextSensitive()
+                                .imports("org.junit.jupiter.api.Assertions")
+                                .javaParser(javaParser(ctx))
+                                .build();
                     }
-                    return mi.withTemplate(t, mi.getCoordinates().replace(), args);
+                    return  t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }
@@ -100,6 +103,6 @@ public class AssertFalseEqualsToAssertNotEquals extends Recipe {
                 return "equals".equals(methodInvocation.getName().getSimpleName())
                         && methodInvocation.getArguments().size() == 1;
             }
-        };
+        });
     }
 }

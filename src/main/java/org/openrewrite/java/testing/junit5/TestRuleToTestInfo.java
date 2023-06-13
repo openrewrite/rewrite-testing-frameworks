@@ -16,7 +16,9 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
@@ -26,10 +28,8 @@ import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 public class TestRuleToTestInfo extends Recipe {
 
@@ -44,13 +44,8 @@ public class TestRuleToTestInfo extends Recipe {
     }
 
     @Override
-    protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.rules.TestName", false);
-    }
-
-    @Override
-    protected TestRuleToTestInfoVisitor getVisitor() {
-        return new TestRuleToTestInfoVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.rules.TestName", false), new TestRuleToTestInfoVisitor());
     }
 
     private static class TestRuleToTestInfoVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -60,12 +55,12 @@ public class TestRuleToTestInfo extends Recipe {
         private static final AnnotationMatcher JUPITER_BEFORE_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
 
         @Nullable
-        private Supplier<JavaParser> javaParser;
-        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-            if(javaParser == null) {
-                javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                        .build();
+        private JavaParser.Builder<?, ?> javaParser;
+
+        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+            if (javaParser == null) {
+                javaParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9");
             }
             return javaParser;
         }
@@ -86,8 +81,8 @@ public class TestRuleToTestInfo extends Recipe {
                     return mi;
                 }
             });
-            doAfterVisit(new ChangeType("org.junit.rules.TestName", "java.lang.String", true));
-            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true));
+            doAfterVisit(new ChangeType("org.junit.rules.TestName", "java.lang.String", true).getVisitor());
+            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true).getVisitor());
             return compilationUnit;
         }
 
@@ -132,23 +127,28 @@ public class TestRuleToTestInfo extends Recipe {
             J.MethodDeclaration beforeMethod = getCursor().pollMessage("before-method");
             if (varDecls != null) {
                 String testMethodStatement = "Optional<Method> testMethod = testInfo.getTestMethod();\n" +
-                        "if (testMethod.isPresent()) {\n" +
-                        "    this.#{} = testMethod.get().getName();\n" +
-                        "}";
+                                             "if (testMethod.isPresent()) {\n" +
+                                             "    this.#{} = testMethod.get().getName();\n" +
+                                             "}";
                 if (beforeMethod == null) {
                     String t = "@BeforeEach\n" +
-                            "public void setup(TestInfo testInfo) {" + testMethodStatement + "}";
-                    cd = cd.withTemplate(JavaTemplate.builder(this::getCursor, t)
-                                    .javaParser(javaParser(ctx))
-                                    .imports("org.junit.jupiter.api.TestInfo",
-                                            "org.junit.jupiter.api.BeforeEach",
-                                            "java.util.Optional",
-                                            "java.lang.reflect.Method")
-                                    .build(),
-                            cd.getBody().getCoordinates().lastStatement(),
-                            varDecls.getVariables().get(0).getName().getSimpleName());
+                               "public void setup(TestInfo testInfo) {" + testMethodStatement + "}";
+                    cd = JavaTemplate.builder(t)
+                            .contextSensitive()
+                            .javaParser(javaParser(ctx))
+                            .imports("org.junit.jupiter.api.TestInfo",
+                                    "org.junit.jupiter.api.BeforeEach",
+                                    "java.util.Optional",
+                                    "java.lang.reflect.Method")
+                            .build()
+                            .apply(
+                                    updateCursor(cd),
+                                    cd.getBody().getCoordinates().lastStatement(),
+                                    varDecls.getVariables().get(0).getName().getSimpleName()
+                            );
                     maybeAddImport("java.lang.reflect.Method");
                     maybeAddImport("java.util.Optional");
+                    maybeAddImport("org.junit.jupiter.api.BeforeEach");
                 } else {
                     doAfterVisit(new BeforeMethodToTestInfoVisitor(beforeMethod, varDecls, testMethodStatement));
                 }
@@ -163,12 +163,12 @@ public class TestRuleToTestInfo extends Recipe {
         private final String testMethodStatement;
 
         @Nullable
-        private Supplier<JavaParser> javaParser;
-        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-            if(javaParser == null) {
-                javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                        .build();
+        private JavaParser.Builder<?, ?> javaParser;
+
+        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+            if (javaParser == null) {
+                javaParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9");
             }
             return javaParser;
         }
@@ -183,23 +183,33 @@ public class TestRuleToTestInfo extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
             if (md.getId().equals(beforeMethod.getId())) {
-                md = md.withTemplate(JavaTemplate.builder(this::getCursor, "TestInfo testInfo")
-                                .javaParser(javaParser(ctx))
-                                .imports("org.junit.jupiter.api.TestInfo",
-                                        "org.junit.jupiter.api.BeforeEach",
-                                        "java.util.Optional",
-                                        "java.lang.reflect.Method")
-                                .build(),
-                        md.getCoordinates().replaceParameters());
+                md = JavaTemplate.builder("TestInfo testInfo")
+                        .contextSensitive()
+                        .javaParser(javaParser(ctx))
+                        .imports("org.junit.jupiter.api.TestInfo",
+                                "org.junit.jupiter.api.BeforeEach",
+                                "java.util.Optional",
+                                "java.lang.reflect.Method")
+                        .build()
+                        .apply(updateCursor(md), md.getCoordinates().replaceParameters());
 
                 //noinspection ConstantConditions
-                md = maybeAutoFormat(md, md.withTemplate(JavaTemplate.builder(this::getCursor, testMethodStatement)
+                md = maybeAutoFormat(
+                        md,
+                        JavaTemplate.builder(testMethodStatement)
+                                .contextSensitive()
                                 .javaParser(javaParser(ctx))
                                 .imports("org.junit.jupiter.api.TestInfo",
                                         "java.util.Optional",
                                         "java.lang.reflect.Method")
-                                .build(),
-                        md.getBody().getCoordinates().lastStatement(), varDecls.getVariables().get(0).getName().getSimpleName()), ctx, getCursor().getParent());
+                                .build()
+                                .apply(
+                                        updateCursor(md),
+                                        md.getBody().getCoordinates().lastStatement(),
+                                        varDecls.getVariables().get(0).getName().getSimpleName()),
+                        ctx,
+                        getCursor().getParent()
+                );
 
                 // Make sure the testName is initialized first in case any other piece of the method body references it
                 assert md.getBody() != null;
@@ -216,9 +226,4 @@ public class TestRuleToTestInfo extends Recipe {
             return md;
         }
     }
-
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
 }

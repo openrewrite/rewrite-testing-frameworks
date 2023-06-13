@@ -23,7 +23,6 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -41,11 +40,6 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final String PARAMETERS_ANNOTATION_ARGUMENTS = "parameters-annotation-args";
     private static final String CONSTRUCTOR_ARGUMENTS = "constructor-args";
     private static final String FIELD_INJECTION_ARGUMENTS = "field-injection-args";
-
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
     private static final String PARAMETERS_METHOD_NAME = "parameters-method-name";
 
     @Override
@@ -59,13 +53,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.junit.runners.Parameterized", false);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new ParameterizedRunnerVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.runners.Parameterized", false), new ParameterizedRunnerVisitor());
     }
 
     private static class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -192,20 +181,22 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     "@ParameterizedTest";
 
             JavaParser.Builder<?, ?> javaParserBuilder = JavaParser.fromJavaVersion()
-              .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "junit-jupiter-params-5.9.2");
+                    .classpathFromResources(ctx, "junit-jupiter-api-5.9", "junit-jupiter-params-5.9");
 
-            this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, parameterizedTestAnnotationTemplate)
+            this.parameterizedTestTemplate = JavaTemplate.builder(parameterizedTestAnnotationTemplate)
                     .javaParser(javaParserBuilder)
                     .imports("org.junit.jupiter.params.ParameterizedTest")
                     .build();
 
             // build @MethodSource("...") template
-            this.methodSourceTemplate = JavaTemplate.builder(this::getCursor, "@MethodSource(\"" + parametersMethodName + "\")")
+            this.methodSourceTemplate = JavaTemplate.builder("@MethodSource(\"" + parametersMethodName + "\")")
                     .javaParser(javaParserBuilder)
-                    .imports("org.junit.jupiter.params.provider.MethodSource").build();
+                    .imports("org.junit.jupiter.params.provider.MethodSource")
+                    .build();
 
             // build init-method with parameters template
-            this.initMethodStatementTemplate = JavaTemplate.builder(this::getCursor, initMethodName + "(#{});")
+            this.initMethodStatementTemplate = JavaTemplate.builder(initMethodName + "(#{});")
+                    .contextSensitive()
                     .javaParser(javaParserBuilder)
                     .build();
 
@@ -227,9 +218,12 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 }
 
                 initMethodTemplate.append("}");
-                initMethodDeclarationTemplate = JavaTemplate.builder(this::getCursor, initMethodTemplate.toString()).javaParser(javaParserBuilder).build();
+                this.initMethodDeclarationTemplate = JavaTemplate.builder(initMethodTemplate.toString())
+                        .contextSensitive()
+                        .javaParser(javaParserBuilder)
+                        .build();
             } else {
-                initMethodDeclarationTemplate = null;
+                this.initMethodDeclarationTemplate = null;
             }
         }
 
@@ -262,8 +256,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
 
             if (initMethodDeclarationTemplate != null) {
-                cd = cd.withBody(cd.getBody().withTemplate(initMethodDeclarationTemplate,
-                        cd.getBody().getCoordinates().lastStatement()));
+                cd = initMethodDeclarationTemplate.apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
                 J.Block finalBody = cd.getBody();
                 cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), stmt -> {
                     if (stmt instanceof J.MethodDeclaration) {
@@ -286,7 +279,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     if (statement instanceof J.VariableDeclarations) {
                         J.VariableDeclarations varDecls = (J.VariableDeclarations) statement;
                         if (varDecls.getVariables().stream().anyMatch(it -> fieldNames.contains(it.getSimpleName()))
-                                && (varDecls.hasModifier(J.Modifier.Type.Final))) {
+                            && (varDecls.hasModifier(J.Modifier.Type.Final))) {
                             varDecls = varDecls.withModifiers(ListUtils.map(varDecls.getModifiers(), mod -> mod.getType() == J.Modifier.Type.Final ? null : mod));
                             statement = maybeAutoFormat(statement, varDecls, ctx, new Cursor(getCursor(), finalBody));
                         }
@@ -329,11 +322,16 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 if (JUPITER_TEST.matches(annotation) || JUNIT_TEST.matches(annotation)) {
                     List<Comment> annotationComments = annotation.getComments();
                     if (parameterizedTestAnnotationParameters == null) {
-                        annotation = annotation.withTemplate(parameterizedTestTemplate,
-                                annotation.getCoordinates().replace());
+                        annotation = parameterizedTestTemplate.apply(
+                                new Cursor(getCursor(), annotation),
+                                annotation.getCoordinates().replace()
+                        );
                     } else {
-                        annotation = annotation.withTemplate(parameterizedTestTemplate,
-                                annotation.getCoordinates().replace(), parameterizedTestAnnotationParameters.get(0));
+                        annotation = parameterizedTestTemplate.apply(
+                                new Cursor(getCursor(), annotation),
+                                annotation.getCoordinates().replace(),
+                                parameterizedTestAnnotationParameters.get(0)
+                        );
                     }
                     if (!annotationComments.isEmpty()) {
                         annotation = annotation.withComments(annotationComments);
@@ -344,11 +342,13 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
             // Add @MethodSource, insert test init statement, add test method parameters
             if (m.getLeadingAnnotations().stream().anyMatch(PARAMETERIZED_TEST::matches)) {
-                m = m.withTemplate(methodSourceTemplate,
-                        m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                m = methodSourceTemplate.apply(
+                        updateCursor(m),
+                        m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))
+                );
                 assert m.getBody() != null;
                 JavaCoordinates newStatementCoordinates = !m.getBody().getStatements().isEmpty() ? m.getBody().getStatements().get(0).getCoordinates().before() : m.getBody().getCoordinates().lastStatement();
-                m = m.withTemplate(initMethodStatementTemplate, newStatementCoordinates, initStatementParamString);
+                m = initMethodStatementTemplate.apply(updateCursor(m), newStatementCoordinates, initStatementParamString);
                 m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), m.getName(), ctx, getCursor().getParentTreeCursor());
             }
 

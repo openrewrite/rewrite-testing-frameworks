@@ -23,7 +23,7 @@ tags:
   - mockito
 recipeList:
   - org.openrewrite.java.testing.mockito.Mockito1to3Migration
-  - org.openrewrite.maven.UpgradeDependencyVersion:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.mockito
       artifactId: "*"
       newVersion: 4.x
@@ -112,13 +112,13 @@ recipeList:
   - org.openrewrite.java.testing.mockito.MockUtilsToStatic
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
   - org.openrewrite.java.testing.mockito.ReplacePowerMockito
-  - org.openrewrite.maven.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
       artifactId: mockito-junit-jupiter
       version: 3.x
       onlyIfUsing: org.mockito.junit.jupiter.MockitoExtension
       acceptTransitive: true
-  - org.openrewrite.maven.UpgradeDependencyVersion:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.mockito
       artifactId: "*"
       newVersion: 3.x
@@ -145,9 +145,6 @@ description: Since Mockito 2.10 `any(Class)` and `anyString()` no longer match n
 tags:
   - testing
   - mockito
-applicability:
-  anySource:
-    - org.openrewrite.java.testing.mockito.UsesMockitoAll
 recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.Mockito any(java.lang.Class)
@@ -159,8 +156,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplacePowerMockito
-displayName: Replace Powermock with raw Mockito
-description: Replace Powermock with raw Mockito.
+displayName: Replace PowerMock with raw Mockito
+description: Replace PowerMock with raw Mockito.
 tags:
   - testing
   - mockito

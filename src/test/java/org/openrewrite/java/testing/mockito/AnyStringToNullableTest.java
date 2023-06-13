@@ -29,7 +29,7 @@ class AnyStringToNullableTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12.4")
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12")
             .logCompilationWarningsAndErrors(true))
           .recipe(new AnyStringToNullable());
     }

@@ -33,7 +33,7 @@ public class UpgradeOkHttpMockWebServerTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockwebserver-4.10.*"))
+            .classpathFromResources(new InMemoryExecutionContext(), "mockwebserver-4.10"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath()
             .build()

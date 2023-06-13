@@ -33,6 +33,7 @@ dependencies {
     implementation("org.openrewrite:rewrite-java")
     implementation("org.openrewrite:rewrite-gradle")
     implementation("org.openrewrite:rewrite-maven")
+    implementation("org.openrewrite.recipe:rewrite-java-dependencies:$rewriteVersion")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
     compileOnly("org.projectlombok:lombok:latest.release")

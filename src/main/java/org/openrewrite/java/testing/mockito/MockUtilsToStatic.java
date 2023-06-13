@@ -15,18 +15,13 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.openrewrite.Cursor;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.DeleteStatement;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-
-import java.time.Duration;
 
 /**
  * In Mockito 1 you use a code snippet like:
@@ -53,13 +48,8 @@ public class MockUtilsToStatic extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new MockUtilsToStaticVisitor();
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.mockito.internal.util.MockUtil", false);
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.mockito.internal.util.MockUtil", false), new MockUtilsToStaticVisitor());
     }
 
     public static class MockUtilsToStaticVisitor extends JavaVisitor<ExecutionContext> {
@@ -71,9 +61,10 @@ public class MockUtilsToStatic extends Recipe {
         );
 
         @Override
-        public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            doAfterVisit(changeMethodTargetToStatic);
-            return super.visitCompilationUnit(cu, ctx);
+        public J visitCompilationUnit(J.CompilationUnit compilationUnit, ExecutionContext ctx) {
+            J.CompilationUnit cu = (J.CompilationUnit) super.visitCompilationUnit(compilationUnit, ctx);
+            cu = (J.CompilationUnit) changeMethodTargetToStatic.getVisitor().visitNonNull(cu, ctx);
+            return cu;
         }
 
         @Override
@@ -94,9 +85,4 @@ public class MockUtilsToStatic extends Recipe {
             return super.visitNewClass(newClass, ctx);
         }
     }
-
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
 }

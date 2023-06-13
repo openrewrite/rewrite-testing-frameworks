@@ -17,10 +17,12 @@ package org.openrewrite.java.testing.cleanup;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
-import org.openrewrite.java.*;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
-
-import java.util.function.Supplier;
 
 public class AssertTrueNegationToAssertFalse extends Recipe {
     private static final MethodMatcher ASSERT_TRUE = new MethodMatcher(
@@ -38,15 +40,15 @@ public class AssertTrueNegationToAssertFalse extends Recipe {
 
 
     @Override
-    protected JavaVisitor<ExecutionContext> getVisitor() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaVisitor<ExecutionContext>() {
 
-            Supplier<JavaParser> javaParser = null;
-            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-                if(javaParser == null) {
-                    javaParser = () -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                            .build();
+            JavaParser.Builder<?, ?> javaParser = null;
+
+            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+                if (javaParser == null) {
+                    javaParser = JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9");
                 }
                 return javaParser;
             }
@@ -74,13 +76,19 @@ public class AssertTrueNegationToAssertFalse extends Recipe {
                     sb.append(")");
                     JavaTemplate t;
                     if (mi.getSelect() == null) {
-                        t = JavaTemplate.builder(this::getCursor, sb.toString())
-                                .staticImports("org.junit.jupiter.api.Assertions.assertFalse").javaParser(javaParser(ctx)).build();
+                        t = JavaTemplate.builder(sb.toString())
+                                .contextSensitive()
+                                .staticImports("org.junit.jupiter.api.Assertions.assertFalse")
+                                .javaParser(javaParser(ctx))
+                                .build();
                     } else {
-                        t = JavaTemplate.builder(this::getCursor, sb.toString())
-                                .imports("org.junit.jupiter.api.Assertions").javaParser(javaParser(ctx)).build();
+                        t = JavaTemplate.builder(sb.toString())
+                                .contextSensitive()
+                                .imports("org.junit.jupiter.api.Assertions")
+                                .javaParser(javaParser(ctx))
+                                .build();
                     }
-                    return mi.withTemplate(t, mi.getCoordinates().replace(), args);
+                    return  t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }

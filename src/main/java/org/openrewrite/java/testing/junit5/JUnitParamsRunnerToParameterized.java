@@ -26,18 +26,16 @@ import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.marker.Markers;
 
-import java.time.Duration;
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
  * Converts Pragmatists JUnitParamsRunner tests to their JUnit 5 ParameterizedTest and associated MethodSource equivalent
- *     <a href="https://github.com/Pragmatists/JUnitParams">...</a>
+ * <a href="https://github.com/Pragmatists/JUnitParams">...</a>
  * Supports the following conversions
- *    `@Parameters` annotation without arguments and default `parametersFor...` init-method exists
- *    `@Parameters(method = "...")` annotation with defined method references
- *    `@Parameters(named = "...")` and associated `@NamedParameter` init-method
+ * `@Parameters` annotation without arguments and default `parametersFor...` init-method exists
+ * `@Parameters(method = "...")` annotation with defined method references
+ * `@Parameters(named = "...")` and associated `@NamedParameter` init-method
  * Unsupported tests are identified with a comment on the associated `@Parameters(...)` annotation.
  */
 public class JUnitParamsRunnerToParameterized extends Recipe {
@@ -65,23 +63,13 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         return "Convert Pragmatists Parameterized test to the JUnit Jupiter ParameterizedTest equivalent.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     private static String junitParamsDefaultInitMethodName(String methodName) {
         return PARAMETERS_FOR_PREFIX + methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("junitparams.*", false);
-    }
-
-    @Override
-    protected ParameterizedTemplateVisitor getVisitor() {
-        return new ParameterizedTemplateVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("junitparams.*", false), new ParameterizedTemplateVisitor());
     }
 
     private static class ParameterizedTemplateVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -163,9 +151,9 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         private String getAnnotationArgumentForInitMethod(J.Annotation anno, String... variableNames) {
             String value = null;
             if (anno.getArguments() != null && anno.getArguments().size() == 1
-                    && anno.getArguments().get(0) instanceof J.Assignment
-                    && ((J.Assignment) anno.getArguments().get(0)).getVariable() instanceof J.Identifier
-                    && ((J.Assignment) anno.getArguments().get(0)).getAssignment() instanceof J.Literal) {
+                && anno.getArguments().get(0) instanceof J.Assignment
+                && ((J.Assignment) anno.getArguments().get(0)).getVariable() instanceof J.Identifier
+                && ((J.Assignment) anno.getArguments().get(0)).getAssignment() instanceof J.Literal) {
                 J.Assignment annoArg = (J.Assignment) anno.getArguments().get(0);
                 J.Literal assignment = (J.Literal) annoArg.getAssignment();
                 String identifier = ((J.Identifier) annoArg.getVariable()).getSimpleName();
@@ -191,12 +179,12 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static class ParametersNoArgsImplicitMethodSource extends JavaIsoVisitor<ExecutionContext> {
 
         @Nullable
-        private Supplier<JavaParser> javaParser;
-        private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-            if(javaParser == null) {
-                javaParser = () -> JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2", "hamcrest-2.2", "junit-jupiter-params-5.9.2")
-                        .build();
+        private JavaParser.Builder<?, ?> javaParser;
+
+        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+            if (javaParser == null) {
+                javaParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5.9", "hamcrest-2.2", "junit-jupiter-params-5.9");
             }
             return javaParser;
 
@@ -217,15 +205,15 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             this.unsupportedConversions = unsupportedConversions;
 
             // build @ParameterizedTest template
-            this.parameterizedTestTemplate = JavaTemplate.builder(this::getCursor, "@ParameterizedTest")
+            this.parameterizedTestTemplate = JavaTemplate.builder("@ParameterizedTest")
                     .javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @ParameterizedTest(#{}) template
-            this.parameterizedTestTemplateWithName = JavaTemplate.builder(this::getCursor, "@ParameterizedTest(name = \"#{}\")")
+            this.parameterizedTestTemplateWithName = JavaTemplate.builder("@ParameterizedTest(name = \"#{}\")")
                     .javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @MethodSource("...") template
-            this.methodSourceTemplate = JavaTemplate.builder(this::getCursor, "@MethodSource(#{})")
+            this.methodSourceTemplate = JavaTemplate.builder("@MethodSource(#{})")
                     .javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.params.provider.MethodSource").build();
         }
@@ -262,8 +250,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                 if (TEST_CASE_NAME_MATCHER.matches(anno) || NAMED_PARAMETERS_MATCHER.matches(anno)) {
                     return null;
                 }
-                anno = maybeReplaceTestAnnotation(anno, paramTestName);
-                anno = maybeReplaceParametersAnnotation(anno, method.getSimpleName());
+                anno = maybeReplaceTestAnnotation(new Cursor(getCursor(), anno), paramTestName);
+                anno = maybeReplaceParametersAnnotation(new Cursor(getCursor(), anno), method.getSimpleName());
                 return anno;
             }));
 
@@ -277,30 +265,31 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             return m;
         }
 
-        private J.Annotation maybeReplaceTestAnnotation(J.Annotation anno, @Nullable String parameterizedTestArgument) {
-            if (JUPITER_TEST_ANNOTATION_MATCHER.matches(anno) || JUNIT_TEST_ANNOTATION_MATCHER.matches(anno)) {
+        private J.Annotation maybeReplaceTestAnnotation(Cursor anno, @Nullable String parameterizedTestArgument) {
+            if (JUPITER_TEST_ANNOTATION_MATCHER.matches(anno.getValue()) || JUNIT_TEST_ANNOTATION_MATCHER.matches(anno.getValue())) {
                 if (parameterizedTestArgument == null) {
-                    anno = anno.withTemplate(parameterizedTestTemplate, anno.getCoordinates().replace());
+                    return parameterizedTestTemplate.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace());
                 } else {
-                    anno = anno.withTemplate(parameterizedTestTemplateWithName, anno.getCoordinates().replace(), parameterizedTestArgument);
+                    return parameterizedTestTemplateWithName.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(),
+                            parameterizedTestArgument);
                 }
             }
-            return anno;
+            return anno.getValue();
         }
 
-        private J.Annotation maybeReplaceParametersAnnotation(J.Annotation annotation, String methodName) {
-            if (PARAMETERS_MATCHER.matches(annotation)) {
+        private J.Annotation maybeReplaceParametersAnnotation(Cursor anno, String methodName) {
+            if (PARAMETERS_MATCHER.matches(anno.getValue())) {
                 String initMethodName = junitParamsDefaultInitMethodName(methodName);
                 if (initMethods.contains(initMethodName)) {
-                    annotation = annotation.withTemplate(methodSourceTemplate, annotation.getCoordinates().replace(), "\"" + initMethodName + "\"");
+                    return methodSourceTemplate.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(), "\"" + initMethodName + "\"");
                 } else {
-                    String annotationArg = getAnnotationArgumentValueForMethodTemplate(annotation);
+                    String annotationArg = getAnnotationArgumentValueForMethodTemplate(anno.getValue());
                     if (annotationArg != null) {
-                        annotation = annotation.withTemplate(methodSourceTemplate, annotation.getCoordinates().replace(), annotationArg);
+                        return methodSourceTemplate.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(), annotationArg);
                     }
                 }
             }
-            return annotation;
+            return anno.getValue();
         }
 
         @Nullable

@@ -16,15 +16,17 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.*;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
-
-import java.util.function.Supplier;
 
 public class AssertTrueComparisonToAssertEquals extends Recipe {
     private static final MethodMatcher ASSERT_TRUE = new MethodMatcher(
@@ -41,20 +43,15 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesMethod<>(ASSERT_TRUE);
-    }
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesMethod<>(ASSERT_TRUE), new JavaVisitor<ExecutionContext>() {
 
-    @Override
-    protected JavaVisitor<ExecutionContext> getVisitor() {
-        return new JavaVisitor<ExecutionContext>() {
+            JavaParser.Builder<?, ?> javaParser = null;
 
-            Supplier<JavaParser> javaParser = null;
-            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-                if(javaParser == null) {
-                    javaParser = () -> JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2")
-                            .build();
+            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+                if (javaParser == null) {
+                    javaParser = JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9");
                 }
                 return javaParser;
             }
@@ -81,14 +78,20 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
                     if (mi.getSelect() == null) {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertEquals");
-                        t = JavaTemplate.builder(this::getCursor, sb.toString()).javaParser(javaParser(ctx))
-                                .staticImports("org.junit.jupiter.api.Assertions.assertEquals").build();
+                        t = JavaTemplate.builder(sb.toString())
+                                .contextSensitive()
+                                .javaParser(javaParser(ctx))
+                                .staticImports("org.junit.jupiter.api.Assertions.assertEquals")
+                                .build();
                     } else {
-                        t = JavaTemplate.builder(this::getCursor, sb.toString()).javaParser(javaParser(ctx))
-                                .imports("org.junit.jupiter.api.Assertions").build();
+                        t = JavaTemplate.builder(sb.toString())
+                                .contextSensitive()
+                                .javaParser(javaParser(ctx))
+                                .imports("org.junit.jupiter.api.Assertions")
+                                .build();
 
                     }
-                    return mi.withTemplate(t, mi.getCoordinates().replace(), args);
+                    return  t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }
@@ -119,6 +122,6 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
                         && !(binary.getLeft().getType() == JavaType.Primitive.String
                         && binary.getRight().getType() == JavaType.Primitive.String);
             }
-        };
+        });
     }
 }

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -28,9 +29,7 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
-import org.openrewrite.marker.SearchResult;
 
-import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 
@@ -61,61 +60,42 @@ public class MigrateJUnitTestCase extends Recipe {
     }
 
     @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                for (J.ClassDeclaration clazz : cu.getClasses()) {
-                    if (TypeUtils.isAssignableTo(JavaType.ShallowClass.build("junit.framework.TestCase"), clazz.getType())) {
-                        return SearchResult.found(cu);
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(Preconditions.or(
+                        new UsesType<>("junit.framework.TestCase", false),
+                        new UsesType<>("junit.framework.Assert", false)
+                ),
+                new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                        J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
+                        doAfterVisit(new TestCaseVisitor());
+                        // ChangeType for org.junit.Assert method invocations because TestCase extends org.junit.Assert
+                        doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert", true).getVisitor());
+                        doAfterVisit(new ChangeType("junit.framework.Assert", "org.junit.Assert", true).getVisitor());
+                        doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
+                        doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions assert*(..)").getVisitor());
+                        doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions fail*(..)").getVisitor());
+                        return c;
                     }
-                }
 
-                doAfterVisit(new UsesType<>("junit.framework.TestCase", false));
-                doAfterVisit(new UsesType<>("junit.framework.Assert", false));
-                return cu;
-            }
-        };
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
-                doAfterVisit(new TestCaseVisitor());
-                // ChangeType for org.junit.Assert method invocations because TestCase extends org.junit.Assert
-                doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert", true));
-                doAfterVisit(new ChangeType("junit.framework.Assert", "org.junit.Assert", true));
-                doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
-                doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions assert*(..)"));
-                doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions fail*(..)"));
-                return c;
-            }
-
-            @SuppressWarnings("ConstantConditions")
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if ((mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase"))
-                        || (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"))) {
-                    String name = mi.getSimpleName();
-                    // setUp and tearDown will be invoked via Before and After annotations
-                    if ("setUp".equals(name) || "tearDown".equals(name)) {
-                        return null;
-                    } else if ("setName".equals(name)) {
-                        mi = mi.withPrefix(mi.getPrefix().withComments(ListUtils.concat(mi.getPrefix().getComments(), new TextComment(false, "", "", Markers.EMPTY))));
+                    @SuppressWarnings("ConstantConditions")
+                    @Override
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                        J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                        if ((mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase"))
+                            || (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"))) {
+                            String name = mi.getSimpleName();
+                            // setUp and tearDown will be invoked via Before and After annotations
+                            if ("setUp".equals(name) || "tearDown".equals(name)) {
+                                return null;
+                            } else if ("setName".equals(name)) {
+                                mi = mi.withPrefix(mi.getPrefix().withComments(ListUtils.concat(mi.getPrefix().getComments(), new TextComment(false, "", "", Markers.EMPTY))));
+                            }
+                        }
+                        return mi;
                     }
-                }
-                return mi;
-            }
-        };
+                });
     }
 
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -140,6 +120,7 @@ public class MigrateJUnitTestCase extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
+            updateCursor(md);
             if (md.getSimpleName().startsWith("test") && md.getLeadingAnnotations().stream().noneMatch(JUNIT_TEST_ANNOTATION_MATCHER::matches)) {
                 md = updateMethodDeclarationAnnotationAndModifier(md, "@Test", "org.junit.jupiter.api.Test", ctx);
             } else if ("setUp".equals(md.getSimpleName())) {
@@ -153,11 +134,11 @@ public class MigrateJUnitTestCase extends Recipe {
         private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation, ExecutionContext ctx) {
             J.MethodDeclaration md = methodDeclaration;
             if (FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
-                md = methodDeclaration.withTemplate(JavaTemplate.builder(this::getCursor, annotation)
-                                .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5.9.2"))
-                                .imports(fullyQualifiedAnnotation).build(),
-                        methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                md = JavaTemplate.builder(annotation)
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                        .imports(fullyQualifiedAnnotation).build()
+                        .apply(getCursor(), methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 md = maybeAddPublicModifier(md);
                 md = maybeRemoveOverrideAnnotation(md);
                 maybeAddImport(fullyQualifiedAnnotation);

@@ -18,17 +18,16 @@ package org.openrewrite.java.testing.junit5;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.NonNull;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.time.Duration;
@@ -45,6 +44,10 @@ public class AddMissingNested extends Recipe {
             "org.junit.jupiter.params.ParameterizedTest",
             "org.junit.jupiter.api.TestFactory");
 
+    @SuppressWarnings("unchecked")
+    private static final TreeVisitor<?, ExecutionContext> PRECONDITION =
+            Preconditions.or(TEST_ANNOTATIONS.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new));
+
     @Override
     public String getDisplayName() {
         return "JUnit 5 inner test classes should be annotated with `@Nested`";
@@ -53,17 +56,6 @@ public class AddMissingNested extends Recipe {
     @Override
     public String getDescription() {
         return "Adds `@Nested` to inner classes that contain JUnit 5 tests.";
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaVisitor<ExecutionContext>() {
-            @Override
-            public J visitJavaSourceFile(JavaSourceFile cu, ExecutionContext ctx) {
-                TEST_ANNOTATIONS.forEach(ann -> doAfterVisit(new UsesType<>(ann, false)));
-                return cu;
-            }
-        };
     }
 
     @Override
@@ -78,7 +70,7 @@ public class AddMissingNested extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(PRECONDITION, new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
@@ -86,7 +78,7 @@ public class AddMissingNested extends Recipe {
                 maybeAddImport(NESTED);
                 return cd;
             }
-        };
+        });
     }
 
     public static class AddNestedAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -96,8 +88,8 @@ public class AddMissingNested extends Recipe {
             boolean alreadyNested = classDecl.getLeadingAnnotations().stream()
                     .anyMatch(a -> TypeUtils.isOfClassType(a.getType(), NESTED));
             if (!alreadyNested && hasTestMethods(cd)) {
-                cd = cd.withTemplate(getNestedJavaTemplate(ctx), cd.getCoordinates().addAnnotation(Comparator.comparing(
-                        J.Annotation::getSimpleName)));
+                cd = getNestedJavaTemplate(ctx).apply(updateCursor(cd),
+                        cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 cd.getModifiers().removeIf(modifier -> modifier.getType().equals(J.Modifier.Type.Static));
             }
             return cd;
@@ -105,9 +97,9 @@ public class AddMissingNested extends Recipe {
 
         @NonNull
         private JavaTemplate getNestedJavaTemplate(ExecutionContext ctx) {
-            return JavaTemplate.builder(this::getCursor, "@Nested")
+            return JavaTemplate.builder("@Nested")
                     .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9.2"))
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
                     .imports(NESTED)
                     .build();
         }

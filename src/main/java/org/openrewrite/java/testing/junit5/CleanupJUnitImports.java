@@ -16,15 +16,12 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-
-import java.time.Duration;
 
 public class CleanupJUnitImports extends Recipe {
     @Override
@@ -37,27 +34,12 @@ public class CleanupJUnitImports extends Recipe {
         return "Removes unused `org.junit` import symbols.";
     }
 
-  @Override
-  public Duration getEstimatedEffortPerOccurrence() {
-    return Duration.ofMinutes(5);
-  }
-
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new CleanupJUnitImportsVisitor();
-    }
-
-    @Nullable
-    @Override
-    protected JavaVisitor<ExecutionContext> getSingleSourceApplicableTest() {
-        return new JavaVisitor<ExecutionContext>() {
-            @Override
-            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                doAfterVisit(new UsesType<>("org.junit.*", false));
-                doAfterVisit(new UsesType<>("junit.*", false));
-                return cu;
-            }
-        };
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(Preconditions.or(
+                new UsesType<>("org.junit.*", false),
+                new UsesType<>("junit.*", false)
+        ), new CleanupJUnitImportsVisitor());
     }
 
     public static class CleanupJUnitImportsVisitor extends JavaIsoVisitor<ExecutionContext> {

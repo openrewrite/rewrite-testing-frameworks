@@ -16,7 +16,9 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -27,7 +29,6 @@ import org.openrewrite.java.tree.J;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.function.Supplier;
 
 public class MockitoJUnitRunnerSilentToExtension extends Recipe {
     @Override
@@ -41,22 +42,16 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
     }
 
     @Override
-    protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.mockito.junit.MockitoJUnitRunner$Silent", false);
-    }
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.mockito.junit.MockitoJUnitRunner$Silent", false), new JavaIsoVisitor<ExecutionContext>() {
 
-    @Override
-    protected JavaIsoVisitor<ExecutionContext> getVisitor() {
+            private JavaParser.Builder<?, ?> javaParser = null;
 
-        return new JavaIsoVisitor<ExecutionContext>() {
-
-            private Supplier<JavaParser> javaParser = null;
-            private Supplier<JavaParser> javaParser(ExecutionContext ctx) {
-                if(javaParser == null) {
-                    javaParser = () -> JavaParser.fromJavaVersion()
+            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
+                if (javaParser == null) {
+                    javaParser = JavaParser.fromJavaVersion()
                             .logCompilationWarningsAndErrors(true)
-                            .classpathFromResources(ctx, "mockito-junit-jupiter-3.12.4", "mockito-core-3.12.4")
-                            .build();
+                            .classpathFromResources(ctx, "mockito-junit-jupiter-3.12", "mockito-core-3.12");
                 }
                 return javaParser;
             }
@@ -67,19 +62,19 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                 if (cd.getLeadingAnnotations().stream().anyMatch(silentRunnerMatcher::matches)) {
-                    JavaTemplate template = JavaTemplate.builder(this::getCursor, "@MockitoSettings(strictness = Strictness.LENIENT)")
+                    JavaTemplate template = JavaTemplate.builder("@MockitoSettings(strictness = Strictness.LENIENT)")
                             .imports("org.mockito.quality.Strictness", "org.mockito.junit.jupiter.MockitoSettings")
                             .javaParser(javaParser(ctx))
                             .build();
-                    cd = maybeAutoFormat(cd, cd.withTemplate(template, cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))), ctx);
+                    cd = maybeAutoFormat(cd, template.apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))), ctx);
                     doAfterVisit(new RunnerToExtension(Collections.singletonList("org.mockito.junit.MockitoJUnitRunner$Silent"),
-                            "org.mockito.junit.jupiter.MockitoExtension"));
+                            "org.mockito.junit.jupiter.MockitoExtension").getVisitor());
                     maybeRemoveImport("org.mockito.junit.MockitoJUnitRunner");
                     maybeAddImport("org.mockito.quality.Strictness");
                     maybeAddImport("org.mockito.junit.jupiter.MockitoSettings");
                 }
                 return cd;
             }
-        };
+        });
     }
 }
