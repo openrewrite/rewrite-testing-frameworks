@@ -94,8 +94,9 @@ public class AddParameterizedTestAnnotation extends Recipe {
                         .apply(getCursor(), coordinates);
                 maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
                 maybeRemoveImport("org.junit.jupiter.api.Test");
+                List<J.Annotation> ordered = reorderAnnotations(m.getLeadingAnnotations());
 
-                return m;
+                return m.withLeadingAnnotations(ordered);
             }
         };
     }
