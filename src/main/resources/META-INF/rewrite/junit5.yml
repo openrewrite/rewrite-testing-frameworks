@@ -208,8 +208,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
-displayName: Use Vertx JUnit 5 Extension
-description: Migrates Vertx `@RunWith` `VertxUnitRunner` to the JUnit Jupiter `@ExtendWith` `VertxExtension`.
+displayName: Use Vert.x JUnit 5 Extension
+description: Migrates Vert.x `@RunWith` `VertxUnitRunner` to the JUnit Jupiter `@ExtendWith` `VertxExtension`.
 tags:
   - testing
   - junit

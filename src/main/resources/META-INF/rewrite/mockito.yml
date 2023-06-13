@@ -145,9 +145,6 @@ description: Since Mockito 2.10 `any(Class)` and `anyString()` no longer match n
 tags:
   - testing
   - mockito
-applicability:
-  anySource:
-    - org.openrewrite.java.testing.mockito.UsesMockitoAll
 recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.Mockito any(java.lang.Class)
@@ -159,8 +156,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplacePowerMockito
-displayName: Replace Powermock with raw Mockito
-description: Replace Powermock with raw Mockito.
+displayName: Replace PowerMock with raw Mockito
+description: Replace PowerMock with raw Mockito.
 tags:
   - testing
   - mockito
