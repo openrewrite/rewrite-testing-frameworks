@@ -10,12 +10,14 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-public class AddParameterizedTestAnnotationTest implements RewriteTest {
+class AddParameterizedTestAnnotationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9.+"))
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-jupiter-api-5.9",
+              "junit-jupiter-params-5.9"))
           .recipe(new AddParameterizedTestAnnotation());
     }
 
@@ -29,7 +31,7 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.params.provider.ValueSource;
-              
+                            
               class NumbersTest {
                 @Test
                 @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
@@ -41,7 +43,7 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.ValueSource;
-              
+                            
               class NumbersTest {
                 @ParameterizedTest
                 @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
@@ -62,7 +64,7 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.params.provider.ValueSource;
-              
+                            
               class NumbersTest {
                 @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
                 @Test
@@ -74,7 +76,7 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.ValueSource;
-              
+                            
               class NumbersTest {
                 @ParameterizedTest
                 @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
@@ -97,15 +99,15 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
           //language=java
           java(
             """
-              import org.junit.jupiter.api.Test;
-              
-              class NumbersTest {
-                @Test
-                void printMessage() {
-                    System.out.println("message");
-                }
-              }
-             """
+               import org.junit.jupiter.api.Test;
+               
+               class NumbersTest {
+                 @Test
+                 void printMessage() {
+                     System.out.println("message");
+                 }
+               }
+              """
           )
         );
     }
@@ -116,21 +118,21 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
           //language=java
           java(
             """
-              import org.junit.jupiter.params.provider.CsvSource;
-              import org.junit.jupiter.api.Test;
-              
-              class TestClass {
-                @Test
-                @CsvSource({"test@test.com"})
-                void processUserData(String email) {
-                  System.out.println(email);
-                }
-              }
-             """,
+               import org.junit.jupiter.params.provider.CsvSource;
+               import org.junit.jupiter.api.Test;
+               
+               class TestClass {
+                 @Test
+                 @CsvSource({"test@test.com"})
+                 void processUserData(String email) {
+                   System.out.println(email);
+                 }
+               }
+              """,
             """
-              import org.junit.jupiter.params.provider.CsvSource;
               import org.junit.jupiter.params.ParameterizedTest;
-              
+              import org.junit.jupiter.params.provider.CsvSource;
+                            
               class TestClass {
                 @ParameterizedTest
                 @CsvSource({"test@test.com"})
@@ -149,22 +151,22 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
           //language=java
           java(
             """
-              import org.junit.jupiter.api.Test;
-              import org.junit.jupiter.params.provider.MethodSource;
-              
-              class TestClass {
-                @Test
-                @MethodSource()
-                void foo() {
-                  System.out.println("bar");
-                }
-              }
-             """,
+               import org.junit.jupiter.api.Test;
+               import org.junit.jupiter.params.provider.MethodSource;
+               
+               class TestClass {
+                 @Test
+                 @MethodSource()
+                 void foo() {
+                   System.out.println("bar");
+                 }
+               }
+              """,
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
               import java.util.stream.Stream;
-              
+                            
               class TestClass {
                 @ParameterizedTest
                 @MethodSource("someMethod")
@@ -187,27 +189,27 @@ public class AddParameterizedTestAnnotationTest implements RewriteTest {
           //language=java
           java(
             """
-             import org.junit.jupiter.params.provider.ValueSource;
-             
-             class TestClass {
-                @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
-                void testIsOdd(int number) {
-                    assertTrue(number % 2 != 0);
-                }
-             }
-             """,
+              import org.junit.jupiter.params.provider.ValueSource;
+                           
+              class TestClass {
+                 @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
+                 void testIsOdd(int number) {
+                     assertTrue(number % 2 != 0);
+                 }
+              }
+              """,
             """
-             import org.junit.jupiter.params.provider.ValueSource;
-             import org.junit.jupiter.params.ParameterizedTest;
-             
-             class TestClass {
-                @ParameterizedTest
-                @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
-                void testIsOdd(int number) {
-                    assertTrue(number % 2 != 0);
-                }
-             }
-             """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.ValueSource;
+                           
+              class TestClass {
+                 @ParameterizedTest
+                 @ValueSource(ints = {1, 3, 5, -3, 15,Integer.MAX_VALUE})
+                 void testIsOdd(int number) {
+                     assertTrue(number % 2 != 0);
+                 }
+              }
+              """
           )
         );
     }
