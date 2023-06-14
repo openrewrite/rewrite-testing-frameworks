@@ -56,13 +56,11 @@ public class AddParameterizedTestAnnotation extends Recipe {
                 // if @ParameterizedTest is already at start then return early
                 if (PARAM_TEST_MATCHER.matches(annotations.get(0))) { return annotations; }
                 List<J.Annotation> ordered = new ArrayList<>(annotations);
-
                 // get @ParameterizedTest
                 List<J.Annotation> filteredList = ordered.stream().filter(PARAM_TEST_MATCHER::matches).collect(Collectors.toList());
                 J.Annotation paramAnn = filteredList.get(0);
 
                 ordered.remove(paramAnn);
-                ordered.add(0, paramAnn);
 
                 return ordered;
             }
@@ -96,7 +94,7 @@ public class AddParameterizedTestAnnotation extends Recipe {
                 maybeRemoveImport("org.junit.jupiter.api.Test");
                 List<J.Annotation> ordered = reorderAnnotations(m.getLeadingAnnotations());
 
-                return m.withLeadingAnnotations(ordered);
+                return maybeAutoFormat(m, m.withLeadingAnnotations(ordered), ctx);
             }
         };
     }
