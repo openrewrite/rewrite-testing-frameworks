@@ -12,20 +12,22 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class AddParameterizedTestAnnotation extends Recipe {
-    private static final String PARAMS_PATH = "@org.junit.jupiter.params.provider.";
     private static final AnnotationMatcher TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.Test");
-    private static final AnnotationMatcher VALUE_SOURCE_MATCHER = new AnnotationMatcher(PARAMS_PATH+"ValueSource");
-    private static final AnnotationMatcher CSV_SOURCE_MATCHER = new AnnotationMatcher(PARAMS_PATH+"CsvSource");
-    private static final AnnotationMatcher METHOD_SOURCE_MATCHER = new AnnotationMatcher(PARAMS_PATH+"MethodSource");
-    private static final AnnotationMatcher NULL_SOURCE_MATCHER = new AnnotationMatcher(PARAMS_PATH+"NullSource");
-    private static final AnnotationMatcher EMPTY_SOURCE_MATCHER = new AnnotationMatcher(PARAMS_PATH+"EmptySource");
-    private static final AnnotationMatcher NULL_EMPTY_SOURCE_MATCHER = new AnnotationMatcher(PARAMS_PATH+"NullAndEmptySource");
-    private static final AnnotationMatcher ENUM_SOURCE_MATCHER = new AnnotationMatcher(PARAMS_PATH+"EnumSource");
-    private static final AnnotationMatcher CSV_FILE_SOURCE_MATCHER = new AnnotationMatcher(PARAMS_PATH+"CsvFileSource");
-    private static final AnnotationMatcher ARG_SOURCE_MATCHER = new AnnotationMatcher(PARAMS_PATH+"ArgumentsSource");
     private static final AnnotationMatcher PARAM_TEST_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest");
+    private static final List<AnnotationMatcher> SOURCE_ANNOTATIONS = Stream.of(
+            "ValueSource",
+            "CsvSource",
+            "MethodSource",
+            "NullSource",
+            "EmptySource",
+            "NullAndEmptySource",
+            "EnumSource",
+            "CsvFileSource",
+            "ArgumentsSource"
+    ).map(annotation -> new AnnotationMatcher("@org.junit.jupiter.params.provider."+annotation)).collect(Collectors.toList());
 
     @Override
     public String getDisplayName() {
@@ -42,25 +44,16 @@ public class AddParameterizedTestAnnotation extends Recipe {
     @Override
     public JavaIsoVisitor<ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
-            // checks if annotations matches ValueSource and siblings
             public boolean checkForSourceAnnotation(J.Annotation ann) {
-                // must be a better way to writer this
-                return (VALUE_SOURCE_MATCHER.matches(ann) || CSV_SOURCE_MATCHER.matches(ann) ||
-                        METHOD_SOURCE_MATCHER.matches(ann) || NULL_SOURCE_MATCHER.matches(ann) ||
-                        EMPTY_SOURCE_MATCHER.matches(ann) || NULL_EMPTY_SOURCE_MATCHER.matches(ann) ||
-                        ENUM_SOURCE_MATCHER.matches(ann) || CSV_FILE_SOURCE_MATCHER.matches(ann) ||
-                        ARG_SOURCE_MATCHER.matches(ann));
+                // checks if annotations matches ValueSource and siblings
+                return SOURCE_ANNOTATIONS.stream().anyMatch(matcher -> matcher.matches(ann));
             }
 
             public List<J.Annotation> reorderAnnotations(List<J.Annotation> annotations) {
                 // if @ParameterizedTest is already at start then return early
                 if (PARAM_TEST_MATCHER.matches(annotations.get(0))) { return annotations; }
                 List<J.Annotation> ordered = new ArrayList<>(annotations);
-                // get @ParameterizedTest
-                List<J.Annotation> filteredList = ordered.stream().filter(PARAM_TEST_MATCHER::matches).collect(Collectors.toList());
-                J.Annotation paramAnn = filteredList.get(0);
-
-                ordered.remove(paramAnn);
+                ordered.removeIf(PARAM_TEST_MATCHER::matches);
 
                 return ordered;
             }
@@ -70,8 +63,8 @@ public class AddParameterizedTestAnnotation extends Recipe {
                 J.MethodDeclaration m = super.visitMethodDeclaration(md, ctx);
 
                 // return early if @ValueSource and siblings are not detected
-                if (m.getLeadingAnnotations().stream().noneMatch(this::checkForSourceAnnotation) ||
-                    m.getLeadingAnnotations().stream().anyMatch(PARAM_TEST_MATCHER::matches)) {
+                if (m.getLeadingAnnotations().stream().anyMatch(PARAM_TEST_MATCHER::matches) ||
+                    m.getLeadingAnnotations().stream().noneMatch(this::checkForSourceAnnotation)) {
                     return m;
                 }
 
