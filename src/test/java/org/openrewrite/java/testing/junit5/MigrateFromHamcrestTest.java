@@ -145,4 +145,38 @@ class MigrateFromHamcrestTest implements RewriteTest {
               """
           ));
     }
+
+    @Test
+    void closeTo() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.closeTo;
+              
+              class Test {
+                  @Test
+                  void testCloseTo() {
+                      double dbl = 179.1;
+                      assertThat(dbl, closeTo(178.2, 1.0));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testCloseTo() {
+                      double dbl = 179.1;
+                      assertTrue(Math.abs(dbl - 178.2) < 1.0);
+                  }
+              }
+              """
+          ));
+    }
 }
