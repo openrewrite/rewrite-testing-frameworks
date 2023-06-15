@@ -16,11 +16,14 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
@@ -57,53 +60,55 @@ public class AddParameterizedTestAnnotation extends Recipe {
     }
 
     @Override
-    public JavaIsoVisitor<ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            public boolean checkForSourceAnnotation(J.Annotation ann) {
-                // checks if annotations matches ValueSource and siblings
-                return SOURCE_ANNOTATIONS.stream().anyMatch(matcher -> matcher.matches(ann));
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.junit.jupiter.params.provider.*", false), new AnnotatedMethodVisitor());
+    }
+
+    private static class AnnotatedMethodVisitor extends JavaIsoVisitor<ExecutionContext> {
+        public boolean checkForSourceAnnotation(J.Annotation ann) {
+            // checks if annotations matches ValueSource and siblings
+            return SOURCE_ANNOTATIONS.stream().anyMatch(matcher -> matcher.matches(ann));
+        }
+
+        public List<J.Annotation> reorderAnnotations(List<J.Annotation> annotations) {
+            // if @ParameterizedTest is already at start then return early
+            if (PARAM_TEST_MATCHER.matches(annotations.get(0))) { return annotations; }
+            List<J.Annotation> ordered = new ArrayList<>(annotations);
+            ordered.removeIf(PARAM_TEST_MATCHER::matches);
+
+            return ordered;
+        }
+
+        @Override
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
+            J.MethodDeclaration m = super.visitMethodDeclaration(md, ctx);
+
+            // return early if @ValueSource and siblings are not detected
+            if (m.getLeadingAnnotations().stream().anyMatch(PARAM_TEST_MATCHER::matches) ||
+                m.getLeadingAnnotations().stream().noneMatch(this::checkForSourceAnnotation)) {
+                return m;
             }
 
-            public List<J.Annotation> reorderAnnotations(List<J.Annotation> annotations) {
-                // if @ParameterizedTest is already at start then return early
-                if (PARAM_TEST_MATCHER.matches(annotations.get(0))) { return annotations; }
-                List<J.Annotation> ordered = new ArrayList<>(annotations);
-                ordered.removeIf(PARAM_TEST_MATCHER::matches);
+            JavaCoordinates coordinates = m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName));
 
-                return ordered;
-            }
-
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
-                J.MethodDeclaration m = super.visitMethodDeclaration(md, ctx);
-
-                // return early if @ValueSource and siblings are not detected
-                if (m.getLeadingAnnotations().stream().anyMatch(PARAM_TEST_MATCHER::matches) ||
-                    m.getLeadingAnnotations().stream().noneMatch(this::checkForSourceAnnotation)) {
-                    return m;
+            for (J.Annotation ann : m.getLeadingAnnotations()) {
+                if (TEST_ANNOTATION_MATCHER.matches(ann)) {
+                    coordinates = ann.getCoordinates().replace();
+                    break;
                 }
-
-                JavaCoordinates coordinates = m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName));
-
-                for (J.Annotation ann : m.getLeadingAnnotations()) {
-                    if (TEST_ANNOTATION_MATCHER.matches(ann)) {
-                        coordinates = ann.getCoordinates().replace();
-                        break;
-                    }
-                }
-
-                m = JavaTemplate.builder("@ParameterizedTest")
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
-                        .imports("org.junit.jupiter.params.ParameterizedTest")
-                        .build()
-                        .apply(getCursor(), coordinates);
-                maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
-                maybeRemoveImport("org.junit.jupiter.api.Test");
-                List<J.Annotation> ordered = reorderAnnotations(m.getLeadingAnnotations());
-
-                return maybeAutoFormat(m, m.withLeadingAnnotations(ordered), ctx);
             }
-        };
+
+            m = JavaTemplate.builder("@ParameterizedTest")
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
+                    .imports("org.junit.jupiter.params.ParameterizedTest")
+                    .build()
+                    .apply(getCursor(), coordinates);
+            maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
+            maybeRemoveImport("org.junit.jupiter.api.Test");
+            List<J.Annotation> ordered = reorderAnnotations(m.getLeadingAnnotations());
+
+            return maybeAutoFormat(m, m.withLeadingAnnotations(ordered), ctx);
+        }
     }
 }
