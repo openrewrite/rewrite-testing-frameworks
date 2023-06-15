@@ -29,3 +29,19 @@ recipeList:
       version: 2.x
       onlyIfUsing: org.hamcrest.Matchers
       acceptTransitive: true
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
+displayName: Migrate to JUnit Jupiter assertions
+description: Migrate Hamcrest `assertThat(Object, Matcher)` to JUnit Jupiter `Assertions`.
+tags:
+  - testing
+  - hamcrest
+  - junit
+recipeList:
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: equalTo
+      assertion: isEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: isEmptyString
+      assertion: isEmpty
