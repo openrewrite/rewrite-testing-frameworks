@@ -19,15 +19,11 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.AnnotationMatcher;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaCoordinates;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -45,7 +41,7 @@ public class AddParameterizedTestAnnotation extends Recipe {
             "EnumSource",
             "CsvFileSource",
             "ArgumentsSource"
-    ).map(annotation -> new AnnotationMatcher("@org.junit.jupiter.params.provider."+annotation)).collect(Collectors.toList());
+    ).map(annotation -> new AnnotationMatcher("@org.junit.jupiter.params.provider." + annotation)).collect(Collectors.toList());
 
     @Override
     public String getDisplayName() {
@@ -65,50 +61,28 @@ public class AddParameterizedTestAnnotation extends Recipe {
     }
 
     private static class AnnotatedMethodVisitor extends JavaIsoVisitor<ExecutionContext> {
-        public boolean checkForSourceAnnotation(J.Annotation ann) {
-            // checks if annotations matches ValueSource and siblings
-            return SOURCE_ANNOTATIONS.stream().anyMatch(matcher -> matcher.matches(ann));
-        }
-
-        public List<J.Annotation> reorderAnnotations(List<J.Annotation> annotations) {
-            // if @ParameterizedTest is already at start then return early
-            if (PARAM_TEST_MATCHER.matches(annotations.get(0))) { return annotations; }
-            List<J.Annotation> ordered = new ArrayList<>(annotations);
-            ordered.removeIf(PARAM_TEST_MATCHER::matches);
-
-            return ordered;
-        }
-
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(md, ctx);
 
-            // return early if @ValueSource and siblings are not detected
+            // Return early if already annotated with @ParameterizedTest or not annotated with any @...Source annotation
             if (m.getLeadingAnnotations().stream().anyMatch(PARAM_TEST_MATCHER::matches) ||
-                m.getLeadingAnnotations().stream().noneMatch(this::checkForSourceAnnotation)) {
+                m.getLeadingAnnotations().stream().noneMatch(ann -> SOURCE_ANNOTATIONS.stream().anyMatch(matcher -> matcher.matches(ann)))) {
                 return m;
             }
 
-            JavaCoordinates coordinates = m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName));
-
-            for (J.Annotation ann : m.getLeadingAnnotations()) {
-                if (TEST_ANNOTATION_MATCHER.matches(ann)) {
-                    coordinates = ann.getCoordinates().replace();
-                    break;
-                }
-            }
-
+            // Add parameterized test annotation at the start
+            JavaCoordinates coordinates = m.getCoordinates().addAnnotation((o1, o2) -> -1);
             m = JavaTemplate.builder("@ParameterizedTest")
-                    .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5.9"))
                     .imports("org.junit.jupiter.params.ParameterizedTest")
                     .build()
                     .apply(getCursor(), coordinates);
             maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
-            maybeRemoveImport("org.junit.jupiter.api.Test");
-            List<J.Annotation> ordered = reorderAnnotations(m.getLeadingAnnotations());
 
-            return maybeAutoFormat(m, m.withLeadingAnnotations(ordered), ctx);
+            // Remove @Test annotation if present
+            maybeRemoveImport("org.junit.jupiter.api.Test");
+            return new RemoveAnnotationVisitor(TEST_ANNOTATION_MATCHER).visitMethodDeclaration(m, ctx);
         }
     }
 }
