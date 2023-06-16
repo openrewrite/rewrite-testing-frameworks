@@ -31,7 +31,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -65,16 +64,15 @@ public class HamcrestMatcherToAssertJAssertion extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new MigrationFromHamcrestVisitor();
+        return new MigrateToAssertJVisitor();
     }
 
-    private class MigrationFromHamcrestVisitor extends JavaIsoVisitor<ExecutionContext> {
-
+    private class MigrateToAssertJVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final MethodMatcher matcherAssertMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
 
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-            J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
             if (matcherAssertMatcher.matches(mi) && mi.getArguments().size() == 2) {
                 Expression firstArgument = mi.getArguments().get(0);
                 Expression secondArgument = mi.getArguments().get(1);
@@ -86,9 +84,12 @@ public class HamcrestMatcherToAssertJAssertion extends Recipe {
                 List<Expression> originalArguments = matcherInvocation.getArguments().stream()
                         .filter(a -> !(a instanceof J.Empty))
                         .collect(Collectors.toList());
-                String assertionArguments = String.join(", ", Collections.nCopies(originalArguments.size(), "#{any(java.lang.Object)}"));
-                JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).%s(%s)", actual, assertion, assertionArguments))
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(executionContext, "junit-jupiter-api-5.9", "assertj-core-3.24"))
+                String argumentsTemplate = originalArguments.stream()
+                        .map(a -> TypeUtils.isString(a.getType()) ? "#{any(java.lang.String)}" : "#{any(java.lang.Object)}")
+                        .collect(Collectors.joining(", "));
+                JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).%s(%s)",
+                                actual, assertion, argumentsTemplate))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .build();
                 maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
@@ -103,5 +104,6 @@ public class HamcrestMatcherToAssertJAssertion extends Recipe {
             // TODO Also handle assertThat(String, boolean) and assertThat(String, Object, Matcher)
             return mi;
         }
+
     }
 }
