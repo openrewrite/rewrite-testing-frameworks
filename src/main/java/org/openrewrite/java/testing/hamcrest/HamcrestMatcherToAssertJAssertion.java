@@ -68,15 +68,18 @@ public class HamcrestMatcherToAssertJAssertion extends Recipe {
     }
 
     private class MigrateToAssertJVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final MethodMatcher matcherAssertMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
+        private final MethodMatcher assertThatMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
+        private final MethodMatcher matcherMatcher = new MethodMatcher("org.hamcrest.Matchers " + matcher + "(..)");
+        private final MethodMatcher isMatcher = new MethodMatcher("org.hamcrest.Matchers is(org.hamcrest.Matcher)");
+        private final MethodMatcher notMatcher = new MethodMatcher("org.hamcrest.Matchers not(org.hamcrest.Matcher)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-            if (matcherAssertMatcher.matches(mi) && mi.getArguments().size() == 2) {
+            if (assertThatMatcher.matches(mi) && mi.getArguments().size() == 2) {
                 Expression firstArgument = mi.getArguments().get(0);
                 Expression secondArgument = mi.getArguments().get(1);
-                if (!new MethodMatcher("org.hamcrest.Matchers " + matcher + "(..)").matches(secondArgument)) {
+                if (!matcherMatcher.matches(secondArgument) || isMatcher.matches(secondArgument) || notMatcher.matches(secondArgument)) {
                     return mi;
                 }
                 String actual = TypeUtils.isString(firstArgument.getType()) ? "#{any(java.lang.String)}" : "#{any(java.lang.Object)}";

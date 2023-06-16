@@ -15,6 +15,8 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -36,6 +38,51 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
               "junit-jupiter-api-5.9",
               "hamcrest-2.2",
               "assertj-core-3.24"));
+    }
+
+    @Nested
+    class DoNotConvert {
+        @Test
+        void notMatcher() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("not", "isNotEqualTo")),
+              java("""
+                import org.junit.jupiter.api.Test;
+                import static org.hamcrest.MatcherAssert.assertThat;
+                import static org.hamcrest.Matchers.not;
+                import static org.hamcrest.Matchers.containsString;
+                                
+                class BiscuitTest {
+                    @Test
+                    void testEquals() {
+                        String str1 = "Hello world!";
+                        String str2 = "Hello world!";
+                        assertThat(str1, not(containsString(str2)));
+                    }
+                }
+                """));
+        }
+
+        @Test
+        void isMatcher() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("is", "isEqualTo")),
+              java("""
+                import org.junit.jupiter.api.Test;
+                import static org.hamcrest.MatcherAssert.assertThat;
+                import static org.hamcrest.Matchers.is;
+                import static org.hamcrest.Matchers.equalTo;
+                                
+                class BiscuitTest {
+                    @Test
+                    void testEquals() {
+                        String str1 = "Hello world!";
+                        String str2 = "Hello world!";
+                        assertThat(str1, is(equalTo(str2)));
+                    }
+                }
+                """));
+        }
     }
 
     private static Stream<Arguments> stringReplacements() {
