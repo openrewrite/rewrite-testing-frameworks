@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2023 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
@@ -38,7 +38,9 @@ public class RemoveDuplicateTestTemplates extends Recipe {
     }
 
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.*", false), new RemoveDuplicateTestTemplateVisitor());
+        return Preconditions.check(
+                new UsesType<>("org.junit.jupiter.api.RepeatedTest", false),
+                new RemoveDuplicateTestTemplateVisitor());
     }
 
     private static class RemoveDuplicateTestTemplateVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -46,16 +48,12 @@ public class RemoveDuplicateTestTemplates extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(md, ctx);
             // first check if @Test or @RepeatedTest is present, else return early
-            if (m.getLeadingAnnotations().stream().noneMatch(TEST_ANNOTATION_MATCHER::matches) ||
-                m.getLeadingAnnotations().stream().noneMatch(REPEATED_TEST_ANNOTATION_MATCHER::matches)) {
-                return m;
+            if (m.getLeadingAnnotations().stream().anyMatch(TEST_ANNOTATION_MATCHER::matches) &&
+                m.getLeadingAnnotations().stream().anyMatch(REPEATED_TEST_ANNOTATION_MATCHER::matches)) {
+                maybeRemoveImport("org.junit.jupiter.api.Test");
+                return new RemoveAnnotationVisitor(TEST_ANNOTATION_MATCHER).visitMethodDeclaration(m, ctx);
             }
-
-            m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(),
-                    ann -> TEST_ANNOTATION_MATCHER.matches(ann) ? null : ann));
-            maybeRemoveImport("org.junit.jupiter.api.Test");
-
-            return autoFormat(m, ctx);
+            return m;
         }
     }
 }

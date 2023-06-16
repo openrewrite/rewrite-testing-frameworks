@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2023 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -27,13 +28,15 @@ import static org.openrewrite.java.Assertions.java;
 public class RemoveDuplicateTestTemplatesTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+        spec
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
           .recipe(new RemoveDuplicateTestTemplates());
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/314")
     @Test
+    @DocumentExample
     void removeDuplicate() {
         //language=java
         rewriteRun(
@@ -47,7 +50,7 @@ public class RemoveDuplicateTestTemplatesTest implements RewriteTest {
                   @Test
                   @RepeatedTest(3)
                   @DisplayName("When an entry does not exist, it should be created and initialized to 0")
-                  void TestMethod() {
+                  void testMethod() {
                       System.out.println("foobar");
                   }
               }
@@ -55,12 +58,67 @@ public class RemoveDuplicateTestTemplatesTest implements RewriteTest {
             """
               import org.junit.jupiter.api.RepeatedTest;
               import org.junit.jupiter.api.DisplayName;
-                            
-              class MyTest {
               
+              class MyTest {
                   @RepeatedTest(3)
                   @DisplayName("When an entry does not exist, it should be created and initialized to 0")
-                  void TestMethod() {
+                  void testMethod() {
+                      System.out.println("foobar");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeDuplicateOnly() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.RepeatedTest;
+              import org.junit.jupiter.api.DisplayName;
+              
+              class MyTest {
+                  @Test
+                  @RepeatedTest(3)
+                  @DisplayName("When an entry does not exist, it should be created and initialized to 0")
+                  void testMethodA() {
+                      System.out.println("foobar");
+                  }
+
+                  @Test
+                  void testMethodB() {
+                      System.out.println("foobar");
+                  }
+
+                  @RepeatedTest(3)
+                  void testMethodC() {
+                      System.out.println("foobar");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.RepeatedTest;
+              import org.junit.jupiter.api.DisplayName;
+              
+              class MyTest {
+                  @RepeatedTest(3)
+                  @DisplayName("When an entry does not exist, it should be created and initialized to 0")
+                  void testMethodA() {
+                      System.out.println("foobar");
+                  }
+
+                  @Test
+                  void testMethodB() {
+                      System.out.println("foobar");
+                  }
+
+                  @RepeatedTest(3)
+                  void testMethodC() {
                       System.out.println("foobar");
                   }
               }
@@ -83,7 +141,7 @@ public class RemoveDuplicateTestTemplatesTest implements RewriteTest {
                   @DisplayName("When an entry does not exist, it should be created and initialized to 0")
                   @RepeatedTest(3)
                   @Test
-                  void TestMethod() {
+                  void testMethod() {
                       System.out.println("foobar");
                   }
               }
@@ -95,7 +153,7 @@ public class RemoveDuplicateTestTemplatesTest implements RewriteTest {
               class MyTest {
                   @DisplayName("When an entry does not exist, it should be created and initialized to 0")
                   @RepeatedTest(3)
-                  void TestMethod() {
+                  void testMethod() {
                       System.out.println("foobar");
                   }
               }
@@ -114,7 +172,7 @@ public class RemoveDuplicateTestTemplatesTest implements RewriteTest {
               
               class MyTest {
                   @Test
-                  void TestMethod() {
+                  void testMethod() {
                       System.out.println("foobar");
                   }
               }
@@ -133,7 +191,7 @@ public class RemoveDuplicateTestTemplatesTest implements RewriteTest {
               
               class MyTest {
                   @RepeatedTest(3)
-                  void TestMethod() {
+                  void testMethod() {
                       System.out.println("foobar");
                   }
               }
