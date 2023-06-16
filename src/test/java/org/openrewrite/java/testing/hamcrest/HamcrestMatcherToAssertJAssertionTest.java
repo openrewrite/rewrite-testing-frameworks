@@ -40,16 +40,33 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
 
     private static Stream<Arguments> replacements() {
         return Stream.of(
-          Arguments.arguments("str1", "isEmptyString", "", "isEmpty"),
+          Arguments.arguments("bis1", "equalTo", "bis2", "isEqualTo"),
+
+          Arguments.arguments("str1", "comparesEqualTo", "str2", "isEqualTo"),
+//          Arguments.arguments("str1", "containsString", "str2", "containsString"),
+//          Arguments.arguments("str1", "endsWith", "str2", "endsWith"),
+//          Arguments.arguments("str1", "equalToIgnoringCase", "str2", "isEqualToIgnoringCase"),
+//          Arguments.arguments("str1", "equalToIgnoringWhiteSpace", "str2", "isEqualToIgnoringWhitespace"),
           Arguments.arguments("str1", "equalTo", "str2", "isEqualTo"),
-          Arguments.arguments("bis1", "equalTo", "bis2", "isEqualTo")
+//          Arguments.arguments("str1", "greaterThanOrEqualTo", "str2", "isGreaterThanOrEqualTo"),
+//          Arguments.arguments("str1", "greaterThan", "str2", "isGreaterThan"),
+//          Arguments.arguments("str1", "hasToString", "str2", "hasToString"),
+          Arguments.arguments("str1", "isEmptyString", "", "isEmpty"),
+//          Arguments.arguments("str1", "lessThanOrEqualTo", "str2", "isLessThanOrEqualTo"),
+//          Arguments.arguments("str1", "lessThan", "str2", "isLessThan"),
+//          Arguments.arguments("str1", "matchesPattern", "\"[a-z]+\"", "matchesPattern"),
+          Arguments.arguments("str1", "notNullValue", "", "isNotNull"),
+//          Arguments.arguments("str1", "notSameInstance", "str2", "isNotSameAs"),
+          Arguments.arguments("str1", "not", "str2", "isNotEqualTo"),
+          Arguments.arguments("str1", "nullValue", "", "isNull"),
+          Arguments.arguments("str1", "sameInstance", "str2", "isSameAs")
+//          Arguments.arguments("str1", "startsWith", "str2", "startsWith")
         );
     }
 
     @ParameterizedTest
     @MethodSource("replacements")
     void replace(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
-        //language=java
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
           import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
