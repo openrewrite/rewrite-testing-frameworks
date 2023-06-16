@@ -15,12 +15,15 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+
+import java.util.stream.Stream;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -35,127 +38,52 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
               "assertj-core-3.24"));
     }
 
-    @Nested
-    class NoArgument {
-        @Test
-        void isEmpty() {
-            rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("isEmptyString", "isEmpty")),
-              //language=java
-              java("""
-                  import org.junit.jupiter.api.Test;
-                                
-                  import static org.hamcrest.MatcherAssert.assertThat;
-                  import static org.hamcrest.Matchers.isEmptyString;
-                              
-                  class BiscuitTest {
-                      @Test
-                      void testEquals() {
-                          String str1 = "Hello world!";
-                          assertThat(str1, isEmptyString());
-                      }
-                  }
-                  """,
-                """
-                  import org.junit.jupiter.api.Test;
-                                
-                  import static org.assertj.core.api.Assertions.assertThat;
-                                
-                  class BiscuitTest {
-                      @Test
-                      void testEquals() {
-                          String str1 = "Hello world!";
-                          assertThat(str1).isEmpty();
-                      }
-                  }
-                  """)
-            );
-        }
+    private static Stream<Arguments> replacements() {
+        return Stream.of(
+          Arguments.arguments("str1", "isEmptyString", "", "isEmpty"),
+          Arguments.arguments("str1", "equalTo", "str2", "isEqualTo"),
+          Arguments.arguments("bis1", "equalTo", "bis2", "isEqualTo")
+        );
     }
 
-    @Nested
-    class SingleArgument {
-
-        @Test
-        void equalToObject() {
-            rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
-              //language=java
-              java("""
-                class Biscuit {
-                    String name;
-                    Biscuit(String name) {
-                        this.name = name;
-                    }
+    @ParameterizedTest
+    @MethodSource("replacements")
+    void replace(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
+        //language=java
+        String importsBefore = """
+          import static org.hamcrest.MatcherAssert.assertThat;
+          import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
+        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        //language=java
+        String template = """
+          import org.junit.jupiter.api.Test;
+                    
+          %s
+                    
+          class BiscuitTest {
+              @Test
+              void testEquals() {
+                  String str1 = "Hello world!";
+                  String str2 = "Hello world!";
+                  Biscuit bis1 = new Biscuit("Ginger");
+                  Biscuit bis2 = new Biscuit("Ginger");
+                  %s
+              }
+          }
+          """;
+        rewriteRun(
+          spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion(hamcrestMatcher, assertJAssertion)),
+          java("""
+            class Biscuit {
+                String name;
+                Biscuit(String name) {
+                    this.name = name;
                 }
-                """),
-              java("""
-                  import org.junit.jupiter.api.Test;
-                                
-                  import static org.hamcrest.MatcherAssert.assertThat;
-                  import static org.hamcrest.Matchers.equalTo;
-                                
-                  class BiscuitTest {
-                      @Test
-                      void testEquals() {
-                          Biscuit theBiscuit = new Biscuit("Ginger");
-                          Biscuit myBiscuit = new Biscuit("Ginger");
-                          assertThat(theBiscuit, equalTo(myBiscuit));
-                      }
-                  }
-                  """,
-                """
-                  import org.junit.jupiter.api.Test;
-                                
-                  import static org.assertj.core.api.Assertions.assertThat;
-                                
-                  class BiscuitTest {
-                      @Test
-                      void testEquals() {
-                          Biscuit theBiscuit = new Biscuit("Ginger");
-                          Biscuit myBiscuit = new Biscuit("Ginger");
-                          assertThat(theBiscuit).isEqualTo(myBiscuit);
-                      }
-                  }
-                  """)
-            );
-        }
-
-        @Test
-        void equalToString() {
-            rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
-              //language=java
-              java("""
-                  import org.junit.jupiter.api.Test;
-                                
-                  import static org.hamcrest.MatcherAssert.assertThat;
-                  import static org.hamcrest.Matchers.equalTo;
-                              
-                  class BiscuitTest {
-                      @Test
-                      void testEquals() {
-                          String str1 = "Hello world!";
-                          String str2 = "Hello world!";
-                          assertThat(str1, equalTo(str2));
-                      }
-                  }
-                  """,
-                """
-                  import org.junit.jupiter.api.Test;
-                                
-                  import static org.assertj.core.api.Assertions.assertThat;
-                                
-                  class BiscuitTest {
-                      @Test
-                      void testEquals() {
-                          String str1 = "Hello world!";
-                          String str2 = "Hello world!";
-                          assertThat(str1).isEqualTo(str2);
-                      }
-                  }
-                  """)
-            );
-        }
+            }
+            """),
+          java(
+            template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs)),
+            template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs)))
+        );
     }
 }
