@@ -39,6 +39,7 @@ tags:
   - hamcrest
   - junit
 recipeList:
+  - org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: comparesEqualTo
       assertion: isEqualTo

@@ -82,6 +82,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                 """));
         }
     }
+
     @Nested
     class NoArgument {
         @Test
@@ -135,6 +136,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                     }
                 }
                 """),
+              //language=java
               java("""
                   import org.junit.jupiter.api.Test;
                                 
