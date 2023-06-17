@@ -39,7 +39,9 @@ tags:
   - hamcrest
   - junit
 recipeList:
+  # First remove wrapping `is(Matcher)` calls such that further recipes will match
   - org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
+
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: comparesEqualTo
       assertion: isEqualTo
@@ -94,6 +96,29 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: startsWith
       assertion: startsWith
+
+  # List Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: contains
+      assertion: contains
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: containsInAnyOrder
+      assertion: containsExactlyInAnyOrder
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: containsInRelativeOrder
+      assertion: containsExactly
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: empty
+      assertion: isEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: hasSize
+      assertion: hasSize
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: hasItem
+      assertion: contains
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: hasItems
+      assertion: contains
 
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj

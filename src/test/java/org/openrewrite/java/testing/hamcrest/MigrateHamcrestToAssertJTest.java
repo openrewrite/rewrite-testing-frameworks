@@ -79,20 +79,18 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                     
           %s
                     
-          class BiscuitTest {
+          class ATest {
               @Test
-              void testEquals() {
+              void test() {
                   String str1 = "Hello world!";
                   String str2 = "Hello world!";
                   %s
               }
           }
           """;
-        rewriteRun(
-          java(
-            template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs)),
-            template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs)))
-        );
+        String before = template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs));
+        String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
+        rewriteRun(java(before, after));
     }
 
     private static Stream<Arguments> objectReplacements() {
@@ -118,15 +116,17 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                     
           %s
                     
-          class BiscuitTest {
+          class ATest {
               @Test
-              void testEquals() {
+              void test() {
                   Biscuit bis1 = new Biscuit("Ginger");
                   Biscuit bis2 = new Biscuit("Ginger");
                   %s
               }
           }
           """;
+        String before = template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs));
+        String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
         rewriteRun(
           java("""
             class Biscuit {
@@ -136,10 +136,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                 }
             }
             """),
-          java(
-            template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs)),
-            template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs)))
-        );
+          java(before, after));
     }
 
     private static Stream<Arguments> numberReplacements() {
@@ -165,19 +162,57 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                     
           %s
                     
-          class BiscuitTest {
+          class ATest {
               @Test
-              void testEquals() {
+              void test() {
                   int num1 = 5;
                   int num2 = 5;
                   %s
               }
           }
           """;
-        rewriteRun(
-          java(
-            template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs)),
-            template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs)))
+        String before = template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs));
+        String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
+        rewriteRun(java(before, after));
+    }
+
+
+    private static Stream<Arguments> listReplacements() {
+        return Stream.of(
+          Arguments.arguments("list1", "contains", "item", "contains"),
+          Arguments.arguments("list1", "containsInAnyOrder", "item", "containsExactlyInAnyOrder"),
+          Arguments.arguments("list1", "containsInRelativeOrder", "item", "containsExactly"),
+          Arguments.arguments("list1", "empty", "", "isEmpty"),
+          Arguments.arguments("list1", "hasSize", "5", "hasSize"),
+          Arguments.arguments("list1", "hasItem", "item", "contains"),
+          Arguments.arguments("list1", "hasItems", "item", "contains")
         );
+    }
+
+    @ParameterizedTest
+    @MethodSource("listReplacements")
+    void listReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
+        String importsBefore = """
+          import static org.hamcrest.MatcherAssert.assertThat;
+          import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
+        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        //language=java
+        String template = """
+          import java.util.List;
+          import org.junit.jupiter.api.Test;
+                    
+          %s
+                    
+          class ATest {
+              @Test
+              void test(String item) {
+                  List<String> list1 = List.of("a", "b", "c");
+                  %s
+              }
+          }
+          """;
+        String before = template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs));
+        String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
+        rewriteRun(java(before, after));
     }
 }
