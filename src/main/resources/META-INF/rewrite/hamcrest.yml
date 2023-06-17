@@ -119,6 +119,12 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: hasItems
       assertion: contains
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: in
+      assertion: isIn
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: isIn
+      assertion: isIn
 
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj

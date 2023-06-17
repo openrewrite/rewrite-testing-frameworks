@@ -185,7 +185,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
           Arguments.arguments("list1", "empty", "", "isEmpty"),
           Arguments.arguments("list1", "hasSize", "5", "hasSize"),
           Arguments.arguments("list1", "hasItem", "item", "contains"),
-          Arguments.arguments("list1", "hasItems", "item", "contains")
+          Arguments.arguments("list1", "hasItems", "item", "contains"),
+          Arguments.arguments("item", "in", "list1", "isIn"),
+          Arguments.arguments("item", "isIn", "list1", "isIn")
         );
     }
 
