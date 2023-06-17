@@ -119,7 +119,7 @@ public class HamcrestMatcherToAssertJAssertion extends Recipe {
             Expression reasonArgument = mi.getArguments().get(0);
             Expression actualArgument = mi.getArguments().get(1);
             Expression matcherArgument = mi.getArguments().get(2);
-            if (!matchersMatcher.matches(matcherArgument) || subMatcher.matches(matcherArgument)) {
+            if (subMatcher.matches(matcherArgument)) {
                 return mi;
             }
             String actual = typeToIndicator(actualArgument.getType());
