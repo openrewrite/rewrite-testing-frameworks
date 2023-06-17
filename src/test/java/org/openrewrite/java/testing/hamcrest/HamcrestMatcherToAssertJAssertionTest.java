@@ -324,4 +324,89 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
             );
         }
     }
+
+    @Nested
+    class TwoArgument {
+        @Test
+        void reasonAsLiteral() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
+              //language=java
+              java("""
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.equalTo;
+                              
+                  class BiscuitTest {
+                      @Test
+                      void test() {
+                          String str1 = "Hello world!";
+                          String str2 = "Hello world!";
+                          assertThat("Should match", str1, equalTo(str2));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.assertj.core.api.Assertions.assertThat;
+                                
+                  class BiscuitTest {
+                      @Test
+                      void test() {
+                          String str1 = "Hello world!";
+                          String str2 = "Hello world!";
+                          assertThat(str1).as("Should match").isEqualTo(str2);
+                      }
+                  }
+                  """)
+            );
+        }
+
+        @Test
+        void reasonAsMethodCall() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
+              //language=java
+              java("""
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.equalTo;
+                              
+                  class BiscuitTest {
+                      @Test
+                      void test() {
+                          String str1 = "Hello world!";
+                          String str2 = "Hello world!";
+                          assertThat(reason(), str1, equalTo(str2));
+                      }
+                      
+                      String reason() {
+                          return "Should match";
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.assertj.core.api.Assertions.assertThat;
+                                
+                  class BiscuitTest {
+                      @Test
+                      void test() {
+                          String str1 = "Hello world!";
+                          String str2 = "Hello world!";
+                          assertThat(str1).as(reason()).isEqualTo(str2);
+                      }
+                      
+                      String reason() {
+                          return "Should match";
+                      }
+                  }
+                  """)
+            );
+        }
+    }
 }

@@ -75,35 +75,74 @@ public class HamcrestMatcherToAssertJAssertion extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-            if (assertThatMatcher.matches(mi) && mi.getArguments().size() == 2) {
-                Expression firstArgument = mi.getArguments().get(0);
-                Expression secondArgument = mi.getArguments().get(1);
-                if (!matchersMatcher.matches(secondArgument) || subMatcher.matches(secondArgument)) {
-                    return mi;
+            if (assertThatMatcher.matches(mi)) {
+                if (mi.getArguments().size() == 2) {
+                    return handleTwoArgumentCase(mi, ctx);
                 }
-                String actual = typeToIndicator(firstArgument.getType());
-                List<Expression> originalArguments = ((J.MethodInvocation) secondArgument).getArguments().stream()
-                        .filter(a -> !(a instanceof J.Empty))
-                        .collect(Collectors.toList());
-                String argumentsTemplate = originalArguments.stream()
-                        .map(a -> typeToIndicator(a.getType()))
-                        .collect(Collectors.joining(", "));
-                JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).%s(%s)",
-                                actual, assertion, argumentsTemplate))
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
-                        .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .build();
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-                maybeRemoveImport("org.hamcrest.Matchers." + matcher);
-                maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
-
-                List<Expression> templateArguments = new ArrayList<>();
-                templateArguments.add(firstArgument);
-                templateArguments.addAll(originalArguments);
-                return template.apply(getCursor(), method.getCoordinates().replace(), templateArguments.toArray());
+                if (mi.getArguments().size() == 3) {
+                    return handleThreeArgumentCase(mi, ctx);
+                }
             }
-            // TODO Also handle assertThat(String, boolean) and assertThat(String, Object, Matcher)
             return mi;
+        }
+
+        private J.MethodInvocation handleTwoArgumentCase(J.MethodInvocation mi, ExecutionContext ctx) {
+            Expression actualArgument = mi.getArguments().get(0);
+            Expression matcherArgument = mi.getArguments().get(1);
+            // TODO Handle assertThat(String, boolean)
+            if (!matchersMatcher.matches(matcherArgument) || subMatcher.matches(matcherArgument)) {
+                return mi;
+            }
+            String actual = typeToIndicator(actualArgument.getType());
+            List<Expression> originalArguments = ((J.MethodInvocation) matcherArgument).getArguments().stream()
+                    .filter(a -> !(a instanceof J.Empty))
+                    .collect(Collectors.toList());
+            String argumentsTemplate = originalArguments.stream()
+                    .map(a -> typeToIndicator(a.getType()))
+                    .collect(Collectors.joining(", "));
+            JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).%s(%s)",
+                            actual, assertion, argumentsTemplate))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                    .staticImports("org.assertj.core.api.Assertions.assertThat")
+                    .build();
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+            maybeRemoveImport("org.hamcrest.Matchers." + matcher);
+            maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
+
+            List<Expression> templateArguments = new ArrayList<>();
+            templateArguments.add(actualArgument);
+            templateArguments.addAll(originalArguments);
+            return template.apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
+        }
+
+        private J.MethodInvocation handleThreeArgumentCase(J.MethodInvocation mi, ExecutionContext ctx) {
+            Expression reasonArgument = mi.getArguments().get(0);
+            Expression actualArgument = mi.getArguments().get(1);
+            Expression matcherArgument = mi.getArguments().get(2);
+            if (!matchersMatcher.matches(matcherArgument) || subMatcher.matches(matcherArgument)) {
+                return mi;
+            }
+            String actual = typeToIndicator(actualArgument.getType());
+            List<Expression> originalArguments = ((J.MethodInvocation) matcherArgument).getArguments().stream()
+                    .filter(a -> !(a instanceof J.Empty))
+                    .collect(Collectors.toList());
+            String argumentsTemplate = originalArguments.stream()
+                    .map(a -> typeToIndicator(a.getType()))
+                    .collect(Collectors.joining(", "));
+            JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).as(#{any(String)}).%s(%s)",
+                            actual, assertion, argumentsTemplate))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                    .staticImports("org.assertj.core.api.Assertions.assertThat")
+                    .build();
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+            maybeRemoveImport("org.hamcrest.Matchers." + matcher);
+            maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
+
+            List<Expression> templateArguments = new ArrayList<>();
+            templateArguments.add(actualArgument);
+            templateArguments.add(reasonArgument);
+            templateArguments.addAll(originalArguments);
+            return template.apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
         }
 
         private String typeToIndicator(JavaType type) {
