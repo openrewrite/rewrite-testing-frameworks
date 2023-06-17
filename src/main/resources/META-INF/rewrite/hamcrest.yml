@@ -40,11 +40,60 @@ tags:
   - junit
 recipeList:
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: comparesEqualTo
+      assertion: isEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: containsString
+      assertion: contains
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: endsWith
+      assertion: endsWith
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: equalToIgnoringCase
+      assertion: isEqualToIgnoringCase
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: equalToIgnoringWhiteSpace
+      assertion: isEqualToIgnoringWhitespace
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: equalTo
       assertion: isEqualTo
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: greaterThanOrEqualTo
+      assertion: isGreaterThanOrEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: greaterThan
+      assertion: isGreaterThan
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: hasToString
+      assertion: hasToString
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: isEmptyString
       assertion: isEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: lessThanOrEqualTo
+      assertion: isLessThanOrEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: lessThan
+      assertion: isLessThan
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: matchesPattern
+      assertion: matches
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: notNullValue
+      assertion: isNotNull
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: not
+      assertion: isNotEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: nullValue
+      assertion: isNull
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: sameInstance
+      assertion: isSameAs
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: startsWith
+      assertion: startsWith
+
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj
       artifactId: assertj-core
