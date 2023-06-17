@@ -142,5 +142,42 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         );
     }
 
-    // TODO Assert with integers
+    private static Stream<Arguments> numberReplacements() {
+        return Stream.of(
+          Arguments.arguments("num1", "greaterThanOrEqualTo", "num2", "isGreaterThanOrEqualTo"),
+          Arguments.arguments("num1", "greaterThan", "num2", "isGreaterThan"),
+          Arguments.arguments("num1", "lessThanOrEqualTo", "num2", "isLessThanOrEqualTo"),
+          Arguments.arguments("num1", "lessThan", "num2", "isLessThan"),
+          Arguments.arguments("num1", "not", "num2", "isNotEqualTo")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("numberReplacements")
+    void numberReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
+        String importsBefore = """
+          import static org.hamcrest.MatcherAssert.assertThat;
+          import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
+        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        //language=java
+        String template = """
+          import org.junit.jupiter.api.Test;
+                    
+          %s
+                    
+          class BiscuitTest {
+              @Test
+              void testEquals() {
+                  int num1 = 5;
+                  int num2 = 5;
+                  %s
+              }
+          }
+          """;
+        rewriteRun(
+          java(
+            template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs)),
+            template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs)))
+        );
+    }
 }

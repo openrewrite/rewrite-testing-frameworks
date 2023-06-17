@@ -28,7 +28,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.JavaType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,9 +69,8 @@ public class HamcrestMatcherToAssertJAssertion extends Recipe {
 
     private class MigrateToAssertJVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final MethodMatcher assertThatMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
-        private final MethodMatcher matcherMatcher = new MethodMatcher("org.hamcrest.Matchers " + matcher + "(..)");
-        private final MethodMatcher isMatcher = new MethodMatcher("org.hamcrest.Matchers is(org.hamcrest.Matcher)");
-        private final MethodMatcher notMatcher = new MethodMatcher("org.hamcrest.Matchers not(org.hamcrest.Matcher)");
+        private final MethodMatcher matchersMatcher = new MethodMatcher("org.hamcrest.Matchers " + matcher + "(..)");
+        private final MethodMatcher subMatcher = new MethodMatcher("org.hamcrest.Matchers *(org.hamcrest.Matcher)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -79,16 +78,15 @@ public class HamcrestMatcherToAssertJAssertion extends Recipe {
             if (assertThatMatcher.matches(mi) && mi.getArguments().size() == 2) {
                 Expression firstArgument = mi.getArguments().get(0);
                 Expression secondArgument = mi.getArguments().get(1);
-                if (!matcherMatcher.matches(secondArgument) || isMatcher.matches(secondArgument) || notMatcher.matches(secondArgument)) {
+                if (!matchersMatcher.matches(secondArgument) || subMatcher.matches(secondArgument)) {
                     return mi;
                 }
-                String actual = TypeUtils.isString(firstArgument.getType()) ? "#{any(java.lang.String)}" : "#{any(java.lang.Object)}";
-                J.MethodInvocation matcherInvocation = (J.MethodInvocation) secondArgument;
-                List<Expression> originalArguments = matcherInvocation.getArguments().stream()
+                String actual = typeToIndicator(firstArgument.getType());
+                List<Expression> originalArguments = ((J.MethodInvocation) secondArgument).getArguments().stream()
                         .filter(a -> !(a instanceof J.Empty))
                         .collect(Collectors.toList());
                 String argumentsTemplate = originalArguments.stream()
-                        .map(a -> TypeUtils.isString(a.getType()) ? "#{any(java.lang.String)}" : "#{any(java.lang.Object)}")
+                        .map(a -> typeToIndicator(a.getType()))
                         .collect(Collectors.joining(", "));
                 JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).%s(%s)",
                                 actual, assertion, argumentsTemplate))
@@ -108,5 +106,10 @@ public class HamcrestMatcherToAssertJAssertion extends Recipe {
             return mi;
         }
 
+        private String typeToIndicator(JavaType type) {
+            String str = type instanceof JavaType.Primitive || type.toString().startsWith("java.lang.") ?
+                    type.toString() : "java.lang.Object";
+            return String.format("#{any(%s)}", str);
+        }
     }
 }

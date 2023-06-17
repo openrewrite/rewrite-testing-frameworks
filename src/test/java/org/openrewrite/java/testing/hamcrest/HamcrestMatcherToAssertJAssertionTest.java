@@ -49,7 +49,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                 import static org.hamcrest.Matchers.not;
                 import static org.hamcrest.Matchers.containsString;
                                 
-                class BiscuitTest {
+                class Test {
                     @Test
                     void testEquals() {
                         String str1 = "Hello world!";
@@ -71,7 +71,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                 import static org.hamcrest.Matchers.is;
                 import static org.hamcrest.Matchers.equalTo;
                                 
-                class BiscuitTest {
+                class Test {
                     @Test
                     void testEquals() {
                         String str1 = "Hello world!";
@@ -96,7 +96,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                   import static org.hamcrest.MatcherAssert.assertThat;
                   import static org.hamcrest.Matchers.isEmptyString;
                               
-                  class BiscuitTest {
+                  class Test {
                       @Test
                       void testEquals() {
                           String str1 = "Hello world!";
@@ -109,7 +109,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                                 
                   import static org.assertj.core.api.Assertions.assertThat;
                                 
-                  class BiscuitTest {
+                  class Test {
                       @Test
                       void testEquals() {
                           String str1 = "Hello world!";
@@ -123,52 +123,6 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
 
     @Nested
     class SingleArgument {
-        @Test
-        void equalToObject() {
-            rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
-              //language=java
-              java("""
-                class Biscuit {
-                    String name;
-                    Biscuit(String name) {
-                        this.name = name;
-                    }
-                }
-                """),
-              //language=java
-              java("""
-                  import org.junit.jupiter.api.Test;
-                                
-                  import static org.hamcrest.MatcherAssert.assertThat;
-                  import static org.hamcrest.Matchers.equalTo;
-                                
-                  class BiscuitTest {
-                      @Test
-                      void testEquals() {
-                          Biscuit theBiscuit = new Biscuit("Ginger");
-                          Biscuit myBiscuit = new Biscuit("Ginger");
-                          assertThat(theBiscuit, equalTo(myBiscuit));
-                      }
-                  }
-                  """,
-                """
-                  import org.junit.jupiter.api.Test;
-                                
-                  import static org.assertj.core.api.Assertions.assertThat;
-                                
-                  class BiscuitTest {
-                      @Test
-                      void testEquals() {
-                          Biscuit theBiscuit = new Biscuit("Ginger");
-                          Biscuit myBiscuit = new Biscuit("Ginger");
-                          assertThat(theBiscuit).isEqualTo(myBiscuit);
-                      }
-                  }
-                  """)
-            );
-        }
-
         @Test
         @DocumentExample
         void equalToString() {
@@ -201,6 +155,124 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                           String str1 = "Hello world!";
                           String str2 = "Hello world!";
                           assertThat(str1).isEqualTo(str2);
+                      }
+                  }
+                  """)
+            );
+        }
+
+        @Test
+        void equalToStringLiteral() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
+              //language=java
+              java("""
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.equalTo;
+                              
+                  class Test {
+                      @Test
+                      void testEquals() {
+                          String str1 = "Hello world!";
+                          assertThat(str1, equalTo("Hello world!"));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.assertj.core.api.Assertions.assertThat;
+                                
+                  class Test {
+                      @Test
+                      void testEquals() {
+                          String str1 = "Hello world!";
+                          assertThat(str1).isEqualTo("Hello world!");
+                      }
+                  }
+                  """)
+            );
+        }
+
+        @Test
+        void equalToObject() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
+              //language=java
+              java("""
+                class Biscuit {
+                    String name;
+                    Biscuit(String name) {
+                        this.name = name;
+                    }
+                }
+                """),
+              //language=java
+              java("""
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.equalTo;
+                                
+                  class Test {
+                      @Test
+                      void testEquals() {
+                          Biscuit theBiscuit = new Biscuit("Ginger");
+                          Biscuit myBiscuit = new Biscuit("Ginger");
+                          assertThat(theBiscuit, equalTo(myBiscuit));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.assertj.core.api.Assertions.assertThat;
+                                
+                  class Test {
+                      @Test
+                      void testEquals() {
+                          Biscuit theBiscuit = new Biscuit("Ginger");
+                          Biscuit myBiscuit = new Biscuit("Ginger");
+                          assertThat(theBiscuit).isEqualTo(myBiscuit);
+                      }
+                  }
+                  """)
+            );
+        }
+
+        @Test
+        void lessThanNumber() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("lessThan", "isLessThan")),
+              //language=java
+              java("""
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.lessThan;
+                                
+                  class Test {
+                      @Test
+                      void testEquals() {
+                          int intA = 1;
+                          int intB = 1;
+                          assertThat(intA, lessThan(intB));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.assertj.core.api.Assertions.assertThat;
+                                
+                  class Test {
+                      @Test
+                      void testEquals() {
+                          int intA = 1;
+                          int intB = 1;
+                          assertThat(intA).isLessThan(intB);
                       }
                   }
                   """)
