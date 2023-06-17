@@ -51,7 +51,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                                 
                 class Test {
                     @Test
-                    void testEquals() {
+                    void test() {
                         String str1 = "Hello world!";
                         String str2 = "Hello world!";
                         assertThat(str1, not(containsString(str2)));
@@ -73,10 +73,55 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                                 
                 class Test {
                     @Test
-                    void testEquals() {
+                    void test() {
                         String str1 = "Hello world!";
                         String str2 = "Hello world!";
                         assertThat(str1, is(equalTo(str2)));
+                    }
+                }
+                """));
+        }
+
+        @Test
+        void anyOfVarargsMatcher() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("is", "isEqualTo")),
+              //language=java
+              java("""
+                import org.junit.jupiter.api.Test;
+                import static org.hamcrest.MatcherAssert.assertThat;
+                import static org.hamcrest.Matchers.anyof;
+                import static org.hamcrest.Matchers.equalTo;
+                                
+                class Test {
+                    @Test
+                    void test() {
+                        String str1 = "Hello world!";
+                        String str2 = "Hello world!";
+                        assertThat(str1, anyof(equalTo(str2)));
+                    }
+                }
+                """));
+        }
+
+        @Test
+        void anyOfIterableMatcher() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("is", "isEqualTo")),
+              //language=java
+              java("""
+                import java.util.List;
+                import org.junit.jupiter.api.Test;
+                import static org.hamcrest.MatcherAssert.assertThat;
+                import static org.hamcrest.Matchers.anyof;
+                import static org.hamcrest.Matchers.equalTo;
+                                
+                class Test {
+                    @Test
+                    void test() {
+                        String str1 = "Hello world!";
+                        String str2 = "Hello world!";
+                        assertThat(str1, anyof(List.of(equalTo(str2))));
                     }
                 }
                 """));
@@ -98,7 +143,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                               
                   class Test {
                       @Test
-                      void testEquals() {
+                      void test() {
                           String str1 = "Hello world!";
                           assertThat(str1, isEmptyString());
                       }
@@ -111,7 +156,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                                 
                   class Test {
                       @Test
-                      void testEquals() {
+                      void test() {
                           String str1 = "Hello world!";
                           assertThat(str1).isEmpty();
                       }
@@ -137,7 +182,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                               
                   class BiscuitTest {
                       @Test
-                      void testEquals() {
+                      void test() {
                           String str1 = "Hello world!";
                           String str2 = "Hello world!";
                           assertThat(str1, equalTo(str2));
@@ -151,7 +196,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                                 
                   class BiscuitTest {
                       @Test
-                      void testEquals() {
+                      void test() {
                           String str1 = "Hello world!";
                           String str2 = "Hello world!";
                           assertThat(str1).isEqualTo(str2);
@@ -174,7 +219,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                               
                   class Test {
                       @Test
-                      void testEquals() {
+                      void test() {
                           String str1 = "Hello world!";
                           assertThat(str1, equalTo("Hello world!"));
                       }
@@ -187,7 +232,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                                 
                   class Test {
                       @Test
-                      void testEquals() {
+                      void test() {
                           String str1 = "Hello world!";
                           assertThat(str1).isEqualTo("Hello world!");
                       }
@@ -218,7 +263,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                                 
                   class Test {
                       @Test
-                      void testEquals() {
+                      void test() {
                           Biscuit theBiscuit = new Biscuit("Ginger");
                           Biscuit myBiscuit = new Biscuit("Ginger");
                           assertThat(theBiscuit, equalTo(myBiscuit));
@@ -232,7 +277,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                                 
                   class Test {
                       @Test
-                      void testEquals() {
+                      void test() {
                           Biscuit theBiscuit = new Biscuit("Ginger");
                           Biscuit myBiscuit = new Biscuit("Ginger");
                           assertThat(theBiscuit).isEqualTo(myBiscuit);
@@ -255,7 +300,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                                 
                   class Test {
                       @Test
-                      void testEquals() {
+                      void test() {
                           int intA = 1;
                           int intB = 1;
                           assertThat(intA, lessThan(intB));
@@ -269,7 +314,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
                                 
                   class Test {
                       @Test
-                      void testEquals() {
+                      void test() {
                           int intA = 1;
                           int intB = 1;
                           assertThat(intA).isLessThan(intB);
