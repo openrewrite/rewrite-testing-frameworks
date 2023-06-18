@@ -19,6 +19,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -28,6 +29,7 @@ import java.util.stream.Stream;
 
 import static org.openrewrite.java.Assertions.java;
 
+@Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/212")
 class MigrateHamcrestToAssertJTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
