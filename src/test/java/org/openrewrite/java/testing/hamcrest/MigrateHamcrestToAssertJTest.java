@@ -275,7 +275,18 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
           Arguments.arguments("str1", "in", "java.util.List.of()", "isNotIn"),
           Arguments.arguments("str1", "isIn", "java.util.List.of()", "isNotIn"),
           Arguments.arguments("str1", "instanceOf", "String.class", "isNotInstanceOf"),
-          Arguments.arguments("str1", "nullValue", "", "isNotNull")
+          Arguments.arguments("str1", "nullValue", "", "isNotNull"),
+          Arguments.arguments("str1", "sameInstance", "str2", "isNotSameAs"),
+          // String specific from org.assertj.core.api.AbstractCharSequenceAssert
+          Arguments.arguments("str1", "startsWith", "str2", "doesNotStartWith"),
+          Arguments.arguments("str1", "endsWith", "str2", "doesNotEndWith"),
+          Arguments.arguments("str1", "containsString", "str2", "doesNotContain"),
+          Arguments.arguments("str1", "containsStringIgnoringCase", "str2", "doesNotContainIgnoringCase"),
+          Arguments.arguments("str1", "matchesPattern", "str2", "doesNotMatch"),
+          Arguments.arguments("str1", "equalToIgnoringCase", "str2", "isNotEqualToIgnoringCase"),
+          Arguments.arguments("str1", "equalToIgnoringWhiteSpace", "str2", "isNotEqualToIgnoringWhitespace"),
+          Arguments.arguments("str1", "blankString", "", "isNotBlank"),
+          Arguments.arguments("str1", "emptyString", "", "isNotEmpty")
         );
     }
 

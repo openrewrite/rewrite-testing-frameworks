@@ -202,6 +202,42 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
       notMatcher: nullValue
       assertion: isNotNull
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: sameInstance
+      assertion: isNotSameAs
+
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: equalToIgnoringCase
+      assertion: isNotEqualToIgnoringCase
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: equalToIgnoringWhiteSpace
+      assertion: isNotEqualToIgnoringWhitespace
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: containsString
+      assertion: doesNotContain
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: containsStringIgnoringCase
+      assertion: doesNotContainIgnoringCase
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: startsWith
+      assertion: doesNotStartWith
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: endsWith
+      assertion: doesNotEndWith
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: matchesPattern
+      assertion: doesNotMatch
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: matchesRegex
+      assertion: doesNotMatch
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: blankString
+      assertion: isNotBlank
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: emptyString
+      assertion: isNotEmpty
+
+
 
   # Add dependency if not already present
   - org.openrewrite.java.dependencies.AddDependency:
