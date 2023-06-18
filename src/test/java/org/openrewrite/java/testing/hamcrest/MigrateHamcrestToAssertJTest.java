@@ -217,4 +217,41 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
         rewriteRun(java(before, after));
     }
+
+    private static Stream<Arguments> mapReplacements(){
+        return Stream.of(
+          Arguments.arguments("map1", "hasEntry", "key, value", "containsEntry"),
+          Arguments.arguments("map1", "hasKey", "key", "containsKey"),
+          Arguments.arguments("map1", "hasValue", "value", "containsValue"),
+          Arguments.arguments("map1", "anEmptyMap", "", "isEmpty"),
+          Arguments.arguments("map1", "aMapWithSize", "5", "hasSize")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("mapReplacements")
+    void mapReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
+        String importsBefore = """
+          import static org.hamcrest.MatcherAssert.assertThat;
+          import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
+        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        //language=java
+        String template = """
+          import java.util.Map;
+          import org.junit.jupiter.api.Test;
+                    
+          %s
+                    
+          class ATest {
+              @Test
+              void test(String key, String value) {
+                  Map<String, String> map1 = Map.of("a", "b", "c", "d");
+                  %s
+              }
+          }
+          """;
+        String before = template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs));
+        String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
+        rewriteRun(java(before, after));
+    }
 }

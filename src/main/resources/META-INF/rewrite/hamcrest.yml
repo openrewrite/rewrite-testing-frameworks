@@ -126,6 +126,24 @@ recipeList:
       matcher: isIn
       assertion: isIn
 
+
+  # Map Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: hasEntry
+      assertion: containsEntry
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: hasKey
+      assertion: containsKey
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: hasValue
+      assertion: containsValue
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: aMapWithSize
+      assertion: hasSize
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: anEmptyMap
+      assertion: isEmpty
+
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj
       artifactId: assertj-core

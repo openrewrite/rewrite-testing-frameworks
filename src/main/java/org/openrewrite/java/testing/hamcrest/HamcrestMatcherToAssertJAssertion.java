@@ -147,7 +147,7 @@ public class HamcrestMatcherToAssertJAssertion extends Recipe {
 
         private String typeToIndicator(JavaType type) {
             String str = type instanceof JavaType.Primitive || type.toString().startsWith("java.") ?
-                    type.toString() : "java.lang.Object";
+                    type.toString().replaceAll("<.*>", "") : "java.lang.Object";
             return String.format("#{any(%s)}", str);
         }
     }
