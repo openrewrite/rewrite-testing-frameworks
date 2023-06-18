@@ -76,6 +76,14 @@ recipeList:
       matcher: sameInstance
       assertion: isSameAs
 
+  # Object Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: instanceOf
+      assertion: isInstanceOf
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: isA
+      assertion: isInstanceOf
+
   # String Matchers
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: blankString

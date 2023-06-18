@@ -106,6 +106,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         return Stream.of(
           Arguments.arguments("bis1", "equalTo", "bis2", "isEqualTo"),
           Arguments.arguments("bis1", "hasToString", "bis2.toString()", "hasToString"),
+          Arguments.arguments("bis1", "instanceOf", "String.class", "isInstanceOf"),
+          Arguments.arguments("bis1", "isA", "String.class", "isInstanceOf"),
           Arguments.arguments("bis1", "notNullValue", "", "isNotNull"),
           Arguments.arguments("bis1", "nullValue", "", "isNull"),
           Arguments.arguments("bis1", "sameInstance", "bis2", "isSameAs")
