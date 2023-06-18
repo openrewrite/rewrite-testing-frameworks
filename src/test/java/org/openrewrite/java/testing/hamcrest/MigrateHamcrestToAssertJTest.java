@@ -45,24 +45,33 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
 
     private static Stream<Arguments> stringReplacements() {
         return Stream.of(
+          Arguments.arguments("str1", "blankString", "", "isBlank"),
           Arguments.arguments("str1", "comparesEqualTo", "str2", "isEqualTo"),
           Arguments.arguments("str1", "containsString", "str2", "contains"),
+          Arguments.arguments("str1", "containsStringIgnoringCase", "str2", "containsIgnoringCase"),
+          Arguments.arguments("str1", "emptyOrNullString", "", "isNullOrEmpty"),
+          Arguments.arguments("str1", "emptyString", "", "isEmpty"),
           Arguments.arguments("str1", "endsWith", "str2", "endsWith"),
+          Arguments.arguments("str1", "endsWithIgnoringCase", "str2", "endsWithIgnoringCase"),
           Arguments.arguments("str1", "equalToIgnoringCase", "str2", "isEqualToIgnoringCase"),
           Arguments.arguments("str1", "equalToIgnoringWhiteSpace", "str2", "isEqualToIgnoringWhitespace"),
           Arguments.arguments("str1", "equalTo", "str2", "isEqualTo"),
           Arguments.arguments("str1", "greaterThanOrEqualTo", "str2", "isGreaterThanOrEqualTo"),
           Arguments.arguments("str1", "greaterThan", "str2", "isGreaterThan"),
+          Arguments.arguments("str1", "hasLength", "5", "hasSize"),
           Arguments.arguments("str1", "hasToString", "str2", "hasToString"),
           Arguments.arguments("str1", "isEmptyString", "", "isEmpty"),
+          Arguments.arguments("str1", "isEmptyOrNullString", "", "isNullOrEmpty"),
           Arguments.arguments("str1", "lessThanOrEqualTo", "str2", "isLessThanOrEqualTo"),
           Arguments.arguments("str1", "lessThan", "str2", "isLessThan"),
           Arguments.arguments("str1", "matchesPattern", "\"[a-z]+\"", "matches"),
+          Arguments.arguments("str1", "matchesRegex", "\"[a-z]+\"", "matches"),
           Arguments.arguments("str1", "notNullValue", "", "isNotNull"),
           Arguments.arguments("str1", "not", "str2", "isNotEqualTo"),
           Arguments.arguments("str1", "nullValue", "", "isNull"),
           Arguments.arguments("str1", "sameInstance", "str2", "isSameAs"),
-          Arguments.arguments("str1", "startsWith", "str2", "startsWith")
+          Arguments.arguments("str1", "startsWith", "str2", "startsWith"),
+          Arguments.arguments("str1", "startsWithIgnoringCase", "str2", "startsWithIgnoringCase")
         );
     }
 

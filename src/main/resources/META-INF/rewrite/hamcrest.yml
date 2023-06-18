@@ -46,18 +46,6 @@ recipeList:
       matcher: comparesEqualTo
       assertion: isEqualTo
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
-      matcher: containsString
-      assertion: contains
-  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
-      matcher: endsWith
-      assertion: endsWith
-  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
-      matcher: equalToIgnoringCase
-      assertion: isEqualToIgnoringCase
-  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
-      matcher: equalToIgnoringWhiteSpace
-      assertion: isEqualToIgnoringWhitespace
-  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: equalTo
       assertion: isEqualTo
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
@@ -70,17 +58,11 @@ recipeList:
       matcher: hasToString
       assertion: hasToString
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
-      matcher: isEmptyString
-      assertion: isEmpty
-  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: lessThanOrEqualTo
       assertion: isLessThanOrEqualTo
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: lessThan
       assertion: isLessThan
-  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
-      matcher: matchesPattern
-      assertion: matches
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: notNullValue
       assertion: isNotNull
@@ -93,9 +75,56 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: sameInstance
       assertion: isSameAs
+
+  # String Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: blankString
+      assertion: isBlank
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: containsString
+      assertion: contains
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: containsStringIgnoringCase
+      assertion: containsIgnoringCase
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: emptyOrNullString
+      assertion: isNullOrEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: emptyString
+      assertion: isEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: endsWith
+      assertion: endsWith
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: endsWithIgnoringCase
+      assertion: endsWithIgnoringCase
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: equalToIgnoringCase
+      assertion: isEqualToIgnoringCase
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: equalToIgnoringWhiteSpace
+      assertion: isEqualToIgnoringWhitespace
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: hasLength
+      assertion: hasSize
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: isEmptyString
+      assertion: isEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: isEmptyOrNullString
+      assertion: isNullOrEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: matchesPattern
+      assertion: matches
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: matchesRegex
+      assertion: matches
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: startsWith
       assertion: startsWith
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
+      matcher: startsWithIgnoringCase
+      assertion: startsWithIgnoringCase
 
   # List Matchers
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
@@ -125,7 +154,6 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
       matcher: isIn
       assertion: isIn
-
 
   # Map Matchers
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJAssertion:
