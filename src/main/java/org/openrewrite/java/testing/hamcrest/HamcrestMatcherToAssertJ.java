@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 @NoArgsConstructor
 @AllArgsConstructor
-public class HamcrestMatcherToAssertJAssertion extends Recipe {
+public class HamcrestMatcherToAssertJ extends Recipe {
 
     @Option(displayName = "Hamcrest Matcher",
             description = "The Hamcrest matcher to migrate to JUnit5.",

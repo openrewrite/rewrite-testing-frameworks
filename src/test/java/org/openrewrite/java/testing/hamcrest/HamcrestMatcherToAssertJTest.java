@@ -25,7 +25,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
+class HamcrestMatcherToAssertJTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -41,7 +41,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
         @Test
         void notMatcher() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("not", "isNotEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("not", "isNotEqualTo")),
               //language=java
               java("""
                 import org.junit.jupiter.api.Test;
@@ -63,7 +63,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
         @Test
         void isMatcher() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("is", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo")),
               //language=java
               java("""
                 import org.junit.jupiter.api.Test;
@@ -85,7 +85,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
         @Test
         void anyOfVarargsMatcher() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("is", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo")),
               //language=java
               java("""
                 import org.junit.jupiter.api.Test;
@@ -107,7 +107,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
         @Test
         void anyOfIterableMatcher() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("is", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo")),
               //language=java
               java("""
                 import java.util.List;
@@ -133,7 +133,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
         @Test
         void isEmpty() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("isEmptyString", "isEmpty")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("isEmptyString", "isEmpty")),
               //language=java
               java("""
                   import org.junit.jupiter.api.Test;
@@ -172,7 +172,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
         @DocumentExample
         void equalToString() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
               //language=java
               java("""
                   import org.junit.jupiter.api.Test;
@@ -209,7 +209,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
         @Test
         void equalToStringLiteral() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
               //language=java
               java("""
                   import org.junit.jupiter.api.Test;
@@ -244,7 +244,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
         @Test
         void equalToObject() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
               //language=java
               java("""
                 class Biscuit {
@@ -290,7 +290,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
         @Test
         void lessThanNumber() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("lessThan", "isLessThan")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("lessThan", "isLessThan")),
               //language=java
               java("""
                   import org.junit.jupiter.api.Test;
@@ -330,7 +330,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
         @Test
         void reasonAsLiteral() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
               //language=java
               java("""
                   import org.junit.jupiter.api.Test;
@@ -367,7 +367,7 @@ class HamcrestMatcherToAssertJAssertionTest implements RewriteTest {
         @Test
         void reasonAsMethodCall() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJAssertion("equalTo", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
               //language=java
               java("""
                   import org.junit.jupiter.api.Test;
