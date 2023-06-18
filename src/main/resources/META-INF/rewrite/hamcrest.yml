@@ -183,6 +183,27 @@ recipeList:
       matcher: anEmptyMap
       assertion: isEmpty
 
+  # Matchers inverted through `not(Matcher)`
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: equalTo
+      assertion: isNotEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: hasToString
+      assertion: doesNotHaveToString
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: in
+      assertion: isNotIn
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: isIn
+      assertion: isNotIn
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: instanceOf
+      assertion: isNotInstanceOf
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: nullValue
+      assertion: isNotNull
+
+  # Add dependency if not already present
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj
       artifactId: assertj-core

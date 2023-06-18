@@ -231,7 +231,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         rewriteRun(java(before, after));
     }
 
-    private static Stream<Arguments> mapReplacements(){
+    private static Stream<Arguments> mapReplacements() {
         return Stream.of(
           Arguments.arguments("map1", "hasEntry", "key, value", "containsEntry"),
           Arguments.arguments("map1", "hasKey", "key", "containsKey"),
@@ -264,6 +264,45 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
           }
           """;
         String before = template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs));
+        String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
+        rewriteRun(java(before, after));
+    }
+
+    private static Stream<Arguments> notReplacements() {
+        return Stream.of(
+          Arguments.arguments("str1", "equalTo", "str2", "isNotEqualTo"),
+          Arguments.arguments("str1", "hasToString", "str2", "doesNotHaveToString"),
+          Arguments.arguments("str1", "in", "java.util.List.of()", "isNotIn"),
+          Arguments.arguments("str1", "isIn", "java.util.List.of()", "isNotIn"),
+          Arguments.arguments("str1", "instanceOf", "String.class", "isNotInstanceOf"),
+          Arguments.arguments("str1", "nullValue", "", "isNotNull")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("notReplacements")
+    void notReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
+        String importsBefore = """
+          import static org.hamcrest.MatcherAssert.assertThat;
+          import static org.hamcrest.Matchers.not;
+          import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
+        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        //language=java
+        String template = """
+          import org.junit.jupiter.api.Test;
+                    
+          %s
+                    
+          class ATest {
+              @Test
+              void test() {
+                  String str1 = "Hello world!";
+                  String str2 = "Hello world!";
+                  %s
+              }
+          }
+          """;
+        String before = template.formatted(importsBefore, "assertThat(%s, not(%s(%s)));".formatted(actual, hamcrestMatcher, matcherArgs));
         String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
         rewriteRun(java(before, after));
     }
