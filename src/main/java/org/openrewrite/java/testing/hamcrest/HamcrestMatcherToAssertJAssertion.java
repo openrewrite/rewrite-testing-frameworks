@@ -89,7 +89,6 @@ public class HamcrestMatcherToAssertJAssertion extends Recipe {
         private J.MethodInvocation handleTwoArgumentCase(J.MethodInvocation mi, ExecutionContext ctx) {
             Expression actualArgument = mi.getArguments().get(0);
             Expression matcherArgument = mi.getArguments().get(1);
-            // TODO Handle assertThat(String, boolean)
             if (!matchersMatcher.matches(matcherArgument) || subMatcher.matches(matcherArgument)) {
                 return mi;
             }

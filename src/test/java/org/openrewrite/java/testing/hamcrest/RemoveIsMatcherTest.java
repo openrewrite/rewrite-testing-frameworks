@@ -42,7 +42,7 @@ class RemoveIsMatcherTest implements RewriteTest {
             import static org.hamcrest.Matchers.is;
             import static org.hamcrest.Matchers.equalTo;
                             
-            class BiscuitTest {
+            class ATest {
                 @Test
                 void testEquals() {
                     String str1 = "Hello world!";
@@ -55,7 +55,7 @@ class RemoveIsMatcherTest implements RewriteTest {
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.equalTo;
                             
-            class BiscuitTest {
+            class ATest {
                 @Test
                 void testEquals() {
                     String str1 = "Hello world!";
