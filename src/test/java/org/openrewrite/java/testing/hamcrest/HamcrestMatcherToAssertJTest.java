@@ -49,7 +49,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                 import static org.hamcrest.Matchers.not;
                 import static org.hamcrest.Matchers.containsString;
                                 
-                class Test {
+                class ATest {
                     @Test
                     void test() {
                         String str1 = "Hello world!";
@@ -71,7 +71,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                 import static org.hamcrest.Matchers.is;
                 import static org.hamcrest.Matchers.equalTo;
                                 
-                class Test {
+                class ATest {
                     @Test
                     void test() {
                         String str1 = "Hello world!";
@@ -93,7 +93,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                 import static org.hamcrest.Matchers.anyof;
                 import static org.hamcrest.Matchers.equalTo;
                                 
-                class Test {
+                class ATest {
                     @Test
                     void test() {
                         String str1 = "Hello world!";
@@ -116,7 +116,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                 import static org.hamcrest.Matchers.anyof;
                 import static org.hamcrest.Matchers.equalTo;
                                 
-                class Test {
+                class ATest {
                     @Test
                     void test() {
                         String str1 = "Hello world!";
@@ -141,7 +141,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   import static org.hamcrest.MatcherAssert.assertThat;
                   import static org.hamcrest.Matchers.isEmptyString;
                               
-                  class Test {
+                  class ATest {
                       @Test
                       void test() {
                           String str1 = "Hello world!";
@@ -154,7 +154,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                                 
                   import static org.assertj.core.api.Assertions.assertThat;
                                 
-                  class Test {
+                  class ATest {
                       @Test
                       void test() {
                           String str1 = "Hello world!";
@@ -217,7 +217,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   import static org.hamcrest.MatcherAssert.assertThat;
                   import static org.hamcrest.Matchers.equalTo;
                               
-                  class Test {
+                  class ATest {
                       @Test
                       void test() {
                           String str1 = "Hello world!";
@@ -230,7 +230,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                                 
                   import static org.assertj.core.api.Assertions.assertThat;
                                 
-                  class Test {
+                  class ATest {
                       @Test
                       void test() {
                           String str1 = "Hello world!";
@@ -261,7 +261,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   import static org.hamcrest.MatcherAssert.assertThat;
                   import static org.hamcrest.Matchers.equalTo;
                                 
-                  class Test {
+                  class ATest {
                       @Test
                       void test() {
                           Biscuit theBiscuit = new Biscuit("Ginger");
@@ -275,7 +275,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                                 
                   import static org.assertj.core.api.Assertions.assertThat;
                                 
-                  class Test {
+                  class ATest {
                       @Test
                       void test() {
                           Biscuit theBiscuit = new Biscuit("Ginger");
@@ -298,7 +298,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   import static org.hamcrest.MatcherAssert.assertThat;
                   import static org.hamcrest.Matchers.lessThan;
                                 
-                  class Test {
+                  class ATest {
                       @Test
                       void test() {
                           int intA = 1;
@@ -312,7 +312,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                                 
                   import static org.assertj.core.api.Assertions.assertThat;
                                 
-                  class Test {
+                  class ATest {
                       @Test
                       void test() {
                           int intA = 1;

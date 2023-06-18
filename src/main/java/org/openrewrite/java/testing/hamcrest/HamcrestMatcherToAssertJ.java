@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 public class HamcrestMatcherToAssertJ extends Recipe {
 
     @Option(displayName = "Hamcrest Matcher",
-            description = "The Hamcrest matcher to migrate to JUnit5.",
+            description = "The Hamcrest `Matcher` to migrate to JUnit5.",
             example = "equalTo",
             required = false)
     @Nullable
@@ -52,12 +52,12 @@ public class HamcrestMatcherToAssertJ extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Migrate from Hamcrest to AssertJ";
+        return "Migrate from Hamcrest `Matcher` to AssertJ";
     }
 
     @Override
     public String getDescription() {
-        return "Migrate from Hamcrest Matchers to AssertJ assertions.";
+        return "Migrate from Hamcrest `Matcher` to AssertJ assertions.";
     }
 
     @Override
