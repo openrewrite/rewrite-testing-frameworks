@@ -29,3 +29,220 @@ recipeList:
       version: 2.x
       onlyIfUsing: org.hamcrest.Matchers
       acceptTransitive: true
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
+displayName: Migrate to JUnit Jupiter assertions
+description: Migrate Hamcrest `assertThat(Object, Matcher)` to JUnit Jupiter `Assertions`.
+tags:
+  - testing
+  - hamcrest
+  - junit
+recipeList:
+  # First remove wrapping `is(Matcher)` calls such that further recipes will match
+  - org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
+
+  # Then remove calls to `MatcherAssert.assertThat(String, boolean)`
+  - org.openrewrite.java.testing.hamcrest.AssertThatBooleanToAssertJ
+
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: comparesEqualTo
+      assertion: isEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: equalTo
+      assertion: isEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: greaterThanOrEqualTo
+      assertion: isGreaterThanOrEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: greaterThan
+      assertion: isGreaterThan
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: hasToString
+      assertion: hasToString
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: lessThanOrEqualTo
+      assertion: isLessThanOrEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: lessThan
+      assertion: isLessThan
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: notNullValue
+      assertion: isNotNull
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: not
+      assertion: isNotEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: nullValue
+      assertion: isNull
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: sameInstance
+      assertion: isSameAs
+
+  # Object Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: instanceOf
+      assertion: isInstanceOf
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: isA
+      assertion: isInstanceOf
+
+  # String Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: blankString
+      assertion: isBlank
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: containsString
+      assertion: contains
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: containsStringIgnoringCase
+      assertion: containsIgnoringCase
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: emptyOrNullString
+      assertion: isNullOrEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: emptyString
+      assertion: isEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: endsWith
+      assertion: endsWith
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: endsWithIgnoringCase
+      assertion: endsWithIgnoringCase
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: equalToIgnoringCase
+      assertion: isEqualToIgnoringCase
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: equalToIgnoringWhiteSpace
+      assertion: isEqualToIgnoringWhitespace
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: hasLength
+      assertion: hasSize
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: isEmptyString
+      assertion: isEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: isEmptyOrNullString
+      assertion: isNullOrEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: matchesPattern
+      assertion: matches
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: matchesRegex
+      assertion: matches
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: startsWith
+      assertion: startsWith
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: startsWithIgnoringCase
+      assertion: startsWithIgnoringCase
+
+  # List Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: contains
+      assertion: contains
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: containsInAnyOrder
+      assertion: containsExactlyInAnyOrder
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: containsInRelativeOrder
+      assertion: containsExactly
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: empty
+      assertion: isEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: hasSize
+      assertion: hasSize
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: hasItem
+      assertion: contains
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: hasItems
+      assertion: contains
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: in
+      assertion: isIn
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: isIn
+      assertion: isIn
+
+  # Map Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: hasEntry
+      assertion: containsEntry
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: hasKey
+      assertion: containsKey
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: hasValue
+      assertion: containsValue
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: aMapWithSize
+      assertion: hasSize
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: anEmptyMap
+      assertion: isEmpty
+
+  # Matchers inverted through `not(Matcher)`
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: equalTo
+      assertion: isNotEqualTo
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: hasToString
+      assertion: doesNotHaveToString
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: in
+      assertion: isNotIn
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: isIn
+      assertion: isNotIn
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: instanceOf
+      assertion: isNotInstanceOf
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: nullValue
+      assertion: isNotNull
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: sameInstance
+      assertion: isNotSameAs
+
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: equalToIgnoringCase
+      assertion: isNotEqualToIgnoringCase
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: equalToIgnoringWhiteSpace
+      assertion: isNotEqualToIgnoringWhitespace
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: containsString
+      assertion: doesNotContain
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: containsStringIgnoringCase
+      assertion: doesNotContainIgnoringCase
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: startsWith
+      assertion: doesNotStartWith
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: endsWith
+      assertion: doesNotEndWith
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: matchesPattern
+      assertion: doesNotMatch
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: matchesRegex
+      assertion: doesNotMatch
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: blankString
+      assertion: isNotBlank
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: emptyString
+      assertion: isNotEmpty
+
+
+
+  # Add dependency if not already present
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.assertj
+      artifactId: assertj-core
+      version: 3.x
+      onlyIfUsing: org.assertj.core.api.Assertions
+      acceptTransitive: true
