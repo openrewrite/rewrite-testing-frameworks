@@ -33,7 +33,7 @@ import java.time.Duration;
 public class AnyStringToNullable extends Recipe {
     private static final MethodMatcher ANY_STRING = new MethodMatcher("org.mockito.Mockito anyString()");
     private static final String MOCKITO_CLASS_PATH = "mockito-core-3.12";
-    private static J.MethodInvocation nullableStringMethodTemplate = null;
+    private static J.MethodInvocation nullableStringMethodTemplate;
 
     @Override
     public String getDisplayName() {

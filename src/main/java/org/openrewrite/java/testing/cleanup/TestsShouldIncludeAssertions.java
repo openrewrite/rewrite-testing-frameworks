@@ -150,7 +150,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
         private boolean methodHasAssertion(J.Block body) {
             AtomicBoolean hasAssertion = new AtomicBoolean(Boolean.FALSE);
-            JavaIsoVisitor<AtomicBoolean> findAssertionVisitor = new JavaIsoVisitor<AtomicBoolean>() {
+            JavaIsoVisitor<AtomicBoolean> findAssertionVisitor = new JavaIsoVisitor<>() {
                 @Override
                 public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
                     J.MethodInvocation mi = super.visitMethodInvocation(method, atomicBoolean);
@@ -167,7 +167,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
         private boolean methodInvocationInBodyContainsAssertion() {
             J.ClassDeclaration classDeclaration = getCursor().dropParentUntil(is -> is instanceof J.ClassDeclaration).getValue();
 
-            JavaIsoVisitor<Set<MethodMatcher>> findMethodDeclarationsVisitor = new JavaIsoVisitor<Set<MethodMatcher>>() {
+            JavaIsoVisitor<Set<MethodMatcher>> findMethodDeclarationsVisitor = new JavaIsoVisitor<>() {
                 @Override
                 public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Set<MethodMatcher> methodMatchers) {
                     J.MethodInvocation mi = super.visitMethodInvocation(method, methodMatchers);
@@ -198,7 +198,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
         }
 
         private Set<J.Block> findMethodDeclarations(J.ClassDeclaration classDeclaration, MethodMatcher methodMatcher) {
-            JavaIsoVisitor<Set<J.Block>> findMethodDeclarationVisitor = new JavaIsoVisitor<Set<J.Block>>() {
+            JavaIsoVisitor<Set<J.Block>> findMethodDeclarationVisitor = new JavaIsoVisitor<>() {
                 @Override
                 public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, Set<J.Block> blocks) {
                     J.MethodDeclaration m = super.visitMethodDeclaration(method, blocks);

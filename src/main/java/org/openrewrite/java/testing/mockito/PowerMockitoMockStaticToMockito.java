@@ -330,7 +330,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 if (methodDeclarationCursor != null) {
                     Optional<J.Annotation> testAnnotation = methodDeclarationCursor
                             .getLeadingAnnotations().stream()
-                            .filter(annotation -> annotation.getSimpleName().equals("Test")).findFirst();
+                            .filter(annotation -> "Test".equals(annotation.getSimpleName())).findFirst();
                     testAnnotation.ifPresent(
                             ta -> {
                                 if (ta.getArguments() != null) {
