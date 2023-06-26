@@ -26,6 +26,8 @@ recipeList:
   - org.openrewrite.java.testing.junit5.JUnit4to5Migration
   - org.openrewrite.java.testing.junit5.CleanupAssertions
   - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
+  - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
+  - org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.StaticImports
