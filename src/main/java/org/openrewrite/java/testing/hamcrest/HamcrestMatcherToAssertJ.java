@@ -143,9 +143,16 @@ public class HamcrestMatcherToAssertJ extends Recipe {
         }
 
         private String typeToIndicator(JavaType type) {
-            String str = type instanceof JavaType.Primitive || type.toString().startsWith("java.") ?
-                    type.toString().replaceAll("<.*>", "") : "java.lang.Object";
-            return String.format("#{any(%s)}", str);
+            if (type instanceof JavaType.Array) {
+                type = ((JavaType.Array) type).getElemType();
+                String str = type instanceof JavaType.Primitive || type.toString().startsWith("java.") ?
+                        type.toString().replaceAll("<.*>", "") : "java.lang.Object";
+                return String.format("#{anyArray(%s)}", str);
+            } else {
+                String str = type instanceof JavaType.Primitive || type.toString().startsWith("java.") ?
+                        type.toString().replaceAll("<.*>", "") : "java.lang.Object";
+                return String.format("#{any(%s)}", str);
+            }
         }
     }
 }

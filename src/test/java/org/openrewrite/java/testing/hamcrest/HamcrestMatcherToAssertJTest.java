@@ -323,6 +323,49 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   """)
             );
         }
+
+        @SuppressWarnings("DataFlowIssue")
+        @Test
+        void containsInAnyOrderWithArray() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("containsInAnyOrder", "containsExactlyInAnyOrder")),
+              //language=java
+              java("""
+                  import org.junit.jupiter.api.Test;
+                                
+                  import java.util.ArrayList;
+                  import java.util.List;
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.containsInAnyOrder;
+                              
+                  class ATest {
+                      @Test
+                      void test() {
+                          List<String> list = new ArrayList<>();
+                          List<String> states = null;
+                          assertThat(list, containsInAnyOrder(states.toArray()));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import java.util.ArrayList;
+                  import java.util.List;
+                  
+                  import static org.assertj.core.api.Assertions.assertThat;
+                              
+                  class ATest {
+                      @Test
+                      void test() {
+                          List<String> list = new ArrayList<>();
+                          List<String> states = null;
+                          assertThat(list).containsExactlyInAnyOrder(states.toArray());
+                      }
+                  }
+                  """)
+            );
+        }
     }
 
     @Nested
