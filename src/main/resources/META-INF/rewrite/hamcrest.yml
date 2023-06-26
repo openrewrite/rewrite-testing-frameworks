@@ -32,12 +32,12 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
-displayName: Migrate to JUnit Jupiter assertions
-description: Migrate Hamcrest `assertThat(Object, Matcher)` to JUnit Jupiter `Assertions`.
+displayName: Migrate to AssertJ assertions
+description: Migrate Hamcrest `assertThat(..)` to AssertJ `Assertions`.
 tags:
   - testing
   - hamcrest
-  - junit
+  - assertj
 recipeList:
   # First remove wrapping `is(Matcher)` calls such that further recipes will match
   - org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
