@@ -27,6 +27,7 @@ import org.openrewrite.java.tree.J;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class MigrateFromHamcrest extends Recipe {
     @Override
@@ -57,20 +58,23 @@ public class MigrateFromHamcrest extends Recipe {
             if (matcherAssertTrue.matches(mi)) {
                 //TODO simple
             } else if (matcherAssertMatcher.matches(mi)) {
+                System.out.println("invocation match");
                 Expression hamcrestMatcher = mi.getArguments().get(1);
                 if (hamcrestMatcher instanceof J.MethodInvocation) {
-                    System.out.println("matched");
+                    System.out.println("matcher");
                     J.MethodInvocation matcherInvocation = (J.MethodInvocation)hamcrestMatcher;
-                    maybeRemoveImport("org.hamcrest.Matchers." + matcherInvocation.getSimpleName());
                     maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
                     String targetAssertion = getTranslatedAssert(matcherInvocation, false);
                     if (targetAssertion.equals("")) {
                         return mi;
                     }
 
+                    String statikImport = "org.junit.jupiter.api.Assertions." + targetAssertion;
+                    System.out.println(statikImport);
+
                     JavaTemplate template = JavaTemplate.builder(getTemplateForMatcher(matcherInvocation,null, false))
                       .javaParser(JavaParser.fromJavaVersion().classpathFromResources(executionContext, "junit-jupiter-api-5.9"))
-                      .staticImports("org.junit.jupiter.api.Assertions." + targetAssertion)
+                      .staticImports(statikImport)
                       .build();
 
                     maybeAddImport("org.junit.jupiter.api.Assertions", targetAssertion);
@@ -85,6 +89,8 @@ public class MigrateFromHamcrest extends Recipe {
 
         private String getTranslatedAssert(J.MethodInvocation methodInvocation, boolean negated) {
             //to be replaced with a static map
+            maybeRemoveImport("org.hamcrest.Matchers." + methodInvocation.getSimpleName());
+
             switch (methodInvocation.getSimpleName()) {
                 case "equalTo":
                 case "emptyArray":
@@ -97,8 +103,6 @@ public class MigrateFromHamcrest extends Recipe {
                 case "containsString":
                 case "empty":
                 case "emptyCollectionOf":
-                case "emptyIterable":
-                case "emptyIterableOf":
                 case "endsWith":
                 case "greaterThan":
                 case "greaterThanOrEqualTo":
@@ -106,16 +110,14 @@ public class MigrateFromHamcrest extends Recipe {
                 case "hasValue":
                 case "lessThan":
                 case "lessThanOrEqualTo":
-                case "sameInstance":
                 case "startsWith":
-                case "theInstance":
                 case "isCompatibleWith":
                     return negated ? "assertFalse" : "assertTrue";
                 case "instanceOf":
                 case "isA":
                     return negated ? "assertFalse" : "assertInstanceOf";
                 case "is":
-                    if (methodInvocation.getArguments().get(0).toString().startsWith("org.hamcrest")) {
+                    if (Objects.requireNonNull(methodInvocation.getArguments().get(0).getType()).toString().startsWith("org.hamcrest")) {
                         if (methodInvocation.getArguments().get(0) instanceof J.MethodInvocation) {
                             return getTranslatedAssert((J.MethodInvocation)methodInvocation.getArguments().get(0), negated);
                         } else {
@@ -125,7 +127,7 @@ public class MigrateFromHamcrest extends Recipe {
                         return negated ? "assertNotEquals" : "assertEquals";
                     }
                 case "not":
-                    if (methodInvocation.getArguments().get(0).toString().startsWith("org.hamcrest")) {
+                    if (Objects.requireNonNull(methodInvocation.getArguments().get(0).getType()).toString().startsWith("org.hamcrest")) {
                         if (methodInvocation.getArguments().get(0) instanceof J.MethodInvocation) {
                             return getTranslatedAssert((J.MethodInvocation)methodInvocation.getArguments().get(0), !negated);
                         } else {
@@ -138,6 +140,12 @@ public class MigrateFromHamcrest extends Recipe {
                     return negated ? "assertNull" : "assertNotNull";
                 case "nullValue":
                     return negated ? "assertNotNull" : "assertNull";
+                case "emptyIterable":
+                case "emptyIterableOf":
+                    return negated ? "assertTrue" : "assertFalse";
+                case "sameInstance":
+                case "theInstance":
+                    return negated ? "assertNotSame" : "assertSame";
             }
             return "";
         }
@@ -148,27 +156,29 @@ public class MigrateFromHamcrest extends Recipe {
 
             //to be replaced with a static map
             switch (matcher.getSimpleName()) {
-                case "equalTo":
+                case "equalTo": //done
+                case "sameInstance": //done
+                case "theInstance": //done
                     sb.append("(#{any(java.lang.Object)}, #{any(java.lang.Object)}");
                     break;
-                case "closeTo":
-                    sb.append("(Math.abs(#{any(java.lang.Object)} - #{any(java.lang.Object)}) < #{any(java.lang.Object)}");
+                case "closeTo": //done
+                    sb.append("(Math.abs(#{any(double)} - #{any(double)}) < #{any(double)}");
                     break;
                 case "containsString":
-                    sb.append("(#{any(java.lang.Object)}.contains(#{any(java.lang.Object)}");
+                    sb.append("(#{any(java.lang.String)}.contains(#{any(java.lang.String)}");
                     break;
-                case "empty":
-                    sb.append("(#{any(java.lang.Object)}.isEmpty()");
+                case "empty": //done
+                    sb.append("(#{any(java.util.Collection)}.isEmpty()");
                     break;
-                case "emptyArray":
-                    sb.append("(0, #{any(java.lang.Object)}.length");
+                case "emptyArray": //done
+                    sb.append("(0, #{anyArray(java.lang.Object)}.length");
                     break;
                 case "emptyCollectionOf":
-                    sb.append("(#{any(java.lang.Object)}.isEmpty() && ");
-                    sb.append("#{any(java.lang.Object)}.isAssignableFrom(#{any(java.lang.Object)}.getClass())");
+                    sb.append("(#{any(java.lang.Collection)}.isEmpty() && ");
+                    sb.append("#{any(java.lang.Object)}.getClass().isAssignableFrom(#{any(java.lang.Object)}.getClass())");
                     break;
-                case "emptyIterable":
-                    sb.append("(#{any(java.lang.Object)}.iterator().hasNext()");
+                case "emptyIterable": //done
+                    sb.append("(#{any(java.lang.Iterable)}.iterator().hasNext()");
                     break;
                 case "emptyIterableOf":
                     sb.append("(#{any(java.lang.Object)}.iterator().hasNext() && ");
@@ -181,17 +191,17 @@ public class MigrateFromHamcrest extends Recipe {
                 case "equalToIgnoringCase":
                     sb.append("(#{any(java.lang.String)}.toLowerCase(), (#{any(java.lang.String)}.toLowerCase()");
                     break;
-                case "greaterThan":
-                    sb.append("(#{any(java.lang.Object)} > #{any(java.lang.Object)}");
+                case "greaterThan": //done
+                    sb.append("(#{any(double)} > #{any(double)}");
                     break;
-                case "greaterThanOrEqualTo":
-                    sb.append("(#{any(java.lang.Object)} >= #{any(java.lang.Object)}");
+                case "greaterThanOrEqualTo": //done
+                    sb.append("(#{any(double)} >= #{any(double)}");
                     break;
                 case "hasEntry":
                     if (matcher.getArguments().get(0).getType().toString().startsWith("org.hamcrest")) {
                         return "";
                     }
-                    sb.append("(#{any(java.lang.Object)}, #{any(java.lang.Object)}.get(#{any(java.lang.Object)})");
+                    sb.append("(#{any(java.lang.Object)}, #{any(java.util.Map)}.get(#{any(java.lang.Object)})");
                     break;
                 case "hasKey":
                     if (matcher.getArguments().get(0).getType().toString().startsWith("org.hamcrest")) {
@@ -199,11 +209,11 @@ public class MigrateFromHamcrest extends Recipe {
                     }
                     sb.append("(#{any(java.lang.Object)}.containsKey(#{any(java.lang.Object)})");
                     break;
-                case "hasSize":
+                case "hasSize": //done
                     if (matcher.getArguments().get(0).getType().toString().startsWith("org.hamcrest")) {
                         return "";
                     }
-                    sb.append("(#{any(java.lang.Object)}.size(), #{any(java.lang.Object)}");
+                    sb.append("(#{any(java.util.Collection)}.size(), #{any(double)}");
                     break;
                 case "hasToString":
                     if (matcher.getArguments().get(0).getType().toString().startsWith("org.hamcrest")) {
@@ -217,16 +227,16 @@ public class MigrateFromHamcrest extends Recipe {
                     }
                     sb.append("(#{any(java.lang.Object)}.containsValue(#{any(java.lang.Object)})");
                     break;
-                case "instanceOf":
-                case "isA":
+                case "instanceOf": //done
+                case "isA": //done
                     if (negated) {
-                        sb.append("(#{any(java.lang.Object)} instanceof #{any(java.lang.Object)}");
+                        sb.append("(#{any(java.lang.Class)}.isAssignableFrom(#{any(java.lang.Object)}.getClass())");
                     } else {
-                        sb.append("(#{any(java.lang.Object)}, #{any(java.lang.Object)}");
+                        sb.append("(#{any(java.lang.Class)}, #{any(java.lang.Object)}");
                     }
                     break;
-                case "is":
-                    if (matcher.getArguments().get(0).toString().startsWith("org.hamcrest")) {
+                case "is": //done
+                    if (Objects.requireNonNull(matcher.getArguments().get(0).getType()).toString().startsWith("org.hamcrest")) {
                         if (matcher.getArguments().get(0) instanceof J.MethodInvocation) {
                             return getTemplateForMatcher((J.MethodInvocation) matcher.getArguments().get(0), errorMsg, negated);
                         } else {
@@ -236,14 +246,14 @@ public class MigrateFromHamcrest extends Recipe {
                         sb.append("(#{any(java.lang.Object)}, #{any(java.lang.Object)}");
                     }
                     break;
-                case "lessThan":
-                    sb.append("(#{any(java.lang.Object)} < #{any(java.lang.Object)}");
+                case "lessThan": //done
+                    sb.append("(#{any(double)} < #{any(double)}");
                     break;
-                case "lessThanOrEqualTo":
-                    sb.append("(#{any(java.lang.Object)} <= #{any(java.lang.Object)}");
+                case "lessThanOrEqualTo": //done
+                    sb.append("(#{any(double)} <= #{any(double)}");
                     break;
-                case "not":
-                    if (matcher.getArguments().get(0).toString().startsWith("org.hamcrest")) {
+                case "not": //done
+                    if (Objects.requireNonNull(matcher.getArguments().get(0).getType()).toString().startsWith("org.hamcrest")) {
                         if (matcher.getArguments().get(0) instanceof J.MethodInvocation) {
                             return getTemplateForMatcher((J.MethodInvocation) matcher.getArguments().get(0), errorMsg, !negated);
                         } else {
@@ -253,13 +263,9 @@ public class MigrateFromHamcrest extends Recipe {
                         sb.append("(#{any(java.lang.Object)}, #{any(java.lang.Object)}");
                     }
                     break;
-                case "notNullValue":
-                case "nullValue":
+                case "notNullValue": //done
+                case "nullValue": //done
                     sb.append("(#{any(java.lang.Object)}");
-                    break;
-                case "sameInstance":
-                case "theInstance":
-                    sb.append("(#{any(java.lang.Object)} == #{any(java.lang.Object)}");
                     break;
                 case "startsWith":
                     sb.append("(#{any(java.lang.String)}.startsWith(#{any(java.lang.Object)})");
@@ -327,16 +333,11 @@ public class MigrateFromHamcrest extends Recipe {
                     break;
                 case "instanceOf":
                 case "isA":
-                    if (negated) {
-                        result.add(examinedObj);
-                        result.add(matcher.getArguments().get(0));
-                    } else {
-                        result.add(matcher.getArguments().get(0));
-                        result.add(examinedObj);
-                    }
+                    result.add(matcher.getArguments().get(0));
+                    result.add(examinedObj);
                     break;
                 case "is":
-                    if (matcher.getArguments().get(0).toString().startsWith("org.hamcrest")) {
+                    if (Objects.requireNonNull(matcher.getArguments().get(0).getType()).toString().startsWith("org.hamcrest")) {
                         if (matcher.getArguments().get(0) instanceof J.MethodInvocation) {
                             return getArgumentsForTemplate((J.MethodInvocation) matcher.getArguments().get(0), errorMsg, examinedObj, negated);
                         } else {
@@ -348,7 +349,7 @@ public class MigrateFromHamcrest extends Recipe {
                     }
                     break;
                 case "not":
-                    if (matcher.getArguments().get(0).toString().startsWith("org.hamcrest")) {
+                    if (Objects.requireNonNull(matcher.getArguments().get(0).getType()).toString().startsWith("org.hamcrest")) {
                         if (matcher.getArguments().get(0) instanceof J.MethodInvocation) {
                             return getArgumentsForTemplate((J.MethodInvocation) matcher.getArguments().get(0), errorMsg, examinedObj, !negated);
                         } else {

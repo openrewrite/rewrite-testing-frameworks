@@ -147,6 +147,39 @@ class MigrateFromHamcrestTest implements RewriteTest {
     }
 
     @Test
+    void greaterThanOrEqualTo() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+              
+              class Test {
+                  @Test
+                  void testGreaterThanOrEqualTo() {
+                      int intt = 7;
+                      assertThat(10, greaterThanOrEqualTo(intt));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testGreaterThanOrEqualTo() {
+                      int intt = 7;
+                      assertTrue(10 >= intt);
+                  }
+              }
+              """
+          ));
+    }
+    @Test
     void closeTo() {
         //language=java
         rewriteRun(
@@ -174,6 +207,362 @@ class MigrateFromHamcrestTest implements RewriteTest {
                   void testCloseTo() {
                       double dbl = 179.1;
                       assertTrue(Math.abs(dbl - 178.2) < 1.0);
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void collections() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.ArrayList;
+              import java.util.Collection;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.empty;
+              import static org.hamcrest.Matchers.hasSize;
+              
+              class Test {
+                  private static final Collection<String> collection = new ArrayList<>();
+                  @Test
+                  void testEmpty() {
+                      assertThat(collection, empty());
+                      assertThat(collection, hasSize(0));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.ArrayList;
+              import java.util.Collection;
+              
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  private static final Collection<String> collection = new ArrayList<>();
+                  @Test
+                  void testEmpty() {
+                      assertTrue(collection.isEmpty());
+                      assertEquals(collection.size(), 0);
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void arraysAndIterables() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.Arrays;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.emptyArray;
+              import static org.hamcrest.Matchers.emptyIterable;
+              
+              class Test {
+                  private static final Integer[] ints = new Integer[]{};
+                  @Test
+                  void testEmpty() {
+                      assertThat(ints, emptyArray());
+                      Iterable<Integer> iterable = Arrays.stream(ints).toList();
+                      assertThat(iterable, emptyIterable());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.Arrays;
+              
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertFalse;
+              
+              class Test {
+                  private static final Integer[] ints = new Integer[]{};
+                  @Test
+                  void testEmpty() {
+                      assertEquals(0, ints.length);
+                      Iterable<Integer> iterable = Arrays.stream(ints).toList();
+                      assertFalse(iterable.iterator().hasNext());
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void instanceOf() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.List;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+              import static org.hamcrest.Matchers.isA;
+              
+              class Test {
+                  private static final List<Integer> list = List.of();
+                  @Test
+                  void testInstance() {
+                      assertThat(list, instanceOf(Iterable.class));
+                      assertThat(list, isA(Iterable.class));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.List;
+              
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+              
+              class Test {
+                  private static final List<Integer> list = List.of();
+                  @Test
+                  void testInstance() {
+                      assertInstanceOf(Iterable.class, list);
+                      assertInstanceOf(Iterable.class, list);
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void isAndNotInstanceOf() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.List;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+              import static org.hamcrest.Matchers.is;
+              import static org.hamcrest.Matchers.not;
+              
+              class Test {
+                  private static final List<Integer> list = List.of();
+                  @Test
+                  void testInstance() {
+                      assertThat(list, not(instanceOf(Integer.class)));
+                      assertThat(list, is(instanceOf(Iterable.class)));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.List;
+              
+              import static org.junit.jupiter.api.Assertions.assertFalse;
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+              
+              class Test {
+                  private static final List<Integer> list = List.of();
+                  @Test
+                  void testInstance() {
+                      assertFalse(Integer.class.isAssignableFrom(list.getClass()));
+                      assertInstanceOf(Iterable.class, list);
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void lessThan() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.lessThan;
+              
+              class Test {
+                  @Test
+                  void testLessThan() {
+                      int intt = 7;
+                      assertThat(5, lessThan(intt));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testLessThan() {
+                      int intt = 7;
+                      assertTrue(5 < intt);
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void lessThanOrEqualTo() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.lessThanOrEqualTo;
+              
+              class Test {
+                  @Test
+                  void testLessThanOrEqualTo() {
+                      int intt = 7;
+                      assertThat(5, lessThanOrEqualTo(intt));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testLessThanOrEqualTo() {
+                      int intt = 7;
+                      assertTrue(5 <= intt);
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void nullValue() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.nullValue;
+              import static org.hamcrest.Matchers.notNullValue;
+              
+              class Test {
+                  @Test
+                  void testNullValue() {
+                      Integer integer = null;
+                      String str = "hello world";
+                      assertThat(integer, nullValue());
+                      assertThat(str, notNullValue());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              
+              class Test {
+                  @Test
+                  void testNullValue() {
+                      Integer integer = null;
+                      String str = "hello world";
+                      assertNull(integer);
+                      assertNotNull(str);
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void sameInstance() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.not;
+              import static org.hamcrest.Matchers.sameInstance;
+              import static org.hamcrest.Matchers.theInstance;
+              
+              class Test {
+                  private final String string = "Hello world.";
+                  @Test
+                  void testSameInstance() {
+                      String localString = string;
+                      String differentString = "Hello void.";
+                      assertThat(string, sameInstance(localString));
+                      assertThat(string, not(theInstance(differentString)));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertNotSame;
+              import static org.junit.jupiter.api.Assertions.assertSame;
+              
+              class Test {
+                  private final String string = "Hello world.";
+                  @Test
+                  void testSameInstance() {
+                      String localString = string;
+                      String differentString = "Hello void.";
+                      assertSame(string, localString);
+                      assertNotSame(string, differentString);
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void hasEntry() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.HashMap;
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.hasEntry;
+              
+              class Test {
+                  @Test
+                  void testHasEntry() {
+                      Map<String, String> map = new HashMap<>();
+                      assertThat(map, hasEntry("hello", "world"));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.HashMap;
+              
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              
+              class Test {
+                  @Test
+                  void testHasEntry() {
+                      Map<String, String> map = new HashMap<>();
+                      assertEquals("world", map.get("hello"));
                   }
               }
               """
