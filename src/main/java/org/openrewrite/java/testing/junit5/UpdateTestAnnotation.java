@@ -121,7 +121,7 @@ public class UpdateTestAnnotation extends Recipe {
                             .visitNonNull(m, ctx, getCursor().getParentOrThrow());
                 }
                 if (cta.expectedException != null) {
-                    m = JavaTemplate.builder("Object o = () -> #{};")
+                    m = JavaTemplate.builder("org.junit.jupiter.api.function.Executable o = () -> #{};")
                             .contextSensitive()
                             .build()
                             .apply(
