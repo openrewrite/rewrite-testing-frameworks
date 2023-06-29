@@ -121,8 +121,9 @@ public class UpdateTestAnnotation extends Recipe {
                             .visitNonNull(m, ctx, getCursor().getParentOrThrow());
                 }
                 if (cta.expectedException != null) {
-                    m = JavaTemplate.builder("Object o = () -> #{}")
+                    m = JavaTemplate.builder("org.junit.jupiter.api.function.Executable o = () -> #{};")
                             .contextSensitive()
+                            .javaParser(javaParser(ctx))
                             .build()
                             .apply(
                                     updateCursor(m),
@@ -135,7 +136,6 @@ public class UpdateTestAnnotation extends Recipe {
                             .getVariables().get(0).getInitializer();
 
                     assert lambda != null;
-                    lambda = lambda.withType(JavaType.ShallowClass.build("org.junit.jupiter.api.function.Executable"));
 
                     if (cta.expectedException instanceof J.FieldAccess
                         && TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
