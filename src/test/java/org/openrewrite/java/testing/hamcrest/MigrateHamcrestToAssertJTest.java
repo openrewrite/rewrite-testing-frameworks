@@ -15,9 +15,11 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.config.Environment;
@@ -43,6 +45,41 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
             .scanRuntimeClasspath("org.openrewrite.java.testing.hamcrest")
             .build()
             .activateRecipes("org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ"));
+    }
+
+    @Test
+    @DocumentExample
+    void isEqualTo() {
+        rewriteRun(
+          //language=java
+          java("""
+            import org.junit.jupiter.api.Test;
+            import static org.hamcrest.MatcherAssert.assertThat;
+            import static org.hamcrest.Matchers.is;
+            import static org.hamcrest.Matchers.equalTo;
+                            
+            class ATest {
+                @Test
+                void testEquals() {
+                    String str1 = "Hello world!";
+                    String str2 = "Hello world!";
+                    assertThat(str1, is(equalTo(str2)));
+                }
+            }
+            """, """
+            import org.junit.jupiter.api.Test;
+                        
+            import static org.assertj.core.api.Assertions.assertThat;
+                        
+            class ATest {
+                @Test
+                void testEquals() {
+                    String str1 = "Hello world!";
+                    String str2 = "Hello world!";
+                    assertThat(str1).isEqualTo(str2);
+                }
+            }
+            """));
     }
 
     private static Stream<Arguments> stringReplacements() {

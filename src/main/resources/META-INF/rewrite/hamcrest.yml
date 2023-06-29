@@ -237,8 +237,6 @@ recipeList:
       notMatcher: emptyString
       assertion: isNotEmpty
 
-
-
   # Add dependency if not already present
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj
