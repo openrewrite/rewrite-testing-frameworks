@@ -86,7 +86,7 @@ class MigrateFromHamcrestTest implements RewriteTest {
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.equalTo;
             
-            class BiscuitTest {
+            class Test {
                 @Test
                 void testEquals() {
                     String str1 = "Hello world!";
@@ -100,7 +100,7 @@ class MigrateFromHamcrestTest implements RewriteTest {
             
             import static org.junit.jupiter.api.Assertions.assertEquals;
             
-            class BiscuitTest {
+            class Test {
                 @Test
                 void testEquals() {
                     String str1 = "Hello world!";
@@ -122,7 +122,7 @@ class MigrateFromHamcrestTest implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.greaterThan;
               
-              class BiscuitTest {
+              class Test {
                   @Test
                   void testEquals() {
                       int intt = 7;
@@ -135,7 +135,7 @@ class MigrateFromHamcrestTest implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class BiscuitTest {
+              class Test {
                   @Test
                   void testEquals() {
                       int intt = 7;
@@ -539,6 +539,7 @@ class MigrateFromHamcrestTest implements RewriteTest {
           java(
             """
               import java.util.HashMap;
+              import java.util.Map;
               import org.junit.jupiter.api.Test;
               
               import static org.hamcrest.MatcherAssert.assertThat;
@@ -553,8 +554,9 @@ class MigrateFromHamcrestTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
               import java.util.HashMap;
+              import java.util.Map;
+              import org.junit.jupiter.api.Test;
               
               import static org.junit.jupiter.api.Assertions.assertEquals;
               
@@ -563,6 +565,405 @@ class MigrateFromHamcrestTest implements RewriteTest {
                   void testHasEntry() {
                       Map<String, String> map = new HashMap<>();
                       assertEquals("world", map.get("hello"));
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void hasKey() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.HashMap;
+              import java.util.Map;
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.hasKey;
+              
+              class Test {
+                  @Test
+                  void testHasKey() {
+                      Map<String, String> map = new HashMap<>();
+                      assertThat(map, hasKey("hello"));
+                  }
+              }
+              """,
+            """
+              import java.util.HashMap;
+              import java.util.Map;
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testHasKey() {
+                      Map<String, String> map = new HashMap<>();
+                      assertTrue(map.containsKey("hello"));
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void hasValue() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.HashMap;
+              import java.util.Map;
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.hasValue;
+              
+              class Test {
+                  @Test
+                  void testHasValue() {
+                      Map<String, String> map = new HashMap<>();
+                      assertThat(map, hasValue("world"));
+                  }
+              }
+              """,
+            """
+              import java.util.HashMap;
+              import java.util.Map;
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testHasValue() {
+                      Map<String, String> map = new HashMap<>();
+                      assertTrue(map.containsValue("world"));
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void typeCompatibleWith() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.is;
+              import static org.hamcrest.Matchers.typeCompatibleWith;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      assertThat(List.class, is(typeCompatibleWith(Iterable.class)));
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      assertTrue(Iterable.class.isAssignableFrom(List.class));
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void containsString() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.containsString;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      String string = "hello world";
+                      String substring = "llo wor";
+                      assertThat(string, containsString(substring));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      String string = "hello world";
+                      String substring = "llo wor";
+                      assertTrue(string.contains(substring));
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void endsWith() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.endsWith;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      String string = "hello world";
+                      String suffix = "world";
+                      assertThat(string, endsWith(suffix));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      String string = "hello world";
+                      String suffix = "world";
+                      assertTrue(string.endsWith(suffix));
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void equalToIgnoringCase() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalToIgnoringCase;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      String string1 = "hELLo WoRLD";
+                      String string2 = "HeLlO WOrLd";
+                      assertThat(string1, equalToIgnoringCase(string2));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      String string1 = "hELLo WoRLD";
+                      String string2 = "HeLlO WOrLd";
+                      assertTrue(string1.equalsIgnoreCase(string2));
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void hasToString() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.hasToString;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      StringBuilder sb = new StringBuilder();
+                      sb.append("hello");
+                      assertThat(sb, hasToString("hello"));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      StringBuilder sb = new StringBuilder();
+                      sb.append("hello");
+                      assertEquals(sb.toString(), "hello");
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void startsWith() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.startsWith;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      String string = "hello world";
+                      String prefix = "hello";
+                      assertThat(string, startsWith(prefix));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      String string = "hello world";
+                      String prefix = "hello";
+                      assertTrue(string.startsWith(prefix));
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void assertionsWithReason() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+              import static org.hamcrest.Matchers.isA;
+              import static org.hamcrest.Matchers.not;
+              import static org.hamcrest.Matchers.startsWith;
+              
+              class Test {
+                  private static final List<Integer> list = List.of();
+                  
+                  @Test
+                  void testAssertionsWithReason() {
+                      String string = "hello world";
+                      String prefix = "hello";
+                      assertThat("String does not start with given prefix.", string, startsWith(prefix));
+                  }
+                  
+                  @Test
+                  void testInstance() {
+                      assertThat("Examined object is not instance of Iterable", list, instanceOf(Iterable.class));
+                      assertThat("Examined object is not instance of Iterable", list, isA(Iterable.class));
+                      assertThat("Examined object must not be instance of Integer", list, not(instanceOf(Integer.class)));
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.*;
+              
+              class Test {
+                  private static final List<Integer> list = List.of();
+                  
+                  @Test
+                  void testAssertionsWithReason() {
+                      String string = "hello world";
+                      String prefix = "hello";
+                      assertTrue(string.startsWith(prefix), "String does not start with given prefix.");
+                  }
+                  
+                  @Test
+                  void testInstance() {
+                      assertInstanceOf(Iterable.class, list, "Examined object is not instance of Iterable");
+                      assertInstanceOf(Iterable.class, list, "Examined object is not instance of Iterable");
+                      assertFalse(Integer.class.isAssignableFrom(list.getClass()), "Examined object must not be instance of Integer");
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void shouldNotRewriteCaseTest() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.containsString;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      String string = "hello world";
+                      String substring = "llo wor";
+                      assertThat(string, containsString(substring));
+                      assertThat("String does not contain the substring", string.contains(substring));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              
+              class Test {
+                  @Test
+                  void testTypeCompatibleWith() {
+                      String string = "hello world";
+                      String substring = "llo wor";
+                      assertTrue(string.contains(substring));
+                      assertThat("String does not contain the substring", string.contains(substring));
                   }
               }
               """
