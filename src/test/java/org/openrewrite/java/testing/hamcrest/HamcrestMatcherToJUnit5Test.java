@@ -87,7 +87,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.equalTo;
             
-            class Test {
+            class ATest {
                 @Test
                 void testEquals() {
                     String str1 = "Hello world!";
@@ -101,7 +101,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
             
             import static org.junit.jupiter.api.Assertions.assertEquals;
             
-            class Test {
+            class ATest {
                 @Test
                 void testEquals() {
                     String str1 = "Hello world!";
@@ -123,7 +123,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.greaterThan;
               
-              class Test {
+              class ATest {
                   @Test
                   void testEquals() {
                       int intt = 7;
@@ -136,7 +136,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testEquals() {
                       int intt = 7;
@@ -157,7 +157,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.greaterThanOrEqualTo;
               
-              class Test {
+              class ATest {
                   @Test
                   void testGreaterThanOrEqualTo() {
                       int intt = 7;
@@ -170,7 +170,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testGreaterThanOrEqualTo() {
                       int intt = 7;
@@ -190,7 +190,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.closeTo;
               
-              class Test {
+              class ATest {
                   @Test
                   void testCloseTo() {
                       double dbl = 179.1;
@@ -203,7 +203,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testCloseTo() {
                       double dbl = 179.1;
@@ -228,7 +228,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.Matchers.empty;
               import static org.hamcrest.Matchers.hasSize;
               
-              class Test {
+              class ATest {
                   private static final Collection<String> collection = new ArrayList<>();
                   @Test
                   void testEmpty() {
@@ -245,7 +245,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   private static final Collection<String> collection = new ArrayList<>();
                   @Test
                   void testEmpty() {
@@ -270,7 +270,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.Matchers.emptyArray;
               import static org.hamcrest.Matchers.emptyIterable;
               
-              class Test {
+              class ATest {
                   private static final Integer[] ints = new Integer[]{};
                   @Test
                   void testEmpty() {
@@ -287,7 +287,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertFalse;
               
-              class Test {
+              class ATest {
                   private static final Integer[] ints = new Integer[]{};
                   @Test
                   void testEmpty() {
@@ -313,7 +313,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.Matchers.instanceOf;
               import static org.hamcrest.Matchers.isA;
               
-              class Test {
+              class ATest {
                   private static final List<Integer> list = List.of();
                   @Test
                   void testInstance() {
@@ -328,7 +328,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertInstanceOf;
               
-              class Test {
+              class ATest {
                   private static final List<Integer> list = List.of();
                   @Test
                   void testInstance() {
@@ -354,7 +354,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.Matchers.is;
               import static org.hamcrest.Matchers.not;
               
-              class Test {
+              class ATest {
                   private static final List<Integer> list = List.of();
                   @Test
                   void testInstance() {
@@ -370,7 +370,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.junit.jupiter.api.Assertions.assertFalse;
               import static org.junit.jupiter.api.Assertions.assertInstanceOf;
               
-              class Test {
+              class ATest {
                   private static final List<Integer> list = List.of();
                   @Test
                   void testInstance() {
@@ -392,7 +392,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.lessThan;
               
-              class Test {
+              class ATest {
                   @Test
                   void testLessThan() {
                       int intt = 7;
@@ -405,7 +405,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testLessThan() {
                       int intt = 7;
@@ -426,7 +426,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.lessThanOrEqualTo;
               
-              class Test {
+              class ATest {
                   @Test
                   void testLessThanOrEqualTo() {
                       int intt = 7;
@@ -439,7 +439,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testLessThanOrEqualTo() {
                       int intt = 7;
@@ -461,7 +461,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.Matchers.nullValue;
               import static org.hamcrest.Matchers.notNullValue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testNullValue() {
                       Integer integer = null;
@@ -477,7 +477,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.junit.jupiter.api.Assertions.assertNotNull;
               import static org.junit.jupiter.api.Assertions.assertNull;
               
-              class Test {
+              class ATest {
                   @Test
                   void testNullValue() {
                       Integer integer = null;
@@ -502,7 +502,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.Matchers.sameInstance;
               import static org.hamcrest.Matchers.theInstance;
               
-              class Test {
+              class ATest {
                   private final String string = "Hello world.";
                   @Test
                   void testSameInstance() {
@@ -519,7 +519,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.junit.jupiter.api.Assertions.assertNotSame;
               import static org.junit.jupiter.api.Assertions.assertSame;
               
-              class Test {
+              class ATest {
                   private final String string = "Hello world.";
                   @Test
                   void testSameInstance() {
@@ -546,7 +546,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.hasEntry;
               
-              class Test {
+              class ATest {
                   @Test
                   void testHasEntry() {
                       Map<String, String> map = new HashMap<>();
@@ -561,7 +561,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertEquals;
               
-              class Test {
+              class ATest {
                   @Test
                   void testHasEntry() {
                       Map<String, String> map = new HashMap<>();
@@ -585,7 +585,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.hasKey;
               
-              class Test {
+              class ATest {
                   @Test
                   void testHasKey() {
                       Map<String, String> map = new HashMap<>();
@@ -600,7 +600,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testHasKey() {
                       Map<String, String> map = new HashMap<>();
@@ -624,7 +624,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.hasValue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testHasValue() {
                       Map<String, String> map = new HashMap<>();
@@ -639,7 +639,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testHasValue() {
                       Map<String, String> map = new HashMap<>();
@@ -663,7 +663,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.Matchers.is;
               import static org.hamcrest.Matchers.typeCompatibleWith;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       assertThat(List.class, is(typeCompatibleWith(Iterable.class)));
@@ -676,7 +676,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       assertTrue(Iterable.class.isAssignableFrom(List.class));
@@ -697,7 +697,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.containsString;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       String string = "hello world";
@@ -711,7 +711,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       String string = "hello world";
@@ -734,7 +734,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.endsWith;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       String string = "hello world";
@@ -748,7 +748,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       String string = "hello world";
@@ -771,7 +771,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalToIgnoringCase;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       String string1 = "hELLo WoRLD";
@@ -785,7 +785,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       String string1 = "hELLo WoRLD";
@@ -808,7 +808,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.hasToString;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       StringBuilder sb = new StringBuilder();
@@ -822,7 +822,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertEquals;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       StringBuilder sb = new StringBuilder();
@@ -845,7 +845,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.startsWith;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       String string = "hello world";
@@ -859,7 +859,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       String string = "hello world";
@@ -886,7 +886,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.Matchers.not;
               import static org.hamcrest.Matchers.startsWith;
               
-              class Test {
+              class ATest {
                   private static final List<Integer> list = List.of();
                   
                   @Test
@@ -910,7 +910,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               
               import static org.junit.jupiter.api.Assertions.*;
               
-              class Test {
+              class ATest {
                   private static final List<Integer> list = List.of();
                   
                   @Test
@@ -942,7 +942,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.containsString;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       String string = "hello world";
@@ -958,7 +958,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.junit.jupiter.api.Assertions.assertTrue;
               
-              class Test {
+              class ATest {
                   @Test
                   void testTypeCompatibleWith() {
                       String string = "hello world";
