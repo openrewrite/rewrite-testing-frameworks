@@ -13,23 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junit5;
+package org.openrewrite.java.testing.hamcrest;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.testing.hamcrest.HamcrestMatcherToJUnit5;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class MigrateFromHamcrestTest implements RewriteTest {
+class HamcrestMatcherToJUnit5Test implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "hamcrest-2.2"))
-          .recipe(new MigrateFromHamcrest());
+          .recipe(new HamcrestMatcherToJUnit5());
     }
 
     @Test

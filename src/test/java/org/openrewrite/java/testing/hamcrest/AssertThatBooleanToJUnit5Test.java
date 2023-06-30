@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junit5;
+package org.openrewrite.java.testing.hamcrest;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -33,16 +34,17 @@ public class AssertThatBooleanToJUnit5Test implements RewriteTest {
     }
 
     @Test
+    @DocumentExample
     void assertWithLogicOp() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
               
               import static org.hamcrest.MatcherAssert.assertThat;
-              
-              class Test {
+                            
+              class ATest {
                   @Test
                   void testEquals() {
                       int a = 7;
@@ -53,10 +55,10 @@ public class AssertThatBooleanToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
-              class Test {
+                            
+              class ATest {
                   @Test
                   void testEquals() {
                       int a = 7;
@@ -70,15 +72,15 @@ public class AssertThatBooleanToJUnit5Test implements RewriteTest {
 
     @Test
     void assertWithMethodCall() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.hamcrest.MatcherAssert.assertThat;
-              
-              class Test {
+                            
+              class ATest {
                   @Test
                   void testContains() {
                       String string = "Hello world";
@@ -88,10 +90,10 @@ public class AssertThatBooleanToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
-              class Test {
+                            
+              class ATest {
                   @Test
                   void testContains() {
                       String string = "Hello world";

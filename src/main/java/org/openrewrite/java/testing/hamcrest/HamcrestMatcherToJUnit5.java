@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junit5;
+package org.openrewrite.java.testing.hamcrest;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -30,15 +30,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class MigrateFromHamcrest extends Recipe {
+public class HamcrestMatcherToJUnit5 extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Migrate from Hamcrest Matchers to JUnit5";
+        return "Migrate from Hamcrest `Matcher` to JUnit5";
     }
 
     @Override
     public String getDescription() {
-        return "This recipe will migrate all Hamcrest Matchers to JUnit5 assertions.";
+        return "Migrate from Hamcrest `Matcher` to JUnit5 assertions.";
     }
 
     @Override
@@ -50,12 +50,10 @@ public class MigrateFromHamcrest extends Recipe {
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-            System.out.println("RECIPE RUN");
             J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
             MethodMatcher matcherAssertMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(.., org.hamcrest.Matcher)");
 
             if (matcherAssertMatcher.matches(mi)) {
-                System.out.println("invocation match");
                 Expression reason;
                 Expression examinedObject;
                 Expression hamcrestMatcher;
