@@ -24,11 +24,15 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
+@SuppressWarnings({"NumericOverflow", "divzero"})
 public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(),
+                                    "junit-jupiter-api-5.9",
+                                    "junit-jupiter-params-5.9",
+                                    "junit"))
           .recipe(new RemoveTryCatchBlocksFromUnitTests());
     }
 
@@ -39,29 +43,33 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import static org.junit.Assert.fail;
+              import static org.junit.Assert;
               import org.junit.jupiter.api.Test;
               
               class Test {
-                @Test
-                public void testMethod() {
-                  try {
-                    int divide = 50/0;
-                  }catch (ArithmeticException e) {
-                    Assert.fail(e.getMessage());
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50/0;
+                      }catch (ArithmeticException e) {
+                          Assert.fail(e.getMessage());
+                      }
                   }
-                }
               }
               """,
             """
-              import static org.junit.Assert.fail;
+              import static org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
               
               class Test {
-                @Test
-                public void testMethod() throws ArithmeticException {
-                  int divide = 50/0;
-                }
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50/0;
+                      }catch (ArithmeticException e) {
+                          Assertions.assertDoesNotThrow(e);
+                      }
+                  }
               }
               """
           )
@@ -74,16 +82,16 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import static org.junit.Assert.fail;
+              import static org.junit.Assert;
               
               class Test {
-                public void method() {
-                  try {
-                    int divide = 50/0;
-                  }catch (ArithmeticException e) {
-                    Assert.fail(e.getMessage());
+                  public void method() {
+                      try {
+                          int divide = 50/0;
+                      }catch (ArithmeticException e) {
+                          Assert.fail(e.getMessage());
+                      }
                   }
-                }
               }
               """
           )

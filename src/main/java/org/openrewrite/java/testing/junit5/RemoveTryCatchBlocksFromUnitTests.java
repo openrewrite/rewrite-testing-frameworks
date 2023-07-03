@@ -15,17 +15,15 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.AnnotationMatcher;
-import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.*;
+import org.openrewrite.java.*;
 import org.openrewrite.java.tree.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
+    private static final MethodMatcher ASSERT_FAIL_MATCHER = new MethodMatcher("org.junit.Assert fail(String)");
     private static final List<String> TEST_PATTERNS = Arrays.asList(
             "@org.junit.jupiter.api.Test",
             "@org.junit.jupiter.api.RepeatedTest",
@@ -58,35 +56,65 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
 
     private static class RemoveTryCatchBlocksFromUnitsTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration mi, ExecutionContext ctx) {
-            J.MethodDeclaration m = super.visitMethodDeclaration(mi, ctx);
-            List<J.Annotation> annotations = m.getAllAnnotations();
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
+            // check if method is Unit test
+            List<J.Annotation> annotations = md.getAllAnnotations();
             if (annotations.stream().noneMatch(ann -> MATCHERS.stream().anyMatch(matcher -> matcher.matches(ann)))) {
-                return m;
+                return md;
             }
 
-            if (m.getBody() == null) {
-                return m;
+            if (md.getBody() == null) {
+                return md;
             }
-
-            List<Statement> statements = m.getBody().getStatements();
-            J.Block newBody;
-            List<NameTree> exceptions = new ArrayList<>();
-
+            // find try catch block
+            List<Statement> statements = md.getBody().getStatements();
             for (Statement s : statements) {
                 if (s instanceof J.Try) {
-                    newBody = ((J.Try) s).getBody();
-                    m = m.withBody(newBody);
-                }else if (s instanceof J.Throw) {
-                    // ! how can I get the NameTree type from the exception here?
-                    exceptions.add((NameTree) ((J.Throw) s).getException());
-                    m = m.withThrows(exceptions);
+                    List<J.Try.Catch> catch_ = ((J.Try) s).getCatches();
+                    for (J.Try.Catch c : catch_) {
+                        J.Block block = c.getBody();
+                        List<Statement> catchStatements = block.getStatements();
+                        for (Statement st : catchStatements) {
+                            if (st instanceof J.MethodInvocation) {
+                                if (ASSERT_FAIL_MATCHER.matches((J.MethodInvocation) st)) {
+                                    getCursor().putMessage("KEY", md);
+                                }
+                            }
+                        }
+                    }
+                    break;
                 }
             }
 
-            maybeRemoveImport("org.junit.Assert.fail");
+            return super.visitMethodDeclaration(md, ctx);
+        }
 
-            return maybeAutoFormat(mi, m, ctx);
+        public J.MethodInvocation build(J.MethodInvocation mi) {
+            Expression argument = mi.getArguments().get(0);
+            if (mi.getArguments().get(0) instanceof J.MethodInvocation){
+                argument = ((J.MethodInvocation) mi.getArguments().get(0)).getSelect();
+            }
+
+            maybeRemoveImport("org.junit.Assert");
+            maybeAddImport("org.junit.jupiter.api.Assertions");
+            return JavaTemplate.builder("Assertions.assertDoesNotThrow(#{any()})")
+                    .staticImports("org.junit.jupiter.api.Assertions")
+                    .build()
+                    .apply(getCursor(), mi.getCoordinates().replace(), argument);
+        }
+
+        @Override
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
+            J.MethodInvocation m = super.visitMethodInvocation(mi, ctx);
+            Cursor c = getCursor().dropParentWhile(is -> is instanceof J.Block
+                                                         || is instanceof J.Try.Catch
+                                                         || is instanceof J.Try
+                                                         || !(is instanceof Tree));
+            if (c.getMessage("KEY") != null) {
+                return build(m);
+            }
+
+            return m;
         }
     }
 }
