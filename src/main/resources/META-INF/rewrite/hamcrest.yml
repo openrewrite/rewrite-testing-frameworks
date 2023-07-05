@@ -140,7 +140,7 @@ recipeList:
   # List Matchers
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: contains
-      assertion: contains
+      assertion: containsExactly
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: containsInAnyOrder
       assertion: containsExactlyInAnyOrder
