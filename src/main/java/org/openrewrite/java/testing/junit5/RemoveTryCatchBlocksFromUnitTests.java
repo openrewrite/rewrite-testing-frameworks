@@ -23,12 +23,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
-    private static final MethodMatcher ASSERT_FAIL_MATCHER = new MethodMatcher("org.junit.Assert fail(String)");
+    private static final MethodMatcher ASSERT_FAIL_MATCHER = new MethodMatcher("org.junit.Assert fail(..)");
     private static final List<String> TEST_PATTERNS = Arrays.asList(
             "@org.junit.jupiter.api.Test",
             "@org.junit.jupiter.api.RepeatedTest",
-            "@org.junit.jupiter.params.ParameterizedTest",
-            "@org.junit.Test"
+            "@org.junit.jupiter.params.ParameterizedTest"
     );
 
     private static final List<AnnotationMatcher> MATCHERS = TEST_PATTERNS.stream().map(AnnotationMatcher::new).collect(Collectors.toList());
@@ -68,53 +67,34 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
             }
             // find try catch block
             List<Statement> statements = md.getBody().getStatements();
-            for (Statement s : statements) {
-                if (s instanceof J.Try) {
-                    List<J.Try.Catch> catch_ = ((J.Try) s).getCatches();
-                    for (J.Try.Catch c : catch_) {
-                        J.Block block = c.getBody();
-                        List<Statement> catchStatements = block.getStatements();
-                        for (Statement st : catchStatements) {
-                            if (st instanceof J.MethodInvocation) {
-                                if (ASSERT_FAIL_MATCHER.matches((J.MethodInvocation) st)) {
-                                    getCursor().putMessage("KEY", md);
-                                }
-                            }
-                        }
+            List<Statement> tryStatements = statements.stream().filter(s -> s instanceof J.Try).collect(Collectors.toList());
+            if (tryStatements.size() == 0) {
+                return md;
+            }
+
+            for (Statement statement : tryStatements) {
+                J.Try tryBlock = (J.Try) statement;
+                J.Block tryBody = tryBlock.getBody();
+                List<J.Try.Catch> catch_ = tryBlock.getCatches();
+                for (J.Try.Catch c : catch_) {
+                    J.Block block = c.getBody();
+                    List<Statement> catchStatements = block.getStatements();
+                    if (catchStatements.stream().anyMatch(
+                            st -> st instanceof J.MethodInvocation && ASSERT_FAIL_MATCHER.matches((J.MethodInvocation) st))
+                    ) {
+                        // replace method body
+                        maybeRemoveImport("org.junit.Assert");
+                        maybeAddImport("org.junit.jupiter.api.Assertions");
+                        return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()} )")
+                                .imports("org.junit.jupiter.api.Assertions")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                                .build()
+                                .apply(getCursor(), md.getCoordinates().replaceBody(), tryBody);
                     }
-                    break;
                 }
             }
 
-            return super.visitMethodDeclaration(md, ctx);
-        }
-
-        public J.MethodInvocation build(J.MethodInvocation mi) {
-            Expression argument = mi.getArguments().get(0);
-            if (mi.getArguments().get(0) instanceof J.MethodInvocation){
-                argument = ((J.MethodInvocation) mi.getArguments().get(0)).getSelect();
-            }
-
-            maybeRemoveImport("org.junit.Assert");
-            maybeAddImport("org.junit.jupiter.api.Assertions");
-            return JavaTemplate.builder("Assertions.assertDoesNotThrow(#{any()})")
-                    .staticImports("org.junit.jupiter.api.Assertions")
-                    .build()
-                    .apply(getCursor(), mi.getCoordinates().replace(), argument);
-        }
-
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
-            J.MethodInvocation m = super.visitMethodInvocation(mi, ctx);
-            Cursor c = getCursor().dropParentWhile(is -> is instanceof J.Block
-                                                         || is instanceof J.Try.Catch
-                                                         || is instanceof J.Try
-                                                         || !(is instanceof Tree));
-            if (c.getMessage("KEY") != null) {
-                return build(m);
-            }
-
-            return m;
+            return md;
         }
     }
 }

@@ -32,7 +32,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
                                     "junit-jupiter-api-5.9",
                                     "junit-jupiter-params-5.9",
-                                    "junit"))
+                                    "junit-4.13"))
           .recipe(new RemoveTryCatchBlocksFromUnitTests());
     }
 
@@ -43,14 +43,14 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import static org.junit.Assert;
+              import org.junit.Assert;
               import org.junit.jupiter.api.Test;
               
-              class Test {
+              class MyTest {
                   @Test
                   public void testMethod() {
                       try {
-                          int divide = 50/0;
+                          int divide = 50 / 0;
                       }catch (ArithmeticException e) {
                           Assert.fail(e.getMessage());
                       }
@@ -58,17 +58,15 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
               }
               """,
             """
-              import static org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
               
-              class Test {
+              class MyTest {
                   @Test
                   public void testMethod() {
-                      try {
-                          int divide = 50/0;
-                      }catch (ArithmeticException e) {
-                          Assertions.assertDoesNotThrow(e);
-                      }
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      });
                   }
               }
               """
@@ -77,12 +75,17 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
     }
 
     @Test
+    void throwsExecutable() {
+
+    }
+
+    @Test
     void onlyAffectsUnitTests() {
         //language=java
         rewriteRun(
           java(
             """
-              import static org.junit.Assert;
+              import org.junit.Assert;
               
               class Test {
                   public void method() {
