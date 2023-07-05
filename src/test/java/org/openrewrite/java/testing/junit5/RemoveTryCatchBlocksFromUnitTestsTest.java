@@ -75,11 +75,6 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
     }
 
     @Test
-    void throwsExecutable() {
-
-    }
-
-    @Test
     void onlyAffectsUnitTests() {
         //language=java
         rewriteRun(
