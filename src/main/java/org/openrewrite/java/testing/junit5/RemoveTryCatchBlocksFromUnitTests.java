@@ -18,7 +18,9 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.*;
 import org.openrewrite.java.*;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markers;
 
+import javax.swing.plaf.nimbus.State;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -56,45 +58,74 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
     private static class RemoveTryCatchBlocksFromUnitsTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
+            if (md.getBody() == null) {
+                return md;
+            }
+
+            List<Statement> statements = md.getBody().getStatements();
+            if (statements.stream().noneMatch(s -> s instanceof J.Try)) {
+                return md;
+            }
+
             // check if method is Unit test
             List<J.Annotation> annotations = md.getAllAnnotations();
             if (annotations.stream().noneMatch(ann -> MATCHERS.stream().anyMatch(matcher -> matcher.matches(ann)))) {
                 return md;
             }
 
-            if (md.getBody() == null) {
-                return md;
-            }
             // find try catch block
-            List<Statement> statements = md.getBody().getStatements();
-            List<Statement> tryStatements = statements.stream().filter(s -> s instanceof J.Try).collect(Collectors.toList());
+            List<J.Try> tryStatements = statements.stream()
+                    .filter(s -> s instanceof J.Try)
+                    .map(s -> (J.Try) s)
+                    .filter(t -> t.getCatches().size() == 1)
+                    .collect(Collectors.toList());
             if (tryStatements.size() == 0) {
+                System.out.println("bruh");
                 return md;
             }
 
-            for (Statement statement : tryStatements) {
-                J.Try tryBlock = (J.Try) statement;
-                J.Block tryBody = tryBlock.getBody();
-                List<J.Try.Catch> catch_ = tryBlock.getCatches();
-                for (J.Try.Catch c : catch_) {
-                    J.Block block = c.getBody();
-                    List<Statement> catchStatements = block.getStatements();
-                    if (catchStatements.stream().anyMatch(
-                            st -> st instanceof J.MethodInvocation && ASSERT_FAIL_MATCHER.matches((J.MethodInvocation) st))
-                    ) {
-                        // replace method body
-                        maybeRemoveImport("org.junit.Assert");
-                        maybeAddImport("org.junit.jupiter.api.Assertions");
-                        return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()} )")
-                                .imports("org.junit.jupiter.api.Assertions")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
-                                .build()
-                                .apply(getCursor(), md.getCoordinates().replaceBody(), tryBody);
-                    }
+            for (J.Try try_ : tryStatements) {
+                if (try_.getCatches().get(0).getBody().getStatements().stream().noneMatch(
+                        s -> s instanceof J.MethodInvocation && ASSERT_FAIL_MATCHER.matches((J.MethodInvocation)s)
+                )) {
+                    tryStatements.remove(try_);
                 }
             }
 
+            List<Integer> splitIndices = tryStatements.stream().map(tryStatements::indexOf).collect(Collectors.toList());
+
+            List<J.Block> splits = new ArrayList<>();
+            int startingIndex = 0;
+            for (int i : splitIndices) {
+                List<Statement> newSplit = statements.subList(startingIndex, i);
+                JRightPadded<Boolean> paddedBool = new JRightPadded<>(true, Space.EMPTY, Markers.EMPTY);
+                List<JRightPadded<Statement>> paddedStatements = newSplit.stream()
+                        .map(st -> new JRightPadded<>(st, Space.EMPTY, Markers.EMPTY)).collect(Collectors.toList());
+
+                J.Block block = new J.Block(
+                        UUID.randomUUID(),
+                        Space.EMPTY,
+                        Markers.EMPTY,
+                        paddedBool,
+                        paddedStatements,
+                        Space.EMPTY
+                );
+                splits.add(block);
+                startingIndex = i+1;
+            }
+
+
+            // replace method body
+            maybeRemoveImport("org.junit.Assert");
+            maybeAddImport("org.junit.jupiter.api.Assertions");
+            return JavaTemplate.builder("#{any()}Assertions.assertDoesNotThrow(() -> #{any()})#{any()}")
+                    .imports("org.junit.jupiter.api.Assertions")
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                    .build()
+                    .apply(getCursor(), md.getCoordinates().replaceBody(), splits.get(0), , );
             return md;
         }
+
+        //public List<Statement>
     }
 }
