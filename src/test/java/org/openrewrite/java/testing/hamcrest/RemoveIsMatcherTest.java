@@ -68,4 +68,28 @@ class RemoveIsMatcherTest implements RewriteTest {
             """));
     }
 
+    @Test
+    void isNotCalledInAssertThat() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.Matchers.is;
+              import static org.hamcrest.Matchers.equalTo;
+              
+              class ATest {
+                  @Test
+                  void testMethod() {
+                      String str1 = "Hello world!";
+                      Matcher<String> x = is(equalTo(str1));
+                  }
+              }
+              """,
+            """
+              """
+          )
+        );
+    }
+
 }
