@@ -57,15 +57,12 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
         private final String KEY = "CHANGES_NEEDED";
         @Override
         public J visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
+            J.MethodDeclaration m = (J.MethodDeclaration) super.visitMethodDeclaration(md, ctx);
             if (md.getBody() == null) {
                 return md;
             }
 
             List<Statement> statements = md.getBody().getStatements();
-            if (statements.stream().noneMatch(s -> s instanceof J.Try)) {
-                return md;
-            }
-
             // check if method is Unit test
             List<J.Annotation> annotations = md.getAllAnnotations();
             if (annotations.stream().noneMatch(ann -> MATCHERS.stream().anyMatch(matcher -> matcher.matches(ann)))) {
@@ -83,13 +80,7 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
                 return md;
             }
 
-            for (J.Try try_ : tryStatements) {
-                if (try_.getCatches().get(0).getBody().getStatements().stream().anyMatch(
-                        s -> s instanceof J.MethodInvocation && ASSERT_FAIL_MATCHER.matches((J.MethodInvocation)s)
-                )) {
-                    getCursor().putMessage(KEY, md);
-                }
-            }
+            getCursor().putMessage(KEY, md);
 
             return (J.MethodDeclaration) super.visitMethodDeclaration(md, ctx);
         }
@@ -103,8 +94,12 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
                                                          is instanceof J.Try);
 
             if (c.getMessage(KEY) != null) {
+                if (try_.getCatches().get(0).getBody().getStatements().stream().noneMatch(
+                        s -> s instanceof J.MethodInvocation && ASSERT_FAIL_MATCHER.matches((J.MethodInvocation) s)
+                )) {
+                    return try_;
+                }
 
-                System.out.println(t.getBody().getStatements().get(0));
                 // replace method body
                 maybeRemoveImport("org.junit.Assert");
                 maybeAddImport("org.junit.jupiter.api.Assertions");
