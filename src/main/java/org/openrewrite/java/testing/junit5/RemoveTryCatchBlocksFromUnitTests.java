@@ -18,9 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.*;
 import org.openrewrite.java.*;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
 
-import javax.swing.plaf.nimbus.State;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -55,7 +53,7 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
         return new RemoveTryCatchBlocksFromUnitsTestsVisitor();
     }
 
-    private static class RemoveTryCatchBlocksFromUnitsTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
+    private static class RemoveTryCatchBlocksFromUnitsTestsVisitor extends JavaVisitor<ExecutionContext> {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
             if (md.getBody() == null) {
@@ -80,7 +78,6 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
                     .filter(t -> t.getCatches().size() == 1)
                     .collect(Collectors.toList());
             if (tryStatements.size() == 0) {
-                System.out.println("bruh");
                 return md;
             }
 
@@ -88,32 +85,9 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
                 if (try_.getCatches().get(0).getBody().getStatements().stream().noneMatch(
                         s -> s instanceof J.MethodInvocation && ASSERT_FAIL_MATCHER.matches((J.MethodInvocation)s)
                 )) {
-                    tryStatements.remove(try_);
+                    //tryStatements.remove(try_);
                 }
             }
-
-            List<Integer> splitIndices = tryStatements.stream().map(tryStatements::indexOf).collect(Collectors.toList());
-
-            List<J.Block> splits = new ArrayList<>();
-            int startingIndex = 0;
-            for (int i : splitIndices) {
-                List<Statement> newSplit = statements.subList(startingIndex, i);
-                JRightPadded<Boolean> paddedBool = new JRightPadded<>(true, Space.EMPTY, Markers.EMPTY);
-                List<JRightPadded<Statement>> paddedStatements = newSplit.stream()
-                        .map(st -> new JRightPadded<>(st, Space.EMPTY, Markers.EMPTY)).collect(Collectors.toList());
-
-                J.Block block = new J.Block(
-                        UUID.randomUUID(),
-                        Space.EMPTY,
-                        Markers.EMPTY,
-                        paddedBool,
-                        paddedStatements,
-                        Space.EMPTY
-                );
-                splits.add(block);
-                startingIndex = i+1;
-            }
-
 
             // replace method body
             maybeRemoveImport("org.junit.Assert");
@@ -122,10 +96,17 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
                     .imports("org.junit.jupiter.api.Assertions")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
                     .build()
-                    .apply(getCursor(), md.getCoordinates().replaceBody(), splits.get(0), , );
-            return md;
+                    .apply(getCursor(), md.getCoordinates().replaceBody(), );
+            return (J.MethodDeclaration) super.visitMethodDeclaration(md, ctx);
         }
 
-        //public List<Statement>
+        @Override
+        public J.Try visitTry(J.Try try_, ExecutionContext ctx) {
+            J.Try t = (J.Try) super.visitTry(try_, ctx);
+
+
+
+            return t;
+        }
     }
 }
