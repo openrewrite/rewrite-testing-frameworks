@@ -54,8 +54,9 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
     }
 
     private static class RemoveTryCatchBlocksFromUnitsTestsVisitor extends JavaVisitor<ExecutionContext> {
+        private final String KEY = "CHANGES_NEEDED";
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
+        public J visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
             if (md.getBody() == null) {
                 return md;
             }
@@ -75,6 +76,7 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
             List<J.Try> tryStatements = statements.stream()
                     .filter(s -> s instanceof J.Try)
                     .map(s -> (J.Try) s)
+                    // not sure how to handle try-catch blocks with multiple catches
                     .filter(t -> t.getCatches().size() == 1)
                     .collect(Collectors.toList());
             if (tryStatements.size() == 0) {
@@ -82,29 +84,36 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
             }
 
             for (J.Try try_ : tryStatements) {
-                if (try_.getCatches().get(0).getBody().getStatements().stream().noneMatch(
+                if (try_.getCatches().get(0).getBody().getStatements().stream().anyMatch(
                         s -> s instanceof J.MethodInvocation && ASSERT_FAIL_MATCHER.matches((J.MethodInvocation)s)
                 )) {
-                    //tryStatements.remove(try_);
+                    getCursor().putMessage(KEY, md);
                 }
             }
 
-            // replace method body
-            maybeRemoveImport("org.junit.Assert");
-            maybeAddImport("org.junit.jupiter.api.Assertions");
-            return JavaTemplate.builder("#{any()}Assertions.assertDoesNotThrow(() -> #{any()})#{any()}")
-                    .imports("org.junit.jupiter.api.Assertions")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
-                    .build()
-                    .apply(getCursor(), md.getCoordinates().replaceBody(), );
             return (J.MethodDeclaration) super.visitMethodDeclaration(md, ctx);
         }
 
         @Override
-        public J.Try visitTry(J.Try try_, ExecutionContext ctx) {
+        public J visitTry(J.Try try_, ExecutionContext ctx) {
             J.Try t = (J.Try) super.visitTry(try_, ctx);
 
+            Cursor c = getCursor().dropParentWhile(is -> is instanceof J.Block ||
+                                                         !(is instanceof Tree) ||
+                                                         is instanceof J.Try);
 
+            if (c.getMessage(KEY) != null) {
+
+                System.out.println(t.getBody().getStatements().get(0));
+                // replace method body
+                maybeRemoveImport("org.junit.Assert");
+                maybeAddImport("org.junit.jupiter.api.Assertions");
+                return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> { #{any()} })")
+                        .imports("org.junit.jupiter.api.Assertions")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                        .build()
+                        .apply(getCursor(), t.getCoordinates().replace(), t.getBody().getStatements().get(0));
+            }
 
             return t;
         }

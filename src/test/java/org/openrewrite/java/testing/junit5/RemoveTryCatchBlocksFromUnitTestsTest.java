@@ -115,7 +115,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
                       }catch (ArithmeticException e) {
                           Assert.fail(e.getMessage());
                       }
-                      System.out.pirntln("statements after");
+                      System.out.println("statements after");
                       int y = 50;
                       int z = x + y;
                   }
@@ -133,7 +133,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
                       Assertions.assertDoesNotThrow(() -> {
                           int divide = 50 / 0;
                       });
-                      System.out.pirntln("statements after");
+                      System.out.println("statements after");
                       int y = 50;
                       int z = x + y;
                   }
