@@ -113,4 +113,30 @@ class RemoveIsMatcherTest implements RewriteTest {
         );
     }
 
+    @Test
+    void noReplacementForOtherMethodInvocations() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matcher;
+              import static org.hamcrest.Matchers.*;
+              
+              class ATest {
+                  @Test
+                  void testMethod() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      foo(is(equalTo(str2)));
+                  }
+                  
+                  void foo(Matcher<String> matcher) {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
