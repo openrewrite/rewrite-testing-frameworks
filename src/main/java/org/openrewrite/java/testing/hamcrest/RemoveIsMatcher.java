@@ -41,15 +41,11 @@ public class RemoveIsMatcher extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
-                Cursor c = getCursor().dropParentWhile(cr -> cr instanceof J.Block ||
-                                                             cr instanceof J.Identifier ||
-                                                             !(cr instanceof Tree));
-
-                if (IS_MATCHER.matches(mi) && c.getMessage("CHANGES_KEY") != null) {
+                if (ASSERT_THAT_MATCHER.matches(mi)) {
+                    getCursor().putMessage("ASSERT_THAT", mi);
+                } else if (IS_MATCHER.matches(mi) && getCursor().pollNearestMessage("ASSERT_THAT") != null) {
                     maybeRemoveImport("org.hamcrest.Matchers.is");
                     return mi.getArguments().get(0).withPrefix(mi.getPrefix());
-                }else if (ASSERT_THAT_MATCHER.matches(mi)) {
-                    getCursor().putMessage("CHANGES_KEY", mi);
                 }
                 return super.visitMethodInvocation(mi, ctx);
             }
