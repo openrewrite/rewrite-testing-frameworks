@@ -105,7 +105,7 @@ class RemoveIsMatcherTest implements RewriteTest {
                   void testMethod() {
                       String str1 = "Hello world!";
                       String str2 = "Hello world!";
-                      assertThat(str1, contains(is(equalTo(str2))));
+                      assertThat(str1, not(is(equalTo(str2))));
                   }
               }
               """
