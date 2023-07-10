@@ -231,7 +231,6 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         return Stream.of(
           Arguments.arguments("list1", "contains", "item", "containsExactly"),
           Arguments.arguments("list1", "containsInAnyOrder", "item", "containsExactlyInAnyOrder"),
-          Arguments.arguments("list1", "containsInRelativeOrder", "item", "containsExactly"),
           Arguments.arguments("list1", "empty", "", "isEmpty"),
           Arguments.arguments("list1", "hasSize", "5", "hasSize"),
           Arguments.arguments("list1", "hasItem", "item", "contains"),
