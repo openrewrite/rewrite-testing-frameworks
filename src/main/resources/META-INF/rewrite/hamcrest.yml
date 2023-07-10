@@ -145,9 +145,6 @@ recipeList:
       matcher: containsInAnyOrder
       assertion: containsExactlyInAnyOrder
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
-      matcher: containsInRelativeOrder
-      assertion: containsExactly
-  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: empty
       assertion: isEmpty
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
