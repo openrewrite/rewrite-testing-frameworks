@@ -108,6 +108,21 @@ class RemoveIsMatcherTest implements RewriteTest {
                       assertThat(str1, not(is(equalTo(str2))));
                   }
               }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.not;
+              import static org.hamcrest.Matchers.equalTo;
+              
+              class ATest {
+                  @Test
+                  void testMethod() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, not(equalTo(str2)));
+                  }
+              }
               """
           )
         );
