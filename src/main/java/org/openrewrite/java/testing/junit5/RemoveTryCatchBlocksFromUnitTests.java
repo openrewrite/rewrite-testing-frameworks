@@ -64,7 +64,6 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
                 return t;
             }
 
-            // replace method body
             maybeRemoveImport("org.junit.Assert");
             maybeAddImport("org.junit.jupiter.api.Assertions");
             return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> {#{any()}})")
