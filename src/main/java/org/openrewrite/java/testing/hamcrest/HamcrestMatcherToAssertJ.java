@@ -98,7 +98,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             String argumentsTemplate = originalArguments.stream()
                     .map(a -> typeToIndicator(a.getType()))
                     .collect(Collectors.joining(", "));
-            argumentsTemplate = applySpecialCases(mi, argumentsTemplate);
+            argumentsTemplate = applySpecialCases((J.MethodInvocation) matcherArgument, argumentsTemplate);
 
             JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).%s(%s)",
                             actual, assertion, argumentsTemplate))
@@ -161,19 +161,19 @@ public class HamcrestMatcherToAssertJ extends Recipe {
 
         private String applySpecialCases(J.MethodInvocation mi, String template) {
             final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
-            String[] splitTemplate = template.split(",");
+            String[] splitTemplate = template.split(", ");
 
             if (CLOSE_TO_MATCHER.matches(mi)) {
-                StringBuilder newTemplate = new StringBuilder();
+                List<String> newTemplateArr = new ArrayList<>();
                 for (int i = 0; i<splitTemplate.length; i++) {
                     // within needs to placed on the second argument of isCloseTo
                     if (i == 1) {
-                        newTemplate.append(String.format("within(%s)", splitTemplate[i]));
+                        newTemplateArr.add(String.format("within(%s)", splitTemplate[i]));
                         continue;
                     }
-                    newTemplate.append(splitTemplate[i]);
+                    newTemplateArr.add(splitTemplate[i]);
                 }
-                return newTemplate.toString();
+                return String.join(", ", newTemplateArr);
             }
             return template;
         }
