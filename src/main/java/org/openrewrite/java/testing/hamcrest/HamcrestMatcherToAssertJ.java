@@ -70,6 +70,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
         private final MethodMatcher matchersMatcher = new MethodMatcher("org.hamcrest.Matchers " + matcher + "(..)");
         private final MethodMatcher subMatcher = new MethodMatcher("org.hamcrest.Matchers *(org.hamcrest.Matcher)");
 
+
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
@@ -97,12 +98,15 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             String argumentsTemplate = originalArguments.stream()
                     .map(a -> typeToIndicator(a.getType()))
                     .collect(Collectors.joining(", "));
+            argumentsTemplate = applySpecialCases(mi, argumentsTemplate);
+
             JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).%s(%s)",
                             actual, assertion, argumentsTemplate))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
-                    .staticImports("org.assertj.core.api.Assertions.assertThat")
+                    .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                     .build();
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+            maybeAddImport("org.assertj.core.api.Assertions", "within");
             maybeRemoveImport("org.hamcrest.Matchers." + matcher);
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
 
@@ -153,6 +157,25 @@ public class HamcrestMatcherToAssertJ extends Recipe {
                         type.toString().replaceAll("<.*>", "") : "java.lang.Object";
                 return String.format("#{any(%s)}", str);
             }
+        }
+
+        private String applySpecialCases(J.MethodInvocation mi, String template) {
+            final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
+            String[] splitTemplate = template.split(",");
+
+            if (CLOSE_TO_MATCHER.matches(mi)) {
+                StringBuilder newTemplate = new StringBuilder();
+                for (int i = 0; i<splitTemplate.length; i++) {
+                    // within needs to placed on the second argument of isCloseTo
+                    if (i == 1) {
+                        newTemplate.append(String.format("within(%s)", splitTemplate[i]));
+                        continue;
+                    }
+                    newTemplate.append(splitTemplate[i]);
+                }
+                return newTemplate.toString();
+            }
+            return template;
         }
     }
 }
