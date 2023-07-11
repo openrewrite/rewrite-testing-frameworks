@@ -13,7 +13,7 @@ import org.openrewrite.java.tree.J;
 import java.util.List;
 
 @SuppressWarnings("ALL")
-public class ReplaceCloseToWithIsCloseTo extends Recipe {
+public class closeToToAssertJ extends Recipe {
 
     @Override
     public String getDisplayName() {
