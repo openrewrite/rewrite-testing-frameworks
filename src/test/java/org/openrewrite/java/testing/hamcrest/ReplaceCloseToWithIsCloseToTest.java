@@ -26,6 +26,7 @@ public class ReplaceCloseToWithIsCloseToTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
+              
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.closeTo;
               
@@ -38,8 +39,8 @@ public class ReplaceCloseToWithIsCloseToTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
+              
               import static org.assertj.core.api.Assertions.assertThat;
-              import org.assertj.core.api.AbstractDoubleAssert.isCloseTo;
               import static org.assertj.core.api.Assertions.within;
               
               class ATest {

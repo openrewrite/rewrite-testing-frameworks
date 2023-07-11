@@ -58,12 +58,10 @@ public class ReplaceCloseToWithIsCloseTo extends Recipe {
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
             maybeRemoveImport("org.hamcrest.Matchers.closeTo");
             maybeAddImport("org.assertj.core.api.Assertions", "within");
-            maybeAddImport("org.assertj.core.api.AbstractDoubleAssert", "isCloseTo");
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}))")
                     .staticImports("org.assertj.core.api.Assertions.assertThat",
-                                   "org.assertj.core.api.Assertions.within",
-                                   "org.assertj.core.api.AbstractDoubleAssert.isCloseTo")
+                                   "org.assertj.core.api.Assertions.within")
                     .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "assertj-core-3.24"))
                     .build()
