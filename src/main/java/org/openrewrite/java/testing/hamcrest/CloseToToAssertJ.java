@@ -10,6 +10,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class CloseToToAssertJ extends Recipe {
@@ -54,11 +55,18 @@ public class CloseToToAssertJ extends Recipe {
             Expression targetNumber = methodArgument.getArguments().get(0);
             Expression withinNumber = methodArgument.getArguments().get(1);
 
+            String typeIndicator = "double";
+            if (targetNumber.getType() instanceof BigDecimal) {
+                typeIndicator = "java.lang.BigDecimal";
+            }
+
+
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
             maybeRemoveImport("org.hamcrest.Matchers.closeTo");
             maybeAddImport("org.assertj.core.api.Assertions", "within");
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-            return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}))")
+            String template ="assertThat(#{any("+typeIndicator+")}).isCloseTo(#{any("+typeIndicator+")}, within(#{any("+typeIndicator+")}))";
+            return JavaTemplate.builder(template)
                     .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                     .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "assertj-core-3.24"))

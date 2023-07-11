@@ -8,7 +8,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-public class ReplaceCloseToWithIsCloseToTest implements RewriteTest {
+public class CloseToToAssertJTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
@@ -47,6 +47,49 @@ public class ReplaceCloseToWithIsCloseToTest implements RewriteTest {
                   @Test
                   void replaceCloseTo() {
                       assertThat(1.0).isCloseTo(2.0, within(1.0));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void bigDecimalTest() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.math.BigDecimal;
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.closeTo;
+              
+              class ATest {
+                  @Test
+                  void replaceCloseToWithBigDecimal() {
+                      BigDecimal valueOne = new BigDecimal("1.000004");
+                      BigDecimal valueTwo = new BigDecimal("1");
+                      BigDecimal valueThree = new BigDecimal("0.0005");
+                      assertThat(valueOne, closeTo(valueTwo, valueThree));
+                  }
+              }
+              """,
+            """
+              import java.math.BigDecimal;
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.within;
+              
+              class ATest {
+                  @Test
+                  void replaceCloseToWithBigDecimal() {
+                      BigDecimal valueOne = new BigDecimal("1.000004");
+                      BigDecimal valueTwo = new BigDecimal("1");
+                      BigDecimal valueThree = new BigDecimal("0.0005");
+                      assertThat(valueOne).isCloseTo(valueTwo, within(valueThree));
                   }
               }
               """
