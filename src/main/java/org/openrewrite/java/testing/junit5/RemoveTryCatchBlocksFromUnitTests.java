@@ -17,10 +17,11 @@ package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.*;
 import org.openrewrite.java.*;
+import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
     private static final MethodMatcher ASSERT_FAIL_MATCHER = new MethodMatcher("org.junit.Assert fail(..)");
@@ -43,12 +44,16 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new RemoveTryCatchBlocksFromUnitsTestsVisitor();
+        return Preconditions.check(new UsesMethod<>("org.junit.Assert fail(..)", false), new RemoveTryCatchBlocksFromUnitsTestsVisitor());
     }
 
     private static class RemoveTryCatchBlocksFromUnitsTestsVisitor extends JavaVisitor<ExecutionContext> {
         @Override
         public J visitTry(J.Try try_, ExecutionContext ctx) {
+            if (try_.getResources() != null) {
+                return try_;
+            }
+
             if (try_.getCatches().get(0).getBody().getStatements().stream().noneMatch(
                     s -> s instanceof J.MethodInvocation && ASSERT_FAIL_MATCHER.matches((J.MethodInvocation) s)
             )) {

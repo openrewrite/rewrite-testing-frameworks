@@ -75,6 +75,28 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
     }
 
     @Test
+    void doesNotRunOnTryWithResources() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.io.PrintWriter;
+              
+              class MyTest {
+                  @Test
+                  void aTest()  {
+                      try (PrintWriter writer = new PrintWriter("tests.txt")) {
+                          writer.println("hello world");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void statementsBeforeAndAfterTryBlock() {
         //language=java
         rewriteRun(
