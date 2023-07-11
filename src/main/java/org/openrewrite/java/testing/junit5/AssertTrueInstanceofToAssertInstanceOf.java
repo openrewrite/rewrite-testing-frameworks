@@ -42,8 +42,8 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
-                MethodMatcher junit5Matcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(* instanceof *,String)");
-                MethodMatcher junit4Matcher = new MethodMatcher("org.junit.Assert assertTrue(..,* instanceof *)");
+                MethodMatcher junit5Matcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(boolean, ..)");
+                MethodMatcher junit4Matcher = new MethodMatcher("org.junit.Assert assertTrue(.., boolean)");
 
                 J clazz;
                 Expression expression;
