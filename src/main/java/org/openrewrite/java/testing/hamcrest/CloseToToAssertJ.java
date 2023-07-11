@@ -12,7 +12,6 @@ import org.openrewrite.java.tree.J;
 
 import java.util.List;
 
-@SuppressWarnings("ALL")
 public class CloseToToAssertJ extends Recipe {
 
     @Override
@@ -60,8 +59,7 @@ public class CloseToToAssertJ extends Recipe {
             maybeAddImport("org.assertj.core.api.Assertions", "within");
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}))")
-                    .staticImports("org.assertj.core.api.Assertions.assertThat",
-                                   "org.assertj.core.api.Assertions.within")
+                    .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                     .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "assertj-core-3.24"))
                     .build()
