@@ -16,7 +16,7 @@ public class ReplaceCloseToWithIsCloseToTest implements RewriteTest {
               "junit-jupiter-api-5.9",
               "hamcrest-2.2",
               "assertj-core-3.24"))
-          .recipe(new closeToToAssertJ());
+          .recipe(new CloseToToAssertJ());
     }
 
     @Test
