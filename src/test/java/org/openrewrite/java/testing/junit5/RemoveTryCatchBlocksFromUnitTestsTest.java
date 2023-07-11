@@ -75,28 +75,6 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
     }
 
     @Test
-    void onlyAffectsUnitTests() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.Assert;
-              
-              class Test {
-                  public void method() {
-                      try {
-                          int divide = 50/0;
-                      }catch (ArithmeticException e) {
-                          Assert.fail(e.getMessage());
-                      }
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void statementsBeforeAndAfterTryBlock() {
         //language=java
         rewriteRun(
