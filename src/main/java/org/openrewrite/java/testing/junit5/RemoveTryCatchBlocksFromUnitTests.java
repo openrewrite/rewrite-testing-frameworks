@@ -24,13 +24,6 @@ import java.util.stream.Collectors;
 
 public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
     private static final MethodMatcher ASSERT_FAIL_MATCHER = new MethodMatcher("org.junit.Assert fail(..)");
-    private static final List<String> TEST_PATTERNS = Arrays.asList(
-            "@org.junit.jupiter.api.Test",
-            "@org.junit.jupiter.api.RepeatedTest",
-            "@org.junit.jupiter.params.ParameterizedTest"
-    );
-
-    private static final List<AnnotationMatcher> MATCHERS = TEST_PATTERNS.stream().map(AnnotationMatcher::new).collect(Collectors.toList());
 
     @Override
     public String getDisplayName() {
@@ -56,21 +49,20 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
     private static class RemoveTryCatchBlocksFromUnitsTestsVisitor extends JavaVisitor<ExecutionContext> {
         @Override
         public J visitTry(J.Try try_, ExecutionContext ctx) {
-            J.Try t = (J.Try) super.visitTry(try_, ctx);
-
-            if (t.getCatches().get(0).getBody().getStatements().stream().noneMatch(
+            if (try_.getCatches().get(0).getBody().getStatements().stream().noneMatch(
                     s -> s instanceof J.MethodInvocation && ASSERT_FAIL_MATCHER.matches((J.MethodInvocation) s)
             )) {
-                return t;
+                return try_;
             }
 
             maybeRemoveImport("org.junit.Assert");
             maybeAddImport("org.junit.jupiter.api.Assertions");
-            return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> {#{any()}})")
+            return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()})")
+                    .contextSensitive()
                     .imports("org.junit.jupiter.api.Assertions")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
                     .build()
-                    .apply(getCursor(), t.getCoordinates().replace(), t.getBody());
+                    .apply(getCursor(), try_.getCoordinates().replace(), try_.getBody());
         }
     }
 }
