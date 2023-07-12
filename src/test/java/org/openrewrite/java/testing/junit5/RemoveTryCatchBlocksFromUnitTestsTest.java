@@ -75,6 +75,86 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
     }
 
     @Test
+    void failMethodArgIsNotGetMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.Assert;
+             
+              class MyTest {
+                  @Test
+                  void aTest() {
+                      try {
+                          int divide = 50/0;
+                      } catch (Exception e) {
+                          Assert.fail(cleanUpAndReturnMessage());
+                      }
+                  }
+                  
+                  String cleanUpAndReturnMessage() {
+                      System.out.println("clean up code");
+                      return "Oh no!";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotRunWithMultipleCatchBlocks() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.Assert;
+              
+              class MyTest {
+                  @Test
+                  void aTest() {
+                      try {
+                          System.out.println("unsafe code here");
+                      } catch (Exception e) {
+                          Assert.fail(e.getMessage());
+                      } catch (ArithmeticException other) {
+                          Assert.fail(other.getMessage());
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void catchHasMultipleStatements() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.Assert;
+              
+              class MyTest {
+                  @Test
+                  void aTest() {
+                      try {
+                          System.out.println("unsafe code");
+                      } catch (Exception e) {
+                          System.out.println("hello world");
+                          Assert.fail(e.getMessage());
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doesNotRunOnTryWithResources() {
         //language=java
         rewriteRun(

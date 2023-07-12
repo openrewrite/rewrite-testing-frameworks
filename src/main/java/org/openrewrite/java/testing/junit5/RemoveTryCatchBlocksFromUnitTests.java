@@ -18,13 +18,13 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.*;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.*;
 
 public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
     private static final MethodMatcher ASSERT_FAIL_MATCHER = new MethodMatcher("org.junit.Assert fail(..)");
+    private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()");
 
     @Override
     public String getDisplayName() {
@@ -50,13 +50,41 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
     private static class RemoveTryCatchBlocksFromUnitsTestsVisitor extends JavaVisitor<ExecutionContext> {
         @Override
         public J visitTry(J.Try try_, ExecutionContext ctx) {
-            if (try_.getResources() != null) {
+            // only one catch block, such that we know it's safe to apply this recipe, and doesn't have resources
+            if (try_.getResources() != null || try_.getCatches().size() != 1) {
                 return try_;
             }
 
-            if (try_.getCatches().get(0).getBody().getStatements().stream().noneMatch(
-                    s -> s instanceof J.MethodInvocation && ASSERT_FAIL_MATCHER.matches((J.MethodInvocation) s)
-            )) {
+            /*
+            Only one statement in the catch block, which is a fail(), with no or a simple String argument.
+            We would not want to convert for instance fail(cleanUpAndReturnMessage()) might still have side
+            effects that we don't want to remove.
+             */
+            J.Try.Catch catchBlock = try_.getCatches().get(0);
+            if (catchBlock.getBody().getStatements().size() != 1) {
+                return try_;
+            }
+            Statement statement = catchBlock.getBody().getStatements().get(0);
+            if (!(statement instanceof J.MethodInvocation)) {
+                return try_;
+            }
+            J.MethodInvocation failCall = (J.MethodInvocation) statement;
+            if (!ASSERT_FAIL_MATCHER.matches(failCall)) {
+                return try_;
+            }
+
+            // should only pass if there is 1 or 0 arguments
+            if (failCall.getArguments().size() == 1) {
+                Expression arg = failCall.getArguments().get(0);
+                if (failCall.getArguments().get(0) instanceof J.MethodInvocation) {
+                    if (!GET_MESSAGE_MATCHER.matches((J.MethodInvocation) arg)) {
+                        return try_;
+                    }
+                }
+                if (!TypeUtils.isString(arg.getType())) {
+                    return try_;
+                }
+            }else if (!failCall.getArguments().isEmpty()) {
                 return try_;
             }
 
