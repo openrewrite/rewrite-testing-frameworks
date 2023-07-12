@@ -165,7 +165,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
 
             if (CLOSE_TO_MATCHER.matches(mi)) {
                 List<String> newTemplateArr = new ArrayList<>();
-                for (int i = 0; i<splitTemplate.length; i++) {
+                for (int i = 0; i < splitTemplate.length; i++) {
                     // within needs to placed on the second argument of isCloseTo
                     if (i == 1) {
                         newTemplateArr.add(String.format("within(%s)", splitTemplate[i]));

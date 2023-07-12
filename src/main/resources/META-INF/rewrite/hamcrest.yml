@@ -180,6 +180,11 @@ recipeList:
       matcher: anEmptyMap
       assertion: isEmpty
 
+  # Number Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: closeTo
+      assertion: isCloseTo
+
   # Matchers inverted through `not(Matcher)`
   - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
       notMatcher: equalTo
