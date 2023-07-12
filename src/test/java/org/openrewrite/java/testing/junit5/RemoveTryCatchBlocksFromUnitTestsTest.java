@@ -88,6 +88,8 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
                   void aTest()  {
                       try (PrintWriter writer = new PrintWriter("tests.txt")) {
                           writer.println("hello world");
+                      } catch (Exception e) {
+                          Assert.fail("Some message");
                       }
                   }
               }
