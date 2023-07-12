@@ -82,6 +82,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import java.io.PrintWriter;
+              import org.junit.Assert;
               
               class MyTest {
                   @Test
