@@ -15,14 +15,24 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.*;
-import org.openrewrite.java.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Set;
 
-public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
+public class RemoveTryCatchFailBlocksFromUnitTests extends Recipe {
     private static final MethodMatcher ASSERT_FAIL_MATCHER = new MethodMatcher("org.junit.Assert fail(..)");
     private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()");
 
@@ -34,7 +44,7 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
     @Override
     public String getDescription() {
         return "When the code under test in a unit test throws an exception, the test itself fails. " +
-                "Therefore, there is no need to surround the tested code with a try-catch.";
+               "Therefore, there is no need to surround the tested code with a try-catch.";
     }
 
     @Override
@@ -84,7 +94,7 @@ public class RemoveTryCatchBlocksFromUnitTests extends Recipe {
                 if (!TypeUtils.isString(arg.getType())) {
                     return try_;
                 }
-            }else if (!failCall.getArguments().isEmpty()) {
+            } else if (!failCall.getArguments().isEmpty()) {
                 return try_;
             }
 

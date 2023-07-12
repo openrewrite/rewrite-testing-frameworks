@@ -25,15 +25,15 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 @SuppressWarnings({"NumericOverflow", "divzero"})
-public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
+class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-                                    "junit-jupiter-api-5.9",
-                                    "junit-jupiter-params-5.9",
-                                    "junit-4.13"))
-          .recipe(new RemoveTryCatchBlocksFromUnitTests());
+              "junit-jupiter-api-5.9",
+              "junit-jupiter-params-5.9",
+              "junit-4.13"))
+          .recipe(new RemoveTryCatchFailBlocksFromUnitTests());
     }
 
     @Test
@@ -45,7 +45,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
             """
               import org.junit.Assert;
               import org.junit.jupiter.api.Test;
-              
+                            
               class MyTest {
                   @Test
                   public void testMethod() {
@@ -60,7 +60,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
-              
+                            
               class MyTest {
                   @Test
                   public void testMethod() {
@@ -82,7 +82,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.junit.Assert;
-             
+                           
               class MyTest {
                   @Test
                   void aTest() {
@@ -111,7 +111,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.junit.Assert;
-              
+                            
               class MyTest {
                   @Test
                   void aTest() {
@@ -137,7 +137,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.junit.Assert;
-              
+                            
               class MyTest {
                   @Test
                   void aTest() {
@@ -163,7 +163,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.io.PrintWriter;
               import org.junit.Assert;
-              
+                            
               class MyTest {
                   @Test
                   void aTest()  {
@@ -187,7 +187,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
             """
               import org.junit.Assert;
               import org.junit.jupiter.api.Test;
-              
+                            
               class MyTest {
                   @Test
                   public void testMethod() {
@@ -208,7 +208,7 @@ public class RemoveTryCatchBlocksFromUnitTestsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
-              
+                            
               class MyTest {
                   @Test
                   public void testMethod() {
