@@ -30,9 +30,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-jupiter-api-5.9",
-              "junit-jupiter-params-5.9",
-              "junit-4.13"))
+              "junit-jupiter-api-5.9"))
           .recipe(new RemoveTryCatchFailBlocksFromUnitTests());
     }
 
