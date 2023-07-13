@@ -27,25 +27,24 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
-import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Collections;
 import java.util.Set;
 
-public class RemoveTryCatchFailBlocksFromUnitTests extends Recipe {
+public class RemoveTryCatchFailBlocks extends Recipe {
     private static final MethodMatcher ASSERT_FAIL_NO_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(..)");
     private static final MethodMatcher ASSERT_FAIL_STRING_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(String)");
     private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()");
 
     @Override
     public String getDisplayName() {
-        return "`try-catch` blocks should be replaced with Assertions.assertDoesNotThrow in Unit Tests";
+        return "Replace `fail()` in `try-catch` blocks with `Assertions.assertDoesNotThrow(() -> { ... })`";
     }
 
     @Override
     public String getDescription() {
-        return "When the code under test in a unit test throws an exception, the test itself fails. " +
-                "In which cases we replace try-catch-fail with `Assertions.assertDoesNotThrow`.";
+        return "Replace `try-catch` blocks where `catch` merely contains a `fail(..)` statement with " +
+               "`Assertions.assertDoesNotThrow(() -> { ... })`.";
     }
 
     @Override
@@ -60,7 +59,8 @@ public class RemoveTryCatchFailBlocksFromUnitTests extends Recipe {
 
     private static class RemoveTryCatchBlocksFromUnitsTestsVisitor extends JavaVisitor<ExecutionContext> {
         @Override
-        public J visitTry(J.Try try_, ExecutionContext ctx) {
+        public J visitTry(J.Try jtry, ExecutionContext ctx) {
+            J.Try try_ = (J.Try) super.visitTry(jtry, ctx);
             // only one catch block, such that we know it's safe to apply this recipe, and doesn't have resources
             if (try_.getResources() != null || try_.getCatches().size() != 1) {
                 return try_;

@@ -25,13 +25,13 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 @SuppressWarnings({"NumericOverflow", "divzero", "TryWithIdenticalCatches"})
-class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
+class RemoveTryCatchFailBlocksTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api-5.9"))
-          .recipe(new RemoveTryCatchFailBlocksFromUnitTests());
+          .recipe(new RemoveTryCatchFailBlocks());
     }
 
     @Test
@@ -293,6 +293,51 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
                       } catch (Exception e) {
                           Assertions.fail(e);
                       }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void multipleTryCatchBlocks() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 1 / 0;
+                      } catch (ArithmeticException e) {
+                          Assertions.fail(e.getMessage());
+                      }
+                      try {
+                          int divide = 2 / 0;
+                      } catch (ArithmeticException e) {
+                          Assertions.fail(e.getMessage());
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 1 / 0;
+                      });
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 2 / 0;
+                      });
                   }
               }
               """
