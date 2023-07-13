@@ -86,9 +86,19 @@ public class RemoveTryCatchFailBlocks extends Recipe {
 
             // only valid method that returns string should be getMessage()
             if (ASSERT_FAIL_STRING_ARG.matches(failCall)) {
-                Expression arg = failCall.getArguments().get(0);
-                if (failCall.getArguments().get(0) instanceof J.MethodInvocation && !GET_MESSAGE_MATCHER.matches((J.MethodInvocation) arg)) {
+                Expression failCallString = failCall.getArguments().get(0);
+                if (failCallString instanceof J.MethodInvocation && !GET_MESSAGE_MATCHER.matches((J.MethodInvocation) failCallString)) {
                     return try_;
+                }
+                if (failCallString instanceof J.Literal) {
+                    // Retain the fail(String) call argument
+                    maybeAddImport("org.junit.jupiter.api.Assertions");
+                    return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()}, #{any(String)})")
+                            .contextSensitive()
+                            .imports("org.junit.jupiter.api.Assertions")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                            .build()
+                            .apply(getCursor(), try_.getCoordinates().replace(), try_.getBody(), failCallString);
                 }
             }
 

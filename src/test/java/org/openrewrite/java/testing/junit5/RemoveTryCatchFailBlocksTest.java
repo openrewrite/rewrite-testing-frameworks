@@ -73,6 +73,43 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
     }
 
     @Test
+    void removeTryCatchBlockWithFailString() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      }catch (ArithmeticException e) {
+                          Assertions.fail("Some message");
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      }, "Some message");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void failMethodArgIsNotGetMessage() {
         //language=java
         rewriteRun(
@@ -234,7 +271,7 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
@@ -259,7 +296,7 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
               import java.util.function.Supplier;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
@@ -284,7 +321,7 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
