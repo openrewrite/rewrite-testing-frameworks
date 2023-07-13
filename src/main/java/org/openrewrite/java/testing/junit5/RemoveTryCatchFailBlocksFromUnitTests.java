@@ -33,18 +33,19 @@ import java.util.Collections;
 import java.util.Set;
 
 public class RemoveTryCatchFailBlocksFromUnitTests extends Recipe {
-    private static final MethodMatcher ASSERT_FAIL_MATCHER = new MethodMatcher("org.junit.Assert fail(..)");
+    private static final MethodMatcher ASSERT_FAIL_NO_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(..)");
+    private static final MethodMatcher ASSERT_FAIL_STRING_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(String)");
     private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()");
 
     @Override
     public String getDisplayName() {
-        return "Unit test should throw exceptions instead of using `try-catch` blocks";
+        return "`try-catch` blocks should be replaced with Assertions.assertDoesNotThrow in Unit Tests";
     }
 
     @Override
     public String getDescription() {
         return "When the code under test in a unit test throws an exception, the test itself fails. " +
-               "Therefore, there is no need to surround the tested code with a try-catch.";
+                "In which cases we replace try-catch-fail with `Assertions.assertDoesNotThrow`.";
     }
 
     @Override
@@ -54,7 +55,7 @@ public class RemoveTryCatchFailBlocksFromUnitTests extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>("org.junit.Assert fail(..)", false), new RemoveTryCatchBlocksFromUnitsTestsVisitor());
+        return Preconditions.check(new UsesMethod<>("org.junit.jupiter.api.Assertions fail(..)", false), new RemoveTryCatchBlocksFromUnitsTestsVisitor());
     }
 
     private static class RemoveTryCatchBlocksFromUnitsTestsVisitor extends JavaVisitor<ExecutionContext> {
@@ -79,26 +80,18 @@ public class RemoveTryCatchFailBlocksFromUnitTests extends Recipe {
                 return try_;
             }
             J.MethodInvocation failCall = (J.MethodInvocation) statement;
-            if (!ASSERT_FAIL_MATCHER.matches(failCall)) {
+            if (!ASSERT_FAIL_NO_ARG.matches(failCall) || !ASSERT_FAIL_STRING_ARG.matches(failCall)) {
                 return try_;
             }
 
-            // should only pass if there is 1 or 0 arguments
-            if (failCall.getArguments().size() == 1) {
+            // only valid method that returns string should be getMessage()
+            if (ASSERT_FAIL_STRING_ARG.matches(failCall)) {
                 Expression arg = failCall.getArguments().get(0);
-                if (failCall.getArguments().get(0) instanceof J.MethodInvocation) {
-                    if (!GET_MESSAGE_MATCHER.matches((J.MethodInvocation) arg)) {
-                        return try_;
-                    }
-                }
-                if (!TypeUtils.isString(arg.getType())) {
+                if (failCall.getArguments().get(0) instanceof J.MethodInvocation && !GET_MESSAGE_MATCHER.matches((J.MethodInvocation) arg)) {
                     return try_;
                 }
-            } else if (!failCall.getArguments().isEmpty()) {
-                return try_;
             }
 
-            maybeRemoveImport("org.junit.Assert");
             maybeAddImport("org.junit.jupiter.api.Assertions");
             return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()})")
                     .contextSensitive()

@@ -24,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings({"NumericOverflow", "divzero"})
+@SuppressWarnings({"NumericOverflow", "divzero", "TryWithIdenticalCatches"})
 class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
@@ -41,7 +41,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Assert;
+              import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
                             
               class MyTest {
@@ -50,7 +50,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
                       try {
                           int divide = 50 / 0;
                       }catch (ArithmeticException e) {
-                          Assert.fail(e.getMessage());
+                          Assertions.fail(e.getMessage());
                       }
                   }
               }
@@ -79,7 +79,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              import org.junit.Assert;
+              import org.junit.jupiter.api.Assertions;
                            
               class MyTest {
                   @Test
@@ -87,7 +87,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
                       try {
                           int divide = 50/0;
                       } catch (Exception e) {
-                          Assert.fail(cleanUpAndReturnMessage());
+                          Assertions.fail(cleanUpAndReturnMessage());
                       }
                   }
                   
@@ -108,7 +108,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              import org.junit.Assert;
+              import org.junit.jupiter.api.Assertions;
                             
               class MyTest {
                   @Test
@@ -116,9 +116,9 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
                       try {
                           System.out.println("unsafe code here");
                       } catch (Exception e) {
-                          Assert.fail(e.getMessage());
+                          Assertions.fail(e.getMessage());
                       } catch (ArithmeticException other) {
-                          Assert.fail(other.getMessage());
+                          Assertions.fail(other.getMessage());
                       }
                   }
               }
@@ -134,7 +134,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              import org.junit.Assert;
+              import org.junit.jupiter.api.Assertions;
                             
               class MyTest {
                   @Test
@@ -143,7 +143,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
                           System.out.println("unsafe code");
                       } catch (Exception e) {
                           System.out.println("hello world");
-                          Assert.fail(e.getMessage());
+                          Assertions.fail(e.getMessage());
                       }
                   }
               }
@@ -160,7 +160,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import java.io.PrintWriter;
-              import org.junit.Assert;
+              import org.junit.jupiter.api.Assertions;
                             
               class MyTest {
                   @Test
@@ -168,7 +168,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
                       try (PrintWriter writer = new PrintWriter("tests.txt")) {
                           writer.println("hello world");
                       } catch (Exception e) {
-                          Assert.fail("Some message");
+                          Assertions.fail("Some message");
                       }
                   }
               }
@@ -183,7 +183,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.Assert;
+              import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
                             
               class MyTest {
@@ -195,7 +195,7 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
                           int divide = 50 / 0;
                           System.out.println("hello world");
                       }catch (ArithmeticException e) {
-                          Assert.fail(e.getMessage());
+                          Assertions.fail(e.getMessage());
                       }
                       System.out.println("statements after");
                       int y = 50;
@@ -219,6 +219,80 @@ class RemoveTryCatchFailBlocksFromUnitTestsTest implements RewriteTest {
                       System.out.println("statements after");
                       int y = 50;
                       int z = x + y;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void failWithStringThrowableArgs() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (Exception e) {
+                          Assertions.fail(e.getMessage(), e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void failWithSupplierString() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              import java.util.function.Supplier;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      Supplier<String> supplier = () -> "error";
+                      try {
+                          int divide = 50 / 0;
+                      } catch (Exception e) {
+                          Assertions.fail(supplier);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void failWithThrowable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (Exception e) {
+                          Assertions.fail(e);
+                      }
                   }
               }
               """
