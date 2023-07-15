@@ -39,6 +39,7 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.mockito.MockitoAnnotations.Mock
       newFullyQualifiedTypeName: org.mockito.Mock
+  - org.openrewrite.java.testing.mockito.AnyToNullable
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.mockito.Matchers
       newFullyQualifiedTypeName: org.mockito.ArgumentMatchers
