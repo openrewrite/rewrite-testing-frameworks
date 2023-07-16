@@ -442,6 +442,41 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   """)
             );
         }
+
+        @Test
+        void arrayContaining() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("arrayContaining", "containsExactly")),
+              //language=java
+              java("""
+                  import org.junit.jupiter.api.Test;
+                  
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.arrayContaining;
+                  
+                  class ATest {
+                      @Test
+                      void testMethod() {
+                          int[] numbers = {1, 2, 3, 6};
+                          assertThat(numbers, arrayContaining(1, 2, 3, 6));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                  
+                  import static org.assertj.core.api.Assertions.assertThat;
+                  
+                  class ATest {
+                      @Test
+                      void testMethod() {
+                          int[] numbers = {1, 2, 3, 6};
+                          assertThat(numbers).containsExactly(1, 2, 3, 6);
+                      }
+                  }
+                  """)
+            );
+        }
     }
 
     @Nested

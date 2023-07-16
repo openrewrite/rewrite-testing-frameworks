@@ -75,6 +75,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
             if (assertThatMatcher.matches(mi)) {
+                System.out.println("getting here");
                 if (mi.getArguments().size() == 2) {
                     return handleTwoArgumentCase(mi, ctx);
                 }
