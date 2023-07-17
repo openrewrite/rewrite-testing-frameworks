@@ -83,27 +83,13 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             if (failCall.getArguments().get(0) instanceof J.Binary) {
                 J.Binary binaryArg = (J.Binary)failCall.getArguments().get(0);
                 // check if either side is a method
-                //if (binaryArg.getLeft() instanceof J.MethodInvocation || binaryArg.getRight() instanceof J.MethodInvocation) {
-                //    if (!GET_MESSAGE_MATCHER.matches(binaryArg.getLeft()) || !GET_MESSAGE_MATCHER.matches(binaryArg.getRight())) {
-                //        return try_;
-                //    }
-                //}
-                if (binaryArg.getLeft() instanceof J.MethodInvocation) {
-                    if (!GET_MESSAGE_MATCHER.matches(binaryArg.getLeft())) {
+                if (binaryArg.getLeft() instanceof J.MethodInvocation || binaryArg.getRight() instanceof J.MethodInvocation) {
+                    if (!GET_MESSAGE_MATCHER.matches(binaryArg.getLeft()) && binaryArg.getRight() instanceof J.Literal) {
                         return try_;
-                    }else {
-
-                    }
-                }else if (binaryArg.getRight() instanceof J.MethodInvocation) {
-                    if (!GET_MESSAGE_MATCHER.matches(binaryArg.getRight())) {
+                    }else if (!GET_MESSAGE_MATCHER.matches(binaryArg.getRight()) && binaryArg.getLeft() instanceof J.Literal) {
                         return try_;
-                    }else {
-                        
                     }
-                }
-
-                // check if either side is not string then -> return
-                if (!(binaryArg.getRight() instanceof J.Literal) || !(binaryArg.getLeft() instanceof J.Literal)) {
+                }else if (!(binaryArg.getRight() instanceof J.Literal) || !(binaryArg.getLeft() instanceof J.Literal)) {
                     return try_;
                 }
             }
