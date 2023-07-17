@@ -80,6 +80,34 @@ public class RemoveTryCatchFailBlocks extends Recipe {
                 return try_;
             }
             J.MethodInvocation failCall = (J.MethodInvocation) statement;
+            if (failCall.getArguments().get(0) instanceof J.Binary) {
+                J.Binary binaryArg = (J.Binary)failCall.getArguments().get(0);
+                // check if either side is a method
+                //if (binaryArg.getLeft() instanceof J.MethodInvocation || binaryArg.getRight() instanceof J.MethodInvocation) {
+                //    if (!GET_MESSAGE_MATCHER.matches(binaryArg.getLeft()) || !GET_MESSAGE_MATCHER.matches(binaryArg.getRight())) {
+                //        return try_;
+                //    }
+                //}
+                if (binaryArg.getLeft() instanceof J.MethodInvocation) {
+                    if (!GET_MESSAGE_MATCHER.matches(binaryArg.getLeft())) {
+                        return try_;
+                    }else {
+
+                    }
+                }else if (binaryArg.getRight() instanceof J.MethodInvocation) {
+                    if (!GET_MESSAGE_MATCHER.matches(binaryArg.getRight())) {
+                        return try_;
+                    }else {
+                        
+                    }
+                }
+
+                // check if either side is not string then -> return
+                if (!(binaryArg.getRight() instanceof J.Literal) || !(binaryArg.getLeft() instanceof J.Literal)) {
+                    return try_;
+                }
+            }
+
             if (!ASSERT_FAIL_NO_ARG.matches(failCall) || !ASSERT_FAIL_STRING_ARG.matches(failCall)) {
                 return try_;
             }

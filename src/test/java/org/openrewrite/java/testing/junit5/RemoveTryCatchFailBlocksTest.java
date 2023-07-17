@@ -419,12 +419,53 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                   @Test
                   public void testMethod() {
                       try {
+                          int divide = 50 / 0;
                       } catch (Excpetion e) {
-                          Assertions.fail();
+                          Assertions.fail("The error is: " + anotherMethod());
+                      }
+                  }
+                  
+                  public String anotherMethod() {
+                      return "anotherMethod";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void failHasBinaryWithGetMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (Exception e) {
+                          Assertions.fail("The error is: " + e.getMessage());
                       }
                   }
               }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
               
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      });
+                  }
+              }
               """
           )
         );
