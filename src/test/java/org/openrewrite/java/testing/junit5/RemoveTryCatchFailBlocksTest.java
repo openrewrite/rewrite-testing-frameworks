@@ -381,4 +381,52 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void failHasBinaryWithException() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (ArithmeticException e) {
+                          Assertions.fail("The error is: " + e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void failHasBinaryWithMethodCall() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                      } catch (Excpetion e) {
+                          Assertions.fail();
+                      }
+                  }
+              }
+              
+              """
+          )
+        );
+    }
 }
