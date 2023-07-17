@@ -457,7 +457,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   class ATest {
                       @Test
                       void testMethod() {
-                          int[] numbers = {1, 2, 3, 6};
+                          Integer[] numbers = {1, 2, 3, 6};
                           assertThat(numbers, arrayContaining(1, 2, 3, 6));
                       }
                   }
@@ -470,7 +470,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   class ATest {
                       @Test
                       void testMethod() {
-                          int[] numbers = {1, 2, 3, 6};
+                          Integer[] numbers = {1, 2, 3, 6};
                           assertThat(numbers).containsExactly(1, 2, 3, 6);
                       }
                   }
