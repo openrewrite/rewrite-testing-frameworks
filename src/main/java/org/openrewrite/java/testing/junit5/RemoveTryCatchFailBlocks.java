@@ -36,8 +36,7 @@ import java.util.Set;
 public class RemoveTryCatchFailBlocks extends Recipe {
     private static final MethodMatcher ASSERT_FAIL_NO_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail()");
     private static final MethodMatcher ASSERT_FAIL_STRING_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(String)");
-    private static final MethodMatcher ASSERT_FAIL_THROWABLE_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(Throwable)");
-    private static final MethodMatcher ASSERT_FAIL_STRING_THROWABLE_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(String, Throwable)");
+    private static final MethodMatcher ASSERT_FAIL_THROWABLE_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(.., Throwable)");
     private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()");
 
     @Override
@@ -86,8 +85,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             J.MethodInvocation failCall = (J.MethodInvocation) statement;
             if (!ASSERT_FAIL_NO_ARG.matches(failCall)
                 && !ASSERT_FAIL_STRING_ARG.matches(failCall)
-                && !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)
-                && !ASSERT_FAIL_STRING_THROWABLE_ARG.matches(failCall)) {
+                && !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)) {
                 return try_;
             }
 
