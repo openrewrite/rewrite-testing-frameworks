@@ -319,13 +319,26 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                       }
                   }
               }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      });
+                  }
+              }
               """
           )
         );
     }
 
     @Test
-    void failWithSupplierString() {
+    void failWithSupplierStringAsIdentifier() {
         //language=java
         rewriteRun(
           java(
@@ -351,6 +364,31 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
     }
 
     @Test
+    void failWithSupplierStringAsLambda() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              import java.util.function.Supplier;
+                            
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (Exception e) {
+                          Assertions.fail(() -> "error");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void failWithThrowable() {
         //language=java
         rewriteRun(
@@ -367,6 +405,19 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                       } catch (Exception e) {
                           Assertions.fail(e);
                       }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      });
                   }
               }
               """

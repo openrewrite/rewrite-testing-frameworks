@@ -36,6 +36,8 @@ import java.util.Set;
 public class RemoveTryCatchFailBlocks extends Recipe {
     private static final MethodMatcher ASSERT_FAIL_NO_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail()");
     private static final MethodMatcher ASSERT_FAIL_STRING_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(String)");
+    private static final MethodMatcher ASSERT_FAIL_THROWABLE_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(Throwable)");
+    private static final MethodMatcher ASSERT_FAIL_STRING_THROWABLE_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(String, Throwable)");
     private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()");
 
     @Override
@@ -82,7 +84,10 @@ public class RemoveTryCatchFailBlocks extends Recipe {
                 return try_;
             }
             J.MethodInvocation failCall = (J.MethodInvocation) statement;
-            if (!ASSERT_FAIL_NO_ARG.matches(failCall) && !ASSERT_FAIL_STRING_ARG.matches(failCall)) {
+            if (!ASSERT_FAIL_NO_ARG.matches(failCall)
+                && !ASSERT_FAIL_STRING_ARG.matches(failCall)
+                && !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)
+                && !ASSERT_FAIL_STRING_THROWABLE_ARG.matches(failCall)) {
                 return try_;
             }
 
@@ -94,20 +99,24 @@ public class RemoveTryCatchFailBlocks extends Recipe {
                 return replaceWithAssertDoesNotThrowWithoutStringExpression(ctx, try_);
             } else if (failCallArgument instanceof J.Literal) {
                 return replaceWithAssertDoesNotThrowWithStringExpression(ctx, try_, failCallArgument);
+            } else if (isException(failCallArgument)) {
+                return replaceWithAssertDoesNotThrowWithoutStringExpression(ctx, try_);
             } else if (failCallArgument instanceof J.Binary) {
                 J.Binary binaryArg = (J.Binary) failCallArgument;
                 Expression left = binaryArg.getLeft();
                 Expression right = binaryArg.getRight();
                 // Rewrite fail("message: " + e), fail("message: " + e.getMessage())
-                if (left instanceof J.Literal
-                    && (GET_MESSAGE_MATCHER.matches(right)
-                        || (right instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", right.getType())))) {
+                if (left instanceof J.Literal && (GET_MESSAGE_MATCHER.matches(right) || isException(right))) {
                     return replaceWithAssertDoesNotThrowWithStringExpression(ctx, try_, left);
                 }
             }
 
             // Fall back to making no change at all
             return try_;
+        }
+
+        private static boolean isException(Expression expression) {
+            return expression instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", expression.getType());
         }
 
         @NotNull
