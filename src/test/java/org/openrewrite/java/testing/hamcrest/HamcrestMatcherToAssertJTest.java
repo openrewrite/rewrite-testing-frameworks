@@ -477,6 +477,146 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   """)
             );
         }
+
+        @Test
+        void arrayContainingInAnyOrder() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("arrayContainingInAnyOrder", "containsOnly")),
+              //language=java
+              java("""
+                  import org.junit.jupiter.api.Test;
+                  
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+                  
+                  class ATest {
+                      @Test
+                      void testMethod() {
+                          Integer[] numbers = {1, 2};
+                          assertThat(numbers, arrayContainingInAnyOrder(2, 1));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                  
+                  import static org.assertj.core.api.Assertions.assertThat;
+                  
+                  class ATest {
+                      @Test
+                      void testMethod() {
+                          Integer[] numbers = {1, 2};
+                          assertThat(numbers).containsOnly(2, 1);
+                      }
+                  }
+                  """)
+            );
+        }
+
+        @Test
+        void arrayWithSize() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("arrayWithSize", "hasSize")),
+              //language=java
+              java("""
+                  import org.junit.jupiter.api.Test;
+                  
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.arrayWithSize;
+                  
+                  class ATest {
+                      @Test
+                      void testMethod() {
+                          Integer[] numbers = {2};
+                          assertThat(numbers, arrayWithSize(1));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                  
+                  import static org.assertj.core.api.Assertions.assertThat;
+                  
+                  class ATest {
+                      @Test
+                      void testMethod() {
+                          Integer[] numbers = {2};
+                          assertThat(numbers).hasSize(1);
+                      }
+                  }
+                  """)
+            );
+        }
+
+        @Test
+        void emptyArray() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("emptyArray", "isEmpty")),
+              //language=java
+              java("""
+                  import org.junit.jupiter.api.Test;
+                  
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.emptyArray;
+                  
+                  class ATest {
+                      @Test
+                      void testMethod() {
+                          Integer[] numbers = {};
+                          assertThat(numbers, emptyArray());
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                  
+                  import static org.assertj.core.api.Assertions.assertThat;
+                  
+                  class ATest {
+                      @Test
+                      void testMethod() {
+                          Integer[] numbers = {};
+                          assertThat(numbers).isEmpty();
+                      }
+                  }
+                  """)
+            );
+        }
+
+        @Test
+        void hasItemInArray() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("hasItemInArray", "contains")),
+              //language=java
+              java("""
+                  import org.junit.jupiter.api.Test;
+                  
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.hasItemInArray;
+                  
+                  class ATest {
+                      @Test
+                      void testMethod() {
+                          Integer[] numbers = {1, 2, 3};
+                          assertThat(numbers, hasItemInArray(1));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                  
+                  import static org.assertj.core.api.Assertions.assertThat;
+                  
+                  class ATest {
+                      @Test
+                      void testMethod() {
+                          Integer[] numbers = {1, 2, 3};
+                          assertThat(numbers).contains(1);
+                      }
+                  }
+                  """)
+            );
+        }
     }
 
     @Nested
