@@ -49,8 +49,45 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                   public void testMethod() {
                       try {
                           int divide = 50 / 0;
-                      }catch (ArithmeticException e) {
+                      } catch (ArithmeticException e) {
                           Assertions.fail(e.getMessage());
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeTryCatchBlockWithoutMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (ArithmeticException e) {
+                          Assertions.fail();
                       }
                   }
               }
@@ -401,6 +438,19 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                       }
                   }
               }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+               
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      }, "The error is: ");
+                  }
+              }
               """
           )
         );
@@ -463,7 +513,7 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                   public void testMethod() {
                       Assertions.assertDoesNotThrow(() -> {
                           int divide = 50 / 0;
-                      });
+                      }, "The error is: ");
                   }
               }
               """
