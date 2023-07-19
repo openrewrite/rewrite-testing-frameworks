@@ -462,4 +462,35 @@ class AssertToAssertionsTest implements RewriteTest {
           )
         );
     }
+
+    // edge case for deprecated use of assertEquals
+    // https://junit.org/junit4/javadoc/4.13/org/junit/Assert.html#assertEquals(java.lang.Object%5B%5D,%20java.lang.Object%5B%5D)
+    @Issue("#383")
+    @Test
+    void assertEqualsWithArrayArgumentToAssertArrayEquals() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.Assert;
+              
+              class MyTest {
+                  void test() {
+                       Assert.assertEquals(new Object[1], new Object[1]);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              
+              class MyTest {
+                  void test() {
+                       Assertions.assertArrayEquals(new Object[1], new Object[1]);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
