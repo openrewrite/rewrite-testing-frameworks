@@ -82,6 +82,42 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
             """));
     }
 
+    private static Stream<Arguments> arrayReplacements() {
+        return Stream.of(
+          Arguments.arguments("numbers", "arrayContaining", "1, 2, 3", "containsExactly"),
+          Arguments.arguments("numbers", "arrayContainingInAnyOrder", "2, 1", "containsExactlyInAnyOrder"),
+          Arguments.arguments("numbers", "arrayWithSize", "1", "hasSize"),
+          Arguments.arguments("numbers", "emptyArray", "", "isEmpty"),
+          Arguments.arguments("numbers", "hasItemInArray", "1", "contains")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("arrayReplacements")
+    void arrayReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
+        String importsBefore = """
+          import static org.hamcrest.MatcherAssert.assertThat;
+          import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
+        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        //language=java
+        String template = """
+          import org.junit.jupiter.api.Test;
+                    
+          %s
+                    
+          class ATest {
+              @Test
+              void test() {
+                  Integer[] numbers = {1, 2, 3, 4};
+                  %s
+              }
+          }
+          """;
+        String before = template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs));
+        String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
+        rewriteRun(java(before, after));
+    }
+
     private static Stream<Arguments> stringReplacements() {
         return Stream.of(
           Arguments.arguments("str1", "blankString", "", "isBlank"),
