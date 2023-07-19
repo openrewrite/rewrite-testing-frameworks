@@ -85,7 +85,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
     private static Stream<Arguments> arrayReplacements() {
         return Stream.of(
           Arguments.arguments("numbers", "arrayContaining", "1, 2, 3", "containsExactly"),
-          Arguments.arguments("numbers", "arrayContainingInAnyOrder", "2, 1", "containsOnly"),
+          Arguments.arguments("numbers", "arrayContainingInAnyOrder", "2, 1", "containsExactlyInAnyOrder"),
           Arguments.arguments("numbers", "arrayWithSize", "1", "hasSize"),
           Arguments.arguments("numbers", "emptyArray", "", "isEmpty"),
           Arguments.arguments("numbers", "hasItemInArray", "1", "contains")

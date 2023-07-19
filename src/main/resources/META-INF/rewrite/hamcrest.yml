@@ -93,7 +93,7 @@ recipeList:
       assertion: containsExactly
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: arrayContainingInAnyOrder
-      assertion: containsOnly
+      assertion: containsExactlyInAnyOrder
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: arrayWithSize
       assertion: hasSize
