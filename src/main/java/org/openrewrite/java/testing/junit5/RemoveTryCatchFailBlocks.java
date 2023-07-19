@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -27,13 +28,15 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Collections;
 import java.util.Set;
 
 public class RemoveTryCatchFailBlocks extends Recipe {
-    private static final MethodMatcher ASSERT_FAIL_NO_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(..)");
+    private static final MethodMatcher ASSERT_FAIL_NO_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail()");
     private static final MethodMatcher ASSERT_FAIL_STRING_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(String)");
+    private static final MethodMatcher ASSERT_FAIL_THROWABLE_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(.., Throwable)");
     private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()");
 
     @Override
@@ -43,8 +46,8 @@ public class RemoveTryCatchFailBlocks extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Replace `try-catch` blocks where `catch` merely contains a `fail(..)` statement with " +
-               "`Assertions.assertDoesNotThrow(() -> { ... })`.";
+        return "Replace `try-catch` blocks where `catch` merely contains a `fail()` for `fail(String)` statement " +
+               "with `Assertions.assertDoesNotThrow(() -> { ... })`.";
     }
 
     @Override
@@ -80,28 +83,42 @@ public class RemoveTryCatchFailBlocks extends Recipe {
                 return try_;
             }
             J.MethodInvocation failCall = (J.MethodInvocation) statement;
-            if (!ASSERT_FAIL_NO_ARG.matches(failCall) || !ASSERT_FAIL_STRING_ARG.matches(failCall)) {
+            if (!ASSERT_FAIL_NO_ARG.matches(failCall)
+                && !ASSERT_FAIL_STRING_ARG.matches(failCall)
+                && !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)) {
                 return try_;
             }
 
-            // only valid method that returns string should be getMessage()
-            if (ASSERT_FAIL_STRING_ARG.matches(failCall)) {
-                Expression failCallString = failCall.getArguments().get(0);
-                if (failCallString instanceof J.MethodInvocation && !GET_MESSAGE_MATCHER.matches((J.MethodInvocation) failCallString)) {
-                    return try_;
-                }
-                if (failCallString instanceof J.Literal) {
-                    // Retain the fail(String) call argument
-                    maybeAddImport("org.junit.jupiter.api.Assertions");
-                    return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()}, #{any(String)})")
-                            .contextSensitive()
-                            .imports("org.junit.jupiter.api.Assertions")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
-                            .build()
-                            .apply(getCursor(), try_.getCoordinates().replace(), try_.getBody(), failCallString);
+            // Only replace known cases
+            Expression failCallArgument = failCall.getArguments().get(0);
+            if (failCallArgument instanceof J.Empty) {
+                return replaceWithAssertDoesNotThrowWithoutStringExpression(ctx, try_);
+            } else if (failCallArgument instanceof J.MethodInvocation && GET_MESSAGE_MATCHER.matches(failCallArgument)) {
+                return replaceWithAssertDoesNotThrowWithoutStringExpression(ctx, try_);
+            } else if (failCallArgument instanceof J.Literal) {
+                return replaceWithAssertDoesNotThrowWithStringExpression(ctx, try_, failCallArgument);
+            } else if (isException(failCallArgument)) {
+                return replaceWithAssertDoesNotThrowWithoutStringExpression(ctx, try_);
+            } else if (failCallArgument instanceof J.Binary) {
+                J.Binary binaryArg = (J.Binary) failCallArgument;
+                Expression left = binaryArg.getLeft();
+                Expression right = binaryArg.getRight();
+                // Rewrite fail("message: " + e), fail("message: " + e.getMessage())
+                if (left instanceof J.Literal && (GET_MESSAGE_MATCHER.matches(right) || isException(right))) {
+                    return replaceWithAssertDoesNotThrowWithStringExpression(ctx, try_, left);
                 }
             }
 
+            // Fall back to making no change at all
+            return try_;
+        }
+
+        private static boolean isException(Expression expression) {
+            return expression instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", expression.getType());
+        }
+
+        @NotNull
+        private J.MethodInvocation replaceWithAssertDoesNotThrowWithoutStringExpression(ExecutionContext ctx, J.Try try_) {
             maybeAddImport("org.junit.jupiter.api.Assertions");
             return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()})")
                     .contextSensitive()
@@ -109,6 +126,18 @@ public class RemoveTryCatchFailBlocks extends Recipe {
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
                     .build()
                     .apply(getCursor(), try_.getCoordinates().replace(), try_.getBody());
+        }
+
+        @NotNull
+        private J.MethodInvocation replaceWithAssertDoesNotThrowWithStringExpression(ExecutionContext ctx, J.Try try_, Expression failCallArgument) {
+            // Retain the fail(String) call argument
+            maybeAddImport("org.junit.jupiter.api.Assertions");
+            return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()}, #{any(String)})")
+                    .contextSensitive()
+                    .imports("org.junit.jupiter.api.Assertions")
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                    .build()
+                    .apply(getCursor(), try_.getCoordinates().replace(), try_.getBody(), failCallArgument);
         }
     }
 }

@@ -49,8 +49,45 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                   public void testMethod() {
                       try {
                           int divide = 50 / 0;
-                      }catch (ArithmeticException e) {
+                      } catch (ArithmeticException e) {
                           Assertions.fail(e.getMessage());
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeTryCatchBlockWithoutMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (ArithmeticException e) {
+                          Assertions.fail();
                       }
                   }
               }
@@ -282,13 +319,26 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                       }
                   }
               }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      });
+                  }
+              }
               """
           )
         );
     }
 
     @Test
-    void failWithSupplierString() {
+    void failWithSupplierStringAsIdentifier() {
         //language=java
         rewriteRun(
           java(
@@ -314,6 +364,31 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
     }
 
     @Test
+    void failWithSupplierStringAsLambda() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              import java.util.function.Supplier;
+                            
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (Exception e) {
+                          Assertions.fail(() -> "error");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void failWithThrowable() {
         //language=java
         rewriteRun(
@@ -330,6 +405,19 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                       } catch (Exception e) {
                           Assertions.fail(e);
                       }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      });
                   }
               }
               """
@@ -375,6 +463,108 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                       Assertions.assertDoesNotThrow(() -> {
                           int divide = 2 / 0;
                       });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void failHasBinaryWithException() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (ArithmeticException e) {
+                          Assertions.fail("The error is: " + e);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+               
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      }, "The error is: ");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void failHasBinaryWithMethodCall() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (Excpetion e) {
+                          Assertions.fail("The error is: " + anotherMethod());
+                      }
+                  }
+                  
+                  public String anotherMethod() {
+                      return "anotherMethod";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void failHasBinaryWithGetMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (Exception e) {
+                          Assertions.fail("The error is: " + e.getMessage());
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      }, "The error is: ");
                   }
               }
               """
