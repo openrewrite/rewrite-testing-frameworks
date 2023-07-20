@@ -81,6 +81,12 @@ public class AssertToAssertions extends Recipe {
             doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + m.getSimpleName() + "(..)",
                     "org.junit.jupiter.api.Assertions", null, null, true)
                     .getVisitor());
+
+            if (isAssertEqualsWithArrayArguments(m)) {
+                // rename so we maintain the expected behaviour
+                m = m.withName(m.getName().withSimpleName("assertArrayEquals"));
+            }
+
             List<Expression> args = m.getArguments();
             Expression firstArg = args.get(0);
             // Suppress arg-switching for Assertions.assertEquals(String, String)
@@ -110,6 +116,15 @@ public class AssertToAssertions extends Recipe {
             }
 
             return m;
+        }
+
+        private static boolean isAssertEqualsWithArrayArguments(J.MethodInvocation method) {
+            if (!("assertEquals".equals(method.getSimpleName()))) {
+                return false;
+            }
+            // Detection based on 2nd argument which is the same in both overloads with and without message
+            Expression secondArg = method.getArguments().get(1);
+            return secondArg.getType() instanceof JavaType.Array;
         }
 
         private static boolean isJunitAssertMethod(J.MethodInvocation method) {
