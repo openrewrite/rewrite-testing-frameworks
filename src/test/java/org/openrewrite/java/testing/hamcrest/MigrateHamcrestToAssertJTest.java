@@ -81,6 +81,43 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
             }
             """));
     }
+    @DocumentExample
+    @Test
+    void flattenAllOfStringMatchersAndConvert() {
+        rewriteRun(
+          //language=java
+          java("""
+            import org.junit.jupiter.api.Test;
+            
+            import static org.hamcrest.MatcherAssert.assertThat;
+            import static org.hamcrest.Matchers.allOf;
+            import static org.hamcrest.Matchers.equalTo;
+            import static org.hamcrest.Matchers.hasLength;
+                            
+            class ATest {
+                @Test
+                void test() {
+                    String str1 = "Hello world!";
+                    String str2 = "Hello world!";
+                    assertThat(str1, allOf(equalTo(str2), hasLength(12)));
+                }
+            }
+            ""","""
+            import org.junit.jupiter.api.Test;
+
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            class ATest {
+                @Test
+                void test() {
+                    String str1 = "Hello world!";
+                    String str2 = "Hello world!";
+                    assertThat(str1).isEqualTo(str2);
+                    assertThat(str1).hasSize(12);
+                }
+            }
+            """));
+    }
 
     private static Stream<Arguments> arrayReplacements() {
         return Stream.of(
