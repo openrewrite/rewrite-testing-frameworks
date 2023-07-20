@@ -28,6 +28,7 @@ recipeList:
   - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
   - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
   - org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
+  - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.StaticImports
@@ -65,6 +66,9 @@ recipeList:
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.junit5.UseTestMethodOrder
   - org.openrewrite.java.testing.junit5.MigrateJUnitTestCase
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.junit.Assert assertEquals(.., Object[], Object[])"
+      newMethodName: assertArrayEquals
   - org.openrewrite.java.testing.junit5.AssertToAssertions
   - org.openrewrite.java.testing.junit5.CategoryToTag
   - org.openrewrite.java.testing.junit5.CleanupJUnitImports

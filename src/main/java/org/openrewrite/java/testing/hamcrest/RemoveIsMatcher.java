@@ -15,13 +15,13 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.TreeVisitingPrinter;
 import org.openrewrite.java.tree.J;
 
+@SuppressWarnings("NullableProblems")
 public class RemoveIsMatcher extends Recipe {
     @Override
     public String getDisplayName() {
@@ -34,13 +34,16 @@ public class RemoveIsMatcher extends Recipe {
     }
 
     static final MethodMatcher IS_MATCHER = new MethodMatcher("org.hamcrest.Matchers is(org.hamcrest.Matcher)");
+    static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
-                if (IS_MATCHER.matches(mi)) {
+                if (ASSERT_THAT_MATCHER.matches(mi)) {
+                    getCursor().putMessage("ASSERT_THAT", mi);
+                } else if (IS_MATCHER.matches(mi) && getCursor().pollNearestMessage("ASSERT_THAT") != null) {
                     maybeRemoveImport("org.hamcrest.Matchers.is");
                     return mi.getArguments().get(0).withPrefix(mi.getPrefix());
                 }
