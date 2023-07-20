@@ -81,14 +81,15 @@ public class AssertToAssertions extends Recipe {
             doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + m.getSimpleName() + "(..)",
                     "org.junit.jupiter.api.Assertions", null, null, true)
                     .getVisitor());
+
             List<Expression> args = m.getArguments();
             Expression firstArg = args.get(0);
             // Suppress arg-switching for Assertions.assertEquals(String, String)
             if (args.size() == 2) {
                 if ("assertSame".equals(m.getSimpleName()) ||
-                        "assertNotSame".equals(m.getSimpleName()) ||
-                        "assertEquals".equals(m.getSimpleName()) ||
-                        "assertNotEquals".equals(m.getSimpleName())) {
+                    "assertNotSame".equals(m.getSimpleName()) ||
+                    "assertEquals".equals(m.getSimpleName()) ||
+                    "assertNotEquals".equals(m.getSimpleName())) {
                     return m;
                 }
             }
