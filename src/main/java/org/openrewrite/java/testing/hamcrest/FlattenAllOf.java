@@ -61,7 +61,7 @@ class FlattenAllOfVisitor extends JavaVisitor<ExecutionContext> {
 
         List<Expression> arguments = mi.getArguments();
         Expression allOf = arguments.get(arguments.size() - 1);
-        if (!ASSERT_THAT_MATCHER.matches(mi) && !ALL_OF_MATCHER.matches(allOf)) {
+        if (!ASSERT_THAT_MATCHER.matches(mi) || !ALL_OF_MATCHER.matches(allOf)) {
             return mi;
         }
 
