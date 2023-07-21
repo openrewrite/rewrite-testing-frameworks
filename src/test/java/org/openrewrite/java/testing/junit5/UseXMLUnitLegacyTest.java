@@ -29,8 +29,6 @@ public class UseXMLUnitLegacyTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "xmlunit-1.6"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath()
             .build()
