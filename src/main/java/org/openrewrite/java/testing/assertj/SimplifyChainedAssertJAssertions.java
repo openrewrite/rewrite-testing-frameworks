@@ -31,6 +31,7 @@ import org.openrewrite.java.tree.J;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 @AllArgsConstructor
 public class SimplifyChainedAssertJAssertions extends Recipe {
@@ -58,6 +59,11 @@ public class SimplifyChainedAssertJAssertions extends Recipe {
     @Override
     public String getDisplayName() {
         return "Simplify AssertJ chained assertions";
+    }
+
+    @Override
+    public Set<String> getTags() {
+        return Collections.singleton("RSPEC-5838");
     }
 
     @Override
