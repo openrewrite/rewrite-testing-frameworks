@@ -75,19 +75,16 @@ public class HamcrestMatcherToAssertJ extends Recipe {
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
             if (assertThatMatcher.matches(mi)) {
-                if (mi.getArguments().size() == 2) {
-                    return handleTwoArgumentCase(mi, ctx);
-                }
-                if (mi.getArguments().size() == 3) {
-                    return handleThreeArgumentCase(mi, ctx);
-                }
+                return replace(mi, ctx);
             }
             return mi;
         }
 
-        private J.MethodInvocation handleTwoArgumentCase(J.MethodInvocation mi, ExecutionContext ctx) {
-            Expression actualArgument = mi.getArguments().get(0);
-            Expression matcherArgument = mi.getArguments().get(1);
+        private J.MethodInvocation replace(J.MethodInvocation mi, ExecutionContext ctx) {
+            List<Expression> mia = mi.getArguments();
+            Expression reasonArgument = mia.size() == 3 ? mia.get(0) : null;
+            Expression actualArgument = mia.get(mia.size() - 2);
+            Expression matcherArgument = mia.get(mia.size() - 1);
             if (!matchersMatcher.matches(matcherArgument) || subMatcher.matches(matcherArgument)) {
                 return mi;
             }
@@ -95,15 +92,19 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             List<Expression> originalArguments = ((J.MethodInvocation) matcherArgument).getArguments().stream()
                     .filter(a -> !(a instanceof J.Empty))
                     .collect(Collectors.toList());
-            String argumentsTemplate = originalArguments.stream()
+            String special = specialArgumentsTemplateFor((J.MethodInvocation) matcherArgument);
+            String argumentsTemplate = special != null ? special : originalArguments.stream()
                     .map(a -> typeToIndicator(a.getType()))
                     .collect(Collectors.joining(", "));
-            argumentsTemplate = applySpecialCases((J.MethodInvocation) matcherArgument, argumentsTemplate);
-
-            JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).%s(%s)",
+            JavaTemplate template = JavaTemplate.builder(String.format(
+                            "assertThat(%s)" +
+                            (reasonArgument != null ? ".as(#{any(String)})" : "") +
+                            ".%s(%s)",
                             actual, assertion, argumentsTemplate))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
-                    .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
+                    .staticImports(
+                            "org.assertj.core.api.Assertions.assertThat",
+                            "org.assertj.core.api.Assertions.within")
                     .build();
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             maybeAddImport("org.assertj.core.api.Assertions", "within");
@@ -112,36 +113,9 @@ public class HamcrestMatcherToAssertJ extends Recipe {
 
             List<Expression> templateArguments = new ArrayList<>();
             templateArguments.add(actualArgument);
-            templateArguments.addAll(originalArguments);
-            return template.apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
-        }
-
-        private J.MethodInvocation handleThreeArgumentCase(J.MethodInvocation mi, ExecutionContext ctx) {
-            Expression reasonArgument = mi.getArguments().get(0);
-            Expression actualArgument = mi.getArguments().get(1);
-            Expression matcherArgument = mi.getArguments().get(2);
-            if (!matchersMatcher.matches(matcherArgument) || subMatcher.matches(matcherArgument)) {
-                return mi;
+            if (reasonArgument != null) {
+                templateArguments.add(reasonArgument);
             }
-            String actual = typeToIndicator(actualArgument.getType());
-            List<Expression> originalArguments = ((J.MethodInvocation) matcherArgument).getArguments().stream()
-                    .filter(a -> !(a instanceof J.Empty))
-                    .collect(Collectors.toList());
-            String argumentsTemplate = originalArguments.stream()
-                    .map(a -> typeToIndicator(a.getType()))
-                    .collect(Collectors.joining(", "));
-            JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).as(#{any(String)}).%s(%s)",
-                            actual, assertion, argumentsTemplate))
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
-                    .staticImports("org.assertj.core.api.Assertions.assertThat")
-                    .build();
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-            maybeRemoveImport("org.hamcrest.Matchers." + matcher);
-            maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
-
-            List<Expression> templateArguments = new ArrayList<>();
-            templateArguments.add(actualArgument);
-            templateArguments.add(reasonArgument);
             templateArguments.addAll(originalArguments);
             return template.apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
         }
@@ -159,23 +133,14 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             }
         }
 
-        private String applySpecialCases(J.MethodInvocation mi, String template) {
-            final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
-            String[] splitTemplate = template.split(", ");
+        private final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
 
+        private String specialArgumentsTemplateFor(J.MethodInvocation mi) {
             if (CLOSE_TO_MATCHER.matches(mi)) {
-                List<String> newTemplateArr = new ArrayList<>();
-                for (int i = 0; i < splitTemplate.length; i++) {
-                    // within needs to placed on the second argument of isCloseTo
-                    if (i == 1) {
-                        newTemplateArr.add(String.format("within(%s)", splitTemplate[i]));
-                        continue;
-                    }
-                    newTemplateArr.add(splitTemplate[i]);
-                }
-                return String.join(", ", newTemplateArr);
+                String indicator = typeToIndicator(mi.getArguments().get(0).getType());
+                return String.format("%s, within(%s)", indicator, indicator);
             }
-            return template;
+            return null;
         }
     }
 }
