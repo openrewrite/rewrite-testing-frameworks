@@ -104,6 +104,28 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
             """));
     }
 
+
+    @Test
+    void isMatcherWithMatcher() {
+        rewriteRun(
+          //language=java
+          java("""
+                import org.junit.jupiter.api.Test;
+                import static org.hamcrest.MatcherAssert.assertThat;
+                import static org.hamcrest.Matchers.is;
+                import static org.hamcrest.Matchers.equalTo;
+                                
+                class ATest {
+                    @Test
+                    void test() {
+                        String str1 = "Hello world!";
+                        String str2 = "Hello world!";
+                        assertThat(str1, is(equalTo(str2)));
+                    }
+                }
+                """));
+    }
+
     @Test
     void isObjectArray() {
         rewriteRun(

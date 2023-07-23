@@ -39,37 +39,22 @@ public class HamcrestIsMatcherToAssertJ extends Recipe {
         return "Migrate Hamcrest `is(Object)` to AssertJ `Assertions.assertThat(..)`.";
     }
 
-    static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
-
     static final MethodMatcher IS_OBJECT_MATCHER = new MethodMatcher("org.hamcrest.Matchers is(..)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(ASSERT_THAT_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(IS_OBJECT_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
-                J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
 
-                List<Expression> arguments = mi.getArguments();
-                Expression isMatcher = arguments.get(arguments.size() - 1);
-                if (!ASSERT_THAT_MATCHER.matches(mi) || !IS_OBJECT_MATCHER.matches(isMatcher)) {
-                    return mi;
-                }
-                Expression reason = arguments.size() == 3 ? arguments.get(0) : null;
-                Expression actual = arguments.get(arguments.size() - 2);
+                // Switch between one or the other depending on whether actual argument is an array or not
+                List<Expression> arguments = methodInvocation.getArguments();
+                String replacement = 2 <= arguments.size() &&
+                                     TypeUtils.asArray(arguments.get(arguments.size() - 2).getType()) != null ?
+                        "containsExactly" : "isEqualTo";
+                doAfterVisit(new HamcrestMatcherToAssertJ("is", replacement).getVisitor());
 
-                // Handle `is(Matcher)` in src/main/resources/META-INF/rewrite/hamcrest.yml
-                Expression isMatcherArgument = ((J.MethodInvocation) isMatcher).getArguments().get(0);
-                if (TypeUtils.isOfClassType(isMatcherArgument.getType(), "org.hamcrest.Matcher")) {
-                    return mi;
-                }
-
-                if (TypeUtils.asArray(actual.getType()) != null) {
-                    doAfterVisit(new HamcrestMatcherToAssertJ("is", "containsExactly").getVisitor());
-                } else {
-                    doAfterVisit(new HamcrestMatcherToAssertJ("is", "isEqualTo").getVisitor());
-                }
-                return mi;
+                return super.visitMethodInvocation(methodInvocation, ctx);
             }
         });
     }
