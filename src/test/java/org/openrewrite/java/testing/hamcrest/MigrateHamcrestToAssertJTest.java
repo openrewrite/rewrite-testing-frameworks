@@ -15,6 +15,8 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
+import org.intellij.lang.annotations.Language;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -29,10 +31,14 @@ import org.openrewrite.test.RewriteTest;
 
 import java.util.stream.Stream;
 
-import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.Assertions.withToolingApi;
+import static org.openrewrite.java.Assertions.*;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/212")
 class MigrateHamcrestToAssertJTest implements RewriteTest {
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -81,14 +87,15 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
             }
             """));
     }
-    @DocumentExample
+
     @Test
+    @DocumentExample
     void flattenAllOfStringMatchersAndConvert() {
         rewriteRun(
           //language=java
           java("""
             import org.junit.jupiter.api.Test;
-            
+                        
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.allOf;
             import static org.hamcrest.Matchers.equalTo;
@@ -102,7 +109,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                     assertThat(str1, allOf(equalTo(str2), hasLength(12)));
                 }
             }
-            ""","""
+            """, """
             import org.junit.jupiter.api.Test;
 
             import static org.assertj.core.api.Assertions.assertThat;
@@ -426,4 +433,118 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
         rewriteRun(java(before, after));
     }
+
+    @Nested
+    class Dependencies {
+        @Language("java")
+        private static final String JAVA_BEFORE = """
+          import org.junit.jupiter.api.Test;
+                              
+          import static org.hamcrest.MatcherAssert.assertThat;
+          import static org.hamcrest.Matchers.equalTo;
+                        
+          class ATest {
+              @Test
+              void test() {
+                  assertThat("Hello world!", equalTo("Hello world!"));
+              }
+          }
+          """;
+        @Language("java")
+        private static final String JAVA_AFTER = """
+          import org.junit.jupiter.api.Test;
+                              
+          import static org.assertj.core.api.Assertions.assertThat;
+                        
+          class ATest {
+              @Test
+              void test() {
+                  assertThat("Hello world!").isEqualTo("Hello world!");
+              }
+          }
+          """;
+
+        @Test
+        void assertjMavenDependencyAddedWithTestScope() {
+            rewriteRun(
+              mavenProject("project",
+                //language=java
+                srcTestJava(java(JAVA_BEFORE, JAVA_AFTER),
+                  //language=xml
+                  pomXml("""
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>demo</artifactId>
+                        <version>0.0.1-SNAPSHOT</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.hamcrest</groupId>
+                                <artifactId>hamcrest</artifactId>
+                                <version>2.2</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """, """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>demo</artifactId>
+                        <version>0.0.1-SNAPSHOT</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.assertj</groupId>
+                                <artifactId>assertj-core</artifactId>
+                                <version>3.24.2</version>
+                                <scope>test</scope>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.hamcrest</groupId>
+                                <artifactId>hamcrest</artifactId>
+                                <version>2.2</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """))));
+        }
+
+        @Test
+        void assertjGradleDependencyAddedWithTestScope() {
+            rewriteRun(
+              spec -> spec.beforeRecipe(withToolingApi()),
+              mavenProject("project",
+                //language=java
+                srcTestJava(java(JAVA_BEFORE, JAVA_AFTER),
+                  //language=groovy
+                  buildGradle("""
+                    plugins {
+                        id "java-library"
+                    }
+                    
+                    repositories {
+                        mavenCentral()
+                    }
+                    
+                    dependencies {
+                        testImplementation "org.hamcrest:hamcrest:2.2"
+                    }
+                    """, """
+                    plugins {
+                        id "java-library"
+                    }
+                    
+                    repositories {
+                        mavenCentral()
+                    }
+                    
+                    dependencies {
+                        testImplementation "org.assertj:assertj-core:3.24.2"
+                        testImplementation "org.hamcrest:hamcrest:2.2"
+                    }
+                    """))));
+        }
+    }
+
 }
