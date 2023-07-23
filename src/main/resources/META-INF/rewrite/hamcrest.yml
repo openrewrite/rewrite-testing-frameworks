@@ -42,6 +42,9 @@ recipeList:
   # First remove wrapping `is(Matcher)` calls such that further recipes will match
   - org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
 
+  # Then remove calls to `MatcherAssert.assertThat(String, Matcher)`
+  - org.openrewrite.java.testing.hamcrest.HamcrestIsMatcherToAssertJ
+
   # Flatten calls to `MatcherAssert.assertThat(.., allOf(..))` to easier to migrate individual statements
   - org.openrewrite.java.testing.hamcrest.FlattenAllOf
 

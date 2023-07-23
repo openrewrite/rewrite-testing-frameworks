@@ -15,10 +15,13 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.TreeVisitingPrinter;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 
 @SuppressWarnings("NullableProblems")
@@ -38,7 +41,7 @@ public class RemoveIsMatcher extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(ASSERT_THAT_MATCHER), new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
                 if (ASSERT_THAT_MATCHER.matches(mi)) {
@@ -49,6 +52,6 @@ public class RemoveIsMatcher extends Recipe {
                 }
                 return super.visitMethodInvocation(mi, ctx);
             }
-        };
+        });
     }
 }
