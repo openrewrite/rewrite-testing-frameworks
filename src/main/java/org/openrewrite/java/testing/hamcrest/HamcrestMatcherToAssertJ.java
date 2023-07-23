@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.hamcrest;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -89,18 +90,12 @@ public class HamcrestMatcherToAssertJ extends Recipe {
                 return mi;
             }
             String actual = typeToIndicator(actualArgument.getType());
-            List<Expression> originalArguments = ((J.MethodInvocation) matcherArgument).getArguments().stream()
-                    .filter(a -> !(a instanceof J.Empty))
-                    .collect(Collectors.toList());
-            String special = specialArgumentsTemplateFor((J.MethodInvocation) matcherArgument);
-            String argumentsTemplate = special != null ? special : originalArguments.stream()
-                    .map(a -> typeToIndicator(a.getType()))
-                    .collect(Collectors.joining(", "));
+            J.MethodInvocation matcherArgumentMethod = (J.MethodInvocation) matcherArgument;
             JavaTemplate template = JavaTemplate.builder(String.format(
                             "assertThat(%s)" +
                             (reasonArgument != null ? ".as(#{any(String)})" : "") +
                             ".%s(%s)",
-                            actual, assertion, argumentsTemplate))
+                            actual, assertion, getArgumentsTemplate(matcherArgumentMethod)))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                     .staticImports(
                             "org.assertj.core.api.Assertions.assertThat",
@@ -109,6 +104,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             maybeAddImport("org.assertj.core.api.Assertions", "within");
             maybeRemoveImport("org.hamcrest.Matchers." + matcher);
+            maybeRemoveImport("org.hamcrest.MatcherAssert");
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
 
             List<Expression> templateArguments = new ArrayList<>();
@@ -116,8 +112,28 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             if (reasonArgument != null) {
                 templateArguments.add(reasonArgument);
             }
-            templateArguments.addAll(originalArguments);
+            for (Expression originalArgument : matcherArgumentMethod.getArguments()) {
+                if (!(originalArgument instanceof J.Empty)) {
+                    templateArguments.add(originalArgument);
+                }
+            }
             return template.apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
+        }
+
+        private final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
+
+        @NotNull
+        private String getArgumentsTemplate(J.MethodInvocation matcherArgument) {
+            List<Expression> methodArguments = matcherArgument.getArguments();
+            if (CLOSE_TO_MATCHER.matches(matcherArgument)) {
+                return String.format("%s, within(%s)",
+                        typeToIndicator(methodArguments.get(0).getType()),
+                        typeToIndicator(methodArguments.get(1).getType()));
+            }
+            return methodArguments.stream()
+                    .filter(a -> !(a instanceof J.Empty))
+                    .map(a -> typeToIndicator(a.getType()))
+                    .collect(Collectors.joining(", "));
         }
 
         private String typeToIndicator(JavaType type) {
@@ -131,16 +147,6 @@ public class HamcrestMatcherToAssertJ extends Recipe {
                         type.toString().replaceAll("<.*>", "") : "java.lang.Object";
                 return String.format("#{any(%s)}", str);
             }
-        }
-
-        private final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
-
-        private String specialArgumentsTemplateFor(J.MethodInvocation mi) {
-            if (CLOSE_TO_MATCHER.matches(mi)) {
-                String indicator = typeToIndicator(mi.getArguments().get(0).getType());
-                return String.format("%s, within(%s)", indicator, indicator);
-            }
-            return null;
         }
     }
 }
