@@ -15,21 +15,17 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class HamcrestIsMatcherToAssertJ extends Recipe {
@@ -69,40 +65,11 @@ public class HamcrestIsMatcherToAssertJ extends Recipe {
                 }
 
                 if (TypeUtils.asArray(actual.getType()) != null) {
-                    return replace(ctx, mi, reason, actual, isMatcherArgument, "containsExactly");
-                }
-
-                // Replace with assertThat
-                return replace(ctx, mi, reason, actual, isMatcherArgument, "isEqualTo");
-            }
-
-            @NotNull
-            private J.MethodInvocation replace(ExecutionContext ctx, J.MethodInvocation mi, Expression reason, Expression actual, Expression isMatcherArgument, String replacement) {
-                List<Expression> parameters = new ArrayList<>();
-                parameters.add(actual);
-                final String template;
-                if (reason == null) {
-                    template = "assertThat(#{any(java.lang.Object)})." +
-                               replacement + "(#{any()});";
+                    doAfterVisit(new HamcrestMatcherToAssertJ("is", "containsExactly").getVisitor());
                 } else {
-                    template = "assertThat(#{any(java.lang.String)})" +
-                               ".as(#{any(String)})." +
-                               replacement + "(#{any()});";
-                    parameters.add(reason);
+                    doAfterVisit(new HamcrestMatcherToAssertJ("is", "isEqualTo").getVisitor());
                 }
-                parameters.add(isMatcherArgument);
-
-                maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
-                maybeRemoveImport("org.hamcrest.MatcherAssert");
-                maybeRemoveImport("org.hamcrest.Matchers.is");
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-
-                return JavaTemplate.builder(template)
-                        .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
-                        .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .build()
-                        .apply(getCursor(), mi.getCoordinates().replace(), parameters.toArray());
+                return mi;
             }
         });
     }
