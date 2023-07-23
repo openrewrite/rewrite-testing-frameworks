@@ -110,6 +110,7 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             maybeRemoveImport("org.hamcrest.Matchers.not");
             maybeRemoveImport("org.hamcrest.Matchers." + notMatcher);
+            maybeRemoveImport("org.hamcrest.MatcherAssert");
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
 
             List<Expression> templateArguments = new ArrayList<>();
@@ -139,6 +140,7 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             maybeRemoveImport("org.hamcrest.Matchers.not");
             maybeRemoveImport("org.hamcrest.Matchers." + notMatcher);
+            maybeRemoveImport("org.hamcrest.MatcherAssert");
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
 
             List<Expression> templateArguments = new ArrayList<>();

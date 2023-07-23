@@ -137,6 +137,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
                     .build();
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             maybeRemoveImport("org.hamcrest.Matchers." + matcher);
+            maybeRemoveImport("org.hamcrest.MatcherAssert");
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
 
             List<Expression> templateArguments = new ArrayList<>();
