@@ -282,5 +282,5 @@ recipeList:
       oldArtifactId: xmlunit
       newGroupId: org.xmlunit
       newArtifactId: xmlunit-legacy
-      newVersion: 2.9.1
+      newVersion: 2.x
 ---
