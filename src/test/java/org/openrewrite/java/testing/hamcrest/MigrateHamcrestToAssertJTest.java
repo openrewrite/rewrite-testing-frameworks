@@ -469,45 +469,45 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
             rewriteRun(
               mavenProject("project",
                 //language=java
-                srcTestJava(java(JAVA_BEFORE, JAVA_AFTER),
-                  //language=xml
-                  pomXml("""
-                    <project>
-                        <modelVersion>4.0.0</modelVersion>
-                        <groupId>com.example</groupId>
-                        <artifactId>demo</artifactId>
-                        <version>0.0.1-SNAPSHOT</version>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.hamcrest</groupId>
-                                <artifactId>hamcrest</artifactId>
-                                <version>2.2</version>
-                                <scope>test</scope>
-                            </dependency>
-                        </dependencies>
-                    </project>
-                    """, """
-                    <project>
-                        <modelVersion>4.0.0</modelVersion>
-                        <groupId>com.example</groupId>
-                        <artifactId>demo</artifactId>
-                        <version>0.0.1-SNAPSHOT</version>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.assertj</groupId>
-                                <artifactId>assertj-core</artifactId>
-                                <version>3.24.2</version>
-                                <scope>test</scope>
-                            </dependency>
-                            <dependency>
-                                <groupId>org.hamcrest</groupId>
-                                <artifactId>hamcrest</artifactId>
-                                <version>2.2</version>
-                                <scope>test</scope>
-                            </dependency>
-                        </dependencies>
-                    </project>
-                    """))));
+                srcTestJava(java(JAVA_BEFORE, JAVA_AFTER)),
+                //language=xml
+                pomXml("""
+                  <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <groupId>com.example</groupId>
+                      <artifactId>demo</artifactId>
+                      <version>0.0.1-SNAPSHOT</version>
+                      <dependencies>
+                          <dependency>
+                              <groupId>org.hamcrest</groupId>
+                              <artifactId>hamcrest</artifactId>
+                              <version>2.2</version>
+                              <scope>test</scope>
+                          </dependency>
+                      </dependencies>
+                  </project>
+                  """, """
+                  <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <groupId>com.example</groupId>
+                      <artifactId>demo</artifactId>
+                      <version>0.0.1-SNAPSHOT</version>
+                      <dependencies>
+                          <dependency>
+                              <groupId>org.assertj</groupId>
+                              <artifactId>assertj-core</artifactId>
+                              <version>3.24.2</version>
+                              <scope>test</scope>
+                          </dependency>
+                          <dependency>
+                              <groupId>org.hamcrest</groupId>
+                              <artifactId>hamcrest</artifactId>
+                              <version>2.2</version>
+                              <scope>test</scope>
+                          </dependency>
+                      </dependencies>
+                  </project>
+                  """)));
         }
 
         @Test
@@ -516,34 +516,34 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               spec -> spec.beforeRecipe(withToolingApi()),
               mavenProject("project",
                 //language=java
-                srcTestJava(java(JAVA_BEFORE, JAVA_AFTER),
-                  //language=groovy
-                  buildGradle("""
-                    plugins {
-                        id "java-library"
-                    }
-                    
-                    repositories {
-                        mavenCentral()
-                    }
-                    
-                    dependencies {
-                        testImplementation "org.hamcrest:hamcrest:2.2"
-                    }
-                    """, """
-                    plugins {
-                        id "java-library"
-                    }
-                    
-                    repositories {
-                        mavenCentral()
-                    }
-                    
-                    dependencies {
-                        testImplementation "org.assertj:assertj-core:3.24.2"
-                        testImplementation "org.hamcrest:hamcrest:2.2"
-                    }
-                    """))));
+                srcTestJava(java(JAVA_BEFORE, JAVA_AFTER)),
+                //language=groovy
+                buildGradle("""
+                  plugins {
+                      id "java-library"
+                  }
+                                      
+                  repositories {
+                      mavenCentral()
+                  }
+                                      
+                  dependencies {
+                      testImplementation "org.hamcrest:hamcrest:2.2"
+                  }
+                  """, """
+                  plugins {
+                      id "java-library"
+                  }
+                                      
+                  repositories {
+                      mavenCentral()
+                  }
+                                      
+                  dependencies {
+                      testImplementation "org.assertj:assertj-core:3.24.2"
+                      testImplementation "org.hamcrest:hamcrest:2.2"
+                  }
+                  """)));
         }
     }
 
