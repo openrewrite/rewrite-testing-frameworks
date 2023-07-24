@@ -40,4 +40,9 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
+
+    testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
+
+//    testImplementation("org.hamcrest:hamcrest:latest.release")
+//    testImplementation("org.assertj:assertj-core:latest.release")
 }
