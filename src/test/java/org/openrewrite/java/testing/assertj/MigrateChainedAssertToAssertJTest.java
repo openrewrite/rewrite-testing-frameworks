@@ -97,7 +97,6 @@ public class MigrateChainedAssertToAssertJTest implements RewriteTest {
         String after = String.format(template, assertAfter.formatted(dedicatedAssertion, finalArgument));
 
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions(chainedAssertion, assertToReplace, dedicatedAssertion)),
           java(before, after)
         );
     }
