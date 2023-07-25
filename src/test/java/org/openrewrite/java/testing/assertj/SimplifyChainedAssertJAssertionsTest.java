@@ -280,4 +280,72 @@ public class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void isNotEmptyTest() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertions("isEmpty", "isFalse", "isNotEmpty")),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat(getString().isEmpty()).isFalse();
+                  }
+                  
+                  String getString() {
+                      return "hello world";
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat(getString()).isNotEmpty();
+                  }
+                  
+                  String getString() {
+                      return "hello world";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNoRunOnWrongCombination() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertions("isEmpty", "isFalse", "isNotEmpty")),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat(getString().isNotEmpty()).isFalse();
+                  }
+                  
+                  String getString() {
+                      return "hello world";
+                  }
+              }
+              """
+          )
+        );
+    }
 }
