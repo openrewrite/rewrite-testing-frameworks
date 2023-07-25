@@ -85,7 +85,7 @@ public class SimplifyChainedAssertJAssertions extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
             //  assert has assertion
-            if (!ASSERT_TO_REPLACE.matches(mi) || mi.getSelect() == null) {
+            if (mi.getSelect() == null) {
                 return mi;
             }
 
