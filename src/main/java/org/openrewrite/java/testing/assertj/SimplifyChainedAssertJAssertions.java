@@ -36,7 +36,7 @@ import java.util.Set;
 
 @AllArgsConstructor
 @NoArgsConstructor
-public class SimplifyChainedAssertJAssertions extends Recipe {
+public class SimplifyChainedAssertJAssertion extends Recipe {
     @Option(displayName = "AssertJ Assertion",
             description = "The chained AssertJ assertion to move to dedicated assertion.",
             example = "equals",
