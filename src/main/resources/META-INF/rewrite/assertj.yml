@@ -48,7 +48,7 @@ recipeList:
 
   # Simplify Chained AssertJ Assertions
   # String Assertions
-  - org.openrewrite.java.SimplifyChainedAssertJAssertion:
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: isEmpty
       assertToReplace: isTrue
       dedicatedAssertion: isEmpty
