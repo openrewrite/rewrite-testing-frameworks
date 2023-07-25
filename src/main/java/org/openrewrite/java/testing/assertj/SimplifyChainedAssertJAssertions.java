@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Set;
 
 @AllArgsConstructor
+@NoArgsConstructor
 public class SimplifyChainedAssertJAssertions extends Recipe {
     @Option(displayName = "AssertJ Assertion",
             description = "The chained AssertJ assertion to move to dedicated assertion.",
@@ -84,12 +86,13 @@ public class SimplifyChainedAssertJAssertions extends Recipe {
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
-            //  assert has assertion
-            if (mi.getSelect() == null) {
+            // assert has correct assertion
+            // NOTE: This matcher is here to check that the correct combination of assertions is present to make the change.
+            if (!ASSERT_TO_REPLACE.matches(mi)) {
                 return mi;
             }
 
-            //assertThat has method call
+            // assertThat has method call
             J.MethodInvocation assertThat = (J.MethodInvocation)mi.getSelect();
             if (!ASSERT_THAT_MATCHER.matches(assertThat) && !(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
                 return mi;
@@ -100,7 +103,7 @@ public class SimplifyChainedAssertJAssertions extends Recipe {
                 return mi;
             }
 
-            //  method call has select
+            // method call has select
             Expression select = assertThatArg.getSelect() != null ? assertThatArg.getSelect() : assertThatArg;
 
             List<Expression> arguments = new ArrayList<>(Collections.singletonList(select));
@@ -130,7 +133,10 @@ public class SimplifyChainedAssertJAssertions extends Recipe {
             arguments.add(methodToReplace.getArguments().get(0));
             template = "assertThat(#{any()}).%s(#{any()}, #{any()})";
         }else if (!(assertThatArg.getArguments().get(0) instanceof J.Empty) || !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
-            arguments.add( assertThatArg.getArguments().get(0) instanceof J.Empty ? methodToReplace.getArguments().get(0) : assertThatArg.getArguments().get(0) );
+            Expression argumentToAdd = assertThatArg.getArguments().get(0) instanceof J.Empty ? methodToReplace.getArguments().get(0) : assertThatArg.getArguments().get(0);
+            argumentToAdd = argumentToAdd instanceof J.MethodInvocation ? ((J.MethodInvocation) argumentToAdd).getSelect() : argumentToAdd;
+            arguments.add(argumentToAdd);
+
             template = "assertThat(#{any()}).%s(#{any()})";
         }
 

@@ -24,6 +24,10 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.openrewrite.java.Assertions.java;
@@ -54,7 +58,8 @@ public class MigrateChainedAssertToAssertJTest implements RewriteTest {
           Arguments.arguments("matches", "isTrue", "matches", "expected", ""),
           Arguments.arguments("trim", "isEmpty", "isBlank", "", ""),
           Arguments.arguments("length", "isEqualTo", "hasSize", "", "length"),
-          Arguments.arguments("isEmpty", "isFalse", "isNotEmpty", "", "expected.length()")
+          Arguments.arguments("isEmpty", "isFalse", "isNotEmpty", "", ""),
+          Arguments.arguments("length", "hasSize", "hasSameSizeAs", "", "expected.length()")
         );
     }
 
@@ -65,11 +70,12 @@ public class MigrateChainedAssertToAssertJTest implements RewriteTest {
         String template = """
           import org.junit.jupiter.api.Test;
           
-          import static org.junit.jupiter.api.Assertions.assertThat;
+          import static org.assertj.core.api.Assertions.assertThat;
           
           class MyTest {
               @Test
               void test() {
+                  int length = 5;
                   String expected = "hello world";
                   %s
               }
@@ -81,8 +87,234 @@ public class MigrateChainedAssertToAssertJTest implements RewriteTest {
           """;
         String assertBefore = chainedAssertion.equals("getString") ? "assertThat(%s(%s)).%s(%s);" : "assertThat(getString().%s(%s)).%s(%s);";
         String assertAfter = "assertThat(getString()).%s(%s);";
-        String before = String.format(template, assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg));
-        String after = String.format(template, assertAfter.formatted(dedicatedAssertion, firstArg.equals("") ? secondArg : firstArg));
-        rewriteRun(java(before, after));
+
+        String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
+
+        String finalArgument = firstArg.equals("") && !secondArg.equals("0") ? secondArg : firstArg;
+        finalArgument = finalArgument.contains(".") ? finalArgument.split("\\.")[0] : finalArgument;
+
+        String before = String.format(template, formattedAssertBefore);
+        String after = String.format(template, assertAfter.formatted(dedicatedAssertion, finalArgument));
+
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertions(chainedAssertion, assertToReplace, dedicatedAssertion)),
+          java(before, after)
+        );
+    }
+
+    private static Stream<Arguments> fileReplacements() {
+        return Stream.of(
+          Arguments.arguments("getFile", "hasSize", "isEmpty", "", "0"),
+          Arguments.arguments("length", "isZero", "isEmpty", "", ""),
+          Arguments.arguments("length", "isEqualTo", "hasSize", "", "length"),
+          Arguments.arguments("canRead", "isTrue", "canRead", "", ""),
+          Arguments.arguments("canWrite", "isTrue", "canWrite", "", ""),
+          Arguments.arguments("exists", "isTrue", "exists", "", ""),
+          Arguments.arguments("getName", "isEqualTo", "hasName", "", "name"),
+          Arguments.arguments("getParent", "isEqualTo", "hasParent", "", "pathname"),
+          Arguments.arguments("getParentFile", "isNull", "hasNoParent", "", ""),
+          Arguments.arguments("isAbsolute", "isTrue", "isAbsolute", "", ""),
+          Arguments.arguments("isAbsolute", "isFalse", "isRelative", "", ""),
+          Arguments.arguments("isDirectory", "isTrue", "isDirectory", "", ""),
+          Arguments.arguments("isFile", "isTrue", "isFile", "", ""),
+          Arguments.arguments("list", "isEmpty", "isEmptyDirectory", "", "")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("fileReplacements")
+    void fileReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
+        //language=java
+        String template = """
+          import org.junit.jupiter.api.Test;
+          import java.io.File;
+          
+          import static org.assertj.core.api.Assertions.assertThat;
+          
+          class MyTest {
+              @Test
+              void test() {
+                  int length = 5;
+                  String name = "hello world";
+                  String pathname = "pathname";
+                  %s
+              }
+              
+              File getFile() {
+                  return new File("");
+              }
+          }
+          """;
+        String assertBefore = chainedAssertion.equals("getFile") ? "assertThat(%s(%s)).%s(%s);" : "assertThat(getFile().%s(%s)).%s(%s);";
+        String assertAfter = "assertThat(getFile()).%s(%s);";
+
+        String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
+
+        String finalArgument = firstArg.equals("") && !secondArg.equals("0") ? secondArg : firstArg;
+        finalArgument = finalArgument.contains(".") ? finalArgument.split("\\.")[0] : finalArgument;
+
+        String before = String.format(template, formattedAssertBefore);
+        String after = String.format(template, assertAfter.formatted(dedicatedAssertion, finalArgument));
+
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertions(chainedAssertion, assertToReplace, dedicatedAssertion)),
+          java(before, after)
+        );
+    }
+
+    private static Stream<Arguments> pathReplacements() {
+        return Stream.of(
+          Arguments.arguments("startsWith", "isTrue", "startsWithRaw", "path", ""),
+          Arguments.arguments("endsWith", "isTrue", "endsWithRaw", "path", ""),
+          Arguments.arguments("getParent", "isEqualTo", "hasParentRaw", "", "path"),
+          Arguments.arguments("getParent", "isNull", "hasNoParentRaw", "", ""),
+          Arguments.arguments("isAbsolute", "isTrue", "isAbsolute", "", ""),
+          Arguments.arguments("isAbsolute", "isFalse", "isRelative", "", "")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("pathReplacements")
+    void pathReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
+        //language=java
+        String template = """
+          import org.junit.jupiter.api.Test;
+          import java.nio.file.Path;
+          import java.nio.file.Paths;
+          
+          import static org.assertj.core.api.Assertions.assertThat;
+          
+          class MyTest {
+              @Test
+              void test() {
+                  Path path = Paths.get("");
+                  %s
+              }
+              
+              Path getPath() {
+                  return Paths.get("");
+              }
+          }
+          """;
+        String assertBefore = chainedAssertion.equals("getPath") ? "assertThat(%s(%s)).%s(%s);" : "assertThat(getPath().%s(%s)).%s(%s);";
+        String assertAfter = "assertThat(getPath()).%s(%s);";
+
+        String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
+
+        String finalArgument = firstArg.equals("") && !secondArg.equals("0") ? secondArg : firstArg;
+        finalArgument = finalArgument.contains(".") ? finalArgument.split("\\.")[0] : finalArgument;
+
+        String before = String.format(template, formattedAssertBefore);
+        String after = String.format(template, assertAfter.formatted(dedicatedAssertion, finalArgument));
+
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertions(chainedAssertion, assertToReplace, dedicatedAssertion)),
+          java(before, after)
+        );
+    }
+
+    private static Stream<Arguments> collectionReplacements() {
+        return Stream.of(
+          Arguments.arguments("isEmpty", "isTrue", "isEmpty", "", ""),
+          Arguments.arguments("size", "isZero", "isEmpty", "", ""),
+          Arguments.arguments("contains", "isTrue", "contains", "something", ""),
+          Arguments.arguments("containsAll", "isTrue", "containsAll", "otherCollection", "")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("collectionReplacements")
+    void collectionReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
+        //language=java
+        String template = """
+          import org.junit.jupiter.api.Test;
+          import java.util.ArrayList;
+          
+          import static org.assertj.core.api.Assertions.assertThat;
+          
+          class MyTest {
+              @Test
+              void test() {
+                  String something = "";
+                  ArrayList<String> otherCollection = new ArrayList<>();
+                  %s
+              }
+              
+              ArrayList<String> getCollection() {
+                  return new ArrayList<>();
+              }
+          }
+          """;
+        String assertBefore = "assertThat(getCollection().%s(%s)).%s(%s);";
+        String assertAfter = "assertThat(getCollection()).%s(%s);";
+
+        String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
+
+        String finalArgument = firstArg.equals("") ? secondArg : firstArg;
+
+        String before = String.format(template, formattedAssertBefore);
+        String after = String.format(template, assertAfter.formatted(dedicatedAssertion, finalArgument));
+
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertions(chainedAssertion, assertToReplace, dedicatedAssertion)),
+          java(before, after)
+        );
+    }
+
+    private static Stream<Arguments> mapReplacements() {
+        return Stream.of(
+          Arguments.arguments("size", "isEqualTo", "hasSameSizeAs", "", "otherMap.size()"),
+          Arguments.arguments("containsKey", "isTrue", "containsKey", "key", ""),
+          Arguments.arguments("keySet", "contains", "containsKey", "", "key"),
+          Arguments.arguments("keySet", "containsOnly", "containsOnlyKeys", "", "key"),
+          Arguments.arguments("containsValue", "isTrue", "containsValue", "value", ""),
+          Arguments.arguments("values", "contains", "containsValue", "", "value"),
+          Arguments.arguments("get", "isEqualTo", "containsEntry", "key", "value")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("mapReplacements")
+    void mapReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
+        //language=java
+        String template = """
+          import org.junit.jupiter.api.Test;
+          import java.util.HashMap;
+          
+          import static org.assertj.core.api.Assertions.assertThat;
+          
+          class MyTest {
+              @Test
+              void test() {
+                  HashMap<String, String> otherMap = new HashMap<>();
+                  String key = "key";
+                  String value = "value";
+                  %s
+              }
+              
+              HashMap<String, String> getMap() {
+                  return new HashMap<>();
+              }
+          }
+          """;
+        String assertBefore = "assertThat(getMap().%s(%s)).%s(%s);";
+        String assertAfter = !firstArg.equals("") && !secondArg.equals("") ? "assertThat(getMap()).%s(%s, %s);" : "assertThat(getMap()).%s(%s);";
+
+        String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
+
+        String finalArgument = firstArg.equals("") ? secondArg : firstArg;
+        finalArgument = finalArgument.contains(".") ? finalArgument.split("\\.")[0] : finalArgument;
+
+        String before = String.format(template, formattedAssertBefore);
+        List<String> formattedArgs = new ArrayList<>(Arrays.asList(dedicatedAssertion, finalArgument));
+        if (!firstArg.equals("") && !secondArg.equals("")) {
+            formattedArgs.add(secondArg);
+        }
+        String after = String.format(template, assertAfter.formatted(formattedArgs.toArray()));
+
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertions(chainedAssertion, assertToReplace, dedicatedAssertion)),
+          java(before, after)
+        );
     }
 }
