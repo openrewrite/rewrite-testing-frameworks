@@ -46,6 +46,15 @@ recipeList:
   - org.openrewrite.java.UseStaticImport:
       methodPattern: "org.assertj.core.api.Assertions *(..)"
 
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
+displayName: Simplify AssertJ chained assertions
+description: Replace AssertJ chained assertions with dedicated assertions that function the same.
+tags:
+  - testing
+  - assertj
+recipeList:
   # Simplify Chained AssertJ Assertions
   # String Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
