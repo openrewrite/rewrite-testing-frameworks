@@ -41,12 +41,12 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.anyOf;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
@@ -83,12 +83,12 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.anyOf;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
@@ -128,14 +128,14 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import java.util.ArrayList;
               import java.util.Arrays;
               import java.util.Iterator;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.anyOf;
               import static org.hamcrest.Matchers.hasLength;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
@@ -155,12 +155,12 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.anyOf;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
@@ -175,7 +175,7 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
