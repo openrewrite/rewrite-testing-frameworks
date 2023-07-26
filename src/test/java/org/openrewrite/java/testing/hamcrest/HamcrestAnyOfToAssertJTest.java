@@ -130,19 +130,17 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
-              import java.util.ArrayList;
+
               import java.util.Arrays;
-              import java.util.Iterator;
+
               import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.hamcrest.Matchers.anyOf;
               import static org.hamcrest.Matchers.hasLength;
-                            
+              import static org.hamcrest.Matchers.anyOf;
+
               class MyTest {
                   @Test
                   void testMethod() {
-                      ArrayList<Matcher<Integer>> matcherList = Arrays.asList(hasLength(12), hasLength(12), hasLength(12));
-                      assertThat("hello world", anyOf(matcherList));
+                      assertThat("hello world", anyOf(Arrays.asList(hasLength(11), hasLength(11))));
                   }
               }
               """
