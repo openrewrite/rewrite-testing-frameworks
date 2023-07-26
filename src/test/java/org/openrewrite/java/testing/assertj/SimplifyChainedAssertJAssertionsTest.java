@@ -23,7 +23,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-public class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
+class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -34,7 +34,7 @@ public class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
     @Test
     void stringIsEmpty() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions("isEmpty", "isTrue", "isEmpty")),
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty")),
           //language=java
           java(
             """
@@ -76,7 +76,7 @@ public class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
     @Test
     void replacementHasZeroArgument() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions("getString", "hasSize", "isEmpty")),
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("getString", "hasSize", "isEmpty")),
           //language=java
           java(
             """
@@ -118,7 +118,7 @@ public class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
     @Test
     void assertThatArgHasArgument() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions("equalsIgnoreCase", "isTrue", "isEqualToIgnoringCase")),
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("equalsIgnoreCase", "isTrue", "isEqualToIgnoringCase")),
           //language=java
           java(
             """
@@ -162,7 +162,7 @@ public class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
     @Test
     void replacementHasArgument() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions("length", "isEqualTo", "hasSize")),
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("length", "isEqualTo", "hasSize")),
           //language=java
           java(
             """
@@ -207,7 +207,7 @@ public class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
     @Test
     void normalCase() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions("trim", "isEmpty", "isBlank")),
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("trim", "isEmpty", "isBlank")),
           //language=java
           java(
             """
@@ -249,7 +249,7 @@ public class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
     @Test
     void mapMethodDealsWithTwoArguments() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions("get", "isEqualTo", "containsEntry")),
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("get", "isEqualTo", "containsEntry")),
           //language=java
           java(
             """
@@ -299,7 +299,7 @@ public class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
     @Test
     void isNotEmptyTest() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions("isEmpty", "isFalse", "isNotEmpty")),
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isFalse", "isNotEmpty")),
           //language=java
           java(
             """
@@ -341,7 +341,7 @@ public class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
     @Test
     void doesNoRunOnWrongCombination() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions("isEmpty", "isFalse", "isNotEmpty")),
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isFalse", "isNotEmpty")),
           //language=java
           java(
             """

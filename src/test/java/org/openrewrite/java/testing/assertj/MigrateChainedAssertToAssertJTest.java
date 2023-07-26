@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 
 import static org.openrewrite.java.Assertions.java;
 
-public class MigrateChainedAssertToAssertJTest implements RewriteTest {
+class MigrateChainedAssertToAssertJTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -156,7 +156,6 @@ public class MigrateChainedAssertToAssertJTest implements RewriteTest {
         String after = String.format(template, assertAfter.formatted(dedicatedAssertion, finalArgument));
 
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions(chainedAssertion, assertToReplace, dedicatedAssertion)),
           java(before, after)
         );
     }
@@ -207,7 +206,6 @@ public class MigrateChainedAssertToAssertJTest implements RewriteTest {
         String after = String.format(template, assertAfter.formatted(dedicatedAssertion, finalArgument));
 
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions(chainedAssertion, assertToReplace, dedicatedAssertion)),
           java(before, after)
         );
     }
@@ -255,7 +253,6 @@ public class MigrateChainedAssertToAssertJTest implements RewriteTest {
         String after = String.format(template, assertAfter.formatted(dedicatedAssertion, finalArgument));
 
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions(chainedAssertion, assertToReplace, dedicatedAssertion)),
           java(before, after)
         );
     }
@@ -312,7 +309,6 @@ public class MigrateChainedAssertToAssertJTest implements RewriteTest {
         String after = String.format(template, assertAfter.formatted(formattedArgs.toArray()));
 
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertions(chainedAssertion, assertToReplace, dedicatedAssertion)),
           java(before, after)
         );
     }
