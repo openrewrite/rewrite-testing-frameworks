@@ -65,10 +65,11 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
               class MyTest {
                   @Test
                   void testMethod() {
-                      assertThat("hello world").satisfiesAnyOf(
-                              arg -> assertThat(arg, equalTo("hello world")),
-                              arg -> assertThat(arg, hasLength(12))
-                      );
+                      assertThat("hello world")
+                              .satisfiesAnyOf(
+                                      arg -> assertThat(arg, equalTo("hello world")),
+                                      arg -> assertThat(arg, hasLength(12))
+                              );
                   }
               }
               """
@@ -107,13 +108,14 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
               class MyTest {
                   @Test
                   void testMethod() {
-                      assertThat("hello world").satisfiesAnyOf(
-                              arg -> assertThat(arg, equalTo("hello world")),
-                              arg -> assertThat(arg, hasLength(12)),
-                              arg -> assertThat(arg, hasLength(12)),
-                              arg -> assertThat(arg, hasLength(12)),
-                              arg -> assertThat(arg, hasLength(12))
-                      );
+                      assertThat("hello world")
+                              .satisfiesAnyOf(
+                                      arg -> assertThat(arg, equalTo("hello world")),
+                                      arg -> assertThat(arg, hasLength(12)),
+                                      arg -> assertThat(arg, hasLength(12)),
+                                      arg -> assertThat(arg, hasLength(12)),
+                                      arg -> assertThat(arg, hasLength(12))
+                              );
                   }
               }
               """

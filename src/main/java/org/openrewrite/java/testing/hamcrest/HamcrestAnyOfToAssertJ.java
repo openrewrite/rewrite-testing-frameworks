@@ -29,6 +29,7 @@ import org.openrewrite.java.tree.J;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("NullableProblems")
 public class HamcrestAnyOfToAssertJ extends Recipe {
@@ -56,44 +57,44 @@ public class HamcrestAnyOfToAssertJ extends Recipe {
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
             List<Expression> arguments = mi.getArguments();
-            if (!ASSERT_THAT_MATCHER.matches(mi) || !ANY_OF_MATCHER.matches(arguments.get(arguments.size() - 1))) {
+            Expression anyOfExpression = arguments.get(arguments.size() - 1);
+            if (!ASSERT_THAT_MATCHER.matches(mi) || !ANY_OF_MATCHER.matches(anyOfExpression)) {
                 return mi;
             }
 
-            Expression actual = arguments.get(arguments.size() - 2);
-
-            List<Expression> parameters = new ArrayList<>();
             StringBuilder template = new StringBuilder();
+            List<Expression> parameters = new ArrayList<>();
 
-            parameters.add(actual);
+            // assertThat(actual)
+            template.append("assertThat(#{any()})\n");
+            parameters.add(arguments.get(arguments.size() - 2));
 
+            // .as("...")
             if (arguments.size() == 3) {
-                template.append("assertThat(#{any()})\n.as(#{any(java.lang.String)})\n.satisfiesAnyOf(");
+                template.append(".as(#{any(java.lang.String)})\n");
                 parameters.add(arguments.get(0));
-            } else {
-                template.append("assertThat(#{any()}).satisfiesAnyOf(");
             }
 
-            J.MethodInvocation anyOf = ((J.MethodInvocation) arguments.get(arguments.size() - 1));
-            for (Expression exp : anyOf.getArguments()) {
-                template.append("\narg -> assertThat(arg, #{any()}),");
-                parameters.add(exp);
-            }
-            template.deleteCharAt(template.length() - 1);
+            // .satisfiesAnyOf(...)
+            template.append(".satisfiesAnyOf(\n");
+            List<Expression> anyOfArguments = ((J.MethodInvocation) anyOfExpression).getArguments();
+            template.append(anyOfArguments.stream()
+                    .map(arg -> "arg -> assertThat(arg, #{any()})")
+                    .collect(Collectors.joining(",\n")));
+            parameters.addAll(anyOfArguments);
             template.append("\n);");
 
-            JavaTemplate fullTemplate = JavaTemplate.builder(template.toString())
+            maybeRemoveImport("org.hamcrest.Matchers.anyOf");
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+            return JavaTemplate.builder(template.toString())
                     .contextSensitive()
                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx,
                             "assertj-core-3.24",
                             "hamcrest-2.2",
                             "junit-jupiter-api-5.9"))
-                    .build();
-
-            maybeRemoveImport("org.hamcrest.Matchers.anyOf");
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-            return fullTemplate.apply(getCursor(), mi.getCoordinates().replace(), parameters.toArray());
+                    .build()
+                    .apply(getCursor(), mi.getCoordinates().replace(), parameters.toArray());
         }
     }
 }
