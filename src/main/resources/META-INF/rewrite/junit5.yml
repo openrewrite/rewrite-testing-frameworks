@@ -87,6 +87,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.AddMissingNested
   - org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
   - org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
+  - org.openrewrite.java.testing.junit5.UseXMLUnitLegacy
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: junit
       artifactId: junit
@@ -266,3 +267,20 @@ recipeList:
   - org.openrewrite.java.testing.cleanup.AssertEqualsNullToAssertNull
   - org.openrewrite.java.testing.cleanup.AssertFalseNullToAssertNotNull
   - org.openrewrite.java.testing.cleanup.AssertionsArgumentOrder
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.UseXMLUnitLegacy
+displayName: Use XMLUnit Legacy for JUnit 5
+description: Migrates XMLUnit 1.x to XMLUnit legacy 2.x
+tags:
+  - testing
+  - junit
+  - xmlunit
+recipeList:
+  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+      oldGroupId: xmlunit
+      oldArtifactId: xmlunit
+      newGroupId: org.xmlunit
+      newArtifactId: xmlunit-legacy
+      newVersion: 2.x
+---

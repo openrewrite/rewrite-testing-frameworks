@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
 
 public class CategoryToTag extends Recipe {
@@ -107,7 +108,7 @@ public class CategoryToTag extends Recipe {
                             randomId(),
                             Space.EMPTY,
                             Markers.EMPTY,
-                            new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, tagType.getClassName(), tagType, null),
+                            new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), tagType.getClassName(), tagType, null),
                             JContainer.build(Space.EMPTY,
                                     Collections.singletonList(
                                             new JRightPadded<>(
