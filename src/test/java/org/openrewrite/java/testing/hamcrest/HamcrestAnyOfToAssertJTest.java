@@ -75,4 +75,120 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void anyOfHasALotOfArguments() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.anyOf;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.hasLength;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("hello world", anyOf(equalTo("hello world"), hasLength(12), hasLength(12), hasLength(12), hasLength(12)));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.hasLength;
+
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("hello world").satisfiesAnyOf(
+                              arg -> assertThat(arg, equalTo("hello world")),
+                              arg -> assertThat(arg, hasLength(12)),
+                              arg -> assertThat(arg, hasLength(12)),
+                              arg -> assertThat(arg, hasLength(12)),
+                              arg -> assertThat(arg, hasLength(12))
+                      );
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void anyOfArgumentIsIterable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import java.util.ArrayList;
+              import java.util.Arrays;
+              import java.util.Iterator;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.anyOf;
+              import static org.hamcrest.Matchers.hasLength;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      ArrayList<Matcher<Integer>> matcherList = Arrays.asList(hasLength(12), hasLength(12), hasLength(12));
+                      assertThat("hello world", anyOf(matcherList));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertThatHasReasonArgument() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.anyOf;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.hasLength;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("reason", "hello world", anyOf(equalTo("hello world"), hasLength(12)));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.hasLength;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("hello world")
+                          .as("reason")
+                          .satisfiesAnyOf(
+                                  arg -> assertThat(arg, equalTo("hello world")),
+                                  arg -> assertThat(arg, hasLength(12))
+                          );
+                  }
+              }
+              """
+          )
+        );
+    }
 }

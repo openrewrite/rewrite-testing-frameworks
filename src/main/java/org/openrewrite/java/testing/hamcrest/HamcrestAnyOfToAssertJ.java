@@ -39,7 +39,6 @@ public class HamcrestAnyOfToAssertJ extends Recipe {
         return "Migrate the `anyOf` Hamcrest Matcher to AssertJ's `satisfiesAnyOf` assertion.";
     }
 
-
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
     private static final MethodMatcher ANY_OF_MATCHER = new MethodMatcher("org.hamcrest.Matchers anyOf(..)");
 
@@ -54,20 +53,25 @@ public class HamcrestAnyOfToAssertJ extends Recipe {
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
             List<Expression> arguments = mi.getArguments();
-            if (!ASSERT_THAT_MATCHER.matches(mi) || !ANY_OF_MATCHER.matches(arguments.get(1))) {
+            if (!ASSERT_THAT_MATCHER.matches(mi) || !ANY_OF_MATCHER.matches(arguments.get(arguments.size() - 1))) {
                 return mi;
             }
 
-            // TODO separately handle & test `anyOf(Iterable<Matcher<? super T>> matchers)` matched by `anyOf(..)`
-
-            Expression actual = arguments.get(0);
+            Expression actual = arguments.get(arguments.size() - 2);
 
             List<Expression> parameters = new ArrayList<>();
             StringBuilder template = new StringBuilder();
-            template.append("assertThat(#{any()}).satisfiesAnyOf(");
+
             parameters.add(actual);
 
-            J.MethodInvocation anyOf = ((J.MethodInvocation) arguments.get(1));
+            if (arguments.size() == 3) {
+                template.append("assertThat(#{any()})\n.as(#{any(java.lang.String)})\n.satisfiesAnyOf(");
+                parameters.add(arguments.get(0));
+            }else {
+                template.append("assertThat(#{any()}).satisfiesAnyOf(");
+            }
+
+            J.MethodInvocation anyOf = ((J.MethodInvocation) arguments.get(arguments.size() - 1));
             for (Expression exp : anyOf.getArguments()) {
                 template.append("\narg -> assertThat(arg, #{any()}),");
                 parameters.add(exp);
