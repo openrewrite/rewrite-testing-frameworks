@@ -26,6 +26,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +63,12 @@ public class HamcrestAnyOfToAssertJ extends Recipe {
                 return mi;
             }
 
+            // Skip anyOf(Iterable)
+            List<Expression> anyOfArguments = ((J.MethodInvocation) anyOfExpression).getArguments();
+            if (TypeUtils.isAssignableTo("java.lang.Iterable", anyOfArguments.get(0).getType())) {
+                return mi;
+            }
+
             StringBuilder template = new StringBuilder();
             List<Expression> parameters = new ArrayList<>();
 
@@ -77,7 +84,6 @@ public class HamcrestAnyOfToAssertJ extends Recipe {
 
             // .satisfiesAnyOf(...)
             template.append(".satisfiesAnyOf(\n");
-            List<Expression> anyOfArguments = ((J.MethodInvocation) anyOfExpression).getArguments();
             template.append(anyOfArguments.stream()
                     .map(arg -> "arg -> assertThat(arg, #{any()})")
                     .collect(Collectors.joining(",\n")));
