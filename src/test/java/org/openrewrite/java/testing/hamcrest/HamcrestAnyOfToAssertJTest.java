@@ -180,11 +180,11 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
                   @Test
                   void testMethod() {
                       assertThat("hello world")
-                          .as("reason")
-                          .satisfiesAnyOf(
-                                  arg -> assertThat(arg, equalTo("hello world")),
-                                  arg -> assertThat(arg, hasLength(12))
-                          );
+                              .as("reason")
+                              .satisfiesAnyOf(
+                                      arg -> assertThat(arg, equalTo("hello world")),
+                                      arg -> assertThat(arg, hasLength(12))
+                              );
                   }
               }
               """
