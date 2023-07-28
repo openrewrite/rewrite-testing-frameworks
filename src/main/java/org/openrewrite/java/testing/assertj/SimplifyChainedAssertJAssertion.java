@@ -99,7 +99,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             }
 
             J.MethodInvocation assertThatArg = (J.MethodInvocation)assertThat.getArguments().get(0);
-            if (!CHAINED_ASSERT_MATCHER.matches(assertThatArg) && assertThat.getSelect() != null) {
+            if (!CHAINED_ASSERT_MATCHER.matches(assertThatArg)) {
                 return mi;
             }
 
