@@ -120,6 +120,57 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
     }
 
     @Test
+    void chainedRecipesOfDifferingTypes() {
+        rewriteRun(
+          spec -> spec.recipes(
+            new SimplifyChainedAssertJAssertion("startsWith", "isTrue", "startsWith"),
+            new SimplifyChainedAssertJAssertion("startsWith", "isTrue", "startsWithRaw")
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import java.nio.file.Path;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  @Test
+                  void String(String actual) {
+                      assertThat(actual.startsWith("prefix")).isTrue();
+                  }
+
+                  @Test
+                  void path(Path actual) {
+                      assertThat(actual.startsWith("prefix")).isTrue();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.nio.file.Path;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  @Test
+                  void String(String actual) {
+                      assertThat(actual).startsWith("prefix");
+                  }
+
+                  @Test
+                  void path(Path actual) {
+                      assertThat(actual).startsWithRaw(Path.of("prefix"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void replacementHasZeroArgument() {
         rewriteRun(
           spec -> spec.recipe(new SimplifyChainedAssertJAssertion("getString", "hasSize", "isEmpty")),
