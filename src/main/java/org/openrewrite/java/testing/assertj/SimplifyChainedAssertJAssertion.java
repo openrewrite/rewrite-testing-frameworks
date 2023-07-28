@@ -99,7 +99,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             }
 
             J.MethodInvocation assertThatArg = (J.MethodInvocation)assertThat.getArguments().get(0);
-            if (!CHAINED_ASSERT_MATCHER.matches(assertThatArg)) {
+            if (!CHAINED_ASSERT_MATCHER.matches(assertThatArg) && !hasZeroArgument(mi)) {
                 return mi;
             }
 
@@ -120,11 +120,8 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
     private String getTemplate(List<Expression> arguments, J.MethodInvocation assertThatArg, J.MethodInvocation methodToReplace) {
         String template = "assertThat(#{any()}).%s()";
-        if (methodToReplace.getArguments().get(0) instanceof J.Literal) {
-            J.Literal literalArg = (J.Literal) methodToReplace.getArguments().get(0);
-            if (literalArg.getValue() != null && literalArg.getValue().equals(0)) {
-                return template;
-            }
+        if (hasZeroArgument(methodToReplace)) {
+            return template;
         }
 
         if (!(assertThatArg.getArguments().get(0) instanceof J.Empty) && !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
@@ -141,5 +138,13 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
         }
 
         return template;
+    }
+
+    private boolean hasZeroArgument(J.MethodInvocation method) {
+        if (method.getArguments().get(0) instanceof J.Literal) {
+            J.Literal literalArg = (J.Literal) method.getArguments().get(0);
+            return (literalArg.getValue() != null && literalArg.getValue().equals(0));
+        }
+        return false;
     }
 }
