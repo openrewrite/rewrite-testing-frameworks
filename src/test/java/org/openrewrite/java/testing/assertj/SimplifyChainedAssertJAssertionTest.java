@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -23,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
+class SimplifyChainedAssertJAssertionTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -35,6 +36,51 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
     void stringIsEmpty() {
         rewriteRun(
           spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty")),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat(getString().isEmpty()).isTrue();
+                  }
+                  
+                  String getString() {
+                      return "hello world";
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat(getString()).isEmpty();
+                  }
+                  
+                  String getString() {
+                      return "hello world";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void chainedRecipes() {
+        rewriteRun(
+          spec -> spec.recipes(
+            new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty"),
+            new SimplifyChainedAssertJAssertion("trim", "isEmpty", "isBlank")
+          ),
           //language=java
           java(
             """
