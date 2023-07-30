@@ -26,7 +26,6 @@ import org.openrewrite.test.RewriteTest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -90,7 +89,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
 
         String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
 
-        String finalArgument = firstArg.equals("") && !secondArg.equals("0") ? secondArg : firstArg;
+        String finalArgument = firstArg.isEmpty() && !secondArg.equals("0") ? secondArg : firstArg;
         finalArgument = finalArgument.contains(".") ? finalArgument.split("\\.")[0] : finalArgument;
 
         String before = String.format(template, formattedAssertBefore);

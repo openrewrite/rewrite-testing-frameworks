@@ -28,7 +28,10 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -86,6 +89,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
+
             // assert has correct assertion
             // NOTE: This matcher is here to check that the correct combination of assertions is present to make the change.
             if (!ASSERT_TO_REPLACE.matches(mi)) {
@@ -102,6 +106,13 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             if (!CHAINED_ASSERT_MATCHER.matches(assertThatArg) && !hasZeroArgument(mi)) {
                 return mi;
             }
+
+            System.out.println(chainedAssertion + ", " + assertToReplace + ", " + dedicatedAssertion);
+            System.out.println(checkFileAndPathSpecialCase(assertThatArg));
+
+            //if (checkFileAndPathSpecialCase(assertThatArg)) {
+            //    return mi;
+            //}
 
             // method call has select
             Expression select = assertThatArg.getSelect() != null ? assertThatArg.getSelect() : assertThatArg;
@@ -138,6 +149,18 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
         }
 
         return template;
+    }
+
+    private boolean checkFileAndPathSpecialCase(J.MethodInvocation argument) {
+        if (argument.getSelect() == null) {
+            return false;
+        }
+
+        if (TypeUtils.isOfType(argument.getSelect().getType(), JavaType.buildType("java.nio.file.Path")) || TypeUtils.isOfType(argument.getSelect().getType(), JavaType.buildType("java.io.File"))) {
+            //return !dedicatedAssertion.contains("Raw");
+
+        }
+        return false;
     }
 
     private boolean hasZeroArgument(J.MethodInvocation method) {
