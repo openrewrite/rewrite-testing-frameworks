@@ -84,14 +84,16 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
     private class SimplifyChainedAssertJAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertThat(..)");
-        private final MethodMatcher CHAINED_ASSERT_MATCHER = new MethodMatcher("java..* " + chainedAssertion + "(..)");
         private final MethodMatcher ASSERT_TO_REPLACE = new MethodMatcher("org.assertj.core.api.* " + assertToReplace + "(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
+            String[] processedChainedAssert = processStringInput();
+            chainedAssertion = processedChainedAssert[0];
+            String type = processedChainedAssert[1];
+            final MethodMatcher CHAINED_ASSERT_MATCHER = new MethodMatcher("java..* " + chainedAssertion + "(..)");
 
             // assert has correct assertion
-            // NOTE: This matcher is here to check that the correct combination of assertions is present to make the change.
             if (!ASSERT_TO_REPLACE.matches(mi)) {
                 return mi;
             }
@@ -107,26 +109,28 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 return mi;
             }
 
-            System.out.println(chainedAssertion + ", " + assertToReplace + ", " + dedicatedAssertion);
-            System.out.println(checkFileAndPathSpecialCase(assertThatArg));
-
-            //if (checkFileAndPathSpecialCase(assertThatArg)) {
-            //    return mi;
-            //}
-
             // method call has select
             Expression select = assertThatArg.getSelect() != null ? assertThatArg.getSelect() : assertThatArg;
+            if (!TypeUtils.isOfType(select.getType(), JavaType.buildType("java.lang.String"))) {
+                return mi;
+            }
 
             List<Expression> arguments = new ArrayList<>(Collections.singletonList(select));
             String template = getTemplate(arguments, assertThatArg, mi);
             String formattedTemplate = String.format(template, dedicatedAssertion);
-
+            System.out.println("getting here");
             return JavaTemplate.builder(formattedTemplate)
                     .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
         }
+    }
+
+    private String[] processStringInput() {
+        String[] split = chainedAssertion.split("\\(");
+        split[1] = split[1].substring(0, split[1].length() - 1);
+        return split;
     }
 
     private String getTemplate(List<Expression> arguments, J.MethodInvocation assertThatArg, J.MethodInvocation methodToReplace) {
@@ -149,18 +153,6 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
         }
 
         return template;
-    }
-
-    private boolean checkFileAndPathSpecialCase(J.MethodInvocation argument) {
-        if (argument.getSelect() == null) {
-            return false;
-        }
-
-        if (TypeUtils.isOfType(argument.getSelect().getType(), JavaType.buildType("java.nio.file.Path")) || TypeUtils.isOfType(argument.getSelect().getType(), JavaType.buildType("java.io.File"))) {
-            //return !dedicatedAssertion.contains("Raw");
-
-        }
-        return false;
     }
 
     private boolean hasZeroArgument(J.MethodInvocation method) {

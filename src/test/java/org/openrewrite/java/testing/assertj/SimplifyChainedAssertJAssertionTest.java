@@ -34,7 +34,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
     @Test
     void stringIsEmpty() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty")),
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty(java.lang.String)", "isTrue", "isEmpty")),
           //language=java
           java(
             """
