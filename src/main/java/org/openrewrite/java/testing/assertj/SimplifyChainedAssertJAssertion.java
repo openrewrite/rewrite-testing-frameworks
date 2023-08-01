@@ -48,7 +48,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
     String chainedAssertion;
 
     @Option(displayName = "AssertJ Assertion",
-            description = "The AssertJ assert that should be replaced",
+            description = "The AssertJ assert that should be replaced.",
             example = "isTrue",
             required = false)
     @Nullable
@@ -60,6 +60,13 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             required = false)
     @Nullable
     String dedicatedAssertion;
+
+    @Option(displayName = "Required Type",
+            description = "Specifies the type the recipe should run on.",
+            example = "java.lang.String",
+            required = false)
+    @Nullable
+    String requiredType;
 
     @Override
     public String getDisplayName() {
@@ -84,15 +91,11 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
     private class SimplifyChainedAssertJAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertThat(..)");
+        private final MethodMatcher CHAINED_ASSERT_MATCHER = new MethodMatcher("java..* " + chainedAssertion + "(..)");
         private final MethodMatcher ASSERT_TO_REPLACE = new MethodMatcher("org.assertj.core.api.* " + assertToReplace + "(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
-            String[] processedChainedAssert = processStringInput();
-            chainedAssertion = processedChainedAssert[0];
-            String type = processedChainedAssert[1];
-            final MethodMatcher CHAINED_ASSERT_MATCHER = new MethodMatcher("java..* " + chainedAssertion + "(..)");
-
             // assert has correct assertion
             if (!ASSERT_TO_REPLACE.matches(mi)) {
                 return mi;
@@ -111,26 +114,19 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
             // method call has select
             Expression select = assertThatArg.getSelect() != null ? assertThatArg.getSelect() : assertThatArg;
-            if (!TypeUtils.isOfType(select.getType(), JavaType.buildType("java.lang.String"))) {
+            if (!TypeUtils.isOfType(select.getType(), JavaType.buildType(requiredType))) {
                 return mi;
             }
 
             List<Expression> arguments = new ArrayList<>(Collections.singletonList(select));
             String template = getTemplate(arguments, assertThatArg, mi);
             String formattedTemplate = String.format(template, dedicatedAssertion);
-            System.out.println("getting here");
             return JavaTemplate.builder(formattedTemplate)
                     .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
         }
-    }
-
-    private String[] processStringInput() {
-        String[] split = chainedAssertion.split("\\(");
-        split[1] = split[1].substring(0, split[1].length() - 1);
-        return split;
     }
 
     private String getTemplate(List<Expression> arguments, J.MethodInvocation assertThatArg, J.MethodInvocation methodToReplace) {
