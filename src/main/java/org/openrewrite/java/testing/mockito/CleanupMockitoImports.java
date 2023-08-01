@@ -29,11 +29,14 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Removes unused "org.mockito" imports.
  */
 public class CleanupMockitoImports extends Recipe {
+    private static final Pattern MOCKITO_CLASS_PATTERN = Pattern.compile("org.mockito.Mockito");
+
     @Override
     public String getDisplayName() {
         return "Cleanup Mockito imports";
@@ -98,6 +101,9 @@ public class CleanupMockitoImports extends Recipe {
                 final List<String> unknownTypeMethodInvocationNames = new ArrayList<>();
                 new WellFormedMockitoMethodTypeVisitor().visit(sf, unknownTypeMethodInvocationNames);
 
+                final List<String> qualifiedMethodInvocationNames = new ArrayList<>();
+                new QualifiedMockitoMethodTypeVisitor().visit(sf, qualifiedMethodInvocationNames);
+
                 for (J.Import _import : sf.getImports()) {
                     if (_import.getPackageName().startsWith("org.mockito")) {
                         if (_import.isStatic()) {
@@ -107,7 +113,7 @@ public class CleanupMockitoImports extends Recipe {
                             } else if (!"*".equals(staticName) && !unknownTypeMethodInvocationNames.contains(staticName)) {
                                 maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName() + "." + staticName);
                             }
-                        } else {
+                        } else if (qualifiedMethodInvocationNames.isEmpty()) {
                             maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
                         }
                     }
@@ -132,6 +138,20 @@ public class CleanupMockitoImports extends Recipe {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, missingMethods);
                 if (MOCKITO_METHOD_NAMES.contains(mi.getSimpleName()) && !TypeUtils.isWellFormedType(mi.getType())) {
                     missingMethods.add(mi.getSimpleName());
+                }
+                return mi;
+            }
+        }
+
+        private static class QualifiedMockitoMethodTypeVisitor extends JavaIsoVisitor<List<String>> {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, List<String> qualifiedMethods) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, qualifiedMethods);
+                if (MOCKITO_METHOD_NAMES.contains(mi.getSimpleName())
+                        && mi.getSelect() != null
+                        && mi.getSelect().getType() != null
+                        && mi.getSelect().getType().isAssignableFrom(MOCKITO_CLASS_PATTERN)) {
+                    qualifiedMethods.add(mi.getSimpleName());
                 }
                 return mi;
             }
