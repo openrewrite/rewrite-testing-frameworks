@@ -40,6 +40,7 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
+    testImplementation("org.assertj:assertj-core:3.24.2")
 
     testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
 
