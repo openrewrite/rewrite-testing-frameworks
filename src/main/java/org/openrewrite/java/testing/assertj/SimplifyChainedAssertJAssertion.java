@@ -145,7 +145,11 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             argumentToAdd = argumentToAdd instanceof J.MethodInvocation ? ((J.MethodInvocation) argumentToAdd).getSelect() : argumentToAdd;
             arguments.add(argumentToAdd);
 
-            template = "assertThat(#{any()}).%s(#{any()})";
+            if (requiredType.equals("java.nio.file.Path") && dedicatedAssertion.contains("Raw") && TypeUtils.isOfType(assertThatArg.getArguments().get(0).getType(), JavaType.buildType("java.lang.String"))) {
+                template = "assertThat(#{any()}).%s(Path.of(#{any()}))";
+            }else {
+                template = "assertThat(#{any()}).%s(#{any()})";
+            }
         }
 
         return template;
