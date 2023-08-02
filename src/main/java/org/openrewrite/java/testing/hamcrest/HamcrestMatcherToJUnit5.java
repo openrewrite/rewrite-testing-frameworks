@@ -27,8 +27,11 @@ import org.openrewrite.java.tree.J;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiFunction;
 
 public class HamcrestMatcherToJUnit5 extends Recipe {
     @Override
@@ -45,6 +48,72 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new MigrationFromHamcrestVisitor();
     }
+
+    enum Replacement {
+        EQUALTO("equalTo", "assertEquals", "assertNotEquals", "#{any(java.lang.Object)}, #{any(java.lang.Object)}", "examinedObjThenMatcherArgs"),
+        EMPTYARRAY("emptyArray", "assertEquals", "assertNotEquals", "0, #{anyArray(java.lang.Object)}.length", "examinedObjOnly"),
+        HASENTRY("hasEntry", "assertEquals", "assertNotEquals", "#{any(java.lang.Object)}, #{any(java.util.Map)}.get(#{any(java.lang.Object)})", "matcher1ExaminedObjMatcher0"),
+        HASSIZE("hasSize", "assertEquals", "assertNotEquals", "#{any(java.util.Collection)}.size(), #{any(double)}", "examinedObjThenMatcherArgs"),
+        HASTOSTRING("hasToString", "assertEquals", "assertNotEquals", "#{any(java.lang.Object)}.toString(), #{any(java.lang.String)}", "examinedObjThenMatcherArgs"),
+        CLOSETO("closeTo", "assertTrue", "assertFalse", "Math.abs(#{any(double)} - #{any(double)}) < #{any(double)}", "examinedObjThenMatcherArgs"),
+        CONTAINSSTRING("containsString", "assertTrue", "assertFalse", "#{any(java.lang.String)}.contains(#{any(java.lang.String)}", "examinedObjThenMatcherArgs"),
+        EMPTY("empty", "assertTrue", "assertFalse", "#{any(java.util.Collection)}.isEmpty()", "examinedObjOnly"),
+        ENDSWITH("endsWith", "assertTrue", "assertFalse", "#{any(java.lang.String)}.endsWith(#{any(java.lang.String)})", "examinedObjThenMatcherArgs"),
+        EQUALTOIGNORINGCASE("equalToIgnoringCase", "assertTrue", "assertFalse", "#{any(java.lang.String)}.equalsIgnoreCase(#{any(java.lang.String)})", "examinedObjThenMatcherArgs"),
+        GREATERTHAN("greaterThan", "assertTrue", "assertFalse", "#{any(double)} > #{any(double)}", "examinedObjThenMatcherArgs"),
+        GREATERTHANOREQUALTO("greaterThanOrEqualTo", "assertTrue", "assertFalse", "#{any(double)} >= #{any(double)}", "examinedObjThenMatcherArgs"),
+        HASKEY("hasKey", "assertTrue", "assertFalse", "#{any(java.util.Map)}.containsKey(#{any(java.lang.Object)})", "examinedObjThenMatcherArgs"),
+        HASVALUE("hasValue", "assertTrue", "assertFalse", "#{any(java.util.Map)}.containsValue(#{any(java.lang.Object)})", "examinedObjThenMatcherArgs"),
+        LESSTHAN("lessThan", "assertTrue", "assertFalse", "#{any(double)} < #{any(double)}", "examinedObjThenMatcherArgs"),
+        LESSTHANOREQUALTO("lessThanOrEqualTo", "assertTrue", "assertFalse", "#{any(double)} <= #{any(double)}", "examinedObjThenMatcherArgs"),
+        STARTSWITH("startsWith", "assertTrue", "assertFalse", "#{any(java.lang.String)}.startsWith(#{any(java.lang.String)})", "examinedObjThenMatcherArgs"),
+        TYPECOMPATIBLEWITH("typeCompatibleWith", "assertTrue", "assertFalse", "#{any(java.lang.Class)}.isAssignableFrom(#{any(java.lang.Class)})", "matcherArgsThenExaminedObj"),
+        NOTNULLVALUE("notNullValue", "assertNotNull", "assertNull", "#{any(java.lang.Object)}", "examinedObjOnly"),
+        NULLVALUE("nullValue", "assertNull", "assertNotNull", "#{any(java.lang.Object)}", "examinedObjOnly"),
+        SAMEINSTANCE("sameInstance", "assertSame", "assertNotSame", "#{any(java.lang.Object)}, #{any(java.lang.Object)}", "examinedObjThenMatcherArgs"),
+        THEINSTANCE("theInstance", "assertSame", "assertNotSame", "#{any(java.lang.Object)}, #{any(java.lang.Object)}", "examinedObjThenMatcherArgs"),
+        EMPTYITERABLE("emptyIterable", "assertFalse", "assertTrue", "#{any(java.lang.Iterable)}.iterator().hasNext()", "examinedObjOnly")
+        ;
+
+        final String hamcrest, junitPositive, junitNegative, template;
+        final String argumentsMethod;
+
+        private static final Map<String, BiFunction<Expression, J.MethodInvocation, List<Expression>>> methods = new HashMap<>();
+        static {
+            methods.put("examinedObjThenMatcherArgs", (ex, matcher) -> {
+                List<Expression> arguments = matcher.getArguments();
+                arguments.add(0, ex);
+                return arguments;
+            });
+            methods.put("matcherArgsThenExaminedObj", (ex, matcher) -> {
+                List<Expression> arguments = matcher.getArguments();
+                arguments.add(ex);
+                return arguments;
+            });
+            methods.put("examinedObjOnly",(ex, matcher) -> {
+                List<Expression> arguments = new ArrayList<>();
+                arguments.add(ex);
+                return arguments;
+            });
+            methods.put("matcher1ExaminedObjMatcher0", (ex, matcher) -> {
+                List<Expression> arguments = new ArrayList<>();
+                arguments.add(matcher.getArguments().get(1));
+                arguments.add(ex);
+                arguments.add(matcher.getArguments().get(0));
+                return arguments;
+            });
+        }
+
+        Replacement(String hamcrest, String junitPositive, String junitNegative, String template, String argumentsMethod) {
+            this.hamcrest = hamcrest;
+            this.junitPositive = junitPositive;
+            this.junitNegative = junitNegative;
+            this.template = template;
+            this.argumentsMethod = argumentsMethod;
+        }
+    }
+
+    private static RemoveNotMatcher removeNotRecipe = new RemoveNotMatcher();
 
     private static class MigrationFromHamcrestVisitor extends JavaIsoVisitor<ExecutionContext> {
 
@@ -69,278 +138,56 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                 } else return mi;
 
                 if (hamcrestMatcher instanceof J.MethodInvocation) {
-                    J.MethodInvocation matcherInvocation = (J.MethodInvocation)hamcrestMatcher;
+                    J.MethodInvocation matcherInvocation = (J.MethodInvocation) hamcrestMatcher;
                     maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
-                    String targetAssertion = getTranslatedAssert(matcherInvocation, false);
-                    if (targetAssertion.equals("")) {
-                        return mi;
+
+                    while (matcherInvocation.getSimpleName().equals("not")) {
+                        maybeRemoveImport("org.hamcrest.Matchers.not");
+                        maybeRemoveImport("org.hamcrest.CoreMatchers.not");
+                        matcherInvocation = (J.MethodInvocation) removeNotRecipe.getVisitor().visit(matcherInvocation, executionContext);
                     }
 
-                    String staticImport = "org.junit.jupiter.api.Assertions." + targetAssertion;
+                    //we do not handle nested matchers
+                    if (!(matcherInvocation.getArguments().get(0) instanceof J.Empty)) {
+                        if ((matcherInvocation.getArguments().get(0).getType()).toString().startsWith("org.hamcrest")) {
+                            return mi;
+                        }
+                    }
 
-                    JavaTemplate template = JavaTemplate.builder(getTemplateForMatcher(matcherInvocation, reason, false))
-                      .javaParser(JavaParser.fromJavaVersion().classpathFromResources(executionContext, "junit-jupiter-api-5.9"))
-                      .staticImports(staticImport)
-                      .build();
+                    boolean logicalContext = removeNotRecipe.getLogicalContext(matcherInvocation, executionContext);
 
-                    maybeAddImport("org.junit.jupiter.api.Assertions", targetAssertion);
-                    return template.apply(getCursor(), method.getCoordinates().replace(),
-                        getArgumentsForTemplate(matcherInvocation, reason, examinedObject, false));
+                    Replacement replacement;
+                    try {
+                        replacement = Replacement.valueOf(matcherInvocation.getSimpleName().toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        return mi;
+                    }
+                    String assertion = logicalContext ? replacement.junitPositive : replacement.junitNegative;
+
+                    String templateString =
+                        assertion
+                            + "("
+                            + replacement.template
+                            + (reason == null ? ")" : ", #{any(java.lang.String)})");
+
+                    JavaTemplate template = JavaTemplate.builder(templateString)
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(executionContext, "junit-jupiter-api-5.9"))
+                        .staticImports("org.junit.jupiter.api.Assertions." + assertion)
+                        .build();
+
+                    maybeRemoveImport("org.hamcrest.Matchers." + replacement.hamcrest);
+                    maybeRemoveImport("org.hamcrest.CoreMatchers." + replacement.hamcrest);
+                    maybeAddImport("org.junit.jupiter.api.Assertions", assertion);
+
+                    List<Expression> arguments = Replacement.methods.get(replacement.argumentsMethod).apply(examinedObject, matcherInvocation);
+                    if (reason != null) {
+                        arguments.add(reason);
+                    }
+
+                    return template.apply(getCursor(), method.getCoordinates().replace(), arguments.toArray());
                 }
             }
             return mi;
         }
-
-        private String getTranslatedAssert(J.MethodInvocation methodInvocation, boolean negated) {
-            maybeRemoveImport("org.hamcrest.Matchers." + methodInvocation.getSimpleName());
-
-            switch (methodInvocation.getSimpleName()) {
-                case "equalTo":
-                case "emptyArray":
-                case "hasEntry":
-                case "hasSize":
-                case "hasToString":
-                    return negated ? "assertNotEquals" : "assertEquals";
-                case "closeTo":
-                case "containsString":
-                case "empty":
-                case "endsWith":
-                case "equalToIgnoringCase":
-                case "greaterThan":
-                case "greaterThanOrEqualTo":
-                case "hasKey":
-                case "hasValue":
-                case "lessThan":
-                case "lessThanOrEqualTo":
-                case "startsWith":
-                case "typeCompatibleWith":
-                    return negated ? "assertFalse" : "assertTrue";
-                case "instanceOf":
-                case "isA":
-                    return negated ? "assertFalse" : "assertInstanceOf";
-                case "is":
-                    if (Objects.requireNonNull(methodInvocation.getArguments().get(0).getType()).toString().startsWith("org.hamcrest")) {
-                        if (methodInvocation.getArguments().get(0) instanceof J.MethodInvocation) {
-                            return getTranslatedAssert((J.MethodInvocation)methodInvocation.getArguments().get(0), negated);
-                        }
-                    } else {
-                        return negated ? "assertNotEquals" : "assertEquals";
-                    }
-                case "not":
-                    if (Objects.requireNonNull(methodInvocation.getArguments().get(0).getType()).toString().startsWith("org.hamcrest")) {
-                        if (methodInvocation.getArguments().get(0) instanceof J.MethodInvocation) {
-                            return getTranslatedAssert((J.MethodInvocation)methodInvocation.getArguments().get(0), !negated);
-                        }
-                    } else {
-                        return negated ? "assertEquals" : "assertNotEquals";
-                    }
-                case "notNullValue":
-                    return negated ? "assertNull" : "assertNotNull";
-                case "nullValue":
-                    return negated ? "assertNotNull" : "assertNull";
-                case "sameInstance":
-                case "theInstance":
-                    return negated ? "assertNotSame" : "assertSame";
-                case "emptyIterable":
-                    return negated ? "assertTrue" : "assertFalse";
-
-            }
-            return "";
-        }
-
-        private String getTemplateForMatcher(J.MethodInvocation matcher, @Nullable Expression errorMsg, boolean negated) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(getTranslatedAssert(matcher, negated));
-
-            switch (matcher.getSimpleName()) {
-                case "equalTo":
-                case "sameInstance":
-                case "theInstance":
-                    sb.append("(#{any(java.lang.Object)}, #{any(java.lang.Object)}");
-                    break;
-                case "closeTo":
-                    sb.append("(Math.abs(#{any(double)} - #{any(double)}) < #{any(double)}");
-                    break;
-                case "containsString":
-                    sb.append("(#{any(java.lang.String)}.contains(#{any(java.lang.String)}");
-                    break;
-                case "empty":
-                    sb.append("(#{any(java.util.Collection)}.isEmpty()");
-                    break;
-                case "emptyArray":
-                    sb.append("(0, #{anyArray(java.lang.Object)}.length");
-                    break;
-                case "emptyIterable":
-                    sb.append("(#{any(java.lang.Iterable)}.iterator().hasNext()");
-                    break;
-                case "endsWith":
-                    sb.append("(#{any(java.lang.String)}.endsWith(#{any(java.lang.String)})");
-                    break;
-                case "equalToIgnoringCase":
-                    sb.append("(#{any(java.lang.String)}.equalsIgnoreCase(#{any(java.lang.String)})");
-                    break;
-                case "greaterThan":
-                    sb.append("(#{any(double)} > #{any(double)}");
-                    break;
-                case "greaterThanOrEqualTo":
-                    sb.append("(#{any(double)} >= #{any(double)}");
-                    break;
-                case "hasEntry":
-                    if (containsMatcherAsArgument(matcher)) {
-                        return "";
-                    }
-                    sb.append("(#{any(java.lang.Object)}, #{any(java.util.Map)}.get(#{any(java.lang.Object)})");
-                    break;
-                case "hasKey":
-                    if (containsMatcherAsArgument(matcher)) {
-                        return "";
-                    }
-                    sb.append("(#{any(java.util.Map)}.containsKey(#{any(java.lang.Object)})");
-                    break;
-                case "hasSize":
-                    if (containsMatcherAsArgument(matcher)) {
-                        return "";
-                    }
-                    sb.append("(#{any(java.util.Collection)}.size(), #{any(double)}");
-                    break;
-                case "hasToString":
-                    if (containsMatcherAsArgument(matcher)) {
-                        return "";
-                    }
-                    sb.append("(#{any(java.lang.Object)}.toString(), #{any(java.lang.String)}");
-                    break;
-                case "hasValue":
-                    if (containsMatcherAsArgument(matcher)) {
-                        return "";
-                    }
-                    sb.append("(#{any(java.util.Map)}.containsValue(#{any(java.lang.Object)})");
-                    break;
-                case "instanceOf":
-                case "isA":
-                    if (negated) {
-                        sb.append("(#{any(java.lang.Class)}.isAssignableFrom(#{any(java.lang.Object)}.getClass())");
-                    } else {
-                        sb.append("(#{any(java.lang.Class)}, #{any(java.lang.Object)}");
-                    }
-                    break;
-                case "is":
-                    if (containsMatcherAsArgument(matcher)) {
-                        if (matcher.getArguments().get(0) instanceof J.MethodInvocation) {
-                            return getTemplateForMatcher((J.MethodInvocation) matcher.getArguments().get(0), errorMsg, negated);
-                        }
-                    } else {
-                        sb.append("(#{any(java.lang.Object)}, #{any(java.lang.Object)}");
-                    }
-                    break;
-                case "lessThan":
-                    sb.append("(#{any(double)} < #{any(double)}");
-                    break;
-                case "lessThanOrEqualTo":
-                    sb.append("(#{any(double)} <= #{any(double)}");
-                    break;
-                case "not":
-                    if (containsMatcherAsArgument(matcher)) {
-                        if (matcher.getArguments().get(0) instanceof J.MethodInvocation) {
-                            return getTemplateForMatcher((J.MethodInvocation) matcher.getArguments().get(0), errorMsg, !negated);
-                        }
-                    } else {
-                        sb.append("(#{any(java.lang.Object)}, #{any(java.lang.Object)}");
-                    }
-                    break;
-                case "notNullValue":
-                case "nullValue":
-                    sb.append("(#{any(java.lang.Object)}");
-                    break;
-                case "startsWith":
-                    sb.append("(#{any(java.lang.String)}.startsWith(#{any(java.lang.String)})");
-                    break;
-                case "typeCompatibleWith":
-                    sb.append("(#{any(java.lang.Class)}.isAssignableFrom(#{any(java.lang.Class)})");
-                    break;
-                default:
-                    return "";
-            }
-
-            if (errorMsg != null) {
-                sb.append(", #{any(java.lang.String)})");
-            } else {
-                sb.append(")");
-            }
-            return sb.toString();
-        }
-
-        private Object[] getArgumentsForTemplate(J.MethodInvocation matcher, @Nullable Expression errorMsg, Expression examinedObj, boolean negated) {
-            List<Expression> result = new ArrayList<>();
-
-            switch (matcher.getSimpleName()) {
-                case "equalTo":
-                case "closeTo":
-                case "containsString":
-                case "endsWith":
-                case "equalToIgnoringCase":
-                case "greaterThan":
-                case "greaterThanOrEqualTo":
-                case "hasKey":
-                case "hasSize":
-                case "hasToString":
-                case "hasValue":
-                case "lessThan":
-                case "lessThanOrEqualTo":
-                case "sameInstance":
-                case "startsWith":
-                case "theInstance":
-                    result.add(examinedObj);
-                    result.addAll(matcher.getArguments());
-                    break;
-                case "empty":
-                case "emptyArray":
-                case "emptyIterable":
-                case "notNullValue":
-                case "nullValue":
-                    result.add(examinedObj);
-                    break;
-                case "hasEntry":
-                    result.add(matcher.getArguments().get(1));
-                    result.add(examinedObj);
-                    result.add(matcher.getArguments().get(0));
-                    break;
-                case "instanceOf":
-                case "isA":
-                case "typeCompatibleWith":
-                    result.add(matcher.getArguments().get(0));
-                    result.add(examinedObj);
-                    break;
-                case "is":
-                    if (containsMatcherAsArgument(matcher)) {
-                        if (matcher.getArguments().get(0) instanceof J.MethodInvocation) {
-                            return getArgumentsForTemplate((J.MethodInvocation) matcher.getArguments().get(0), errorMsg, examinedObj, negated);
-                        }
-                    } else {
-                        result.add(examinedObj);
-                        result.addAll(matcher.getArguments());
-                    }
-                    break;
-                case "not":
-                    if (containsMatcherAsArgument(matcher)) {
-                        if (matcher.getArguments().get(0) instanceof J.MethodInvocation) {
-                            return getArgumentsForTemplate((J.MethodInvocation) matcher.getArguments().get(0), errorMsg, examinedObj, !negated);
-                        }
-                    } else {
-                        result.add(examinedObj);
-                        result.addAll(matcher.getArguments());
-                    }
-                    break;
-                default:
-                    return new Object[]{};
-            }
-
-            if (errorMsg != null) result.add(errorMsg);
-
-            return result.toArray();
-        }
-    }
-
-    private static boolean containsMatcherAsArgument(J.MethodInvocation matcher) {
-        return Objects.requireNonNull(matcher.getArguments().get(0).getType()).toString().startsWith("org.hamcrest");
     }
 }
