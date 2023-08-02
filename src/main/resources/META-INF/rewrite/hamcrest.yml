@@ -42,6 +42,15 @@ recipeList:
   # First remove wrapping `is(Matcher)` calls such that further recipes will match
   - org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
 
+  # Then remove calls to `MatcherAssert.assertThat(String, Matcher)`
+  - org.openrewrite.java.testing.hamcrest.HamcrestIsMatcherToAssertJ
+
+  # Flatten calls to `MatcherAssert.assertThat(.., allOf(..))` to easier to migrate individual statements
+  - org.openrewrite.java.testing.hamcrest.FlattenAllOf
+
+  # Then remove calls to `MatcherAssert.assertThat(String, anyOf(..))`
+  - org.openrewrite.java.testing.hamcrest.HamcrestAnyOfToAssertJ
+
   # Then remove calls to `MatcherAssert.assertThat(String, boolean)`
   - org.openrewrite.java.testing.hamcrest.AssertThatBooleanToAssertJ
 
@@ -86,6 +95,23 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: isA
       assertion: isInstanceOf
+
+  # Array Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: arrayContaining
+      assertion: containsExactly
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: arrayContainingInAnyOrder
+      assertion: containsExactlyInAnyOrder
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: arrayWithSize
+      assertion: hasSize
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: emptyArray
+      assertion: isEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: hasItemInArray
+      assertion: contains
 
   # String Matchers
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
@@ -140,13 +166,10 @@ recipeList:
   # List Matchers
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: contains
-      assertion: contains
+      assertion: containsExactly
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: containsInAnyOrder
       assertion: containsExactlyInAnyOrder
-  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
-      matcher: containsInRelativeOrder
-      assertion: containsExactly
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: empty
       assertion: isEmpty
@@ -182,6 +205,11 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: anEmptyMap
       assertion: isEmpty
+
+  # Number Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: closeTo
+      assertion: isCloseTo
 
   # Matchers inverted through `not(Matcher)`
   - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:

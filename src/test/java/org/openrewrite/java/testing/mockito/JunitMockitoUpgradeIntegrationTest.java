@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -114,65 +115,6 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
               
                       verify(mockedList).add("one");
                       verify(mockedList).clear();
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    /**
-     * Replaces org.mockito.Matchers with org.mockito.ArgumentMatchers
-     */
-    @Test
-    void replacesMatchers() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              package mockito.example;
-              
-              import java.util.List;
-              
-              import static org.mockito.Mockito.*;
-              
-              public class MockitoArgumentMatchersTest {
-                  static class Foo {
-                      boolean bool(String str, int i, Object obj) { return false; }
-                      int in(boolean b, List<String> strs) { return 0; }
-                      int bar(byte[] bytes, String[] s, int i) { return 0; }
-                      boolean baz(String ... strings) { return true; }
-                  }
-
-                  public void usesMatchers() {
-                      Foo mockFoo = mock(Foo.class);
-                      when(mockFoo.bool(anyString(), anyInt(), any(Object.class))).thenReturn(true);
-                      when(mockFoo.bool(eq("false"), anyInt(), any(Object.class))).thenReturn(false);
-                      when(mockFoo.in(anyBoolean(), anyList())).thenReturn(10);
-                  }
-              }
-              """,
-            """
-              package mockito.example;
-              
-              import java.util.List;
-              
-              import static org.mockito.ArgumentMatchers.nullable;
-              import static org.mockito.Mockito.*;
-              
-              public class MockitoArgumentMatchersTest {
-                  static class Foo {
-                      boolean bool(String str, int i, Object obj) { return false; }
-                      int in(boolean b, List<String> strs) { return 0; }
-                      int bar(byte[] bytes, String[] s, int i) { return 0; }
-                      boolean baz(String ... strings) { return true; }
-                  }
-
-                  public void usesMatchers() {
-                      Foo mockFoo = mock(Foo.class);
-                      when(mockFoo.bool(nullable(String.class), anyInt(), nullable(Object.class))).thenReturn(true);
-                      when(mockFoo.bool(eq("false"), anyInt(), nullable(Object.class))).thenReturn(false);
-                      when(mockFoo.in(anyBoolean(), anyList())).thenReturn(10);
                   }
               }
               """

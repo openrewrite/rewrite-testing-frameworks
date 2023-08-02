@@ -24,10 +24,11 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class HamcrestNotMatcherToAssertJTest implements RewriteTest {
+class FlattenAllOfTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
+          .recipe(new FlattenAllOf())
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api-5.9",
@@ -37,72 +38,118 @@ class HamcrestNotMatcherToAssertJTest implements RewriteTest {
 
     @DocumentExample
     @Test
-    void notMatcher() {
+    void flattenAllOfStringMatchers() {
         rewriteRun(
-          spec -> spec.recipe(new HamcrestNotMatcherToAssertJ("equalTo", "isNotEqualTo")),
           //language=java
           java("""
             import org.junit.jupiter.api.Test;
             
             import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.not;
+            import static org.hamcrest.Matchers.allOf;
             import static org.hamcrest.Matchers.equalTo;
+            import static org.hamcrest.Matchers.hasLength;
                             
             class ATest {
                 @Test
                 void test() {
                     String str1 = "Hello world!";
                     String str2 = "Hello world!";
-                    assertThat(str1, not(equalTo(str2)));
+                    assertThat(str1, allOf(equalTo(str2), hasLength(12)));
                 }
             }
             ""","""
             import org.junit.jupiter.api.Test;
             
-            import static org.assertj.core.api.Assertions.assertThat;
+            import static org.hamcrest.MatcherAssert.assertThat;
+            import static org.hamcrest.Matchers.equalTo;
+            import static org.hamcrest.Matchers.hasLength;
                             
             class ATest {
                 @Test
                 void test() {
                     String str1 = "Hello world!";
                     String str2 = "Hello world!";
-                    assertThat(str1).isNotEqualTo(str2);
+                    assertThat(str1, equalTo(str2));
+                    assertThat(str1, hasLength(12));
                 }
             }
             """));
     }
 
     @Test
-    void notMatcherWithReason() {
+    void flattenAllOfStringMatchersWithReason() {
         rewriteRun(
-          spec -> spec.recipe(new HamcrestNotMatcherToAssertJ("nullValue", "isNotNull")),
           //language=java
           java("""
             import org.junit.jupiter.api.Test;
             
             import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.not;
-            import static org.hamcrest.Matchers.nullValue;
+            import static org.hamcrest.Matchers.allOf;
+            import static org.hamcrest.Matchers.equalTo;
+            import static org.hamcrest.Matchers.hasLength;
                             
             class ATest {
                 @Test
                 void test() {
                     String str1 = "Hello world!";
-                    assertThat("Reason", str1, not(nullValue()));
+                    String str2 = "Hello world!";
+                    assertThat("str1 and str2 should be equal", str1, allOf(equalTo(str2), hasLength(12)));
                 }
             }
             ""","""
             import org.junit.jupiter.api.Test;
             
-            import static org.assertj.core.api.Assertions.assertThat;
+            import static org.hamcrest.MatcherAssert.assertThat;
+            import static org.hamcrest.Matchers.equalTo;
+            import static org.hamcrest.Matchers.hasLength;
                             
             class ATest {
                 @Test
                 void test() {
                     String str1 = "Hello world!";
-                    assertThat(str1).as("Reason").isNotNull();
+                    String str2 = "Hello world!";
+                    assertThat("str1 and str2 should be equal", str1, equalTo(str2));
+                    assertThat("str1 and str2 should be equal", str1, hasLength(12));
                 }
             }
             """));
     }
+
+    @Test
+    void flattenAllOfIntMatchers() {
+        rewriteRun(
+          //language=java
+          java("""
+            import org.junit.jupiter.api.Test;
+            
+            import static org.hamcrest.MatcherAssert.assertThat;
+            import static org.hamcrest.Matchers.allOf;
+            import static org.hamcrest.Matchers.equalTo;
+            import static org.hamcrest.Matchers.greaterThan;
+                            
+            class ATest {
+                @Test
+                void test() {
+                    int i = 1;
+                    assertThat(i, allOf(equalTo(1), greaterThan(0)));
+                }
+            }
+            ""","""
+            import org.junit.jupiter.api.Test;
+            
+            import static org.hamcrest.MatcherAssert.assertThat;
+            import static org.hamcrest.Matchers.equalTo;
+            import static org.hamcrest.Matchers.greaterThan;
+                            
+            class ATest {
+                @Test
+                void test() {
+                    int i = 1;
+                    assertThat(i, equalTo(1));
+                    assertThat(i, greaterThan(0));
+                }
+            }
+            """));
+    }
+
 }

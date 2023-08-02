@@ -68,4 +68,90 @@ class RemoveIsMatcherTest implements RewriteTest {
             """));
     }
 
+    @Test
+    void isNotCalledInAssertThat() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.Matchers.is;
+              import static org.hamcrest.Matchers.equalTo;
+              
+              class ATest {
+                  @Test
+                  void testMethod() {
+                      String str1 = "Hello world!";
+                      Matcher<String> x = is(equalTo(str1));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void isNotDirectlyInAssertThat() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.*;
+              
+              class ATest {
+                  @Test
+                  void testMethod() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, not(is(equalTo(str2))));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.not;
+              import static org.hamcrest.Matchers.equalTo;
+              
+              class ATest {
+                  @Test
+                  void testMethod() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, not(equalTo(str2)));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noReplacementForOtherMethodInvocations() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matcher;
+              import static org.hamcrest.Matchers.*;
+              
+              class ATest {
+                  @Test
+                  void testMethod() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      foo(is(equalTo(str2)));
+                  }
+                  
+                  void foo(Matcher<String> matcher) {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

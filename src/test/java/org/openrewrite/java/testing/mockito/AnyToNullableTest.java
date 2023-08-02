@@ -33,10 +33,7 @@ class AnyToNullableTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12")
             .logCompilationWarningsAndErrors(true))
-          .recipe(Environment.builder()
-            .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
-            .build()
-            .activateRecipes("org.openrewrite.java.testing.mockito.AnyToNullable"));
+          .recipe(new AnyToNullable());
     }
 
     @Test
@@ -73,7 +70,7 @@ class AnyToNullableTest implements RewriteTest {
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.any;
-
+              
               class MyTest {
                    void test() {
                       Example example = mock(Example.class);
@@ -90,6 +87,52 @@ class AnyToNullableTest implements RewriteTest {
                    void test() {
                       Example example = mock(Example.class);
                       when(example.greet(nullable(Object.class))).thenReturn("Hello world");
+                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotTouchIfMockitoTwoPlus() {
+        //language=java
+        rewriteRun(
+          //language=xml
+          pomXml("""
+            <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example</groupId>
+                <artifactId>foo</artifactId>
+                <version>1.0.0</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>3.12.0</version>
+                    </dependency>
+                </dependencies>
+            </project>
+            """),
+          //language=java
+          java("""
+            class Example {
+                String greet(Object obj) {
+                    return "Hello " + obj;
+                }
+            }
+            """),
+          //language=java
+          java(
+            """
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.any;
+              
+              class MyTest {
+                   void test() {
+                      Example example = mock(Example.class);
+                      when(example.greet(any(Object.class))).thenReturn("Hello world");
                    }
               }
               """

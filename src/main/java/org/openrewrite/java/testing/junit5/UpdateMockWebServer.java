@@ -130,6 +130,7 @@ public class UpdateMockWebServer extends Recipe {
                                                 J.Identifier ioExceptionIdent = new J.Identifier(UUID.randomUUID(),
                                                         Space.format(" "),
                                                         Markers.EMPTY,
+                                                        emptyList(),
                                                         "IOException",
                                                         JavaType.ShallowClass.build(IO_EXCEPTION_FQN),
                                                         null);
