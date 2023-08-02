@@ -345,7 +345,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
     @Test
     void mapMethodDealsWithTwoArguments() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("get", "isEqualTo", "containsEntry", "java.util.Map<java.lang.String, java.lang.String>")),
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("get", "isEqualTo", "containsEntry", "java.util.Map")),
           //language=java
           java(
             """

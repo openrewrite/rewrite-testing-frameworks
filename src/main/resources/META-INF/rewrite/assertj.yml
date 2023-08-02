@@ -260,58 +260,58 @@ recipeList:
       chainedAssertion: isEmpty
       assertToReplace: isTrue
       dedicatedAssertion: isEmpty
-      requiredType: java.util.ArrayList<java.lang.String>
+      requiredType: java.util.ArrayList
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: size
       assertToReplace: isZero
       dedicatedAssertion: isEmpty
-      requiredType: java.util.ArrayList<java.lang.String>
+      requiredType: java.util.ArrayList
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: contains
       assertToReplace: isTrue
       dedicatedAssertion: contains
-      requiredType: java.util.ArrayList<java.lang.String>
+      requiredType: java.util.ArrayList
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: containsAll
       assertToReplace: isTrue
       dedicatedAssertion: containsAll
-      requiredType: java.util.ArrayList<java.lang.String>
+      requiredType: java.util.ArrayList
   # Map Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: size
       assertToReplace: isEqualTo
       dedicatedAssertion: hasSameSizeAs
-      requiredType: java.util.HashMap
+      requiredType: java.util.Map
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: containsKey
       assertToReplace: isTrue
       dedicatedAssertion: containsKey
-      requiredType: java.util.HashMap
+      requiredType: java.util.Map
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: keySet
       assertToReplace: contains
       dedicatedAssertion: containsKey
-      requiredType: java.util.HashMap
+      requiredType: java.util.Map
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: keySet
       assertToReplace: containsOnlyKey
       dedicatedAssertion: containsOnlyKey
-      requiredType: java.util.HashMap
+      requiredType: java.util.Map
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: containsValue
       assertToReplace: isTrue
       dedicatedAssertion: containsValue
-      requiredType: java.util.HashMap
+      requiredType: java.util.Map
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: values
       assertToReplace: contains
       dedicatedAssertion: containsValue
-      requiredType: java.util.HashMap
+      requiredType: java.util.Map
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: get
       assertToReplace: isEqualTo
       dedicatedAssertion: containsEntry
-      requiredType: java.util.HashMap
+      requiredType: java.util.Map
   # Optional Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: isPresent

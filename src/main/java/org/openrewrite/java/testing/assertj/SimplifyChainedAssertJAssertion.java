@@ -114,7 +114,8 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
             // method call has select
             Expression select = assertThatArg.getSelect() != null ? assertThatArg.getSelect() : assertThatArg;
-            if (!TypeUtils.isOfType(select.getType(), JavaType.buildType(requiredType))) {
+            // The `isOfClassType` check is there to add support for paramterized/generic types
+            if (!TypeUtils.isOfType(select.getType(), JavaType.buildType(requiredType)) && !TypeUtils.isOfClassType(select.getType(), requiredType)) {
                 return mi;
             }
 

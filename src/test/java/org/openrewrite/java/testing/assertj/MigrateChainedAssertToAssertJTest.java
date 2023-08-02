@@ -275,21 +275,22 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
         //language=java
         String template = """
           import org.junit.jupiter.api.Test;
-          import java.util.HashMap;
+          import java.util.Collections;
+          import java.util.Map;
           
           import static org.assertj.core.api.Assertions.assertThat;
           
           class MyTest {
               @Test
               void test() {
-                  HashMap<String, String> otherMap = new HashMap<>();
+                  Map<String, String> otherMap = Collections.emptyMap();
                   String key = "key";
                   String value = "value";
                   %s
               }
               
-              HashMap<String, String> getMap() {
-                  return new HashMap<>();
+              Map<String, String> getMap() {
+                  return Collections.emptyMap();
               }
           }
           """;
