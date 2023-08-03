@@ -94,19 +94,21 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
         private final MethodMatcher ASSERT_TO_REPLACE = new MethodMatcher("org.assertj.core.api.* " + assertToReplace + "(..)");
 
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
+            J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
+
             // assert has correct assertion
             if (!ASSERT_TO_REPLACE.matches(mi)) {
                 return mi;
             }
 
             // assertThat has method call
-            J.MethodInvocation assertThat = (J.MethodInvocation)mi.getSelect();
+            J.MethodInvocation assertThat = (J.MethodInvocation) mi.getSelect();
             if (!ASSERT_THAT_MATCHER.matches(assertThat) || !(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
                 return mi;
             }
 
-            J.MethodInvocation assertThatArg = (J.MethodInvocation)assertThat.getArguments().get(0);
+            J.MethodInvocation assertThatArg = (J.MethodInvocation) assertThat.getArguments().get(0);
             if (!CHAINED_ASSERT_MATCHER.matches(assertThatArg) && !hasZeroArgument(mi)) {
                 return mi;
             }
@@ -114,7 +116,8 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             // method call has select
             Expression select = assertThatArg.getSelect() != null ? assertThatArg.getSelect() : assertThatArg;
             // The `isOfClassType` check is there to add support for parameterized/generic types
-            if (!TypeUtils.isOfType(select.getType(), JavaType.buildType(requiredType)) && !TypeUtils.isOfClassType(select.getType(), requiredType)) {
+            if (!TypeUtils.isOfType(select.getType(), JavaType.buildType(requiredType))
+                    && !TypeUtils.isOfClassType(select.getType(), requiredType)) {
                 return mi;
             }
 
@@ -130,35 +133,40 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
     }
 
     private String getTemplate(List<Expression> arguments, J.MethodInvocation assertThatArg, J.MethodInvocation methodToReplace) {
-        String template = "assertThat(#{any()}).%s()";
         if (hasZeroArgument(methodToReplace)) {
-            return template;
+            return "assertThat(#{any()}).%s()";
         }
 
-        if (!(assertThatArg.getArguments().get(0) instanceof J.Empty) && !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
+        if (!(assertThatArg.getArguments().get(0) instanceof J.Empty)
+                && !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
             // Note: this should be the only case when more than one argument needs to be handled. When the assertions involve the map functions
             arguments.add(assertThatArg.getArguments().get(0));
             arguments.add(methodToReplace.getArguments().get(0));
-            template = "assertThat(#{any()}).%s(#{any()}, #{any()})";
-        }else if (!(assertThatArg.getArguments().get(0) instanceof J.Empty) || !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
+            return "assertThat(#{any()}).%s(#{any()}, #{any()})";
+        }
+
+        if (!(assertThatArg.getArguments().get(0) instanceof J.Empty)
+                || !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
             Expression argumentToAdd = assertThatArg.getArguments().get(0) instanceof J.Empty ? methodToReplace.getArguments().get(0) : assertThatArg.getArguments().get(0);
             argumentToAdd = argumentToAdd instanceof J.MethodInvocation ? ((J.MethodInvocation) argumentToAdd).getSelect() : argumentToAdd;
             arguments.add(argumentToAdd);
 
-            if (requiredType.equals("java.nio.file.Path") && dedicatedAssertion.contains("Raw") && TypeUtils.isOfType(assertThatArg.getArguments().get(0).getType(), JavaType.buildType("java.lang.String"))) {
-                template = "assertThat(#{any()}).%s(Path.of(#{any()}))";
-            }else {
-                template = "assertThat(#{any()}).%s(#{any()})";
+            if (requiredType.equals("java.nio.file.Path")
+                    && dedicatedAssertion.contains("Raw")
+                    && TypeUtils.isOfType(assertThatArg.getArguments().get(0).getType(), JavaType.buildType("java.lang.String"))) {
+                return "assertThat(#{any()}).%s(Path.of(#{any()}))";
             }
+            return "assertThat(#{any()}).%s(#{any()})";
         }
 
-        return template;
+        return "assertThat(#{any()}).%s()";
     }
 
     private boolean hasZeroArgument(J.MethodInvocation method) {
-        if (method.getArguments().get(0) instanceof J.Literal) {
-            J.Literal literalArg = (J.Literal) method.getArguments().get(0);
-            return (literalArg.getValue() != null && literalArg.getValue().equals(0));
+        List<Expression> arguments = method.getArguments();
+        if (arguments.size() == 1 && arguments.get(0) instanceof J.Literal) {
+            J.Literal literalArg = (J.Literal) arguments.get(0);
+            return literalArg.getValue() != null && literalArg.getValue().equals(0);
         }
         return false;
     }
