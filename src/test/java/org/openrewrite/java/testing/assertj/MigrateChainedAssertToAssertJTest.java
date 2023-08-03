@@ -59,7 +59,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
           Arguments.arguments("trim", "isEmpty", "isBlank", "", ""),
           Arguments.arguments("length", "isEqualTo", "hasSize", "", "length"),
           Arguments.arguments("isEmpty", "isFalse", "isNotEmpty", "", ""),
-          Arguments.arguments("length", "hasSize", "hasSameSizeAs", "", "expected.length()")
+          Arguments.arguments("getString", "hasSize", "hasSameSizeAs", "", "expected.length()")
         );
     }
 
