@@ -15,14 +15,20 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.Statement;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,7 +44,7 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Collapse consecutive `assertThat` statements into single assertThat chained statement. This recipe ignores assertThat statements that has method invocation as parameter.";
+        return "Collapse consecutive `assertThat` statements into single `assertThat` chained statement. This recipe ignores `assertThat` statements that have method invocation as parameter.";
     }
 
     @Override
@@ -46,30 +52,20 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
         return Preconditions.check(new UsesType<>(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, true), new CollapseConsecutiveAssertThatStatementsVisitor());
     }
 
-    public static class CollapseConsecutiveAssertThatStatementsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private JavaParser.Builder<?, ?> assertionsParser;
-
-        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
-            if (assertionsParser == null) {
-                assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24");
-            }
-            return assertionsParser;
-        }
-
+    private static class CollapseConsecutiveAssertThatStatementsVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
-        public J.Block visitBlock(J.Block _block, ExecutionContext ctx){
-            J.Block block = super.visitBlock(_block,ctx);
+        public J.Block visitBlock(J.Block _block, ExecutionContext ctx) {
+            J.Block block = super.visitBlock(_block, ctx);
 
             List<List<J.MethodInvocation>> consecutiveAssertThatStatementList = getConsecutiveAssertThatList(block.getStatements());
 
             List<Statement> modifiedStatements = new ArrayList<>();
             int currIndex = 0;
-            while(currIndex<consecutiveAssertThatStatementList.size()){
-                if(consecutiveAssertThatStatementList.get(currIndex).size()<=1){
+            while (currIndex < consecutiveAssertThatStatementList.size()) {
+                if (consecutiveAssertThatStatementList.get(currIndex).size() <= 1) {
                     modifiedStatements.add(block.getStatements().get(currIndex));
                     currIndex += 1;
-                }else{
+                } else {
                     modifiedStatements.add(getCollapsedAssertThat(consecutiveAssertThatStatementList.get(currIndex)));
                     currIndex += consecutiveAssertThatStatementList.get(currIndex).size();
                 }
@@ -81,13 +77,13 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
         }
 
 
-        private List<List<J.MethodInvocation>> getConsecutiveAssertThatList(List<Statement> statements){
+        private List<List<J.MethodInvocation>> getConsecutiveAssertThatList(List<Statement> statements) {
             List<List<J.MethodInvocation>> consecutiveAssertThatList = new ArrayList<>();
             String prevArg = "";
-            int currListIndex=0;
+            int currListIndex = 0;
             int statementListSize = statements.size();
             List<J.MethodInvocation> currList = new ArrayList<>();
-            for (int currIndex=0; currIndex<statementListSize; currIndex++) {
+            for (int currIndex = 0; currIndex < statementListSize; currIndex++) {
 
                 consecutiveAssertThatList.add(new ArrayList<>());
 
@@ -110,54 +106,54 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
             return consecutiveAssertThatList;
         }
 
-        private Optional<J.MethodInvocation> getAssertThatMi(J subtree){
+        private Optional<J.MethodInvocation> getAssertThatMi(J subtree) {
             AtomicReference<J.MethodInvocation> assertThatMi = new AtomicReference<>(null);
-            new JavaIsoVisitor<AtomicReference<J.MethodInvocation>>(){
+            new JavaIsoVisitor<AtomicReference<J.MethodInvocation>>() {
 
                 @Override
-                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, AtomicReference<J.MethodInvocation> assertThatMiHolder){
-                    if(ASSERT_THAT.matches(mi)){
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, AtomicReference<J.MethodInvocation> assertThatMiHolder) {
+                    if (ASSERT_THAT.matches(mi)) {
                         assertThatMiHolder.set(mi);
                         return mi;
                     }
-                    return super.visitMethodInvocation(mi,assertThatMi);
+                    return super.visitMethodInvocation(mi, assertThatMi);
                 }
 
-            }.reduce(subtree,assertThatMi);
+            }.reduce(subtree, assertThatMi);
             return Optional.of(assertThatMi.get());
         }
 
-        private boolean isAssertThatValid(J subtree){
+        private boolean isAssertThatValid(J subtree) {
             AtomicInteger chainCount = new AtomicInteger(0);
             AtomicBoolean isValid = new AtomicBoolean(true);
-            new JavaIsoVisitor<AtomicInteger>(){
+            new JavaIsoVisitor<AtomicInteger>() {
                 @Override
-                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, AtomicInteger chainCount){
-                    chainCount.set(chainCount.get()+1);
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, AtomicInteger chainCount) {
+                    chainCount.set(chainCount.get() + 1);
 
-                    if(ASSERT_THAT.matches(mi)){
-                        if(chainCount.get()>2)
+                    if (ASSERT_THAT.matches(mi)) {
+                        if (chainCount.get() > 2)
                             isValid.set(false);
 
                         J assertThatArgument = mi.getArguments().get(0);
-                        if( assertThatArgument instanceof J.MethodInvocation || assertThatArgument instanceof J.Lambda )
+                        if (assertThatArgument instanceof J.MethodInvocation || assertThatArgument instanceof J.Lambda)
                             isValid.set(false);
                     }
 
-                    return super.visitMethodInvocation(mi,chainCount);
+                    return super.visitMethodInvocation(mi, chainCount);
                 }
-            }.reduce(subtree,chainCount);
+            }.reduce(subtree, chainCount);
             return isValid.get();
         }
 
-        private String getFirstArgumentName(J.MethodInvocation mi){
+        private String getFirstArgumentName(J.MethodInvocation mi) {
             return ((J.Identifier) mi.getArguments().get(0)).getSimpleName();
         }
 
-        private J.MethodInvocation getCollapsedAssertThat(List<J.MethodInvocation> consecutiveAssertThatStatement){
+        private J.MethodInvocation getCollapsedAssertThat(List<J.MethodInvocation> consecutiveAssertThatStatement) {
             J.MethodInvocation collapsedAssertThatMi = null;
-            for(J.MethodInvocation mi : consecutiveAssertThatStatement){
-                if(Objects.isNull(collapsedAssertThatMi)){
+            for (J.MethodInvocation mi : consecutiveAssertThatStatement) {
+                if (collapsedAssertThatMi == null) {
                     collapsedAssertThatMi = mi;
                     continue;
                 }
