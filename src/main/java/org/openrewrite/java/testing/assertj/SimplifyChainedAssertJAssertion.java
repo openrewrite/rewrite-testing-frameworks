@@ -89,7 +89,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
     }
 
     private class SimplifyChainedAssertJAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertThat(..)");
+        private final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
         private final MethodMatcher CHAINED_ASSERT_MATCHER = new MethodMatcher("java..* " + chainedAssertion + "(..)");
         private final MethodMatcher ASSERT_TO_REPLACE = new MethodMatcher("org.assertj.core.api.* " + assertToReplace + "(..)");
 
@@ -102,7 +102,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
             // assertThat has method call
             J.MethodInvocation assertThat = (J.MethodInvocation)mi.getSelect();
-            if (!ASSERT_THAT_MATCHER.matches(assertThat) && !(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
+            if (!ASSERT_THAT_MATCHER.matches(assertThat) || !(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
                 return mi;
             }
 
