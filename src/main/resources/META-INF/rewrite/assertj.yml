@@ -24,6 +24,8 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.assertj.StaticImports
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
+  # TODO Reevaluate and potentially remove these three explicit recipes
   - org.openrewrite.java.testing.assertj.UseExplicitContains
   - org.openrewrite.java.testing.assertj.UseExplicitIsEmpty
   - org.openrewrite.java.testing.assertj.UseExplicitSize
@@ -348,7 +350,6 @@ recipeList:
   - org.openrewrite.java.testing.assertj.JUnitAssertTrueToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitFailToAssertJFail
   - org.openrewrite.java.testing.assertj.JUnitAssertThrowsToAssertExceptionType
-  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj
       artifactId: assertj-core
