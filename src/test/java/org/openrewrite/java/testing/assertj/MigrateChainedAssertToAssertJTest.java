@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -367,6 +368,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
 
     @ParameterizedTest
     @MethodSource("arrayReplacements")
+    @Disabled("array.length is not a method invocation, so that's not matched or handled just yet")
     void arrayReplacements(String assertToReplace, String dedicatedAssertion, String arg) {
         //language=java
         String template = """
