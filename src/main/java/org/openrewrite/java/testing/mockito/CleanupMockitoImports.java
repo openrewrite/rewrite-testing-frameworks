@@ -29,13 +29,11 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * Removes unused "org.mockito" imports.
  */
 public class CleanupMockitoImports extends Recipe {
-    private static final Pattern MOCKITO_CLASS_PATTERN = Pattern.compile("org.mockito.Mockito");
 
     @Override
     public String getDisplayName() {
@@ -52,7 +50,7 @@ public class CleanupMockitoImports extends Recipe {
         return Preconditions.check(new UsesType<>("org.mockito.*", false), new CleanupMockitoImportsVisitor());
     }
 
-    public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
+    private static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final List<String> MOCKITO_METHOD_NAMES = Arrays.asList(
                 "after",
                 "atLeast",
@@ -149,8 +147,7 @@ public class CleanupMockitoImports extends Recipe {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, qualifiedMethods);
                 if (MOCKITO_METHOD_NAMES.contains(mi.getSimpleName())
                         && mi.getSelect() != null
-                        && mi.getSelect().getType() != null
-                        && mi.getSelect().getType().isAssignableFrom(MOCKITO_CLASS_PATTERN)) {
+                        && TypeUtils.isAssignableTo("org.mockito.Mockito", mi.getSelect().getType())) {
                     qualifiedMethods.add(mi.getSimpleName());
                 }
                 return mi;
