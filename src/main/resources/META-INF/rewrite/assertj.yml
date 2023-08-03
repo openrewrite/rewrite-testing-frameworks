@@ -296,8 +296,8 @@ recipeList:
       requiredType: java.util.Map
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: keySet
-      assertToReplace: containsOnlyKey
-      dedicatedAssertion: containsOnlyKey
+      assertToReplace: containsOnly
+      dedicatedAssertion: containsOnlyKeys
       requiredType: java.util.Map
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: containsValue
