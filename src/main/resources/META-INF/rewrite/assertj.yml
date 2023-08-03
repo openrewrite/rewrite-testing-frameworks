@@ -24,11 +24,8 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.assertj.StaticImports
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
-# SimplifyChainedAssertJAssertion recipe can replace these
-#  - org.openrewrite.java.testing.assertj.UseExplicitContains
-#  - org.openrewrite.java.testing.assertj.UseExplicitIsEmpty
-#  - org.openrewrite.java.testing.assertj.UseExplicitSize
 
 ---
 type: specs.openrewrite.org/v1beta/recipe

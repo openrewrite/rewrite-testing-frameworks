@@ -98,6 +98,60 @@ class CleanupMockitoImportsTest implements RewriteTest {
     }
 
     @Test
+    void doNotRemoveImportsAssociatedWithAnUntypedMockitoMethodMixed() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.Mockito;
+              import static org.mockito.Mockito.when;
+              import static org.mockito.BDDMockito.given;
+              import static org.mockito.Mockito.verifyNoInteractions;
+
+              class MyObjectTest {
+                MyObject myObject;
+                MyMockClass myMock;
+                            
+                void test() {
+                  when(myObject.getSomeField()).thenReturn("testValue");
+                  given(myObject.getSomeField()).willReturn("testValue");
+                  verifyNoInteractions(myMock);
+                  Mockito.reset();
+                }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotRemoveImportsAssociatedWithATypedMockitoMethodMixed() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.Mockito;
+              import static org.mockito.Mockito.when;
+              import static org.mockito.BDDMockito.given;
+              import static org.mockito.Mockito.verifyNoInteractions;
+
+              class MyObjectTest {
+                MyObject myObject;
+                MyMockClass myMock;
+                            
+                void test() {
+                  when(myObject.getSomeField()).thenReturn("testValue");
+                  given(myObject.getSomeField()).willReturn("testValue");
+                  verifyNoInteractions(myMock);
+                  Mockito.mock(OtherClass.class);
+                }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotRemoveStartImportsPossiblyAssociatedWithAnUntypedMockitoMethod() {
         //language=java
         rewriteRun(
