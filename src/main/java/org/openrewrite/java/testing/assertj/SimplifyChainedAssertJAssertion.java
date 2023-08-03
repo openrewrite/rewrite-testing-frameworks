@@ -31,7 +31,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -114,7 +113,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
             // method call has select
             Expression select = assertThatArg.getSelect() != null ? assertThatArg.getSelect() : assertThatArg;
-            // The `isOfClassType` check is there to add support for paramterized/generic types
+            // The `isOfClassType` check is there to add support for parameterized/generic types
             if (!TypeUtils.isOfType(select.getType(), JavaType.buildType(requiredType)) && !TypeUtils.isOfClassType(select.getType(), requiredType)) {
                 return mi;
             }

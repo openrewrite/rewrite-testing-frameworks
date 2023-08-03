@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -335,7 +334,6 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
         class MyTest {
             @Test
             void test() {
-                //Optional<String> something = Optional.of("hello world");
                 String something = "hello world";
                 %s
             }
@@ -346,8 +344,8 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
         }
         """;
 
-        String assertBefore = String.format("assertThat(getOptional().%s()).%s(%s)", chainedAssertion, assertToReplace, arg);
-        String assertAfter = String.format("assertThat(getOptional()).%s(%s)", dedicatedAssertion, arg);
+        String assertBefore = String.format("assertThat(getOptional().%s()).%s(%s);", chainedAssertion, assertToReplace, arg);
+        String assertAfter = String.format("assertThat(getOptional()).%s(%s);", dedicatedAssertion, arg);
 
         String before = String.format(template, assertBefore);
         String after = String.format(template, assertAfter);
@@ -392,9 +390,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
         }
         """;
 
-        String assertBefore = String.format("assertThat(getArray().length).%s(%s)", assertToReplace, arg);
+        String assertBefore = String.format("assertThat(getArray().length).%s(%s);", assertToReplace, arg);
         String afterArg = arg.contains(".") ? arg.split("\\.")[0] : arg;
-        String assertAfter = String.format("assertThat(getArray()).%s(%s)", dedicatedAssertion, afterArg);
+        String assertAfter = String.format("assertThat(getArray()).%s(%s);", dedicatedAssertion, afterArg);
 
         String before = String.format(template, assertBefore);
         String after = String.format(template, assertAfter);
