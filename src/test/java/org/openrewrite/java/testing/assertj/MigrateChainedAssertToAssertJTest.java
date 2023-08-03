@@ -16,9 +16,11 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
@@ -44,6 +46,39 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             .scanRuntimeClasspath("org.openrewrite.java.testing.assertj")
             .build()
             .activateRecipes("org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions"));
+    }
+
+    @Test
+    @DocumentExample
+    void stringIsEmptyExample() {
+        rewriteRun(
+          //language=java
+          java("""
+            import org.junit.jupiter.api.Test;
+                          
+            import static org.assertj.core.api.Assertions.assertThat;
+                          
+            class MyTest {
+                @Test
+                void testMethod() {
+                    String s = "hello world";
+                    assertThat(s.isEmpty()).isTrue();
+                }
+            }
+            """, """
+            import org.junit.jupiter.api.Test;
+                          
+            import static org.assertj.core.api.Assertions.assertThat;
+                          
+            class MyTest {
+                @Test
+                void testMethod() {
+                    String s = "hello world";
+                    assertThat(s).isEmpty();
+                }
+            }
+            """)
+        );
     }
 
     private static Stream<Arguments> stringReplacements() {
