@@ -249,6 +249,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
     private static Stream<Arguments> collectionReplacements() {
         return Stream.of(
           Arguments.arguments("isEmpty", "isTrue", "isEmpty", "", ""),
+          Arguments.arguments("isEmpty", "isFalse", "isNotEmpty", "", ""),
           Arguments.arguments("size", "isZero", "isEmpty", "", ""),
           Arguments.arguments("contains", "isTrue", "contains", "something", ""),
           Arguments.arguments("contains", "isFalse", "doesNotContain", "something", ""),
