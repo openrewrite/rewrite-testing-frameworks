@@ -24,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class HamcrestAnyOfToAssertJTest implements RewriteTest {
+class HamcrestOfMatchersToAssertJTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -32,7 +32,7 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
             "junit-jupiter-api-5.9",
             "hamcrest-2.2",
             "assertj-core-3.24"))
-          .recipe(new HamcrestAnyOfToAssertJ());
+          .recipe(new HamcrestOfMatchersToAssertJ());
     }
 
     @Test

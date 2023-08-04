@@ -49,7 +49,7 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.FlattenAllOf
 
   # Then remove calls to `MatcherAssert.assertThat(String, anyOf(..))`
-  - org.openrewrite.java.testing.hamcrest.HamcrestAnyOfToAssertJ
+  - org.openrewrite.java.testing.hamcrest.HamcrestOfMatchersToAssertJ
 
   # Then remove calls to `MatcherAssert.assertThat(String, boolean)`
   - org.openrewrite.java.testing.hamcrest.AssertThatBooleanToAssertJ

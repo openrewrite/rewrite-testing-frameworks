@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("NullableProblems")
-public class HamcrestAnyOfToAssertJ extends Recipe {
+public class HamcrestOfMatchersToAssertJ extends Recipe {
     @Override
     public String getDisplayName() {
         return "Migrate `anyOf` Hamcrest Matcher to AssertJ";
