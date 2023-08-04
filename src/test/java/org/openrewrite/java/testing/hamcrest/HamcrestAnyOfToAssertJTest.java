@@ -16,7 +16,7 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import org.junit.jupiter.api.Test;
-import org.junit.platform.commons.annotation.Testable;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -36,6 +36,7 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
     }
 
     @Test
+    @DocumentExample
     void allOfMigrate() {
         //language=java
         rewriteRun(

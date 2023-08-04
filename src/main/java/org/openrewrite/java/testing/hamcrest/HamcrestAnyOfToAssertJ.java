@@ -61,14 +61,14 @@ public class HamcrestAnyOfToAssertJ extends Recipe {
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
             List<Expression> arguments = mi.getArguments();
-            Expression anyOfExpression = arguments.get(arguments.size() - 1);
-            String methodName = ALL_OF_MATCHER.matches(anyOfExpression) ? "satisfies" : "satisfiesAnyOf";
-            if (!ASSERT_THAT_MATCHER.matches(mi) && (!ANY_OF_MATCHER.matches(anyOfExpression) || !ALL_OF_MATCHER.matches(anyOfExpression))) {
+            Expression ofExpression = arguments.get(arguments.size() - 1);
+            boolean allOfMatcherMatches = ALL_OF_MATCHER.matches(ofExpression);
+            if (!ASSERT_THAT_MATCHER.matches(mi) || !(ANY_OF_MATCHER.matches(ofExpression) || allOfMatcherMatches)) {
                 return mi;
             }
 
             // Skip anyOf(Iterable)
-            List<Expression> anyOfArguments = ((J.MethodInvocation) anyOfExpression).getArguments();
+            List<Expression> anyOfArguments = ((J.MethodInvocation) ofExpression).getArguments();
             if (TypeUtils.isAssignableTo("java.lang.Iterable", anyOfArguments.get(0).getType())) {
                 return mi;
             }
@@ -87,8 +87,7 @@ public class HamcrestAnyOfToAssertJ extends Recipe {
             }
 
             // .satisfiesAnyOf(...) or .satisfies(...)
-            String methodCall = String.format(".%s(\n", methodName);
-            template.append(methodCall);
+            template.append(allOfMatcherMatches ? ".satisfies(\n" : ".satisfiesAnyOf(\n");
             template.append(anyOfArguments.stream()
                     .map(arg -> "arg -> assertThat(arg, #{any()})")
                     .collect(Collectors.joining(",\n")));
