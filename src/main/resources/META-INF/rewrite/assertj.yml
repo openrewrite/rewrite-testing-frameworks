@@ -259,22 +259,27 @@ recipeList:
       chainedAssertion: isEmpty
       assertToReplace: isTrue
       dedicatedAssertion: isEmpty
-      requiredType: java.util.ArrayList
+      requiredType: java.util.Collection
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: size
       assertToReplace: isZero
       dedicatedAssertion: isEmpty
-      requiredType: java.util.ArrayList
+      requiredType: java.util.Collection
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: contains
       assertToReplace: isTrue
       dedicatedAssertion: contains
-      requiredType: java.util.ArrayList
+      requiredType: java.util.Collection
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: contains
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotContain
+      requiredType: java.util.Collection
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: containsAll
       assertToReplace: isTrue
       dedicatedAssertion: containsAll
-      requiredType: java.util.ArrayList
+      requiredType: java.util.Collection
   # Map Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: size

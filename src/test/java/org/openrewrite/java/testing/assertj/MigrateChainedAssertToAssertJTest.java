@@ -251,6 +251,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
           Arguments.arguments("isEmpty", "isTrue", "isEmpty", "", ""),
           Arguments.arguments("size", "isZero", "isEmpty", "", ""),
           Arguments.arguments("contains", "isTrue", "contains", "something", ""),
+          Arguments.arguments("contains", "isFalse", "doesNotContain", "something", ""),
           Arguments.arguments("containsAll", "isTrue", "containsAll", "otherCollection", "")
         );
     }
@@ -260,26 +261,19 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
     void collectionReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
         //language=java
         String template = """
-          import org.junit.jupiter.api.Test;
-          import java.util.ArrayList;
+          import java.util.Collection;
           
           import static org.assertj.core.api.Assertions.assertThat;
           
-          class MyTest {
-              @Test
-              void test() {
+          class A {
+              void test(Collection<String> collection, Collection<String> otherCollection) {
                   String something = "";
-                  ArrayList<String> otherCollection = new ArrayList<>();
                   %s
-              }
-              
-              ArrayList<String> getCollection() {
-                  return new ArrayList<>();
               }
           }
           """;
-        String assertBefore = "assertThat(getCollection().%s(%s)).%s(%s);";
-        String assertAfter = "assertThat(getCollection()).%s(%s);";
+        String assertBefore = "assertThat(collection.%s(%s)).%s(%s);";
+        String assertAfter = "assertThat(collection).%s(%s);";
 
         String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
 
