@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -23,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class HamcrestAnyOfToAssertJTest implements RewriteTest {
+class HamcrestOfMatchersToAssertJTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -31,7 +32,120 @@ class HamcrestAnyOfToAssertJTest implements RewriteTest {
             "junit-jupiter-api-5.9",
             "hamcrest-2.2",
             "assertj-core-3.24"))
-          .recipe(new HamcrestAnyOfToAssertJ());
+          .recipe(new HamcrestOfMatchersToAssertJ());
+    }
+
+    @Test
+    @DocumentExample
+    void allOfMigrate() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+                            
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.allOf;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.hasLength;
+                            
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("hello world", allOf(equalTo("hello world"), hasLength(12)));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.hasLength;
+
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("hello world")
+                              .satisfies(
+                                      arg -> assertThat(arg, equalTo("hello world")),
+                                      arg -> assertThat(arg, hasLength(12))
+                              );
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void allOfMigrateHasReason() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+                            
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.allOf;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.hasLength;
+                            
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("reason", "hello world", allOf(equalTo("hello world"), hasLength(12)));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.hasLength;
+
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("hello world")
+                              .as("reason")
+                              .satisfies(
+                                      arg -> assertThat(arg, equalTo("hello world")),
+                                      arg -> assertThat(arg, hasLength(12))
+                              );
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void allOfArgumentIsIterable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.util.Arrays;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.hasLength;
+              import static org.hamcrest.Matchers.allOf;
+
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("hello world", allOf(Arrays.asList(hasLength(11), hasLength(11))));
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test

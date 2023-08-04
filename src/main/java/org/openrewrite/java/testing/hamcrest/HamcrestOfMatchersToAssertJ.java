@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("NullableProblems")
-public class HamcrestAnyOfToAssertJ extends Recipe {
+public class HamcrestOfMatchersToAssertJ extends Recipe {
     @Override
     public String getDisplayName() {
         return "Migrate `anyOf` Hamcrest Matcher to AssertJ";
@@ -46,25 +46,29 @@ public class HamcrestAnyOfToAssertJ extends Recipe {
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
     private static final MethodMatcher ANY_OF_MATCHER = new MethodMatcher("org.hamcrest.Matchers anyOf(..)");
+    private static final MethodMatcher ALL_OF_MATCHER = new MethodMatcher("org.hamcrest.Matchers allOf(..)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(ANY_OF_MATCHER), new AnyOfToAssertJVisitor());
+        return Preconditions.check(Preconditions.or(
+                new UsesMethod<>(ANY_OF_MATCHER),
+                new UsesMethod<>(ALL_OF_MATCHER)
+        ), new AnyOfToAssertJVisitor());
     }
 
     private static class AnyOfToAssertJVisitor extends JavaIsoVisitor<ExecutionContext> {
-
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
             List<Expression> arguments = mi.getArguments();
-            Expression anyOfExpression = arguments.get(arguments.size() - 1);
-            if (!ASSERT_THAT_MATCHER.matches(mi) || !ANY_OF_MATCHER.matches(anyOfExpression)) {
+            Expression ofExpression = arguments.get(arguments.size() - 1);
+            boolean allOfMatcherMatches = ALL_OF_MATCHER.matches(ofExpression);
+            if (!ASSERT_THAT_MATCHER.matches(mi) || !(ANY_OF_MATCHER.matches(ofExpression) || allOfMatcherMatches)) {
                 return mi;
             }
 
             // Skip anyOf(Iterable)
-            List<Expression> anyOfArguments = ((J.MethodInvocation) anyOfExpression).getArguments();
+            List<Expression> anyOfArguments = ((J.MethodInvocation) ofExpression).getArguments();
             if (TypeUtils.isAssignableTo("java.lang.Iterable", anyOfArguments.get(0).getType())) {
                 return mi;
             }
@@ -82,8 +86,8 @@ public class HamcrestAnyOfToAssertJ extends Recipe {
                 parameters.add(arguments.get(0));
             }
 
-            // .satisfiesAnyOf(...)
-            template.append(".satisfiesAnyOf(\n");
+            // .satisfiesAnyOf(...) or .satisfies(...)
+            template.append(allOfMatcherMatches ? ".satisfies(\n" : ".satisfiesAnyOf(\n");
             template.append(anyOfArguments.stream()
                     .map(arg -> "arg -> assertThat(arg, #{any()})")
                     .collect(Collectors.joining(",\n")));
@@ -91,6 +95,7 @@ public class HamcrestAnyOfToAssertJ extends Recipe {
             template.append("\n);");
 
             maybeRemoveImport("org.hamcrest.Matchers.anyOf");
+            maybeRemoveImport("org.hamcrest.Matchers.allOf");
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             return JavaTemplate.builder(template.toString())
                     .contextSensitive()
