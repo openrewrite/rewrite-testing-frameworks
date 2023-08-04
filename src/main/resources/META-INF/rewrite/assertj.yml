@@ -218,42 +218,6 @@ recipeList:
       assertToReplace: isFalse
       dedicatedAssertion: isRelative
       requiredType: java.nio.file.Path
-  # Array Assertions
-#  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
-#      chainedAssertion: length
-#      assertToReplace: isZero
-#      dedicatedAssertion: isEmpty
-#      requiredType: java.util.ArrayList
-#  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
-#      chainedAssertion: length
-#      assertToReplace: isEqualTo
-#      dedicatedAssertion: hasSize
-#      requiredType: java.util.ArrayList
-#  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
-#      chainedAssertion: length
-#      assertToReplace: isEqualTo
-#      dedicatedAssertion: hasSameSizeAs
-#      requiredType: java.util.ArrayList
-#  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
-#      chainedAssertion: length
-#      assertToReplace: isLessThanOrEqualTo
-#      dedicatedAssertion: hasSizeLessThanOrEqualTo
-#      requiredType: java.util.ArrayList
-#  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
-#      chainedAssertion: length
-#      assertToReplace: isLessThan
-#      dedicatedAssertion: hasSizeLessThan
-#      requiredType: java.util.ArrayList
-#  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
-#      chainedAssertion: length
-#      assertToReplace: isGreaterThan
-#      dedicatedAssertion: hasSizeGreaterThan
-#      requiredType: java.util.ArrayList
-#  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
-#      chainedAssertion: length
-#      assertToReplace: isGreaterThanOrEqualTo
-#      dedicatedAssertion: hasSizeGreaterThanOrEqualTo
-#      requiredType: java.util.ArrayList
   # Collection Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: isEmpty

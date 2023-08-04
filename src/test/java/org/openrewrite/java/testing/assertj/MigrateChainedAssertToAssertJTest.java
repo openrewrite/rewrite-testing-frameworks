@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -379,54 +378,6 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
 
         String assertBefore = String.format("assertThat(getOptional().%s()).%s(%s);", chainedAssertion, assertToReplace, arg);
         String assertAfter = String.format("assertThat(getOptional()).%s(%s);", dedicatedAssertion, arg);
-
-        String before = String.format(template, assertBefore);
-        String after = String.format(template, assertAfter);
-
-        rewriteRun(java(before, after));
-    }
-
-    private static Stream<Arguments> arrayReplacements() {
-        return Stream.of(
-          Arguments.arguments("isZero", "isEmpty", ""),
-          Arguments.arguments("isEqualTo", "hasSize", "length"),
-          Arguments.arguments("isEqualTo", "hasSameSizeAs", "anotherArray.length"),
-          Arguments.arguments("isLessThanOrEqualTo", "hasSizeLessThanOrEqualTo", "expression"),
-          Arguments.arguments("isLessThan", "hasSizeLessThan", "expression"),
-          Arguments.arguments("isGreaterThan", "hasSizeGreaterThan", "expression"),
-          Arguments.arguments("isGreaterThanOrEqualTo", "hasSizeGreaterThanOrEqualTo", "expression")
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("arrayReplacements")
-    @Disabled("array.length is not a method invocation, so that's not matched or handled just yet")
-    void arrayReplacements(String assertToReplace, String dedicatedAssertion, String arg) {
-        //language=java
-        String template = """
-        import org.junit.jupiter.api.Test;
-        
-        import static org.assertj.core.api.Assertions.assertThat;
-        
-        class MyTest {
-            @Test
-            void test() {
-                String[] anotherArray = {""};
-                String expression = "";
-                int length = 5;
-                %s
-            }
-            
-            String[] getArray() {
-                String[] arr = {"hello", "world"};
-                return arr;
-            }
-        }
-        """;
-
-        String assertBefore = String.format("assertThat(getArray().length).%s(%s);", assertToReplace, arg);
-        String afterArg = arg.contains(".") ? arg.split("\\.")[0] : arg;
-        String assertAfter = String.format("assertThat(getArray()).%s(%s);", dedicatedAssertion, afterArg);
 
         String before = String.format(template, assertBefore);
         String after = String.format(template, assertAfter);
