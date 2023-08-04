@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -67,6 +68,35 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
                   
                   String getString() {
                       return "hello world";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Disabled(".as(reason) is not yet supported")
+    void stringIsEmptyDescribedAs() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty", "java.lang.String")),
+          //language=java
+          java(
+            """              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  void testMethod(String actual) {
+                      assertThat(actual.isEmpty()).as("Reason").isTrue();
+                  }
+              }
+              """,
+            """              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  void testMethod(String actual) {
+                      assertThat(actual).as("Reason").isEmpty();
                   }
               }
               """
