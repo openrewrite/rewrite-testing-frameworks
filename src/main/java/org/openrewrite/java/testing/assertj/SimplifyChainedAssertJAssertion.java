@@ -28,7 +28,6 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
@@ -115,9 +114,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
             // method call has select
             Expression select = assertThatArg.getSelect() != null ? assertThatArg.getSelect() : assertThatArg;
-            // The `isOfClassType` check is there to add support for parameterized/generic types
-            if (!TypeUtils.isOfType(select.getType(), JavaType.buildType(requiredType))
-                    && !TypeUtils.isOfClassType(select.getType(), requiredType)) {
+            if (!TypeUtils.isAssignableTo(requiredType, select.getType())) {
                 return mi;
             }
 
@@ -151,9 +148,8 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             argumentToAdd = argumentToAdd instanceof J.MethodInvocation ? ((J.MethodInvocation) argumentToAdd).getSelect() : argumentToAdd;
             arguments.add(argumentToAdd);
 
-            if (requiredType.equals("java.nio.file.Path")
-                    && dedicatedAssertion.contains("Raw")
-                    && TypeUtils.isOfType(assertThatArg.getArguments().get(0).getType(), JavaType.buildType("java.lang.String"))) {
+            if (requiredType.equals("java.nio.file.Path") && dedicatedAssertion.contains("Raw")
+                    && TypeUtils.isAssignableTo("java.lang.String", assertThatArg.getArguments().get(0).getType())) {
                 return "assertThat(#{any()}).%s(Path.of(#{any()}))";
             }
             return "assertThat(#{any()}).%s(#{any()})";
