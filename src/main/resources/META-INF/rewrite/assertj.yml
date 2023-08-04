@@ -271,6 +271,11 @@ recipeList:
       dedicatedAssertion: isEmpty
       requiredType: java.util.Collection
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: size
+      assertToReplace: isEqualTo
+      dedicatedAssertion: hasSize
+      requiredType: java.util.Collection
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: contains
       assertToReplace: isTrue
       dedicatedAssertion: contains

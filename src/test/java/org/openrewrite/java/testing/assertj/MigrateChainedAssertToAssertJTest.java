@@ -251,6 +251,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
           Arguments.arguments("isEmpty", "isTrue", "isEmpty", "", ""),
           Arguments.arguments("isEmpty", "isFalse", "isNotEmpty", "", ""),
           Arguments.arguments("size", "isZero", "isEmpty", "", ""),
+          Arguments.arguments("size", "isEqualTo", "hasSize", "", "5"),
           Arguments.arguments("contains", "isTrue", "contains", "something", ""),
           Arguments.arguments("contains", "isFalse", "doesNotContain", "something", ""),
           Arguments.arguments("containsAll", "isTrue", "containsAll", "otherCollection", "")
