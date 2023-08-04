@@ -90,7 +90,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
 
     @Test
     @DocumentExample
-    void flattenAllOfStringMatchersAndConvert() {
+    void allOfStringMatchersAndConvert() {
         rewriteRun(
           //language=java
           java("""
@@ -119,8 +119,11 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                 void test() {
                     String str1 = "Hello world!";
                     String str2 = "Hello world!";
-                    assertThat(str1).isEqualTo(str2);
-                    assertThat(str1).hasSize(12);
+                    assertThat(str1)
+                            .satisfies(
+                                    arg -> assertThat(arg).isEqualTo(str2),
+                                    arg -> assertThat(arg).hasSize(12)
+                            );
                 }
             }
             """));
