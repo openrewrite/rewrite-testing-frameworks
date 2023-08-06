@@ -22,9 +22,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Space;
-import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -154,10 +152,15 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
             J.MethodInvocation collapsedAssertThatMi = null;
             for (J.MethodInvocation mi : consecutiveAssertThatStatement) {
                 if (collapsedAssertThatMi == null) {
-                    collapsedAssertThatMi = mi;
+                    Space afterSpace = mi.getPrefix();
+                    JRightPadded<Expression> jRightPadded = JRightPadded.build(mi.getSelect()).withAfter(afterSpace);
+                    collapsedAssertThatMi = mi.getPadding().withSelect(jRightPadded);
                     continue;
                 }
-                collapsedAssertThatMi = mi.withSelect(collapsedAssertThatMi.withPrefix(Space.EMPTY));
+                Space prefixSpace = collapsedAssertThatMi.getPrefix();
+                Expression expression = collapsedAssertThatMi.withPrefix(Space.EMPTY);
+                JRightPadded<Expression> jRightPadded = JRightPadded.build(expression).withAfter(prefixSpace);
+                collapsedAssertThatMi = mi.getPadding().withSelect(jRightPadded);
             }
             return collapsedAssertThatMi;
         }
