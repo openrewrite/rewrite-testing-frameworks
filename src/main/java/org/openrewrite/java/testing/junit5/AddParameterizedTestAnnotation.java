@@ -45,14 +45,14 @@ public class AddParameterizedTestAnnotation extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Add missing @ParameterizedTest annotation when @ValueSource is used or " +
-               "replace @Test with @ParameterizedTest";
+        return "Add missing `@ParameterizedTest` annotation when `@ValueSource` is used or " +
+               "replace `@Test` with `@ParameterizedTest`";
     }
 
     @Override
     public String getDescription() {
-        return "Add missing @ParameterizedTest annotation when @ValueSource is used or " +
-               "replace @Test with @ParameterizedTest.";
+        return "Add missing `@ParameterizedTest` annotation when `@ValueSource` is used or " +
+               "replace `@Test` with `@ParameterizedTest`.";
     }
 
     @Override
