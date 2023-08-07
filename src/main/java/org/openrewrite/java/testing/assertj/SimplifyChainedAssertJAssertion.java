@@ -30,6 +30,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -108,8 +109,20 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             }
 
             J.MethodInvocation assertThatArg = (J.MethodInvocation) assertThat.getArguments().get(0);
-            if (!CHAINED_ASSERT_MATCHER.matches(assertThatArg) && !hasZeroArgument(mi)) {
+            boolean argIsZero = hasZeroArgument(mi);
+            if (!CHAINED_ASSERT_MATCHER.matches(assertThatArg) && !argIsZero) {
                 return mi;
+            }
+
+            if (chainedAssertion.equals("size") && assertToReplace.equals("isEqualTo")) {
+                if (argIsZero) {
+                    dedicatedAssertion = "isEmpty";
+                }else if (requiredType.equals("java.util.Map")) {
+                    MethodMatcher sizeMatcher = new MethodMatcher("java.util.Map size(..)");
+                    if (!sizeMatcher.matches(mi.getArguments().get(0))) {
+                        return mi;
+                    }
+                }
             }
 
             // method call has select
