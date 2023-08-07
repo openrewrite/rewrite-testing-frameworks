@@ -71,7 +71,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 String initMethodName = "init" + cd.getSimpleName();
 
                 // Constructor Injected Test
-                if (parametersMethodName != null && constructorParams != null && constructorParams.stream().anyMatch(p -> p instanceof J.VariableDeclarations)) {
+                if (parametersMethodName != null && constructorParams != null && constructorParams.stream().anyMatch(org.openrewrite.java.tree.J.VariableDeclarations.class::isInstance)) {
                     doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true, ctx));
                 }
 

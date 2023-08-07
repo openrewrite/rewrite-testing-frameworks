@@ -165,7 +165,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
         }
 
         private boolean methodInvocationInBodyContainsAssertion() {
-            J.ClassDeclaration classDeclaration = getCursor().dropParentUntil(is -> is instanceof J.ClassDeclaration).getValue();
+            J.ClassDeclaration classDeclaration = getCursor().dropParentUntil(org.openrewrite.java.tree.J.ClassDeclaration.class::isInstance).getValue();
 
             JavaIsoVisitor<Set<MethodMatcher>> findMethodDeclarationsVisitor = new JavaIsoVisitor<Set<MethodMatcher>>() {
                 @Override
