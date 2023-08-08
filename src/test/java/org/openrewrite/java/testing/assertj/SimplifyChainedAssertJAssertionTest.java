@@ -17,13 +17,11 @@ package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.SourceSpec;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -49,11 +47,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               class MyTest {
                   @Test
                   void testMethod() {
-                      assertThat(getString().isEmpty()).isTrue();
-                  }
-                  
-                  String getString() {
-                      return "hello world";
+                      assertThat("hello world".isEmpty()).isTrue();
                   }
               }
               """,
@@ -65,11 +59,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               class MyTest {
                   @Test
                   void testMethod() {
-                      assertThat(getString()).isEmpty();
-                  }
-                  
-                  String getString() {
-                      return "hello world";
+                      assertThat("hello world").isEmpty();
                   }
               }
               """
@@ -195,48 +185,6 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
                   @Test
                   void path(Path actual) {
                       assertThat(actual).startsWithRaw(Path.of("prefix"));
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void replacementHasZeroArgument() {
-        rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("getString", "hasSize", "isEmpty", "java.lang.String")),
-          //language=java
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-    
-              import static org.assertj.core.api.Assertions.assertThat;
-    
-              class MyTest {
-                  @Test
-                  void testMethod() {
-                      assertThat(getString()).hasSize(0);
-                  }
-    
-                  String getString() {
-                      return "hello world";
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-    
-              import static org.assertj.core.api.Assertions.assertThat;
-    
-              class MyTest {
-                  @Test
-                  void testMethod() {
-                      assertThat(getString()).isEmpty();
-                  }
-    
-                  String getString() {
-                      return "hello world";
                   }
               }
               """
@@ -495,66 +443,38 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/398")
-    void zeroHandlingDoesNotReplaceUnwantedPattern() {
+    void sizeIsEqualToZeroToIsEmpty() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("size", "isEqualTo", "hasSize", "java.util.ArrayList")),
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("size", "isEqualTo", "hasSize", "java.util.List")),
           //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
-              import java.util.ArrayList;
+              import java.util.List;
               
               import static org.assertj.core.api.Assertions.assertThat;
     
               class MyTest {
                   @Test
                   void testMethod() {
-                      ArrayList<String> objectIdentifies = new ArrayList<>();
+                      List<String> objectIdentifies = List.of();
                       assertThat(objectIdentifies.size()).isEqualTo(0);
                   }
               }
               """,
             """
               import org.junit.jupiter.api.Test;
-              import java.util.ArrayList;
+              import java.util.List;
               
               import static org.assertj.core.api.Assertions.assertThat;
     
               class MyTest {
                   @Test
                   void testMethod() {
-                      ArrayList<String> objectIdentifies = new ArrayList<>();
+                      List<String> objectIdentifies = List.of();
                       assertThat(objectIdentifies).isEmpty();
                   }
               }
-              """
-          )
-        );
-    }
-
-    @Test
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/398")
-    void mapSizeShouldBePassedIntoIsEqualTo() {
-        rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("size", "isEqualTo", "hasSameSizeAs", "java.util.Map")),
-          //language=java
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-              import java.util.Map;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-    
-              class MyTest {
-                  @Test
-                  void testMethod() {
-                      assertThat(getMap().size()).isEqualTo(1);
-                  }
-    
-                  Map<String, String> getMap() {
-                      return Collections.emptyMap();
-                  }
-              }             
               """
           )
         );

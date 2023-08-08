@@ -30,7 +30,6 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -80,7 +79,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
     @Override
     public String getDescription() {
         return "Many AssertJ chained assertions have dedicated assertions that function the same. " +
-                "It is best to use the dedicated assertions.";
+               "It is best to use the dedicated assertions.";
     }
 
     @Override
@@ -109,19 +108,13 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             }
 
             J.MethodInvocation assertThatArg = (J.MethodInvocation) assertThat.getArguments().get(0);
-            boolean argIsZero = hasZeroArgument(mi);
-            if (!CHAINED_ASSERT_MATCHER.matches(assertThatArg) && !argIsZero) {
+            if (!CHAINED_ASSERT_MATCHER.matches(assertThatArg)) {
                 return mi;
             }
 
-            if (chainedAssertion.equals("size") && assertToReplace.equals("isEqualTo")) {
-                if (argIsZero) {
+            if ("size".equals(chainedAssertion) && "isEqualTo".equals(assertToReplace)) {
+                if (hasZeroArgument(mi)) {
                     dedicatedAssertion = "isEmpty";
-                }else if (requiredType.equals("java.util.Map")) {
-                    MethodMatcher sizeMatcher = new MethodMatcher("java.util.Map size(..)");
-                    if (!sizeMatcher.matches(mi.getArguments().get(0))) {
-                        return mi;
-                    }
                 }
             }
 
@@ -148,7 +141,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
         }
 
         if (!(assertThatArg.getArguments().get(0) instanceof J.Empty)
-                && !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
+            && !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
             // Note: this should be the only case when more than one argument needs to be handled. When the assertions involve the map functions
             arguments.add(assertThatArg.getArguments().get(0));
             arguments.add(methodToReplace.getArguments().get(0));
@@ -156,13 +149,13 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
         }
 
         if (!(assertThatArg.getArguments().get(0) instanceof J.Empty)
-                || !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
+            || !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
             Expression argumentToAdd = assertThatArg.getArguments().get(0) instanceof J.Empty ? methodToReplace.getArguments().get(0) : assertThatArg.getArguments().get(0);
             argumentToAdd = argumentToAdd instanceof J.MethodInvocation ? ((J.MethodInvocation) argumentToAdd).getSelect() : argumentToAdd;
             arguments.add(argumentToAdd);
 
             if (requiredType.equals("java.nio.file.Path") && dedicatedAssertion.contains("Raw")
-                    && TypeUtils.isAssignableTo("java.lang.String", assertThatArg.getArguments().get(0).getType())) {
+                && TypeUtils.isAssignableTo("java.lang.String", assertThatArg.getArguments().get(0).getType())) {
                 return "assertThat(#{any()}).%s(Path.of(#{any()}))";
             }
             return "assertThat(#{any()}).%s(#{any()})";
