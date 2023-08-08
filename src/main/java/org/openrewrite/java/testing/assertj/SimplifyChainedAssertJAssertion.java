@@ -112,10 +112,9 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 return mi;
             }
 
-            if ("size".equals(chainedAssertion) && "isEqualTo".equals(assertToReplace)) {
-                if (hasZeroArgument(mi)) {
-                    dedicatedAssertion = "isEmpty";
-                }
+            // Special case for more expressive assertions: assertThat(x.size()).isEqualTo(0) -> isEmpty()
+            if ("size".equals(chainedAssertion) && "isEqualTo".equals(assertToReplace) && hasZeroArgument(mi)) {
+                dedicatedAssertion = "isEmpty";
             }
 
             // method call has select
@@ -161,7 +160,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
         // If either argument is empty, we choose which one to add to the arguments list, and optionally extract the select
         arguments.add(extractEitherArgument(assertThatArgumentIsEmpty, assertThatArgument, methodToReplaceArgument));
 
-        // A quick patch for Path.of() assertions
+        // Special case for Path.of() assertions
         if ("java.nio.file.Path".equals(requiredType) && dedicatedAssertion.contains("Raw")
             && TypeUtils.isAssignableTo("java.lang.String", assertThatArgument.getType())) {
             return "assertThat(#{any()}).%s(Path.of(#{any()}))";
