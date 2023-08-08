@@ -112,20 +112,24 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 return mi;
             }
 
-            // Special case for more expressive assertions: assertThat(x.size()).isEqualTo(0) -> isEmpty()
-            if ("size".equals(chainedAssertion) && "isEqualTo".equals(assertToReplace) && hasZeroArgument(mi)) {
-                dedicatedAssertion = "isEmpty";
-            }
-
-            // method call has select
-            Expression select = assertThatArg.getSelect() != null ? assertThatArg.getSelect() : assertThatArg;
-            if (!TypeUtils.isAssignableTo(requiredType, select.getType())) {
+            // Extract the actual argument for the new assertThat call
+            Expression actual = assertThatArg.getSelect() != null ? assertThatArg.getSelect() : assertThatArg;
+            if (!TypeUtils.isAssignableTo(requiredType, actual.getType())) {
                 return mi;
             }
+            List<Expression> arguments = new ArrayList<>();
+            arguments.add(actual);
 
-            List<Expression> arguments = new ArrayList<>(Collections.singletonList(select));
-            String template = getTemplate(arguments, assertThatArg, mi);
-            String formattedTemplate = String.format(template, dedicatedAssertion);
+            // Special case for more expressive assertions: assertThat(x.size()).isEqualTo(0) -> isEmpty()
+            if ("size".equals(chainedAssertion) && "isEqualTo".equals(assertToReplace) && hasZeroArgument(mi)) {
+                return applyTemplate("assertThat(#{any()}).isEmpty()", arguments, mi, ctx);
+            }
+
+            String template = getStringTemplateAndAppendArguments(assertThatArg, mi, arguments);
+            return applyTemplate(String.format(template, dedicatedAssertion), arguments, mi, ctx);
+        }
+
+        private J.MethodInvocation applyTemplate(String formattedTemplate, List<Expression> arguments, J.MethodInvocation mi, ExecutionContext ctx) {
             return JavaTemplate.builder(formattedTemplate)
                     .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
@@ -134,11 +138,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
         }
     }
 
-    private String getTemplate(List<Expression> arguments, J.MethodInvocation assertThatArg, J.MethodInvocation methodToReplace) {
-        if (hasZeroArgument(methodToReplace)) {
-            return "assertThat(#{any()}).%s()";
-        }
-
+    private String getStringTemplateAndAppendArguments(J.MethodInvocation assertThatArg, J.MethodInvocation methodToReplace, List<Expression> arguments) {
         Expression assertThatArgument = assertThatArg.getArguments().get(0);
         Expression methodToReplaceArgument = methodToReplace.getArguments().get(0);
         boolean assertThatArgumentIsEmpty = assertThatArgument instanceof J.Empty;
