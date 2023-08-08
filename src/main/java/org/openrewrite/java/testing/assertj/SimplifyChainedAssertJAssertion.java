@@ -140,28 +140,49 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             return "assertThat(#{any()}).%s()";
         }
 
-        if (!(assertThatArg.getArguments().get(0) instanceof J.Empty)
-            && !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
-            // Note: this should be the only case when more than one argument needs to be handled. When the assertions involve the map functions
-            arguments.add(assertThatArg.getArguments().get(0));
-            arguments.add(methodToReplace.getArguments().get(0));
+        Expression assertThatArgument = assertThatArg.getArguments().get(0);
+        Expression methodToReplaceArgument = methodToReplace.getArguments().get(0);
+        boolean assertThatArgumentIsEmpty = assertThatArgument instanceof J.Empty;
+        boolean methodToReplaceArgumentIsEmpty = methodToReplaceArgument instanceof J.Empty;
+
+        // If both arguments are empty, then the select is already added to the arguments list, and we use a minimal template
+        if (assertThatArgumentIsEmpty && methodToReplaceArgumentIsEmpty) {
+            return "assertThat(#{any()}).%s()";
+        }
+
+        // If both arguments are not empty, then we add both to the arguments to the arguments list, and return a template with two arguments
+        if (!assertThatArgumentIsEmpty && !methodToReplaceArgumentIsEmpty) {
+            // This should only happen for map assertions using a key and value
+            arguments.add(assertThatArgument);
+            arguments.add(methodToReplaceArgument);
             return "assertThat(#{any()}).%s(#{any()}, #{any()})";
         }
 
-        if (!(assertThatArg.getArguments().get(0) instanceof J.Empty)
-            || !(methodToReplace.getArguments().get(0) instanceof J.Empty)) {
-            Expression argumentToAdd = assertThatArg.getArguments().get(0) instanceof J.Empty ? methodToReplace.getArguments().get(0) : assertThatArg.getArguments().get(0);
-            argumentToAdd = argumentToAdd instanceof J.MethodInvocation ? ((J.MethodInvocation) argumentToAdd).getSelect() : argumentToAdd;
-            arguments.add(argumentToAdd);
+        // If either argument is empty, we choose which one to add to the arguments list, and optionally extract the select
+        arguments.add(extractEitherArgument(assertThatArgumentIsEmpty, assertThatArgument, methodToReplaceArgument));
 
-            if (requiredType.equals("java.nio.file.Path") && dedicatedAssertion.contains("Raw")
-                && TypeUtils.isAssignableTo("java.lang.String", assertThatArg.getArguments().get(0).getType())) {
-                return "assertThat(#{any()}).%s(Path.of(#{any()}))";
-            }
-            return "assertThat(#{any()}).%s(#{any()})";
+        // A quick patch for Path.of() assertions
+        if ("java.nio.file.Path".equals(requiredType) && dedicatedAssertion.contains("Raw")
+            && TypeUtils.isAssignableTo("java.lang.String", assertThatArgument.getType())) {
+            return "assertThat(#{any()}).%s(Path.of(#{any()}))";
         }
 
-        return "assertThat(#{any()}).%s()";
+        return "assertThat(#{any()}).%s(#{any()})";
+
+    }
+
+    private static Expression extractEitherArgument(boolean assertThatArgumentIsEmpty, Expression assertThatArgument, Expression methodToReplaceArgument) {
+        if (assertThatArgumentIsEmpty) {
+            return methodToReplaceArgument;
+        }
+        // Only on the assertThat argument do we possibly replace the argument with the select; such as list.size() -> list
+        if (assertThatArgument instanceof J.MethodInvocation) {
+            Expression select = ((J.MethodInvocation) assertThatArgument).getSelect();
+            if (select != null) {
+                return select;
+            }
+        }
+        return assertThatArgument;
     }
 
     private boolean hasZeroArgument(J.MethodInvocation method) {

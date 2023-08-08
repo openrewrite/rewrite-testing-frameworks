@@ -353,6 +353,21 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
                           assertThat(mapA.size()).isEqualTo(mapB.size());
                       }
                   }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                  import java.util.Map;
+                  
+                  import static org.assertj.core.api.Assertions.assertThat;
+        
+                  class MyTest {
+                      @Test
+                      void testMethod() {
+                          Map<String, String> mapA = Map.of();
+                          Map<String, String> mapB = Map.of();
+                          assertThat(mapA).hasSize(mapB.size());
+                      }
+                  }
                   """
               )
             );
