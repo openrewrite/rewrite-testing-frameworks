@@ -29,7 +29,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
+          .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24", "junit-jupiter-api-5.9"))
           .recipe(new CollapseConsecutiveAssertThatStatements());
     }
 
@@ -53,6 +53,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                       assertThat(listA).hasSize(3);
                       assertThat(listA).containsExactly("a", "b", "c");
                   }
+
                   private int[] notification() {
                       return new int[]{1, 2, 3};
                   }
@@ -70,10 +71,11 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                   public void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA)
-                          .isNotNull()
-                          .hasSize(3)
-                          .containsExactly("a", "b", "c");
+                              .isNotNull()
+                              .hasSize(3)
+                              .containsExactly("a", "b", "c");
                   }
+
                   private int[] notification() {
                       return new int[]{1, 2, 3};
                   }
@@ -106,6 +108,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                       assertThat(listB).isNotNull();
                       assertThat(listB).hasSize(3);
                   }
+
                   private int[] notification() {
                       return new int[]{1, 2, 3};
                   }
@@ -123,14 +126,15 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                   public void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA)
-                          .isNotNull()
-                          .hasSize(3)
-                          .containsExactly("a", "b", "c");
+                              .isNotNull()
+                              .hasSize(3)
+                              .containsExactly("a", "b", "c");
                       List<String> listB = Arrays.asList("a", "b", "c");
                       assertThat(listB)
-                          .isNotNull()
-                          .hasSize(3);
+                              .isNotNull()
+                              .hasSize(3);
                   }
+
                   private int[] notification() {
                       return new int[]{1, 2, 3};
                   }
@@ -163,6 +167,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                       assertThat(listB).isNotNull();
                       assertThat(listB).hasSize(3);
                   }
+
                   private int[] notification() {
                       return new int[]{1, 2, 3};
                   }
@@ -180,14 +185,15 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                   public void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA)
-                          .isNotNull()
-                          .hasSize(3);
+                              .isNotNull()
+                              .hasSize(3);
                       List<String> listB = Arrays.asList("a", "b", "c");
                       assertThat(listA).containsExactly("a", "b", "c");
                       assertThat(listB)
-                          .isNotNull()
-                          .hasSize(3);
+                              .isNotNull()
+                              .hasSize(3);
                   }
+
                   private int[] notification() {
                       return new int[]{1, 2, 3};
                   }
@@ -218,6 +224,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                       assertThat(x).hasSize(3);
                       assertThat(listA).containsExactly("a", "b", "c");
                   }
+
                   private int[] notification() {
                       return new int[]{1, 2, 3};
                   }
