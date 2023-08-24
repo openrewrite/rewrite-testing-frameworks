@@ -20,11 +20,11 @@ import org.openrewrite.Recipe;
 public class AdoptAssertJDurationAssertions extends Recipe {
     @Override
     public String getDisplayName() {
-        return "";
+        return "Adopt AssertJ Duration assertions";
     }
 
     @Override
     public String getDescription() {
-        return "";
+        return "Adopt AssertJ DurationAssert assertions for more expressive messages.";
     }
 }
