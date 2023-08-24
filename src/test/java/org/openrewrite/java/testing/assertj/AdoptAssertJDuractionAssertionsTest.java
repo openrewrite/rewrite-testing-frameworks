@@ -1,0 +1,439 @@
+/*
+ * Copyright 2023 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.openrewrite.java.testing.assertj;
+
+import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeSpec;
+import org.openrewrite.test.RewriteTest;
+
+import static org.openrewrite.java.Assertions.java;
+
+public class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
+    @Override
+    public void defaults(RecipeSpec spec) {
+        spec
+          .recipe(new AdoptAssertJDurationAssertions())
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"));
+    }
+
+    @Test
+    @DocumentExample
+    void getSecondEqualToTest() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal timestampA, Temporal timestampB) {
+                      assertThat(Duration.between(timestampA, timestampB).getSeconds()).isEqualTo(1);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal timestampA, Temporal timestampB) {
+                      assertThat(Duration.between(timestampA, timestampB)).hasSeconds(1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void worksWithGetNano() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal timestampA, Temporal timestampB) {
+                      assertThat(Duration.between(timestampA, timestampB).getNano()).isEqualTo(1);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal timestampA, Temporal timestampB) {
+                      assertThat(Duration.between(timestampA, timestampB)).hasNanos(1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    //seconds to minutes
+    @Test
+    void secondsToMinutes() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasSeconds(600);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasMinutes(10);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    //millis to seconds
+    @Test
+    void millisToSeconds() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.juint.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasMillis(5000);
+                  }
+              }
+              """,
+            """
+              import org.juint.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasSeconds(5);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    //millis to minutes
+    @Test
+    void millisToMinutes() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasMillis(300000);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasMinutes(5);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    //millis to hours
+    @Test
+    void millisToHours() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasMillis(18000000);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasHours(5);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    //millis to days
+    @Test
+    void millisToDays() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasMillis(432000000);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasDays(5);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    //minutes to hours
+    @Test
+    void minutesToHours() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasMinutes(120);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasHours(2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    //hours to days
+    @Test
+    void hoursToDays() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasHours(48);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasDays(2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    //does not change when not able to be simplified
+    @Test
+    void cannotBeSimplified() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasHours(34);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    //does not run on non multiplication arithmetic
+    @Test
+    void doesNotRunOnNonMultArithmetic() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasHours(34 + 5);
+                      assertThat(time).hasHours(34 - 5);
+                      assertThat(time).hasHours(34 / 5);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    //does not change when constant is multiplied
+    @Test
+    void doesNotChangeWhenConstantIsMultiplied() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time, int constant) {
+                      assertThat(time).hasHours(34 * constant);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    //multiplication cases
+    @Test
+    void doesChangeOnMultiplication() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasHours(24 * 2);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              class Foo {
+                  @Test
+                  void testMethod(Temporal time) {
+                      assertThat(time).hasDays(2);
+                  }
+              }
+              """
+          )
+        );
+    }
+}
