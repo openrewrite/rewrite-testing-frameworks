@@ -42,6 +42,7 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
           java(
             """
               import java.time.Duration;
+              import java.time.temporal.Temporal;
               
               import static org.assertj.core.api.Assertions.assertThat;
               
@@ -53,6 +54,7 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
               """,
             """
               import java.time.Duration;
+              import java.time.temporal.Temporal;
               
               import static org.assertj.core.api.Assertions.assertThat;
               
@@ -73,6 +75,7 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
           java(
             """
               import java.time.Duration;
+              import java.time.temporal.Temporal;
               
               import static org.assertj.core.api.Assertions.assertThat;
               
