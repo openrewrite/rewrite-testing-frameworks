@@ -65,7 +65,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(Preconditions.or(
                 new UsesMethod<>("org.assertj.core.api.AbstractDurationAssert has*(int)", true),
-                new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)")
+                new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true)
             ), new AdoptAssertJDurationAssertionsVisitor()
         );
     }
