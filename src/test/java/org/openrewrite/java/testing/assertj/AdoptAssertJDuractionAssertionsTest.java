@@ -415,7 +415,7 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
               
               class Foo {
-                  void testMethod(Durartion time) {
+                  void testMethod(Duration time) {
                       assertThat(time).hasDays(2);
                   }
               }

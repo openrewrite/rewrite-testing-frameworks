@@ -41,6 +41,10 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     static final Map<String, String> methodMap = new HashMap<String, String>() {{
         put("getSeconds", "hasSeconds");
         put("getNano", "hasNanos");
+        put("hasMillis", "hasSeconds");
+        put("hasSeconds", "hasMinutes");
+        put("hasMinutes", "hasHours");
+        put("hasHours", "hasDays");
     }};
     static List<MethodMatcher> timeUnitMatchers = Arrays.asList(
             new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasMillis(..)", true),
@@ -63,11 +67,12 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.or(
-                new UsesMethod<>("org.assertj.core.api.AbstractDurationAssert has*(int)", true),
-                new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true)
-            ), new AdoptAssertJDurationAssertionsVisitor()
-        );
+        //return Preconditions.check(Preconditions.or(
+        //        new UsesMethod<>("org.assertj.core.api.AbstractDurationAssert has*(int)", true),
+        //        new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true)
+        //    ), new AdoptAssertJDurationAssertionsVisitor()
+        //);
+        return new AdoptAssertJDurationAssertionsVisitor();
     }
 
     @SuppressWarnings("DataFlowIssue")
@@ -111,32 +116,42 @@ public class AdoptAssertJDurationAssertions extends Recipe {
         }
 
         private J.MethodInvocation simplifyTimeUnits(J.MethodInvocation m, ExecutionContext ctx) {
-            int timeLength = 60;
-            String mName = m.getSimpleName();
-            if (mName.equals("hasMillis")) {
-                timeLength = 1000;
-            }else if (mName.equals("hasHours")) {
-                timeLength = 24;
-            }
-
             Expression arg = m.getArguments().get(0);
-            Long argValue = SimplifyDurationCreationUnits.getConstantIntegralValue(arg); // note: guess my machine hasn't updated to the new commit yet, method should be public
-            if (argValue % timeLength == 0) {
-                // convert divided value to OpenRewrite LST type
-                int rawValue = (int)(argValue / timeLength);
-                J.Literal newArg = rawValueToExpression(rawValue);
-                // get new method name
+            Long argValue = SimplifyDurationCreationUnits.getConstantIntegralValue(arg);
+            List<Object> unitInfo = getUnitInfo(m.getSimpleName(), Math.toIntExact(argValue));
+            String methodName = (String)unitInfo.get(0);
+            int methodArg = (int)unitInfo.get(1);
 
+            if (!(m.getSimpleName().equals(methodName))) {
+                // convert divided value to OpenRewrite LST type
+                J.Literal newArg = rawValueToExpression(methodArg);
                 // update method invocation with new name and arg
                 Expression methodSelect = m.getSelect();
-                return JavaTemplate.builder("#{any()}.#{any()}(#{any(int)})")
+                return JavaTemplate.builder("#{any()}.#{}(#{any(int)})")
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
                         .build()
-                        .apply(getCursor(), m.getCoordinates().replace(), methodSelect, "new method name", newArg);
+                        .apply(getCursor(), m.getCoordinates().replace(), methodSelect, methodName, newArg);
             }
 
             return m;
+        }
+
+        private List<Object> getUnitInfo(String name, int argValue) {
+            int timeLength = 60;
+            if (name.equals("hasMillis")) {
+                timeLength = 1000;
+            }else if (name.equals("hasHours")) {
+                timeLength = 24;
+            }
+
+            if (argValue % timeLength == 0) {
+                String newName = methodMap.get(name);
+                return getUnitInfo(newName, argValue / timeLength);
+            }else {
+                // returning name, newArg, isDivisible
+                return Arrays.asList(name, argValue);
+            }
         }
 
         private J.Literal rawValueToExpression(int rawValue) {
