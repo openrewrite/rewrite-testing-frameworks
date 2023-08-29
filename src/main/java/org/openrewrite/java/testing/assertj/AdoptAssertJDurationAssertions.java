@@ -58,7 +58,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Adopt AssertJ DurationAssert assertions for more expressive messages.";
+        return "Adopt AssertJ `DurationAssert` assertions for more expressive messages.";
     }
 
     @Override
