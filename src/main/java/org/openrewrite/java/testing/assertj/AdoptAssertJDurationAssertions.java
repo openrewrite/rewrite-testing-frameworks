@@ -16,19 +16,22 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.marker.Markers;
+import org.openrewrite.staticanalysis.SimplifyDurationCreationUnits;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class AdoptAssertJDurationAssertions extends Recipe {
     static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
@@ -40,12 +43,12 @@ public class AdoptAssertJDurationAssertions extends Recipe {
         put("getNano", "hasNanos");
     }};
     static List<MethodMatcher> timeUnitMatchers = Arrays.asList(
-            new MethodMatcher("org.assertj.core.api.DurationAssert hasMillis(..)"),
-            new MethodMatcher("org.assertj.core.api.DurationAssert hasSeconds(..)"),
-            new MethodMatcher("org.assertj.core.api.DurationAssert hasNanos(..)"),
-            new MethodMatcher("org.assertj.core.api.DurationAssert hasMinutes(..)"),
-            new MethodMatcher("org.assertj.core.api.DurationAssert hasHours(..)"),
-            new MethodMatcher("org.assertj.core.api.DurationAssert hasDays(..)")
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasMillis(..)"),
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasSeconds(..)"),
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasNanos(..)"),
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasMinutes(..)"),
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasHours(..)"),
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasDays(..)")
     );
 
     @Override
@@ -60,13 +63,18 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new AdoptAssertJDurationAssertionsVisitor();
+        return Preconditions.check(Preconditions.or(
+                new UsesMethod<>("org.assertj.core.api.AbstractDurationAssert has*(int)"),
+                new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)")
+            ), new AdoptAssertJDurationAssertionsVisitor()
+        );
     }
 
     @SuppressWarnings("DataFlowIssue")
     private static class AdoptAssertJDurationAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
+            J.MethodInvocation m = super.visitMethodInvocation(mi, ctx);
             if (timeUnitMatchers.stream().anyMatch(matcher -> matcher.matches(mi))) {
                 return simplifyTimeUnits(mi, ctx);
             }else if (ISEQUALTO_MATCHER.matches(mi)) {
@@ -103,7 +111,44 @@ public class AdoptAssertJDurationAssertions extends Recipe {
         }
 
         private J.MethodInvocation simplifyTimeUnits(J.MethodInvocation m, ExecutionContext ctx) {
+            int timeLength = 60;
+            String mName = m.getSimpleName();
+            if (mName.equals("hasMillis")) {
+                timeLength = 1000;
+            }else if (mName.equals("hasHours")) {
+                timeLength = 24;
+            }
+
+            Expression arg = m.getArguments().get(0);
+            Long argValue = SimplifyDurationCreationUnits.getConstantIntegralValue(arg); // note: guess my machine hasn't updated to the new commit yet, method should be public
+            if (argValue % timeLength == 0) {
+                // convert divided value to OpenRewrite LST type
+                int rawValue = (int)(argValue / timeLength);
+                J.Literal newArg = rawValueToExpression(rawValue);
+                // get new method name
+
+                // update method invocation with new name and arg
+                Expression methodSelect = m.getSelect();
+                return JavaTemplate.builder("#{any()}.#{any()}(#{int})")
+                        .contextSensitive()
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
+                        .build()
+                        .apply(getCursor(), m.getCoordinates().replace(), methodSelect, "new method name", newArg);
+            }
+
             return m;
+        }
+
+        private J.Literal rawValueToExpression(int rawValue) {
+            return new J.Literal(
+                    UUID.randomUUID(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    rawValue,
+                    String.valueOf(rawValue),
+                    null,
+                    JavaType.Primitive.Int
+            );
         }
     }
 }
