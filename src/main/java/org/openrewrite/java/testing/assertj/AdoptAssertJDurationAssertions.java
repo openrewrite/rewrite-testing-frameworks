@@ -129,7 +129,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
                 // update method invocation with new name and arg
                 Expression methodSelect = m.getSelect();
-                return JavaTemplate.builder("#{any()}.#{any()}(#{int})")
+                return JavaTemplate.builder("#{any()}.#{any()}(#{any(int)})")
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
                         .build()
