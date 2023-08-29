@@ -43,7 +43,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
         put("getNano", "hasNanos");
     }};
     static List<MethodMatcher> timeUnitMatchers = Arrays.asList(
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasMillis(..)"),
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasMillis(..)", true),
             new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasSeconds(..)"),
             new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasNanos(..)"),
             new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasMinutes(..)"),
