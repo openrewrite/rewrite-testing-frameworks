@@ -67,6 +67,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
+        // TODO: figure out why this Precondition check doesn't quite work
         //return Preconditions.check(Preconditions.or(
         //        new UsesMethod<>("org.assertj.core.api.AbstractDurationAssert has*(int)", true),
         //        new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true)
@@ -118,6 +119,9 @@ public class AdoptAssertJDurationAssertions extends Recipe {
         private J.MethodInvocation simplifyTimeUnits(J.MethodInvocation m, ExecutionContext ctx) {
             Expression arg = m.getArguments().get(0);
             Long argValue = SimplifyDurationCreationUnits.getConstantIntegralValue(arg);
+            if (argValue == null) {
+                return m;
+            }
             List<Object> unitInfo = getUnitInfo(m.getSimpleName(), Math.toIntExact(argValue));
             String methodName = (String)unitInfo.get(0);
             int methodArg = (int)unitInfo.get(1);
