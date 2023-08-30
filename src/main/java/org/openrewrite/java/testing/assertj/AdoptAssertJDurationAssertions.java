@@ -24,10 +24,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.SimplifyDurationCreationUnits;
 
@@ -37,7 +34,8 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
     static final MethodMatcher GET_NANO_MATCHER = new MethodMatcher("java.time.Duration getNano()");
     static final MethodMatcher GET_SECONDS_MATCHER = new MethodMatcher("java.time.Duration getSeconds()");
-    static final MethodMatcher ISEQUALTO_MATCHER = new MethodMatcher("org.assertj.core.api.AbstractLongAssert isEqualTo(..)");
+    static final MethodMatcher ISEQUALTO_INT_MATCHER = new MethodMatcher("org.assertj.core.api.AbstractIntegerAssert isEqualTo(..)");
+    static final MethodMatcher ISEQUALTO_LONG_MATCHER = new MethodMatcher("org.assertj.core.api.AbstractLongAssert isEqualTo(..)");
     static final Map<String, String> methodMap = new HashMap<String, String>() {{
         put("getSeconds", "hasSeconds");
         put("getNano", "hasNanos");
@@ -68,12 +66,12 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         // TODO: figure out why this Precondition check doesn't quite work
-        //return Preconditions.check(Preconditions.or(
-        //        new UsesMethod<>("org.assertj.core.api.AbstractDurationAssert has*(int)", true),
-        //        new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true)
-        //    ), new AdoptAssertJDurationAssertionsVisitor()
-        //);
-        return new AdoptAssertJDurationAssertionsVisitor();
+        return Preconditions.check(Preconditions.or(
+                new UsesMethod<>("org.assertj.core.api.AbstractDurationAssert has*(..)", true),
+                new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true),
+                new UsesMethod<>("org.assertj.core.api.AbstractIntegerAssert isEqualTo(..)", true)
+            ), new AdoptAssertJDurationAssertionsVisitor()
+        );
     }
 
     @SuppressWarnings("DataFlowIssue")
@@ -83,16 +81,13 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             J.MethodInvocation m = super.visitMethodInvocation(mi, ctx);
             if (timeUnitMatchers.stream().anyMatch(matcher -> matcher.matches(mi))) {
                 return simplifyTimeUnits(mi, ctx);
-            }else if (ISEQUALTO_MATCHER.matches(mi)) {
+            }else if (ISEQUALTO_INT_MATCHER.matches(mi) || ISEQUALTO_LONG_MATCHER.matches(mi)) {
                 return simplifyMultipleAssertions(mi, ctx);
             }
             return mi;
         }
 
         private J.MethodInvocation simplifyMultipleAssertions(J.MethodInvocation m, ExecutionContext ctx) {
-            if (!ISEQUALTO_MATCHER.matches(m)) {
-                return m;
-            }
             Expression isEqualToArg = m.getArguments().get(0);
             if (!ASSERT_THAT_MATCHER.matches(m.getSelect())) {
                 return m;
