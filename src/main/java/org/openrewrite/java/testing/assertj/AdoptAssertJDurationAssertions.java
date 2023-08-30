@@ -48,11 +48,11 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     }};
     static List<MethodMatcher> timeUnitMatchers = Arrays.asList(
             new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasMillis(..)", true),
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasSeconds(..)"),
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasNanos(..)"),
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasMinutes(..)"),
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasHours(..)"),
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasDays(..)")
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasSeconds(..)", true),
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasNanos(..)", true),
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasMinutes(..)", true),
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasHours(..)", true),
+            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasDays(..)", true)
     );
 
     @Override
