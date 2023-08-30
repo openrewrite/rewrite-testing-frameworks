@@ -67,10 +67,10 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         // TODO: figure out why this Precondition check doesn't quite work
         return Preconditions.check(Preconditions.or(
-                new UsesMethod<>("org.assertj.core.api.AbstractDurationAssert has*(..)", true),
-                new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true),
-                new UsesMethod<>("org.assertj.core.api.AbstractIntegerAssert isEqualTo(..)", true)
-            ), new AdoptAssertJDurationAssertionsVisitor()
+                        new UsesMethod<>("org.assertj.core.api.AbstractDurationAssert has*(..)", true),
+                        new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true),
+                        new UsesMethod<>("org.assertj.core.api.AbstractIntegerAssert isEqualTo(..)", true)
+                ), new AdoptAssertJDurationAssertionsVisitor()
         );
     }
 
@@ -81,7 +81,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             J.MethodInvocation m = super.visitMethodInvocation(mi, ctx);
             if (timeUnitMatchers.stream().anyMatch(matcher -> matcher.matches(mi))) {
                 return simplifyTimeUnits(mi, ctx);
-            }else if (ISEQUALTO_INT_MATCHER.matches(mi) || ISEQUALTO_LONG_MATCHER.matches(mi)) {
+            } else if (ISEQUALTO_INT_MATCHER.matches(mi) || ISEQUALTO_LONG_MATCHER.matches(mi)) {
                 return simplifyMultipleAssertions(mi, ctx);
             }
             return mi;
@@ -118,8 +118,8 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                 return m;
             }
             List<Object> unitInfo = getUnitInfo(m.getSimpleName(), Math.toIntExact(argValue));
-            String methodName = (String)unitInfo.get(0);
-            int methodArg = (int)unitInfo.get(1);
+            String methodName = (String) unitInfo.get(0);
+            int methodArg = (int) unitInfo.get(1);
 
             if (!(m.getSimpleName().equals(methodName))) {
                 // convert divided value to OpenRewrite LST type
@@ -128,7 +128,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                 Expression methodSelect = m.getSelect();
                 return JavaTemplate.builder("#{any()}.#{}(#{any(int)})")
                         .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
                         .apply(getCursor(), m.getCoordinates().replace(), methodSelect, methodName, newArg);
             }
@@ -140,14 +140,14 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             int timeLength = 60;
             if (name.equals("hasMillis")) {
                 timeLength = 1000;
-            }else if (name.equals("hasHours")) {
+            } else if (name.equals("hasHours")) {
                 timeLength = 24;
             }
 
             if (argValue % timeLength == 0) {
                 String newName = methodMap.get(name);
                 return getUnitInfo(newName, argValue / timeLength);
-            }else {
+            } else {
                 // returning name, newArg, isDivisible
                 return Arrays.asList(name, argValue);
             }

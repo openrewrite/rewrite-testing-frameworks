@@ -101,7 +101,6 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
         );
     }
 
-    //millis to seconds
     @Test
     void millisToSeconds() {
         //language=java
@@ -133,7 +132,6 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
         );
     }
 
-    //seconds to minutes
     @Test
     void secondsToMinutes() {
         //language=java
@@ -165,9 +163,6 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
         );
     }
 
-
-
-    //millis to minutes
     @Test
     void millisToMinutes() {
         //language=java
@@ -199,7 +194,6 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
         );
     }
 
-    //millis to hours
     @Test
     void millisToHours() {
         //language=java
@@ -231,7 +225,6 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
         );
     }
 
-    //millis to days
     @Test
     void millisToDays() {
         //language=java
@@ -263,7 +256,6 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
         );
     }
 
-    //minutes to hours
     @Test
     void minutesToHours() {
         //language=java
@@ -295,7 +287,6 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
         );
     }
 
-    //hours to days
     @Test
     void hoursToDays() {
         //language=java
@@ -327,7 +318,6 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
         );
     }
 
-    //does not change when not able to be simplified
     @Test
     void cannotBeSimplified() {
         //language=java
@@ -348,7 +338,6 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
         );
     }
 
-    //does not run on non multiplication arithmetic
     @Test
     void doesNotRunOnNonMultArithmetic() {
         //language=java
@@ -371,7 +360,6 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
         );
     }
 
-    //does not change when constant is multiplied
     @Test
     void doesNotChangeWhenConstantIsMultiplied() {
         //language=java
@@ -392,7 +380,6 @@ class AdoptAssertJDuractionAssertionsTest implements RewriteTest {
         );
     }
 
-    //multiplication cases
     @Test
     void doesChangeOnMultiplication() {
         //language=java
