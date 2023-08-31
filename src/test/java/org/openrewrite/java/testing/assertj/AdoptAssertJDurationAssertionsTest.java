@@ -509,4 +509,93 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void shouldRetainAsDescription() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class Foo {
+                  void testMethod(Temporal timestampA, Temporal timestampB) {
+                      assertThat(Duration.between(timestampA, timestampB).getSeconds()).as("description").isEqualTo(1);
+                  }
+              }
+              """,
+            """
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class Foo {
+                  void testMethod(Temporal timestampA, Temporal timestampB) {
+                      assertThat(Duration.between(timestampA, timestampB)).as("description").hasSeconds(1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRetainWhiteSpace() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class Foo {
+                  void testMethod(Temporal timestampA, Temporal timestampB) {
+                      assertThat(Duration.between(timestampA, timestampB).getSeconds())
+                        .isEqualTo(1);
+                  }
+              }
+              """,
+            """
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class Foo {
+                  void testMethod(Temporal timestampA, Temporal timestampB) {
+                      assertThat(Duration.between(timestampA, timestampB))
+                        .hasSeconds(1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldNotMatchUnrelatedToDurations() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class Foo {
+                  void testMethod() {
+                      assertThat(bar()).isEqualTo(0);
+                  }
+                  int bar() {
+                      return 0;  
+                  }
+              }
+              """
+          )
+        );
+    }
 }
