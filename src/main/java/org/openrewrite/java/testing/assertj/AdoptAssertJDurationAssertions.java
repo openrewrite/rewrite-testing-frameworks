@@ -24,46 +24,16 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.SimplifyDurationCreationUnits;
 
 import java.util.*;
 
 public class AdoptAssertJDurationAssertions extends Recipe {
-    static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
-    static final MethodMatcher GET_NANO_MATCHER = new MethodMatcher("java.time.Duration getNano()");
-    static final MethodMatcher GET_SECONDS_MATCHER = new MethodMatcher("java.time.Duration getSeconds()");
-    //static final MethodMatcher ISEQUALTO_INT_MATCHER = new MethodMatcher("org.assertj.core.api.AbstractIntegerAssert isEqualTo(..)");
-    //static final MethodMatcher ISEQUALTO_LONG_MATCHER = new MethodMatcher("org.assertj.core.api.AbstractLongAssert isEqualTo(..)");
-    //static final MethodMatcher GREATER_THAN_MATCHER = new MethodMatcher("org.assertj.core.api.AbstractIntegerAssert isGreaterThan(..)");
-    static List<MethodMatcher> isMatchers = Arrays.asList(
-            new MethodMatcher("org.assertj.core.api.AbstractIntegerAssert isEqualTo(..)", true),
-            new MethodMatcher("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true),
-            new MethodMatcher("org.assertj.core.api.AbstractIntegerAssert isGreaterThan(..)", true),
-            new MethodMatcher("org.assertj.core.api.AbstractLongAssert isGreaterThan(..)", true),
-            new MethodMatcher("org.assertj.core.api.AbstractIntegerAssert isLessThan(..)", true),
-            new MethodMatcher("org.assertj.core.api.AbstractLongAssert isLessThan(..)", true)
-    );
-    static final Map<String, String> methodMap = new HashMap<String, String>() {{
-        put("getSeconds", "hasSeconds");
-        put("getNano", "hasNanos");
-        put("hasMillis", "hasSeconds");
-        put("hasSeconds", "hasMinutes");
-        put("hasMinutes", "hasHours");
-        put("hasHours", "hasDays");
-        put("isGreaterThan", "isPositive");
-        put("isLessThan", "isNegative");
-        put("isEqualTo", "isZero");
-    }};
-    static List<MethodMatcher> timeUnitMatchers = Arrays.asList(
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasMillis(..)", true),
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasSeconds(..)", true),
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasNanos(..)", true),
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasMinutes(..)", true),
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasHours(..)", true),
-            new MethodMatcher("org.assertj.core.api.AbstractDurationAssert hasDays(..)", true)
-    );
 
     @Override
     public String getDisplayName() {
@@ -78,12 +48,12 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(Preconditions.or(
-                        new UsesMethod<>("org.assertj.core.api.AbstractDurationAssert has*(..)", true),
-                        new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true),
+                        new UsesMethod<>("org.assertj.core.api.AbstractDurationAssert has*(long)", true),
                         new UsesMethod<>("org.assertj.core.api.AbstractIntegerAssert isEqualTo(..)", true),
                         new UsesMethod<>("org.assertj.core.api.AbstractIntegerAssert isGreaterThan(..)", true),
-                        new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isGreaterThan(..)", true),
                         new UsesMethod<>("org.assertj.core.api.AbstractIntegerAssert isLessThan(..)", true),
+                        new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true),
+                        new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isGreaterThan(..)", true),
                         new UsesMethod<>("org.assertj.core.api.AbstractLongAssert isLessThan(..)", true)
                 ), new AdoptAssertJDurationAssertionsVisitor()
         );
@@ -91,13 +61,36 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
     @SuppressWarnings("DataFlowIssue")
     private static class AdoptAssertJDurationAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
+        private static final MethodMatcher GET_NANO_MATCHER = new MethodMatcher("java.time.Duration getNano()");
+        private static final MethodMatcher GET_SECONDS_MATCHER = new MethodMatcher("java.time.Duration getSeconds()");
+        private static final List<MethodMatcher> IS_MATCHERS = Arrays.asList(
+                new MethodMatcher("org.assertj.core.api.AbstractIntegerAssert isEqualTo(..)", true),
+                new MethodMatcher("org.assertj.core.api.AbstractIntegerAssert isGreaterThan(..)", true),
+                new MethodMatcher("org.assertj.core.api.AbstractIntegerAssert isLessThan(..)", true),
+                new MethodMatcher("org.assertj.core.api.AbstractLongAssert isEqualTo(..)", true),
+                new MethodMatcher("org.assertj.core.api.AbstractLongAssert isGreaterThan(..)", true),
+                new MethodMatcher("org.assertj.core.api.AbstractLongAssert isLessThan(..)", true)
+        );
+        private static final Map<String, String> METHOD_MAP = new HashMap<String, String>() {{
+            put("getSeconds", "hasSeconds");
+            put("getNano", "hasNanos");
+            put("hasMillis", "hasSeconds");
+            put("hasSeconds", "hasMinutes");
+            put("hasMinutes", "hasHours");
+            put("hasHours", "hasDays");
+            put("isGreaterThan", "isPositive");
+            put("isLessThan", "isNegative");
+            put("isEqualTo", "isZero");
+        }};
+        private static final MethodMatcher TIME_UNIT_MATCHERS = new MethodMatcher("org.assertj.core.api.AbstractDurationAssert has*(long)", true);
+
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
-            J.MethodInvocation m = super.visitMethodInvocation(mi, ctx);
-            if (timeUnitMatchers.stream().anyMatch(matcher -> matcher.matches(mi))) {
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+            if (TIME_UNIT_MATCHERS.matches(mi)) {
                 return simplifyTimeUnits(mi, ctx);
-                //} else if (ISEQUALTO_INT_MATCHER.matches(mi) || ISEQUALTO_LONG_MATCHER.matches(mi)) {
-            } else if (isMatchers.stream().anyMatch(matcher -> matcher.matches(mi))) {
+            } else if (IS_MATCHERS.stream().anyMatch(matcher -> matcher.matches(mi))) {
                 return simplifyMultipleAssertions(mi, ctx);
             }
             return mi;
@@ -116,14 +109,14 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
             Long isEqualToArgRaw = SimplifyDurationCreationUnits.getConstantIntegralValue(isEqualToArg);
             if (isEqualToArgRaw == 0) {
-                String formatted_template = String.format("assertThat(#{any()}).%s()", methodMap.get(m.getSimpleName()));
+                String formatted_template = String.format("assertThat(#{any()}).%s()", METHOD_MAP.get(m.getSimpleName()));
                 return applyTemplate(ctx, m, formatted_template, assertThatArg);
             }
 
             if (GET_NANO_MATCHER.matches(assertThatArg) || GET_SECONDS_MATCHER.matches(assertThatArg)) {
                 Expression assertThatArgSelect = assertThatArg.getSelect();
                 String methodName = assertThatArg.getSimpleName();
-                String formatted_template = String.format("assertThat(#{any()}).%s(#{any()});", methodMap.get(methodName));
+                String formatted_template = String.format("assertThat(#{any()}).%s(#{any()});", METHOD_MAP.get(methodName));
                 return applyTemplate(ctx, m, formatted_template, assertThatArgSelect, isEqualToArg);
             }
 
@@ -150,7 +143,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             return m;
         }
 
-        private List<Object> getUnitInfo(String name, int argValue) {
+        private static List<Object> getUnitInfo(String name, int argValue) {
             int timeLength = 60;
             if (name.equals("hasMillis")) {
                 timeLength = 1000;
@@ -159,7 +152,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             }
 
             if (argValue % timeLength == 0) {
-                String newName = methodMap.get(name);
+                String newName = METHOD_MAP.get(name);
                 return getUnitInfo(newName, argValue / timeLength);
             } else {
                 // returning name, newArg
@@ -167,7 +160,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             }
         }
 
-        private J.Literal rawValueToExpression(int rawValue) {
+        private static J.Literal rawValueToExpression(int rawValue) {
             return new J.Literal(
                     UUID.randomUUID(),
                     Space.EMPTY,
