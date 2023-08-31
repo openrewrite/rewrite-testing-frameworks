@@ -134,10 +134,9 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             String methodName = (String) unitInfo.get(0);
             int methodArg = (int) unitInfo.get(1);
             if (!(m.getSimpleName().equals(methodName))) {
-                // convert divided value to OpenRewrite LST type
-                J.Literal newArg = rawValueToExpression(methodArg);
                 // update method invocation with new name and arg
-                return applyTemplate(ctx, m, "#{any()}.#{}(#{any(int)})", m.getSelect(), methodName, newArg);
+                String template = String.format("#{any()}.%s(%d)", methodName, methodArg);
+                return applyTemplate(ctx, m, template, m.getSelect());
             }
 
             return m;
@@ -158,18 +157,6 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                 // returning name, newArg
                 return Arrays.asList(name, argValue);
             }
-        }
-
-        private static J.Literal rawValueToExpression(int rawValue) {
-            return new J.Literal(
-                    UUID.randomUUID(),
-                    Space.EMPTY,
-                    Markers.EMPTY,
-                    rawValue,
-                    String.valueOf(rawValue),
-                    null,
-                    JavaType.Primitive.Int
-            );
         }
 
         private J.MethodInvocation applyTemplate(ExecutionContext ctx, J.MethodInvocation m, String template, Object... parameters) {
