@@ -24,10 +24,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.SimplifyDurationCreationUnits;
 
@@ -64,6 +61,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
         private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
         private static final MethodMatcher GET_NANO_MATCHER = new MethodMatcher("java.time.Duration getNano()");
         private static final MethodMatcher GET_SECONDS_MATCHER = new MethodMatcher("java.time.Duration getSeconds()");
+        private static final MethodMatcher AS_MATCHER = new MethodMatcher("org.assertj.core.api.AbstractObjectAssert as(..)");
         private static final List<MethodMatcher> IS_MATCHERS = Arrays.asList(
                 new MethodMatcher("org.assertj.core.api.AbstractIntegerAssert isEqualTo(..)", true),
                 new MethodMatcher("org.assertj.core.api.AbstractIntegerAssert isGreaterThan(..)", true),
@@ -98,26 +96,41 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
         private J.MethodInvocation simplifyMultipleAssertions(J.MethodInvocation m, ExecutionContext ctx) {
             Expression isEqualToArg = m.getArguments().get(0);
-            if (!ASSERT_THAT_MATCHER.matches(m.getSelect())) {
+            Expression select = m.getSelect();
+            Expression asDescription = null;
+            ArrayList<Object> paramsList = new ArrayList<>();
+
+            if (AS_MATCHER.matches(select)) {
+                asDescription = select;
+                select = ((J.MethodInvocation) select).getSelect();
+                paramsList.add(null);
+                paramsList.add(asDescription);
+            }
+
+            if (!ASSERT_THAT_MATCHER.matches(select)) {
                 return m;
             }
 
-            J.MethodInvocation assertThatArg = (J.MethodInvocation) ((J.MethodInvocation) m.getSelect()).getArguments().get(0);
+            J.MethodInvocation assertThatArg = (J.MethodInvocation) ((J.MethodInvocation) select).getArguments().get(0);
             if (!(assertThatArg instanceof J.MethodInvocation)) {
                 return m;
             }
 
             Long isEqualToArgRaw = SimplifyDurationCreationUnits.getConstantIntegralValue(isEqualToArg);
-            if (isEqualToArgRaw == 0) {
+            boolean isRelatedToDuration = checkIfRelatedToDuration(assertThatArg);
+            if (isEqualToArgRaw == 0 && isRelatedToDuration) {
                 String formatted_template = String.format("assertThat(#{any()}).%s()", METHOD_MAP.get(m.getSimpleName()));
-                return applyTemplate(ctx, m, formatted_template, assertThatArg);
+                paramsList.set(0, assertThatArg);
+                return applyTemplate(ctx, m, asDescription != null, formatted_template, paramsList.toArray());
             }
 
             if (GET_NANO_MATCHER.matches(assertThatArg) || GET_SECONDS_MATCHER.matches(assertThatArg)) {
                 Expression assertThatArgSelect = assertThatArg.getSelect();
                 String methodName = assertThatArg.getSimpleName();
                 String formatted_template = String.format("assertThat(#{any()}).%s(#{any()});", METHOD_MAP.get(methodName));
-                return applyTemplate(ctx, m, formatted_template, assertThatArgSelect, isEqualToArg);
+                paramsList.set(0, assertThatArgSelect);
+                paramsList.add(isEqualToArg);
+                return applyTemplate(ctx, m, asDescription != null, formatted_template, paramsList.toArray());
             }
 
             return m;
@@ -136,7 +149,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             if (!(m.getSimpleName().equals(methodName))) {
                 // update method invocation with new name and arg
                 String template = String.format("#{any()}.%s(%d)", methodName, methodArg);
-                return applyTemplate(ctx, m, template, m.getSelect());
+                return applyTemplate(ctx, m, false, template, m.getSelect());
             }
 
             return m;
@@ -159,12 +172,29 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             }
         }
 
-        private J.MethodInvocation applyTemplate(ExecutionContext ctx, J.MethodInvocation m, String template, Object... parameters) {
-            return JavaTemplate.builder(template)
+        private J.MethodInvocation applyTemplate(ExecutionContext ctx, J.MethodInvocation m, boolean hasDescription, String template, Object... parameters) {
+            StringBuilder localTemplate = new StringBuilder(template);
+            if (hasDescription) {
+                int idx = localTemplate.indexOf(").");
+                localTemplate.insert(idx+1, ".#{any()}");
+            }
+
+            return JavaTemplate.builder(localTemplate.toString())
                     .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                     .build()
                     .apply(getCursor(), m.getCoordinates().replace(), parameters);
+        }
+
+        private boolean checkIfRelatedToDuration(J.MethodInvocation argument) {
+            // assertThat(<selectMethod()>.<argument()>).isEqual(0)
+            if (argument.getSelect() != null) {
+                if (argument.getSelect() instanceof J.MethodInvocation) {
+                    J.MethodInvocation selectMethod = (J.MethodInvocation)argument.getSelect();
+                    return TypeUtils.isOfType(selectMethod.getType(), JavaType.buildType("java.time.Duration"));
+                }
+            }
+            return false;
         }
     }
 }
