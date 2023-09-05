@@ -97,12 +97,12 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             Expression isEqualToArg = m.getArguments().get(0);
             Expression select = m.getSelect();
             List<Object> templateParameters = new ArrayList<>();
+            templateParameters.add(null);
             Expression asDescription = null;
 
             if (AS_MATCHER.matches(select)) {
                 asDescription = ((J.MethodInvocation) select).getArguments().get(0);
                 select = ((J.MethodInvocation) select).getSelect();
-                templateParameters.add(null);
                 templateParameters.add(asDescription);
             }
 
@@ -120,7 +120,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             if (isEqualToArgRaw == 0 && isRelatedToDuration) {
                 String formatted_template = formatTemplate("assertThat(#{any()}).%s();", m.getSimpleName(), asDescription);
                 templateParameters.set(0, assertThatArg);
-                return applyTemplate(ctx, m, formatted_template, templateParameters);
+                return applyTemplate(ctx, m, formatted_template, templateParameters.toArray());
             }
 
             if (GET_NANO_MATCHER.matches(assertThatArg) || GET_SECONDS_MATCHER.matches(assertThatArg)) {
@@ -129,6 +129,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                 String formatted_template = formatTemplate("assertThat(#{any()}).%s(#{any()});", methodName, asDescription);
                 templateParameters.set(0, assertThatArgSelect);
                 templateParameters.add(isEqualToArg);
+
                 return applyTemplate(ctx, m, formatted_template, templateParameters.toArray());
             }
 
@@ -190,22 +191,18 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             return false;
         }
 
-        private String formatTemplate(String template, String methodName, Object... asDescriptionArgs) {
-            if (asDescriptionArgs.length == 0) {
+        private String formatTemplate(String template, String methodName, Object asDescriptionArg) {
+            if (asDescriptionArg == null) {
                 return String.format(template, METHOD_MAP.get(methodName));
             }
 
-            StringBuilder descriptionArgsInsertion = new StringBuilder(".as(");
-            for (int i = 0; i < asDescriptionArgs.length; i++) {
-                descriptionArgsInsertion.append("#{any()}");
-            }
-            descriptionArgsInsertion.append(")");
+            StringBuilder descriptionArgsInsertion = new StringBuilder(".as(#{any()})");
 
             StringBuilder newTemplate = new StringBuilder(template);
             int idx = newTemplate.indexOf(").");
             newTemplate.insert(idx+1, descriptionArgsInsertion);
 
-            return newTemplate.toString();
+            return String.format(newTemplate.toString(), METHOD_MAP.get(methodName));
         }
     }
 }
