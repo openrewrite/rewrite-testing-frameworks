@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -173,11 +170,21 @@ public class AdoptAssertJDurationAssertions extends Recipe {
         }
 
         private J.MethodInvocation applyTemplate(ExecutionContext ctx, J.MethodInvocation m, String template, Object... parameters) {
-            return JavaTemplate.builder(template)
+            J.MethodInvocation invocation = JavaTemplate.builder(template)
                     .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                     .build()
                     .apply(getCursor(), m.getCoordinates().replace(), parameters);
+
+            // retain whitespace formatting
+            if (invocation.getPadding().getSelect() != null && m.getPadding().getSelect() != null) {
+                return invocation.getPadding()
+                        .withSelect(
+                                invocation.getPadding().getSelect()
+                                        .withAfter(m.getPadding().getSelect().getAfter())
+                        );
+            }
+            return invocation;
         }
 
         private boolean checkIfRelatedToDuration(J.MethodInvocation argument) {
@@ -191,6 +198,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             return false;
         }
 
+        @SuppressWarnings("ConstantValue")
         private String formatTemplate(String template, String methodName, Object asDescriptionArg) {
             if (asDescriptionArg == null) {
                 return String.format(template, METHOD_MAP.get(methodName));
