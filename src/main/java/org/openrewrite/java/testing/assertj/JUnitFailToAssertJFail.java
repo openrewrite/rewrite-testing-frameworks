@@ -112,7 +112,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                         );
             }
 
-            doAfterVisit(new RemoveUnusedImports().getVisitor());
+            doAfterVisit(new RemoveUnusedImports(false).getVisitor());
             doAfterVisit(new UnqualifiedMethodInvocations());
             return m;
         }
