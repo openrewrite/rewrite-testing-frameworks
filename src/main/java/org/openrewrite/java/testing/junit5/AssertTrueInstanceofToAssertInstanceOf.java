@@ -50,7 +50,6 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 Expression reason;
 
                 if (junit5Matcher.matches(mi)) {
-                    System.out.println("matched");
                     maybeRemoveImport("org.junit.jupiter.api.Assertions.assertTrue");
                     Expression argument = mi.getArguments().get(0);
                     if (mi.getArguments().size() == 1) {
