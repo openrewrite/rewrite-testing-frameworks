@@ -266,49 +266,7 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
     }
 
     @Test
-    void cannotBeSimplified() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-                            
-              import static org.assertj.core.api.Assertions.assertThat;
-                            
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasHours(34);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void doesNotRunOnNonMultArithmetic() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-                            
-              import static org.assertj.core.api.Assertions.assertThat;
-                            
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasHours(34 + 5);
-                      assertThat(time).hasHours(34 - 5);
-                      assertThat(time).hasHours(34 / 5);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void doesNotChangeWhenVariableIsMultiplied() {
+    void doNotSimplifyNonLiteralMultiplication() {
         //language=java
         rewriteRun(
           java(
@@ -319,6 +277,11 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
                             
               class Foo {
                   void testMethod(Duration time, int variable) {
+                      assertThat(time).hasHours(19 + 5);
+                      assertThat(time).hasHours(29 - 5);
+                      assertThat(time).hasHours(120 / 5);
+                      assertThat(time).hasHours(25);
+                      assertThat(time).hasHours(25 * 2);
                       assertThat(time).hasHours(2 * variable);
                   }
               }

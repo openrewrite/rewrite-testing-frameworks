@@ -232,17 +232,13 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
         @SuppressWarnings("ConstantValue")
         private String formatTemplate(String template, String methodName, Object asDescriptionArg) {
+            String replacementMethod = METHOD_MAP.get(methodName);
             if (asDescriptionArg == null) {
-                return String.format(template, METHOD_MAP.get(methodName));
+                return String.format(template, replacementMethod);
             }
-
-            StringBuilder descriptionArgsInsertion = new StringBuilder(".as(#{any()})");
-
             StringBuilder newTemplate = new StringBuilder(template);
-            int idx = newTemplate.indexOf(").");
-            newTemplate.insert(idx + 1, descriptionArgsInsertion);
-
-            return String.format(newTemplate.toString(), METHOD_MAP.get(methodName));
+            newTemplate.insert(newTemplate.indexOf(").") + 1, ".as(#{any()})");
+            return String.format(newTemplate.toString(), replacementMethod);
         }
     }
 }
