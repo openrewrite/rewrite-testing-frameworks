@@ -133,9 +133,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                 return m;
             }
 
-            Long isEqualToArgRaw = SimplifyDurationCreationUnits.getConstantIntegralValue(isEqualToArg);
-            boolean isRelatedToDuration = checkIfRelatedToDuration(assertThatArg);
-            if (isEqualToArgRaw == 0 && isRelatedToDuration) {
+            if (isZero(isEqualToArg) && checkIfRelatedToDuration(assertThatArg)) {
                 String formatted_template = formatTemplate("assertThat(#{any()}).%s();", m.getSimpleName(), asDescription);
                 templateParameters.set(0, assertThatArg);
                 return applyTemplate(ctx, m, formatted_template, templateParameters.toArray());
@@ -152,6 +150,14 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             }
 
             return m;
+        }
+
+        private boolean isZero(Expression isEqualToArg) {
+            if (isEqualToArg instanceof J.Literal) {
+                J.Literal literal = (J.Literal) isEqualToArg;
+                return literal.getValue() instanceof Number && ((Number) literal.getValue()).longValue() == 0;
+            }
+            return false;
         }
 
         private J.MethodInvocation simplifyTimeUnits(J.MethodInvocation m, ExecutionContext ctx) {

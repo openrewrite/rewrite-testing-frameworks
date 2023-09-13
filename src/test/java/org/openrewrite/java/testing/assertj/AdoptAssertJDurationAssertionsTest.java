@@ -137,6 +137,41 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
     }
 
     @Test
+    void isEqualToVariable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+                            
+              import static org.assertj.core.api.Assertions.assertThat;
+                            
+              class Foo {
+                  void testMethod(Temporal timestampA, Temporal timestampB) {
+                      int zero = 0;
+                      assertThat(Duration.between(timestampA, timestampB).getNano()).isEqualTo(zero);
+                  }
+              }
+              """,
+            """
+              import java.time.Duration;
+              import java.time.temporal.Temporal;
+                            
+              import static org.assertj.core.api.Assertions.assertThat;
+                            
+              class Foo {
+                  void testMethod(Temporal timestampA, Temporal timestampB) {
+                      int zero = 0;
+                      assertThat(Duration.between(timestampA, timestampB)).hasNanos(zero);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void isGreaterThanZeroToIsPositive() {
         //language=java
         rewriteRun(
