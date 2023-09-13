@@ -129,10 +129,11 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                 return m;
             }
 
-            J.MethodInvocation assertThatArg = (J.MethodInvocation) ((J.MethodInvocation) select).getArguments().get(0);
-            if (!(assertThatArg instanceof J.MethodInvocation)) {
+            Expression assertThatArgumentExpr = ((J.MethodInvocation) select).getArguments().get(0);
+            if (!(assertThatArgumentExpr instanceof J.MethodInvocation)) {
                 return m;
             }
+            J.MethodInvocation assertThatArg = (J.MethodInvocation) assertThatArgumentExpr;
 
             if (isZero(isEqualToArg) && checkIfRelatedToDuration(assertThatArg)) {
                 String formatted_template = formatTemplate("assertThat(#{any()}).%s();", m.getSimpleName(), asDescription);
