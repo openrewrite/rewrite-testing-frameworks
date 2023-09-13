@@ -90,6 +90,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             put("getSeconds", "hasSeconds");
             put("getNano", "hasNanos");
 
+            put("hasNanos", "hasMillis");
             put("hasMillis", "hasSeconds");
             put("hasSeconds", "hasMinutes");
             put("hasMinutes", "hasHours");
@@ -180,11 +181,15 @@ public class AdoptAssertJDurationAssertions extends Recipe {
         }
 
         private static List<Object> getUnitInfo(String name, int argValue) {
-            int timeLength = 60;
-            if (name.equals("hasMillis")) {
+            final int timeLength;
+            if (name.equals("hasSeconds") || name.equals("hasMinutes")) {
+                timeLength = 60;
+            } else if (name.equals("hasNanos") || name.equals("hasMillis")) {
                 timeLength = 1000;
             } else if (name.equals("hasHours")) {
                 timeLength = 24;
+            } else {
+                return Arrays.asList(name, argValue);
             }
 
             if (argValue % timeLength == 0) {

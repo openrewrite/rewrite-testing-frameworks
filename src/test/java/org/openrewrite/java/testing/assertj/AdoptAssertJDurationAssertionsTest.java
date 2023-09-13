@@ -239,6 +239,7 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
 
     @ParameterizedTest
     @CsvSource({
+      "hasNanos(6000000L),hasSeconds(6)",
       "hasMillis(5000),hasSeconds(5)",
       "hasSeconds(600),hasMinutes(10)",
       "hasMillis(300000),hasMinutes(5)",
