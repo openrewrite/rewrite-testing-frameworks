@@ -16,6 +16,8 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -36,16 +38,16 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
 
     @Test
     @DocumentExample
-    void getSecondEqualToTest() {
+    void getSecondsToHasSeconds() {
         //language=java
         rewriteRun(
           java(
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).isEqualTo(1);
@@ -55,9 +57,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB)).hasSeconds(1);
@@ -69,16 +71,16 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
     }
 
     @Test
-    void worksWithGetNano() {
+    void getNanoToHasNanos() {
         //language=java
         rewriteRun(
           java(
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getNano()).isEqualTo(1);
@@ -88,9 +90,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB)).hasNanos(1);
@@ -109,9 +111,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getNano()).isEqualTo(0);
@@ -121,9 +123,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getNano()).isZero();
@@ -142,9 +144,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).isGreaterThan(0);
@@ -154,9 +156,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).isPositive();
@@ -175,9 +177,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).isLessThan(0);
@@ -187,9 +189,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).isNegative();
@@ -200,221 +202,31 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
         );
     }
 
-    @Test
-    void millisToSeconds() {
+    @ParameterizedTest
+    @CsvSource({
+      "hasMillis(5000),hasSeconds(5)",
+      "hasSeconds(600),hasMinutes(10)",
+      "hasMillis(300000),hasMinutes(5)",
+      "hasMillis(18000000),hasHours(5)",
+      "hasMillis(432000000),hasDays(5)",
+      "hasMinutes(120),hasHours(2)",
+      "hasHours(48),hasDays(2)",
+      "hasHours(24 * 2),hasDays(2)",
+    })
+    void simplifyDurationAssertions(String before, String after) {
         //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasMillis(5000);
-                  }
+        String template = """
+          import java.time.Duration;
+                        
+          import static org.assertj.core.api.Assertions.assertThat;
+                        
+          class Foo {
+              void testMethod(Duration time) {
+                  assertThat(time).%s;
               }
-              """,
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasSeconds(5);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void secondsToMinutes() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasSeconds(600);
-                  }
-              }
-              """,
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasMinutes(10);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void millisToMinutes() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasMillis(300000);
-                  }
-              }
-              """,
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasMinutes(5);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void millisToHours() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasMillis(18000000);
-                  }
-              }
-              """,
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasHours(5);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void millisToDays() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasMillis(432000000);
-                  }
-              }
-              """,
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasDays(5);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void minutesToHours() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasMinutes(120);
-                  }
-              }
-              """,
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasHours(2);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void hoursToDays() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasHours(48);
-                  }
-              }
-              """,
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasDays(2);
-                  }
-              }
-              """
-          )
-        );
+          }
+          """;
+        rewriteRun(java(template.formatted(before), template.formatted(after)));
     }
 
     @Test
@@ -424,9 +236,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
           java(
             """
               import java.time.Duration;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Duration time) {
                       assertThat(time).hasHours(34);
@@ -444,9 +256,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
           java(
             """
               import java.time.Duration;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Duration time) {
                       assertThat(time).hasHours(34 + 5);
@@ -460,49 +272,18 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
     }
 
     @Test
-    void doesNotChangeWhenConstantIsMultiplied() {
+    void doesNotChangeWhenVariableIsMultiplied() {
         //language=java
         rewriteRun(
           java(
             """
               import java.time.Duration;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
-                  void testMethod(Duration time, int constant) {
-                      assertThat(time).hasHours(34 * constant);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void doesChangeOnMultiplication() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasHours(24 * 2);
-                  }
-              }
-              """,
-            """
-              import java.time.Duration;
-              
-              import static org.assertj.core.api.Assertions.assertThat;
-              
-              class Foo {
-                  void testMethod(Duration time) {
-                      assertThat(time).hasDays(2);
+                  void testMethod(Duration time, int variable) {
+                      assertThat(time).hasHours(2 * variable);
                   }
               }
               """
@@ -518,9 +299,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).as("description").isEqualTo(1);
@@ -530,9 +311,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB)).as("description").hasSeconds(1);
@@ -551,9 +332,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds())
@@ -564,9 +345,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB))
@@ -585,13 +366,13 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
           java(
             """
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class Foo {
                   void testMethod() {
                       assertThat(bar()).isEqualTo(0);
                   }
                   int bar() {
-                      return 0;  
+                      return 0;
                   }
               }
               """
