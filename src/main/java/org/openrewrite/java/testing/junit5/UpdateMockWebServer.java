@@ -160,7 +160,7 @@ public class UpdateMockWebServer extends Recipe {
                                 }
                                 return annotation;
                             }));
-                            if(variableDeclarations.getLeadingAnnotations().isEmpty()) {
+                            if (variableDeclarations.getLeadingAnnotations().isEmpty()) {
                                 variableDeclarations = variableDeclarations.withModifiers(Space.formatFirstPrefix(
                                         variableDeclarations.getModifiers(), Space.EMPTY));
                             }
