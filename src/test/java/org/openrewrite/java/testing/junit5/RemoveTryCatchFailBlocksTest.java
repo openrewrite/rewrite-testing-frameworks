@@ -521,7 +521,7 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                   public void testMethod() {
                       try {
                           int divide = 50 / 0;
-                      } catch (Excpetion e) {
+                      } catch (Exception e) {
                           Assertions.fail("The error is: " + anotherMethod());
                       }
                   }

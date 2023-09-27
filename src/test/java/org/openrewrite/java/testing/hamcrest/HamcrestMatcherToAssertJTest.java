@@ -90,7 +90,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
               java("""
                 import org.junit.jupiter.api.Test;
                 import static org.hamcrest.MatcherAssert.assertThat;
-                import static org.hamcrest.Matchers.anyof;
+                import static org.hamcrest.Matchers.anyOf;
                 import static org.hamcrest.Matchers.equalTo;
                                 
                 class ATest {
@@ -98,7 +98,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                     void test() {
                         String str1 = "Hello world!";
                         String str2 = "Hello world!";
-                        assertThat(str1, anyof(equalTo(str2)));
+                        assertThat(str1, anyOf(equalTo(str2)));
                     }
                 }
                 """));
@@ -113,7 +113,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                 import java.util.List;
                 import org.junit.jupiter.api.Test;
                 import static org.hamcrest.MatcherAssert.assertThat;
-                import static org.hamcrest.Matchers.anyof;
+                import static org.hamcrest.Matchers.anyOf;
                 import static org.hamcrest.Matchers.equalTo;
                                 
                 class ATest {
@@ -121,7 +121,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                     void test() {
                         String str1 = "Hello world!";
                         String str2 = "Hello world!";
-                        assertThat(str1, anyof(List.of(equalTo(str2))));
+                        assertThat(str1, anyOf(List.of(equalTo(str2))));
                     }
                 }
                 """));

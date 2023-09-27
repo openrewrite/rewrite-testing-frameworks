@@ -340,6 +340,7 @@ class TestsShouldNotBePublicTest implements RewriteTest {
         rewriteRun(
           java(
             """
+              import java.util.Collection;
               import java.util.Collections;
               import org.junit.jupiter.api.*;
               import org.junit.jupiter.params.ParameterizedTest;
@@ -379,6 +380,7 @@ class TestsShouldNotBePublicTest implements RewriteTest {
         rewriteRun(
           java(
             """
+              import java.util.Collection;
               import java.util.Collections;
               import org.junit.jupiter.api.*;
               import org.junit.jupiter.params.ParameterizedTest;

@@ -429,7 +429,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               class MyTest {
                   @Test
                   void testMethod() {
-                      assertThat(getString().isNotEmpty()).isFalse();
+                      assertThat(getString().isBlank()).isFalse();
                   }
     
                   String getString() {
