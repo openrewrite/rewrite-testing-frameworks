@@ -17,11 +17,13 @@ package org.openrewrite.java.testing.mockito;
 
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.*;
@@ -42,7 +44,19 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new PowerMockitoToMockitoVisitor();
+        return Preconditions.check(
+                Preconditions.or(
+                    new UsesType<>("org.powermock..*", false),
+                    new UsesType<>("org.mockito..*", false)
+                ),
+                new JavaVisitor<ExecutionContext>(){
+                    @Override
+                    public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                        doAfterVisit(new PowerMockitoToMockitoVisitor());
+                        return super.visitClassDeclaration(classDecl, ctx);
+                    }
+                }
+        );
     }
 
     private static class PowerMockitoToMockitoVisitor extends JavaVisitor<ExecutionContext> {

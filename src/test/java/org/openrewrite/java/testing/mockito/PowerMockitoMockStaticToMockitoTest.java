@@ -18,10 +18,12 @@ package org.openrewrite.java.testing.mockito;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
 
 class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
@@ -570,5 +572,14 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               public class MyPowerMockConfiguration {}
               """
           ));
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/358")
+    void doesNotExplodeOnTopLevelMethodDeclaration() {
+        rewriteRun(
+          groovy(
+          "def myFun() { }"
+        ));
     }
 }
