@@ -18,8 +18,6 @@ package org.openrewrite.java.testing.mockito;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -30,10 +28,6 @@ import static org.openrewrite.java.Assertions.java;
 class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        Recipe recipe = Environment.builder()
-          .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
-          .build()
-          .activateRecipes("org.openrewrite.java.testing.mockito.ReplacePowerMockito");
         spec
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
@@ -50,7 +44,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             .identifiers(false)
             .methodInvocations(false)
             .build())
-          .recipe(recipe);
+          .recipeFromResources("org.openrewrite.java.testing.mockito.ReplacePowerMockito");
     }
 
     @Test
