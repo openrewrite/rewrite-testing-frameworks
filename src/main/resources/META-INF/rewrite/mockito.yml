@@ -160,3 +160,6 @@ recipeList:
       matchOverrides: null
       matchUnknownTypes: null
   - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-api-mockito*
