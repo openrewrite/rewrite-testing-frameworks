@@ -43,7 +43,7 @@ public class UpdateTestAnnotation extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(Preconditions.or(
                 new UsesType<>("org.junit.Test", false),
-                new FindImports("org.junit.Test").getVisitor()
+                new FindImports("org.junit.Test", null).getVisitor()
         ), new UpdateTestAnnotationVisitor());
     }
 
