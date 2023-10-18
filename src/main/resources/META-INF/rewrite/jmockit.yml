@@ -20,7 +20,7 @@ displayName: Migrate from JMockit to Mockito
 description: This recipe will apply changes commonly needed when migrating from JMockit to Mockito.
 tags:
   - testing
-  - mockito
+  - jmockit
 recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: mockit.Mocked
