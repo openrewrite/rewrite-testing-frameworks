@@ -70,6 +70,7 @@ public class RewriteJMockitExpectations extends Recipe {
       J.Assignment resultStatement = (J.Assignment) innerBlock.getStatements().get(1);
 
       // apply the template and replace the `new Expectations()` statement coordinates
+      // TODO: handle exception results with another template
       J.MethodInvocation newMethod = JavaTemplate.builder("when(#{any()}).thenReturn(#{any()})")
           .javaParser(JavaParser.fromJavaVersion().classpathFromResources(executionContext, "mockito-core-3.12"))
           .staticImports("org.mockito.Mockito.when")
