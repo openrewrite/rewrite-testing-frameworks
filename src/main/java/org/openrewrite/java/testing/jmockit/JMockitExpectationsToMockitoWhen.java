@@ -89,7 +89,7 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
       maybeAddImport("org.mockito.Mockito", "when");
       maybeRemoveImport("mockit.Expectations");
 
-      return newMethod.withPrefix(newClass.getPrefix());
+      return newMethod.withPrefix(nc.getPrefix());
     }
   }
 }
