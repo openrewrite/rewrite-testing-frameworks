@@ -30,7 +30,7 @@ import org.openrewrite.java.tree.Statement;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
-public class ExpectationsToMockito extends Recipe {
+public class JMockitExpectationsToMockitoWhen extends Recipe {
   @Override
   public String getDisplayName() {
     return "Rewrite JMockit Expectations";

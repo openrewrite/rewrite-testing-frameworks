@@ -46,7 +46,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void rewrite() {
+    void jMockitExpectationsToMockitoWhen() {
         //language=java
         rewriteRun(
           java(
