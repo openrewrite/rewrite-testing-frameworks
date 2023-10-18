@@ -34,7 +34,6 @@ class JMockitToMockitoTest implements RewriteTest {
               "junit-jupiter-api-5.9",
               "jmockit-1.49",
               "mockito-core-3.12",
-              "junit-4.13",
               "mockito-junit-jupiter-3.12"
             ))
           .recipeFromResource(
