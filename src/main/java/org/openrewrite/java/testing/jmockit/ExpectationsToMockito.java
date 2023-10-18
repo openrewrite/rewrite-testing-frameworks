@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.mockito;
+package org.openrewrite.java.testing.jmockit;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
@@ -30,7 +30,7 @@ import org.openrewrite.java.tree.Statement;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
-public class RewriteJMockitExpectations extends Recipe {
+public class ExpectationsToMockito extends Recipe {
   @Override
   public String getDisplayName() {
     return "Rewrite JMockit Expectations";

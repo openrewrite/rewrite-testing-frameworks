@@ -178,4 +178,4 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: mockit.integration.junit5.JMockitExtension
       newFullyQualifiedTypeName: org.mockito.junit.jupiter.MockitoExtension
-  - org.openrewrite.java.testing.mockito.RewriteJMockitExpectations
+  - org.openrewrite.java.testing.jmockit.RewriteJMockitExpectations

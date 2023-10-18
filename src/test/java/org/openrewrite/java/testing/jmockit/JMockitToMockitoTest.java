@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.mockito;
+package org.openrewrite.java.testing.jmockit;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -36,7 +36,7 @@ class JMockitToMockitoTest implements RewriteTest {
               "mockito-core-3.12"
             ))
           .recipeFromResource(
-            "/META-INF/rewrite/mockito.yml",
+            "/META-INF/rewrite/jmockit.yml",
             "org.openrewrite.java.testing.mockito.JMockitToMockito"
           );
     }
