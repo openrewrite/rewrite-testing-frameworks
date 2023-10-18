@@ -37,7 +37,7 @@ class JMockitToMockitoTest implements RewriteTest {
             ))
           .recipeFromResource(
             "/META-INF/rewrite/mockito.yml",
-          "org.openrewrite.java.testing.mockito.JMockitToMockito"
+            "org.openrewrite.java.testing.mockito.JMockitToMockito"
           );
     }
 
@@ -48,17 +48,17 @@ class JMockitToMockitoTest implements RewriteTest {
           java(
             """                  
               import static org.junit.jupiter.api.Assertions.assertNull;
-              
+                            
               import mockit.Expectations;
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-              
+                            
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                 @Mocked
                 MyObject myObject;
-              
+                            
                 void test() {
                   new Expectations() {{
                     myObject.getSomeField();
@@ -71,16 +71,16 @@ class JMockitToMockitoTest implements RewriteTest {
             """                  
               import static org.junit.jupiter.api.Assertions.assertNull;
               import static org.mockito.Mockito.when;
-              
+                            
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-              
+                            
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                 @Mock
                 MyObject myObject;
-              
+                            
                 void test() {
                   when(myObject.getSomeField()).thenReturn(null);
                   assertNull(myObject.getSomeField());
