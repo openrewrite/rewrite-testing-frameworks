@@ -19,6 +19,7 @@ recipeDependencies {
     parserClasspath("com.github.tomakehurst:wiremock-jre8:2.35.0")
     parserClasspath("org.mockito:mockito-all:1.10.19")
     parserClasspath("org.mockito:mockito-core:3.+")
+    parserClasspath("org.jmockit:jmockit:1.49")
     parserClasspath("org.mockito:mockito-junit-jupiter:3.+")
     parserClasspath("org.powermock:powermock-api-mockito:1.7.+")
     parserClasspath("org.powermock:powermock-core:1.7.+")
