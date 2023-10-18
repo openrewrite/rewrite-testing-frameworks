@@ -22,7 +22,6 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 class JMockitToMockitoTest implements RewriteTest {
 
@@ -41,8 +40,7 @@ class JMockitToMockitoTest implements RewriteTest {
           .recipeFromResource(
             "/META-INF/rewrite/jmockit.yml",
             "org.openrewrite.java.testing.jmockit.JMockitToMockito"
-          )
-          .typeValidationOptions(TypeValidation.none());
+          );
     }
 
     @Test

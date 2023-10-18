@@ -25,6 +25,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
@@ -67,11 +68,11 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
 
       // TODO: handle multiple mock statements
       Statement mockInvocation = innerBlock.getStatements().get(0);
-      J.Assignment resultStatement = (J.Assignment) innerBlock.getStatements().get(1);
+      Expression result = ((J.Assignment) innerBlock.getStatements().get(1)).getAssignment();
 
       // apply the template and replace the `new Expectations()` statement coordinates
       // TODO: handle exception results with another template
-      J.MethodInvocation newMethod = JavaTemplate.builder("when(#{any()}).thenReturn(#{any()})")
+      J.MethodInvocation newMethod = JavaTemplate.builder("when(#{any()}).thenReturn(#{});")
           .javaParser(JavaParser.fromJavaVersion().classpathFromResources(executionContext, "mockito-core-3.12",
                   "junit-jupiter-api-5.9", "mockito-junit-jupiter-3.+"
           ))
@@ -82,7 +83,7 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
               getCursor(),
               nc.getCoordinates().replace(),
               mockInvocation,
-              resultStatement.getAssignment()
+              result
           );
 
       // handle import changes
