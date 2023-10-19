@@ -43,7 +43,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhen() {
+    void jMockitExpectationsToMockitoWhenNullResult() {
         //language=java
         rewriteRun(
           java(
@@ -94,6 +94,243 @@ class JMockitToMockitoTest implements RewriteTest {
                 void test() {
                   when(myObject.getSomeField()).thenReturn(null);
                   assertNull(myObject.getSomeField());
+                }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void jMockitExpectationsToMockitoWhenIntResult() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyObject {
+                  public int getSomeField() {
+                      return 0;
+                  }
+              }
+              """
+          ),
+          java(
+            """              
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+            
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+            
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                @Mocked
+                MyObject myObject;
+            
+                void test() {
+                  new Expectations() {{
+                    myObject.getSomeField();
+                    result = 10;
+                  }};
+                  assertEquals(10, myObject.getSomeField());
+                }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                @Mock
+                MyObject myObject;
+
+                void test() {
+                  when(myObject.getSomeField()).thenReturn(10);
+                  assertEquals(10, myObject.getSomeField());
+                }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void jMockitExpectationsToMockitoWhenVariableResult() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyObject {
+                  public String getSomeField() {
+                      return "X";
+                  }
+              }
+              """
+          ),
+          java(
+            """              
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+            
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+            
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                @Mocked
+                MyObject myObject;
+                
+                String expected = "expected";
+                
+                void test() {
+                  new Expectations() {{
+                    myObject.getSomeField();
+                    result = expected;
+                  }};
+                  assertEquals(expected, myObject.getSomeField());
+                }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.mockito.Mockito.when;
+              
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                @Mock
+                MyObject myObject;
+                
+                String expected = "expected";
+                
+                void test() {
+                  when(myObject.getSomeField()).thenReturn(expected);
+                  assertEquals(expected, myObject.getSomeField());
+                }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void jMockitExpectationsToMockitoWhenNewClassResult() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyObject {
+                  public String getSomeField() {
+                      return "X";
+                  }
+              }
+              """
+          ),
+          java(
+            """              
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+            
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+            
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                @Mocked
+                MyObject myObject;
+            
+                void test() {
+                  new Expectations() {{
+                    myObject.getSomeField();
+                    result = new Object();
+                  }};
+                  assertNotNull(myObject.getSomeField());
+                }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                @Mock
+                MyObject myObject;
+
+                void test() {
+                  when(myObject.getSomeField()).thenReturn(new Object());
+                  assertNotNull(myObject.getSomeField());
+                }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void jMockitExpectationsToMockitoWhenExceptionResult() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyObject {
+                  public String getSomeField() {
+                      return "X";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                @Mocked
+                MyObject myObject;
+
+                void test() throws RuntimeException {
+                  new Expectations() {{
+                    myObject.getSomeField();
+                    result = new RuntimeException();
+                  }};
+                  myObject.getSomeField();
+                }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                @Mock
+                MyObject myObject;
+
+                void test() throws RuntimeException {
+                  when(myObject.getSomeField()).thenThrow(new RuntimeException());
+                  myObject.getSomeField();
                 }
               }
               """

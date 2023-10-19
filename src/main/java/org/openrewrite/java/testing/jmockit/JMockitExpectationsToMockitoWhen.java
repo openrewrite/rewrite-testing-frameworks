@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import java.util.Objects;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
@@ -27,6 +28,7 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 
 @Value
@@ -49,9 +51,14 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
   }
 
   private static class RewriteExpectationsVisitor extends JavaVisitor<ExecutionContext> {
+
+    private static final String PRIMITIVE_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{});";
+    private static final String OBJECT_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{any(java.lang.String)});";
+    private static final String EXCEPTION_RESULT_TEMPLATE = "when(#{any()}).thenThrow(#{any()});";
+
     @Override
-    public J visitNewClass(J.NewClass newClass, ExecutionContext executionContext) {
-      J.NewClass nc = (J.NewClass) super.visitNewClass(newClass, executionContext);
+    public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+      J.NewClass nc = (J.NewClass) super.visitNewClass(newClass, ctx);
       if (!(nc.getClazz() instanceof J.Identifier)) {
         return nc;
       }
@@ -69,11 +76,11 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
       // TODO: handle multiple mock statements
       Statement mockInvocation = innerBlock.getStatements().get(0);
       Expression result = ((J.Assignment) innerBlock.getStatements().get(1)).getAssignment();
+      String template = getTemplate(result);
 
       // apply the template and replace the `new Expectations()` statement coordinates
-      // TODO: handle exception results with another template
-      J.MethodInvocation newMethod = JavaTemplate.builder("when(#{any()}).thenReturn(#{});")
-          .javaParser(JavaParser.fromJavaVersion().classpathFromResources(executionContext, "mockito-core-3.12"))
+      J.MethodInvocation newMethod = JavaTemplate.builder(template)
+          .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
           .staticImports("org.mockito.Mockito.when")
           .build()
           .apply(
@@ -88,6 +95,28 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
       maybeRemoveImport("mockit.Expectations");
 
       return newMethod.withPrefix(nc.getPrefix());
+    }
+
+    /*
+     * Based on the result type, we need to use a different template.
+     */
+    private static String getTemplate(Expression result) {
+      String template;
+      JavaType resultType = Objects.requireNonNull(result.getType());
+      if (resultType instanceof JavaType.Primitive) {
+        template = PRIMITIVE_RESULT_TEMPLATE;
+      } else if (resultType instanceof JavaType.Class) {
+        Class<?> resultClass;
+        try {
+          resultClass = Class.forName(((JavaType.Class) resultType).getFullyQualifiedName());
+        } catch (ClassNotFoundException e) {
+          throw new RuntimeException(e);
+        }
+        template = Throwable.class.isAssignableFrom(resultClass) ? EXCEPTION_RESULT_TEMPLATE : OBJECT_RESULT_TEMPLATE;
+      } else {
+        throw new IllegalStateException("Unexpected value: " + result.getType());
+      }
+      return template;
     }
   }
 }
