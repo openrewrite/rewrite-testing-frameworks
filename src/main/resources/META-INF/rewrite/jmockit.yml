@@ -29,3 +29,9 @@ recipeList:
       oldFullyQualifiedTypeName: mockit.integration.junit5.JMockitExtension
       newFullyQualifiedTypeName: org.mockito.junit.jupiter.MockitoExtension
   - org.openrewrite.java.testing.jmockit.JMockitExpectationsToMockitoWhen
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.mockito
+      artifactId: mockito-core
+      version: 5.x
+      onlyIfUsing: org.mockito.*
+      acceptTransitive: true
