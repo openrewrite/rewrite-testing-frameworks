@@ -135,8 +135,8 @@ class RemoveIsMatcherTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
+              import org.hamcrest.Matcher;
               import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.hamcrest.Matcher;
               import static org.hamcrest.Matchers.*;
               
               class ATest {
