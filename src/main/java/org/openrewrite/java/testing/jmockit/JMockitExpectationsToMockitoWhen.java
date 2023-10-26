@@ -107,15 +107,15 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
 
                     // TODO: handle additional jmockit expectations features
 
-                    if (expectationStatement instanceof J.MethodInvocation && !templateParams.isEmpty()) {
-                        newBody = buildNewBody(ctx, templateParams, i);
+                    if (expectationStatement instanceof J.MethodInvocation) {
+                        if (!templateParams.isEmpty()) {
+                            // apply template to build new method body
+                            newBody = buildNewBody(ctx, templateParams, i);
 
-                        // reset for next statement
-                        cursorLocation = newBody;
-                        templateParams = new ArrayList<>();
-                        templateParams.add(expectationStatement);
-                    } else if (expectationStatement instanceof J.MethodInvocation) {
-                        // fresh expectation
+                            // reset for next statement
+                            cursorLocation = newBody;
+                            templateParams = new ArrayList<>();
+                        }
                         templateParams.add(expectationStatement);
                     } else {
                         // assignment
