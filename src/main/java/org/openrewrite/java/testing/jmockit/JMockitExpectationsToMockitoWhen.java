@@ -66,7 +66,6 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
 
         private Object cursorLocation;
         private JavaCoordinates coordinates;
-        private Space prefix;
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
@@ -75,8 +74,8 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
                 return md;
             }
             cursorLocation = md.getBody();
-            List<Statement> statements = md.getBody().getStatements();
             J.Block newBody = md.getBody();
+            List<Statement> statements = md.getBody().getStatements();
             for (int i = 0; i < statements.size(); i++) {
                 Statement s = statements.get(i);
                 if (!(s instanceof J.NewClass)) {
@@ -99,7 +98,6 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
                 // prepare the statements for moving
                 J.Block innerBlock = (J.Block) nc.getBody().getStatements().get(0);
 
-                prefix = nc.getPrefix();
                 coordinates = nc.getCoordinates().replace();
                 List<Statement> expectationStatements = innerBlock.getStatements();
                 List<Object> templateParams = new ArrayList<>();
@@ -154,7 +152,7 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
                     // next statement should go immediately after one just added
                     coordinates = s.getCoordinates().after();
                 }
-                newStatements.add(s.withPrefix(prefix));
+                newStatements.add(s);
             }
             return newBody.withStatements(newStatements);
         }
