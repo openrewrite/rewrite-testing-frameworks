@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.jmockit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
@@ -61,6 +62,7 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
         private static final String PRIMITIVE_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{});";
         private static final String OBJECT_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{any(java.lang.String)});";
         private static final String EXCEPTION_RESULT_TEMPLATE = "when(#{any()}).thenThrow(#{any()});";
+        private static final Pattern EXPECTATIONS_PATTERN = Pattern.compile("mockit.Expectations");
 
         private Object cursorLocation;
         private JavaCoordinates coordinates;
@@ -85,7 +87,7 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
                     continue;
                 }
                 J.Identifier clazz = (J.Identifier) nc.getClazz();
-                if (!clazz.getSimpleName().equals("Expectations")) {
+                if (clazz.getType() == null || !clazz.getType().isAssignableFrom(EXPECTATIONS_PATTERN)) {
                     continue;
                 }
                 // empty Expectations block is considered invalid
