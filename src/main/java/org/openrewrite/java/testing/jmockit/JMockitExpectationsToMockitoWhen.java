@@ -64,7 +64,10 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
         private static final String EXCEPTION_RESULT_TEMPLATE = "when(#{any()}).thenThrow(#{any()});";
         private static final Pattern EXPECTATIONS_PATTERN = Pattern.compile("mockit.Expectations");
 
+        // the LST element that is being updated when applying one of the java templates
         private Object cursorLocation;
+
+        // the coordinates where the next statement should be inserted
         private JavaCoordinates coordinates;
 
         @Override
