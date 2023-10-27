@@ -108,6 +108,7 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
                 List<Statement> expectationStatements = expectationsBlock.getStatements();
                 List<Object> templateParams = new ArrayList<>();
 
+                // iterate over the expectations statements and rebuild the method body
                 for (Statement expectationStatement : expectationStatements) {
                     // TODO: handle void methods (including final statement)
 
@@ -128,6 +129,7 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
                     }
                 }
 
+                // handle the last statement
                 if (!templateParams.isEmpty()) {
                     newBody = buildNewBody(ctx, templateParams, i);
                 }
