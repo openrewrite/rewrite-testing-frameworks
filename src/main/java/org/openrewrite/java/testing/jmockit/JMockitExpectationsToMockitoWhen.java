@@ -35,7 +35,6 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaCoordinates;
 import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 
 @Value
@@ -79,6 +78,8 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
             cursorLocation = md.getBody();
             J.Block newBody = md.getBody();
             List<Statement> statements = md.getBody().getStatements();
+
+            // iterate over each statement in the method body, find Expectations blocks and rewrite them
             for (int i = 0; i < statements.size(); i++) {
                 Statement s = statements.get(i);
                 if (!(s instanceof J.NewClass)) {
@@ -94,15 +95,17 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
                 }
                 // empty Expectations block is considered invalid
                 assert nc.getBody() != null && !nc.getBody().getStatements().isEmpty() : "Expectations block is empty";
+                // Expectations block should be composed of a block within another block
+                assert nc.getBody().getStatements().size() == 1 : "Expectations block is malformed";
 
+                // we have a valid Expectations block, update imports and rewrite with Mockito statements
                 maybeAddImport("org.mockito.Mockito", "when");
                 maybeRemoveImport("mockit.Expectations");
 
-                // prepare the statements for moving
-                J.Block innerBlock = (J.Block) nc.getBody().getStatements().get(0);
-
+                // the first coordinates are the coordinates the Expectations block, replacing it
                 coordinates = nc.getCoordinates().replace();
-                List<Statement> expectationStatements = innerBlock.getStatements();
+                J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
+                List<Statement> expectationStatements = expectationsBlock.getStatements();
                 List<Object> templateParams = new ArrayList<>();
 
                 for (Statement expectationStatement : expectationStatements) {
@@ -115,8 +118,7 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
                             // apply template to build new method body
                             newBody = buildNewBody(ctx, templateParams, i);
 
-                            // reset for next statement
-                            cursorLocation = newBody;
+                            // reset template params for next expectation
                             templateParams = new ArrayList<>();
                         }
                         templateParams.add(expectationStatement);
@@ -152,12 +154,17 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
             for (int i = 0; i < newBody.getStatements().size(); i++) {
                 Statement s = newBody.getStatements().get(i);
                 if (i == newStatementIndex) {
-                    // next statement should go immediately after one just added
+                    // next statement coordinates are immediately after the statement just added
                     coordinates = s.getCoordinates().after();
                 }
                 newStatements.add(s);
             }
-            return newBody.withStatements(newStatements);
+            newBody = newBody.withStatements(newStatements);
+
+            // cursor location is now the new body
+            cursorLocation = newBody;
+
+            return newBody;
         }
 
         /*
