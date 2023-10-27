@@ -458,6 +458,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         rewriteRun(
           java(
             """
+              package foo;
               public class StringFilter {
                    public static String[] splitFilterStringValues(String filterValue) {
                      if (filterValue.equals("")) {
@@ -473,6 +474,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
               import static org.mockito.Mockito.*;
 
+              import foo.StringFilter;
               import org.powermock.core.classloader.annotations.PrepareForTest;
               import org.testng.annotations.Test;
 
@@ -487,7 +489,8 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               """,
             """
               import static org.mockito.Mockito.*;
-                          
+              
+              import foo.StringFilter;
               import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
               import org.testng.annotations.BeforeMethod;
