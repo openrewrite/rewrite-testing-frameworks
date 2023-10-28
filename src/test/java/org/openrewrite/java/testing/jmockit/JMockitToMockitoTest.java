@@ -43,6 +43,62 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
+    void jMockitExpectationsToMockitoVoidResult() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyObject {
+                  public void doSomething() {}
+              }
+              """
+          ),
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              
+              import static org.junit.jupiter.api.Assertions.assertNull;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  MyObject myObject;
+
+                  void test() {
+                      new Expectations() {{
+                          myObject.doSomething();
+                      }};
+                      myObject.doSomething();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.doNothing;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  MyObject myObject;
+
+                  void test() {
+                      doNothing().when(myObject.doSomething());
+                      myObject.doSomething();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void jMockitExpectationsToMockitoWhenNullResult() {
         //language=java
         rewriteRun(
@@ -57,12 +113,12 @@ class JMockitToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import static org.junit.jupiter.api.Assertions.assertNull;
-
               import mockit.Expectations;
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
+              
+              import static org.junit.jupiter.api.Assertions.assertNull;
 
               @ExtendWith(JMockitExtension.class)
               class MyTest {
@@ -79,12 +135,12 @@ class JMockitToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import static org.junit.jupiter.api.Assertions.assertNull;
-              import static org.mockito.Mockito.when;
-
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
+              
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.when;
 
               @ExtendWith(MockitoExtension.class)
               class MyTest {
@@ -351,6 +407,7 @@ class JMockitToMockitoTest implements RewriteTest {
                   public Object getSomeObjectField() {
                       return new Object();
                   }
+                    public void doSomething() {}
               }
               """
           ),
@@ -378,9 +435,11 @@ class JMockitToMockitoTest implements RewriteTest {
                           result = 10;
                           myOtherObject.getSomeObjectField();
                           result = null;
+                          myObject.doSomething();
                       }};
                       assertEquals(10, myObject.getSomeField());
                       assertNull(myOtherObject.getSomeObjectField());
+                      myObject.doSomething();
                   }
               }
               """,
@@ -391,6 +450,7 @@ class JMockitToMockitoTest implements RewriteTest {
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.doNothing;
               import static org.mockito.Mockito.when;
 
               @ExtendWith(MockitoExtension.class)
@@ -404,8 +464,10 @@ class JMockitToMockitoTest implements RewriteTest {
                   void test() {
                       when(myObject.getSomeField()).thenReturn(10);
                       when(myOtherObject.getSomeObjectField()).thenReturn(null);
+                      doNothing().when(myObject.doSomething());
                       assertEquals(10, myObject.getSomeField());
                       assertNull(myOtherObject.getSomeObjectField());
+                      myObject.doSomething();
                   }
               }
               """
