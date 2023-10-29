@@ -39,7 +39,7 @@ import org.openrewrite.java.tree.Statement;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
-public class JMockitExpectationsToMockitoWhen extends Recipe {
+public class JMockitExpectationsToMockito extends Recipe {
     @Override
     public String getDisplayName() {
         return "Rewrite JMockit Expectations";
@@ -47,12 +47,12 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Rewrites JMockit `Expectations` to `Mockito.when`.";
+        return "Rewrites JMockit `Expectations` blocks to Mockito statements.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("mockit.*", false),
+        return Preconditions.check(new UsesType<>("mockit.Expectations", false),
                 new RewriteExpectationsVisitor());
     }
 
@@ -149,7 +149,6 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
                 staticImport = "org.mockito.Mockito.doNothing";
             }
             String template = getTemplate(result);
-
             J.Block newBody = JavaTemplate.builder(template)
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                     .staticImports(staticImport)
@@ -160,16 +159,8 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
                             templateParams.toArray()
                     );
 
-            List<Statement> newStatements = new ArrayList<>(newBody.getStatements().size());
-            for (int i = 0; i < newBody.getStatements().size(); i++) {
-                Statement s = newBody.getStatements().get(i);
-                if (i == newStatementIndex) {
-                    // next statement coordinates are immediately after the statement just added
-                    coordinates = s.getCoordinates().after();
-                }
-                newStatements.add(s);
-            }
-            newBody = newBody.withStatements(newStatements);
+            // next statement coordinates are immediately after the statement just added
+            coordinates = newBody.getStatements().get(newStatementIndex).getCoordinates().after();
 
             // cursor location is now the new body
             cursorLocation = newBody;
