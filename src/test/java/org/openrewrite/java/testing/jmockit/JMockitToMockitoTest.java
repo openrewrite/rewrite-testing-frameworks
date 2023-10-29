@@ -407,7 +407,7 @@ class JMockitToMockitoTest implements RewriteTest {
                   public Object getSomeObjectField() {
                       return new Object();
                   }
-                    public void doSomething() {}
+                  public void doSomething() {}
               }
               """
           ),

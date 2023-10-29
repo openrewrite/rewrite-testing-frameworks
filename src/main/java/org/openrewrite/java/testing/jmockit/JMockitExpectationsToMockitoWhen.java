@@ -62,7 +62,7 @@ public class JMockitExpectationsToMockitoWhen extends Recipe {
         private static final String PRIMITIVE_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{});";
         private static final String OBJECT_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{any(java.lang.String)});";
         private static final String EXCEPTION_RESULT_TEMPLATE = "when(#{any()}).thenThrow(#{any()});";
-        private static final Pattern EXPECTATIONS_PATTERN = Pattern.compile("mockit.Expectations");
+        private static final Pattern EXPECTATIONS_PATTERN = Pattern.compile("^mockit.Expectations$");
 
         // the LST element that is being updated when applying one of the java templates
         private Object cursorLocation;
