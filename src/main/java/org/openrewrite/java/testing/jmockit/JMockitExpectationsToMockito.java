@@ -61,14 +61,9 @@ public class JMockitExpectationsToMockito extends Recipe {
         private static final String VOID_RESULT_TEMPLATE = "doNothing().when(#{any(java.lang.String)});";
         private static final String PRIMITIVE_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{});";
         private static final String OBJECT_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{any(java.lang.String)});";
-        private static final String EXCEPTION_RESULT_TEMPLATE = "when(#{any()}).thenThrow(#{any()});";
+        private static final String THROWABLE_RESULT_TEMPLATE = "when(#{any()}).thenThrow(#{any()});";
         private static final Pattern EXPECTATIONS_PATTERN = Pattern.compile("^mockit.Expectations$");
 
-        // the LST element that is being updated when applying one of the java templates
-        private Object cursorLocation;
-
-        // the coordinates where the next statement should be inserted
-        private JavaCoordinates coordinates;
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
@@ -76,7 +71,8 @@ public class JMockitExpectationsToMockito extends Recipe {
             if (md.getBody() == null) {
                 return md;
             }
-            cursorLocation = md.getBody();
+            // the LST element that is being updated when applying a java template
+            Object cursorLocation = md.getBody();
             J.Block newBody = md.getBody();
             List<Statement> statements = md.getBody().getStatements();
 
@@ -103,7 +99,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                 maybeRemoveImport("mockit.Expectations");
 
                 // the first coordinates are the coordinates of the Expectations block, replacing it
-                coordinates = nc.getCoordinates().replace();
+                JavaCoordinates coordinates = nc.getCoordinates().replace();
                 J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
                 List<Object> templateParams = new ArrayList<>();
 
@@ -115,7 +111,14 @@ public class JMockitExpectationsToMockito extends Recipe {
                     if (expectationStatement instanceof J.MethodInvocation) {
                         if (!templateParams.isEmpty()) {
                             // apply template to build new method body
-                            newBody = buildNewBody(ctx, templateParams, bodyStatementIndex + mockitoStatementIndex);
+                            newBody = buildNewBody(ctx, templateParams, cursorLocation, coordinates);
+
+                            // next statement coordinates are immediately after the statement just added
+                            int newStatementIndex = bodyStatementIndex + mockitoStatementIndex;
+                            coordinates = newBody.getStatements().get(newStatementIndex).getCoordinates().after();
+
+                            // cursor location is now the new body
+                            cursorLocation = newBody;
 
                             // reset template params for next expectation
                             templateParams = new ArrayList<>();
@@ -130,14 +133,14 @@ public class JMockitExpectationsToMockito extends Recipe {
 
                 // handle the last statement
                 if (!templateParams.isEmpty()) {
-                    newBody = buildNewBody(ctx, templateParams, bodyStatementIndex + mockitoStatementIndex);
+                    newBody = buildNewBody(ctx, templateParams, cursorLocation, coordinates);
                 }
             }
 
             return md.withBody(newBody);
         }
 
-        private J.Block buildNewBody(ExecutionContext ctx, List<Object> templateParams, int newStatementIndex) {
+        private J.Block buildNewBody(ExecutionContext ctx, List<Object> templateParams, Object cursorLocation, JavaCoordinates coordinates) {
             Expression result = null;
             String staticImport;
             if (templateParams.size() > 1) {
@@ -148,8 +151,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                 maybeAddImport("org.mockito.Mockito", "doNothing");
                 staticImport = "org.mockito.Mockito.doNothing";
             }
-            String template = getTemplate(result);
-            J.Block newBody = JavaTemplate.builder(template)
+            return JavaTemplate.builder(getTemplate(result))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                     .staticImports(staticImport)
                     .build()
@@ -158,14 +160,6 @@ public class JMockitExpectationsToMockito extends Recipe {
                             coordinates,
                             templateParams.toArray()
                     );
-
-            // next statement coordinates are immediately after the statement just added
-            coordinates = newBody.getStatements().get(newStatementIndex).getCoordinates().after();
-
-            // cursor location is now the new body
-            cursorLocation = newBody;
-
-            return newBody;
         }
 
         /*
@@ -186,7 +180,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
                 }
-                template = Throwable.class.isAssignableFrom(resultClass) ? EXCEPTION_RESULT_TEMPLATE : OBJECT_RESULT_TEMPLATE;
+                template = Throwable.class.isAssignableFrom(resultClass) ? THROWABLE_RESULT_TEMPLATE : OBJECT_RESULT_TEMPLATE;
             } else {
                 throw new IllegalStateException("Unexpected value: " + result.getType());
             }
