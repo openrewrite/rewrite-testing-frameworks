@@ -111,7 +111,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                     if (expectationStatement instanceof J.MethodInvocation) {
                         if (!templateParams.isEmpty()) {
                             // apply template to build new method body
-                            newBody = buildNewBody(ctx, templateParams, cursorLocation, coordinates);
+                            newBody = applyTemplate(ctx, templateParams, cursorLocation, coordinates);
 
                             // next statement coordinates are immediately after the statement just added
                             int newStatementIndex = bodyStatementIndex + mockitoStatementIndex;
@@ -133,14 +133,14 @@ public class JMockitExpectationsToMockito extends Recipe {
 
                 // handle the last statement
                 if (!templateParams.isEmpty()) {
-                    newBody = buildNewBody(ctx, templateParams, cursorLocation, coordinates);
+                    newBody = applyTemplate(ctx, templateParams, cursorLocation, coordinates);
                 }
             }
 
             return md.withBody(newBody);
         }
 
-        private J.Block buildNewBody(ExecutionContext ctx, List<Object> templateParams, Object cursorLocation, JavaCoordinates coordinates) {
+        private J.Block applyTemplate(ExecutionContext ctx, List<Object> templateParams, Object cursorLocation, JavaCoordinates coordinates) {
             Expression result = null;
             String staticImport;
             if (templateParams.size() > 1) {
