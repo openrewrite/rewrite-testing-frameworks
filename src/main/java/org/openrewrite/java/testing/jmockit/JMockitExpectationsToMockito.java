@@ -152,19 +152,16 @@ public class JMockitExpectationsToMockito extends Recipe {
 
         private J.Block applyTemplate(ExecutionContext ctx, List<Object> templateParams, Object cursorLocation, JavaCoordinates coordinates) {
             Expression result = null;
-            String staticImport;
+            String methodName = "doNothing";
             if (templateParams.size() > 1) {
-                maybeAddImport("org.mockito.Mockito", "when");
-                staticImport = "org.mockito.Mockito.when";
+                methodName = "when";
                 result = (Expression) templateParams.get(1);
-            } else {
-                maybeAddImport("org.mockito.Mockito", "doNothing");
-                staticImport = "org.mockito.Mockito.doNothing";
             }
+            maybeAddImport("org.mockito.Mockito", methodName);
             rewriteArgumentMatchers(ctx, templateParams);
             return JavaTemplate.builder(getMockitoStatementTemplate(result))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                    .staticImports(staticImport)
+                    .staticImports("org.mockito.Mockito." + methodName)
                     .build()
                     .apply(
                             new Cursor(getCursor(), cursorLocation),
