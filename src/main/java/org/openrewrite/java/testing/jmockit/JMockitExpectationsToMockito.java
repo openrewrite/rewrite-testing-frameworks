@@ -15,9 +15,7 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import lombok.EqualsAndHashCode;
@@ -63,7 +61,19 @@ public class JMockitExpectationsToMockito extends Recipe {
         private static final String OBJECT_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{any(java.lang.String)});";
         private static final String THROWABLE_RESULT_TEMPLATE = "when(#{any()}).thenThrow(#{any()});";
         private static final Pattern EXPECTATIONS_PATTERN = Pattern.compile("^mockit.Expectations$");
-
+        private static final Set<String> JMOCKIT_ARGUMENT_MATCHERS = new HashSet<>();
+        static {
+            JMOCKIT_ARGUMENT_MATCHERS.add("anyString");
+            JMOCKIT_ARGUMENT_MATCHERS.add("anyInt");
+            JMOCKIT_ARGUMENT_MATCHERS.add("anyLong");
+            JMOCKIT_ARGUMENT_MATCHERS.add("anyDouble");
+            JMOCKIT_ARGUMENT_MATCHERS.add("anyFloat");
+            JMOCKIT_ARGUMENT_MATCHERS.add("anyBoolean");
+            JMOCKIT_ARGUMENT_MATCHERS.add("anyByte");
+            JMOCKIT_ARGUMENT_MATCHERS.add("anyChar");
+            JMOCKIT_ARGUMENT_MATCHERS.add("anyShort");
+            JMOCKIT_ARGUMENT_MATCHERS.add("any");
+        }
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
@@ -151,6 +161,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                 maybeAddImport("org.mockito.Mockito", "doNothing");
                 staticImport = "org.mockito.Mockito.doNothing";
             }
+            rewriteArgumentMatchers(ctx, templateParams);
             return JavaTemplate.builder(getTemplate(result))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                     .staticImports(staticImport)
@@ -160,6 +171,36 @@ public class JMockitExpectationsToMockito extends Recipe {
                             coordinates,
                             templateParams.toArray()
                     );
+        }
+
+        private void rewriteArgumentMatchers(ExecutionContext ctx, List<Object> templateParams) {
+            J.MethodInvocation invocation = (J.MethodInvocation) templateParams.get(0);
+            List<Expression> newArguments = new ArrayList<>(invocation.getArguments().size());
+            for (Expression methodArgument : invocation.getArguments()) {
+                if (!isArgumentMatcher(methodArgument)) {
+                    newArguments.add(methodArgument);
+                    continue;
+                }
+                String argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
+                maybeAddImport("org.mockito.Mockito", argumentMatcher);
+                newArguments.add(JavaTemplate.builder(argumentMatcher + "()")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                        .staticImports("org.mockito.Mockito." + argumentMatcher)
+                        .build()
+                        .apply(
+                                new Cursor(getCursor(), methodArgument),
+                                methodArgument.getCoordinates().replace()
+                        ));
+            }
+            templateParams.set(0, invocation.withArguments(newArguments));
+        }
+
+        private static boolean isArgumentMatcher(Expression expression) {
+            if (!(expression instanceof J.Identifier)) {
+                return false;
+            }
+            J.Identifier identifier = (J.Identifier) expression;
+            return JMOCKIT_ARGUMENT_MATCHERS.contains(identifier.getSimpleName());
         }
 
         /*
