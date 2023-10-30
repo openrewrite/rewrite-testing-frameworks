@@ -29,11 +29,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaCoordinates;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.*;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -209,13 +205,9 @@ public class JMockitExpectationsToMockito extends Recipe {
             if (resultType instanceof JavaType.Primitive) {
                 template = PRIMITIVE_RESULT_TEMPLATE;
             } else if (resultType instanceof JavaType.Class) {
-                Class<?> resultClass;
-                try {
-                    resultClass = Class.forName(((JavaType.Class) resultType).getFullyQualifiedName());
-                } catch (ClassNotFoundException e) {
-                    throw new RuntimeException(e);
-                }
-                template = Throwable.class.isAssignableFrom(resultClass) ? THROWABLE_RESULT_TEMPLATE : OBJECT_RESULT_TEMPLATE;
+                template = TypeUtils.isAssignableTo(Throwable.class.getName(), resultType)
+                        ? THROWABLE_RESULT_TEMPLATE
+                        : OBJECT_RESULT_TEMPLATE;
             } else {
                 throw new IllegalStateException("Unexpected value: " + result.getType());
             }
