@@ -175,10 +175,10 @@ public class JMockitExpectationsToMockito extends Recipe {
                     continue;
                 }
                 String argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
-                maybeAddImport("org.mockito.Mockito", argumentMatcher);
+                maybeAddImport("org.mockito.ArgumentMatchers", argumentMatcher);
                 newArguments.add(JavaTemplate.builder(argumentMatcher + "()")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                        .staticImports("org.mockito.Mockito." + argumentMatcher)
+                        .staticImports("org.mockito.ArgumentMatchers." + argumentMatcher)
                         .build()
                         .apply(
                                 new Cursor(getCursor(), methodArgument),
