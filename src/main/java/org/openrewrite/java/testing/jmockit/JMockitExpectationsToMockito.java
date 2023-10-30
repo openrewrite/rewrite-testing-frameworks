@@ -56,7 +56,6 @@ public class JMockitExpectationsToMockito extends Recipe {
         private static final String PRIMITIVE_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{});";
         private static final String OBJECT_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{any(java.lang.String)});";
         private static final String THROWABLE_RESULT_TEMPLATE = "when(#{any()}).thenThrow(#{any()});";
-        private static final Pattern EXPECTATIONS_PATTERN = Pattern.compile("^mockit.Expectations$");
         private static final Set<String> JMOCKIT_ARGUMENT_MATCHERS = new HashSet<>();
         static {
             JMOCKIT_ARGUMENT_MATCHERS.add("anyString");
@@ -93,7 +92,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                     continue;
                 }
                 J.Identifier clazz = (J.Identifier) nc.getClazz();
-                if (clazz.getType() == null || !clazz.getType().isAssignableFrom(EXPECTATIONS_PATTERN)) {
+                if (!TypeUtils.isAssignableTo("mockit.Expectations", clazz.getType())) {
                     continue;
                 }
                 // empty Expectations block is considered invalid
