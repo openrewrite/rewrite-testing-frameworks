@@ -162,7 +162,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                 staticImport = "org.mockito.Mockito.doNothing";
             }
             rewriteArgumentMatchers(ctx, templateParams);
-            return JavaTemplate.builder(getTemplate(result))
+            return JavaTemplate.builder(getMockitoStatementTemplate(result))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                     .staticImports(staticImport)
                     .build()
@@ -203,10 +203,7 @@ public class JMockitExpectationsToMockito extends Recipe {
             return JMOCKIT_ARGUMENT_MATCHERS.contains(identifier.getSimpleName());
         }
 
-        /*
-         * Based on the result type, we need to use a different template.
-         */
-        private static String getTemplate(Expression result) {
+        private static String getMockitoStatementTemplate(Expression result) {
             if (result == null) {
                 return VOID_RESULT_TEMPLATE;
             }

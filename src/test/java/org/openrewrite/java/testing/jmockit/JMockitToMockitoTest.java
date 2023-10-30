@@ -461,7 +461,7 @@ class JMockitToMockitoTest implements RewriteTest {
           java(
             """
               class MyObject {
-                  public String getSomeStringField(String input, String otherInput) {
+                  public String getSomeStringField(String input, long otherInput) {
                       return "X";
                   }
                   public int getSomeIntField() {
@@ -499,13 +499,13 @@ class JMockitToMockitoTest implements RewriteTest {
                           myOtherObject.getSomeObjectField();
                           result = null;
                           myObject.doSomething();
-                          myOtherObject.getSomeStringField(anyString, anyString);
+                          myOtherObject.getSomeStringField(anyString, anyLong);
                           result = "foo";
                       }};
                       assertEquals(10, myObject.getSomeIntField());
                       assertNull(myOtherObject.getSomeObjectField());
                       myObject.doSomething();
-                      assertEquals("foo", myOtherObject.getSomeStringField("bar", "bazz"));
+                      assertEquals("foo", myOtherObject.getSomeStringField("bar", 10L));
                   }
               }
               """,
@@ -530,11 +530,11 @@ class JMockitToMockitoTest implements RewriteTest {
                       when(myObject.getSomeIntField()).thenReturn(10);
                       when(myOtherObject.getSomeObjectField()).thenReturn(null);
                       doNothing().when(myObject.doSomething());
-                      when(myOtherObject.getSomeStringField(anyString(), anyString())).thenReturn("foo");
+                      when(myOtherObject.getSomeStringField(anyString(), anyLong())).thenReturn("foo");
                       assertEquals(10, myObject.getSomeIntField());
                       assertNull(myOtherObject.getSomeObjectField());
                       myObject.doSomething();
-                      assertEquals("foo", myOtherObject.getSomeStringField("bar", "bazz"));
+                      assertEquals("foo", myOtherObject.getSomeStringField("bar", 10L));
                   }
               }
               """
