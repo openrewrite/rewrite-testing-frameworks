@@ -258,7 +258,7 @@ class JMockitToMockitoTest implements RewriteTest {
               import org.mockito.junit.jupiter.MockitoExtension;
                             
               import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.mockito.ArgumentMatchers.anyString;
+              import static org.mockito.Mockito.anyString;
               import static org.mockito.Mockito.when;
 
               @ExtendWith(MockitoExtension.class)
@@ -516,10 +516,7 @@ class JMockitToMockitoTest implements RewriteTest {
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertNull;
-              import static org.mockito.ArgumentMatchers.anyLong;
-              import static org.mockito.ArgumentMatchers.anyString;
-              import static org.mockito.Mockito.doNothing;
-              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.*;
 
               @ExtendWith(MockitoExtension.class)
               class MyTest {
