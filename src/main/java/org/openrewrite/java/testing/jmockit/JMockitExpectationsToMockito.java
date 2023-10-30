@@ -146,7 +146,8 @@ public class JMockitExpectationsToMockito extends Recipe {
             return md.withBody(newBody);
         }
 
-        private J.Block applyTemplate(ExecutionContext ctx, List<Object> templateParams, Object cursorLocation, JavaCoordinates coordinates) {
+        private J.Block applyTemplate(ExecutionContext ctx, List<Object> templateParams, Object cursorLocation,
+                                      JavaCoordinates coordinates) {
             Expression result = null;
             String methodName = "doNothing";
             if (templateParams.size() > 1) {
