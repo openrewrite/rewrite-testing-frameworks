@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.jmockit;
 
 import java.util.*;
-import java.util.regex.Pattern;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
@@ -174,21 +173,59 @@ public class JMockitExpectationsToMockito extends Recipe {
                     newArguments.add(methodArgument);
                     continue;
                 }
-                String argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
+                String argumentMatcher, template;
+                List<Object> argumentTemplateParams = new ArrayList<>();
+                if (methodArgument instanceof J.TypeCast) {
+                    J.TypeCast tc = (J.TypeCast) methodArgument;
+                    argumentMatcher = ((J.Identifier) tc.getExpression()).getSimpleName();
+                    // TODO: Handle collection types
+                    populateArgumentTemplateParams(tc, argumentTemplateParams);
+                    template = argumentMatcher + "(#{any(java.lang.Class)})";
+                } else {
+                    argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
+                    template = argumentMatcher + "()";
+                }
                 maybeAddImport("org.mockito.Mockito", argumentMatcher);
-                newArguments.add(JavaTemplate.builder(argumentMatcher + "()")
+                newArguments.add(JavaTemplate.builder(template)
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                         .staticImports("org.mockito.Mockito." + argumentMatcher)
                         .build()
                         .apply(
                                 new Cursor(getCursor(), methodArgument),
-                                methodArgument.getCoordinates().replace()
+                                methodArgument.getCoordinates().replace(),
+                                argumentTemplateParams.toArray()
                         ));
             }
             templateParams.set(0, invocation.withArguments(newArguments));
         }
 
+        private void populateArgumentTemplateParams(J.TypeCast tc, List<Object> argumentTemplateParams) {
+            String className, fqn;
+            JavaType typeCastType = tc.getType();
+            if (typeCastType instanceof JavaType.Parameterized) {
+                className = ((JavaType.Parameterized) typeCastType).getType().getClassName();
+                fqn = ((JavaType.Parameterized) typeCastType).getType().getFullyQualifiedName();
+            } else if (typeCastType instanceof JavaType.FullyQualified) {
+                className = ((JavaType.FullyQualified) typeCastType).getClassName();
+                fqn = ((JavaType.FullyQualified) typeCastType).getFullyQualifiedName();
+            } else {
+                throw new IllegalStateException("Unexpected value: " + typeCastType);
+            }
+            argumentTemplateParams.add(JavaTemplate.builder("#{}.class")
+                    .javaParser(JavaParser.fromJavaVersion())
+                    .imports(fqn)
+                    .build()
+                    .apply(
+                            new Cursor(getCursor(), tc),
+                            tc.getCoordinates().replace(),
+                            className
+                    ));
+        }
+
         private static boolean isArgumentMatcher(Expression expression) {
+            if (expression instanceof J.TypeCast) {
+                expression = ((J.TypeCast) expression).getExpression();
+            }
             if (!(expression instanceof J.Identifier)) {
                 return false;
             }
