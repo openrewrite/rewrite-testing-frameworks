@@ -181,53 +181,62 @@ public class JMockitExpectationsToMockito extends Recipe {
                     newArguments.add(methodArgument);
                     continue;
                 }
-                String argumentMatcher, template;
-                List<Object> argumentTemplateParams = new ArrayList<>();
-                if (methodArgument instanceof J.TypeCast) {
-                    J.TypeCast tc = (J.TypeCast) methodArgument;
-                    argumentMatcher = ((J.Identifier) tc.getExpression()).getSimpleName();
-                    String className, fqn;
-                    JavaType typeCastType = tc.getType();
-                    if (typeCastType instanceof JavaType.Parameterized) {
-                        className = ((JavaType.Parameterized) typeCastType).getType().getClassName();
-                        fqn = ((JavaType.Parameterized) typeCastType).getType().getFullyQualifiedName();
-                    } else if (typeCastType instanceof JavaType.FullyQualified) {
-                        className = ((JavaType.FullyQualified) typeCastType).getClassName();
-                        fqn = ((JavaType.FullyQualified) typeCastType).getFullyQualifiedName();
-                    } else {
-                        throw new IllegalStateException("Unexpected value: " + typeCastType);
-                    }
-                    if (MOCKITO_COLLECTION_MATCHERS.containsKey(fqn)) {
-                        argumentMatcher = MOCKITO_COLLECTION_MATCHERS.get(fqn);
-                        template = argumentMatcher + "()";
-                    } else {
-                        argumentTemplateParams.add(JavaTemplate.builder("#{}.class")
-                                .javaParser(JavaParser.fromJavaVersion())
-                                .imports(fqn)
-                                .build()
-                                .apply(
-                                        new Cursor(getCursor(), tc),
-                                        tc.getCoordinates().replace(),
-                                        className
-                                ));
-                        template = argumentMatcher + "(#{any(java.lang.Class)})";
-                    }
-                } else {
-                    argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
-                    template = argumentMatcher + "()";
-                }
-                maybeAddImport("org.mockito.Mockito", argumentMatcher);
-                newArguments.add(JavaTemplate.builder(template)
+                ArgumentMatcherTemplateInfo argumentMatcherTemplateInfo = getArgumentMatcherTemplateInfo(methodArgument);
+                maybeAddImport("org.mockito.Mockito", argumentMatcherTemplateInfo.argumentMatcher);
+                newArguments.add(JavaTemplate.builder(argumentMatcherTemplateInfo.template)
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                        .staticImports("org.mockito.Mockito." + argumentMatcher)
+                        .staticImports("org.mockito.Mockito." + argumentMatcherTemplateInfo.argumentMatcher)
                         .build()
                         .apply(
                                 new Cursor(getCursor(), methodArgument),
                                 methodArgument.getCoordinates().replace(),
-                                argumentTemplateParams.toArray()
+                                argumentMatcherTemplateInfo.argumentTemplateParams.toArray()
                         ));
             }
             templateParams.set(0, invocation.withArguments(newArguments));
+        }
+
+        private ArgumentMatcherTemplateInfo getArgumentMatcherTemplateInfo(Expression methodArgument) {
+            String argumentMatcher, template;
+            List<Object> argumentTemplateParams = new ArrayList<>();
+            if (!(methodArgument instanceof J.TypeCast)) {
+                argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
+                template = argumentMatcher + "()";
+                return new ArgumentMatcherTemplateInfo(
+                        ((J.Identifier) methodArgument).getSimpleName(),
+                        template,
+                        argumentTemplateParams
+                );
+            }
+            J.TypeCast tc = (J.TypeCast) methodArgument;
+            argumentMatcher = ((J.Identifier) tc.getExpression()).getSimpleName();
+            String className, fqn;
+            JavaType typeCastType = tc.getType();
+            if (typeCastType instanceof JavaType.Parameterized) {
+                className = ((JavaType.Parameterized) typeCastType).getType().getClassName();
+                fqn = ((JavaType.Parameterized) typeCastType).getType().getFullyQualifiedName();
+            } else if (typeCastType instanceof JavaType.FullyQualified) {
+                className = ((JavaType.FullyQualified) typeCastType).getClassName();
+                fqn = ((JavaType.FullyQualified) typeCastType).getFullyQualifiedName();
+            } else {
+                throw new IllegalStateException("Unexpected value: " + typeCastType);
+            }
+            if (MOCKITO_COLLECTION_MATCHERS.containsKey(fqn)) {
+                argumentMatcher = MOCKITO_COLLECTION_MATCHERS.get(fqn);
+                template = argumentMatcher + "()";
+            } else {
+                argumentTemplateParams.add(JavaTemplate.builder("#{}.class")
+                        .javaParser(JavaParser.fromJavaVersion())
+                        .imports(fqn)
+                        .build()
+                        .apply(
+                                new Cursor(getCursor(), tc),
+                                tc.getCoordinates().replace(),
+                                className
+                        ));
+                template = argumentMatcher + "(#{any(java.lang.Class)})";
+            }
+            return new ArgumentMatcherTemplateInfo(argumentMatcher, template, argumentTemplateParams);
         }
 
         private static boolean isArgumentMatcher(Expression expression) {
@@ -257,6 +266,18 @@ public class JMockitExpectationsToMockito extends Recipe {
                 throw new IllegalStateException("Unexpected value: " + result.getType());
             }
             return template;
+        }
+
+        private static class ArgumentMatcherTemplateInfo {
+            public final String argumentMatcher;
+            public final String template;
+            public final List<Object> argumentTemplateParams;
+
+            public ArgumentMatcherTemplateInfo(String argumentMatcher, String template, List<Object> argumentTemplateParams) {
+                this.argumentMatcher = argumentMatcher;
+                this.template = template;
+                this.argumentTemplateParams = argumentTemplateParams;
+            }
         }
     }
 }
