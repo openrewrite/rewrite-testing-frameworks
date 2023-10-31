@@ -68,6 +68,14 @@ public class JMockitExpectationsToMockito extends Recipe {
             JMOCKIT_ARGUMENT_MATCHERS.add("anyShort");
             JMOCKIT_ARGUMENT_MATCHERS.add("any");
         }
+        private static final Map<String, String> MOCKITO_COLLECTION_MATCHERS = new HashMap<>();
+        static {
+            MOCKITO_COLLECTION_MATCHERS.put("java.util.List", "anyList");
+            MOCKITO_COLLECTION_MATCHERS.put("java.util.Set", "anySet");
+            MOCKITO_COLLECTION_MATCHERS.put("java.util.Collection", "anyCollection");
+            MOCKITO_COLLECTION_MATCHERS.put("java.util.Iterable", "anyIterable");
+            MOCKITO_COLLECTION_MATCHERS.put("java.util.Map", "anyMap");
+        }
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
@@ -178,9 +186,32 @@ public class JMockitExpectationsToMockito extends Recipe {
                 if (methodArgument instanceof J.TypeCast) {
                     J.TypeCast tc = (J.TypeCast) methodArgument;
                     argumentMatcher = ((J.Identifier) tc.getExpression()).getSimpleName();
-                    // TODO: Handle collection types
-                    populateArgumentTemplateParams(tc, argumentTemplateParams);
-                    template = argumentMatcher + "(#{any(java.lang.Class)})";
+                    String className, fqn;
+                    JavaType typeCastType = tc.getType();
+                    if (typeCastType instanceof JavaType.Parameterized) {
+                        className = ((JavaType.Parameterized) typeCastType).getType().getClassName();
+                        fqn = ((JavaType.Parameterized) typeCastType).getType().getFullyQualifiedName();
+                    } else if (typeCastType instanceof JavaType.FullyQualified) {
+                        className = ((JavaType.FullyQualified) typeCastType).getClassName();
+                        fqn = ((JavaType.FullyQualified) typeCastType).getFullyQualifiedName();
+                    } else {
+                        throw new IllegalStateException("Unexpected value: " + typeCastType);
+                    }
+                    if (MOCKITO_COLLECTION_MATCHERS.containsKey(fqn)) {
+                        argumentMatcher = MOCKITO_COLLECTION_MATCHERS.get(fqn);
+                        template = argumentMatcher + "()";
+                    } else {
+                        argumentTemplateParams.add(JavaTemplate.builder("#{}.class")
+                                .javaParser(JavaParser.fromJavaVersion())
+                                .imports(fqn)
+                                .build()
+                                .apply(
+                                        new Cursor(getCursor(), tc),
+                                        tc.getCoordinates().replace(),
+                                        className
+                                ));
+                        template = argumentMatcher + "(#{any(java.lang.Class)})";
+                    }
                 } else {
                     argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
                     template = argumentMatcher + "()";
@@ -197,29 +228,6 @@ public class JMockitExpectationsToMockito extends Recipe {
                         ));
             }
             templateParams.set(0, invocation.withArguments(newArguments));
-        }
-
-        private void populateArgumentTemplateParams(J.TypeCast tc, List<Object> argumentTemplateParams) {
-            String className, fqn;
-            JavaType typeCastType = tc.getType();
-            if (typeCastType instanceof JavaType.Parameterized) {
-                className = ((JavaType.Parameterized) typeCastType).getType().getClassName();
-                fqn = ((JavaType.Parameterized) typeCastType).getType().getFullyQualifiedName();
-            } else if (typeCastType instanceof JavaType.FullyQualified) {
-                className = ((JavaType.FullyQualified) typeCastType).getClassName();
-                fqn = ((JavaType.FullyQualified) typeCastType).getFullyQualifiedName();
-            } else {
-                throw new IllegalStateException("Unexpected value: " + typeCastType);
-            }
-            argumentTemplateParams.add(JavaTemplate.builder("#{}.class")
-                    .javaParser(JavaParser.fromJavaVersion())
-                    .imports(fqn)
-                    .build()
-                    .apply(
-                            new Cursor(getCursor(), tc),
-                            tc.getCoordinates().replace(),
-                            className
-                    ));
         }
 
         private static boolean isArgumentMatcher(Expression expression) {

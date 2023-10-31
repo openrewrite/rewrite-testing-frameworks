@@ -504,7 +504,7 @@ class JMockitToMockitoTest implements RewriteTest {
               import org.mockito.junit.jupiter.MockitoExtension;
               
               import static org.junit.jupiter.api.Assertions.assertNotNull;
-              import static org.mockito.Mockito.any;
+              import static org.mockito.Mockito.anyList;
               import static org.mockito.Mockito.when;
               
               @ExtendWith(MockitoExtension.class)
@@ -513,7 +513,7 @@ class JMockitToMockitoTest implements RewriteTest {
                   MyObject myObject;
                   
                   void test() {
-                      when(myObject.getSomeField(any(List.class))).thenReturn(null);
+                      when(myObject.getSomeField(anyList())).thenReturn(null);
                       assertNotNull(myObject.getSomeField(new ArrayList<>()));
                   }
               }
