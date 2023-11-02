@@ -79,19 +79,17 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertEquals");
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
                                 .javaParser(javaParser(ctx))
                                 .staticImports("org.junit.jupiter.api.Assertions.assertEquals")
                                 .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
                                 .javaParser(javaParser(ctx))
                                 .imports("org.junit.jupiter.api.Assertions")
                                 .build();
 
                     }
-                    return  t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
+                    return t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }
@@ -118,9 +116,9 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
                 // Objects that are compared with == should not be compared with `.equals()` instead.
                 // Out of the primitives == is not allowed when both are of type String
                 return binary.getLeft().getType() instanceof JavaType.Primitive
-                        && binary.getRight().getType() instanceof JavaType.Primitive
-                        && !(binary.getLeft().getType() == JavaType.Primitive.String
-                        && binary.getRight().getType() == JavaType.Primitive.String);
+                       && binary.getRight().getType() instanceof JavaType.Primitive
+                       && !(binary.getLeft().getType() == JavaType.Primitive.String
+                            && binary.getRight().getType() == JavaType.Primitive.String);
             }
         });
     }
