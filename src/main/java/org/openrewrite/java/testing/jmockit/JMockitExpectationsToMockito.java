@@ -186,9 +186,8 @@ public class JMockitExpectationsToMockito extends Recipe {
                 if (!(methodArgument instanceof J.TypeCast)) {
                     argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
                     template = argumentMatcher + "()";
-                    newArguments.add(rewriteMethodArgument(ctx, ((J.Identifier) methodArgument).getSimpleName(),
-                            template, methodArgument, methodArgument.getCoordinates().replace(),
-                            argumentTemplateParams));
+                    newArguments.add(rewriteMethodArgument(ctx, argumentMatcher, template, methodArgument,
+                            methodArgument.getCoordinates().replace(), argumentTemplateParams));
                     continue;
                 }
                 J.TypeCast tc = (J.TypeCast) methodArgument;
