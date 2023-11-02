@@ -46,6 +46,8 @@ class AssertNotEqualsBooleanToAssertBooleanTest implements RewriteTest {
                   void test() {
                       String a = "a";
                       String c = "c";
+                      boolean b = false;
+                      assertNotEquals(false, b);
                       assertNotEquals(false, a.equals(c));
                       assertNotEquals(false, a.equals(c), "message");
                   }
@@ -58,6 +60,8 @@ class AssertNotEqualsBooleanToAssertBooleanTest implements RewriteTest {
                   void test() {
                       String a = "a";
                       String c = "c";
+                      boolean b = false;
+                      assertTrue(b);
                       assertTrue(a.equals(c));
                       assertTrue(a.equals(c), "message");
                   }

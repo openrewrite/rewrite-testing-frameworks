@@ -22,9 +22,9 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Statement;
 
 public class AssertEqualsBooleanToAssertBoolean extends Recipe {
     private static final MethodMatcher ASSERT_EQUALS = new MethodMatcher(
@@ -61,7 +61,7 @@ public class AssertEqualsBooleanToAssertBoolean extends Recipe {
                     StringBuilder sb = new StringBuilder();
                     String assertMethod = Boolean.parseBoolean(((J.Literal) mi.getArguments().get(0)).getValueSource())
                             ? "assertTrue" : "assertFalse";
-                    Statement assertion = (Statement) mi.getArguments().get(1);
+                    Expression assertion = mi.getArguments().get(1);
                     if (mi.getSelect() == null) {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
                         maybeAddImport("org.junit.jupiter.api.Assertions", assertMethod);
@@ -80,14 +80,12 @@ public class AssertEqualsBooleanToAssertBoolean extends Recipe {
                     JavaTemplate t;
                     if (mi.getSelect() == null) {
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
                                 .staticImports(String.format("org.junit.jupiter.api.Assertions.%s", assertMethod))
                                 .javaParser(javaParser(ctx))
                                 .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
-                                .imports(String.format("org.junit.jupiter.api.Assertions.%s", assertMethod))
+                                .imports("org.junit.jupiter.api.Assertions")
                                 .javaParser(javaParser(ctx))
                                 .build();
                     }
