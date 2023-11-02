@@ -229,8 +229,9 @@ public class JMockitExpectationsToMockito extends Recipe {
             templateParams.set(0, invocation.withArguments(newArguments));
         }
 
-        private Expression rewriteMethodArgument(ExecutionContext ctx, String argumentMatcher, String template, Object cursorLocation,
-                                                 JavaCoordinates coordinates, List<Object> templateParams) {
+        private Expression rewriteMethodArgument(ExecutionContext ctx, String argumentMatcher, String template,
+                                                 Object cursorLocation, JavaCoordinates coordinates,
+                                                 List<Object> templateParams) {
             maybeAddImport("org.mockito.Mockito", argumentMatcher);
             return JavaTemplate.builder(template)
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
