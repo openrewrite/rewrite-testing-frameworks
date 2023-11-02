@@ -173,8 +173,8 @@ public class JMockitExpectationsToMockito extends Recipe {
                     );
         }
 
-        private void rewriteArgumentMatchers(ExecutionContext ctx, List<Object> templateParams) {
-            J.MethodInvocation invocation = (J.MethodInvocation) templateParams.get(0);
+        private void rewriteArgumentMatchers(ExecutionContext ctx, List<Object> bodyTemplateParams) {
+            J.MethodInvocation invocation = (J.MethodInvocation) bodyTemplateParams.get(0);
             List<Expression> newArguments = new ArrayList<>(invocation.getArguments().size());
             for (Expression methodArgument : invocation.getArguments()) {
                 if (!isArgumentMatcher(methodArgument)) {
@@ -226,7 +226,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                 newArguments.add(rewriteMethodArgument(ctx, argumentMatcher, template, methodArgument,
                         methodArgument.getCoordinates().replace(), argumentTemplateParams));
             }
-            templateParams.set(0, invocation.withArguments(newArguments));
+            bodyTemplateParams.set(0, invocation.withArguments(newArguments));
         }
 
         private Expression rewriteMethodArgument(ExecutionContext ctx, String argumentMatcher, String template,
