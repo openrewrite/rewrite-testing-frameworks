@@ -15,11 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.openrewrite.Cursor;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
@@ -83,10 +79,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private String tearDownMethodAnnotationParameters = "";
 
         @Override
-        public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            boolean useTestNg = !FindAnnotations.find(cu, "org.testng.annotations.Test").isEmpty();
-            initTestFrameworkInfo(useTestNg);
-            return super.visitCompilationUnit(cu, ctx);
+        public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
+            if (tree instanceof JavaSourceFile) {
+                boolean useTestNg = !FindAnnotations.find((J) tree, "@org.testng.annotations.Test").isEmpty();
+                initTestFrameworkInfo(useTestNg);
+            }
+            return super.visit(tree, ctx);
         }
 
         @Override
