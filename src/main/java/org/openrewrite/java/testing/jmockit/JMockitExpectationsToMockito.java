@@ -160,10 +160,14 @@ public class JMockitExpectationsToMockito extends Recipe {
         private J.Block rewriteMethodBody(ExecutionContext ctx, List<Object> templateParams, Object cursorLocation,
                                           JavaCoordinates coordinates) {
             Expression result = null;
-            String methodName = "doNothing";
-            if (templateParams.size() > 1) {
+            String methodName;
+            if (templateParams.size() == 1) {
+                methodName = "doNothing";
+            } else if (templateParams.size() == 2) {
                 methodName = "when";
                 result = (Expression) templateParams.get(1);
+            } else {
+                throw new IllegalStateException("Unexpected number of template params");
             }
             maybeAddImport("org.mockito.Mockito", methodName);
             rewriteArgumentMatchers(ctx, templateParams);
