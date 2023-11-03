@@ -167,7 +167,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                 methodName = "when";
                 result = (Expression) templateParams.get(1);
             } else {
-                throw new IllegalStateException("Unexpected number of template params");
+                throw new IllegalStateException("Unexpected number of template params: " + templateParams.size());
             }
             maybeAddImport("org.mockito.Mockito", methodName);
             rewriteArgumentMatchers(ctx, templateParams);
@@ -211,8 +211,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                     className = ((JavaType.FullyQualified) typeCastType).getClassName();
                     fqn = ((JavaType.FullyQualified) typeCastType).getFullyQualifiedName();
                 } else {
-                    newArguments.add(methodArgument);
-                    continue;
+                    throw new IllegalStateException("Unexpected J.TypeCast type: " + typeCastType);
                 }
                 if (MOCKITO_COLLECTION_MATCHERS.containsKey(fqn)) {
                     // mockito has specific argument matchers for collections
@@ -275,7 +274,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                         ? THROWABLE_RESULT_TEMPLATE
                         : OBJECT_RESULT_TEMPLATE;
             } else {
-                throw new IllegalStateException("Unexpected value: " + result.getType());
+                throw new IllegalStateException("Unexpected expression type for template: " + result.getType());
             }
             return template;
         }
