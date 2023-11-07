@@ -68,7 +68,7 @@ recipeList:
       methodPattern: org.mockito.ArgumentMatchers anyMap(java.lang.Class, java.lang.Class)
       argumentIndex: 0
   - org.openrewrite.java.DeleteMethodArgument:
-      methodPattern: org.mockito.ArgumentMatchers anyMap(java.lang.Class, java.lang.Class)
+      methodPattern: org.mockito.ArgumentMatchers anyMap(java.lang.Class)
       argumentIndex: 0
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.ArgumentMatchers anyCollectionOf()
