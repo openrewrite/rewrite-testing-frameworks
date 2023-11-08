@@ -535,6 +535,7 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
         );
     }
 
+    @SuppressWarnings("resource")
     @Test
     void failHasBinaryWithGetMessage() {
         //language=java
@@ -543,13 +544,15 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
+              import java.io.FileOutputStream;
+              import java.io.IOException;
               
               class MyTest {
                   @Test
                   public void testMethod() {
                       try {
-                          int divide = 50 / 0;
-                      } catch (Exception e) {
+                          FileOutputStream outputStream = new FileOutputStream("test.txt");
+                      } catch (IOException | RuntimeException e) {
                           Assertions.fail("The error is: " + e.getMessage());
                       }
                   }
@@ -558,12 +561,13 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
+              import java.io.FileOutputStream;
               
               class MyTest {
                   @Test
                   public void testMethod() {
                       Assertions.assertDoesNotThrow(() -> {
-                          int divide = 50 / 0;
+                          FileOutputStream outputStream = new FileOutputStream("test.txt");
                       }, "The error is: ");
                   }
               }
