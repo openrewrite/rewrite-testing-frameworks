@@ -51,10 +51,15 @@ public class JMockitExpectationsToMockito extends Recipe {
 
     private static class RewriteExpectationsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        private static final String VOID_RESULT_TEMPLATE = "doNothing().when(#{any(java.lang.String)});";
+        private static final String VOID_RESULT_TEMPLATE = "doNothing().when(#{any(java.lang.Void)});";
         private static final String PRIMITIVE_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{});";
-        private static final String OBJECT_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{any(java.lang.String)});";
         private static final String THROWABLE_RESULT_TEMPLATE = "when(#{any()}).thenThrow(#{any()});";
+        private static String getObjectTemplate(String fqn) {
+            return "when(#{any()}).thenReturn(#{any(" + fqn + ")});";
+        }
+        private static String getVerifyTemplate(String fqn) {
+            return "verify(#{any(" + fqn + ")}, times(#{any(int)})).#{}();";
+        }
         private static final Set<String> JMOCKIT_ARGUMENT_MATCHERS = new HashSet<>();
         static {
             JMOCKIT_ARGUMENT_MATCHERS.add("anyString");
@@ -119,29 +124,22 @@ public class JMockitExpectationsToMockito extends Recipe {
                     // iterate over the expectations statements and rebuild the method body
                     int mockitoStatementIndex = 0;
                     for (Statement expectationStatement : expectationsBlock.getStatements()) {
-                        // TODO: handle additional jmockit expectations features
+                        if (expectationStatement instanceof J.MethodInvocation && !templateParams.isEmpty()) {
+                            // apply template to build new method body
+                            newBody = rewriteMethodBody(ctx, templateParams, cursorLocation, coordinates);
 
-                        if (expectationStatement instanceof J.MethodInvocation) {
-                            if (!templateParams.isEmpty()) {
-                                // apply template to build new method body
-                                newBody = rewriteMethodBody(ctx, templateParams, cursorLocation, coordinates);
+                            // next statement coordinates are immediately after the statement just added
+                            int newStatementIndex = bodyStatementIndex + mockitoStatementIndex;
+                            coordinates = newBody.getStatements().get(newStatementIndex).getCoordinates().after();
 
-                                // next statement coordinates are immediately after the statement just added
-                                int newStatementIndex = bodyStatementIndex + mockitoStatementIndex;
-                                coordinates = newBody.getStatements().get(newStatementIndex).getCoordinates().after();
+                            // cursor location is now the new body
+                            cursorLocation = newBody;
 
-                                // cursor location is now the new body
-                                cursorLocation = newBody;
-
-                                // reset template params for next expectation
-                                templateParams = new ArrayList<>();
-                                mockitoStatementIndex += 1;
-                            }
-                            templateParams.add(expectationStatement);
-                        } else {
-                            // assignment
-                            templateParams.add(((J.Assignment) expectationStatement).getAssignment());
+                            // reset template params for next expectation
+                            templateParams = new ArrayList<>();
+                            mockitoStatementIndex += 1;
                         }
+                        templateParams.add(expectationStatement);
                     }
 
                     // handle the last statement
@@ -159,19 +157,68 @@ public class JMockitExpectationsToMockito extends Recipe {
 
         private J.Block rewriteMethodBody(ExecutionContext ctx, List<Object> templateParams, Object cursorLocation,
                                           JavaCoordinates coordinates) {
-            Expression result = null;
-            String methodName;
+            Expression result = null, times = null;
+            J.Assignment assignment;
+            String methodName = "when";
+
+            // TODO: refactor duplicate code
             if (templateParams.size() == 1) {
                 methodName = "doNothing";
             } else if (templateParams.size() == 2) {
+                assignment = (J.Assignment) templateParams.get(1);
+                if (!(assignment.getVariable() instanceof J.Identifier)) {
+                    throw new IllegalStateException("Unexpected assignment variable type: " + assignment.getVariable());
+                }
+                J.Identifier identifier = (J.Identifier) assignment.getVariable();
+                if (identifier.getSimpleName().equals("result")) {
+                    result = assignment.getAssignment();
+                    templateParams.set(1, result);
+                } else if (identifier.getSimpleName().equals("times")) {
+                    times = assignment.getAssignment();
+                    templateParams.remove(1);
+                } else {
+                    // ignore other assignments
+                    templateParams.remove(1);
+                }
+            } else if (templateParams.size() == 3) {
+                int expressionIndex = 1;
                 methodName = "when";
-                result = (Expression) templateParams.get(1);
+                J.Assignment firstAssignment = (J.Assignment) templateParams.get(1);
+                if (!(firstAssignment.getVariable() instanceof J.Identifier)) {
+                    throw new IllegalStateException("Unexpected assignment variable type: " +
+                            firstAssignment.getVariable());
+                }
+                J.Identifier identifier = (J.Identifier) firstAssignment.getVariable();
+                if (identifier.getSimpleName().equals("result")) {
+                    result = firstAssignment.getAssignment();
+                    templateParams.set(expressionIndex, result);
+                    expressionIndex = 2;
+                } else if (identifier.getSimpleName().equals("times")) {
+                    times = firstAssignment.getAssignment();
+                    templateParams.remove(expressionIndex);
+                } else {
+                    // ignore other assignments
+                    templateParams.remove(expressionIndex);
+                }
+
+                J.Assignment secondAssignment = (J.Assignment) templateParams.get(expressionIndex);
+                identifier = (J.Identifier) secondAssignment.getVariable();
+                if (identifier.getSimpleName().equals("result")) {
+                    result = secondAssignment.getAssignment();
+                    templateParams.set(expressionIndex, result);
+                } else if (identifier.getSimpleName().equals("times")) {
+                    times = secondAssignment.getAssignment();
+                    templateParams.remove(expressionIndex);
+                } else {
+                    // ignore other assignments
+                    templateParams.remove(expressionIndex);
+                }
             } else {
                 throw new IllegalStateException("Unexpected number of template params: " + templateParams.size());
             }
             maybeAddImport("org.mockito.Mockito", methodName);
             rewriteArgumentMatchers(ctx, templateParams);
-            return JavaTemplate.builder(getMockitoStatementTemplate(result))
+            J.Block newBody = JavaTemplate.builder(getMockitoStatementTemplate(result))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                     .staticImports("org.mockito.Mockito." + methodName)
                     .build()
@@ -180,6 +227,36 @@ public class JMockitExpectationsToMockito extends Recipe {
                             coordinates,
                             templateParams.toArray()
                     );
+
+            if (times != null) {
+                maybeAddImport("org.mockito.Mockito", "verify");
+                maybeAddImport("org.mockito.Mockito", "times");
+                J.MethodInvocation invocation = (J.MethodInvocation) templateParams.get(0);
+                J.Identifier select = (J.Identifier) invocation.getSelect();
+                if (select == null || select.getType() == null) {
+                    throw new IllegalStateException("Unexpected invocation select type: " + select);
+                }
+                String fqn = ((JavaType.FullyQualified) select.getType()).getFullyQualifiedName();
+
+                List<Object> verifyTemplateParams = new ArrayList<>();
+                verifyTemplateParams.add(select);
+                verifyTemplateParams.add(times);
+                verifyTemplateParams.add(invocation.getName().getSimpleName());
+
+                // TODO: handle method arguments
+                newBody = JavaTemplate.builder(getVerifyTemplate(fqn))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                        .staticImports("org.mockito.Mockito.verify", "org.mockito.Mockito.times")
+                        .imports(fqn)
+                        .build()
+                        .apply(
+                                new Cursor(getCursor(), newBody),
+                                newBody.getCoordinates().lastStatement(),
+                                verifyTemplateParams.toArray()
+                        );
+            }
+
+            return newBody;
         }
 
         private void rewriteArgumentMatchers(ExecutionContext ctx, List<Object> bodyTemplateParams) {
@@ -221,7 +298,6 @@ public class JMockitExpectationsToMockito extends Recipe {
                     // rewrite parameter from ((<type>) any) to <type>.class
                     argumentTemplateParams.add(JavaTemplate.builder("#{}.class")
                             .javaParser(JavaParser.fromJavaVersion())
-                            .imports(fqn)
                             .build()
                             .apply(
                                     new Cursor(getCursor(), tc),
@@ -266,13 +342,13 @@ public class JMockitExpectationsToMockito extends Recipe {
                 return VOID_RESULT_TEMPLATE;
             }
             String template;
-            JavaType resultType = Objects.requireNonNull(result.getType());
+            JavaType resultType = result.getType();
             if (resultType instanceof JavaType.Primitive) {
                 template = PRIMITIVE_RESULT_TEMPLATE;
             } else if (resultType instanceof JavaType.Class) {
                 template = TypeUtils.isAssignableTo(Throwable.class.getName(), resultType)
                         ? THROWABLE_RESULT_TEMPLATE
-                        : OBJECT_RESULT_TEMPLATE;
+                        : getObjectTemplate(((JavaType.Class) resultType).getFullyQualifiedName());
             } else {
                 throw new IllegalStateException("Unexpected expression type for template: " + result.getType());
             }
