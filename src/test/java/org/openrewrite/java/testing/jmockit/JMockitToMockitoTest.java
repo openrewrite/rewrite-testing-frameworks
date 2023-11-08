@@ -48,30 +48,21 @@ class JMockitToMockitoTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              class MyObject {
-                  public void doSomething() {}
-              }
-              """
-          ),
-          java(
-            """
               import mockit.Expectations;
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-              
-              import static org.junit.jupiter.api.Assertions.assertNull;
 
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
-                  MyObject myObject;
+                  Object myObject;
 
                   void test() {
                       new Expectations() {{
-                          myObject.doSomething();
+                          myObject.wait(anyLong, anyInt);
                       }};
-                      myObject.doSomething();
+                      myObject.wait(10L, 10);
                   }
               }
               """,
@@ -80,17 +71,16 @@ class JMockitToMockitoTest implements RewriteTest {
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
               
-              import static org.junit.jupiter.api.Assertions.assertNull;
-              import static org.mockito.Mockito.doNothing;
+              import static org.mockito.Mockito.*;
 
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
-                  MyObject myObject;
+                  Object myObject;
 
                   void test() {
-                      doNothing().when(myObject.doSomething());
-                      myObject.doSomething();
+                      doNothing().when(myObject).wait(anyLong(), anyInt());
+                      myObject.wait(10L, 10);
                   }
               }
               """
@@ -532,9 +522,7 @@ class JMockitToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-              
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              
+                            
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
@@ -542,12 +530,11 @@ class JMockitToMockitoTest implements RewriteTest {
                   
                   void test() {
                       new Expectations() {{
-                          myObject.toString();
-                          result = "foo";
+                          myObject.wait(anyLong, anyInt);
                           times = 2;
                       }};
-                      assertEquals("foo", myObject.toString());
-                      assertEquals("foo", myObject.toString());
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
                   }
               }
               """,
@@ -556,7 +543,6 @@ class JMockitToMockitoTest implements RewriteTest {
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
               
-              import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.*;
               
               @ExtendWith(MockitoExtension.class)
@@ -565,10 +551,10 @@ class JMockitToMockitoTest implements RewriteTest {
                   Object myObject;
                   
                   void test() {
-                      when(myObject.toString()).thenReturn("foo");
-                      assertEquals("foo", myObject.toString());
-                      assertEquals("foo", myObject.toString());
-                      verify(myObject, times(2)).toString();
+                      doNothing().when(myObject).wait(anyLong(), anyInt());
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
+                      verify(myObject, times(2)).wait(anyLong(), anyInt());
                   }
               }
               """
@@ -609,24 +595,24 @@ class JMockitToMockitoTest implements RewriteTest {
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
-                  MyObject myObject;
+                  Object myObject;
                   
                   @Mocked
                   MyObject myOtherObject;
                   
                   void test() {
                       new Expectations() {{
-                          myObject.getSomeIntField();
+                          myObject.hashCode();
                           result = 10;
                           myOtherObject.getSomeObjectField();
                           result = null;
-                          myObject.doSomething();
+                          myObject.wait(anyLong, anyInt);
                           myOtherObject.getSomeStringField(anyString, anyLong);
                           result = "foo";
                       }};
-                      assertEquals(10, myObject.getSomeIntField());
+                      assertEquals(10, myObject.hashCode());
                       assertNull(myOtherObject.getSomeObjectField());
-                      myObject.doSomething();
+                      myObject.wait(10L, 10);
                       assertEquals("foo", myOtherObject.getSomeStringField("bar", 10L));
                   }
               }
@@ -643,19 +629,19 @@ class JMockitToMockitoTest implements RewriteTest {
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
-                  MyObject myObject;
+                  Object myObject;
 
                   @Mock
                   MyObject myOtherObject;
 
                   void test() {
-                      when(myObject.getSomeIntField()).thenReturn(10);
+                      when(myObject.hashCode()).thenReturn(10);
                       when(myOtherObject.getSomeObjectField()).thenReturn(null);
-                      doNothing().when(myObject.doSomething());
+                      doNothing().when(myObject).wait(anyLong(), anyInt());
                       when(myOtherObject.getSomeStringField(anyString(), anyLong())).thenReturn("foo");
-                      assertEquals(10, myObject.getSomeIntField());
+                      assertEquals(10, myObject.hashCode());
                       assertNull(myOtherObject.getSomeObjectField());
-                      myObject.doSomething();
+                      myObject.wait(10L, 10);
                       assertEquals("foo", myOtherObject.getSomeStringField("bar", 10L));
                   }
               }
