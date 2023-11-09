@@ -138,7 +138,8 @@ public class JMockitExpectationsToMockito extends Recipe {
                         continue;
                     }
                     // empty Expectations block is considered invalid
-                    assert nc.getBody() != null && !nc.getBody().getStatements().isEmpty() : "Expectations block is empty";
+                    assert nc.getBody() != null
+                            && !nc.getBody().getStatements().isEmpty() : "Expectations block is empty";
                     // Expectations block should be composed of a block within another block
                     assert nc.getBody().getStatements().size() == 1 : "Expectations block is malformed";
 
@@ -255,7 +256,8 @@ public class JMockitExpectationsToMockito extends Recipe {
                 templateParams.add(invocation.getName().getSimpleName());
                 mockArguments = rewriteMethodArgumentMatchers(ctx, invocation.getArguments());
             } else {
-                templateParams.set(0, invocation.withArguments(rewriteMethodArgumentMatchers(ctx, invocation.getArguments())));
+                templateParams.set(0,
+                        invocation.withArguments(rewriteMethodArgumentMatchers(ctx, invocation.getArguments())));
             }
             maybeAddImport("org.mockito.Mockito", methodName);
 
@@ -371,7 +373,8 @@ public class JMockitExpectationsToMockito extends Recipe {
             return JMOCKIT_ARGUMENT_MATCHERS.contains(identifier.getSimpleName());
         }
 
-        private static String getMockitoStatementTemplate(Expression result, String fqn, List<Expression> mockArguments) {
+        private static String getMockitoStatementTemplate(Expression result, String fqn,
+                                                          List<Expression> mockArguments) {
             if (result == null) {
                 return getVoidResultTemplate(fqn, mockArguments);
             }
