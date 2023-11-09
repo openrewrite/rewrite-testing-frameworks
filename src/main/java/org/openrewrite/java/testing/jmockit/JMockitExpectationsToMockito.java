@@ -51,7 +51,6 @@ public class JMockitExpectationsToMockito extends Recipe {
 
     private static class RewriteExpectationsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        private static final String VOID_RESULT_TEMPLATE = "doNothing().when(#{any(java.lang.Void)});";
         private static final String PRIMITIVE_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{});";
         private static final String THROWABLE_RESULT_TEMPLATE = "when(#{any()}).thenThrow(#{any()});";
         private static String getVoidResultTemplate(String fqn, List<Expression> arguments) {
@@ -384,6 +383,8 @@ public class JMockitExpectationsToMockito extends Recipe {
                 template = TypeUtils.isAssignableTo(Throwable.class.getName(), resultType)
                         ? THROWABLE_RESULT_TEMPLATE
                         : getObjectTemplate(((JavaType.Class) resultType).getFullyQualifiedName());
+            } else if (resultType instanceof JavaType.Parameterized) {
+                template = getObjectTemplate(((JavaType.Parameterized) resultType).getType().getFullyQualifiedName());
             } else {
                 throw new IllegalStateException("Unexpected expression type for template: " + result.getType());
             }
