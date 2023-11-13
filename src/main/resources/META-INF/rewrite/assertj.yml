@@ -22,9 +22,9 @@ tags:
   - testing
   - assertj
 recipeList:
-  - org.openrewrite.java.testing.assertj.StaticImports
-  - org.openrewrite.java.testing.assertj.JUnitToAssertj
   - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
+  - org.openrewrite.java.testing.assertj.JUnitToAssertj
+  - org.openrewrite.java.testing.assertj.StaticImports
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
 
 ---
