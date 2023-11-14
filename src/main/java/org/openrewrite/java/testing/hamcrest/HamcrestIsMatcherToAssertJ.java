@@ -39,7 +39,7 @@ public class HamcrestIsMatcherToAssertJ extends Recipe {
         return "Migrate Hamcrest `is(Object)` to AssertJ `Assertions.assertThat(..)`.";
     }
 
-    static final MethodMatcher IS_OBJECT_MATCHER = new MethodMatcher("org.hamcrest.Matchers is(..)");
+    static final MethodMatcher IS_OBJECT_MATCHER = new MethodMatcher("org.hamcrest.*Matchers is(..)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

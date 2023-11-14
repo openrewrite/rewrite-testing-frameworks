@@ -45,8 +45,8 @@ public class HamcrestOfMatchersToAssertJ extends Recipe {
     }
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
-    private static final MethodMatcher ANY_OF_MATCHER = new MethodMatcher("org.hamcrest.Matchers anyOf(..)");
-    private static final MethodMatcher ALL_OF_MATCHER = new MethodMatcher("org.hamcrest.Matchers allOf(..)");
+    private static final MethodMatcher ANY_OF_MATCHER = new MethodMatcher("org.hamcrest.*Matchers anyOf(..)");
+    private static final MethodMatcher ALL_OF_MATCHER = new MethodMatcher("org.hamcrest.*Matchers allOf(..)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -96,6 +96,8 @@ public class HamcrestOfMatchersToAssertJ extends Recipe {
 
             maybeRemoveImport("org.hamcrest.Matchers.anyOf");
             maybeRemoveImport("org.hamcrest.Matchers.allOf");
+            maybeRemoveImport("org.hamcrest.CoreMatchers.anyOf");
+            maybeRemoveImport("org.hamcrest.CoreMatchers.allOf");
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             return JavaTemplate.builder(template.toString())
                     .contextSensitive()

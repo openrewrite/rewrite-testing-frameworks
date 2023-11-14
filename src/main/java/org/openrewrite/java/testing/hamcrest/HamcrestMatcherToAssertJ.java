@@ -63,13 +63,13 @@ public class HamcrestMatcherToAssertJ extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>("org.hamcrest.Matchers " + matcher + "(..)"), new MigrateToAssertJVisitor());
+        return Preconditions.check(new UsesMethod<>("org.hamcrest.*Matchers " + matcher + "(..)"), new MigrateToAssertJVisitor());
     }
 
     private class MigrateToAssertJVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final MethodMatcher assertThatMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
-        private final MethodMatcher matchersMatcher = new MethodMatcher("org.hamcrest.Matchers " + matcher + "(..)");
-        private final MethodMatcher subMatcher = new MethodMatcher("org.hamcrest.Matchers *(org.hamcrest.Matcher)");
+        private final MethodMatcher matchersMatcher = new MethodMatcher("org.hamcrest.*Matchers " + matcher + "(..)");
+        private final MethodMatcher subMatcher = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
 
 
         @Override
@@ -104,6 +104,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             maybeAddImport("org.assertj.core.api.Assertions", "within");
             maybeRemoveImport("org.hamcrest.Matchers." + matcher);
+            maybeRemoveImport("org.hamcrest.CoreMatchers." + matcher);
             maybeRemoveImport("org.hamcrest.MatcherAssert");
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
 
