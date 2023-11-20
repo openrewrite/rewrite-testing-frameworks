@@ -62,14 +62,14 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>("org.hamcrest.Matchers " + notMatcher + "(..)"), new MigrateToAssertJVisitor());
+        return Preconditions.check(new UsesMethod<>("org.hamcrest.*Matchers " + notMatcher + "(..)"), new MigrateToAssertJVisitor());
     }
 
     private class MigrateToAssertJVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
-        private final MethodMatcher NOT_MATCHER = new MethodMatcher("org.hamcrest.Matchers not(org.hamcrest.Matcher)");
-        private final MethodMatcher MATCHERS_MATCHER = new MethodMatcher("org.hamcrest.Matchers " + notMatcher + "(..)");
-        private final MethodMatcher SUB_MATCHER = new MethodMatcher("org.hamcrest.Matchers *(org.hamcrest.Matcher)");
+        private final MethodMatcher NOT_MATCHER = new MethodMatcher("org.hamcrest.*Matchers not(org.hamcrest.Matcher)");
+        private final MethodMatcher MATCHERS_MATCHER = new MethodMatcher("org.hamcrest.*Matchers " + notMatcher + "(..)");
+        private final MethodMatcher SUB_MATCHER = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -110,6 +110,8 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             maybeRemoveImport("org.hamcrest.Matchers.not");
             maybeRemoveImport("org.hamcrest.Matchers." + notMatcher);
+            maybeRemoveImport("org.hamcrest.CoreMatchers.not");
+            maybeRemoveImport("org.hamcrest.CoreMatchers." + notMatcher);
             maybeRemoveImport("org.hamcrest.MatcherAssert");
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
 

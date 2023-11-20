@@ -164,6 +164,43 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   """)
             );
         }
+
+        @Test
+        void coreMatchers() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("startsWith", "startsWith")),
+              //language=java
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.CoreMatchers.startsWith;
+                              
+                  class ATest {
+                      @Test
+                      void test() {
+                          String str1 = "Hello world!";
+                          assertThat(str1, startsWith("Hello"));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.assertj.core.api.Assertions.assertThat;
+                                
+                  class ATest {
+                      @Test
+                      void test() {
+                          String str1 = "Hello world!";
+                          assertThat(str1).startsWith("Hello");
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 
     @Nested
@@ -352,7 +389,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                                 
                   import java.util.ArrayList;
                   import java.util.List;
-                  
+                                    
                   import static org.assertj.core.api.Assertions.assertThat;
                               
                   class ATest {
@@ -374,10 +411,10 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
               //language=java
               java("""
                   import org.junit.jupiter.api.Test;
-                  
+                                    
                   import static org.hamcrest.MatcherAssert.assertThat;
                   import static org.hamcrest.Matchers.closeTo;
-                  
+                                    
                   class ATest {
                       @Test
                       void replaceCloseTo() {
@@ -387,10 +424,10 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   """,
                 """
                   import org.junit.jupiter.api.Test;
-                  
+                                    
                   import static org.assertj.core.api.Assertions.assertThat;
                   import static org.assertj.core.api.Assertions.within;
-                  
+                                    
                   class ATest {
                       @Test
                       void replaceCloseTo() {
@@ -409,10 +446,10 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
               java("""
                   import org.junit.jupiter.api.Test;
                   import java.math.BigDecimal;
-                  
+                                    
                   import static org.hamcrest.MatcherAssert.assertThat;
                   import static org.hamcrest.Matchers.closeTo;
-                  
+                                    
                   class ATest {
                       @Test
                       void replaceCloseTo() {
@@ -426,10 +463,10 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import java.math.BigDecimal;
-                  
+                                    
                   import static org.assertj.core.api.Assertions.assertThat;
                   import static org.assertj.core.api.Assertions.within;
-                  
+                                    
                   class ATest {
                       @Test
                       void replaceCloseTo() {
