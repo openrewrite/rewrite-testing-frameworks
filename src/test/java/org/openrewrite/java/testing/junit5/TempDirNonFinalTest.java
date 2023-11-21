@@ -101,6 +101,7 @@ class TempDirNonFinalTest implements RewriteTest {
         rewriteRun(
           java(
             """
+              import java.io.File;
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.io.TempDir;
               

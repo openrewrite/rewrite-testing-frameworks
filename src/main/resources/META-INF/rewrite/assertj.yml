@@ -22,11 +22,10 @@ tags:
   - testing
   - assertj
 recipeList:
-  - org.openrewrite.java.testing.assertj.StaticImports
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
-  - org.openrewrite.java.testing.assertj.UseExplicitContains
-  - org.openrewrite.java.testing.assertj.UseExplicitIsEmpty
-  - org.openrewrite.java.testing.assertj.UseExplicitSize
+  - org.openrewrite.java.testing.assertj.StaticImports
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -45,6 +44,269 @@ recipeList:
       fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
   - org.openrewrite.java.UseStaticImport:
       methodPattern: "org.assertj.core.api.Assertions *(..)"
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
+displayName: Simplify AssertJ chained assertions
+description: Replace AssertJ chained assertions with dedicated assertions that function the same.
+tags:
+  - testing
+  - assertj
+recipeList:
+  # Simplify Chained AssertJ Assertions
+  # String Assertions
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isTrue
+      dedicatedAssertion: isEmpty
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: getString
+      assertToReplace: hasSize
+      dedicatedAssertion: isEmpty
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: equals
+      assertToReplace: isTrue
+      dedicatedAssertion: isEqualTo
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: equalsIgnoreCase
+      assertToReplace: isTrue
+      dedicatedAssertion: isEqualToIgnoringCase
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: contains
+      assertToReplace: isTrue
+      dedicatedAssertion: contains
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: startsWith
+      assertToReplace: isTrue
+      dedicatedAssertion: startsWith
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: endsWith
+      assertToReplace: isTrue
+      dedicatedAssertion: endsWith
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: matches
+      assertToReplace: isTrue
+      dedicatedAssertion: matches
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: trim
+      assertToReplace: isEmpty
+      dedicatedAssertion: isBlank
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: length
+      assertToReplace: isEqualTo
+      dedicatedAssertion: hasSize
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isFalse
+      dedicatedAssertion: isNotEmpty
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: length
+      assertToReplace: hasSize
+      dedicatedAssertion: hasSameSizeAs
+      requiredType: java.lang.String
+  # File Assertions
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: getFile
+      assertToReplace: hasSize
+      dedicatedAssertion: isEmpty
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: length
+      assertToReplace: isZero
+      dedicatedAssertion: isEmpty
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: length
+      assertToReplace: isEqualTo
+      dedicatedAssertion: hasSize
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: canRead
+      assertToReplace: isTrue
+      dedicatedAssertion: canRead
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: canWrite
+      assertToReplace: isTrue
+      dedicatedAssertion: canWrite
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: exists
+      assertToReplace: isTrue
+      dedicatedAssertion: exists
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: getName
+      assertToReplace: isEqualTo
+      dedicatedAssertion: hasName
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: getParent
+      assertToReplace: isEqualTo
+      dedicatedAssertion: hasParent
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: getParentFile
+      assertToReplace: isNull
+      dedicatedAssertion: hasNoParent
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isAbsolute
+      assertToReplace: isTrue
+      dedicatedAssertion: isAbsolute
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isAbsolute
+      assertToReplace: isFalse
+      dedicatedAssertion: isRelative
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isDirectory
+      assertToReplace: isTrue
+      dedicatedAssertion: isDirectory
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isFile
+      assertToReplace: isTrue
+      dedicatedAssertion: isFile
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: list
+      assertToReplace: isEmpty
+      dedicatedAssertion: isEmptyDirectory
+      requiredType: java.io.File
+  # Path Assertions
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: startsWith
+      assertToReplace: isTrue
+      dedicatedAssertion: startsWithRaw
+      requiredType: java.nio.file.Path
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: endsWith
+      assertToReplace: isTrue
+      dedicatedAssertion: endsWithRaw
+      requiredType: java.nio.file.Path
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: getParent
+      assertToReplace: isEqualTo
+      dedicatedAssertion: hasParentRaw
+      requiredType: java.nio.file.Path
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: getParent
+      assertToReplace: isNull
+      dedicatedAssertion: hasNoParentRaw
+      requiredType: java.nio.file.Path
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isAbsolute
+      assertToReplace: isTrue
+      dedicatedAssertion: isAbsolute
+      requiredType: java.nio.file.Path
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isAbsolute
+      assertToReplace: isFalse
+      dedicatedAssertion: isRelative
+      requiredType: java.nio.file.Path
+  # Collection Assertions
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isTrue
+      dedicatedAssertion: isEmpty
+      requiredType: java.util.Collection
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isFalse
+      dedicatedAssertion: isNotEmpty
+      requiredType: java.util.Collection
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: size
+      assertToReplace: isZero
+      dedicatedAssertion: isEmpty
+      requiredType: java.util.Collection
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: size
+      assertToReplace: isEqualTo
+      dedicatedAssertion: hasSize
+      requiredType: java.util.Collection
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: contains
+      assertToReplace: isTrue
+      dedicatedAssertion: contains
+      requiredType: java.util.Collection
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: contains
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotContain
+      requiredType: java.util.Collection
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: containsAll
+      assertToReplace: isTrue
+      dedicatedAssertion: containsAll
+      requiredType: java.util.Collection
+  # Map Assertions
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: size
+      assertToReplace: isEqualTo
+      dedicatedAssertion: hasSize
+      requiredType: java.util.Map
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: containsKey
+      assertToReplace: isTrue
+      dedicatedAssertion: containsKey
+      requiredType: java.util.Map
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: keySet
+      assertToReplace: contains
+      dedicatedAssertion: containsKey
+      requiredType: java.util.Map
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: keySet
+      assertToReplace: containsOnly
+      dedicatedAssertion: containsOnlyKeys
+      requiredType: java.util.Map
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: containsValue
+      assertToReplace: isTrue
+      dedicatedAssertion: containsValue
+      requiredType: java.util.Map
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: values
+      assertToReplace: contains
+      dedicatedAssertion: containsValue
+      requiredType: java.util.Map
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: get
+      assertToReplace: isEqualTo
+      dedicatedAssertion: containsEntry
+      requiredType: java.util.Map
+  # Optional Assertions
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isPresent
+      assertToReplace: isTrue
+      dedicatedAssertion: isPresent
+      requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: get
+      assertToReplace: isEqualTo
+      dedicatedAssertion: contains
+      requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: get
+      assertToReplace: isSameAs
+      dedicatedAssertion: containsSame
+      requiredType: java.util.Optional
+
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.JUnitToAssertj

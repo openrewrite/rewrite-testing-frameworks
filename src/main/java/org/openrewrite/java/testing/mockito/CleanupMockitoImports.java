@@ -34,6 +34,7 @@ import java.util.List;
  * Removes unused "org.mockito" imports.
  */
 public class CleanupMockitoImports extends Recipe {
+
     @Override
     public String getDisplayName() {
         return "Cleanup Mockito imports";
@@ -49,7 +50,7 @@ public class CleanupMockitoImports extends Recipe {
         return Preconditions.check(new UsesType<>("org.mockito.*", false), new CleanupMockitoImportsVisitor());
     }
 
-    public static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
+    private static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final List<String> MOCKITO_METHOD_NAMES = Arrays.asList(
                 "after",
                 "atLeast",
@@ -98,6 +99,9 @@ public class CleanupMockitoImports extends Recipe {
                 final List<String> unknownTypeMethodInvocationNames = new ArrayList<>();
                 new WellFormedMockitoMethodTypeVisitor().visit(sf, unknownTypeMethodInvocationNames);
 
+                final List<String> qualifiedMethodInvocationNames = new ArrayList<>();
+                new QualifiedMockitoMethodTypeVisitor().visit(sf, qualifiedMethodInvocationNames);
+
                 for (J.Import _import : sf.getImports()) {
                     if (_import.getPackageName().startsWith("org.mockito")) {
                         if (_import.isStatic()) {
@@ -107,7 +111,7 @@ public class CleanupMockitoImports extends Recipe {
                             } else if (!"*".equals(staticName) && !unknownTypeMethodInvocationNames.contains(staticName)) {
                                 maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName() + "." + staticName);
                             }
-                        } else {
+                        } else if (qualifiedMethodInvocationNames.isEmpty()) {
                             maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
                         }
                     }
@@ -132,6 +136,19 @@ public class CleanupMockitoImports extends Recipe {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, missingMethods);
                 if (MOCKITO_METHOD_NAMES.contains(mi.getSimpleName()) && !TypeUtils.isWellFormedType(mi.getType())) {
                     missingMethods.add(mi.getSimpleName());
+                }
+                return mi;
+            }
+        }
+
+        private static class QualifiedMockitoMethodTypeVisitor extends JavaIsoVisitor<List<String>> {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, List<String> qualifiedMethods) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, qualifiedMethods);
+                if (MOCKITO_METHOD_NAMES.contains(mi.getSimpleName())
+                        && mi.getSelect() != null
+                        && TypeUtils.isAssignableTo("org.mockito.Mockito", mi.getSelect().getType())) {
+                    qualifiedMethods.add(mi.getSimpleName());
                 }
                 return mi;
             }

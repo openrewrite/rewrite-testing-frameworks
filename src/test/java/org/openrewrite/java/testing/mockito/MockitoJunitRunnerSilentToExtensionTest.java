@@ -30,7 +30,7 @@ class MockitoJunitRunnerSilentToExtensionTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(),"junit-4.13", "mockito-core-3.12"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "mockito-core-3.12"))
           .recipe(new MockitoJUnitRunnerSilentToExtension());
     }
 

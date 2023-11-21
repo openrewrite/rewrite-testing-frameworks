@@ -301,6 +301,35 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
     }
 
     @Test
+    void hasMockitoVerifyNoInteractions() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+              import static org.mockito.Mockito.*;
+              
+              class AaTest {
+                  @Mock
+                  org.learning.math.MyMathService myMathService;
+                  
+                  @Test
+                  public void noMore() {
+                      verifyNoMoreInteractions(myMathService);
+                  }
+                  
+                  @Test
+                  public void zero() {
+                      verifyZeroInteractions(myMathService);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void hasMockitoDoesNotValidate() {
         //language=java
         rewriteRun(
