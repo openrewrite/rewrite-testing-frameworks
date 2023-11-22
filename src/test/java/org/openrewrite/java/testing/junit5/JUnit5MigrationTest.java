@@ -181,6 +181,22 @@ class JUnit5MigrationTest implements RewriteTest {
                     </dependency>
                 </dependencies>
             </project>
+            """,
+            """
+            <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example.jackson</groupId>
+                <artifactId>test-plugins</artifactId>
+                <version>1.0.0</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.testcontainers</groupId>
+                        <artifactId>testcontainers</artifactId>
+                        <version>1.18.3</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+            </project>
             """
           )
         );
