@@ -161,6 +161,31 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
+    void dontExcludeJunit4DependencyfromTestcontainers() {
+        rewriteRun(
+          pomXml(
+            """
+            <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example.jackson</groupId>
+                <artifactId>test-plugins</artifactId>
+                <version>1.0.0</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.testcontainers</groupId>
+                        <artifactId>testcontainers</artifactId>
+                        <version>1.18.3</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+            </project>
+            """
+          )
+        );
+    }
+
     // edge case for deprecated use of assertEquals
     // https://junit.org/junit4/javadoc/4.13/org/junit/Assert.html#assertEquals(java.lang.Object%5B%5D,%20java.lang.Object%5B%5D)
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/pull/384")
