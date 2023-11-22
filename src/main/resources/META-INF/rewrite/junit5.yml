@@ -95,6 +95,12 @@ recipeList:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: junit
       artifactId: junit
+  # Workaround for https://github.com/testcontainers/testcontainers-java/issues/970:
+  - org.openrewrite.maven.RemoveExclusion:
+      groupId: org.testcontainers
+      artifactId: testcontainers
+      exclusionGroupId: junit
+      exclusionArtifactId: junit
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
