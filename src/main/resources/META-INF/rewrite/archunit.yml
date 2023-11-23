@@ -21,7 +21,7 @@ description: Upgrade ArchUnit from 0.x to 1.x.
 recipeList:
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: com.tngtech.archunit
-      artifactId: archunit-junit5
+      artifactId: archunit*
       newVersion: 1.x
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: com.tngtech.archunit.core.domain.JavaPackage getAllClasses()
