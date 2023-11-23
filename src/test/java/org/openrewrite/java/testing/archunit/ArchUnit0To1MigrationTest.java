@@ -16,32 +16,30 @@
 package org.openrewrite.java.testing.archunit;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.maven.Assertions.pomXml;
 
-public class ArchUnit0To1MigrationTest implements RewriteTest {
+class ArchUnit0To1MigrationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "archunit-0.23.1"))
-          .recipe(Environment.builder()
-            .scanRuntimeClasspath()
-            .build()
-            .activateRecipes("org.openrewrite.java.testing.archunit.ArchUnit0to1Migration"));
+          .parser(JavaParser.fromJavaVersion().classpath("archunit-0.23.1"))
+          .recipeFromResource("/META-INF/rewrite/archunit.yml", "org.openrewrite.java.testing.archunit.ArchUnit0to1Migration");
     }
 
     @Test
     void shouldMigrateMavenDependency() {
         rewriteRun(
           mavenProject("project",
+            //language=xml
             pomXml(
               """
                 <project>
@@ -59,22 +57,27 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
                   </dependencies>
                 </project>
                 """,
-              """
-                <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example</groupId>
-                  <artifactId>demo</artifactId>
-                  <version>0.0.1-SNAPSHOT</version>
-                  <dependencies>
-                    <dependency>
-                        <groupId>com.tngtech.archunit</groupId>
-                        <artifactId>archunit-junit5</artifactId>
-                        <version>1.2.0</version>
-                        <scope>test</scope>
-                    </dependency>
-                  </dependencies>
-                </project>
-                """
+              spec -> spec.after(pom -> {
+                  Matcher matcher = Pattern.compile("<version>(1\\..+)</version>").matcher(pom);
+                  matcher.find();
+                  String version = matcher.group(1);
+                  return """
+                    <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <groupId>com.example</groupId>
+                      <artifactId>demo</artifactId>
+                      <version>0.0.1-SNAPSHOT</version>
+                      <dependencies>
+                        <dependency>
+                            <groupId>com.tngtech.archunit</groupId>
+                            <artifactId>archunit-junit5</artifactId>
+                            <version>%s</version>
+                            <scope>test</scope>
+                        </dependency>
+                      </dependencies>
+                    </project>
+                    """.formatted(version);
+              })
             )
           )
         );
@@ -89,7 +92,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.JavaClass;
-              
+                            
               public class ArchUnitTest {
                   public Set<JavaClass> sample(JavaPackage javaPackage) {
                       return javaPackage.getAllClasses();
@@ -100,7 +103,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.JavaClass;
-              
+                            
               public class ArchUnitTest {
                   public Set<JavaClass> sample(JavaPackage javaPackage) {
                       return javaPackage.getClassesInPackageTree();
@@ -120,7 +123,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.JavaClass;
-              
+                            
               public class ArchUnitTest {
                   public Set<JavaClass> sample(JavaPackage javaPackage) {
                       return javaPackage.getAllSubpackages();
@@ -131,7 +134,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.JavaClass;
-              
+                            
               public class ArchUnitTest {
                   public Set<JavaClass> sample(JavaPackage javaPackage) {
                       return javaPackage.getSubpackagesInTree();
@@ -151,7 +154,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.Dependency;
-              
+                            
               public class ArchUnitTest {
                   public Set<Dependency> sample(JavaPackage javaPackage) {
                       return javaPackage.getClassDependenciesFromSelf();
@@ -162,7 +165,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.Dependency;
-              
+                            
               public class ArchUnitTest {
                   public Set<Dependency> sample(JavaPackage javaPackage) {
                       return javaPackage.getClassDependenciesFromThisPackageTree();
@@ -182,7 +185,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.Dependency;
-              
+                            
               public class ArchUnitTest {
                   public Set<Dependency> sample(JavaPackage javaPackage) {
                       return javaPackage.getClassDependenciesToSelf();
@@ -193,7 +196,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.Dependency;
-              
+                            
               public class ArchUnitTest {
                   public Set<Dependency> sample(JavaPackage javaPackage) {
                       return javaPackage.getClassDependenciesToThisPackageTree();
@@ -213,7 +216,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.JavaPackage;
-              
+                            
               public class ArchUnitTest {
                   public Set<JavaPackage> sample(JavaPackage javaPackage) {
                       return javaPackage.getPackageDependenciesFromSelf();
@@ -224,7 +227,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.JavaPackage;
-              
+                            
               public class ArchUnitTest {
                   public Set<JavaPackage> sample(JavaPackage javaPackage) {
                       return javaPackage.getPackageDependenciesFromThisPackageTree();
@@ -244,7 +247,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.JavaPackage;
-              
+                            
               public class ArchUnitTest {
                   public Set<JavaPackage> sample(JavaPackage javaPackage) {
                       return javaPackage.getPackageDependenciesToSelf();
@@ -255,7 +258,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               import com.tngtech.archunit.core.domain.JavaPackage;
               import java.util.Set;
               import com.tngtech.archunit.core.domain.JavaPackage;
-              
+                            
               public class ArchUnitTest {
                   public Set<JavaPackage> sample(JavaPackage javaPackage) {
                       return javaPackage.getPackageDependenciesToThisPackageTree();
@@ -274,7 +277,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
             """
               import com.tngtech.archunit.core.domain.JavaPackage;
               import static com.tngtech.archunit.core.domain.JavaPackage.ClassVisitor;
-              
+                            
               public class ArchUnitTest {
                   public void sample(JavaPackage javaPackage, ClassVisitor visitor) {
                       javaPackage.accept(null, visitor);
@@ -284,7 +287,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
             """
               import com.tngtech.archunit.core.domain.JavaPackage;
               import static com.tngtech.archunit.core.domain.JavaPackage.ClassVisitor;
-              
+                            
               public class ArchUnitTest {
                   public void sample(JavaPackage javaPackage, ClassVisitor visitor) {
                       javaPackage.traversePackageTree(null, visitor);
@@ -302,7 +305,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
           java(
             """
               import com.tngtech.archunit.library.plantuml.PlantUmlArchCondition;
-              
+                            
               public class ArchUnitTest {
                   public void sample(PlantUmlArchCondition condition) {
                       condition.ignoreDependencies("origin", "");
@@ -311,7 +314,7 @@ public class ArchUnit0To1MigrationTest implements RewriteTest {
               """,
             """
               import com.tngtech.archunit.library.plantuml.rules.PlantUmlArchCondition;
-              
+                            
               public class ArchUnitTest {
                   public void sample(PlantUmlArchCondition condition) {
                       condition.ignoreDependencies("origin", "");

@@ -24,7 +24,6 @@ recipeDependencies {
     parserClasspath("org.powermock:powermock-api-mockito:1.7.+")
     parserClasspath("org.powermock:powermock-core:1.7.+")
     parserClasspath("com.squareup.okhttp3:mockwebserver:4.10.0")
-    parserClasspath("com.tngtech.archunit:archunit:0.23.1")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
@@ -44,6 +43,8 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-groovy")
 
     testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
+
+    testRuntimeOnly("com.tngtech.archunit:archunit:0.23.1")
 
 //    testImplementation("org.hamcrest:hamcrest:latest.release")
 //    testImplementation("org.assertj:assertj-core:latest.release")
