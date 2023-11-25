@@ -13,9 +13,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.testcontainers.openrewrite.ExplicitContainerImages
+name: org.openrewrite.java.testing.testcontainers.TestContainersBestPractices
+displayName: Testcontainers best practices
+description: Apply best practices to Testcontainers usage.
+recipeList:
+  # Upgrade to latest version of Testcontainers
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.testcontainers
+      artifactId: "*"
+      newVersion: 1.19.x
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImages
+  - org.openrewrite.java.testing.testcontainers.GetHostMigration
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.testcontainers.GetHostMigration
+displayName: Replace `ContainerState.getContainerIpAddress()` with `getHost()`
+description: Replace `org.testcontainers.containers.ContainerState.getContainerIpAddress()` with `getHost()`.
+recipeList:
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.testcontainers.containers.ContainerState getContainerIpAddress()
+      newMethodName: getHost
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.testcontainers.ExplicitContainerImages
 displayName: Explicit container images and versions
 description: Replace implicit default container images and versions with explicit versions.
 recipeList:

@@ -50,7 +50,7 @@ class ExplicitContainerImageTest implements RewriteTest {
     void explicitContainerImages() {
         rewriteRun(
           spec -> spec
-            .recipeFromResource("/META-INF/rewrite/testcontainers.yml", "org.testcontainers.openrewrite.ExplicitContainerImages")
+            .recipeFromResource("/META-INF/rewrite/testcontainers.yml", "org.openrewrite.java.testing.testcontainers.ExplicitContainerImages")
             .parser(JavaParser.fromJavaVersion().classpath("nginx")),
           //language=java
           java(
