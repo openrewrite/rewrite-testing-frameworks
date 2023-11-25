@@ -1,0 +1,96 @@
+#
+# Copyright 2023 the original author or authors.
+# <p>
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://www.apache.org/licenses/LICENSE-2.0
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+type: specs.openrewrite.org/v1beta/recipe
+name: org.testcontainers.openrewrite.ExplicitContainerImages
+displayName: Explicit container images and versions
+description: Replace implicit default container images and versions with explicit versions.
+recipeList:
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.CassandraContainer
+      image: "cassandra:3.11.2"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.ClickHouseContainer
+      image: "yandex/clickhouse-server:18.10.3"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.CockroachContainer
+      image: "cockroachdb/cockroach:v19.2.11"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.couchbase.CouchbaseContainer
+      image: "couchbase/server:6.5.1"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.Db2Container
+      image: "ibmcom/db2:11.5.0.0a"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.dynamodb.DynaliteContainer
+      image: "quay.io/testcontainers/dynalite:v1.2.1-1"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.elasticsearch.ElasticsearchContainer
+      image: "docker.elastic.co/elasticsearch/elasticsearch:7.9.2"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.InfluxDBContainer
+      image: "influxdb:1.4.3"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.KafkaContainer
+      image: "confluentinc/cp-kafka:5.4.3"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.localstack.LocalStackContainer
+      image: "localstack/localstack:0.11.2"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.MariaDBContainer
+      image: "mariadb:10.3.6"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.MockServerContainer
+      image: "jamesdbloom/mockserver:mockserver-5.5.4"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.MongoDBContainer
+      image: "mongo:4.0.10"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.MSSQLServerContainer
+      image: "mcr.microsoft.com/mssql/server:2017-CU12"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.MySQLContainer
+      image: "mysql:5.7.34"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.Neo4jContainer
+      image: "neo4j:4.4"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.NginxContainer
+      image: "nginx:1.9.4"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.OracleContainer
+      image: "gvenzl/oracle-xe:18.4.0-slim"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.OrientDBContainer
+      image: "orientdb:3.0.24-tp3"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.PostgreSQLContainer
+      image: "postgres:9.6.12"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.PulsarContainer
+      image: "apachepulsar/pulsar:2.10.0"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.RabbitMQContainer
+      image: "rabbitmq:3.7.25-management-alpine"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.SolrContainer
+      image: "solr:8.3.0"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.ToxiproxyContainer
+      image: "shopify/toxiproxy:2.1.0"
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.vault.VaultContainer
+      image: "vault:1.1.3"

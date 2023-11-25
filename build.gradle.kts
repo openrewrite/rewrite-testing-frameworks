@@ -45,6 +45,7 @@ dependencies {
     testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
 
     testRuntimeOnly("com.tngtech.archunit:archunit:0.23.1")
+    testRuntimeOnly("org.testcontainers:nginx:latest.release")
 
 //    testImplementation("org.hamcrest:hamcrest:latest.release")
 //    testImplementation("org.assertj:assertj-core:latest.release")
