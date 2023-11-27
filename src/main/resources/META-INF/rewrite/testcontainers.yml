@@ -66,17 +66,8 @@ recipeList:
       containerClass: org.testcontainers.containers.InfluxDBContainer
       image: "influxdb:1.4.3"
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
-      containerClass: org.testcontainers.containers.KafkaContainer
-      image: "confluentinc/cp-kafka:5.4.3"
-  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
-      containerClass: org.testcontainers.containers.localstack.LocalStackContainer
-      image: "localstack/localstack:0.11.2"
-  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
       containerClass: org.testcontainers.containers.MariaDBContainer
       image: "mariadb:10.3.6"
-  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
-      containerClass: org.testcontainers.containers.MockServerContainer
-      image: "jamesdbloom/mockserver:mockserver-5.5.4"
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
       containerClass: org.testcontainers.containers.MongoDBContainer
       image: "mongo:4.0.10"
@@ -102,9 +93,6 @@ recipeList:
       containerClass: org.testcontainers.containers.PostgreSQLContainer
       image: "postgres:9.6.12"
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
-      containerClass: org.testcontainers.containers.PulsarContainer
-      image: "apachepulsar/pulsar:2.10.0"
-  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
       containerClass: org.testcontainers.containers.RabbitMQContainer
       image: "rabbitmq:3.7.25-management-alpine"
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
@@ -116,3 +104,16 @@ recipeList:
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
       containerClass: org.testcontainers.vault.VaultContainer
       image: "vault:1.1.3"
+# TODO the following containers should adopt `DockerImageName.parse(<image>:<tag>)`
+#  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+#      containerClass: org.testcontainers.containers.KafkaContainer
+#      image: "confluentinc/cp-kafka:5.4.3"
+#  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+#      containerClass: org.testcontainers.containers.localstack.LocalStackContainer
+#      image: "localstack/localstack:0.11.2"
+#  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+#      containerClass: org.testcontainers.containers.MockServerContainer
+#      image: "jamesdbloom/mockserver:mockserver-5.5.4"
+#  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+#      containerClass: org.testcontainers.containers.PulsarContainer
+#      image: "apachepulsar/pulsar:2.10.0"
