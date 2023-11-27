@@ -104,16 +104,20 @@ recipeList:
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
       containerClass: org.testcontainers.vault.VaultContainer
       image: "vault:1.1.3"
-# TODO the following containers should adopt `DockerImageName.parse(<image>:<tag>)`
-#  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
-#      containerClass: org.testcontainers.containers.KafkaContainer
-#      image: "confluentinc/cp-kafka:5.4.3"
-#  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
-#      containerClass: org.testcontainers.containers.localstack.LocalStackContainer
-#      image: "localstack/localstack:0.11.2"
-#  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
-#      containerClass: org.testcontainers.containers.MockServerContainer
-#      image: "jamesdbloom/mockserver:mockserver-5.5.4"
-#  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
-#      containerClass: org.testcontainers.containers.PulsarContainer
-#      image: "apachepulsar/pulsar:2.10.0"
+  # The following require a call to `DockerImageName.parse(image)`
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.KafkaContainer
+      image: "confluentinc/cp-kafka:5.4.3"
+      parseImage: true
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.localstack.LocalStackContainer
+      image: "localstack/localstack:0.11.2"
+      parseImage: true
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.MockServerContainer
+      image: "jamesdbloom/mockserver:mockserver-5.5.4"
+      parseImage: true
+  - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
+      containerClass: org.testcontainers.containers.PulsarContainer
+      image: "apachepulsar/pulsar:2.10.0"
+      parseImage: true

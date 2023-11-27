@@ -16,10 +16,14 @@
 package org.openrewrite.java.testing.testcontainers;
 
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
@@ -40,6 +44,11 @@ public class ExplicitContainerImage extends Recipe {
             example = "nginx:1.9.4")
     private final String image;
 
+    @Option(displayName = "Parse image",
+            description = "Whether to call `DockerImageName.parse(image)`.",
+            required = false)
+    private final Boolean parseImage;
+
     @Override
     public String getDisplayName() {
         return "Add image argument to container constructor";
@@ -58,10 +67,23 @@ public class ExplicitContainerImage extends Recipe {
             public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext executionContext) {
                 J.NewClass nc = super.visitNewClass(newClass, executionContext);
                 if (methodMatcher.matches(newClass)) {
-                    return nc.withArguments(Arrays.asList(
-                            new J.Literal(UUID.randomUUID(), Space.EMPTY, Markers.EMPTY, image, "\"" + image + "\"", null, JavaType.Primitive.String)));
+                    return nc.withArguments(Arrays.asList(getConstructorArgument(newClass)));
                 }
                 return nc;
+            }
+
+            @NotNull
+            private Expression getConstructorArgument(J.NewClass newClass) {
+                if (parseImage != null && parseImage) {
+                    maybeAddImport("org.testcontainers.utility.DockerImageName");
+                    return JavaTemplate.builder("DockerImageName.parse(\"" + image + "\")")
+                            .imports("org.testcontainers.utility.DockerImageName")
+                            .javaParser(JavaParser.fromJavaVersion().classpath("testcontainers"))
+                            .build()
+                            .apply(getCursor(), newClass.getArguments().get(0).getCoordinates().replace())
+                            .withPrefix(Space.EMPTY);
+                }
+                return new J.Literal(UUID.randomUUID(), Space.EMPTY, Markers.EMPTY, image, "\"" + image + "\"", null, JavaType.Primitive.String);
             }
         });
     }

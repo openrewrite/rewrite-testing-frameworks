@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.testcontainers;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RewriteTest;
 
@@ -23,10 +24,11 @@ import static org.openrewrite.java.Assertions.java;
 
 class ExplicitContainerImageTest implements RewriteTest {
     @Test
+    @DocumentExample
     void explicitContainerImage() {
         rewriteRun(
           spec -> spec
-            .recipe(new ExplicitContainerImage("org.testcontainers.containers.NginxContainer", "nginx:1.9.4"))
+            .recipe(new ExplicitContainerImage("org.testcontainers.containers.NginxContainer", "nginx:1.9.4", null))
             .parser(JavaParser.fromJavaVersion().classpath("nginx")),
           //language=java
           java(
@@ -40,6 +42,33 @@ class ExplicitContainerImageTest implements RewriteTest {
               import org.testcontainers.containers.NginxContainer;
               class Foo {
                   NginxContainer container = new NginxContainer("nginx:1.9.4");
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void explicitContainerImageParsed() {
+        rewriteRun(
+          spec -> spec
+            .recipe(new ExplicitContainerImage("org.testcontainers.containers.NginxContainer", "nginx:1.9.4", true))
+            .parser(JavaParser.fromJavaVersion().classpath("nginx")),
+          //language=java
+          java(
+            """
+              import org.testcontainers.containers.NginxContainer;
+              
+              class Foo {
+                  NginxContainer container = new NginxContainer();
+              }
+              """,
+            """
+              import org.testcontainers.containers.NginxContainer;
+              import org.testcontainers.utility.DockerImageName;
+              
+              class Foo {
+                  NginxContainer container = new NginxContainer(DockerImageName.parse("nginx:1.9.4"));
               }
               """
           )
