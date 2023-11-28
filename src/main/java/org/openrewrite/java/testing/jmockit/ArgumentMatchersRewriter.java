@@ -47,18 +47,23 @@ class ArgumentMatchersRewriter {
     }
 
     J.Block rewrite() {
-        List<Statement> newStatements = new ArrayList<>(expectationsBlock.getStatements().size());
-        for (Statement expectationStatement : expectationsBlock.getStatements()) {
-            // for each statement, check if it's a method invocation and replace any argument matchers
-            if (!(expectationStatement instanceof J.MethodInvocation)) {
-                newStatements.add(expectationStatement);
-                continue;
+        try {
+            List<Statement> newStatements = new ArrayList<>(expectationsBlock.getStatements().size());
+            for (Statement expectationStatement : expectationsBlock.getStatements()) {
+                // for each statement, check if it's a method invocation and replace any argument matchers
+                if (!(expectationStatement instanceof J.MethodInvocation)) {
+                    newStatements.add(expectationStatement);
+                    continue;
+                }
+                J.MethodInvocation methodInvocation = (J.MethodInvocation) expectationStatement;
+                List<Expression> newArguments = rewriteMethodArgumentMatchers(methodInvocation.getArguments());
+                newStatements.add(methodInvocation.withArguments(newArguments));
             }
-            J.MethodInvocation methodInvocation = (J.MethodInvocation) expectationStatement;
-            List<Expression> newArguments = rewriteMethodArgumentMatchers(methodInvocation.getArguments());
-            newStatements.add(methodInvocation.withArguments(newArguments));
+            return expectationsBlock.withStatements(newStatements);
+        } catch (Exception e) {
+            // if anything goes wrong, just return the original expectations block
+            return expectationsBlock;
         }
-        return expectationsBlock.withStatements(newStatements);
     }
 
     private List<Expression> rewriteMethodArgumentMatchers(List<Expression> arguments) {

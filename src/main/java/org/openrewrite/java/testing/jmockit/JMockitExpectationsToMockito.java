@@ -87,48 +87,36 @@ public class JMockitExpectationsToMockito extends Recipe {
             return templateBuilder.toString();
         }
 
-
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
             J.MethodDeclaration md = super.visitMethodDeclaration(methodDeclaration, ctx);
             if (md.getBody() == null) {
                 return md;
             }
+            SetupStatementsRewriter ssr = new SetupStatementsRewriter(this, md.getBody());
+            J.Block newBody = ssr.rewrite();
+
             // the LST element that is being updated when applying a java template
-            Object cursorLocation = md.getBody();
-            J.Block newBody = md.getBody();
-            List<Statement> statements = md.getBody().getStatements();
+            Object cursorLocation = newBody;
+            List<Statement> statements = newBody.getStatements();
 
             try {
                 // iterate over each statement in the method body, find Expectations blocks and rewrite them
                 for (int bodyStatementIndex = 0; bodyStatementIndex < statements.size(); bodyStatementIndex++) {
-                    Statement s = statements.get(bodyStatementIndex);
-                    if (!(s instanceof J.NewClass)) {
+                    if (!JMockitUtils.isExpectationsNewClassStatement(statements.get(bodyStatementIndex))) {
                         continue;
                     }
-                    J.NewClass nc = (J.NewClass) s;
-                    if (!(nc.getClazz() instanceof J.Identifier)) {
-                        continue;
-                    }
-                    J.Identifier clazz = (J.Identifier) nc.getClazz();
-                    if (!TypeUtils.isAssignableTo("mockit.Expectations", clazz.getType())) {
-                        continue;
-                    }
-                    // empty Expectations block is considered invalid
-                    assert nc.getBody() != null
-                            && !nc.getBody().getStatements().isEmpty() : "Expectations block is empty";
-                    // Expectations block should be composed of a block within another block
-                    assert nc.getBody().getStatements().size() == 1 : "Expectations block is malformed";
-
                     // we have a valid Expectations block, update imports and rewrite with Mockito statements
                     maybeRemoveImport("mockit.Expectations");
 
                     // the first coordinates are the coordinates of the Expectations block, replacing it
+                    J.NewClass nc = (J.NewClass) statements.get(bodyStatementIndex);
+                    assert nc.getBody() != null;
                     JavaCoordinates coordinates = nc.getCoordinates().replace();
                     J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
                     List<Object> templateParams = new ArrayList<>();
 
-                    // first rewrite the argument matchers
+                    // then rewrite the argument matchers
                     ArgumentMatchersRewriter amr = new ArgumentMatchersRewriter(this, expectationsBlock, ctx);
                     expectationsBlock = amr.rewrite();
 
@@ -160,6 +148,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                 }
             } catch (Exception e) {
                 // if anything goes wrong, just return the original method declaration
+                // TODO: remove throw and change back to return md once done testing
                 throw e;
             }
 
