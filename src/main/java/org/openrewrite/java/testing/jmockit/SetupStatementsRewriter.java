@@ -6,10 +6,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Statement;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,32 +32,34 @@ class SetupStatementsRewriter {
 
                 J.NewClass nc = (J.NewClass) s;
                 assert nc.getBody() != null;
+                // statement needs to be moved directly before expectations class instantiation
+                JavaCoordinates coordinates = nc.getCoordinates().before();
                 J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
+                List<Statement> newExpectationsBlockStatements = new ArrayList<>();
                 for (Statement expectationStatement : expectationsBlock.getStatements()) {
                     if (!isSetupStatement(expectationStatement)) {
+                        newExpectationsBlockStatements.add(expectationStatement);
                         continue;
                     }
-                    // statement needs to be moved directly before expectations class instantiation
-                    newBody = copySetupStatement(expectationStatement, newBody, nc);
-
-                    // the expectations block needs to have the statement removed
-                    List<Statement> newExpectationsBlockStatements = new ArrayList<>(expectationsBlock.getStatements());
-                    newExpectationsBlockStatements.remove(expectationStatement);
-                    J.Block newExpectationsBlock = expectationsBlock.withStatements(newExpectationsBlockStatements);
-                    List<Statement> newExpectationsStatements = new ArrayList<>();
-                    newExpectationsStatements.add(newExpectationsBlock);
-                    assert nc.getBody() != null;
-                    nc = nc.withBody(nc.getBody().withStatements(newExpectationsStatements));
-
-                    newBody = JavaTemplate.builder("#{any()}")
-                            .javaParser(JavaParser.fromJavaVersion())
-                            .build()
-                            .apply(
-                                    new Cursor(visitor.getCursor(), newBody),
-                                    nc.getCoordinates().replace(),
-                                    nc
-                            );
+                    newBody = copySetupStatement(expectationStatement, newBody, coordinates);
+                    // subsequent setup statements are moved in order
+                    coordinates = expectationStatement.getCoordinates().after();
                 }
+                // the expectations block needs to have the statement removed
+                J.Block newExpectationsBlock = expectationsBlock.withStatements(newExpectationsBlockStatements);
+                List<Statement> newExpectationsStatements = new ArrayList<>();
+                newExpectationsStatements.add(newExpectationsBlock);
+                assert nc.getBody() != null;
+                nc = nc.withBody(nc.getBody().withStatements(newExpectationsStatements));
+
+                newBody = JavaTemplate.builder("#{any()}")
+                        .javaParser(JavaParser.fromJavaVersion())
+                        .build()
+                        .apply(
+                                new Cursor(visitor.getCursor(), newBody),
+                                nc.getCoordinates().replace(),
+                                nc
+                        );
             }
         }  catch (Exception e) {
             // if anything goes wrong, just return the original method body
@@ -101,13 +100,13 @@ class SetupStatementsRewriter {
         return isSetupStatement;
     }
 
-    private J.Block copySetupStatement(Statement setupStatement, J.Block newBody, J.NewClass expectationsClass) {
+    private J.Block copySetupStatement(Statement setupStatement, J.Block newBody, JavaCoordinates coordinates) {
         return JavaTemplate.builder("#{any()}")
                 .javaParser(JavaParser.fromJavaVersion())
                 .build()
                 .apply(
                         new Cursor(visitor.getCursor(), newBody),
-                        expectationsClass.getCoordinates().before(),
+                        coordinates,
                         setupStatement
                 );
     }
