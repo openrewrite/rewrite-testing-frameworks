@@ -24,7 +24,6 @@ import org.openrewrite.java.dependencies.UpgradeDependencyVersion;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
