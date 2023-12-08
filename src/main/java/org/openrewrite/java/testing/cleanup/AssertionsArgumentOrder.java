@@ -43,7 +43,7 @@ public class AssertionsArgumentOrder extends Recipe {
     private static final MethodMatcher jupiterAssertIterableEqualsMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertIterableEquals(..)");
 
     // `assertNull("message", result())` should be `assertNull(result(), "message")`
-    private static final MethodMatcher jupiterAssertNullMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assert*Null(Object, ..)");
+    private static final MethodMatcher jupiterAssertNullMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assert*Null(Object, String)");
 
     private static final MethodMatcher[] testNgMatcher = new MethodMatcher[]{
             new MethodMatcher("org.testng.Assert assertSame(..)"),
