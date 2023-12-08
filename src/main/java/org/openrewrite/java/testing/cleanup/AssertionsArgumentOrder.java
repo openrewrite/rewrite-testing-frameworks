@@ -42,6 +42,10 @@ public class AssertionsArgumentOrder extends Recipe {
     };
     private static final MethodMatcher jupiterAssertIterableEqualsMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertIterableEquals(..)");
 
+    // `assertNull("message", result())` should be `assertNull(result(), "message")`
+    private static final MethodMatcher jupiterAssertNullMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertNull(Object, ..)");
+    private static final MethodMatcher jupiterAssertNotNullMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertNotNull(Object, ..)");
+
     private static final MethodMatcher[] testNgMatcher = new MethodMatcher[]{
             new MethodMatcher("org.testng.Assert assertSame(..)"),
             new MethodMatcher("org.testng.Assert assertNotSame(..)"),
@@ -54,6 +58,8 @@ public class AssertionsArgumentOrder extends Recipe {
     static {
         List<MethodMatcher> matchers = new ArrayList<>(Arrays.asList(jupiterAssertionMatchers));
         matchers.add(jupiterAssertIterableEqualsMatcher);
+        matchers.add(jupiterAssertNullMatcher);
+        matchers.add(jupiterAssertNotNullMatcher);
         matchers.addAll(Arrays.asList(testNgMatcher));
         //noinspection unchecked
         precondition = Preconditions.or(matchers.stream().map(UsesMethod::new).toArray(TreeVisitor[]::new));
@@ -117,6 +123,9 @@ public class AssertionsArgumentOrder extends Recipe {
         }
 
         private boolean isCorrectOrder(Expression expected, Expression actual, J.MethodInvocation mi) {
+            if (jupiterAssertNullMatcher.matches(mi) || jupiterAssertNotNullMatcher.matches(mi)) {
+                return isConstant(actual, mi) || !isConstant(expected, mi);
+            }
             return isConstant(expected, mi) || !isConstant(actual, mi);
         }
 
@@ -156,7 +165,9 @@ public class AssertionsArgumentOrder extends Recipe {
                     return true;
                 }
             }
-            return jupiterAssertIterableEqualsMatcher.matches(mi);
+            return jupiterAssertIterableEqualsMatcher.matches(mi) ||
+                   jupiterAssertNullMatcher.matches(mi) ||
+                   jupiterAssertNotNullMatcher.matches(mi);
         }
 
         private boolean isTestNgAssertion(J.MethodInvocation mi) {
