@@ -51,7 +51,7 @@ class MockitoInlineToCoreTest implements RewriteTest {
               </project>
               """,
             sourceSpecs -> sourceSpecs.after(after -> {
-                String version = Pattern.compile("<version>(5.+)</version>").matcher(after).results().reduce((a, b) -> b).get().group(1);
+                String version = Pattern.compile("<version>(5.+)</version>").matcher(after).results().reduce((a, b) -> b).orElseThrow().group(1);
                 return """
                   <project>
                     <modelVersion>4.0.0</modelVersion>
@@ -101,7 +101,7 @@ class MockitoInlineToCoreTest implements RewriteTest {
               </project>
               """,
             sourceSpecs -> sourceSpecs.after(after -> {
-                String version = Pattern.compile("<version>(5.+)</version>").matcher(after).results().reduce((a, b) -> b).get().group(1);
+                String version = Pattern.compile("<version>(5.+)</version>").matcher(after).results().reduce((a, b) -> b).orElseThrow().group(1);
                 return """
                   <project>
                     <modelVersion>4.0.0</modelVersion>
