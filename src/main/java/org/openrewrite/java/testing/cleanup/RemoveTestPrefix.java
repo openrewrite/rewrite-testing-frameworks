@@ -102,14 +102,12 @@ public class RemoveTestPrefix extends Recipe {
             }
 
             JavaType.Method type = m.getMethodType();
-
             if (type == null || methodExists(type, newMethodName)) {
                 return m;
             }
 
             type = type.withName(newMethodName);
-            return m.withName(m.getName()
-                            .withSimpleName(newMethodName))
+            return m.withName(m.getName().withSimpleName(newMethodName).withType(type))
                     .withMethodType(type);
         }
 
