@@ -15,6 +15,26 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.Mockito1to5Migration
+displayName: Mockito 5.x upgrade
+description: Upgrade Mockito from 1.x to 5.x.
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.testing.mockito.Mockito1to4Migration
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.mockito
+      artifactId: "*"
+      newVersion: 5.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.mockito
+      oldArtifactId: mockito-inline
+      newArtifactId: mockito-core
+  - org.openrewrite.maven.RemoveDuplicateDependencies
+
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to4Migration
 displayName: Mockito 4.x upgrade
 description: Upgrade Mockito from 1.x to 4.x.
