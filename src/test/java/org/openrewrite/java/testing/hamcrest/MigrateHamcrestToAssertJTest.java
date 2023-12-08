@@ -58,7 +58,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
     void isEqualTo() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
             class Biscuit {
                 String name;
                 Biscuit(String name) {
@@ -74,7 +75,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                 }
             }
             """),
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
 
             import static org.hamcrest.MatcherAssert.assertThat;
@@ -113,7 +115,8 @@ public class BiscuitTest {
     void allOfStringMatchersAndConvert() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
                         
             import static org.hamcrest.MatcherAssert.assertThat;
@@ -154,7 +157,8 @@ public class BiscuitTest {
     void convertAnyOfMatchersAfterSatisfiesAnyOfConversion() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
                         
             import static org.hamcrest.MatcherAssert.assertThat;
@@ -322,7 +326,8 @@ public class BiscuitTest {
         String before = template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs));
         String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
         rewriteRun(
-          java("""
+          java(
+                """
             class Biscuit {
                 String name;
                 Biscuit(String name) {

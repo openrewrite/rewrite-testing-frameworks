@@ -41,7 +41,8 @@ class AssertThatBooleanToAssertJTest implements RewriteTest {
     void assertThatBoolean() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
               import org.junit.jupiter.api.Test;
                             
               import static org.hamcrest.MatcherAssert.assertThat;

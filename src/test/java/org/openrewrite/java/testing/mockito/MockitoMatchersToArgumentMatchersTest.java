@@ -36,7 +36,8 @@ class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
               .build()
               .activateRecipes("org.openrewrite.java.testing.mockito.Mockito1to3Migration")),
           //language=java
-          java("""
+          java(
+                """
               package mockito.example;
 
               import java.util.List;

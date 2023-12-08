@@ -38,7 +38,8 @@ class AnyStringToNullableTest implements RewriteTest {
     void replaceAnyStringWithNullableStringClass() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
             class Example {
                 String greet(String name) {
                     return "Hello " + name;
@@ -78,7 +79,8 @@ class AnyStringToNullableTest implements RewriteTest {
     void doNotReplaceAnyInt() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
             class Example {
                 String greet(int value) {
                     return "Hello " + value;

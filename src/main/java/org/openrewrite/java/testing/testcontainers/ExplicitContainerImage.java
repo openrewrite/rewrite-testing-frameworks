@@ -64,8 +64,8 @@ public class ExplicitContainerImage extends Recipe {
         final MethodMatcher methodMatcher = new MethodMatcher(containerClass + " <constructor>()");
         return Preconditions.check(new UsesMethod<>(methodMatcher), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext executionContext) {
-                J.NewClass nc = super.visitNewClass(newClass, executionContext);
+            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                J.NewClass nc = super.visitNewClass(newClass, ctx);
                 if (methodMatcher.matches(newClass)) {
                     return nc.withArguments(Arrays.asList(getConstructorArgument(newClass)));
                 }
