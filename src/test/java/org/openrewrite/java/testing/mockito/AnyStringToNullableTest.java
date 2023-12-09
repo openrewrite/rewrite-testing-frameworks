@@ -24,7 +24,6 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 class AnyStringToNullableTest implements RewriteTest {
-
     @Override
     public void defaults(RecipeSpec spec) {
         spec
