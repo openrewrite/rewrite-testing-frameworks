@@ -25,8 +25,6 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
-import java.util.Arrays;
-
 public class AssertThatBooleanToAssertJ extends Recipe {
     @Override
     public String getDisplayName() {

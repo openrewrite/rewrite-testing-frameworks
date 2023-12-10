@@ -87,18 +87,18 @@ public class TestsShouldNotBePublic extends Recipe {
                     && c.getModifiers().stream().noneMatch(mod -> mod.getType() == Type.Abstract)) {
 
                 boolean hasTestMethods = c.getBody().getStatements().stream()
-                        .filter(statement -> statement instanceof J.MethodDeclaration)
+                        .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
                         .map(J.MethodDeclaration.class::cast)
                         .anyMatch(this::hasJUnit5MethodAnnotation);
 
                 boolean hasPublicNonTestMethods = c.getBody().getStatements().stream()
-                        .filter(statement -> statement instanceof J.MethodDeclaration)
+                        .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
                         .map(J.MethodDeclaration.class::cast)
                         .filter(m -> m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public))
                         .anyMatch(method -> !hasJUnit5MethodAnnotation(method));
 
                 boolean hasPublicVariableDeclarations = c.getBody().getStatements().stream()
-                        .filter(statement -> statement instanceof J.VariableDeclarations)
+                        .filter(org.openrewrite.java.tree.J.VariableDeclarations.class::isInstance)
                         .map(J.VariableDeclarations.class::cast)
                         .anyMatch(m -> m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public));
 

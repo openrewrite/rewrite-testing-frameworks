@@ -41,7 +41,8 @@ class HamcrestNotMatcherToAssertJTest implements RewriteTest {
         rewriteRun(
           spec -> spec.recipe(new HamcrestNotMatcherToAssertJ("equalTo", "isNotEqualTo")),
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
             
             import static org.hamcrest.MatcherAssert.assertThat;
@@ -56,7 +57,7 @@ class HamcrestNotMatcherToAssertJTest implements RewriteTest {
                     assertThat(str1, not(equalTo(str2)));
                 }
             }
-            ""","""
+            """, """
             import org.junit.jupiter.api.Test;
             
             import static org.assertj.core.api.Assertions.assertThat;
@@ -77,7 +78,8 @@ class HamcrestNotMatcherToAssertJTest implements RewriteTest {
         rewriteRun(
           spec -> spec.recipe(new HamcrestNotMatcherToAssertJ("nullValue", "isNotNull")),
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
             
             import static org.hamcrest.MatcherAssert.assertThat;
@@ -91,7 +93,7 @@ class HamcrestNotMatcherToAssertJTest implements RewriteTest {
                     assertThat("Reason", str1, not(nullValue()));
                 }
             }
-            ""","""
+            """, """
             import org.junit.jupiter.api.Test;
             
             import static org.assertj.core.api.Assertions.assertThat;

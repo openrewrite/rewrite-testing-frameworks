@@ -80,7 +80,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
             """
               import static org.mockito.Mockito.when;
               import static org.mockito.BDDMockito.given;
-              import static org.mockito.Mockito.verifyNoInteractions;
+              import static org.mockito.Mockito.verifyZeroInteractions;
 
               class MyObjectTest {
                 MyObject myObject;
@@ -89,8 +89,79 @@ class CleanupMockitoImportsTest implements RewriteTest {
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
                   given(myObject.getSomeField()).willReturn("testValue");
-                  verifyNoInteractions(myMock);
+                  verifyZeroInteractions(myMock);
                 }
+              }
+              class MyObject {
+                String getSomeField() { return null; }
+              }
+              class MyMockClass {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotRemoveImportsAssociatedWithAnUntypedMockitoMethodMixed() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.Mockito;
+              import static org.mockito.Mockito.when;
+              import static org.mockito.BDDMockito.given;
+              import static org.mockito.Mockito.verifyZeroInteractions;
+
+              class MyObjectTest {
+                MyObject myObject;
+                MyMockClass myMock;
+                            
+                void test() {
+                  when(myObject.getSomeField()).thenReturn("testValue");
+                  given(myObject.getSomeField()).willReturn("testValue");
+                  verifyZeroInteractions(myMock);
+                  Mockito.reset();
+                }
+              }
+              class MyObject {
+                String getSomeField() { return null; }
+              }
+              class MyMockClass {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotRemoveImportsAssociatedWithATypedMockitoMethodMixed() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.Mockito;
+              import static org.mockito.Mockito.when;
+              import static org.mockito.BDDMockito.given;
+              import static org.mockito.Mockito.verifyZeroInteractions;
+
+              class MyObjectTest {
+                MyObject myObject;
+                MyMockClass myMock;
+                            
+                void test() {
+                  when(myObject.getSomeField()).thenReturn("testValue");
+                  given(myObject.getSomeField()).willReturn("testValue");
+                  verifyZeroInteractions(myMock);
+                  Mockito.mock(OtherClass.class);
+                }
+              }
+              class MyObject {
+                String getSomeField() { return null; }
+              }
+              class MyMockClass {
+              }
+              class OtherClass {
               }
               """
           )
@@ -103,7 +174,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import static org.mockito.Mockito.*;
+              import static org.mockito.Mockito.when;
 
               class MyObjectTest {
                 MyObject myObject;
@@ -111,6 +182,9 @@ class CleanupMockitoImportsTest implements RewriteTest {
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
                 }
+              }
+              class MyObject {
+                String getSomeField() { return null; }
               }
               """
           )

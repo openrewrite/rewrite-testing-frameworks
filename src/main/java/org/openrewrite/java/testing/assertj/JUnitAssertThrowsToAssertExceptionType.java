@@ -87,6 +87,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                             );
                     maybeAddImport("org.assertj.core.api.AssertionsForClassTypes", "assertThatExceptionOfType");
                     maybeRemoveImport("org.junit.jupiter.api.Assertions.assertThrows");
+                    maybeRemoveImport("org.junit.jupiter.api.Assertions");
                 }
             }
             return mi;

@@ -15,6 +15,26 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.Mockito1to5Migration
+displayName: Mockito 5.x upgrade
+description: Upgrade Mockito from 1.x to 5.x.
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.testing.mockito.Mockito1to4Migration
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.mockito
+      artifactId: "*"
+      newVersion: 5.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.mockito
+      oldArtifactId: mockito-inline
+      newArtifactId: mockito-core
+  - org.openrewrite.maven.RemoveDuplicateDependencies
+
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to4Migration
 displayName: Mockito 4.x upgrade
 description: Upgrade Mockito from 1.x to 4.x.
@@ -68,7 +88,7 @@ recipeList:
       methodPattern: org.mockito.ArgumentMatchers anyMap(java.lang.Class, java.lang.Class)
       argumentIndex: 0
   - org.openrewrite.java.DeleteMethodArgument:
-      methodPattern: org.mockito.ArgumentMatchers anyMap(java.lang.Class, java.lang.Class)
+      methodPattern: org.mockito.ArgumentMatchers anyMap(java.lang.Class)
       argumentIndex: 0
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.ArgumentMatchers anyCollectionOf()
@@ -111,6 +131,7 @@ recipeList:
   - org.openrewrite.java.testing.mockito.CleanupMockitoImports
   - org.openrewrite.java.testing.mockito.MockUtilsToStatic
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
+# https://github.com/openrewrite/rewrite-testing-frameworks/issues/360
 #  - org.openrewrite.java.testing.mockito.ReplacePowerMockito
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
@@ -160,3 +181,6 @@ recipeList:
       matchOverrides: null
       matchUnknownTypes: null
   - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-api-mockito*

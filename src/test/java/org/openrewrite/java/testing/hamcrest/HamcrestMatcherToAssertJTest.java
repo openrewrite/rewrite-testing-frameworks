@@ -43,7 +43,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("not", "isNotEqualTo")),
               //language=java
-              java("""
+              java(
+                    """
                 import org.junit.jupiter.api.Test;
                 import static org.hamcrest.MatcherAssert.assertThat;
                 import static org.hamcrest.Matchers.not;
@@ -65,7 +66,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo")),
               //language=java
-              java("""
+              java(
+                    """
                 import org.junit.jupiter.api.Test;
                 import static org.hamcrest.MatcherAssert.assertThat;
                 import static org.hamcrest.Matchers.is;
@@ -87,10 +89,11 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo")),
               //language=java
-              java("""
+              java(
+                    """
                 import org.junit.jupiter.api.Test;
                 import static org.hamcrest.MatcherAssert.assertThat;
-                import static org.hamcrest.Matchers.anyof;
+                import static org.hamcrest.Matchers.anyOf;
                 import static org.hamcrest.Matchers.equalTo;
                                 
                 class ATest {
@@ -98,7 +101,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                     void test() {
                         String str1 = "Hello world!";
                         String str2 = "Hello world!";
-                        assertThat(str1, anyof(equalTo(str2)));
+                        assertThat(str1, anyOf(equalTo(str2)));
                     }
                 }
                 """));
@@ -109,11 +112,12 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo")),
               //language=java
-              java("""
+              java(
+                    """
                 import java.util.List;
                 import org.junit.jupiter.api.Test;
                 import static org.hamcrest.MatcherAssert.assertThat;
-                import static org.hamcrest.Matchers.anyof;
+                import static org.hamcrest.Matchers.anyOf;
                 import static org.hamcrest.Matchers.equalTo;
                                 
                 class ATest {
@@ -121,7 +125,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                     void test() {
                         String str1 = "Hello world!";
                         String str2 = "Hello world!";
-                        assertThat(str1, anyof(List.of(equalTo(str2))));
+                        assertThat(str1, anyOf(List.of(equalTo(str2))));
                     }
                 }
                 """));
@@ -135,7 +139,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("isEmptyString", "isEmpty")),
               //language=java
-              java("""
+              java(
+                    """
                   import org.junit.jupiter.api.Test;
                                 
                   import static org.hamcrest.MatcherAssert.assertThat;
@@ -164,6 +169,43 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   """)
             );
         }
+
+        @Test
+        void coreMatchers() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("startsWith", "startsWith")),
+              //language=java
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.CoreMatchers.startsWith;
+                              
+                  class ATest {
+                      @Test
+                      void test() {
+                          String str1 = "Hello world!";
+                          assertThat(str1, startsWith("Hello"));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.assertj.core.api.Assertions.assertThat;
+                                
+                  class ATest {
+                      @Test
+                      void test() {
+                          String str1 = "Hello world!";
+                          assertThat(str1).startsWith("Hello");
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 
     @Nested
@@ -174,7 +216,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
               //language=java
-              java("""
+              java(
+                    """
                   import org.junit.jupiter.api.Test;
                                 
                   import static org.hamcrest.MatcherAssert.assertThat;
@@ -211,7 +254,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
               //language=java
-              java("""
+              java(
+                    """
                   import org.junit.jupiter.api.Test;
                                 
                   import static org.hamcrest.MatcherAssert.assertThat;
@@ -246,7 +290,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
               //language=java
-              java("""
+              java(
+                    """
                 class Biscuit {
                     String name;
                     Biscuit(String name) {
@@ -255,7 +300,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                 }
                 """),
               //language=java
-              java("""
+              java(
+                    """
                   import org.junit.jupiter.api.Test;
                                 
                   import static org.hamcrest.MatcherAssert.assertThat;
@@ -292,7 +338,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("lessThan", "isLessThan")),
               //language=java
-              java("""
+              java(
+                    """
                   import org.junit.jupiter.api.Test;
                                 
                   import static org.hamcrest.MatcherAssert.assertThat;
@@ -330,7 +377,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("containsInAnyOrder", "containsExactlyInAnyOrder")),
               //language=java
-              java("""
+              java(
+                    """
                   import org.junit.jupiter.api.Test;
                                 
                   import java.util.ArrayList;
@@ -352,7 +400,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                                 
                   import java.util.ArrayList;
                   import java.util.List;
-                  
+                                    
                   import static org.assertj.core.api.Assertions.assertThat;
                               
                   class ATest {
@@ -372,12 +420,13 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("closeTo", "isCloseTo")),
               //language=java
-              java("""
+              java(
+                    """
                   import org.junit.jupiter.api.Test;
-                  
+                                    
                   import static org.hamcrest.MatcherAssert.assertThat;
                   import static org.hamcrest.Matchers.closeTo;
-                  
+                                    
                   class ATest {
                       @Test
                       void replaceCloseTo() {
@@ -387,10 +436,10 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                   """,
                 """
                   import org.junit.jupiter.api.Test;
-                  
+                                    
                   import static org.assertj.core.api.Assertions.assertThat;
                   import static org.assertj.core.api.Assertions.within;
-                  
+                                    
                   class ATest {
                       @Test
                       void replaceCloseTo() {
@@ -406,13 +455,14 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("closeTo", "isCloseTo")),
               //language=java
-              java("""
+              java(
+                    """
                   import org.junit.jupiter.api.Test;
                   import java.math.BigDecimal;
-                  
+                                    
                   import static org.hamcrest.MatcherAssert.assertThat;
                   import static org.hamcrest.Matchers.closeTo;
-                  
+                                    
                   class ATest {
                       @Test
                       void replaceCloseTo() {
@@ -426,10 +476,10 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import java.math.BigDecimal;
-                  
+                                    
                   import static org.assertj.core.api.Assertions.assertThat;
                   import static org.assertj.core.api.Assertions.within;
-                  
+                                    
                   class ATest {
                       @Test
                       void replaceCloseTo() {
@@ -451,7 +501,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
               //language=java
-              java("""
+              java(
+                    """
                   import org.junit.jupiter.api.Test;
                                 
                   import static org.hamcrest.MatcherAssert.assertThat;
@@ -488,7 +539,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
               //language=java
-              java("""
+              java(
+                    """
                   import org.junit.jupiter.api.Test;
                                 
                   import static org.hamcrest.MatcherAssert.assertThat;

@@ -25,7 +25,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-public class AssertionsArgumentOrderTest implements RewriteTest {
+class AssertionsArgumentOrderTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AssertionsArgumentOrder())
@@ -61,6 +61,47 @@ public class AssertionsArgumentOrderTest implements RewriteTest {
                       assertEquals("result", result());
                       assertEquals("result", result(), "message");
                       assertEquals(0L, 1L);
+                  }
+                  String result() {
+                      return "result";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void junitAssertNullAndAssertNotNull() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              import static org.junit.jupiter.api.Assertions.assertNull;
+                          
+              class MyTest {
+                  void someMethod() {
+                      assertNull(result(), "message");
+                      assertNull("message", result());
+                      assertNotNull(result(), "message");
+                      assertNotNull("message", result());
+                  }
+                  String result() {
+                      return "result";
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              import static org.junit.jupiter.api.Assertions.assertNull;
+                          
+              class MyTest {
+                  void someMethod() {
+                      assertNull(result(), "message");
+                      assertNull(result(), "message");
+                      assertNotNull(result(), "message");
+                      assertNotNull(result(), "message");
                   }
                   String result() {
                       return "result";

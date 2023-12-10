@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -28,6 +29,8 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static java.util.Collections.emptyList;
 
 public class AssertToAssertions extends Recipe {
 
@@ -82,8 +85,8 @@ public class AssertToAssertions extends Recipe {
                     "org.junit.jupiter.api.Assertions", null, null, true)
                     .getVisitor());
 
-            List<Expression> args = m.getArguments();
-            Expression firstArg = args.get(0);
+            List<JRightPadded<Expression>> args = m.getPadding().getArguments().getPadding().getElements();
+            Expression firstArg = args.get(0).getElement();
             // Suppress arg-switching for Assertions.assertEquals(String, String)
             if (args.size() == 2) {
                 if ("assertSame".equals(m.getSimpleName()) ||
@@ -97,17 +100,29 @@ public class AssertToAssertions extends Recipe {
             if (TypeUtils.isString(firstArg.getType())) {
                 // Move the first arg to be the last argument
 
-                List<Expression> newArgs = new ArrayList<>(args.size());
-                for (int i = 1; i < args.size(); i++) {
-                    if (i == 1) {
-                        newArgs.add(args.get(i).withPrefix(firstArg.getPrefix()));
-                    } else {
-                        newArgs.add(args.get(i));
-                    }
-                }
-                newArgs.add(firstArg.withPrefix(args.get(args.size() - 1).getPrefix()));
+                List<JRightPadded<Expression>> newArgs = new ArrayList<>(args);
+                JRightPadded<Expression> first = newArgs.remove(0);
+                JRightPadded<Expression> lastArg = args.get(args.size() - 1);
+                boolean lastArgComments = !lastArg.getAfter().getComments().isEmpty();
 
-                m = m.withArguments(newArgs);
+                newArgs = ListUtils.mapFirst(newArgs, e -> e.withElement(e.getElement().withPrefix(first.getElement().getPrefix())));
+                newArgs = ListUtils.mapLast(newArgs, e -> e.withAfter(Space.EMPTY));
+                newArgs.add(first
+                        .withElement(first.getElement()
+                                .withPrefix(lastArgComments ?
+                                        lastArg.getAfter().withComments(ListUtils.mapLast(
+                                                lastArg.getAfter().getComments(),
+                                                c -> c.withSuffix(lastArg.getElement().getPrefix().getWhitespace()))
+                                        ) :
+                                        lastArg.getElement().getPrefix()
+                                )
+                        )
+                        .withAfter(lastArgComments ? Space.build(lastArg.getAfter().getLastWhitespace(), emptyList()) : lastArg.getAfter())
+                );
+
+                m = m.getPadding().withArguments(
+                        m.getPadding().getArguments().getPadding().withElements(newArgs)
+                );
             }
 
             return m;

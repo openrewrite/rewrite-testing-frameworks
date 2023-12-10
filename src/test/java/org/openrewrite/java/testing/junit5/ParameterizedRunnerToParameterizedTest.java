@@ -527,7 +527,8 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
     void parameterizedTestWithEmptyConstructor() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
               import java.util.Arrays;
               import java.util.Collection;
               import org.junit.runners.Parameterized;

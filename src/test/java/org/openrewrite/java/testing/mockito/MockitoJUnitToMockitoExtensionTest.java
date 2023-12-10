@@ -18,13 +18,10 @@ package org.openrewrite.java.testing.mockito;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
-import org.openrewrite.Parser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-
-import java.util.List;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -185,7 +182,7 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               class MyTest {
                                 
                   @Rule
-                  MockitoTestRule mockitoTestRule = MockitoJUnit.testRule();
+                  MockitoTestRule mockitoTestRule = MockitoJUnit.rule();
 
                   @Mock
                   private List<Integer> list;
@@ -243,7 +240,7 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
                   VerificationCollector verificationCollectorRule = MockitoJUnit.collector();
 
                   @Rule
-                  MockitoTestRule mockitoTestRule = MockitoJUnit.testRule();
+                  MockitoTestRule mockitoTestRule = MockitoJUnit.rule();
 
                   @Mock
                   private List<Integer> list;
@@ -386,7 +383,7 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               class MyTest {
                             
                   @Rule
-                  MockitoTestRule mockitoTestRule = MockitoJUnit.testRule();
+                  MockitoTestRule mockitoTestRule = MockitoJUnit.rule();
 
                   @Mock
                   private List<Integer> list;
@@ -446,7 +443,7 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               class MyTest {
                             
                   @Rule
-                  MockitoTestRule mockitoTestRule = MockitoJUnit.testRule();
+                  MockitoTestRule mockitoTestRule = MockitoJUnit.rule();
 
                   @Mock
                   private List<Integer> list;

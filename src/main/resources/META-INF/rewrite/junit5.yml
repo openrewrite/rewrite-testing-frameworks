@@ -25,6 +25,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.StaticImports
   - org.openrewrite.java.testing.junit5.JUnit4to5Migration
   - org.openrewrite.java.testing.junit5.CleanupAssertions
+  - org.openrewrite.java.testing.cleanup.RemoveTestPrefix
   - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
   - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
   - org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
@@ -94,6 +95,12 @@ recipeList:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: junit
       artifactId: junit
+  # Workaround for https://github.com/testcontainers/testcontainers-java/issues/970:
+  - org.openrewrite.maven.RemoveExclusion:
+      groupId: org.testcontainers
+      artifactId: testcontainers
+      exclusionGroupId: junit
+      exclusionArtifactId: junit
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
@@ -266,6 +273,8 @@ recipeList:
   - org.openrewrite.java.testing.cleanup.AssertFalseEqualsToAssertNotEquals
   - org.openrewrite.java.testing.cleanup.AssertEqualsNullToAssertNull
   - org.openrewrite.java.testing.cleanup.AssertFalseNullToAssertNotNull
+  - org.openrewrite.java.testing.cleanup.AssertEqualsBooleanToAssertBoolean
+  - org.openrewrite.java.testing.cleanup.AssertNotEqualsBooleanToAssertBoolean
   - org.openrewrite.java.testing.cleanup.AssertionsArgumentOrder
 ---
 type: specs.openrewrite.org/v1beta/recipe

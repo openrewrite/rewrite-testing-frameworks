@@ -40,7 +40,8 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
     void isMatcher() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.is;
@@ -73,7 +74,8 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
     void isMatcherWithReason() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.is;
@@ -109,7 +111,8 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
     void isMatcherWithMatcher() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
                 import org.junit.jupiter.api.Test;
                 import static org.hamcrest.MatcherAssert.assertThat;
                 import static org.hamcrest.Matchers.is;
@@ -130,7 +133,8 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
     void isObjectArray() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.is;
@@ -163,7 +167,8 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
     void isPrimitiveArray() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.is;

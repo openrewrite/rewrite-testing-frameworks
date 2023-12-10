@@ -15,13 +15,12 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.openrewrite.Cursor;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
+import org.openrewrite.java.search.FindAnnotations;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.*;
@@ -42,7 +41,13 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new PowerMockitoToMockitoVisitor();
+        return Preconditions.check(
+                Preconditions.or(
+                    new UsesType<>("org.powermock..*", false),
+                    new UsesType<>("org.mockito..*", false)
+                ),
+                new PowerMockitoToMockitoVisitor()
+        );
     }
 
     private static class PowerMockitoToMockitoVisitor extends JavaVisitor<ExecutionContext> {
@@ -74,11 +79,16 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private String tearDownMethodAnnotationParameters = "";
 
         @Override
+        public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
+            if (tree instanceof JavaSourceFile) {
+                boolean useTestNg = !FindAnnotations.find((J) tree, "@org.testng.annotations.Test").isEmpty();
+                initTestFrameworkInfo(useTestNg);
+            }
+            return super.visit(tree, ctx);
+        }
+
+        @Override
         public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            boolean useTestNg = containsTestNgTestMethods(classDecl.getBody().getStatements().stream()
-                    .filter(J.MethodDeclaration.class::isInstance)
-                    .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
-            initTestFrameworkInfo(useTestNg);
             getCursor().putMessage(MOCK_STATIC_INVOCATIONS, new HashMap<>());
 
             // Add the classes of the arguments in the annotation @PrepareForTest as fields
@@ -179,7 +189,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
             if (MOCKED_STATIC_MATCHER.matches(mi)) {
                 determineTestGroups();
-                if (getCursor().firstEnclosing(J.Assignment.class) == null) {
+                if (!getCursor().getPath(o -> o instanceof J.Assignment || o instanceof J.Try.Resource).hasNext()) {
                     //noinspection DataFlowIssue
                     return null;
                 }
@@ -210,19 +220,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 }
             }
             return null;
-        }
-
-        private static boolean containsTestNgTestMethods(List<J.MethodDeclaration> methods) {
-            for (J.MethodDeclaration methodDeclaration : methods) {
-                for (J.Annotation annotation : methodDeclaration.getAllAnnotations()) {
-                    JavaType annotationType = annotation.getAnnotationType().getType();
-                    if (annotationType instanceof JavaType.Class && "org.testng.annotations.Test".equals(((JavaType.Class) annotationType)
-                            .getFullyQualifiedName())) {
-                        return true;
-                    }
-                }
-            }
-            return false;
         }
 
         private static boolean hasMethodWithAnnotation(J.ClassDeclaration classDecl, AnnotationMatcher annotationMatcher) {

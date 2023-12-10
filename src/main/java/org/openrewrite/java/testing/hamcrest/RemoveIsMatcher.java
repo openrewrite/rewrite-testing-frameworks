@@ -36,7 +36,7 @@ public class RemoveIsMatcher extends Recipe {
         return "Remove Hamcrest `is(Matcher)` ahead of migration.";
     }
 
-    static final MethodMatcher IS_MATCHER = new MethodMatcher("org.hamcrest.Matchers is(org.hamcrest.Matcher)");
+    static final MethodMatcher IS_MATCHER = new MethodMatcher("org.hamcrest.*Matchers is(org.hamcrest.Matcher)");
     static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
 
     @Override
@@ -48,6 +48,7 @@ public class RemoveIsMatcher extends Recipe {
                     getCursor().putMessage("ASSERT_THAT", mi);
                 } else if (IS_MATCHER.matches(mi) && getCursor().pollNearestMessage("ASSERT_THAT") != null) {
                     maybeRemoveImport("org.hamcrest.Matchers.is");
+                    maybeRemoveImport("org.hamcrest.CoreMatchers.is");
                     return mi.getArguments().get(0).withPrefix(mi.getPrefix());
                 }
                 return super.visitMethodInvocation(mi, ctx);

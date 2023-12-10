@@ -56,44 +56,67 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
     @Test
     @DocumentExample
     void isEqualTo() {
+        //language=java
         rewriteRun(
-          //language=java
-          java("""
+          java(
+                """
+            class Biscuit {
+                String name;
+                Biscuit(String name) {
+                    this.name = name;
+                }
+                
+                int getChocolateChipCount() {
+                    return 10;
+                }
+
+                int getHazelnutCount() {
+                    return 3;
+                }
+            }
+            """),
+          java(
+                """
             import org.junit.jupiter.api.Test;
+
             import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.is;
-            import static org.hamcrest.Matchers.equalTo;
-                            
-            class ATest {
+            import static org.hamcrest.Matchers.*;
+
+            public class BiscuitTest {
                 @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1, is(equalTo(str2)));
+                public void biscuits() {
+                    Biscuit theBiscuit = new Biscuit("Ginger");
+                    Biscuit myBiscuit = new Biscuit("Ginger");
+                    assertThat(theBiscuit, equalTo(myBiscuit));
+                    assertThat("chocolate chips", theBiscuit.getChocolateChipCount(), equalTo(10));
+                    assertThat("hazelnuts", theBiscuit.getHazelnutCount(), equalTo(3));
                 }
             }
             """, """
-            import org.junit.jupiter.api.Test;
-                        
-            import static org.assertj.core.api.Assertions.assertThat;
-                        
-            class ATest {
-                @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1).isEqualTo(str2);
-                }
-            }
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class BiscuitTest {
+    @Test
+    public void biscuits() {
+        Biscuit theBiscuit = new Biscuit("Ginger");
+        Biscuit myBiscuit = new Biscuit("Ginger");
+        assertThat(theBiscuit).isEqualTo(myBiscuit);
+        assertThat(theBiscuit.getChocolateChipCount()).as("chocolate chips").isEqualTo(10);
+        assertThat(theBiscuit.getHazelnutCount()).as("hazelnuts").isEqualTo(3);
+    }
+}
             """));
     }
 
     @Test
     @DocumentExample
-    void flattenAllOfStringMatchersAndConvert() {
+    void allOfStringMatchersAndConvert() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
                         
             import static org.hamcrest.MatcherAssert.assertThat;
@@ -119,8 +142,11 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                 void test() {
                     String str1 = "Hello world!";
                     String str2 = "Hello world!";
-                    assertThat(str1).isEqualTo(str2);
-                    assertThat(str1).hasSize(12);
+                    assertThat(str1)
+                            .satisfies(
+                                    arg -> assertThat(arg).isEqualTo(str2),
+                                    arg -> assertThat(arg).hasSize(12)
+                            );
                 }
             }
             """));
@@ -131,7 +157,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
     void convertAnyOfMatchersAfterSatisfiesAnyOfConversion() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
                         
             import static org.hamcrest.MatcherAssert.assertThat;
@@ -299,7 +326,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String before = template.formatted(importsBefore, "assertThat(%s, %s(%s));".formatted(actual, hamcrestMatcher, matcherArgs));
         String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
         rewriteRun(
-          java("""
+          java(
+                """
             class Biscuit {
                 String name;
                 Biscuit(String name) {
