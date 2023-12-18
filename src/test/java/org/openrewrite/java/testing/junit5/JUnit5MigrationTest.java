@@ -98,7 +98,7 @@ class JUnit5MigrationTest implements RewriteTest {
               public class SampleTest {
                   @SuppressWarnings("ALL")
                   @Test
-                  void filterShouldRemoveUnusedConfig() {
+                  public void filterShouldRemoveUnusedConfig() {
                       assertThat(asList("1", "2", "3"),
                               containsInAnyOrder("3", "2", "1"));
                   }

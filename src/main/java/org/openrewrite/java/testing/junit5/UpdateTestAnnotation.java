@@ -116,10 +116,6 @@ public class UpdateTestAnnotation extends Recipe {
             ChangeTestAnnotation cta = new ChangeTestAnnotation();
             J.MethodDeclaration m = (J.MethodDeclaration) cta.visitNonNull(method, ctx, getCursor().getParentOrThrow());
             if (m != method) {
-                if (Boolean.FALSE.equals(TypeUtils.isOverride(m.getMethodType()))) {
-                    m = (J.MethodDeclaration) new ChangeMethodAccessLevelVisitor<ExecutionContext>(new MethodMatcher(m), null)
-                            .visitNonNull(m, ctx, getCursor().getParentOrThrow());
-                }
                 if (cta.expectedException != null) {
                     m = JavaTemplate.builder("org.junit.jupiter.api.function.Executable o = () -> #{};")
                             .contextSensitive()
