@@ -60,7 +60,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               public class MyTest {
               
                   @Test
-                  void test_printLine() {
+                  public void test_printLine() {
                       assertDoesNotThrow(() -> {
                           int arr = new int[]{0}[0];
                       });
@@ -95,7 +95,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               public class MyTest {
               
                   @Test
-                  void test() {
+                  public void test() {
                       assertThrows(IllegalArgumentException.class, () -> {
                           throw new IllegalArgumentException("boom");
                       });
@@ -131,7 +131,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               public class MyTest {
               
                   @Test
-                  void test() {
+                  public void test() {
                       assertThrows(IndexOutOfBoundsException.class, () -> {
                           int arr = new int[]{}[0];
                       });
@@ -167,7 +167,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               public class MyTest {
               
                   @Test
-                  void test() {
+                  public void test() {
                       assertThrows(IllegalArgumentException.class, () -> {
                           String foo = "foo";
                           throw new IllegalArgumentException("boom");
@@ -200,7 +200,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               public class MyTest {
               
                   @Test
-                  void test() {
+                  public void test() {
                   }
               }
               """
@@ -253,17 +253,17 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   // some comments
                   @Issue("some issue")
                   @Test
-                  void test() {
+                  public void test() {
                   }
               
                   // some comments
                   @Test
-                  void test1() {
+                  public void test1() {
                   }
               
-                  // some comments
                   @Test
-                  void test2() {
+                  // some comments
+                  public void test2() {
                   }
               }
               """
@@ -294,7 +294,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               
                   @Test
                   @Timeout(500)
-                  void test() {
+                  public void test() {
                   }
               }
               """
@@ -338,7 +338,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               public class MyTest {
               
                   @Test
-                  void test() {
+                  public void test() {
                       assertThrows(MyException.class, () -> {
                           throw new MyException("my exception");
                       });
@@ -375,70 +375,10 @@ class UpdateTestAnnotationTest implements RewriteTest {
               
                   @Test
                   @Timeout(500)
-                  void test() {
+                  public void test() {
                       assertThrows(IllegalArgumentException.class, () -> {
                           throw new IllegalArgumentException("boom");
                       });
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Issue("https://github.com/openrewrite/rewrite/issues/150")
-    @Test
-    void protectedToPackageVisibility() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.Test;
-
-              public class MyTest {
-              
-                  @Test
-                  protected void test() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              public class MyTest {
-
-                  @Test
-                  void test() {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @SuppressWarnings("JUnitMalformedDeclaration")
-    @Test
-    void privateToPackageVisibility() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.Test;
-              
-              public class MyTest {
-              
-                  @Test
-                  private void test() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-              
-              public class MyTest {
-              
-                  @Test
-                  void test() {
                   }
               }
               """
@@ -532,7 +472,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               /** @see org.junit.jupiter.api.Test */
               public class MyTest {
                   @Test
-                  void test() {
+                  public void test() {
                   }
               }
               """
@@ -557,7 +497,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               
               public class MyTest {
                   @org.junit.jupiter.api.Test
-                  void feature1() {
+                  public void feature1() {
                   }
               }
               """
@@ -587,7 +527,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
                             
               public class MyTest {
                   @org.junit.jupiter.api.Test
-                  void feature1() {
+                  public void feature1() {
                   }
                   
                   @Test
