@@ -216,13 +216,11 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
-
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/443")
     @Test
     void migrateInheritedTestBeforeAfterAnnotations() {
         //language=java
         rewriteRun(
-
           java(
             """
               import org.junit.After;
@@ -265,7 +263,7 @@ class JUnit5MigrationTest implements RewriteTest {
           ),
           java(
             """
-              public class A extends AbstractTest {              
+              public class A extends AbstractTest {
                   public void before() {
                   }
 
