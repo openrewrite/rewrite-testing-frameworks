@@ -1,6 +1,5 @@
 package org.openrewrite.java.testing.jmockit;
 
-import org.jetbrains.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -88,6 +87,8 @@ class SetupStatementsRewriter {
                         break;
                     }
                 }
+            } else if (methodInvocation.getSelect() instanceof J.MethodInvocation) {
+                return isSetupStatement((Statement) methodInvocation.getSelect());
             }
         } else if (expectationStatement instanceof J.Assignment) {
             // an assignment to a jmockit reserved field is not a setup statement

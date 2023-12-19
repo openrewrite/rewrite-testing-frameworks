@@ -26,6 +26,7 @@ import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -173,9 +174,6 @@ public class JMockitExpectationsToMockito extends Recipe {
                 } else if (identifier.getSimpleName().equals("times")) {
                     times = assignment.getAssignment();
                     templateParams.remove(1);
-                } else {
-                    // ignore other assignments
-                    templateParams.remove(1);
                 }
             } else if (templateParams.size() == 3) {
                 int expressionIndex = 1;
@@ -192,9 +190,6 @@ public class JMockitExpectationsToMockito extends Recipe {
                 } else if (identifier.getSimpleName().equals("times")) {
                     times = firstAssignment.getAssignment();
                     templateParams.remove(expressionIndex);
-                } else {
-                    // ignore other assignments
-                    templateParams.remove(expressionIndex);
                 }
 
                 J.Assignment secondAssignment = (J.Assignment) templateParams.get(expressionIndex);
@@ -205,19 +200,19 @@ public class JMockitExpectationsToMockito extends Recipe {
                 } else if (identifier.getSimpleName().equals("times")) {
                     times = secondAssignment.getAssignment();
                     templateParams.remove(expressionIndex);
-                } else {
-                    // ignore other assignments
-                    templateParams.remove(expressionIndex);
                 }
             } else if (templateParams.size() > 3) {
                 throw new IllegalStateException("Unexpected number of template params: " + templateParams.size());
             }
             J.MethodInvocation invocation = (J.MethodInvocation) templateParams.get(0);
-            J.Identifier select = (J.Identifier) invocation.getSelect();
+            Expression select = invocation.getSelect();
             if (select == null || select.getType() == null) {
                 throw new IllegalStateException("Unexpected invocation select type: " + select);
             }
-            String fqn = ((JavaType.FullyQualified) select.getType()).getFullyQualifiedName();
+            String fqn = ""; // default to empty string to support method invocations
+            if (select instanceof J.Identifier) {
+                fqn = ((JavaType.FullyQualified) Objects.requireNonNull(select.getType())).getFullyQualifiedName();
+            }
             String methodName = "when";
             List<Expression> mockArguments = new ArrayList<>();
             if (templateParams.size() == 1) {

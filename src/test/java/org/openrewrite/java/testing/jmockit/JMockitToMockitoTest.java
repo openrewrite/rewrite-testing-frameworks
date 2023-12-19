@@ -541,11 +541,10 @@ class JMockitToMockitoTest implements RewriteTest {
                           
                   void test() {
                       String a = "a";
+                      String s = "s";
                       
                       new Expectations() {{
-                          myObject.getSomeField(anyString);
-                          String s = "s";
-                          String b = "b";
+                          myObject.getSomeField(anyString).substring(0, 1);
                           result = s;
                       }};
                       
@@ -569,12 +568,9 @@ class JMockitToMockitoTest implements RewriteTest {
 
                   void test() {
                       String a = "a";
-                      
                       String s = "s";
                       
-                      String b = "b";
-                      
-                      when(myObject.getSomeField(anyString())).thenReturn(s);
+                      when(myObject.getSomeField(anyString()).substring(0, 1)).thenReturn(s);
                       
                       assertEquals("s", myObject.getSomeField("foo"));
                   }

@@ -55,15 +55,23 @@ class ArgumentMatchersRewriter {
                     newStatements.add(expectationStatement);
                     continue;
                 }
-                J.MethodInvocation methodInvocation = (J.MethodInvocation) expectationStatement;
-                List<Expression> newArguments = rewriteMethodArgumentMatchers(methodInvocation.getArguments());
-                newStatements.add(methodInvocation.withArguments(newArguments));
+
+                J.MethodInvocation methodInvocation = rewriteMethodInvocation((J.MethodInvocation) expectationStatement);
+                newStatements.add(methodInvocation);
             }
             return expectationsBlock.withStatements(newStatements);
         } catch (Exception e) {
             // if anything goes wrong, just return the original expectations block
             return expectationsBlock;
         }
+    }
+
+    private J.MethodInvocation rewriteMethodInvocation(J.MethodInvocation invocation) {
+        if (invocation.getSelect() instanceof J.MethodInvocation) {
+            invocation = invocation.withSelect(rewriteMethodInvocation((J.MethodInvocation) invocation.getSelect()));
+        }
+        List<Expression> newArguments = rewriteMethodArgumentMatchers(invocation.getArguments());
+        return invocation.withArguments(newArguments);
     }
 
     private List<Expression> rewriteMethodArgumentMatchers(List<Expression> arguments) {
