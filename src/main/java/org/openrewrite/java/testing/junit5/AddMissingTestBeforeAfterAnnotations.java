@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2023 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,10 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import java.util.Comparator;
-import java.util.Optional;
-import java.util.function.Predicate;
-
+import lombok.EqualsAndHashCode;
+import lombok.Value;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AnnotationMatcher;
@@ -30,14 +29,15 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType.FullyQualified;
 import org.openrewrite.java.tree.JavaType.Method;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.SearchResult;
 
-import lombok.EqualsAndHashCode;
-import lombok.Value;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class AddMissingTestBeforeAfterAnnotations extends Recipe {
-
     @Override
     public String getDisplayName() {
         return "Add missing `@BeforeEach`, `@AfterEach`, `@Test` to overriding methods";
@@ -50,32 +50,40 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new AddMissingTestBeforeAfterAnnotationsVisitor();
+        return Preconditions.check(new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                if (classDecl.getExtends() != null) {
+                    // Only classes that extend other classes can have override methods with missing annotations
+                    return SearchResult.found(classDecl);
+                }
+                return super.visitClassDeclaration(classDecl, ctx);
+            }
+        }, new AddMissingTestBeforeAfterAnnotationsVisitor());
     }
 
-    private class AddMissingTestBeforeAfterAnnotationsVisitor extends JavaIsoVisitor<ExecutionContext> {
-
+    private static class AddMissingTestBeforeAfterAnnotationsVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             if (!method.hasModifier(J.Modifier.Type.Static) && !method.isConstructor()) {
                 Optional<Method> superMethod = TypeUtils.findOverriddenMethod(method.getMethodType());
                 if (superMethod.isPresent()) {
-                    method = addMissingAnnotation(method, ctx, superMethod.get(), LifecyleAnnotation.BEFORE_EACH);
-                    method = addMissingAnnotation(method, ctx, superMethod.get(), LifecyleAnnotation.AFTER_EACH);
-                    method = addMissingAnnotation(method, ctx, superMethod.get(), LifecyleAnnotation.TEST);
+                    method = maybeAddMissingAnnotation(method, superMethod.get(), LifecyleAnnotation.BEFORE_EACH, ctx);
+                    method = maybeAddMissingAnnotation(method, superMethod.get(), LifecyleAnnotation.AFTER_EACH, ctx);
+                    method = maybeAddMissingAnnotation(method, superMethod.get(), LifecyleAnnotation.TEST, ctx);
                 }
             }
             return super.visitMethodDeclaration(method, ctx);
         }
 
-        private J.MethodDeclaration addMissingAnnotation(J.MethodDeclaration method, ExecutionContext ctx, Method superMethod, LifecyleAnnotation la) {
-            if (superMethod.getAnnotations().stream().anyMatch(la.oldAnnotationPredicate) &&
-                    method.getAllAnnotations().stream().noneMatch(a -> la.annotationMatcher.matches(a))) {
-                method = JavaTemplate.builder(la.simpleAnnotation)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
-                        .imports(la.annotation).build().apply(getCursor(), method.getCoordinates()
-                                .addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+        private J.MethodDeclaration maybeAddMissingAnnotation(J.MethodDeclaration method, Method superMethod, LifecyleAnnotation la, ExecutionContext ctx) {
+            if (la.hasOldAnnotation(superMethod) && !la.hasNewAnnotation(method)) {
                 maybeAddImport(la.annotation);
+                return JavaTemplate.builder(la.simpleAnnotation)
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                        .imports(la.annotation)
+                        .build()
+                        .apply(getCursor(), method.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
             }
             return method;
         }
@@ -87,19 +95,23 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
         TEST("org.junit.jupiter.api.Test", "org.junit.Test");
 
         String annotation;
-        String oldAnnotation;
         String simpleAnnotation;
-        Predicate<FullyQualified> oldAnnotationPredicate;
-        AnnotationMatcher annotationMatcher;
+        private Predicate<FullyQualified> oldAnnotationPredicate;
+        private AnnotationMatcher annotationMatcher;
 
         LifecyleAnnotation(String annotation, String oldAnnotation) {
             this.annotation = annotation;
-            this.oldAnnotation = oldAnnotation;
+            this.simpleAnnotation = "@" + annotation.substring(annotation.lastIndexOf(".") + 1);
+            this.oldAnnotationPredicate = n -> TypeUtils.isOfClassType(n, oldAnnotation);
+            this.annotationMatcher = new AnnotationMatcher("@" + annotation);
+        }
 
-            simpleAnnotation = "@" + annotation.substring(annotation.lastIndexOf(".") + 1);
-            oldAnnotationPredicate = n -> n.getFullyQualifiedName().equals(oldAnnotation);
-            annotationMatcher = new AnnotationMatcher("@" + annotation);
+        boolean hasOldAnnotation(Method method) {
+            return method.getAnnotations().stream().anyMatch(oldAnnotationPredicate);
+        }
+
+        boolean hasNewAnnotation(J.MethodDeclaration method) {
+            return method.getAllAnnotations().stream().anyMatch(annotationMatcher::matches);
         }
     }
-
 }

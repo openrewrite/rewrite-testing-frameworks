@@ -24,7 +24,6 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
-
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -37,13 +36,12 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
     void addMissingTestBeforeAfterAnnotations() {
         //language=java
         rewriteRun(
-
           java(
             """
               import org.junit.After;
               import org.junit.Before;
               import org.junit.Test;
-                            
+              
               public class AbstractTest {
                   @Before
                   public void before() {
@@ -76,7 +74,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-                            
+              
               public class A extends AbstractTest {
                   @BeforeEach
                   public void before() {
@@ -94,5 +92,4 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
           )
         );
     }
-
 }
