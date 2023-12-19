@@ -79,6 +79,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
   - org.openrewrite.java.testing.junit5.LifecycleNonPrivate
   - org.openrewrite.java.testing.junit5.UpdateTestAnnotation
+  - org.openrewrite.java.testing.junit5.AddMissingTestBeforeAfterAnnotations
   - org.openrewrite.java.testing.junit5.ParameterizedRunnerToParameterized
   - org.openrewrite.java.testing.junit5.JUnitParamsRunnerToParameterized
   - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
