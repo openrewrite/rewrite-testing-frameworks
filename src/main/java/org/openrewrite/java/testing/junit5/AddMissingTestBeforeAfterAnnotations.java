@@ -15,10 +15,8 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import java.util.Comparator;
-import java.util.Optional;
-import java.util.function.Predicate;
-
+import lombok.EqualsAndHashCode;
+import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -33,8 +31,9 @@ import org.openrewrite.java.tree.JavaType.Method;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.SearchResult;
 
-import lombok.EqualsAndHashCode;
-import lombok.Value;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -92,9 +91,9 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
     }
 
     enum LifecyleAnnotation {
-        BEFORE_EACH("org.junit.jupiter.api.BeforeEach", "org.junit.Before"), AFTER_EACH(
-                "org.junit.jupiter.api.AfterEach",
-                "org.junit.After"), TEST("org.junit.jupiter.api.Test", "org.junit.Test");
+        BEFORE_EACH("org.junit.jupiter.api.BeforeEach", "org.junit.Before"),
+        AFTER_EACH("org.junit.jupiter.api.AfterEach", "org.junit.After"),
+        TEST("org.junit.jupiter.api.Test", "org.junit.Test");
 
         String newAnnotation;
         String newAnnotationSimple;
@@ -121,6 +120,5 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
         boolean hasOldAnnotation(Method method) {
             return method.getAnnotations().stream().anyMatch(oldAnnotationPredicate);
         }
-
     }
 }

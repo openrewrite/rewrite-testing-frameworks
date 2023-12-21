@@ -33,7 +33,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
     }
 
     @Test
-    void addMissingTestBeforeAfterAnnotations() {
+    void addMissingTestBeforeAfterAnnotationsIfOldFound() {
         //language=java
         rewriteRun(
           java(
@@ -94,7 +94,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
     }
     
     @Test
-    void addMissingTestBeforeAfterAnnotations2() {
+    void addMissingTestBeforeAfterAnnotationsIfNewFound() {
         //language=java
         rewriteRun(
           java(
