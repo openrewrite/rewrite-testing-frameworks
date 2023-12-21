@@ -45,7 +45,7 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Adds `@BeforeEach`, `@AfterEach`, `@Test` to methods overriding superclass methods if the annoations are present on the superclass method.";
+        return "Adds `@BeforeEach`, `@AfterEach`, `@Test` to methods overriding superclass methods if the annotations are present on the superclass method.";
     }
 
     @Override
