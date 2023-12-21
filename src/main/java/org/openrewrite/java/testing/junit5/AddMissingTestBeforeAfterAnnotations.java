@@ -76,15 +76,15 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
             return super.visitMethodDeclaration(method, ctx);
         }
 
-        private J.MethodDeclaration maybeAddMissingAnnotation(J.MethodDeclaration method, Method superMethod,
-                LifecyleAnnotation la, ExecutionContext ctx) {
+        private J.MethodDeclaration maybeAddMissingAnnotation(J.MethodDeclaration method, Method superMethod, LifecyleAnnotation la, ExecutionContext ctx) {
             if ((la.hasOldAnnotation(superMethod) || la.hasNewAnnotation(superMethod))
                     && !la.hasNewAnnotation(method)) {
                 maybeAddImport(la.newAnnotation);
                 return JavaTemplate.builder(la.newAnnotationSimple)
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
-                        .imports(la.newAnnotation).build().apply(getCursor(), method.getCoordinates()
-                                .addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                        .imports(la.newAnnotation)
+                        .build()
+                        .apply(getCursor(), method.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
             }
             return method;
         }
