@@ -77,8 +77,7 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
         }
 
         private J.MethodDeclaration maybeAddMissingAnnotation(J.MethodDeclaration method, Method superMethod, LifecyleAnnotation la, ExecutionContext ctx) {
-            if ((la.hasOldAnnotation(superMethod) || la.hasNewAnnotation(superMethod))
-                    && !la.hasNewAnnotation(method)) {
+            if (la.needsAnnotation(method, superMethod)) {
                 maybeAddImport(la.newAnnotation);
                 return JavaTemplate.builder(la.newAnnotationSimple)
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
@@ -91,9 +90,9 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
     }
 
     enum LifecyleAnnotation {
-        BEFORE_EACH("org.junit.jupiter.api.BeforeEach", "org.junit.Before"),
-        AFTER_EACH("org.junit.jupiter.api.AfterEach", "org.junit.After"),
-        TEST("org.junit.jupiter.api.Test", "org.junit.Test");
+        BEFORE_EACH("org.junit.Before", "org.junit.jupiter.api.BeforeEach"),
+        AFTER_EACH("org.junit.After", "org.junit.jupiter.api.AfterEach"),
+        TEST("org.junit.Test", "org.junit.jupiter.api.Test");
 
         String newAnnotation;
         String newAnnotationSimple;
@@ -101,7 +100,7 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
         private Predicate<FullyQualified> newAnnotationPredicate;
         private Predicate<FullyQualified> oldAnnotationPredicate;
 
-        LifecyleAnnotation(String newAnnotation, String oldAnnotation) {
+        LifecyleAnnotation(String oldAnnotation, String newAnnotation) {
             this.newAnnotation = newAnnotation;
             this.newAnnotationSimple = "@" + newAnnotation.substring(newAnnotation.lastIndexOf(".") + 1);
             this.newAnnotationMatcher = new AnnotationMatcher("@" + newAnnotation);
@@ -109,16 +108,9 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
             this.oldAnnotationPredicate = n -> TypeUtils.isOfClassType(n, oldAnnotation);
         }
 
-        boolean hasNewAnnotation(J.MethodDeclaration method) {
-            return method.getAllAnnotations().stream().anyMatch(newAnnotationMatcher::matches);
-        }
-
-        boolean hasNewAnnotation(Method method) {
-            return method.getAnnotations().stream().anyMatch(newAnnotationPredicate);
-        }
-
-        boolean hasOldAnnotation(Method method) {
-            return method.getAnnotations().stream().anyMatch(oldAnnotationPredicate);
+        boolean needsAnnotation(J.MethodDeclaration method, Method superMethod) {
+            boolean superMethodHasAnnotation = superMethod.getAnnotations().stream().anyMatch(oldAnnotationPredicate.or(newAnnotationPredicate));
+            return superMethodHasAnnotation && !method.getAllAnnotations().stream().anyMatch(newAnnotationMatcher::matches);
         }
     }
 }
