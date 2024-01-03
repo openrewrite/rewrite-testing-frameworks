@@ -1,5 +1,6 @@
 package org.openrewrite.java.testing.jmockit;
 
+import org.jetbrains.annotations.NotNull;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -95,8 +96,13 @@ class ArgumentMatchersRewriter {
         String argumentMatcher, template;
         List<Object> templateParams = new ArrayList<>();
         if (!isArgumentMatcher(methodArgument)) {
-            // TODO: rewrite to argument matcher
-            return methodArgument;
+            if (methodArgument instanceof J.Literal) {
+                argumentMatcher = primitiveToArgumentMatcher((J.Literal) methodArgument);
+                template = argumentMatcher + "()";
+                return rewriteMethodArgument(argumentMatcher, template, methodArgument, templateParams);
+            } else {
+                throw new IllegalStateException("Unexpected method argument: " + methodArgument);
+            }
         }
         if (!(methodArgument instanceof J.TypeCast)) {
             argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
@@ -134,6 +140,43 @@ class ArgumentMatchersRewriter {
             template = argumentMatcher + "(#{any(java.lang.Class)})";
         }
         return rewriteMethodArgument(argumentMatcher, template, methodArgument, templateParams);
+    }
+
+    private static String primitiveToArgumentMatcher(J.Literal methodArgument) {
+        String argumentMatcher;
+        JavaType.Primitive primitiveType = methodArgument.getType();
+        switch (Objects.requireNonNull(primitiveType)) {
+            case Boolean:
+                argumentMatcher = "anyBoolean";
+                break;
+            case Byte:
+                argumentMatcher = "anyByte";
+                break;
+            case Char:
+                argumentMatcher = "anyChar";
+                break;
+            case Double:
+                argumentMatcher = "anyDouble";
+                break;
+            case Float:
+                argumentMatcher = "anyFloat";
+                break;
+            case Int:
+                argumentMatcher = "anyInt";
+                break;
+            case Long:
+                argumentMatcher = "anyLong";
+                break;
+            case Short:
+                argumentMatcher = "anyShort";
+                break;
+            case String:
+                argumentMatcher = "anyString";
+                break;
+            default:
+                throw new IllegalStateException("Unexpected primitive type: " + primitiveType);
+        }
+        return argumentMatcher;
     }
 
     private Expression rewriteMethodArgument(String argumentMatcher, String template, Expression methodArgument,

@@ -466,7 +466,7 @@ class JMockitToMockitoTest implements RewriteTest {
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
               
-              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              import static org.junit.jupiter.api.Assertions.assertNull;
               
               @ExtendWith(JMockitExtension.class)
               class MyTest {
@@ -478,7 +478,7 @@ class JMockitToMockitoTest implements RewriteTest {
                           myObject.getSomeField((List<String>) any);
                           result = null;
                       }};
-                      assertNotNull(myObject.getSomeField(new ArrayList<>()));
+                      assertNull(myObject.getSomeField(new ArrayList<>()));
                   }
               }
               """,
@@ -490,7 +490,7 @@ class JMockitToMockitoTest implements RewriteTest {
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
               
-              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              import static org.junit.jupiter.api.Assertions.assertNull;
               import static org.mockito.Mockito.anyList;
               import static org.mockito.Mockito.when;
               
@@ -501,7 +501,75 @@ class JMockitToMockitoTest implements RewriteTest {
                   
                   void test() {
                       when(myObject.getSomeField(anyList())).thenReturn(null);
-                      assertNotNull(myObject.getSomeField(new ArrayList<>()));
+                      assertNull(myObject.getSomeField(new ArrayList<>()));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void jMockitExpectationsToMockitoWhenMixedArgumentMatcher() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+              
+              class MyObject {
+                  public String getSomeField(String s, String s2) {
+                      return "X";
+                  }
+              }
+              """
+          ),
+          java(
+            """              
+              import java.util.ArrayList;
+              import java.util.List;
+              
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  MyObject myObject;
+                  
+                  void test() {
+                      new Expectations() {{
+                          myObject.getSomeField("foo", anyString);
+                          result = null;
+                      }};
+                      assertNull(myObject.getSomeField("foo", "bar"));
+                  }
+              }
+              """,
+            """
+              import java.util.ArrayList;
+              import java.util.List;
+              
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.anyString;
+              import static org.mockito.Mockito.when;
+              
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  MyObject myObject;
+                  
+                  void test() {
+                      when(myObject.getSomeField(anyString(), anyString())).thenReturn(null);
+                      assertNull(myObject.getSomeField("foo", "bar"));
                   }
               }
               """
