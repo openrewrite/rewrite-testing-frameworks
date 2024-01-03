@@ -148,7 +148,6 @@ public class JMockitExpectationsToMockito extends Recipe {
                                           JavaCoordinates coordinates) {
             Expression result = null, times = null;
             J.Assignment assignment;
-            System.out.println("DEBUG: templateParams before: " + templateParams);
 
             // TODO: refactor duplicate code
             if (templateParams.size() > 3) {
