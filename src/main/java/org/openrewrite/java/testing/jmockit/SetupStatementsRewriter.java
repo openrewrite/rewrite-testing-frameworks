@@ -72,23 +72,12 @@ class SetupStatementsRewriter {
         if (expectationStatement instanceof J.MethodInvocation) {
             // a method invocation on a mock is not a setup statement
             J.MethodInvocation methodInvocation = (J.MethodInvocation) expectationStatement;
-            if (methodInvocation.getSelect() instanceof J.Identifier) {
-                J.Identifier identifier = (J.Identifier) methodInvocation.getSelect();
-                JavaType.Variable fieldType = identifier.getFieldType();
-
-                // if type information is missing, don't move the statement
-                if (fieldType == null) {
-                    return false;
-                }
-                for (JavaType.FullyQualified annotationType : fieldType.getAnnotations()) {
-                    if (TypeUtils.isAssignableTo("mockit.Mocked", annotationType)
-                            || TypeUtils.isAssignableTo("org.mockito.Mock", annotationType)) {
-                        isSetupStatement = false;
-                        break;
-                    }
-                }
-            } else if (methodInvocation.getSelect() instanceof J.MethodInvocation) {
+            if (methodInvocation.getSelect() instanceof J.MethodInvocation) {
                 return isSetupStatement((Statement) methodInvocation.getSelect());
+            } else if (methodInvocation.getSelect() instanceof J.Identifier) {
+                return isNotMockIdentifier((J.Identifier) methodInvocation.getSelect());
+            } else if (methodInvocation.getSelect() instanceof J.FieldAccess) {
+                return isNotMockIdentifier((J.Identifier) ((J.FieldAccess) methodInvocation.getSelect()).getTarget());
             }
         } else if (expectationStatement instanceof J.Assignment) {
             // an assignment to a jmockit reserved field is not a setup statement
@@ -99,6 +88,20 @@ class SetupStatementsRewriter {
             }
         }
         return isSetupStatement;
+    }
+
+    private static boolean isNotMockIdentifier(J.Identifier identifier) {
+        JavaType.Variable fieldType = identifier.getFieldType();
+        if (fieldType == null) {
+            return true;
+        }
+        for (JavaType.FullyQualified annotationType : fieldType.getAnnotations()) {
+            if (TypeUtils.isAssignableTo("mockit.Mocked", annotationType)
+                    || TypeUtils.isAssignableTo("org.mockito.Mock", annotationType)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private J.Block copySetupStatement(Statement setupStatement, J.Block newBody, JavaCoordinates coordinates) {

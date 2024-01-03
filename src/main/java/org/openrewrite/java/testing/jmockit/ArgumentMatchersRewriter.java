@@ -75,6 +75,15 @@ class ArgumentMatchersRewriter {
     }
 
     private List<Expression> rewriteMethodArgumentMatchers(List<Expression> arguments) {
+        boolean hasArgumentMatcher = false;
+        for (Expression methodArgument : arguments) {
+            if (isArgumentMatcher(methodArgument)) {
+                hasArgumentMatcher = true;
+            }
+        }
+        if (!hasArgumentMatcher) {
+            return arguments;
+        }
         List<Expression> newArguments = new ArrayList<>(arguments.size());
         for (Expression methodArgument : arguments) {
             newArguments.add(rewriteMethodArgument(methodArgument));
@@ -83,11 +92,12 @@ class ArgumentMatchersRewriter {
     }
 
     private Expression rewriteMethodArgument(Expression methodArgument) {
-        if (!isArgumentMatcher(methodArgument)) {
-            return methodArgument;
-        }
         String argumentMatcher, template;
         List<Object> templateParams = new ArrayList<>();
+        if (!isArgumentMatcher(methodArgument)) {
+            // TODO: rewrite to argument matcher
+            return methodArgument;
+        }
         if (!(methodArgument instanceof J.TypeCast)) {
             argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
             template = argumentMatcher + "()";

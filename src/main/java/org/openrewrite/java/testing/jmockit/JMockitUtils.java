@@ -11,10 +11,12 @@ class JMockitUtils {
         }
         J.NewClass nc = (J.NewClass) s;
         if (!(nc.getClazz() instanceof J.Identifier)) {
+            System.out.println("DEBUG: NewClass is not an Identifier");
             return false;
         }
         J.Identifier clazz = (J.Identifier) nc.getClazz();
         if (!TypeUtils.isAssignableTo("mockit.Expectations", clazz.getType())) {
+            System.out.println("DEBUG: Identifier not assignable to mockit.Expectations: " + clazz.getSimpleName());
             return false;
         }
         // empty Expectations block is considered invalid
