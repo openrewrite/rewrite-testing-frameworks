@@ -151,9 +151,9 @@ public class UpdateTestAnnotation extends Recipe {
                     }
                 }
                 if (cta.timeout != null) {
-                    m = JavaTemplate.builder("@Timeout(#{any(long)})")
+                    m = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)")
                             .javaParser(javaParser(ctx))
-                            .imports("org.junit.jupiter.api.Timeout")
+                            .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
                             .build()
                             .apply(
                                     updateCursor(m),
@@ -161,6 +161,7 @@ public class UpdateTestAnnotation extends Recipe {
                                     cta.timeout
                             );
                     maybeAddImport("org.junit.jupiter.api.Timeout");
+                    maybeAddImport("java.util.concurrent.TimeUnit");
                 }
                 maybeAddImport("org.junit.jupiter.api.Test");
             }
