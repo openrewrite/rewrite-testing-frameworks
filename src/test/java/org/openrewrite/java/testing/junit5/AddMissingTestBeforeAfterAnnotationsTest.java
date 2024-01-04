@@ -92,7 +92,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
           )
         );
     }
-    
+
     @Test
     void addMissingTestBeforeAfterAnnotationsIfNewFound() {
         //language=java
@@ -152,6 +152,100 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Test
+    void addMissingTestBeforeAfterAnnotationsIfExtended() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              
+              public class AbstractTest {
+                  @BeforeEach
+                  public void before() {
+                  }
+
+                  @AfterEach
+                  public void after() {
+                  }
+
+                  @Test
+                  public void test() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              public class A extends AbstractTest {
+                  public void before() {
+                  }
+
+                  public void after() {
+                  }
+
+                  public void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              
+              public class A extends AbstractTest {
+                  @BeforeEach
+                  public void before() {
+                  }
+
+                  @AfterEach
+                  public void after() {
+                  }
+
+                  @Test
+                  public void test() {
+                  }
+              }
+              """
+          ),
+          java(
+                """
+                  public class B extends A {
+                      public void before() {
+                      }
+
+                      public void after() {
+                      }
+
+                      public void test() {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.AfterEach;
+                  import org.junit.jupiter.api.BeforeEach;
+                  import org.junit.jupiter.api.Test;
+                  
+                  public class B extends A {
+                      @BeforeEach
+                      public void before() {
+                      }
+
+                      @AfterEach
+                      public void after() {
+                      }
+
+                      @Test
+                      public void test() {
+                      }
+                  }
+                  """
+              )
+            );
     }
 
 }

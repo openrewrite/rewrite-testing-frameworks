@@ -66,11 +66,14 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             if (!method.hasModifier(J.Modifier.Type.Static) && !method.isConstructor()) {
-                Optional<Method> superMethod = TypeUtils.findOverriddenMethod(method.getMethodType());
-                if (superMethod.isPresent()) {
+                Method currMethod = method.getMethodType();
+                Optional<Method> superMethod = TypeUtils.findOverriddenMethod(currMethod);
+                while (superMethod.isPresent()) {
                     method = maybeAddMissingAnnotation(method, superMethod.get(), LifecyleAnnotation.BEFORE_EACH, ctx);
                     method = maybeAddMissingAnnotation(method, superMethod.get(), LifecyleAnnotation.AFTER_EACH, ctx);
                     method = maybeAddMissingAnnotation(method, superMethod.get(), LifecyleAnnotation.TEST, ctx);
+                    currMethod = superMethod.get();
+                    superMethod = TypeUtils.findOverriddenMethod(currMethod);
                 }
             }
             return super.visitMethodDeclaration(method, ctx);
