@@ -29,6 +29,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.openrewrite.gradle.Assertions.buildGradle;
@@ -537,7 +538,6 @@ public class BiscuitTest {
         void assertjMavenDependencyAddedWithTestScope() {
             rewriteRun(
               mavenProject("project",
-                //language=java
                 srcTestJava(java(JAVA_BEFORE, JAVA_AFTER)),
                 //language=xml
                 pomXml("""
@@ -555,7 +555,8 @@ public class BiscuitTest {
                           </dependency>
                       </dependencies>
                   </project>
-                  """, """
+                  """,
+                sourceSpecs -> sourceSpecs.after(after -> """
                   <project>
                       <modelVersion>4.0.0</modelVersion>
                       <groupId>com.example</groupId>
@@ -565,7 +566,7 @@ public class BiscuitTest {
                           <dependency>
                               <groupId>org.assertj</groupId>
                               <artifactId>assertj-core</artifactId>
-                              <version>3.24.2</version>
+                              <version>%s</version>
                               <scope>test</scope>
                           </dependency>
                           <dependency>
@@ -576,7 +577,9 @@ public class BiscuitTest {
                           </dependency>
                       </dependencies>
                   </project>
-                  """)));
+                  """.formatted(Pattern.compile("<version>(3\\.2.*)</version>").matcher(after).results().findFirst().orElseThrow().group(1))))
+            )
+          );
         }
 
         @Test
@@ -584,9 +587,7 @@ public class BiscuitTest {
             rewriteRun(
               spec -> spec.beforeRecipe(withToolingApi()),
               mavenProject("project",
-                //language=java
                 srcTestJava(java(JAVA_BEFORE, JAVA_AFTER)),
-                //language=groovy
                 buildGradle("""
                   plugins {
                       id "java-library"
@@ -599,7 +600,8 @@ public class BiscuitTest {
                   dependencies {
                       testImplementation "org.hamcrest:hamcrest:2.2"
                   }
-                  """, """
+                  """,
+                sourceSpecs -> sourceSpecs.after(after -> """
                   plugins {
                       id "java-library"
                   }
@@ -609,10 +611,15 @@ public class BiscuitTest {
                   }
                                       
                   dependencies {
-                      testImplementation "org.assertj:assertj-core:3.24.2"
+                      testImplementation "org.assertj:%s"
                       testImplementation "org.hamcrest:hamcrest:2.2"
                   }
-                  """)));
+                  """
+                  .formatted(Pattern.compile("(assertj-core:[^\"]*)").matcher(after).results().findFirst().orElseThrow().group(1))
+                )
+              )
+            )
+          );
         }
     }
 
