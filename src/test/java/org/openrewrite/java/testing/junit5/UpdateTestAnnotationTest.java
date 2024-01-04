@@ -272,6 +272,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
     }
 
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/450")
     void annotationWithTimeout() {
         //language=java
         rewriteRun(
@@ -290,10 +291,12 @@ class UpdateTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.Timeout;
               
+              import java.util.concurrent.TimeUnit;
+              
               public class MyTest {
               
                   @Test
-                  @Timeout(500)
+                  @Timeout(value = 500, unit = TimeUnit.MILLISECONDS)
                   public void test() {
                   }
               }
@@ -369,12 +372,14 @@ class UpdateTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.Timeout;
               
+              import java.util.concurrent.TimeUnit;
+              
               import static org.junit.jupiter.api.Assertions.assertThrows;
               
               public class MyTest {
               
                   @Test
-                  @Timeout(500)
+                  @Timeout(value = 500, unit = TimeUnit.MILLISECONDS)
                   public void test() {
                       assertThrows(IllegalArgumentException.class, () -> {
                           throw new IllegalArgumentException("boom");
@@ -518,7 +523,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   }
                   
                   @Test
-                  void feature2() {
+                  public void feature2() {
                   }
               }
               """,
@@ -531,7 +536,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   }
                   
                   @Test
-                  void feature2() {
+                  public void feature2() {
                   }
               }
               """
