@@ -202,7 +202,7 @@ public class JMockitExpectationsToMockito extends Recipe {
             J.MethodInvocation invocation = (J.MethodInvocation) templateParams.get(0);
             Expression select = invocation.getSelect();
             if (select == null || select.getType() == null) {
-                throw new IllegalStateException("Unexpected invocation select type: " + select);
+                throw new IllegalStateException("Missing type information for invocation select field: " + select);
             }
             String fqn = ""; // default to empty string to support method invocations
             if (select instanceof J.Identifier) {

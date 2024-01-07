@@ -101,36 +101,13 @@ class ArgumentMatchersRewriter {
         String argumentMatcher, template;
         if (!isArgumentMatcher(methodArgument)) {
             if (methodArgument instanceof J.Literal) {
-                if (parameterType instanceof JavaType.Primitive) {
-                    argumentMatcher = primitiveToArgumentMatcher((J.Literal) methodArgument);
-                    template = argumentMatcher + "()";
-                    return rewriteMethodArgument(argumentMatcher, template, methodArgument, new ArrayList<>());
-                } else if (parameterType instanceof JavaType.FullyQualified) {
-                    List<Object> templateParams = new ArrayList<>();
-                    String fqn = ((JavaType.FullyQualified) parameterType).getFullyQualifiedName();
-                    if (fqn.equals("java.lang.String")) {
-                        visitor.maybeAddImport("org.mockito.Mockito", "anyString");
-                        argumentMatcher = "anyString";
-                        template = "anyString()";
-                    } else {
-                        // rewrite parameter to any(<type>.class)
-                        templateParams.add(JavaTemplate.builder("#{}.class")
-                                .javaParser(JavaParser.fromJavaVersion())
-                                .build()
-                                .apply(
-                                        new Cursor(visitor.getCursor(), methodArgument),
-                                        methodArgument.getCoordinates().replace(),
-                                        ((JavaType.FullyQualified) parameterType).getClassName()
-                                ));
-                        argumentMatcher = "any";
-                        template = argumentMatcher + "(#{any(java.lang.Class)})";
-                    }
-                    return rewriteMethodArgument(argumentMatcher, template, methodArgument, templateParams);
-                } else {
-                    throw new IllegalStateException("Unexpected parameter type: " + parameterType);
-                }
+                argumentMatcher = primitiveToArgumentMatcher((J.Literal) methodArgument);
+                template = argumentMatcher + "()";
+                return rewriteMethodArgument(argumentMatcher, template, methodArgument, new ArrayList<>());
             } else if (methodArgument instanceof J.Identifier) {
                 return rewriteIdentifierToArgumentMatcher((J.Identifier) methodArgument);
+            } else if (methodArgument instanceof J.FieldAccess) {
+                return rewriteIdentifierToArgumentMatcher(((J.FieldAccess) methodArgument).getName());
             } else {
                 throw new IllegalStateException("Unexpected method argument: " + methodArgument + ", class: " + methodArgument.getClass());
             }
@@ -273,6 +250,9 @@ class ArgumentMatchersRewriter {
                 break;
             case String:
                 argumentMatcher = "anyString";
+                break;
+            case Null:
+                argumentMatcher = "isNull";
                 break;
             default:
                 throw new IllegalStateException("Unexpected primitive type: " + primitiveType);
