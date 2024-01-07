@@ -21,12 +21,14 @@ import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.TreeVisitingPrinter;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -137,6 +139,9 @@ public class JMockitExpectationsToMockito extends Recipe {
                     }
                 }
             } catch (Exception e) {
+                System.err.println("DEBUG: Exception rewriting method body: " + e.getMessage() + "\n\n");
+                e.printStackTrace();
+//                System.out.println(TreeVisitingPrinter.printTree(getCursor()));
                 // if anything goes wrong, just return the original method declaration
                 return md;
             }
@@ -148,6 +153,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                                           JavaCoordinates coordinates) {
             Expression result = null, times = null;
             J.Assignment assignment;
+            System.out.println("DEBUG: templateParams before: " + templateParams);
 
             // TODO: refactor duplicate code
             if (templateParams.size() > 3) {
@@ -206,11 +212,13 @@ public class JMockitExpectationsToMockito extends Recipe {
                 // no result or verification, just remove the statement
                 templateParams = new ArrayList<>();
             }
+            System.out.println("DEBUG: templateParams after: " + templateParams);
             String template = "";
             if (result != null) {
                 maybeAddImport("org.mockito.Mockito", "when");
                 template = getMockitoStatementTemplate(result);
             }
+            System.out.println("DEBUG: template: " + template);
             J.Block newBody = JavaTemplate.builder(template)
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                     .staticImports("org.mockito.Mockito.*")
@@ -263,6 +271,43 @@ public class JMockitExpectationsToMockito extends Recipe {
                 throw new IllegalStateException("Unexpected expression type for template: " + result.getType());
             }
             return template;
+        }
+    }
+
+    private static class InjectMocksToSpyVisitor extends JavaIsoVisitor<ExecutionContext> {
+
+        private final J.Identifier spy;
+
+        private InjectMocksToSpyVisitor(J.Identifier spy) {
+            this.spy = spy;
+        }
+
+        @Override
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+            J.VariableDeclarations mv = super.visitVariableDeclarations(multiVariable, ctx);
+            for (J.VariableDeclarations.NamedVariable variable : mv.getVariables()) {
+                if (!variable.getName().equals(spy)) {
+                    continue;
+                }
+                maybeAddImport("org.mockito.Spy");
+                maybeRemoveImport("org.mockito.InjectMocks");
+
+                List<J.Annotation> newAnnotations = new ArrayList<>(mv.getLeadingAnnotations().size());
+                for (J.Annotation annotation : mv.getLeadingAnnotations()) {
+                    if (!TypeUtils.isAssignableTo("org.mockito.InjectMocks", annotation.getType())) {
+                        newAnnotations.add(annotation);
+                        continue;
+                    }
+                    String template = "@Spy";
+                    newAnnotations.add(JavaTemplate.builder(template)
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                            .imports("org.mockito.Spy")
+                            .build()
+                            .apply(new Cursor(getCursor(), annotation), annotation.getCoordinates().replace()));
+                }
+                mv = mv.withLeadingAnnotations(newAnnotations);
+            }
+            return mv;
         }
     }
 }

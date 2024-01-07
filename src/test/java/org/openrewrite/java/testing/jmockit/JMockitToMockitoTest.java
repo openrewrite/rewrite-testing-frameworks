@@ -518,7 +518,7 @@ class JMockitToMockitoTest implements RewriteTest {
               import java.util.List;
               
               class MyObject {
-                  public String getSomeField(String s, String s2) {
+                  public String getSomeField(String s, String s2, String s3, long l1) {
                       return "X";
                   }
               }
@@ -542,11 +542,12 @@ class JMockitToMockitoTest implements RewriteTest {
                   MyObject myObject;
                   
                   void test() {
+                      String bazz = "bazz";
                       new Expectations() {{
-                          myObject.getSomeField("foo", anyString);
+                          myObject.getSomeField("foo", anyString, bazz, 10L);
                           result = null;
                       }};
-                      assertNull(myObject.getSomeField("foo", "bar"));
+                      assertNull(myObject.getSomeField("foo", "bar", bazz, 10L));
                   }
               }
               """,
@@ -559,8 +560,7 @@ class JMockitToMockitoTest implements RewriteTest {
               import org.mockito.junit.jupiter.MockitoExtension;
               
               import static org.junit.jupiter.api.Assertions.assertNull;
-              import static org.mockito.Mockito.anyString;
-              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.*;
               
               @ExtendWith(MockitoExtension.class)
               class MyTest {
@@ -568,8 +568,9 @@ class JMockitToMockitoTest implements RewriteTest {
                   MyObject myObject;
                   
                   void test() {
-                      when(myObject.getSomeField(anyString(), anyString())).thenReturn(null);
-                      assertNull(myObject.getSomeField("foo", "bar"));
+                      String bazz = "bazz";
+                      when(myObject.getSomeField(anyString(), anyString(), anyString(), anyLong())).thenReturn(null);
+                      assertNull(myObject.getSomeField("foo", "bar", bazz, 10L));
                   }
               }
               """

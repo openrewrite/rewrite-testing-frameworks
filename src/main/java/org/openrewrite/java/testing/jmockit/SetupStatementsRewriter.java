@@ -97,7 +97,10 @@ class SetupStatementsRewriter {
         }
         for (JavaType.FullyQualified annotationType : fieldType.getAnnotations()) {
             if (TypeUtils.isAssignableTo("mockit.Mocked", annotationType)
-                    || TypeUtils.isAssignableTo("org.mockito.Mock", annotationType)) {
+                    || TypeUtils.isAssignableTo("org.mockito.Mock", annotationType)
+                    || TypeUtils.isAssignableTo("mockit.Injectable", annotationType)
+                    || TypeUtils.isAssignableTo("mockit.Tested", annotationType)
+                    || TypeUtils.isAssignableTo("org.mockito.InjectMocks", annotationType)) {
                 return false;
             }
         }
