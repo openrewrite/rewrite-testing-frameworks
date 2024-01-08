@@ -22,47 +22,42 @@ class SetupStatementsRewriter {
 
     J.Block rewrite() {
         J.Block newBody = methodBody;
-        try {
-            // iterate over each statement in the method body, find Expectations blocks and rewrite them
-            for (Statement s : methodBody.getStatements()) {
-                if (!JMockitUtils.isExpectationsNewClassStatement(s)) {
+        // iterate over each statement in the method body, find Expectations blocks and rewrite them
+        for (Statement s : methodBody.getStatements()) {
+            if (!JMockitUtils.isExpectationsNewClassStatement(s)) {
+                continue;
+            }
+
+            J.NewClass nc = (J.NewClass) s;
+            assert nc.getBody() != null;
+            // statement needs to be moved directly before expectations class instantiation
+            JavaCoordinates coordinates = nc.getCoordinates().before();
+            J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
+            List<Statement> newExpectationsBlockStatements = new ArrayList<>();
+            for (Statement expectationStatement : expectationsBlock.getStatements()) {
+                if (!isSetupStatement(expectationStatement)) {
+                    newExpectationsBlockStatements.add(expectationStatement);
                     continue;
                 }
-
-                J.NewClass nc = (J.NewClass) s;
-                assert nc.getBody() != null;
-                // statement needs to be moved directly before expectations class instantiation
-                JavaCoordinates coordinates = nc.getCoordinates().before();
-                J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
-                List<Statement> newExpectationsBlockStatements = new ArrayList<>();
-                for (Statement expectationStatement : expectationsBlock.getStatements()) {
-                    if (!isSetupStatement(expectationStatement)) {
-                        newExpectationsBlockStatements.add(expectationStatement);
-                        continue;
-                    }
-                    newBody = copySetupStatement(expectationStatement, newBody, coordinates);
-                    // subsequent setup statements are moved in order
-                    coordinates = expectationStatement.getCoordinates().after();
-                }
-                // the expectations block needs to have the statement removed
-                J.Block newExpectationsBlock = expectationsBlock.withStatements(newExpectationsBlockStatements);
-                List<Statement> newExpectationsStatements = new ArrayList<>();
-                newExpectationsStatements.add(newExpectationsBlock);
-                assert nc.getBody() != null;
-                nc = nc.withBody(nc.getBody().withStatements(newExpectationsStatements));
-
-                newBody = JavaTemplate.builder("#{any()}")
-                        .javaParser(JavaParser.fromJavaVersion())
-                        .build()
-                        .apply(
-                                new Cursor(visitor.getCursor(), newBody),
-                                nc.getCoordinates().replace(),
-                                nc
-                        );
+                newBody = copySetupStatement(expectationStatement, newBody, coordinates);
+                // subsequent setup statements are moved in order
+                coordinates = expectationStatement.getCoordinates().after();
             }
-        }  catch (Exception e) {
-            // if anything goes wrong, just return the original method body
-            return methodBody;
+            // the expectations block needs to have the statement removed
+            J.Block newExpectationsBlock = expectationsBlock.withStatements(newExpectationsBlockStatements);
+            List<Statement> newExpectationsStatements = new ArrayList<>();
+            newExpectationsStatements.add(newExpectationsBlock);
+            assert nc.getBody() != null;
+            nc = nc.withBody(nc.getBody().withStatements(newExpectationsStatements));
+
+            newBody = JavaTemplate.builder("#{any()}")
+                    .javaParser(JavaParser.fromJavaVersion())
+                    .build()
+                    .apply(
+                            new Cursor(visitor.getCursor(), newBody),
+                            nc.getCoordinates().replace(),
+                            nc
+                    );
         }
         return newBody;
     }

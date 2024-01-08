@@ -21,14 +21,12 @@ import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.TreeVisitingPrinter;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -53,26 +51,8 @@ public class JMockitExpectationsToMockito extends Recipe {
 
         private static final String PRIMITIVE_RESULT_TEMPLATE = "when(#{any()}).thenReturn(#{});";
         private static final String THROWABLE_RESULT_TEMPLATE = "when(#{any()}).thenThrow(#{any()});";
-        private static String getObjectTemplate(String fqn) {
-            return "when(#{any()}).thenReturn(#{any(" + fqn + ")});";
-        }
-        private String getVerifyTemplate(ExecutionContext ctx, String fqn, List<Expression> arguments) {
-            if (arguments.isEmpty()) {
-                return "verify(#{any(" + fqn + ")}, times(#{any(int)})).#{}();";
-            }
-            StringBuilder templateBuilder = new StringBuilder("verify(#{any(" + fqn + ")}, times(#{any(int)})).#{}(");
-            for (Expression argument : arguments) {
-                if (argument instanceof J.Literal) {
-                    templateBuilder.append(((J.Literal) argument).getValueSource());
-                } else {
-                    templateBuilder.append(argument);
-                }
-                templateBuilder.append(", ");
-            }
-            templateBuilder.delete(templateBuilder.length() - 2, templateBuilder.length());
-            templateBuilder.append(");");
-            return templateBuilder.toString();
-        }
+        private int mockitoStatementIndex = 0;
+        private JavaCoordinates nextStatementCoordinates;
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
@@ -80,14 +60,11 @@ public class JMockitExpectationsToMockito extends Recipe {
             if (md.getBody() == null) {
                 return md;
             }
-            SetupStatementsRewriter ssr = new SetupStatementsRewriter(this, md.getBody());
-            J.Block newBody = ssr.rewrite();
-
-            // the LST element that is being updated when applying a java template
-            Object cursorLocation = newBody;
-            List<Statement> statements = newBody.getStatements();
-
             try {
+                SetupStatementsRewriter ssr = new SetupStatementsRewriter(this, md.getBody());
+                J.Block methodBody = ssr.rewrite();
+                List<Statement> statements = methodBody.getStatements();
+
                 // iterate over each statement in the method body, find Expectations blocks and rewrite them
                 for (int bodyStatementIndex = 0; bodyStatementIndex < statements.size(); bodyStatementIndex++) {
                     if (!JMockitUtils.isExpectationsNewClassStatement(statements.get(bodyStatementIndex))) {
@@ -106,154 +83,121 @@ public class JMockitExpectationsToMockito extends Recipe {
                     expectationsBlock = amr.rewrite();
 
                     // iterate over the expectations statements and rebuild the method body
-                    List<Object> templateParams = new ArrayList<>();
-                    JavaCoordinates coordinates = nc.getCoordinates().replace();
-                    int mockitoStatementIndex = 0;
+                    List<Statement> expectationStatements = new ArrayList<>();
+                    nextStatementCoordinates = nc.getCoordinates().replace();
+                    mockitoStatementIndex = 0;
                     for (Statement expectationStatement : expectationsBlock.getStatements()) {
-                        if (expectationStatement instanceof J.MethodInvocation && !templateParams.isEmpty()) {
+                        if (expectationStatement instanceof J.MethodInvocation && !expectationStatements.isEmpty()) {
                             // apply template to build new method body
-                            newBody = rewriteMethodBody(ctx, templateParams, cursorLocation, coordinates);
+                            methodBody = rewriteMethodBody(ctx, expectationStatements, methodBody, bodyStatementIndex);
 
-                            if (templateParams.size() == 1 && mockitoStatementIndex > 0) {
-                                // method being removed, so decrement the statement index
-                                mockitoStatementIndex -= 1;
-                            }
-
-                            // next statement coordinates are immediately after the statement just added
-                            int newStatementIndex = bodyStatementIndex + mockitoStatementIndex;
-                            coordinates = newBody.getStatements().get(newStatementIndex).getCoordinates().after();
-
-                            // cursor location is now the new body
-                            cursorLocation = newBody;
-
-                            // reset template params for next expectation
-                            templateParams = new ArrayList<>();
-                            mockitoStatementIndex += 1;
+                            // reset statements for next expectation
+                            expectationStatements = new ArrayList<>();
                         }
-                        templateParams.add(expectationStatement);
+                        expectationStatements.add(expectationStatement);
                     }
 
                     // handle the last statement
-                    if (!templateParams.isEmpty()) {
-                        newBody = rewriteMethodBody(ctx, templateParams, cursorLocation, coordinates);
+                    if (!expectationStatements.isEmpty()) {
+                        methodBody = rewriteMethodBody(ctx, expectationStatements, methodBody, bodyStatementIndex);
                     }
                 }
+                return md.withBody(methodBody);
             } catch (Exception e) {
                 System.err.println("DEBUG: Exception rewriting method body: " + e.getMessage() + "\n\n");
                 e.printStackTrace();
-//                System.out.println(TreeVisitingPrinter.printTree(getCursor()));
                 // if anything goes wrong, just return the original method declaration
                 return md;
             }
-
-            return md.withBody(newBody);
         }
 
-        private J.Block rewriteMethodBody(ExecutionContext ctx, List<Object> templateParams, Object cursorLocation,
-                                          JavaCoordinates coordinates) {
-            Expression result = null, times = null;
-            J.Assignment assignment;
-            System.out.println("DEBUG: templateParams before: " + templateParams);
+        private J.Block rewriteMethodBody(ExecutionContext ctx, List<Statement> expectationStatements, J.Block methodBody, int bodyStatementIndex) {
+            J.MethodInvocation invocation = (J.MethodInvocation) expectationStatements.get(0);
+            final List<MockInvocationResult> mockInvocationResults = buildMockInvocationResults(expectationStatements);
 
-            // TODO: refactor duplicate code
-            if (templateParams.size() > 3) {
-                throw new IllegalStateException("Unexpected number of template params: " + templateParams.size());
-            }
-            if (templateParams.size() == 2) {
-                assignment = (J.Assignment) templateParams.get(1);
-                if (!(assignment.getVariable() instanceof J.Identifier)) {
-                    throw new IllegalStateException("Unexpected assignment variable type: " + assignment.getVariable());
-                }
-                J.Identifier identifier = (J.Identifier) assignment.getVariable();
-                if (identifier.getSimpleName().equals("result")) {
-                    result = assignment.getAssignment();
-                    templateParams.set(1, result);
-                } else if (identifier.getSimpleName().equals("times")) {
-                    times = assignment.getAssignment();
-                    templateParams.remove(1);
-                }
-            } else if (templateParams.size() == 3) {
-                int expressionIndex = 1;
-                J.Assignment firstAssignment = (J.Assignment) templateParams.get(1);
-                if (!(firstAssignment.getVariable() instanceof J.Identifier)) {
-                    throw new IllegalStateException("Unexpected assignment variable type: " +
-                            firstAssignment.getVariable());
-                }
-                J.Identifier identifier = (J.Identifier) firstAssignment.getVariable();
-                if (identifier.getSimpleName().equals("result")) {
-                    result = firstAssignment.getAssignment();
-                    templateParams.set(expressionIndex, result);
-                    expressionIndex = 2;
-                } else if (identifier.getSimpleName().equals("times")) {
-                    times = firstAssignment.getAssignment();
-                    templateParams.remove(expressionIndex);
-                }
-
-                J.Assignment secondAssignment = (J.Assignment) templateParams.get(expressionIndex);
-                identifier = (J.Identifier) secondAssignment.getVariable();
-                if (identifier.getSimpleName().equals("result")) {
-                    result = secondAssignment.getAssignment();
-                    templateParams.set(expressionIndex, result);
-                } else if (identifier.getSimpleName().equals("times")) {
-                    times = secondAssignment.getAssignment();
-                    templateParams.remove(expressionIndex);
-                }
-            }
-            J.MethodInvocation invocation = (J.MethodInvocation) templateParams.get(0);
-            Expression select = invocation.getSelect();
-            if (select == null || select.getType() == null) {
-                throw new IllegalStateException("Missing type information for invocation select field: " + select);
-            }
-            String fqn = ""; // default to empty string to support method invocations
-            if (select instanceof J.Identifier) {
-                fqn = ((JavaType.FullyQualified) Objects.requireNonNull(select.getType())).getFullyQualifiedName();
-            }
-            if (templateParams.size() == 1) {
-                // no result or verification, just remove the statement
-                templateParams = new ArrayList<>();
-            }
-            System.out.println("DEBUG: templateParams after: " + templateParams);
-            String template = "";
-            if (result != null) {
-                maybeAddImport("org.mockito.Mockito", "when");
-                template = getMockitoStatementTemplate(result);
-            }
-            System.out.println("DEBUG: template: " + template);
-            J.Block newBody = JavaTemplate.builder(template)
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                    .staticImports("org.mockito.Mockito.*")
-                    .build()
-                    .apply(
-                            new Cursor(getCursor(), cursorLocation),
-                            coordinates,
-                            templateParams.toArray()
-                    );
-            cursorLocation = newBody;
-            coordinates = newBody.getCoordinates().lastStatement();
-
-            if (times != null) {
-                maybeAddImport("org.mockito.Mockito", "verify");
-                maybeAddImport("org.mockito.Mockito", "times");
-
-                String verifyTemplate = getVerifyTemplate(ctx, fqn, invocation.getArguments());
-                templateParams = new ArrayList<>();
-                templateParams.add(select);
-                templateParams.add(times);
-                templateParams.add(invocation.getName().getSimpleName());
-
-                newBody = JavaTemplate.builder(verifyTemplate)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                        .staticImports("org.mockito.Mockito.*")
-                        .imports(fqn)
+            if (mockInvocationResults.isEmpty() && nextStatementCoordinates.isReplacement()) {
+                // remove mock method invocations without expectations or verifications
+                methodBody = JavaTemplate.builder("")
+                        .javaParser(JavaParser.fromJavaVersion())
                         .build()
                         .apply(
-                                new Cursor(getCursor(), cursorLocation),
-                                coordinates,
-                                templateParams.toArray()
+                                new Cursor(getCursor(), methodBody),
+                                nextStatementCoordinates
                         );
+                if (bodyStatementIndex == 0) {
+                    nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
+                } else {
+                    nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex)
+                            .getCoordinates().after();
+                }
+                return methodBody;
             }
 
-            return newBody;
+            for (MockInvocationResult mockInvocationResult : mockInvocationResults) {
+                if (mockInvocationResult.getResult() != null) {
+                    maybeAddImport("org.mockito.Mockito", "when");
+                    String template = getMockitoStatementTemplate(mockInvocationResult.getResult());
+                    Object[] templateParams = new Object[] { invocation, mockInvocationResult.getResult() };
+
+                    methodBody = JavaTemplate.builder(template)
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                            .staticImports("org.mockito.Mockito.*")
+                            .build()
+                            .apply(
+                                    new Cursor(getCursor(), methodBody),
+                                    nextStatementCoordinates,
+                                    templateParams
+                            );
+                    // move the statement index forward if one was added
+                    if (!nextStatementCoordinates.isReplacement()) {
+                        mockitoStatementIndex += 1;
+                    }
+                    nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex)
+                            .getCoordinates().after();
+                } else if (nextStatementCoordinates.isReplacement()) {
+                    methodBody = JavaTemplate.builder("")
+                            .javaParser(JavaParser.fromJavaVersion())
+                            .build()
+                            .apply(
+                                    new Cursor(getCursor(), methodBody),
+                                    nextStatementCoordinates
+                            );
+                    if (bodyStatementIndex == 0) {
+                        nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
+                    } else {
+                        nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex)
+                                .getCoordinates().after();
+                    }
+                }
+                if (mockInvocationResult.getTimes() != null) {
+                    String fqn = getInvocationSelectFullyQualifiedClassName(invocation);
+                    methodBody = writeMethodVerification(ctx, methodBody, fqn, invocation, mockInvocationResult.getTimes());
+                }
+            }
+
+            return methodBody;
+        }
+
+        private J.Block writeMethodVerification(ExecutionContext ctx, J.Block methodBody, String fqn,
+                                                J.MethodInvocation invocation, Expression times) {
+            maybeAddImport("org.mockito.Mockito", "verify");
+            maybeAddImport("org.mockito.Mockito", "times");
+            String verifyTemplate = getVerifyTemplate(fqn, invocation.getArguments());
+            Object[] templateParams = new Object[] { invocation.getSelect(), times, invocation.getName().getSimpleName() };
+            return JavaTemplate.builder(verifyTemplate)
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                    .staticImports("org.mockito.Mockito.*")
+                    .imports(fqn)
+                    .build()
+                    .apply(
+                            new Cursor(getCursor(), methodBody),
+                            methodBody.getCoordinates().lastStatement(),
+                            templateParams
+                    );
+        }
+
+        private static String getObjectTemplate(String fqn) {
+            return "when(#{any()}).thenReturn(#{any(" + fqn + ")});";
         }
 
         private static String getMockitoStatementTemplate(Expression result) {
@@ -271,6 +215,86 @@ public class JMockitExpectationsToMockito extends Recipe {
                 throw new IllegalStateException("Unexpected expression type for template: " + result.getType());
             }
             return template;
+        }
+
+        private static String getVerifyTemplate(String fqn, List<Expression> arguments) {
+            if (arguments.isEmpty()) {
+                return "verify(#{any(" + fqn + ")}, times(#{any(int)})).#{}();";
+            }
+            StringBuilder templateBuilder = new StringBuilder("verify(#{any(" + fqn + ")}, times(#{any(int)})).#{}(");
+            for (Expression argument : arguments) {
+                if (argument instanceof J.Literal) {
+                    templateBuilder.append(((J.Literal) argument).getValueSource());
+                } else {
+                    templateBuilder.append(argument);
+                }
+                templateBuilder.append(", ");
+            }
+            templateBuilder.delete(templateBuilder.length() - 2, templateBuilder.length());
+            templateBuilder.append(");");
+            return templateBuilder.toString();
+        }
+
+        private static List<MockInvocationResult> buildMockInvocationResults(List<Statement> expectationStatements) {
+            List<MockInvocationResult> mockInvocationResults = new ArrayList<>();
+            boolean hasResult = false, hasTimes = false;
+            MockInvocationResult newResult = new MockInvocationResult();
+            for (int i = 1; i < expectationStatements.size(); i++) {
+                J.Assignment assignment = (J.Assignment) expectationStatements.get(i);
+                if (!(assignment.getVariable() instanceof J.Identifier)) {
+                    throw new IllegalStateException("Unexpected assignment variable type: " + assignment.getVariable());
+                }
+                J.Identifier identifier = (J.Identifier) assignment.getVariable();
+                boolean isResult = identifier.getSimpleName().equals("result");
+                boolean isTimes = identifier.getSimpleName().equals("times");
+                if (hasResult && isResult) {
+                    mockInvocationResults.add(newResult);
+                    hasResult = false;
+                    hasTimes = false;
+                    newResult = new MockInvocationResult();
+                    newResult.setResult(assignment.getAssignment());
+                } else if (isResult) {
+                    newResult.setResult(assignment.getAssignment());
+                    hasResult = true;
+                } else if (isTimes) {
+                    newResult.setTimes(assignment.getAssignment());
+                    hasTimes = true;
+                }
+            }
+            if (hasResult || hasTimes) {
+                mockInvocationResults.add(newResult);
+            }
+            return mockInvocationResults;
+        }
+
+        private static String getInvocationSelectFullyQualifiedClassName(J.MethodInvocation invocation) {
+            Expression select = invocation.getSelect();
+            if (select == null || select.getType() == null) {
+                throw new IllegalStateException("Missing type information for invocation select field: " + select);
+            }
+            String fqn = ""; // default to empty string to support method invocations
+            if (select instanceof J.Identifier) {
+                fqn = ((JavaType.FullyQualified) Objects.requireNonNull(select.getType())).getFullyQualifiedName();
+            }
+            return fqn;
+        }
+
+        private static class MockInvocationResult {
+            private Expression result;
+            private Expression times;
+
+            private Expression getResult() {
+                return result;
+            }
+            private Expression getTimes() {
+                return times;
+            }
+            private void setResult(Expression result) {
+                this.result = result;
+            }
+            private void setTimes(Expression times) {
+                this.times = times;
+            }
         }
     }
 

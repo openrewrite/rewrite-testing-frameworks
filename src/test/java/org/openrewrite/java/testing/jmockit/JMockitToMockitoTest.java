@@ -585,10 +585,13 @@ class JMockitToMockitoTest implements RewriteTest {
           java(
             """
               class MyObject {
+              
                   public String getSomeField(String s) {
                       return "X";
                   }
-                  public String INSTANCE = "";
+                  public String getString() {
+                      return "Y";
+                  }
               }
               """
           ),
@@ -611,15 +614,15 @@ class JMockitToMockitoTest implements RewriteTest {
                       String s = "s";
                       
                       new Expectations() {{
-                          myObject.getSomeField(anyString).substring(0, 1);
+                          myObject.getSomeField(anyString);
                           result = s;
                           
-                          myObject.INSTANCE.substring(0, 1);
+                          myObject.getString();
                           result = a;
                       }};
                       
                       assertEquals("s", myObject.getSomeField("foo"));
-                      assertEquals("a", myObject.INSTANCE.substring(0, 1));
+                      assertEquals("a", myObject.getString());
                   }
               }
               """,
@@ -641,12 +644,12 @@ class JMockitToMockitoTest implements RewriteTest {
                       String a = "a";
                       String s = "s";
                       
-                      when(myObject.getSomeField(anyString()).substring(0, 1)).thenReturn(s);
+                      when(myObject.getSomeField(anyString())).thenReturn(s);
                       
-                      when(myObject.INSTANCE.substring(0, 1)).thenReturn(a);
+                      when(myObject.getString()).thenReturn(a);
                       
                       assertEquals("s", myObject.getSomeField("foo"));
-                      assertEquals("a", myObject.INSTANCE.substring(0, 1));
+                      assertEquals("a", myObject.getString());
                   }
               }
               """
