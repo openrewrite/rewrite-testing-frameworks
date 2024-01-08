@@ -25,6 +25,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -61,6 +62,7 @@ public class JMockitExpectationsToMockito extends Recipe {
                 return md;
             }
             try {
+                // rewrite the statements that are not mock expectations or verifications
                 SetupStatementsRewriter ssr = new SetupStatementsRewriter(this, md.getBody());
                 J.Block methodBody = ssr.rewrite();
                 List<Statement> statements = methodBody.getStatements();
@@ -73,12 +75,17 @@ public class JMockitExpectationsToMockito extends Recipe {
                     // we have a valid Expectations block, update imports and rewrite with Mockito statements
                     maybeRemoveImport("mockit.Expectations");
 
-                    // the first coordinates are the coordinates of the Expectations block, replacing it
                     J.NewClass nc = (J.NewClass) statements.get(bodyStatementIndex);
                     assert nc.getBody() != null;
+                    for (Expression argument : nc.getArguments()) {
+                        if (argument instanceof J.Identifier) {
+                            // add @Spy annotation
+                            doAfterVisit(new AddSpyAnnotationVisitor((J.Identifier) argument));
+                        }
+                    }
                     J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
 
-                    // then rewrite the argument matchers
+                    // rewrite the argument matchers
                     ArgumentMatchersRewriter amr = new ArgumentMatchersRewriter(this, expectationsBlock, ctx);
                     expectationsBlock = amr.rewrite();
 
@@ -117,57 +124,15 @@ public class JMockitExpectationsToMockito extends Recipe {
 
             if (mockInvocationResults.isEmpty() && nextStatementCoordinates.isReplacement()) {
                 // remove mock method invocations without expectations or verifications
-                methodBody = JavaTemplate.builder("")
-                        .javaParser(JavaParser.fromJavaVersion())
-                        .build()
-                        .apply(
-                                new Cursor(getCursor(), methodBody),
-                                nextStatementCoordinates
-                        );
-                if (bodyStatementIndex == 0) {
-                    nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
-                } else {
-                    nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex)
-                            .getCoordinates().after();
-                }
+                methodBody = removeExpectationsStatement(methodBody, bodyStatementIndex);
                 return methodBody;
             }
 
             for (MockInvocationResult mockInvocationResult : mockInvocationResults) {
                 if (mockInvocationResult.getResult() != null) {
-                    maybeAddImport("org.mockito.Mockito", "when");
-                    String template = getMockitoStatementTemplate(mockInvocationResult.getResult());
-                    Object[] templateParams = new Object[] { invocation, mockInvocationResult.getResult() };
-
-                    methodBody = JavaTemplate.builder(template)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                            .staticImports("org.mockito.Mockito.*")
-                            .build()
-                            .apply(
-                                    new Cursor(getCursor(), methodBody),
-                                    nextStatementCoordinates,
-                                    templateParams
-                            );
-                    // move the statement index forward if one was added
-                    if (!nextStatementCoordinates.isReplacement()) {
-                        mockitoStatementIndex += 1;
-                    }
-                    nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex)
-                            .getCoordinates().after();
+                    methodBody = rewriteExpectationResult(ctx, methodBody, bodyStatementIndex, mockInvocationResult, invocation);
                 } else if (nextStatementCoordinates.isReplacement()) {
-                    methodBody = JavaTemplate.builder("")
-                            .javaParser(JavaParser.fromJavaVersion())
-                            .build()
-                            .apply(
-                                    new Cursor(getCursor(), methodBody),
-                                    nextStatementCoordinates
-                            );
-                    if (bodyStatementIndex == 0) {
-                        nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
-                    } else {
-                        nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex)
-                                .getCoordinates().after();
-                    }
+                    methodBody = removeExpectationsStatement(methodBody, bodyStatementIndex);
                 }
                 if (mockInvocationResult.getTimes() != null) {
                     String fqn = getInvocationSelectFullyQualifiedClassName(invocation);
@@ -175,6 +140,42 @@ public class JMockitExpectationsToMockito extends Recipe {
                 }
             }
 
+            return methodBody;
+        }
+
+        private J.Block rewriteExpectationResult(ExecutionContext ctx, J.Block methodBody, int bodyStatementIndex, MockInvocationResult mockInvocationResult, J.MethodInvocation invocation) {
+            maybeAddImport("org.mockito.Mockito", "when");
+            String template = getMockitoStatementTemplate(mockInvocationResult.getResult());
+            Object[] templateParams = new Object[] {invocation, mockInvocationResult.getResult() };
+
+            methodBody = JavaTemplate.builder(template)
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                    .staticImports("org.mockito.Mockito.*")
+                    .build()
+                    .apply(
+                            new Cursor(getCursor(), methodBody),
+                            nextStatementCoordinates,
+                            templateParams
+                    );
+            // move the statement index forward if one was added
+            if (!nextStatementCoordinates.isReplacement()) {
+                mockitoStatementIndex += 1;
+            }
+            nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex)
+                    .getCoordinates().after();
+            return methodBody;
+        }
+
+        private J.Block removeExpectationsStatement(J.Block methodBody, int bodyStatementIndex) {
+            methodBody = JavaTemplate.builder("")
+                    .javaParser(JavaParser.fromJavaVersion())
+                    .build()
+                    .apply(
+                            new Cursor(getCursor(), methodBody),
+                            nextStatementCoordinates
+                    );
+            nextStatementCoordinates = bodyStatementIndex == 0 ? methodBody.getCoordinates().firstStatement() :
+                    methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex).getCoordinates().after();
             return methodBody;
         }
 
@@ -298,11 +299,11 @@ public class JMockitExpectationsToMockito extends Recipe {
         }
     }
 
-    private static class InjectMocksToSpyVisitor extends JavaIsoVisitor<ExecutionContext> {
+    private static class AddSpyAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private final J.Identifier spy;
 
-        private InjectMocksToSpyVisitor(J.Identifier spy) {
+        private AddSpyAnnotationVisitor(J.Identifier spy) {
             this.spy = spy;
         }
 
@@ -314,21 +315,13 @@ public class JMockitExpectationsToMockito extends Recipe {
                     continue;
                 }
                 maybeAddImport("org.mockito.Spy");
-                maybeRemoveImport("org.mockito.InjectMocks");
-
-                List<J.Annotation> newAnnotations = new ArrayList<>(mv.getLeadingAnnotations().size());
-                for (J.Annotation annotation : mv.getLeadingAnnotations()) {
-                    if (!TypeUtils.isAssignableTo("org.mockito.InjectMocks", annotation.getType())) {
-                        newAnnotations.add(annotation);
-                        continue;
-                    }
-                    String template = "@Spy";
-                    newAnnotations.add(JavaTemplate.builder(template)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                            .imports("org.mockito.Spy")
-                            .build()
-                            .apply(new Cursor(getCursor(), annotation), annotation.getCoordinates().replace()));
-                }
+                String template = "@Spy";
+                List<J.Annotation> newAnnotations = new ArrayList<>(mv.getLeadingAnnotations());
+                newAnnotations.add(JavaTemplate.builder(template)
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                        .imports("org.mockito.Spy")
+                        .build()
+                        .apply(getCursor(), mv.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))));
                 mv = mv.withLeadingAnnotations(newAnnotations);
             }
             return mv;
