@@ -118,7 +118,8 @@ public class JMockitExpectationsToMockito extends Recipe {
             }
         }
 
-        private J.Block rewriteMethodBody(ExecutionContext ctx, List<Statement> expectationStatements, J.Block methodBody, int bodyStatementIndex) {
+        private J.Block rewriteMethodBody(ExecutionContext ctx, List<Statement> expectationStatements,
+                                          J.Block methodBody, int bodyStatementIndex) {
             J.MethodInvocation invocation = (J.MethodInvocation) expectationStatements.get(0);
             final List<MockInvocationResult> mockInvocationResults = buildMockInvocationResults(expectationStatements);
 
@@ -130,20 +131,24 @@ public class JMockitExpectationsToMockito extends Recipe {
 
             for (MockInvocationResult mockInvocationResult : mockInvocationResults) {
                 if (mockInvocationResult.getResult() != null) {
-                    methodBody = rewriteExpectationResult(ctx, methodBody, bodyStatementIndex, mockInvocationResult, invocation);
+                    methodBody = rewriteExpectationResult(ctx, methodBody, bodyStatementIndex, mockInvocationResult,
+                            invocation);
                 } else if (nextStatementCoordinates.isReplacement()) {
                     methodBody = removeExpectationsStatement(methodBody, bodyStatementIndex);
                 }
                 if (mockInvocationResult.getTimes() != null) {
                     String fqn = getInvocationSelectFullyQualifiedClassName(invocation);
-                    methodBody = writeMethodVerification(ctx, methodBody, fqn, invocation, mockInvocationResult.getTimes());
+                    methodBody = writeMethodVerification(ctx, methodBody, fqn, invocation,
+                            mockInvocationResult.getTimes());
                 }
             }
 
             return methodBody;
         }
 
-        private J.Block rewriteExpectationResult(ExecutionContext ctx, J.Block methodBody, int bodyStatementIndex, MockInvocationResult mockInvocationResult, J.MethodInvocation invocation) {
+        private J.Block rewriteExpectationResult(ExecutionContext ctx, J.Block methodBody, int bodyStatementIndex,
+                                                 MockInvocationResult mockInvocationResult,
+                                                 J.MethodInvocation invocation) {
             maybeAddImport("org.mockito.Mockito", "when");
             String template = getMockitoStatementTemplate(mockInvocationResult.getResult());
             Object[] templateParams = new Object[] {invocation, mockInvocationResult.getResult() };
@@ -184,7 +189,11 @@ public class JMockitExpectationsToMockito extends Recipe {
             maybeAddImport("org.mockito.Mockito", "verify");
             maybeAddImport("org.mockito.Mockito", "times");
             String verifyTemplate = getVerifyTemplate(fqn, invocation.getArguments());
-            Object[] templateParams = new Object[] { invocation.getSelect(), times, invocation.getName().getSimpleName() };
+            Object[] templateParams = new Object[] {
+                    invocation.getSelect(),
+                    times,
+                    invocation.getName().getSimpleName()
+            };
             return JavaTemplate.builder(verifyTemplate)
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                     .staticImports("org.mockito.Mockito.*")
@@ -308,7 +317,8 @@ public class JMockitExpectationsToMockito extends Recipe {
         }
 
         @Override
-        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable,
+                                                                ExecutionContext ctx) {
             J.VariableDeclarations mv = super.visitVariableDeclarations(multiVariable, ctx);
             for (J.VariableDeclarations.NamedVariable variable : mv.getVariables()) {
                 if (!variable.getName().equals(spy)) {
@@ -321,7 +331,8 @@ public class JMockitExpectationsToMockito extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                         .imports("org.mockito.Spy")
                         .build()
-                        .apply(getCursor(), mv.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))));
+                        .apply(getCursor(), mv.getCoordinates()
+                                .addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))));
                 mv = mv.withLeadingAnnotations(newAnnotations);
             }
             return mv;
