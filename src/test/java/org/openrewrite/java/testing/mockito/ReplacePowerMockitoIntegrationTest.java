@@ -582,6 +582,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               """,
             """
               import static org.mockito.Mockito.*;
+              
               import java.util.Calendar;
               import java.util.Locale;
                           
