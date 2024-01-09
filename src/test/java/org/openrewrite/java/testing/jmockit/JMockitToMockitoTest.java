@@ -442,6 +442,67 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
+    void jMockitExpectationsToMockitoWhenReturns() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyObject {
+                  public String getSomeField() {
+                      return "X";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  MyObject myObject;
+
+                  void test() throws RuntimeException {
+                      new Expectations() {{
+                          myObject.getSomeField();
+                          returns("foo", "bar");
+                      }};
+                      assertEquals("foo", myObject.getSomeField());
+                      assertEquals("bar", myObject.getSomeField());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  MyObject myObject;
+
+                  void test() throws RuntimeException {
+                      when(myObject.getSomeField()).thenReturn("foo", "bar");
+                      assertEquals("foo", myObject.getSomeField());
+                      assertEquals("bar", myObject.getSomeField());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void jMockitExpectationsToMockitoWhenClassArgumentMatcher() {
         //language=java
         rewriteRun(

@@ -63,7 +63,6 @@ class SetupStatementsRewriter {
     }
 
     private static boolean isSetupStatement(Statement expectationStatement) {
-        boolean isSetupStatement = true;
         if (expectationStatement instanceof J.MethodInvocation) {
             // a method invocation on a mock is not a setup statement
             J.MethodInvocation methodInvocation = (J.MethodInvocation) expectationStatement;
@@ -73,19 +72,24 @@ class SetupStatementsRewriter {
                 return isNotMockIdentifier((J.Identifier) methodInvocation.getSelect());
             } else if (methodInvocation.getSelect() instanceof J.FieldAccess) {
                 return isNotMockIdentifier((J.Identifier) ((J.FieldAccess) methodInvocation.getSelect()).getTarget());
+            } else {
+                return isNotMockIdentifier(methodInvocation.getName());
             }
         } else if (expectationStatement instanceof J.Assignment) {
             // an assignment to a jmockit reserved field is not a setup statement
             J.Assignment assignment = (J.Assignment) expectationStatement;
             J.Identifier identifier = (J.Identifier) assignment.getVariable();
-            if (identifier.getSimpleName().equals("result") || identifier.getSimpleName().equals("times")) {
-                isSetupStatement = false;
-            }
+            return !identifier.getSimpleName().equals("result") && !identifier.getSimpleName().equals("times");
         }
-        return isSetupStatement;
+        return true;
     }
 
     private static boolean isNotMockIdentifier(J.Identifier identifier) {
+        if (identifier.getType() instanceof JavaType.Method
+                && TypeUtils.isAssignableTo("mockit.Expectations",
+                    ((JavaType.Method) identifier.getType()).getDeclaringType())) {
+            return false;
+        }
         JavaType.Variable fieldType = identifier.getFieldType();
         if (fieldType == null) {
             return true;
