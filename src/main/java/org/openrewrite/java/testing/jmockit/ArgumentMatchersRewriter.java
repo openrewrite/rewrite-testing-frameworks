@@ -46,7 +46,7 @@ class ArgumentMatchersRewriter {
         this.ctx = ctx;
     }
 
-    J.Block rewrite() {
+    J.Block rewriteExpectationsBlock() {
         List<Statement> newStatements = new ArrayList<>(expectationsBlock.getStatements().size());
         for (Statement expectationStatement : expectationsBlock.getStatements()) {
             // for each statement, check if it's a method invocation and replace any argument matchers

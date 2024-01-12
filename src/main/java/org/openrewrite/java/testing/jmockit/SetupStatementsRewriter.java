@@ -8,6 +8,7 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 class SetupStatementsRewriter {
@@ -20,7 +21,7 @@ class SetupStatementsRewriter {
         this.methodBody = methodBody;
     }
 
-    J.Block rewrite() {
+    J.Block rewriteMethodBody() {
         J.Block newBody = methodBody;
         // iterate over each statement in the method body, find Expectations blocks and rewrite them
         for (Statement s : methodBody.getStatements()) {
@@ -39,27 +40,28 @@ class SetupStatementsRewriter {
                     newExpectationsBlockStatements.add(expectationStatement);
                     continue;
                 }
-                newBody = copySetupStatement(expectationStatement, newBody, coordinates);
+                newBody = rewriteBodyStatement(expectationStatement, newBody, coordinates);
                 // subsequent setup statements are moved in order
                 coordinates = expectationStatement.getCoordinates().after();
             }
-            // the expectations block needs to have the statement removed
+            // the new expectations block has the setup statements removed
             J.Block newExpectationsBlock = expectationsBlock.withStatements(newExpectationsBlockStatements);
-            List<Statement> newExpectationsStatements = new ArrayList<>();
-            newExpectationsStatements.add(newExpectationsBlock);
-            assert nc.getBody() != null;
-            nc = nc.withBody(nc.getBody().withStatements(newExpectationsStatements));
+            nc = nc.withBody(nc.getBody().withStatements(Collections.singletonList(newExpectationsBlock)));
 
-            newBody = JavaTemplate.builder("#{any()}")
-                    .javaParser(JavaParser.fromJavaVersion())
-                    .build()
-                    .apply(
-                            new Cursor(visitor.getCursor(), newBody),
-                            nc.getCoordinates().replace(),
-                            nc
-                    );
+            newBody = rewriteBodyStatement(nc, newBody, nc.getCoordinates().replace());
         }
         return newBody;
+    }
+
+    private J.Block rewriteBodyStatement(Statement statement, J.Block newBody, JavaCoordinates coordinates) {
+        return JavaTemplate.builder("#{any()}")
+                .javaParser(JavaParser.fromJavaVersion())
+                .build()
+                .apply(
+                        new Cursor(visitor.getCursor(), newBody),
+                        coordinates,
+                        statement
+                );
     }
 
     private static boolean isSetupStatement(Statement expectationStatement) {
@@ -104,16 +106,5 @@ class SetupStatementsRewriter {
             }
         }
         return true;
-    }
-
-    private J.Block copySetupStatement(Statement setupStatement, J.Block newBody, JavaCoordinates coordinates) {
-        return JavaTemplate.builder("#{any()}")
-                .javaParser(JavaParser.fromJavaVersion())
-                .build()
-                .apply(
-                        new Cursor(visitor.getCursor(), newBody),
-                        coordinates,
-                        setupStatement
-                );
     }
 }

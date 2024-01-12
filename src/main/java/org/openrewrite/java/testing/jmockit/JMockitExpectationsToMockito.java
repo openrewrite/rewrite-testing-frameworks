@@ -66,7 +66,7 @@ public class JMockitExpectationsToMockito extends Recipe {
             try {
                 // rewrite the statements that are not mock expectations or verifications
                 SetupStatementsRewriter ssr = new SetupStatementsRewriter(this, md.getBody());
-                J.Block methodBody = ssr.rewrite();
+                J.Block methodBody = ssr.rewriteMethodBody();
                 List<Statement> statements = methodBody.getStatements();
 
                 // iterate over each statement in the method body, find Expectations blocks and rewrite them
@@ -81,9 +81,9 @@ public class JMockitExpectationsToMockito extends Recipe {
                     assert nc.getBody() != null;
                     J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
 
-                    // rewrite the argument matchers
+                    // rewrite the argument matchers in the expectations block
                     ArgumentMatchersRewriter amr = new ArgumentMatchersRewriter(this, expectationsBlock, ctx);
-                    expectationsBlock = amr.rewrite();
+                    expectationsBlock = amr.rewriteExpectationsBlock();
 
                     // iterate over the expectations statements and rebuild the method body
                     List<Statement> expectationStatements = new ArrayList<>();
