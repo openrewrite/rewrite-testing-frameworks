@@ -115,8 +115,6 @@ public class JMockitExpectationsToMockito extends Recipe {
                 }
                 return md.withBody(methodBody);
             } catch (Exception e) {
-                System.err.println("DEBUG: Exception rewriting method body: " + e.getMessage() + "\n\n");
-                e.printStackTrace();
                 // if anything goes wrong, just return the original method declaration
                 return md;
             }
