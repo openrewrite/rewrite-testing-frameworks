@@ -55,7 +55,8 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
         void stringIsEmptyExample() {
             rewriteRun(
               //language=java
-              java("""
+              java(
+                    """
                 import org.junit.jupiter.api.Test;
                               
                 import static org.assertj.core.api.Assertions.assertThat;

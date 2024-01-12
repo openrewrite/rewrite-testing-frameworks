@@ -256,9 +256,10 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void tearDownMethodOfTestNGWithAnnotationRemainsUntouched() {
-       //language=java
+        //language=java
         rewriteRun(
           java(
             """
@@ -303,6 +304,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void tearDownMethodOfTestNGHasAnnotationWithSameArgumentsAsTheTestThatCallsMockStatic() {
         //language=java
@@ -480,26 +482,26 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               }
               """,
             """
-               import static org.mockito.Mockito.*;
-                             
-               import java.util.Currency;
-               import java.util.Locale;
-                             
-               import org.junit.jupiter.api.Test;
-               import org.mockito.MockedStatic;
-                             
-               public class MyTest {
-                             
-                   private MockedStatic<Currency> mockedCurrency;
-                 
-                   private Currency currencyMock = mock(Currency.class);
-                             
-                   @Test
-                   void testStaticMethod() {
-                       mockedCurrency.verify(() -> Currency.getInstance(Locale.ENGLISH), never());
-                       mockedCurrency.verify(Currency::getAvailableCurrencies, atLeastOnce());
-                   }
-               }
+              import static org.mockito.Mockito.*;
+                            
+              import java.util.Currency;
+              import java.util.Locale;
+                            
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+                            
+              public class MyTest {
+                            
+                  private MockedStatic<Currency> mockedCurrency;
+                
+                  private Currency currencyMock = mock(Currency.class);
+                            
+                  @Test
+                  void testStaticMethod() {
+                      mockedCurrency.verify(() -> Currency.getInstance(Locale.ENGLISH), never());
+                      mockedCurrency.verify(Currency::getAvailableCurrencies, atLeastOnce());
+                  }
+              }
               """
           )
         );
@@ -510,11 +512,11 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
         //language=java
         rewriteRun(java(
             """
-               public interface MyInterface {
-               
-                   void checkThis();
-               
-               }
+              public interface MyInterface {
+              
+                  void checkThis();
+              
+              }
               """)
           , java(
             """ 
@@ -539,7 +541,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               public class PowerMockTestCase {}
               """
           ),
-         java(
+          java(
             """
               import org.powermock.modules.testng.PowerMockTestCase;
 
@@ -548,7 +550,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
             """
               public class MyPowerMockTestCase {}
               """)
-         );
+        );
     }
 
     @Test
@@ -562,7 +564,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               public class PowerMockConfiguration {}
               """
           ),
-         java(
+          java(
             """
               import org.powermock.configuration.PowerMockConfiguration;
                 
@@ -575,11 +577,37 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
     }
 
     @Test
+    void mockStaticInTryWithResources() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+              
+              import java.nio.file.Files;
+              
+              import static org.mockito.Mockito.mockStatic;
+              
+              class A {
+                @Test
+                void testTryWithResource() {
+                  try (MockedStatic<Files> mocked = mockStatic(Files.class)) {
+                    // test logic that uses mocked
+                  }
+                }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/358")
     void doesNotExplodeOnTopLevelMethodDeclaration() {
         rewriteRun(
           groovy(
-          "def myFun() { }"
-        ));
+            "def myFun() { }"
+          ));
     }
 }

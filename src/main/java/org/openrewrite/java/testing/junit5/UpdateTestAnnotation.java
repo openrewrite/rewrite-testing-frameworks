@@ -116,10 +116,6 @@ public class UpdateTestAnnotation extends Recipe {
             ChangeTestAnnotation cta = new ChangeTestAnnotation();
             J.MethodDeclaration m = (J.MethodDeclaration) cta.visitNonNull(method, ctx, getCursor().getParentOrThrow());
             if (m != method) {
-                if (Boolean.FALSE.equals(TypeUtils.isOverride(m.getMethodType()))) {
-                    m = (J.MethodDeclaration) new ChangeMethodAccessLevelVisitor<ExecutionContext>(new MethodMatcher(m), null)
-                            .visitNonNull(m, ctx, getCursor().getParentOrThrow());
-                }
                 if (cta.expectedException != null) {
                     m = JavaTemplate.builder("org.junit.jupiter.api.function.Executable o = () -> #{};")
                             .contextSensitive()
@@ -155,9 +151,9 @@ public class UpdateTestAnnotation extends Recipe {
                     }
                 }
                 if (cta.timeout != null) {
-                    m = JavaTemplate.builder("@Timeout(#{any(long)})")
+                    m = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)")
                             .javaParser(javaParser(ctx))
-                            .imports("org.junit.jupiter.api.Timeout")
+                            .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
                             .build()
                             .apply(
                                     updateCursor(m),
@@ -165,6 +161,7 @@ public class UpdateTestAnnotation extends Recipe {
                                     cta.timeout
                             );
                     maybeAddImport("org.junit.jupiter.api.Timeout");
+                    maybeAddImport("java.util.concurrent.TimeUnit");
                 }
                 maybeAddImport("org.junit.jupiter.api.Test");
             }

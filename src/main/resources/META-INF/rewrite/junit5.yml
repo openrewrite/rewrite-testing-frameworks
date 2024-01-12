@@ -25,10 +25,12 @@ recipeList:
   - org.openrewrite.java.testing.junit5.StaticImports
   - org.openrewrite.java.testing.junit5.JUnit4to5Migration
   - org.openrewrite.java.testing.junit5.CleanupAssertions
+  - org.openrewrite.java.testing.cleanup.RemoveTestPrefix
   - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
   - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
   - org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
   - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
+  - org.openrewrite.java.testing.junit5.LifecycleNonPrivate
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.StaticImports
@@ -76,8 +78,8 @@ recipeList:
   - org.openrewrite.java.testing.junit5.TempDirNonFinal
   - org.openrewrite.java.testing.junit5.TestRuleToTestInfo
   - org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
-  - org.openrewrite.java.testing.junit5.LifecycleNonPrivate
   - org.openrewrite.java.testing.junit5.UpdateTestAnnotation
+  - org.openrewrite.java.testing.junit5.AddMissingTestBeforeAfterAnnotations
   - org.openrewrite.java.testing.junit5.ParameterizedRunnerToParameterized
   - org.openrewrite.java.testing.junit5.JUnitParamsRunnerToParameterized
   - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
@@ -94,6 +96,12 @@ recipeList:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: junit
       artifactId: junit
+  # Workaround for https://github.com/testcontainers/testcontainers-java/issues/970:
+  - org.openrewrite.maven.RemoveExclusion:
+      groupId: org.testcontainers
+      artifactId: testcontainers
+      exclusionGroupId: junit
+      exclusionArtifactId: junit
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine

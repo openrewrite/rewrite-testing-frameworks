@@ -404,6 +404,52 @@ class AssertToAssertionsTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/423")
+    @Test
+    void assertThrows() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.Assert.assertThrows;
+              
+              class Test {
+                  void test(Runnable run) {
+                      assertThrows(
+                              "Exception from cleanable.clean() should be rethrown",
+                              IllegalStateException.class,
+                              run::run
+                      );
+                      assertThrows(
+                              "Exception from cleanable.clean() should be rethrown",
+                              IllegalStateException.class,
+                              run::run // do not remove
+                      );
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+                            
+              class Test {
+                  void test(Runnable run) {
+                      assertThrows(
+                              IllegalStateException.class,
+                              run::run,
+                              "Exception from cleanable.clean() should be rethrown"
+                      );
+                      assertThrows(
+                              IllegalStateException.class,
+                              run::run, // do not remove
+                              "Exception from cleanable.clean() should be rethrown"
+                      );
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void missingTypeInfo() {
         //language=java

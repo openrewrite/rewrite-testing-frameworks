@@ -24,7 +24,6 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 class AnyStringToNullableTest implements RewriteTest {
-
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -38,7 +37,8 @@ class AnyStringToNullableTest implements RewriteTest {
     void replaceAnyStringWithNullableStringClass() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
             class Example {
                 String greet(String name) {
                     return "Hello " + name;
@@ -78,7 +78,8 @@ class AnyStringToNullableTest implements RewriteTest {
     void doNotReplaceAnyInt() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
             class Example {
                 String greet(int value) {
                     return "Hello " + value;

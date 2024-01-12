@@ -108,7 +108,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
                   }
               
                   @Test
-                  void usingAnnotationBasedMock() {
+                  public void usingAnnotationBasedMock() {
               
                       mockedList.add("one");
                       mockedList.clear();

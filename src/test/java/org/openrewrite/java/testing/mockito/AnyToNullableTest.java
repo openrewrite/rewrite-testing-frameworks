@@ -41,7 +41,8 @@ class AnyToNullableTest implements RewriteTest {
         //language=java
         rewriteRun(
           //language=xml
-          pomXml("""
+          pomXml(
+                """
             <project>
                 <modelVersion>4.0.0</modelVersion>
                 <groupId>com.example</groupId>
@@ -57,7 +58,8 @@ class AnyToNullableTest implements RewriteTest {
             </project>
             """),
           //language=java
-          java("""
+          java(
+                """
             class Example {
                 String greet(Object obj) {
                     return "Hello " + obj;
@@ -99,7 +101,8 @@ class AnyToNullableTest implements RewriteTest {
         //language=java
         rewriteRun(
           //language=xml
-          pomXml("""
+          pomXml(
+                """
             <project>
                 <modelVersion>4.0.0</modelVersion>
                 <groupId>com.example</groupId>
@@ -115,7 +118,8 @@ class AnyToNullableTest implements RewriteTest {
             </project>
             """),
           //language=java
-          java("""
+          java(
+                """
             class Example {
                 String greet(Object obj) {
                     return "Hello " + obj;
