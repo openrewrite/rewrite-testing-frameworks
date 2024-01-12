@@ -25,7 +25,6 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -80,12 +79,6 @@ public class JMockitExpectationsToMockito extends Recipe {
 
                     J.NewClass nc = (J.NewClass) statements.get(bodyStatementIndex);
                     assert nc.getBody() != null;
-                    for (Expression argument : nc.getArguments()) {
-                        if (argument instanceof J.Identifier) {
-                            // add @Spy annotation
-                            doAfterVisit(new AddSpyAnnotationVisitor((J.Identifier) argument));
-                        }
-                    }
                     J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
 
                     // rewrite the argument matchers
@@ -345,37 +338,6 @@ public class JMockitExpectationsToMockito extends Recipe {
             private void setTimes(Expression times) {
                 this.times = times;
             }
-        }
-    }
-
-    private static class AddSpyAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        private final J.Identifier spy;
-
-        private AddSpyAnnotationVisitor(J.Identifier spy) {
-            this.spy = spy;
-        }
-
-        @Override
-        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable,
-                                                                ExecutionContext ctx) {
-            J.VariableDeclarations mv = super.visitVariableDeclarations(multiVariable, ctx);
-            for (J.VariableDeclarations.NamedVariable variable : mv.getVariables()) {
-                if (!variable.getName().equals(spy)) {
-                    continue;
-                }
-                maybeAddImport("org.mockito.Spy");
-                String template = "@Spy";
-                List<J.Annotation> newAnnotations = new ArrayList<>(mv.getLeadingAnnotations());
-                newAnnotations.add(JavaTemplate.builder(template)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                        .imports("org.mockito.Spy")
-                        .build()
-                        .apply(getCursor(), mv.getCoordinates()
-                                .addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))));
-                mv = mv.withLeadingAnnotations(newAnnotations);
-            }
-            return mv;
         }
     }
 }

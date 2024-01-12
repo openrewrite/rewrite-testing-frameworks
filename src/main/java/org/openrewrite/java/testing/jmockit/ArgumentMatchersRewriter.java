@@ -54,7 +54,6 @@ class ArgumentMatchersRewriter {
                 newStatements.add(expectationStatement);
                 continue;
             }
-
             J.MethodInvocation methodInvocation = rewriteMethodInvocation((J.MethodInvocation) expectationStatement);
             newStatements.add(methodInvocation);
         }
@@ -148,15 +147,7 @@ class ArgumentMatchersRewriter {
             argumentMatcher = MOCKITO_COLLECTION_MATCHERS.get(fqn);
             template = argumentMatcher + "()";
         } else {
-            // rewrite parameter from ((<type>) any) to <type>.class
-            templateParams.add(JavaTemplate.builder("#{}.class")
-                    .javaParser(JavaParser.fromJavaVersion())
-                    .build()
-                    .apply(
-                            new Cursor(visitor.getCursor(), tc),
-                            tc.getCoordinates().replace(),
-                            className
-                    ));
+            templateParams.add(rewriteClassMethodArgument(tc, className));
             template = "any(#{any(java.lang.Class)})";
         }
         return rewriteMethodArgument(argumentMatcher, template, methodArgument, templateParams);
@@ -167,38 +158,33 @@ class ArgumentMatchersRewriter {
             throw new IllegalStateException("Missing type information for identifier: " + methodArgument);
         }
         String template;
+        String argumentMatcher = "any";
         JavaType type = methodArgument.getType();
         List<Object> templateParams = new ArrayList<>();
         if (type instanceof JavaType.FullyQualified) {
             String fqn = ((JavaType.FullyQualified) type).getFullyQualifiedName();
             if (fqn.equals("java.lang.String")) {
-                visitor.maybeAddImport("org.mockito.Mockito", "anyString");
-                template = "anyString()";
+                argumentMatcher = "anyString";
+                template = argumentMatcher + "()";
             } else {
-                // rewrite parameter from ((<type>) any) to any(<type>.class)
-                templateParams.add(JavaTemplate.builder("#{}.class")
-                        .javaParser(JavaParser.fromJavaVersion())
-                        .build()
-                        .apply(
-                                new Cursor(visitor.getCursor(), methodArgument),
-                                methodArgument.getCoordinates().replace(),
-                                ((JavaType.FullyQualified) type).getClassName()
-                        ));
+                templateParams.add(rewriteClassMethodArgument(methodArgument, ((JavaType.FullyQualified) type).getClassName()));
                 template = "any(#{any(java.lang.Class)})";
-                visitor.maybeAddImport("org.mockito.Mockito", "any");
             }
         } else {
             throw new IllegalStateException("Unexpected identifier type: " + type);
         }
+        return rewriteMethodArgument(argumentMatcher, template, methodArgument, templateParams);
+    }
 
-        return JavaTemplate.builder(template)
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                .staticImports("org.mockito.Mockito.*")
+    // rewrite parameter from ((<type>) any) to any(<type>.class)
+    private Expression rewriteClassMethodArgument(Expression methodArgument, String className) {
+        return JavaTemplate.builder("#{}.class")
+                .javaParser(JavaParser.fromJavaVersion())
                 .build()
                 .apply(
                         new Cursor(visitor.getCursor(), methodArgument),
                         methodArgument.getCoordinates().replace(),
-                        templateParams.toArray()
+                        className
                 );
     }
 
