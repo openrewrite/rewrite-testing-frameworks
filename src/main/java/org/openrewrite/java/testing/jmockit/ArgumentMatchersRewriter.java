@@ -37,13 +37,13 @@ class ArgumentMatchersRewriter {
     }
 
     private final JavaVisitor<ExecutionContext> visitor;
-    private final J.Block expectationsBlock;
     private final ExecutionContext ctx;
+    private final J.Block expectationsBlock;
 
-    ArgumentMatchersRewriter(JavaVisitor<ExecutionContext> visitor, J.Block expectationsBlock, ExecutionContext ctx) {
+    ArgumentMatchersRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block expectationsBlock) {
         this.visitor = visitor;
-        this.expectationsBlock = expectationsBlock;
         this.ctx = ctx;
+        this.expectationsBlock = expectationsBlock;
     }
 
     J.Block rewriteExpectationsBlock() {
