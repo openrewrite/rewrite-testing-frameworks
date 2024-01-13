@@ -15,9 +15,12 @@ class ExpectationsBlockRewriter {
 
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
     private static final String RETURN_TEMPLATE_PREFIX = "thenReturn(";
-    private static final String PRIMITIVE_TEMPLATE_PARAM = "#{}";
     private static final String THROW_TEMPLATE_PREFIX = "thenThrow(";
-    private static final String THROWABLE_TEMPLATE_PARAM = "#{any()}";
+    private static final String PRIMITIVE_TEMPLATE_FIELD = "#{}";
+    private static final String THROWABLE_TEMPLATE_FIELD = "#{any()}";
+    private static String getObjectTemplateField(String fqn) {
+        return "#{any(" + fqn + ")}";
+    }
 
     private final JavaVisitor<ExecutionContext> visitor;
     private final ExecutionContext ctx;
@@ -59,6 +62,7 @@ class ExpectationsBlockRewriter {
                     expectationStatements.add(expectationStatement);
                     continue;
                 }
+                // if a new method invocation is found, apply the template to the previous statements
                 if (!expectationStatements.isEmpty()) {
                     // apply template to build new method body
                     methodBody = rewriteMethodBody(ctx, expectationStatements, methodBody, bodyStatementIndex);
@@ -89,12 +93,15 @@ class ExpectationsBlockRewriter {
         }
 
         if (!mockInvocationResults.getResults().isEmpty()) {
+            // rewrite the statement to mockito if there are results
             methodBody = rewriteExpectationResult(ctx, methodBody, bodyStatementIndex,
                     mockInvocationResults.getResults(), invocation);
         } else if (nextStatementCoordinates.isReplacement()) {
+            // if there are no results and the Expectations block is not yet replaced, remove it
             methodBody = removeExpectationsStatement(methodBody, bodyStatementIndex);
         }
         if (mockInvocationResults.getTimes() != null) {
+            // add a verification statement to the end of the test method body
             String fqn = getInvocationSelectFullyQualifiedClassName(invocation);
             methodBody = writeMethodVerification(ctx, methodBody, fqn, invocation,
                     mockInvocationResults.getTimes());
@@ -125,6 +132,8 @@ class ExpectationsBlockRewriter {
         if (!nextStatementCoordinates.isReplacement()) {
             mockitoStatementIndex += 1;
         }
+
+        // the next statement coordinates are directly after the most recently added statement
         nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex)
                 .getCoordinates().after();
         return methodBody;
@@ -138,6 +147,9 @@ class ExpectationsBlockRewriter {
                         new Cursor(visitor.getCursor(), methodBody),
                         nextStatementCoordinates
                 );
+
+        // the next statement coordinates are directly after the most recently added statement, or the first statement
+        // of the test method body if the Expectations block was the first statement
         nextStatementCoordinates = bodyStatementIndex == 0 ? methodBody.getCoordinates().firstStatement() :
                 methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex).getCoordinates().after();
         return methodBody;
@@ -165,45 +177,41 @@ class ExpectationsBlockRewriter {
                 );
     }
 
-    private static String getObjectTemplate(String fqn) {
-        return "#{any(" + fqn + ")}";
-    }
-
     private static String getMockitoStatementTemplate(List<Expression> results) {
         StringBuilder templateBuilder = new StringBuilder(WHEN_TEMPLATE_PREFIX);
         boolean buildingResults = false;
         for (Expression result : results) {
             JavaType resultType = result.getType();
             if (resultType instanceof JavaType.Primitive) {
-                buildingResults = appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX, PRIMITIVE_TEMPLATE_PARAM);
+                appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX, PRIMITIVE_TEMPLATE_FIELD);
             } else if (resultType instanceof JavaType.Class) {
                 boolean isThrowable = TypeUtils.isAssignableTo(Throwable.class.getName(), resultType);
                 if (isThrowable) {
-                    buildingResults = appendToTemplate(templateBuilder, buildingResults, THROW_TEMPLATE_PREFIX, THROWABLE_TEMPLATE_PARAM);
+                    appendToTemplate(templateBuilder, buildingResults, THROW_TEMPLATE_PREFIX, THROWABLE_TEMPLATE_FIELD);
                 } else {
-                    buildingResults = appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX,
-                            getObjectTemplate(((JavaType.Class) resultType).getFullyQualifiedName()));
+                    appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX,
+                            getObjectTemplateField(((JavaType.Class) resultType).getFullyQualifiedName()));
                 }
             } else if (resultType instanceof JavaType.Parameterized) {
-                buildingResults = appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX,
-                        getObjectTemplate(((JavaType.Parameterized) resultType).getType().getFullyQualifiedName()));
+                appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX,
+                        getObjectTemplateField(((JavaType.Parameterized) resultType).getType().getFullyQualifiedName()));
             } else {
                 throw new IllegalStateException("Unexpected expression type for template: " + result.getType());
             }
+            buildingResults = true;
         }
         templateBuilder.append(");");
         return templateBuilder.toString();
     }
 
-    private static boolean appendToTemplate(StringBuilder templateBuilder, boolean buildingResults,
-                                            String baseTemplate, String paramTemplate) {
+    private static void appendToTemplate(StringBuilder templateBuilder, boolean buildingResults,
+                                            String templatePrefix, String templateField) {
         if (!buildingResults) {
-            templateBuilder.append(baseTemplate);
+            templateBuilder.append(templatePrefix);
         } else {
             templateBuilder.append(", ");
         }
-        templateBuilder.append(paramTemplate);
-        return true;
+        templateBuilder.append(templateField);
     }
 
     private static String getVerifyTemplate(String fqn, List<Expression> arguments) {
