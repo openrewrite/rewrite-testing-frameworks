@@ -18,6 +18,7 @@ class ExpectationsBlockRewriter {
     private static final String THROW_TEMPLATE_PREFIX = "thenThrow(";
     private static final String PRIMITIVE_TEMPLATE_FIELD = "#{}";
     private static final String THROWABLE_TEMPLATE_FIELD = "#{any()}";
+
     private static String getObjectTemplateField(String fqn) {
         return "#{any(" + fqn + ")}";
     }
@@ -160,7 +161,7 @@ class ExpectationsBlockRewriter {
         visitor.maybeAddImport("org.mockito.Mockito", "verify");
         visitor.maybeAddImport("org.mockito.Mockito", "times");
         String verifyTemplate = getVerifyTemplate(fqn, invocation.getArguments());
-        Object[] templateParams = new Object[] {
+        Object[] templateParams = new Object[]{
                 invocation.getSelect(),
                 times,
                 invocation.getName().getSimpleName()
@@ -205,7 +206,7 @@ class ExpectationsBlockRewriter {
     }
 
     private static void appendToTemplate(StringBuilder templateBuilder, boolean buildingResults,
-                                            String templatePrefix, String templateField) {
+                                         String templatePrefix, String templateField) {
         if (!buildingResults) {
             templateBuilder.append(templatePrefix);
         } else {
@@ -293,12 +294,15 @@ class ExpectationsBlockRewriter {
         private List<Expression> getResults() {
             return results;
         }
+
         private void addResult(Expression result) {
             results.add(result);
         }
+
         private Expression getTimes() {
             return times;
         }
+
         private void setTimes(Expression times) {
             this.times = times;
         }

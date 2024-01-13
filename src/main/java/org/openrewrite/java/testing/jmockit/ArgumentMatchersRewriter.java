@@ -15,6 +15,7 @@ import java.util.*;
 class ArgumentMatchersRewriter {
 
     private static final Set<String> JMOCKIT_ARGUMENT_MATCHERS = new HashSet<>();
+
     static {
         JMOCKIT_ARGUMENT_MATCHERS.add("anyString");
         JMOCKIT_ARGUMENT_MATCHERS.add("anyInt");
@@ -27,7 +28,9 @@ class ArgumentMatchersRewriter {
         JMOCKIT_ARGUMENT_MATCHERS.add("anyShort");
         JMOCKIT_ARGUMENT_MATCHERS.add("any");
     }
+
     private static final Map<String, String> MOCKITO_COLLECTION_MATCHERS = new HashMap<>();
+
     static {
         MOCKITO_COLLECTION_MATCHERS.put("java.util.List", "anyList");
         MOCKITO_COLLECTION_MATCHERS.put("java.util.Set", "anySet");

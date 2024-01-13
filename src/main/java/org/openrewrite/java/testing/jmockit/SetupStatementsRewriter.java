@@ -89,7 +89,7 @@ class SetupStatementsRewriter {
     private static boolean isNotMockIdentifier(J.Identifier identifier) {
         if (identifier.getType() instanceof JavaType.Method
                 && TypeUtils.isAssignableTo("mockit.Expectations",
-                    ((JavaType.Method) identifier.getType()).getDeclaringType())) {
+                ((JavaType.Method) identifier.getType()).getDeclaringType())) {
             return false;
         }
         JavaType.Variable fieldType = identifier.getFieldType();
