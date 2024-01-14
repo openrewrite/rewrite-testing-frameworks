@@ -29,7 +29,7 @@ import java.util.List;
 class SetupStatementsRewriter {
 
     private final JavaVisitor<ExecutionContext> visitor;
-    private final J.Block methodBody;
+    private J.Block methodBody;
 
     SetupStatementsRewriter(JavaVisitor<ExecutionContext> visitor, J.Block methodBody) {
         this.visitor = visitor;
@@ -37,9 +37,9 @@ class SetupStatementsRewriter {
     }
 
     J.Block rewriteMethodBody() {
-        J.Block newBody = methodBody;
+        List<Statement> statements = methodBody.getStatements();
         // iterate over each statement in the method body, find Expectations blocks and rewrite them
-        for (Statement s : methodBody.getStatements()) {
+        for (Statement s : statements) {
             if (!JMockitUtils.isExpectationsNewClassStatement(s)) {
                 continue;
             }
@@ -55,7 +55,7 @@ class SetupStatementsRewriter {
                     newExpectationsBlockStatements.add(expectationStatement);
                     continue;
                 }
-                newBody = rewriteBodyStatement(expectationStatement, newBody, coordinates);
+                rewriteBodyStatement(expectationStatement, coordinates);
                 // subsequent setup statements are moved in order
                 coordinates = expectationStatement.getCoordinates().after();
             }
@@ -63,17 +63,17 @@ class SetupStatementsRewriter {
             J.Block newExpectationsBlock = expectationsBlock.withStatements(newExpectationsBlockStatements);
             nc = nc.withBody(nc.getBody().withStatements(Collections.singletonList(newExpectationsBlock)));
 
-            newBody = rewriteBodyStatement(nc, newBody, nc.getCoordinates().replace());
+            rewriteBodyStatement(nc, nc.getCoordinates().replace());
         }
-        return newBody;
+        return methodBody;
     }
 
-    private J.Block rewriteBodyStatement(Statement statement, J.Block newBody, JavaCoordinates coordinates) {
-        return JavaTemplate.builder("#{any()}")
+    private void rewriteBodyStatement(Statement statement, JavaCoordinates coordinates) {
+        methodBody = JavaTemplate.builder("#{any()}")
                 .javaParser(JavaParser.fromJavaVersion())
                 .build()
                 .apply(
-                        new Cursor(visitor.getCursor(), newBody),
+                        new Cursor(visitor.getCursor(), methodBody),
                         coordinates,
                         statement
                 );

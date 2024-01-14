@@ -66,8 +66,8 @@ public class JMockitExpectationsToMockito extends Recipe {
                     if (!JMockitUtils.isExpectationsNewClassStatement(statements.get(bodyStatementIndex))) {
                         continue;
                     }
-                    ExpectationsBlockRewriter ebr = new ExpectationsBlockRewriter(this, ctx, methodBody, statements,
-                            bodyStatementIndex);
+                    ExpectationsBlockRewriter ebr = new ExpectationsBlockRewriter(this, ctx, methodBody,
+                            ((J.NewClass) statements.get(bodyStatementIndex)), bodyStatementIndex);
                     methodBody = ebr.rewriteMethodBody();
                 }
                 return md.withBody(methodBody);

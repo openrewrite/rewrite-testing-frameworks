@@ -40,8 +40,7 @@ class ExpectationsBlockRewriter {
 
     private final JavaVisitor<ExecutionContext> visitor;
     private final ExecutionContext ctx;
-    // keep track of the original statements methodBody will be mutated
-    private final List<Statement> bodyStatements;
+    private final J.NewClass newExpectations;
     // index of the Expectations block in the method body
     private final int bodyStatementIndex;
     private J.Block methodBody;
@@ -52,20 +51,19 @@ class ExpectationsBlockRewriter {
     private int numStatementsAdded = 0;
 
     ExpectationsBlockRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block methodBody,
-                              List<Statement> bodyStatements, int bodyStatementIndex) {
+                              J.NewClass newExpectations, int bodyStatementIndex) {
         this.visitor = visitor;
         this.ctx = ctx;
         this.methodBody = methodBody;
-        this.bodyStatements = bodyStatements;
+        this.newExpectations = newExpectations;
         this.bodyStatementIndex = bodyStatementIndex;
     }
 
     J.Block rewriteMethodBody() {
         visitor.maybeRemoveImport("mockit.Expectations");
 
-        J.NewClass nc = (J.NewClass) bodyStatements.get(bodyStatementIndex);
-        assert nc.getBody() != null;
-        J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
+        assert newExpectations.getBody() != null;
+        J.Block expectationsBlock = (J.Block) newExpectations.getBody().getStatements().get(0);
 
         // rewrite the argument matchers in the expectations block
         ArgumentMatchersRewriter amr = new ArgumentMatchersRewriter(visitor, ctx, expectationsBlock);
@@ -73,7 +71,7 @@ class ExpectationsBlockRewriter {
 
         // iterate over the expectations statements and rebuild the method body
         List<Statement> expectationStatements = new ArrayList<>();
-        nextStatementCoordinates = nc.getCoordinates().replace();
+        nextStatementCoordinates = newExpectations.getCoordinates().replace();
         numStatementsAdded = 0;
         for (Statement expectationStatement : expectationsBlock.getStatements()) {
             if (expectationStatement instanceof J.MethodInvocation) {
@@ -109,15 +107,15 @@ class ExpectationsBlockRewriter {
 
         if (mockInvocationResults.getResults().isEmpty() && nextStatementCoordinates.isReplacement()) {
             // remove mock method invocations without expectations or verifications
-            removeExpectationsStatement(bodyStatementIndex);
+            removeExpectationsStatement();
         }
 
         if (!mockInvocationResults.getResults().isEmpty()) {
             // rewrite the statement to mockito if there are results
-            rewriteExpectationResult(bodyStatementIndex, mockInvocationResults.getResults(), invocation);
+            rewriteExpectationResult(mockInvocationResults.getResults(), invocation);
         } else if (nextStatementCoordinates.isReplacement()) {
             // if there are no results and the Expectations block is not yet replaced, remove it
-            removeExpectationsStatement(bodyStatementIndex);
+            removeExpectationsStatement();
         }
         if (mockInvocationResults.getTimes() != null) {
             // add a verification statement to the end of the test method body
@@ -126,8 +124,7 @@ class ExpectationsBlockRewriter {
         }
     }
 
-    private void rewriteExpectationResult(int bodyStatementIndex, List<Expression> results,
-                                          J.MethodInvocation invocation) {
+    private void rewriteExpectationResult(List<Expression> results, J.MethodInvocation invocation) {
         visitor.maybeAddImport("org.mockito.Mockito", "when");
         String template = getMockitoStatementTemplate(results);
 
@@ -154,7 +151,7 @@ class ExpectationsBlockRewriter {
                 .getCoordinates().after();
     }
 
-    private void removeExpectationsStatement(int bodyStatementIndex) {
+    private void removeExpectationsStatement() {
         methodBody = JavaTemplate.builder("")
                 .javaParser(JavaParser.fromJavaVersion())
                 .build()
