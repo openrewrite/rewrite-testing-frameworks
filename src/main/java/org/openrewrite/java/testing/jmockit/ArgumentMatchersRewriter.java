@@ -146,6 +146,9 @@ class ArgumentMatchersRewriter {
             // mockito has specific argument matchers for collections
             argumentMatcher = MOCKITO_COLLECTION_MATCHERS.get(fqn);
             template = argumentMatcher + "()";
+        } else if (fqn.equals("java.lang.String")) {
+            argumentMatcher = "anyString";
+            template = argumentMatcher + "()";
         } else {
             templateParams.add(rewriteClassMethodArgument(tc, className));
             template = "any(#{any(java.lang.Class)})";
@@ -204,7 +207,11 @@ class ArgumentMatchersRewriter {
         List<Object> templateParams = new ArrayList<>();
         if (type instanceof JavaType.FullyQualified) {
             String fqn = ((JavaType.FullyQualified) type).getFullyQualifiedName();
-            if (fqn.equals("java.lang.String")) {
+            if (MOCKITO_COLLECTION_MATCHERS.containsKey(fqn)) {
+                // mockito has specific argument matchers for collections
+                argumentMatcher = MOCKITO_COLLECTION_MATCHERS.get(fqn);
+                template = argumentMatcher + "()";
+            } else if (fqn.equals("java.lang.String")) {
                 argumentMatcher = "anyString";
                 template = argumentMatcher + "()";
             } else {
