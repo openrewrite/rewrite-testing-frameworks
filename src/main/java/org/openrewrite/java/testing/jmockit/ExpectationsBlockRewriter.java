@@ -34,7 +34,7 @@ class ExpectationsBlockRewriter {
 
     // keep track of the additional statements being added to the method body, which impacts the statement indices
     // used with bodyStatementIndex to obtain the coordinates of the next statement to be written
-    private int statementsAdded = 0;
+    private int numStatementsAdded = 0;
 
     ExpectationsBlockRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block methodBody,
                               List<Statement> bodyStatements, int bodyStatementIndex) {
@@ -59,7 +59,7 @@ class ExpectationsBlockRewriter {
         // iterate over the expectations statements and rebuild the method body
         List<Statement> expectationStatements = new ArrayList<>();
         nextStatementCoordinates = nc.getCoordinates().replace();
-        statementsAdded = 0;
+        numStatementsAdded = 0;
         for (Statement expectationStatement : expectationsBlock.getStatements()) {
             if (expectationStatement instanceof J.MethodInvocation) {
                 // handle returns statements
@@ -71,7 +71,7 @@ class ExpectationsBlockRewriter {
                 // if a new method invocation is found, apply the template to the previous statements
                 if (!expectationStatements.isEmpty()) {
                     // apply template to build new method body
-                    methodBody = rewriteMethodBody(ctx, expectationStatements, methodBody, bodyStatementIndex);
+                    rewriteMethodBody(expectationStatements);
 
                     // reset statements for next expectation
                     expectationStatements = new ArrayList<>();
@@ -82,42 +82,37 @@ class ExpectationsBlockRewriter {
 
         // handle the last statement
         if (!expectationStatements.isEmpty()) {
-            methodBody = rewriteMethodBody(ctx, expectationStatements, methodBody, bodyStatementIndex);
+            rewriteMethodBody(expectationStatements);
         }
 
         return methodBody;
     }
 
-    private J.Block rewriteMethodBody(ExecutionContext ctx, List<Statement> expectationStatements,
-                                      J.Block methodBody, int bodyStatementIndex) {
+    private void rewriteMethodBody(List<Statement> expectationStatements) {
         J.MethodInvocation invocation = (J.MethodInvocation) expectationStatements.get(0);
         final MockInvocationResults mockInvocationResults = buildMockInvocationResults(expectationStatements);
 
         if (mockInvocationResults.getResults().isEmpty() && nextStatementCoordinates.isReplacement()) {
             // remove mock method invocations without expectations or verifications
-            methodBody = removeExpectationsStatement(methodBody, bodyStatementIndex);
+            removeExpectationsStatement(bodyStatementIndex);
         }
 
         if (!mockInvocationResults.getResults().isEmpty()) {
             // rewrite the statement to mockito if there are results
-            methodBody = rewriteExpectationResult(ctx, methodBody, bodyStatementIndex,
-                    mockInvocationResults.getResults(), invocation);
+            rewriteExpectationResult(bodyStatementIndex, mockInvocationResults.getResults(), invocation);
         } else if (nextStatementCoordinates.isReplacement()) {
             // if there are no results and the Expectations block is not yet replaced, remove it
-            methodBody = removeExpectationsStatement(methodBody, bodyStatementIndex);
+            removeExpectationsStatement(bodyStatementIndex);
         }
         if (mockInvocationResults.getTimes() != null) {
             // add a verification statement to the end of the test method body
             String fqn = getInvocationSelectFullyQualifiedClassName(invocation);
-            methodBody = writeMethodVerification(ctx, methodBody, fqn, invocation,
-                    mockInvocationResults.getTimes());
+            writeMethodVerification(fqn, invocation, mockInvocationResults.getTimes());
         }
-
-        return methodBody;
     }
 
-    private J.Block rewriteExpectationResult(ExecutionContext ctx, J.Block methodBody, int bodyStatementIndex,
-                                             List<Expression> results, J.MethodInvocation invocation) {
+    private void rewriteExpectationResult(int bodyStatementIndex, List<Expression> results,
+                                          J.MethodInvocation invocation) {
         visitor.maybeAddImport("org.mockito.Mockito", "when");
         String template = getMockitoStatementTemplate(results);
 
@@ -136,16 +131,15 @@ class ExpectationsBlockRewriter {
                 );
         // move the statement index forward if one was added
         if (!nextStatementCoordinates.isReplacement()) {
-            statementsAdded += 1;
+            numStatementsAdded += 1;
         }
 
         // the next statement coordinates are directly after the most recently added statement
-        nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + statementsAdded)
+        nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded)
                 .getCoordinates().after();
-        return methodBody;
     }
 
-    private J.Block removeExpectationsStatement(J.Block methodBody, int bodyStatementIndex) {
+    private void removeExpectationsStatement(int bodyStatementIndex) {
         methodBody = JavaTemplate.builder("")
                 .javaParser(JavaParser.fromJavaVersion())
                 .build()
@@ -157,12 +151,10 @@ class ExpectationsBlockRewriter {
         // the next statement coordinates are directly after the most recently added statement, or the first statement
         // of the test method body if the Expectations block was the first statement
         nextStatementCoordinates = bodyStatementIndex == 0 ? methodBody.getCoordinates().firstStatement() :
-                methodBody.getStatements().get(bodyStatementIndex + statementsAdded).getCoordinates().after();
-        return methodBody;
+                methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded).getCoordinates().after();
     }
 
-    private J.Block writeMethodVerification(ExecutionContext ctx, J.Block methodBody, String fqn,
-                                            J.MethodInvocation invocation, Expression times) {
+    private void writeMethodVerification(String fqn, J.MethodInvocation invocation, Expression times) {
         visitor.maybeAddImport("org.mockito.Mockito", "verify");
         visitor.maybeAddImport("org.mockito.Mockito", "times");
         String verifyTemplate = getVerifyTemplate(fqn, invocation.getArguments());
@@ -171,7 +163,7 @@ class ExpectationsBlockRewriter {
                 times,
                 invocation.getName().getSimpleName()
         };
-        return JavaTemplate.builder(verifyTemplate)
+        methodBody = JavaTemplate.builder(verifyTemplate)
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                 .staticImports("org.mockito.Mockito.*")
                 .imports(fqn)
