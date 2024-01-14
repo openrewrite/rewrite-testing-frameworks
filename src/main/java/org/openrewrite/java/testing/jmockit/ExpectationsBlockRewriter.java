@@ -25,11 +25,16 @@ class ExpectationsBlockRewriter {
 
     private final JavaVisitor<ExecutionContext> visitor;
     private final ExecutionContext ctx;
+    // keep track of the original statements methodBody will be mutated
     private final List<Statement> bodyStatements;
+    // index of the Expectations block in the method body
     private final int bodyStatementIndex;
     private J.Block methodBody;
     private JavaCoordinates nextStatementCoordinates;
-    private int mockitoStatementIndex = 0;
+
+    // keep track of the additional statements being added to the method body, which impacts the statement indices
+    // used with bodyStatementIndex to obtain the coordinates of the next statement to be written
+    private int statementsAdded = 0;
 
     ExpectationsBlockRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block methodBody,
                               List<Statement> bodyStatements, int bodyStatementIndex) {
@@ -54,7 +59,7 @@ class ExpectationsBlockRewriter {
         // iterate over the expectations statements and rebuild the method body
         List<Statement> expectationStatements = new ArrayList<>();
         nextStatementCoordinates = nc.getCoordinates().replace();
-        mockitoStatementIndex = 0;
+        statementsAdded = 0;
         for (Statement expectationStatement : expectationsBlock.getStatements()) {
             if (expectationStatement instanceof J.MethodInvocation) {
                 // handle returns statements
@@ -131,11 +136,11 @@ class ExpectationsBlockRewriter {
                 );
         // move the statement index forward if one was added
         if (!nextStatementCoordinates.isReplacement()) {
-            mockitoStatementIndex += 1;
+            statementsAdded += 1;
         }
 
         // the next statement coordinates are directly after the most recently added statement
-        nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex)
+        nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + statementsAdded)
                 .getCoordinates().after();
         return methodBody;
     }
@@ -152,7 +157,7 @@ class ExpectationsBlockRewriter {
         // the next statement coordinates are directly after the most recently added statement, or the first statement
         // of the test method body if the Expectations block was the first statement
         nextStatementCoordinates = bodyStatementIndex == 0 ? methodBody.getCoordinates().firstStatement() :
-                methodBody.getStatements().get(bodyStatementIndex + mockitoStatementIndex).getCoordinates().after();
+                methodBody.getStatements().get(bodyStatementIndex + statementsAdded).getCoordinates().after();
         return methodBody;
     }
 
