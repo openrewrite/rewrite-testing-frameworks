@@ -106,12 +106,12 @@ class ArgumentMatchersRewriter {
         if (!(methodArgument instanceof J.TypeCast)) {
             argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
             template = argumentMatcher + "()";
-            return rewriteMethodArgument(argumentMatcher, template, methodArgument, new ArrayList<>());
+            return applyArgumentTemplate(argumentMatcher, template, methodArgument, new ArrayList<>());
         }
-        return rewriteTypeCastArgument(methodArgument);
+        return rewriteTypeCastToArgumentMatcher(methodArgument);
     }
 
-    private Expression rewriteMethodArgument(String argumentMatcher, String template, Expression methodArgument,
+    private Expression applyArgumentTemplate(String argumentMatcher, String template, Expression methodArgument,
                                              List<Object> templateParams) {
         visitor.maybeAddImport("org.mockito.Mockito", argumentMatcher);
         return JavaTemplate.builder(template)
@@ -125,7 +125,48 @@ class ArgumentMatchersRewriter {
                 );
     }
 
-    private Expression rewriteTypeCastArgument(Expression methodArgument) {
+    private Expression applyClassArgumentTemplate(Expression methodArgument, String className) {
+        // rewrite parameter from ((<type>) any) to any(<type>.class)
+        return JavaTemplate.builder("#{}.class")
+                .javaParser(JavaParser.fromJavaVersion())
+                .build()
+                .apply(
+                        new Cursor(visitor.getCursor(), methodArgument),
+                        methodArgument.getCoordinates().replace(),
+                        className
+                );
+    }
+
+    private Expression rewriteFullyQualifiedArgument(Expression methodArgument, String className, String fqn) {
+        String template;
+        List<Object> templateParams = new ArrayList<>();
+        String argumentMatcher = "any";
+        if (MOCKITO_COLLECTION_MATCHERS.containsKey(fqn)) {
+            // mockito has specific argument matchers for collections
+            argumentMatcher = MOCKITO_COLLECTION_MATCHERS.get(fqn);
+            template = argumentMatcher + "()";
+        } else if (fqn.equals("java.lang.String")) {
+            argumentMatcher = "anyString";
+            template = argumentMatcher + "()";
+        } else {
+            templateParams.add(applyClassArgumentTemplate(methodArgument, className));
+            template = "any(#{any(java.lang.Class)})";
+        }
+        return applyArgumentTemplate(argumentMatcher, template, methodArgument, templateParams);
+    }
+
+    private Expression rewriteIdentifierToArgumentMatcher(J.Identifier methodArgument) {
+        if (methodArgument.getType() == null) {
+            throw new IllegalStateException("Missing type information for identifier: " + methodArgument);
+        }
+        if (!(methodArgument.getType() instanceof JavaType.FullyQualified)) {
+            throw new IllegalStateException("Unexpected identifier type: " + methodArgument.getType());
+        }
+        JavaType.FullyQualified type = (JavaType.FullyQualified) methodArgument.getType();
+        return rewriteFullyQualifiedArgument(methodArgument, type.getClassName(), type.getFullyQualifiedName());
+    }
+
+    private Expression rewriteTypeCastToArgumentMatcher(Expression methodArgument) {
         J.TypeCast tc = (J.TypeCast) methodArgument;
         String className, fqn;
         JavaType typeCastType = tc.getType();
@@ -139,21 +180,7 @@ class ArgumentMatchersRewriter {
         } else {
             throw new IllegalStateException("Unexpected J.TypeCast type: " + typeCastType);
         }
-        String template;
-        String argumentMatcher = "any";
-        List<Object> templateParams = new ArrayList<>();
-        if (MOCKITO_COLLECTION_MATCHERS.containsKey(fqn)) {
-            // mockito has specific argument matchers for collections
-            argumentMatcher = MOCKITO_COLLECTION_MATCHERS.get(fqn);
-            template = argumentMatcher + "()";
-        } else if (fqn.equals("java.lang.String")) {
-            argumentMatcher = "anyString";
-            template = argumentMatcher + "()";
-        } else {
-            templateParams.add(rewriteClassMethodArgument(tc, className));
-            template = "any(#{any(java.lang.Class)})";
-        }
-        return rewriteMethodArgument(argumentMatcher, template, methodArgument, templateParams);
+        return rewriteFullyQualifiedArgument(tc, className, fqn);
     }
 
     private Expression rewritePrimitiveToArgumentMatcher(J.Literal methodArgument) {
@@ -194,46 +221,7 @@ class ArgumentMatchersRewriter {
                 throw new IllegalStateException("Unexpected primitive type: " + primitiveType);
         }
         String template = argumentMatcher + "()";
-        return rewriteMethodArgument(argumentMatcher, template, methodArgument, new ArrayList<>());
-    }
-
-    private Expression rewriteIdentifierToArgumentMatcher(J.Identifier methodArgument) {
-        if (methodArgument.getType() == null) {
-            throw new IllegalStateException("Missing type information for identifier: " + methodArgument);
-        }
-        String template;
-        String argumentMatcher = "any";
-        JavaType type = methodArgument.getType();
-        List<Object> templateParams = new ArrayList<>();
-        if (type instanceof JavaType.FullyQualified) {
-            String fqn = ((JavaType.FullyQualified) type).getFullyQualifiedName();
-            if (MOCKITO_COLLECTION_MATCHERS.containsKey(fqn)) {
-                // mockito has specific argument matchers for collections
-                argumentMatcher = MOCKITO_COLLECTION_MATCHERS.get(fqn);
-                template = argumentMatcher + "()";
-            } else if (fqn.equals("java.lang.String")) {
-                argumentMatcher = "anyString";
-                template = argumentMatcher + "()";
-            } else {
-                templateParams.add(rewriteClassMethodArgument(methodArgument, ((JavaType.FullyQualified) type).getClassName()));
-                template = "any(#{any(java.lang.Class)})";
-            }
-        } else {
-            throw new IllegalStateException("Unexpected identifier type: " + type);
-        }
-        return rewriteMethodArgument(argumentMatcher, template, methodArgument, templateParams);
-    }
-
-    private Expression rewriteClassMethodArgument(Expression methodArgument, String className) {
-        // rewrite parameter from ((<type>) any) to any(<type>.class)
-        return JavaTemplate.builder("#{}.class")
-                .javaParser(JavaParser.fromJavaVersion())
-                .build()
-                .apply(
-                        new Cursor(visitor.getCursor(), methodArgument),
-                        methodArgument.getCoordinates().replace(),
-                        className
-                );
+        return applyArgumentTemplate(argumentMatcher, template, methodArgument, new ArrayList<>());
     }
 
     private static boolean isJmockitArgumentMatcher(Expression expression) {
