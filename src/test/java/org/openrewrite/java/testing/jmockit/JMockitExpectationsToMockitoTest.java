@@ -23,8 +23,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-class JMockitToMockitoTest implements RewriteTest {
-
+class JMockitExpectationsToMockitoTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -43,7 +42,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoVoidResult() {
+    void voidResult() {
         //language=java
         rewriteRun(
           java(
@@ -86,7 +85,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenNullResult() {
+    void whenNullResult() {
         //language=java
         rewriteRun(
           java(
@@ -145,7 +144,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenIntResult() {
+    void whenIntResult() {
         //language=java
         rewriteRun(
           java(
@@ -204,7 +203,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenStringResult() {
+    void whenStringResult() {
         //language=java
         rewriteRun(
           java(
@@ -264,7 +263,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenVariableResult() {
+    void whenVariableResult() {
         //language=java
         rewriteRun(
           java(
@@ -327,7 +326,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenNewClassResult() {
+    void whenNewClassResult() {
         //language=java
         rewriteRun(
           java(
@@ -386,7 +385,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenExceptionResult() {
+    void whenExceptionResult() {
         //language=java
         rewriteRun(
           java(
@@ -442,7 +441,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenReturns() {
+    void whenReturns() {
         //language=java
         rewriteRun(
           java(
@@ -503,7 +502,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenClassArgumentMatcher() {
+    void whenClassArgumentMatcher() {
         //language=java
         rewriteRun(
           java(
@@ -571,7 +570,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenMixedArgumentMatcher() {
+    void whenMixedArgumentMatcher() {
         //language=java
         rewriteRun(
           java(
@@ -640,7 +639,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenSetupStatements() {
+    void whenSetupStatements() {
         //language=java
         rewriteRun(
           java(
@@ -719,7 +718,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenSetupStatements2() {
+    void whenSetupStatements2() {
         //language=java
         rewriteRun(
           java(
@@ -787,7 +786,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenTimes() {
+    void whenTimes() {
         //language=java
         rewriteRun(
           java(
@@ -836,7 +835,7 @@ class JMockitToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void jMockitExpectationsToMockitoWhenMultipleStatements() {
+    void whenMultipleStatements() {
         //language=java
         rewriteRun(
           java(
