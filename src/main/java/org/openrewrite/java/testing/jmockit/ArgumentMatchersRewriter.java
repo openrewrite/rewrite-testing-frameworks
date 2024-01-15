@@ -118,12 +118,12 @@ class ArgumentMatchersRewriter {
         if (!(methodArgument instanceof J.TypeCast)) {
             argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
             template = argumentMatcher + "()";
-            return applyArgumentTemplate(argumentMatcher, template, methodArgument, new ArrayList<>());
+            return applyArgumentTemplate(methodArgument, argumentMatcher, template, new ArrayList<>());
         }
         return rewriteTypeCastToArgumentMatcher(methodArgument);
     }
 
-    private Expression applyArgumentTemplate(String argumentMatcher, String template, Expression methodArgument,
+    private Expression applyArgumentTemplate(Expression methodArgument, String argumentMatcher, String template,
                                              List<Object> templateParams) {
         visitor.maybeAddImport("org.mockito.Mockito", argumentMatcher);
         return JavaTemplate.builder(template)
@@ -164,7 +164,7 @@ class ArgumentMatchersRewriter {
             templateParams.add(applyClassArgumentTemplate(methodArgument, className));
             template = "any(#{any(java.lang.Class)})";
         }
-        return applyArgumentTemplate(argumentMatcher, template, methodArgument, templateParams);
+        return applyArgumentTemplate(methodArgument, argumentMatcher, template, templateParams);
     }
 
     private Expression rewriteIdentifierToArgumentMatcher(J.Identifier methodArgument) {
@@ -186,9 +186,9 @@ class ArgumentMatchersRewriter {
             // strip the raw type from the parameterized type
             className = ((JavaType.Parameterized) typeCastType).getType().getClassName();
             fqn = ((JavaType.Parameterized) typeCastType).getType().getFullyQualifiedName();
-        } else if (typeCastType instanceof JavaType.FullyQualified) {
-            className = ((JavaType.FullyQualified) typeCastType).getClassName();
-            fqn = ((JavaType.FullyQualified) typeCastType).getFullyQualifiedName();
+        } else if (typeCastType instanceof JavaType.Class) {
+            className = ((JavaType.Class) typeCastType).getClassName();
+            fqn = ((JavaType.Class) typeCastType).getFullyQualifiedName();
         } else {
             throw new IllegalStateException("Unexpected J.TypeCast type: " + typeCastType);
         }
@@ -233,7 +233,7 @@ class ArgumentMatchersRewriter {
                 throw new IllegalStateException("Unexpected primitive type: " + primitiveType);
         }
         String template = argumentMatcher + "()";
-        return applyArgumentTemplate(argumentMatcher, template, methodArgument, new ArrayList<>());
+        return applyArgumentTemplate(methodArgument, argumentMatcher, template, new ArrayList<>());
     }
 
     private static boolean isJmockitArgumentMatcher(Expression expression) {

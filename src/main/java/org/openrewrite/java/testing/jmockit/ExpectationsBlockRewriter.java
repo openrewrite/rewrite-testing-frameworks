@@ -57,6 +57,7 @@ class ExpectationsBlockRewriter {
         this.methodBody = methodBody;
         this.newExpectations = newExpectations;
         this.bodyStatementIndex = bodyStatementIndex;
+        nextStatementCoordinates = newExpectations.getCoordinates().replace();
     }
 
     J.Block rewriteMethodBody() {
@@ -71,8 +72,6 @@ class ExpectationsBlockRewriter {
 
         // iterate over the expectations statements and rebuild the method body
         List<Statement> expectationStatements = new ArrayList<>();
-        nextStatementCoordinates = newExpectations.getCoordinates().replace();
-        numStatementsAdded = 0;
         for (Statement expectationStatement : expectationsBlock.getStatements()) {
             if (expectationStatement instanceof J.MethodInvocation) {
                 // handle returns statements
@@ -114,8 +113,7 @@ class ExpectationsBlockRewriter {
         }
         if (mockInvocationResults.getTimes() != null) {
             // add a verification statement to the end of the test method body
-            String fqn = getInvocationSelectFullyQualifiedClassName(invocation);
-            writeMethodVerification(fqn, invocation, mockInvocationResults.getTimes());
+            writeMethodVerification(invocation, mockInvocationResults.getTimes());
         }
     }
 
@@ -160,11 +158,12 @@ class ExpectationsBlockRewriter {
                 methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded).getCoordinates().after();
     }
 
-    private void writeMethodVerification(String fqn, J.MethodInvocation invocation, Expression times) {
+    private void writeMethodVerification(J.MethodInvocation invocation, Expression times) {
         visitor.maybeAddImport("org.mockito.Mockito", "verify");
         visitor.maybeAddImport("org.mockito.Mockito", "times");
 
-        String verifyTemplate = getVerifyTemplate(fqn, invocation.getArguments());
+        String fqn = getInvocationSelectFullyQualifiedClassName(invocation);
+        String verifyTemplate = getVerifyTemplate(invocation.getArguments(), fqn);
         Object[] templateParams = new Object[] {
                 invocation.getSelect(),
                 times,
@@ -219,7 +218,7 @@ class ExpectationsBlockRewriter {
         templateBuilder.append(templateField);
     }
 
-    private static String getVerifyTemplate(String fqn, List<Expression> arguments) {
+    private static String getVerifyTemplate(List<Expression> arguments, String fqn) {
         if (arguments.isEmpty()) {
             return "verify(#{any(" + fqn + ")}, times(#{any(int)})).#{}();";
         }
