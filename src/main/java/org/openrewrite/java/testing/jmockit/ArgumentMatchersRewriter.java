@@ -81,28 +81,25 @@ class ArgumentMatchersRewriter {
         if (invocation.getSelect() instanceof J.MethodInvocation) {
             invocation = invocation.withSelect(rewriteMethodInvocation((J.MethodInvocation) invocation.getSelect()));
         }
-        return invocation.withArguments(rewriteMethodArgumentMatchers(invocation.getArguments()));
-    }
-
-    private List<Expression> rewriteMethodArgumentMatchers(List<Expression> arguments) {
         // in mockito, argument matchers must be used for all arguments or none
         boolean hasArgumentMatcher = false;
+        List<Expression> arguments = invocation.getArguments();
         for (Expression methodArgument : arguments) {
             if (isJmockitArgumentMatcher(methodArgument)) {
                 hasArgumentMatcher = true;
                 break;
             }
         }
-        // if there are no argument matchers, return the arguments as-is
+        // if there are no argument matchers, return the invocation as-is
         if (!hasArgumentMatcher) {
-            return arguments;
+            return invocation;
         }
         // replace each argument with the appropriate argument matcher
         List<Expression> newArguments = new ArrayList<>(arguments.size());
         for (Expression argument : arguments) {
             newArguments.add(rewriteMethodArgument(argument));
         }
-        return newArguments;
+        return invocation.withArguments(newArguments);
     }
 
     private Expression rewriteMethodArgument(Expression methodArgument) {
