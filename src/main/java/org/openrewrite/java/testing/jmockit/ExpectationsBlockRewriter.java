@@ -121,8 +121,8 @@ class ExpectationsBlockRewriter {
 
     private void rewriteExpectationResult(List<Expression> results, J.MethodInvocation invocation) {
         visitor.maybeAddImport("org.mockito.Mockito", "when");
-        String template = getMockitoStatementTemplate(results);
 
+        String template = getMockitoStatementTemplate(results);
         List<Object> templateParams = new ArrayList<>();
         templateParams.add(invocation);
         templateParams.addAll(results);
@@ -163,6 +163,7 @@ class ExpectationsBlockRewriter {
     private void writeMethodVerification(String fqn, J.MethodInvocation invocation, Expression times) {
         visitor.maybeAddImport("org.mockito.Mockito", "verify");
         visitor.maybeAddImport("org.mockito.Mockito", "times");
+
         String verifyTemplate = getVerifyTemplate(fqn, invocation.getArguments());
         Object[] templateParams = new Object[] {
                 invocation.getSelect(),
@@ -208,8 +209,8 @@ class ExpectationsBlockRewriter {
         return templateBuilder.toString();
     }
 
-    private static void appendToTemplate(StringBuilder templateBuilder, boolean buildingResults,
-                                         String templatePrefix, String templateField) {
+    private static void appendToTemplate(StringBuilder templateBuilder, boolean buildingResults, String templatePrefix,
+                                         String templateField) {
         if (!buildingResults) {
             templateBuilder.append(templatePrefix);
         } else {
