@@ -105,11 +105,6 @@ class ExpectationsBlockRewriter {
         J.MethodInvocation invocation = (J.MethodInvocation) expectationStatements.get(0);
         final MockInvocationResults mockInvocationResults = buildMockInvocationResults(expectationStatements);
 
-        if (mockInvocationResults.getResults().isEmpty() && nextStatementCoordinates.isReplacement()) {
-            // remove mock method invocations without expectations or verifications
-            removeExpectationsStatement();
-        }
-
         if (!mockInvocationResults.getResults().isEmpty()) {
             // rewrite the statement to mockito if there are results
             rewriteExpectationResult(mockInvocationResults.getResults(), invocation);
@@ -141,12 +136,11 @@ class ExpectationsBlockRewriter {
                         nextStatementCoordinates,
                         templateParams.toArray()
                 );
-        // move the statement index forward if one was added
         if (!nextStatementCoordinates.isReplacement()) {
             numStatementsAdded += 1;
         }
 
-        // the next statement coordinates are directly after the most recently added statement
+        // the next statement coordinates are directly after the most recently written statement
         nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded)
                 .getCoordinates().after();
     }
@@ -170,7 +164,7 @@ class ExpectationsBlockRewriter {
         visitor.maybeAddImport("org.mockito.Mockito", "verify");
         visitor.maybeAddImport("org.mockito.Mockito", "times");
         String verifyTemplate = getVerifyTemplate(fqn, invocation.getArguments());
-        Object[] templateParams = new Object[]{
+        Object[] templateParams = new Object[] {
                 invocation.getSelect(),
                 times,
                 invocation.getName().getSimpleName()
