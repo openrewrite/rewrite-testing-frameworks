@@ -183,8 +183,8 @@ class ExpectationsBlockRewriter {
     }
 
     private static String getMockitoStatementTemplate(List<Expression> results) {
-        StringBuilder templateBuilder = new StringBuilder(WHEN_TEMPLATE_PREFIX);
         boolean buildingResults = false;
+        final StringBuilder templateBuilder = new StringBuilder(WHEN_TEMPLATE_PREFIX);
         for (Expression result : results) {
             JavaType resultType = result.getType();
             if (resultType instanceof JavaType.Primitive) {
@@ -240,7 +240,7 @@ class ExpectationsBlockRewriter {
     private static MockInvocationResults buildMockInvocationResults(List<Statement> expectationStatements) {
         int numResults = 0;
         boolean hasTimes = false;
-        MockInvocationResults resultWrapper = new MockInvocationResults();
+        final MockInvocationResults resultWrapper = new MockInvocationResults();
         for (int i = 1; i < expectationStatements.size(); i++) {
             Statement expectationStatement = expectationStatements.get(i);
             if (expectationStatement instanceof J.MethodInvocation) {
