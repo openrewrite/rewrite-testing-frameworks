@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -70,6 +71,9 @@ public class RemoveTestPrefix extends Recipe {
     }
 
     private static class RemoveTestPrefixVisitor extends JavaIsoVisitor<ExecutionContext> {
+
+        private static final AnnotationMatcher ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.MethodSource");
+
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method,
                                                           ExecutionContext ctx) {
@@ -93,7 +97,7 @@ public class RemoveTestPrefix extends Recipe {
                 return m;
             }
 
-            // Rename method
+            // Avoid reserved keywords
             String newMethodName = snakecase
                     ? Character.toLowerCase(simpleName.charAt(5)) + simpleName.substring(6)
                     : Character.toLowerCase(simpleName.charAt(4)) + simpleName.substring(5);
@@ -101,11 +105,21 @@ public class RemoveTestPrefix extends Recipe {
                 return m;
             }
 
+            // Prevent conflicts with existing methods
             JavaType.Method type = m.getMethodType();
             if (type == null || methodExists(type, newMethodName)) {
                 return m;
             }
 
+            // Skip implied methodSource
+            for (J.Annotation annotation : method.getLeadingAnnotations()) {
+                if (ANNOTATION_MATCHER.matches(annotation) &&
+                    (annotation.getArguments() == null || annotation.getArguments().isEmpty())) {
+                    return m;
+                }
+            }
+
+            // Rename method and return
             type = type.withName(newMethodName);
             return m.withName(m.getName().withSimpleName(newMethodName).withType(type))
                     .withMethodType(type);
