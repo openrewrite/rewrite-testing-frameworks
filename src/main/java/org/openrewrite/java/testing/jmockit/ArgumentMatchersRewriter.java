@@ -112,7 +112,8 @@ class ArgumentMatchersRewriter {
             } else if (methodArgument instanceof J.FieldAccess) {
                 return rewriteIdentifierToArgumentMatcher(((J.FieldAccess) methodArgument).getName());
             } else {
-                throw new IllegalStateException("Unexpected method argument: " + methodArgument + ", class: " + methodArgument.getClass());
+                // unhandled type, return argument unchanged
+                return methodArgument;
             }
         }
         if (!(methodArgument instanceof J.TypeCast)) {
@@ -168,11 +169,8 @@ class ArgumentMatchersRewriter {
     }
 
     private Expression rewriteIdentifierToArgumentMatcher(J.Identifier methodArgument) {
-        if (methodArgument.getType() == null) {
-            throw new IllegalStateException("Missing type information for identifier: " + methodArgument);
-        }
         if (!(methodArgument.getType() instanceof JavaType.FullyQualified)) {
-            throw new IllegalStateException("Unexpected identifier type: " + methodArgument.getType());
+            return methodArgument;
         }
         JavaType.FullyQualified type = (JavaType.FullyQualified) methodArgument.getType();
         return rewriteFullyQualifiedArgument(methodArgument, type.getClassName(), type.getFullyQualifiedName());
@@ -190,7 +188,8 @@ class ArgumentMatchersRewriter {
             className = ((JavaType.Class) typeCastType).getClassName();
             fqn = ((JavaType.Class) typeCastType).getFullyQualifiedName();
         } else {
-            throw new IllegalStateException("Unexpected J.TypeCast type: " + typeCastType);
+            // unhandled type, return argument unchanged
+            return methodArgument;
         }
         return rewriteFullyQualifiedArgument(tc, className, fqn);
     }
@@ -230,7 +229,8 @@ class ArgumentMatchersRewriter {
                 argumentMatcher = "isNull";
                 break;
             default:
-                throw new IllegalStateException("Unexpected primitive type: " + primitiveType);
+                // unhandled type, return argument unchanged
+                return methodArgument;
         }
         String template = argumentMatcher + "()";
         return applyArgumentTemplate(methodArgument, argumentMatcher, template, new ArrayList<>());

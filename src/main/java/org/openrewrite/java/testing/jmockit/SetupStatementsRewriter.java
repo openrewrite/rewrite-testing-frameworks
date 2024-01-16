@@ -40,15 +40,15 @@ class SetupStatementsRewriter {
         List<Statement> statements = methodBody.getStatements();
         // iterate over each statement in the method body, find Expectations blocks and rewrite them
         for (Statement s : statements) {
-            if (!JMockitUtils.isExpectationsNewClassStatement(s)) {
+            if (!JMockitUtils.isValidExpectationsNewClassStatement(s)) {
                 continue;
             }
-
             J.NewClass nc = (J.NewClass) s;
             assert nc.getBody() != null;
+            J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
+
             // statement needs to be moved directly before expectations class instantiation
             JavaCoordinates coordinates = nc.getCoordinates().before();
-            J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
             List<Statement> newExpectationsBlockStatements = new ArrayList<>();
             for (Statement expectationStatement : expectationsBlock.getStatements()) {
                 if (!isSetupStatement(expectationStatement)) {

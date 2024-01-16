@@ -20,7 +20,7 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
 class JMockitUtils {
-    static boolean isExpectationsNewClassStatement(Statement s) {
+    static boolean isValidExpectationsNewClassStatement(Statement s) {
         if (!(s instanceof J.NewClass)) {
             return false;
         }
@@ -32,13 +32,7 @@ class JMockitUtils {
         if (!TypeUtils.isAssignableTo("mockit.Expectations", clazz.getType())) {
             return false;
         }
-        // empty Expectations block is considered invalid
-        assert nc.getBody() != null
-                && !nc.getBody().getStatements().isEmpty() : "Expectations block is empty";
         // Expectations block should be composed of a block within another block
-        assert nc.getBody().getStatements().size() == 1 : "Expectations block is malformed";
-
-        return true;
+        return nc.getBody() != null && nc.getBody().getStatements().size() == 1;
     }
-
 }
