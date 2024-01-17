@@ -29,7 +29,8 @@ class RemoveTestPrefixTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
           .recipe(new RemoveTestPrefix());
     }
 
@@ -260,6 +261,32 @@ class RemoveTestPrefixTest implements RewriteTest {
                   }
                   
                   void myDoSomethingLogic() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void skipImpliedMethodSource() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.params.provider.Arguments;
+              import org.junit.jupiter.params.provider.MethodSource;
+              import java.util.stream.Stream;
+
+              class ATest {
+                  @Test
+                  @MethodSource
+                  void testMyDoSomethingLogic(Arguments args) {
+                  }
+                  
+                  static Stream<Arguments> testMyDoSomethingLogic() {
+                      return Stream.empty();
+                  }
               }
               """
           )
