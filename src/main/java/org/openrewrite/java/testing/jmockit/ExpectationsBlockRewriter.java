@@ -24,7 +24,6 @@ import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 class ExpectationsBlockRewriter {
 
@@ -254,11 +253,11 @@ class ExpectationsBlockRewriter {
         final MockInvocationResults resultWrapper = new MockInvocationResults();
         for (int i = 1; i < expectationStatements.size(); i++) {
             Statement expectationStatement = expectationStatements.get(i);
+            if (hasTimes && expectationStatement instanceof J.MethodInvocation) {
+                // times statement must be last in invocation
+                return null;
+            }
             if (expectationStatement instanceof J.MethodInvocation) {
-                if (hasTimes) {
-                    // times statement must be last in invocation
-                    return null;
-                }
                 // handle returns statement
                 J.MethodInvocation invocation = (J.MethodInvocation) expectationStatement;
                 for (Expression argument : invocation.getArguments()) {
@@ -269,25 +268,24 @@ class ExpectationsBlockRewriter {
             }
             J.Assignment assignment = (J.Assignment) expectationStatement;
             if (!(assignment.getVariable() instanceof J.Identifier)) {
-                // unexpected assignment variable type
+                // unhandled assignment variable type
                 return null;
             }
             J.Identifier identifier = (J.Identifier) assignment.getVariable();
             boolean isResult = identifier.getSimpleName().equals("result");
             boolean isTimes = identifier.getSimpleName().equals("times");
+            if (isResult && hasTimes) {
+                // times statement must be last in invocation
+                return null;
+            }
             if (isResult) {
-                if (hasTimes) {
-                    // times statement must be last in invocation
-                    return null;
-                }
                 numResults += 1;
                 resultWrapper.addResult(assignment.getAssignment());
+            } else if (isTimes && numResults > 1) {
+                // times statement cannot be used with multiple results
+                return null;
             } else if (isTimes) {
                 hasTimes = true;
-                if (numResults > 1) {
-                    // times statement cannot be used with multiple results
-                    return null;
-                }
                 resultWrapper.setTimes(assignment.getAssignment());
             }
         }
@@ -299,9 +297,9 @@ class ExpectationsBlockRewriter {
         if (select == null || select.getType() == null) {
             return null;
         }
-        String fqn = ""; // default to empty string to support method invocations
-        if (select instanceof J.Identifier) {
-            fqn = ((JavaType.FullyQualified) Objects.requireNonNull(select.getType())).getFullyQualifiedName();
+        String fqn = null;
+        if (select.getType() instanceof JavaType.FullyQualified) {
+            fqn = ((JavaType.FullyQualified) select.getType()).getFullyQualifiedName();
         }
         return fqn;
     }
