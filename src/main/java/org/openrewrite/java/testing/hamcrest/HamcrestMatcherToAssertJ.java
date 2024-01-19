@@ -28,6 +28,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +52,13 @@ public class HamcrestMatcherToAssertJ extends Recipe {
     @Nullable
     String assertion;
 
+    @Option(displayName = "Argument Type",
+            description = "The type of the argument to the Hamcrest `Matcher`.",
+            example = "java.math.BigDecimal",
+            required = false)
+    @Nullable
+    String argumentType;
+
     @Override
     public String getDisplayName() {
         return "Migrate from Hamcrest `Matcher` to AssertJ";
@@ -71,7 +79,6 @@ public class HamcrestMatcherToAssertJ extends Recipe {
         private final MethodMatcher matchersMatcher = new MethodMatcher("org.hamcrest.*Matchers " + matcher + "(..)");
         private final MethodMatcher subMatcher = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
 
-
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
@@ -89,6 +96,10 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             if (!matchersMatcher.matches(matcherArgument) || subMatcher.matches(matcherArgument)) {
                 return mi;
             }
+            if (argumentType != null && !TypeUtils.isOfClassType(actualArgument.getType(), argumentType)) {
+                return mi;
+            }
+
             String actual = typeToIndicator(actualArgument.getType());
             J.MethodInvocation matcherArgumentMethod = (J.MethodInvocation) matcherArgument;
             JavaTemplate template = JavaTemplate.builder(String.format(

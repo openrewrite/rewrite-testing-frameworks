@@ -41,7 +41,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void notMatcher() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("not", "isNotEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("not", "isNotEqualTo", null)),
               //language=java
               java(
                     """
@@ -64,7 +64,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void isMatcher() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo", null)),
               //language=java
               java(
                     """
@@ -87,7 +87,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void anyOfVarargsMatcher() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo", null)),
               //language=java
               java(
                     """
@@ -110,7 +110,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void anyOfIterableMatcher() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("is", "isEqualTo", null)),
               //language=java
               java(
                     """
@@ -137,7 +137,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void isEmpty() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("isEmptyString", "isEmpty")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("isEmptyString", "isEmpty", null)),
               //language=java
               java(
                     """
@@ -173,7 +173,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void coreMatchers() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("startsWith", "startsWith")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("startsWith", "startsWith", null)),
               //language=java
               java(
                 """
@@ -214,7 +214,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @DocumentExample
         void equalToString() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo", null)),
               //language=java
               java(
                     """
@@ -252,7 +252,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void equalToStringLiteral() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo", null)),
               //language=java
               java(
                     """
@@ -288,7 +288,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void equalToObject() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo", null)),
               //language=java
               java(
                     """
@@ -336,7 +336,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void lessThanNumber() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("lessThan", "isLessThan")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("lessThan", "isLessThan", null)),
               //language=java
               java(
                     """
@@ -375,7 +375,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void containsInAnyOrderWithArray() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("containsInAnyOrder", "containsExactlyInAnyOrder")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("containsInAnyOrder", "containsExactlyInAnyOrder", null)),
               //language=java
               java(
                     """
@@ -418,7 +418,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void closeToTest() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("closeTo", "isCloseTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("closeTo", "isCloseTo", null)),
               //language=java
               java(
                     """
@@ -453,7 +453,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void closeToWorksWithBigDecimal() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("closeTo", "isCloseTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("closeTo", "isCloseTo", null)),
               //language=java
               java(
                     """
@@ -499,7 +499,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void reasonAsLiteral() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo", null)),
               //language=java
               java(
                     """
@@ -537,7 +537,7 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
         @Test
         void reasonAsMethodCall() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo")),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo", null)),
               //language=java
               java(
                     """

@@ -52,7 +52,7 @@ public class HamcrestIsMatcherToAssertJ extends Recipe {
                 String replacement = 2 <= arguments.size() &&
                                      TypeUtils.asArray(arguments.get(arguments.size() - 2).getType()) != null ?
                         "containsExactly" : "isEqualTo";
-                doAfterVisit(new HamcrestMatcherToAssertJ("is", replacement).getVisitor());
+                doAfterVisit(new HamcrestMatcherToAssertJ("is", replacement, null).getVisitor());
 
                 return super.visitMethodInvocation(methodInvocation, ctx);
             }
