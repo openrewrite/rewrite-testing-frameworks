@@ -69,7 +69,7 @@ public class ExplicitContainerImage extends Recipe {
                 J.NewClass nc = super.visitNewClass(newClass, ctx);
                 if (methodMatcher.matches(nc)) {
                     Expression constructorArgument = getConstructorArgument(nc);
-                    return nc.withArguments(Arrays.asList(constructorArgument))
+                    return nc.withArguments(singletonList(constructorArgument))
                             .withMethodType(nc.getMethodType()
                                     .withParameterTypes(singletonList(constructorArgument.getType()))
                                     .withParameterNames(singletonList("image")));
