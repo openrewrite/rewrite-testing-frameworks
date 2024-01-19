@@ -103,25 +103,27 @@ class ArgumentMatchersRewriter {
     }
 
     private Expression rewriteMethodArgument(Expression methodArgument) {
-        String argumentMatcher, template;
-        if (!isJmockitArgumentMatcher(methodArgument)) {
-            if (methodArgument instanceof J.Literal) {
-                return rewritePrimitiveToArgumentMatcher((J.Literal) methodArgument);
-            } else if (methodArgument instanceof J.Identifier) {
-                return rewriteIdentifierToArgumentMatcher((J.Identifier) methodArgument);
-            } else if (methodArgument instanceof J.FieldAccess) {
-                return rewriteIdentifierToArgumentMatcher(((J.FieldAccess) methodArgument).getName());
-            } else {
-                // unhandled type, return argument unchanged
-                return methodArgument;
-            }
-        }
-        if (!(methodArgument instanceof J.TypeCast)) {
-            argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
-            template = argumentMatcher + "()";
+        if (!(methodArgument instanceof J.TypeCast) && isJmockitArgumentMatcher(methodArgument)) {
+            String argumentMatcher = ((J.Identifier) methodArgument).getSimpleName();
+            String template = argumentMatcher + "()";
             return applyArgumentTemplate(methodArgument, argumentMatcher, template, new ArrayList<>());
         }
-        return rewriteTypeCastToArgumentMatcher(methodArgument);
+
+        JavaType type = methodArgument.getType();
+        if (type == null) {
+            // missing type, return argument unchanged
+            return methodArgument;
+        }
+        if (type instanceof JavaType.Primitive) {
+            return rewritePrimitiveToArgumentMatcher(methodArgument, (JavaType.Primitive) type);
+        } else if (type instanceof JavaType.FullyQualified) {
+            JavaType.FullyQualified fqType = (JavaType.FullyQualified) type;
+            return rewriteFullyQualifiedArgument(methodArgument, fqType.getClassName(), fqType.getFullyQualifiedName());
+        } else if (methodArgument instanceof J.TypeCast) {
+            return rewriteTypeCastToArgumentMatcher(methodArgument);
+        }
+        // unhandled type, return argument unchanged
+        return methodArgument;
     }
 
     private Expression applyArgumentTemplate(Expression methodArgument, String argumentMatcher, String template,
@@ -153,27 +155,57 @@ class ArgumentMatchersRewriter {
     private Expression rewriteFullyQualifiedArgument(Expression methodArgument, String className, String fqn) {
         String template;
         List<Object> templateParams = new ArrayList<>();
-        String argumentMatcher = "any";
-        if (MOCKITO_COLLECTION_MATCHERS.containsKey(fqn)) {
-            // mockito has specific argument matchers for collections
-            argumentMatcher = MOCKITO_COLLECTION_MATCHERS.get(fqn);
-            template = argumentMatcher + "()";
-        } else if (fqn.equals("java.lang.String")) {
-            argumentMatcher = "anyString";
-            template = argumentMatcher + "()";
-        } else {
-            templateParams.add(applyClassArgumentTemplate(methodArgument, className));
-            template = "any(#{any(java.lang.Class)})";
+        String argumentMatcher;
+        switch (fqn) {
+            case "java.lang.String":
+                argumentMatcher = "anyString";
+                template = argumentMatcher + "()";
+                break;
+            case "java.lang.Integer":
+                argumentMatcher = "anyInt";
+                template = argumentMatcher + "()";
+                break;
+            case "java.lang.Long":
+                argumentMatcher = "anyLong";
+                template = argumentMatcher + "()";
+                break;
+            case "java.lang.Double":
+                argumentMatcher = "anyDouble";
+                template = argumentMatcher + "()";
+                break;
+            case "java.lang.Float":
+                argumentMatcher = "anyFloat";
+                template = argumentMatcher + "()";
+                break;
+            case "java.lang.Boolean":
+                argumentMatcher = "anyBoolean";
+                template = argumentMatcher + "()";
+                break;
+            case "java.lang.Byte":
+                argumentMatcher = "anyByte";
+                template = argumentMatcher + "()";
+                break;
+            case "java.lang.Character":
+                argumentMatcher = "anyChar";
+                template = argumentMatcher + "()";
+                break;
+            case "java.lang.Short":
+                argumentMatcher = "anyShort";
+                template = argumentMatcher + "()";
+                break;
+            default:
+                if (MOCKITO_COLLECTION_MATCHERS.containsKey(fqn)) {
+                    // mockito has specific argument matchers for collections
+                    argumentMatcher = MOCKITO_COLLECTION_MATCHERS.get(fqn);
+                    template = argumentMatcher + "()";
+                } else {
+                    // mockito uses any(Class) for all other types
+                    argumentMatcher = "any";
+                    template = argumentMatcher + "(#{any(java.lang.Class)})";
+                    templateParams.add(applyClassArgumentTemplate(methodArgument, className));
+                }
         }
         return applyArgumentTemplate(methodArgument, argumentMatcher, template, templateParams);
-    }
-
-    private Expression rewriteIdentifierToArgumentMatcher(J.Identifier methodArgument) {
-        if (!(methodArgument.getType() instanceof JavaType.FullyQualified)) {
-            return methodArgument;
-        }
-        JavaType.FullyQualified type = (JavaType.FullyQualified) methodArgument.getType();
-        return rewriteFullyQualifiedArgument(methodArgument, type.getClassName(), type.getFullyQualifiedName());
     }
 
     private Expression rewriteTypeCastToArgumentMatcher(Expression methodArgument) {
@@ -194,10 +226,9 @@ class ArgumentMatchersRewriter {
         return rewriteFullyQualifiedArgument(tc, className, fqn);
     }
 
-    private Expression rewritePrimitiveToArgumentMatcher(J.Literal methodArgument) {
+    private Expression rewritePrimitiveToArgumentMatcher(Expression methodArgument, JavaType.Primitive type) {
         String argumentMatcher;
-        JavaType.Primitive primitiveType = methodArgument.getType();
-        switch (Objects.requireNonNull(primitiveType)) {
+        switch (type) {
             case Boolean:
                 argumentMatcher = "anyBoolean";
                 break;

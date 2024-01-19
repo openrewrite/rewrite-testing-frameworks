@@ -22,9 +22,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 class SetupStatementsRewriter {
 
@@ -44,6 +42,13 @@ class SetupStatementsRewriter {
                 continue;
             }
             J.NewClass nc = (J.NewClass) s;
+            Set<String> spies = new HashSet<>();
+            for (Expression newClassArg : nc.getArguments()) {
+                if (newClassArg instanceof J.Identifier) {
+                    spies.add(((J.Identifier) newClassArg).getSimpleName());
+                }
+            }
+
             assert nc.getBody() != null;
             J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
 
@@ -51,7 +56,7 @@ class SetupStatementsRewriter {
             JavaCoordinates coordinates = nc.getCoordinates().before();
             List<Statement> newExpectationsBlockStatements = new ArrayList<>();
             for (Statement expectationStatement : expectationsBlock.getStatements()) {
-                if (!isSetupStatement(expectationStatement)) {
+                if (!isSetupStatement(expectationStatement, spies)) {
                     newExpectationsBlockStatements.add(expectationStatement);
                     continue;
                 }
@@ -79,29 +84,38 @@ class SetupStatementsRewriter {
                 );
     }
 
-    private static boolean isSetupStatement(Statement expectationStatement) {
+    private static boolean isSetupStatement(Statement expectationStatement, Set<String> spies) {
         if (expectationStatement instanceof J.MethodInvocation) {
             // a method invocation on a mock is not a setup statement
             J.MethodInvocation methodInvocation = (J.MethodInvocation) expectationStatement;
             if (methodInvocation.getSelect() instanceof J.MethodInvocation) {
-                return isSetupStatement((Statement) methodInvocation.getSelect());
+                return isSetupStatement((Statement) methodInvocation.getSelect(), spies);
             } else if (methodInvocation.getSelect() instanceof J.Identifier) {
-                return isNotMockIdentifier((J.Identifier) methodInvocation.getSelect());
+                return isNotMockIdentifier((J.Identifier) methodInvocation.getSelect(), spies);
             } else if (methodInvocation.getSelect() instanceof J.FieldAccess) {
-                return isNotMockIdentifier((J.Identifier) ((J.FieldAccess) methodInvocation.getSelect()).getTarget());
+                return isNotMockIdentifier((J.Identifier) ((J.FieldAccess) methodInvocation.getSelect()).getTarget(), spies);
             } else {
-                return isNotMockIdentifier(methodInvocation.getName());
+                return isNotMockIdentifier(methodInvocation.getName(), spies);
             }
         } else if (expectationStatement instanceof J.Assignment) {
             // an assignment to a jmockit reserved field is not a setup statement
             J.Assignment assignment = (J.Assignment) expectationStatement;
+            if (assignment.getVariable() instanceof J.FieldAccess) {
+                return true;
+            }
             J.Identifier identifier = (J.Identifier) assignment.getVariable();
-            return !identifier.getSimpleName().equals("result") && !identifier.getSimpleName().equals("times");
+            String identifierName = identifier.getSimpleName();
+            return !identifierName.equals("result")
+                    && !identifierName.equals("times")
+                    && !identifierName.equals("minTimes");
         }
         return true;
     }
 
-    private static boolean isNotMockIdentifier(J.Identifier identifier) {
+    private static boolean isNotMockIdentifier(J.Identifier identifier, Set<String> spies) {
+        if (spies.contains(identifier.getSimpleName())) {
+            return false;
+        }
         if (identifier.getType() instanceof JavaType.Method
                 && TypeUtils.isAssignableTo("mockit.Expectations",
                 ((JavaType.Method) identifier.getType()).getDeclaringType())) {
