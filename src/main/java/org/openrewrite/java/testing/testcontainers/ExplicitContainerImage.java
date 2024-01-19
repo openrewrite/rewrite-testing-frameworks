@@ -29,8 +29,7 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.marker.Markers;
 
-import java.util.Arrays;
-import java.util.UUID;
+import java.util.Collections;
 
 @RequiredArgsConstructor
 public class ExplicitContainerImage extends Recipe {
@@ -67,7 +66,11 @@ public class ExplicitContainerImage extends Recipe {
             public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                 J.NewClass nc = super.visitNewClass(newClass, ctx);
                 if (methodMatcher.matches(newClass)) {
-                    return nc.withArguments(Arrays.asList(getConstructorArgument(newClass)));
+                    Expression constructorArgument = getConstructorArgument(newClass);
+                    return nc.withArguments(Collections.singletonList(constructorArgument))
+                            .withConstructorType(nc.getConstructorType()
+                                    .withParameterNames(Collections.singletonList("image"))
+                                    .withParameterTypes(Collections.singletonList(constructorArgument.getType())));
                 }
                 return nc;
             }
@@ -83,7 +86,7 @@ public class ExplicitContainerImage extends Recipe {
                             .apply(getCursor(), newClass.getArguments().get(0).getCoordinates().replace())
                             .withPrefix(Space.EMPTY);
                 }
-                return new J.Literal(UUID.randomUUID(), Space.EMPTY, Markers.EMPTY, image, "\"" + image + "\"", null, JavaType.Primitive.String);
+                return new J.Literal(Tree.randomId(), Space.EMPTY, Markers.EMPTY, image, "\"" + image + "\"", null, JavaType.Primitive.String);
             }
         });
     }
