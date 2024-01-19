@@ -67,7 +67,6 @@ public class ExplicitContainerImage extends Recipe {
             @Override
             public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                 J.NewClass nc = super.visitNewClass(newClass, ctx);
-
                 if (methodMatcher.matches(nc)) {
                     Expression constructorArgument = getConstructorArgument(nc);
                     return nc.withArguments(Arrays.asList(constructorArgument))
