@@ -29,7 +29,6 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.marker.Markers;
 
-import java.util.Collections;
 
 import static java.util.Collections.singletonList;
 
