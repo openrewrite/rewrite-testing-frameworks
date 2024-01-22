@@ -321,8 +321,7 @@ class AssertToAssertionsTest implements RewriteTest {
             .recipe(Environment.builder()
               .scanRuntimeClasspath("org.openrewrite.java.testing")
               .build()
-              .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices"))
-            .expectedCyclesThatMakeChanges(2),
+              .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices")),
           //language=java
           java(
             """
