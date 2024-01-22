@@ -538,6 +538,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         @Test
         void assertjMavenDependencyAddedWithTestScope() {
             rewriteRun(
+              spec -> spec.expectedCyclesThatMakeChanges(2),
               mavenProject("project",
                 srcTestJava(java(JAVA_BEFORE, JAVA_AFTER)),
                 //language=xml
@@ -586,7 +587,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         @Test
         void assertjGradleDependencyAddedWithTestScope() {
             rewriteRun(
-              spec -> spec.beforeRecipe(withToolingApi()),
+              spec -> spec.beforeRecipe(withToolingApi()).expectedCyclesThatMakeChanges(2),
               mavenProject("project",
                 srcTestJava(java(JAVA_BEFORE, JAVA_AFTER)),
                 buildGradle("""

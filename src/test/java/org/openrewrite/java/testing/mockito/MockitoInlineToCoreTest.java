@@ -32,6 +32,7 @@ class MockitoInlineToCoreTest implements RewriteTest {
     @Test
     void inlineToCore() {
         rewriteRun(
+          spec -> spec.expectedCyclesThatMakeChanges(2),
           //language=xml
           pomXml(
             """
