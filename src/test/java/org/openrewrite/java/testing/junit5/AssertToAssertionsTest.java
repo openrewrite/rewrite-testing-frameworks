@@ -318,7 +318,6 @@ class AssertToAssertionsTest implements RewriteTest {
     void staticallyImportAssertions() {
         rewriteRun(
           spec -> spec
-            .cycles(3)
             .recipe(Environment.builder()
               .scanRuntimeClasspath("org.openrewrite.java.testing")
               .build()
