@@ -32,6 +32,7 @@ import org.openrewrite.test.RewriteTest;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static java.util.Objects.requireNonNull;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.*;
@@ -579,7 +580,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                           </dependency>
                       </dependencies>
                   </project>
-                  """.formatted(Pattern.compile("<version>(3\\.2.*)</version>").matcher(after).results().findFirst().orElseThrow().group(1))))
+                  """.formatted(Pattern.compile("<version>(3\\.2.*)</version>").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1))))
             )
           );
         }
@@ -617,7 +618,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                       testImplementation "org.hamcrest:hamcrest:2.2"
                   }
                   """
-                  .formatted(Pattern.compile("(assertj-core:[^\"]*)").matcher(after).results().findFirst().orElseThrow().group(1))
+                  .formatted(Pattern.compile("(assertj-core:[^\"]*)").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1))
                 )
               )
             )
