@@ -61,55 +61,56 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-                """
-            class Biscuit {
-                String name;
-                Biscuit(String name) {
-                    this.name = name;
-                }
-                
-                int getChocolateChipCount() {
-                    return 10;
-                }
+            """
+              class Biscuit {
+                  String name;
+                  Biscuit(String name) {
+                      this.name = name;
+                  }
+                  
+                  int getChocolateChipCount() {
+                      return 10;
+                  }
 
-                int getHazelnutCount() {
-                    return 3;
-                }
-            }
-            """),
+                  int getHazelnutCount() {
+                      return 3;
+                  }
+              }
+              """),
           java(
-                """
-            import org.junit.jupiter.api.Test;
+            """
+              import org.junit.jupiter.api.Test;
 
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.*;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.*;
 
-            public class BiscuitTest {
-                @Test
-                public void biscuits() {
-                    Biscuit theBiscuit = new Biscuit("Ginger");
-                    Biscuit myBiscuit = new Biscuit("Ginger");
-                    assertThat(theBiscuit, equalTo(myBiscuit));
-                    assertThat("chocolate chips", theBiscuit.getChocolateChipCount(), equalTo(10));
-                    assertThat("hazelnuts", theBiscuit.getHazelnutCount(), equalTo(3));
-                }
-            }
-            """, """
-import org.junit.jupiter.api.Test;
+              public class BiscuitTest {
+                  @Test
+                  public void biscuits() {
+                      Biscuit theBiscuit = new Biscuit("Ginger");
+                      Biscuit myBiscuit = new Biscuit("Ginger");
+                      assertThat(theBiscuit, equalTo(myBiscuit));
+                      assertThat("chocolate chips", theBiscuit.getChocolateChipCount(), equalTo(10));
+                      assertThat("hazelnuts", theBiscuit.getHazelnutCount(), equalTo(3));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.assertThat;
 
-public class BiscuitTest {
-    @Test
-    public void biscuits() {
-        Biscuit theBiscuit = new Biscuit("Ginger");
-        Biscuit myBiscuit = new Biscuit("Ginger");
-        assertThat(theBiscuit).isEqualTo(myBiscuit);
-        assertThat(theBiscuit.getChocolateChipCount()).as("chocolate chips").isEqualTo(10);
-        assertThat(theBiscuit.getHazelnutCount()).as("hazelnuts").isEqualTo(3);
-    }
-}
-            """));
+              public class BiscuitTest {
+                  @Test
+                  public void biscuits() {
+                      Biscuit theBiscuit = new Biscuit("Ginger");
+                      Biscuit myBiscuit = new Biscuit("Ginger");
+                      assertThat(theBiscuit).isEqualTo(myBiscuit);
+                      assertThat(theBiscuit.getChocolateChipCount()).as("chocolate chips").isEqualTo(10);
+                      assertThat(theBiscuit.getHazelnutCount()).as("hazelnuts").isEqualTo(3);
+                  }
+              }
+              """));
     }
 
     @Test
@@ -538,6 +539,7 @@ public class BiscuitTest {
         @Test
         void assertjMavenDependencyAddedWithTestScope() {
             rewriteRun(
+              spec -> spec.expectedCyclesThatMakeChanges(2),
               mavenProject("project",
                 srcTestJava(java(JAVA_BEFORE, JAVA_AFTER)),
                 //language=xml
@@ -586,7 +588,7 @@ public class BiscuitTest {
         @Test
         void assertjGradleDependencyAddedWithTestScope() {
             rewriteRun(
-              spec -> spec.beforeRecipe(withToolingApi()),
+              spec -> spec.beforeRecipe(withToolingApi()).expectedCyclesThatMakeChanges(2),
               mavenProject("project",
                 srcTestJava(java(JAVA_BEFORE, JAVA_AFTER)),
                 buildGradle("""
@@ -624,4 +626,51 @@ public class BiscuitTest {
         }
     }
 
+    @Nested
+    class Issues {
+        @Test
+        @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/468")
+        void comparesEqualToBigDecimals() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.comparesEqualTo;
+                  import java.math.BigDecimal;
+
+                  class A {
+                      void foo() {
+                          var a = new BigDecimal("1");
+                          var b = new BigDecimal("1.00");
+                          assertThat(a, comparesEqualTo(b));
+                      }
+                      void bar() {
+                          var a = "1";
+                          var b = "1.00";
+                          assertThat(a, comparesEqualTo(b));
+                      }
+                  }
+                  """,
+                """
+                  import static org.assertj.core.api.Assertions.assertThat;
+                  import java.math.BigDecimal;
+
+                  class A {
+                      void foo() {
+                          var a = new BigDecimal("1");
+                          var b = new BigDecimal("1.00");
+                          assertThat(a).isEqualByComparingTo(b);
+                      }
+                      void bar() {
+                          var a = "1";
+                          var b = "1.00";
+                          assertThat(a).isEqualTo(b);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+    }
 }
