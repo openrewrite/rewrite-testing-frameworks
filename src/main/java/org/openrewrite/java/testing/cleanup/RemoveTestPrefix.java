@@ -84,6 +84,7 @@ public class RemoveTestPrefix extends Recipe {
             int nameLength = simpleName.length();
             if (nameLength < 5
                     || !simpleName.startsWith("test")
+                    || !(simpleName.charAt(4) == '_' || Character.isUpperCase(simpleName.charAt(4)))
                     || TypeUtils.isOverride(method.getMethodType())
                     || !hasJUnit5MethodAnnotation(method)) {
                 return m;

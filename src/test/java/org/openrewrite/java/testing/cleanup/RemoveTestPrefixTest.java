@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.cleanup;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -286,6 +287,29 @@ class RemoveTestPrefixTest implements RewriteTest {
                   
                   static Stream<Arguments> testMyDoSomethingLogic() {
                       return Stream.empty();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/471")
+    void ignoreTestingAsPrefix() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class ATest {
+                  @Test
+                  void testingEnvironment() {
+                  }
+
+                  @Test
+                  void tests() {
                   }
               }
               """
