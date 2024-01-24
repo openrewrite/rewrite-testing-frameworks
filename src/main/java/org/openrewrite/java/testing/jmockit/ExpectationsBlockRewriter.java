@@ -248,15 +248,21 @@ class ExpectationsBlockRewriter {
         StringBuilder templateBuilder = new StringBuilder("verify(#{any(" + fqn + ")}, "
                 + verificationMode
                 + "(#{any(int)})).#{}(");
+        boolean hasArgument = false;
         for (Expression argument : arguments) {
-            if (argument instanceof J.Literal) {
+            if (argument instanceof J.Empty) {
+                continue;
+            } else if (argument instanceof J.Literal) {
                 templateBuilder.append(((J.Literal) argument).getValueSource());
             } else {
                 templateBuilder.append(argument);
             }
+            hasArgument = true;
             templateBuilder.append(", ");
         }
-        templateBuilder.delete(templateBuilder.length() - 2, templateBuilder.length());
+        if (hasArgument) {
+            templateBuilder.delete(templateBuilder.length() - 2, templateBuilder.length());
+        }
         templateBuilder.append(");");
         return templateBuilder.toString();
     }
@@ -274,11 +280,11 @@ class ExpectationsBlockRewriter {
                 continue;
             }
             J.Assignment assignment = (J.Assignment) expectationStatement;
-            if (!(assignment.getVariable() instanceof J.Identifier)) {
+            J.Identifier identifier = JMockitUtils.getVariableIdentifierFromAssignment(assignment);
+            if (identifier == null) {
                 // unhandled assignment variable type
                 return null;
             }
-            J.Identifier identifier = (J.Identifier) assignment.getVariable();
             switch (identifier.getSimpleName()) {
                 case "result":
                     resultWrapper.addResult(assignment.getAssignment());
