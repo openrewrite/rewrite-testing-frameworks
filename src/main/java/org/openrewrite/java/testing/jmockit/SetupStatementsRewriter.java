@@ -101,17 +101,26 @@ class SetupStatementsRewriter {
             return isNotMockIdentifier(methodInvocation.getName(), spies);
         } else if (expectationStatement instanceof J.Assignment) {
             // an assignment to a jmockit reserved field is not a setup statement
-            J.Assignment assignment = (J.Assignment) expectationStatement;
-            J.Identifier identifier = JMockitUtils.getVariableIdentifierFromAssignment(assignment);
-            if (identifier == null) {
-                return true;
-            }
-            JavaType owner = identifier.getFieldType() != null ? identifier.getFieldType().getOwner() : null;
-            return !TypeUtils.isAssignableTo("mockit.Invocations", identifier.getType())
-                    && !TypeUtils.isAssignableTo("mockit.Invocations", owner);
-
+            JavaType variableType = getVariableTypeFromAssignment((J.Assignment) expectationStatement);
+            return !TypeUtils.isAssignableTo("mockit.Invocations", variableType);
         }
         return true;
+    }
+
+    private static JavaType getVariableTypeFromAssignment(J.Assignment assignment) {
+        J.Identifier identifier = null;
+        if (assignment.getVariable() instanceof J.Identifier) {
+            identifier = (J.Identifier) assignment.getVariable();
+        } else if (assignment.getVariable() instanceof J.FieldAccess) {
+            J.FieldAccess fieldAccess = (J.FieldAccess) assignment.getVariable();
+            if (fieldAccess.getTarget() instanceof J.Identifier) {
+                identifier = (J.Identifier) fieldAccess.getTarget();
+            }
+        }
+        if (identifier == null) {
+            return null;
+        }
+        return identifier.getFieldType() != null ? identifier.getFieldType().getOwner() : identifier.getType();
     }
 
     private static boolean isNotMockIdentifier(J.Identifier identifier, Set<String> spies) {

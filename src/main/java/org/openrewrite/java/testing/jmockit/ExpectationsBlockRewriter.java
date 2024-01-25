@@ -280,12 +280,12 @@ class ExpectationsBlockRewriter {
                 continue;
             }
             J.Assignment assignment = (J.Assignment) expectationStatement;
-            J.Identifier identifier = JMockitUtils.getVariableIdentifierFromAssignment(assignment);
-            if (identifier == null) {
+            String variableName = getVariableNameFromAssignment(assignment);
+            if (variableName == null) {
                 // unhandled assignment variable type
                 return null;
             }
-            switch (identifier.getSimpleName()) {
+            switch (variableName) {
                 case "result":
                     resultWrapper.addResult(assignment.getAssignment());
                     break;
@@ -301,6 +301,19 @@ class ExpectationsBlockRewriter {
             }
         }
         return resultWrapper;
+    }
+
+    private static String getVariableNameFromAssignment(J.Assignment assignment) {
+        String name = null;
+        if (assignment.getVariable() instanceof J.Identifier) {
+            name = ((J.Identifier) assignment.getVariable()).getSimpleName();
+        } else if (assignment.getVariable() instanceof J.FieldAccess) {
+            J.FieldAccess fieldAccess = (J.FieldAccess) assignment.getVariable();
+            if (fieldAccess.getTarget() instanceof J.Identifier) {
+                name = fieldAccess.getSimpleName();
+            }
+        }
+        return name;
     }
 
     private static String getPrimitiveTemplateField(JavaType.Primitive primitiveType) {

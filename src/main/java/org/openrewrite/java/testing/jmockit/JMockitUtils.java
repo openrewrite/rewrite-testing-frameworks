@@ -35,18 +35,4 @@ class JMockitUtils {
         // Expectations block should be composed of a block within another block
         return nc.getBody() != null && nc.getBody().getStatements().size() == 1;
     }
-
-    static J.Identifier getVariableIdentifierFromAssignment(J.Assignment assignment) {
-        J.Identifier identifier = null;
-        if (assignment.getVariable() instanceof J.Identifier) {
-            identifier = (J.Identifier) assignment.getVariable();
-        } else if (assignment.getVariable() instanceof J.FieldAccess) {
-            J.FieldAccess fieldAccess = (J.FieldAccess) assignment.getVariable();
-            if (fieldAccess.getTarget() instanceof J.Identifier) {
-                identifier = (J.Identifier) fieldAccess.getTarget();
-            }
-        }
-        return identifier;
-    }
-
 }

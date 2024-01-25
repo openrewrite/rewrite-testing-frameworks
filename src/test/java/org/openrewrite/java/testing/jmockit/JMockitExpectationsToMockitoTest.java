@@ -176,6 +176,11 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                           result = 10;
                       }};
                       assertEquals(10, myObject.getSomeField());
+                      new Expectations() {{
+                          myObject.getSomeField();
+                          this.result = 100;
+                      }};
+                      assertEquals(100, myObject.getSomeField());
                   }
               }
               """,
@@ -195,6 +200,8 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   void test() {
                       when(myObject.getSomeField()).thenReturn(10);
                       assertEquals(10, myObject.getSomeField());
+                      when(myObject.getSomeField()).thenReturn(100);
+                      assertEquals(100, myObject.getSomeField());
                   }
               }
               """
