@@ -60,14 +60,19 @@ public class JMockitExpectationsToMockito extends Recipe {
             J.Block methodBody = ssr.rewriteMethodBody();
             List<Statement> statements = methodBody.getStatements();
 
+            int bodyStatementIndex = 0;
             // iterate over each statement in the method body, find Expectations blocks and rewrite them
-            for (int bodyStatementIndex = 0; bodyStatementIndex < statements.size(); bodyStatementIndex++) {
+            while (bodyStatementIndex < statements.size()) {
                 if (!JMockitUtils.isValidExpectationsNewClassStatement(statements.get(bodyStatementIndex))) {
+                    bodyStatementIndex++;
                     continue;
                 }
                 ExpectationsBlockRewriter ebr = new ExpectationsBlockRewriter(this, ctx, methodBody,
                         ((J.NewClass) statements.get(bodyStatementIndex)), bodyStatementIndex);
                 methodBody = ebr.rewriteMethodBody();
+                // reset the iteration to the beginning of the method body since the number of statements has likely changed
+                bodyStatementIndex = 0;
+                statements = methodBody.getStatements();
             }
             return md.withBody(methodBody);
         }
