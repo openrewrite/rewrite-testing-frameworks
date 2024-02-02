@@ -33,7 +33,7 @@ import java.util.List;
 
 @SuppressWarnings("DuplicatedCode")
 @Value
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class RunnerToExtension extends Recipe {
 
     @Option(displayName = "Runners",
