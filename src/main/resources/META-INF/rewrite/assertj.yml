@@ -297,6 +297,21 @@ recipeList:
       dedicatedAssertion: isPresent
       requiredType: java.util.Optional
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isTrue
+      dedicatedAssertion: isEmpty
+      requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isPresent
+      assertToReplace: isFalse
+      dedicatedAssertion: isNotPresent
+      requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isFalse
+      dedicatedAssertion: isNotEmpty
+      requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: get
       assertToReplace: isEqualTo
       dedicatedAssertion: contains
