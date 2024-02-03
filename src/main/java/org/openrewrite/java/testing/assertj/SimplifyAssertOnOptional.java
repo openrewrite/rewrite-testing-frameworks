@@ -96,20 +96,4 @@ public class SimplifyAssertOnOptional {
         }
     }
 
-    @RecipeDescriptor(
-            name = "Replace `booleanExpression ? false : true` with `!booleanExpression`",
-            description = "Replace ternary expressions like `booleanExpression ? false : true` with `!booleanExpression`."
-    )
-    public class SimplifyTernaryFalseTrue {
-
-        @BeforeTemplate
-        boolean before(boolean expr) {
-            return expr ? false : true;
-        }
-
-        @AfterTemplate
-        boolean after(boolean expr) {
-            return !(expr);
-        }
-    }
 }
