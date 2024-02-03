@@ -23,16 +23,16 @@ import static org.assertj.core.api.Assertions.*;
 import java.util.Optional;
 
 @RecipeDescriptor(
-        name = "Simplify ternary expressions",
-        description = "Simplifies various types of ternary expressions to improve code readability."
+        name = "Simplify assertions on optionals",
+        description = "Simplifies various assertions on optionals to improve code readability."
 )
 public class SimplifyAssertOnOptional {
 
     @RecipeDescriptor(
-            name = "Replace `booleanExpression ? true : false` with `booleanExpression`",
-            description = "Replace ternary expressions like `booleanExpression ? true : false` with `booleanExpression`."
+            name = "Simplify `assertThat(o.isEmpty()).isFalse()`",
+            description = "Simplify `assertThat(o.isEmpty()).isFalse()` to `assertThat(o).isNotEmpty()`."
     )
-    public class SimplifyTernaryTrueFalse {
+    public class SimplifyToIsNotEmpty {
 
         @BeforeTemplate
         void before(Optional<?> o) {
