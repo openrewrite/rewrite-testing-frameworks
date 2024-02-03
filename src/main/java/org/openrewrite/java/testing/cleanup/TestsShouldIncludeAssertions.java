@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("SimplifyStreamApiCallChains")
 @Value
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class TestsShouldIncludeAssertions extends Recipe {
     private static final List<String> TEST_ANNOTATIONS = Collections.singletonList("org.junit.jupiter.api.Test");
 

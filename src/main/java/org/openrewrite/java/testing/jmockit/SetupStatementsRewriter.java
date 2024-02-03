@@ -22,9 +22,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 class SetupStatementsRewriter {
 
@@ -40,18 +38,25 @@ class SetupStatementsRewriter {
         List<Statement> statements = methodBody.getStatements();
         // iterate over each statement in the method body, find Expectations blocks and rewrite them
         for (Statement s : statements) {
-            if (!JMockitUtils.isExpectationsNewClassStatement(s)) {
+            if (!JMockitUtils.isValidExpectationsNewClassStatement(s)) {
                 continue;
             }
-
             J.NewClass nc = (J.NewClass) s;
+            Set<String> spies = new HashSet<>();
+            for (Expression newClassArg : nc.getArguments()) {
+                if (newClassArg instanceof J.Identifier) {
+                    spies.add(((J.Identifier) newClassArg).getSimpleName());
+                }
+            }
+
             assert nc.getBody() != null;
+            J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
+
             // statement needs to be moved directly before expectations class instantiation
             JavaCoordinates coordinates = nc.getCoordinates().before();
-            J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
             List<Statement> newExpectationsBlockStatements = new ArrayList<>();
             for (Statement expectationStatement : expectationsBlock.getStatements()) {
-                if (!isSetupStatement(expectationStatement)) {
+                if (!isSetupStatement(expectationStatement, spies)) {
                     newExpectationsBlockStatements.add(expectationStatement);
                     continue;
                 }
@@ -79,31 +84,51 @@ class SetupStatementsRewriter {
                 );
     }
 
-    private static boolean isSetupStatement(Statement expectationStatement) {
+    private boolean isSetupStatement(Statement expectationStatement, Set<String> spies) {
         if (expectationStatement instanceof J.MethodInvocation) {
             // a method invocation on a mock is not a setup statement
             J.MethodInvocation methodInvocation = (J.MethodInvocation) expectationStatement;
             if (methodInvocation.getSelect() instanceof J.MethodInvocation) {
-                return isSetupStatement((Statement) methodInvocation.getSelect());
-            } else if (methodInvocation.getSelect() instanceof J.Identifier) {
-                return isNotMockIdentifier((J.Identifier) methodInvocation.getSelect());
-            } else if (methodInvocation.getSelect() instanceof J.FieldAccess) {
-                return isNotMockIdentifier((J.Identifier) ((J.FieldAccess) methodInvocation.getSelect()).getTarget());
-            } else {
-                return isNotMockIdentifier(methodInvocation.getName());
+                return isSetupStatement((Statement) methodInvocation.getSelect(), spies);
             }
+            if (methodInvocation.getSelect() instanceof J.Identifier) {
+                return isNotMockIdentifier((J.Identifier) methodInvocation.getSelect(), spies);
+            }
+            if (methodInvocation.getSelect() instanceof J.FieldAccess) {
+                return isNotMockIdentifier((J.Identifier) ((J.FieldAccess) methodInvocation.getSelect()).getTarget(),
+                        spies);
+            }
+            return isNotMockIdentifier(methodInvocation.getName(), spies);
         } else if (expectationStatement instanceof J.Assignment) {
             // an assignment to a jmockit reserved field is not a setup statement
-            J.Assignment assignment = (J.Assignment) expectationStatement;
-            J.Identifier identifier = (J.Identifier) assignment.getVariable();
-            return !identifier.getSimpleName().equals("result") && !identifier.getSimpleName().equals("times");
+            JavaType variableType = getVariableTypeFromAssignment((J.Assignment) expectationStatement);
+            return !TypeUtils.isAssignableTo("mockit.Invocations", variableType);
         }
         return true;
     }
 
-    private static boolean isNotMockIdentifier(J.Identifier identifier) {
+    private static JavaType getVariableTypeFromAssignment(J.Assignment assignment) {
+        J.Identifier identifier = null;
+        if (assignment.getVariable() instanceof J.Identifier) {
+            identifier = (J.Identifier) assignment.getVariable();
+        } else if (assignment.getVariable() instanceof J.FieldAccess) {
+            J.FieldAccess fieldAccess = (J.FieldAccess) assignment.getVariable();
+            if (fieldAccess.getTarget() instanceof J.Identifier) {
+                identifier = (J.Identifier) fieldAccess.getTarget();
+            }
+        }
+        if (identifier == null) {
+            return null;
+        }
+        return identifier.getFieldType() != null ? identifier.getFieldType().getOwner() : identifier.getType();
+    }
+
+    private static boolean isNotMockIdentifier(J.Identifier identifier, Set<String> spies) {
+        if (spies.contains(identifier.getSimpleName())) {
+            return false;
+        }
         if (identifier.getType() instanceof JavaType.Method
-                && TypeUtils.isAssignableTo("mockit.Expectations",
+                && TypeUtils.isAssignableTo("mockit.Invocations",
                 ((JavaType.Method) identifier.getType()).getDeclaringType())) {
             return false;
         }
@@ -113,10 +138,8 @@ class SetupStatementsRewriter {
         }
         for (JavaType.FullyQualified annotationType : fieldType.getAnnotations()) {
             if (TypeUtils.isAssignableTo("mockit.Mocked", annotationType)
-                    || TypeUtils.isAssignableTo("org.mockito.Mock", annotationType)
                     || TypeUtils.isAssignableTo("mockit.Injectable", annotationType)
-                    || TypeUtils.isAssignableTo("mockit.Tested", annotationType)
-                    || TypeUtils.isAssignableTo("org.mockito.InjectMocks", annotationType)) {
+                    || TypeUtils.isAssignableTo("mockit.Tested", annotationType)) {
                 return false;
             }
         }

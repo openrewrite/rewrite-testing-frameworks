@@ -53,6 +53,10 @@ class RemoveTestPrefixTest implements RewriteTest {
                   @Test
                   void test_snake_case() {
                   }
+                  
+                  @Test
+                  void testRTFCharacters() {
+                  }
 
                   @Nested
                   class NestedTestClass {
@@ -80,6 +84,10 @@ class RemoveTestPrefixTest implements RewriteTest {
 
                   @Test
                   void snake_case() {
+                  }
+                  
+                  @Test
+                  void rtfCharacters() {
                   }
 
                   @Nested

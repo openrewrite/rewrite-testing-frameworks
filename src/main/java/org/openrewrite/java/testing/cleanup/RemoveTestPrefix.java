@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.NameCaseConvention;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
@@ -100,8 +101,8 @@ public class RemoveTestPrefix extends Recipe {
 
             // Avoid reserved keywords
             String newMethodName = snakecase
-                    ? Character.toLowerCase(simpleName.charAt(5)) + simpleName.substring(6)
-                    : Character.toLowerCase(simpleName.charAt(4)) + simpleName.substring(5);
+                    ? NameCaseConvention.format(NameCaseConvention.LOWER_UNDERSCORE, simpleName.substring(5))
+                    : NameCaseConvention.format(NameCaseConvention.LOWER_CAMEL, simpleName.substring(4));
             if (RESERVED_KEYWORDS.contains(newMethodName)) {
                 return m;
             }

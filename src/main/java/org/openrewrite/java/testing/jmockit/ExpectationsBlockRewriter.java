@@ -24,7 +24,6 @@ import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 class ExpectationsBlockRewriter {
 
@@ -101,9 +100,12 @@ class ExpectationsBlockRewriter {
     }
 
     private void rewriteMethodBody(List<Statement> expectationStatements) {
-        J.MethodInvocation invocation = (J.MethodInvocation) expectationStatements.get(0);
         final MockInvocationResults mockInvocationResults = buildMockInvocationResults(expectationStatements);
-
+        if (mockInvocationResults == null || !(expectationStatements.get(0) instanceof J.MethodInvocation)) {
+            // invalid Expectations block, cannot rewrite
+            return;
+        }
+        J.MethodInvocation invocation = (J.MethodInvocation) expectationStatements.get(0);
         if (!mockInvocationResults.getResults().isEmpty()) {
             // rewrite the statement to mockito if there are results
             rewriteExpectationResult(mockInvocationResults.getResults(), invocation);
@@ -112,15 +114,24 @@ class ExpectationsBlockRewriter {
             removeExpectationsStatement();
         }
         if (mockInvocationResults.getTimes() != null) {
-            // add a verification statement to the end of the test method body
-            writeMethodVerification(invocation, mockInvocationResults.getTimes());
+            writeMethodVerification(invocation, mockInvocationResults.getTimes(), "times");
+        }
+        if (mockInvocationResults.getMinTimes() != null) {
+            writeMethodVerification(invocation, mockInvocationResults.getMinTimes(), "atLeast");
+        }
+        if (mockInvocationResults.getMaxTimes() != null) {
+            writeMethodVerification(invocation, mockInvocationResults.getMaxTimes(), "atMost");
         }
     }
 
     private void rewriteExpectationResult(List<Expression> results, J.MethodInvocation invocation) {
+        String template = getMockitoStatementTemplate(results);
+        if (template == null) {
+            // invalid template, cannot rewrite
+            return;
+        }
         visitor.maybeAddImport("org.mockito.Mockito", "when");
 
-        String template = getMockitoStatementTemplate(results);
         List<Object> templateParams = new ArrayList<>();
         templateParams.add(invocation);
         templateParams.addAll(results);
@@ -158,12 +169,16 @@ class ExpectationsBlockRewriter {
                 methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded).getCoordinates().after();
     }
 
-    private void writeMethodVerification(J.MethodInvocation invocation, Expression times) {
-        visitor.maybeAddImport("org.mockito.Mockito", "verify");
-        visitor.maybeAddImport("org.mockito.Mockito", "times");
-
+    private void writeMethodVerification(J.MethodInvocation invocation, Expression times, String verificationMode) {
         String fqn = getInvocationSelectFullyQualifiedClassName(invocation);
-        String verifyTemplate = getVerifyTemplate(invocation.getArguments(), fqn);
+        if (fqn == null) {
+            // cannot write a verification statement for an invocation without a select field
+            return;
+        }
+        visitor.maybeAddImport("org.mockito.Mockito", "verify");
+        visitor.maybeAddImport("org.mockito.Mockito", verificationMode);
+
+        String verifyTemplate = getVerifyTemplate(invocation.getArguments(), fqn, verificationMode);
         Object[] templateParams = new Object[] {
                 invocation.getSelect(),
                 times,
@@ -187,7 +202,12 @@ class ExpectationsBlockRewriter {
         for (Expression result : results) {
             JavaType resultType = result.getType();
             if (resultType instanceof JavaType.Primitive) {
-                appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX, PRIMITIVE_TEMPLATE_FIELD);
+                if (result instanceof J.Literal) {
+                    appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX, PRIMITIVE_TEMPLATE_FIELD);
+                } else {
+                    appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX,
+                            getPrimitiveTemplateField((JavaType.Primitive) resultType));
+                }
             } else if (resultType instanceof JavaType.Class) {
                 boolean isThrowable = TypeUtils.isAssignableTo(Throwable.class.getName(), resultType);
                 if (isThrowable) {
@@ -200,7 +220,8 @@ class ExpectationsBlockRewriter {
                 appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX,
                         getObjectTemplateField(((JavaType.Parameterized) resultType).getType().getFullyQualifiedName()));
             } else {
-                throw new IllegalStateException("Unexpected expression type for template: " + result.getType());
+                // unhandled result type
+                return null;
             }
             buildingResults = true;
         }
@@ -218,74 +239,118 @@ class ExpectationsBlockRewriter {
         templateBuilder.append(templateField);
     }
 
-    private static String getVerifyTemplate(List<Expression> arguments, String fqn) {
+    private static String getVerifyTemplate(List<Expression> arguments, String fqn, String verificationMode) {
         if (arguments.isEmpty()) {
-            return "verify(#{any(" + fqn + ")}, times(#{any(int)})).#{}();";
+            return "verify(#{any(" + fqn + ")}, "
+                    + verificationMode
+                    + "(#{any(int)})).#{}();";
         }
-        StringBuilder templateBuilder = new StringBuilder("verify(#{any(" + fqn + ")}, times(#{any(int)})).#{}(");
+        StringBuilder templateBuilder = new StringBuilder("verify(#{any(" + fqn + ")}, "
+                + verificationMode
+                + "(#{any(int)})).#{}(");
+        boolean hasArgument = false;
         for (Expression argument : arguments) {
-            if (argument instanceof J.Literal) {
+            if (argument instanceof J.Empty) {
+                continue;
+            } else if (argument instanceof J.Literal) {
                 templateBuilder.append(((J.Literal) argument).getValueSource());
             } else {
                 templateBuilder.append(argument);
             }
+            hasArgument = true;
             templateBuilder.append(", ");
         }
-        templateBuilder.delete(templateBuilder.length() - 2, templateBuilder.length());
+        if (hasArgument) {
+            templateBuilder.delete(templateBuilder.length() - 2, templateBuilder.length());
+        }
         templateBuilder.append(");");
         return templateBuilder.toString();
     }
 
     private static MockInvocationResults buildMockInvocationResults(List<Statement> expectationStatements) {
-        int numResults = 0;
-        boolean hasTimes = false;
         final MockInvocationResults resultWrapper = new MockInvocationResults();
         for (int i = 1; i < expectationStatements.size(); i++) {
             Statement expectationStatement = expectationStatements.get(i);
             if (expectationStatement instanceof J.MethodInvocation) {
-                if (hasTimes) {
-                    throw new IllegalStateException("times statement must be last in expectation");
-                }
                 // handle returns statement
                 J.MethodInvocation invocation = (J.MethodInvocation) expectationStatement;
                 for (Expression argument : invocation.getArguments()) {
-                    numResults += 1;
                     resultWrapper.addResult(argument);
                 }
                 continue;
             }
             J.Assignment assignment = (J.Assignment) expectationStatement;
-            if (!(assignment.getVariable() instanceof J.Identifier)) {
-                throw new IllegalStateException("Unexpected assignment variable type: " + assignment.getVariable());
+            String variableName = getVariableNameFromAssignment(assignment);
+            if (variableName == null) {
+                // unhandled assignment variable type
+                return null;
             }
-            J.Identifier identifier = (J.Identifier) assignment.getVariable();
-            boolean isResult = identifier.getSimpleName().equals("result");
-            boolean isTimes = identifier.getSimpleName().equals("times");
-            if (isResult) {
-                if (hasTimes) {
-                    throw new IllegalStateException("times statement must be last in expectation");
-                }
-                numResults += 1;
-                resultWrapper.addResult(assignment.getAssignment());
-            } else if (isTimes) {
-                hasTimes = true;
-                if (numResults > 1) {
-                    throw new IllegalStateException("multiple results cannot be used with times statement");
-                }
-                resultWrapper.setTimes(assignment.getAssignment());
+            switch (variableName) {
+                case "result":
+                    resultWrapper.addResult(assignment.getAssignment());
+                    break;
+                case "times":
+                    resultWrapper.setTimes(assignment.getAssignment());
+                    break;
+                case "minTimes":
+                    resultWrapper.setMinTimes(assignment.getAssignment());
+                    break;
+                case "maxTimes":
+                    resultWrapper.setMaxTimes(assignment.getAssignment());
+                    break;
             }
         }
         return resultWrapper;
     }
 
+    private static String getVariableNameFromAssignment(J.Assignment assignment) {
+        String name = null;
+        if (assignment.getVariable() instanceof J.Identifier) {
+            name = ((J.Identifier) assignment.getVariable()).getSimpleName();
+        } else if (assignment.getVariable() instanceof J.FieldAccess) {
+            J.FieldAccess fieldAccess = (J.FieldAccess) assignment.getVariable();
+            if (fieldAccess.getTarget() instanceof J.Identifier) {
+                name = fieldAccess.getSimpleName();
+            }
+        }
+        return name;
+    }
+
+    private static String getPrimitiveTemplateField(JavaType.Primitive primitiveType) {
+        switch (primitiveType) {
+            case Boolean:
+                return "#{any(boolean)}";
+            case Byte:
+                return "#{any(byte)}";
+            case Char:
+                return "#{any(char)}";
+            case Double:
+                return "#{any(double)}";
+            case Float:
+                return "#{any(float)}";
+            case Int:
+                return "#{any(int)}";
+            case Long:
+                return "#{any(long)}";
+            case Short:
+                return "#{any(short)}";
+            case String:
+                return "#{}";
+            case Null:
+                return "#{any()}";
+            default:
+                return null;
+        }
+    }
+
     private static String getInvocationSelectFullyQualifiedClassName(J.MethodInvocation invocation) {
         Expression select = invocation.getSelect();
         if (select == null || select.getType() == null) {
-            throw new IllegalStateException("Missing type information for invocation select field: " + select);
+            return null;
         }
-        String fqn = ""; // default to empty string to support method invocations
-        if (select instanceof J.Identifier) {
-            fqn = ((JavaType.FullyQualified) Objects.requireNonNull(select.getType())).getFullyQualifiedName();
+        String fqn = null;
+        if (select.getType() instanceof JavaType.FullyQualified) {
+            fqn = ((JavaType.FullyQualified) select.getType()).getFullyQualifiedName();
         }
         return fqn;
     }
@@ -293,6 +358,8 @@ class ExpectationsBlockRewriter {
     private static class MockInvocationResults {
         private final List<Expression> results = new ArrayList<>();
         private Expression times;
+        private Expression minTimes;
+        private Expression maxTimes;
 
         private List<Expression> getResults() {
             return results;
@@ -308,6 +375,22 @@ class ExpectationsBlockRewriter {
 
         private void setTimes(Expression times) {
             this.times = times;
+        }
+
+        private Expression getMinTimes() {
+            return minTimes;
+        }
+
+        private void setMinTimes(Expression minTimes) {
+            this.minTimes = minTimes;
+        }
+
+        private Expression getMaxTimes() {
+            return maxTimes;
+        }
+
+        private void setMaxTimes(Expression maxTimes) {
+            this.maxTimes = maxTimes;
         }
     }
 }
