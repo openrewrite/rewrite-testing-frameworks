@@ -46,6 +46,57 @@ public class SimplifyAssertOnOptional {
     }
 
     @RecipeDescriptor(
+            name = "Simplify `assertThat(o.isEmpty()).isTrue()`",
+            description = "Simplify `assertThat(o.isEmpty()).isTrue()` to `assertThat(o).isEmpty()`."
+    )
+    public class SimplifyToIsEmpty {
+
+        @BeforeTemplate
+        void before(Optional<?> o) {
+            assertThat(o.isEmpty()).isTrue();
+        }
+
+        @AfterTemplate
+        void after(Optional<?> o) {
+            assertThat(o).isEmpty();
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Simplify `assertThat(o.isPresent()).isFalse()`",
+            description = "Simplify `assertThat(o.isPresent()).isFalse()` to `assertThat(o).isNotPresent()`."
+    )
+    public class SimplifyToIsNotPresent {
+
+        @BeforeTemplate
+        void before(Optional<?> o) {
+            assertThat(o.isPresent()).isFalse();
+        }
+
+        @AfterTemplate
+        void after(Optional<?> o) {
+            assertThat(o).isNotPresent();
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Simplify `assertThat(o.isPresent()).isTrue()`",
+            description = "Simplify `assertThat(o.isPresent()).isTrue()` to `assertThat(o).isPresent()`."
+    )
+    public class SimplifyToIsPresent {
+
+        @BeforeTemplate
+        void before(Optional<?> o) {
+            assertThat(o.isPresent()).isTrue();
+        }
+
+        @AfterTemplate
+        void after(Optional<?> o) {
+            assertThat(o).isPresent();
+        }
+    }
+
+    @RecipeDescriptor(
             name = "Replace `booleanExpression ? false : true` with `!booleanExpression`",
             description = "Replace ternary expressions like `booleanExpression ? false : true` with `!booleanExpression`."
     )
