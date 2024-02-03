@@ -65,9 +65,9 @@ class SimplifyAssertOnOptionalTest implements RewriteTest {
                               @Test
                               void simpleTest() {
                                   Optional<String> o = Optional.empty();
-                                  assertThat(o).isPresent();
+                                  assertThat(o).isNotEmpty();
                                   assertThat(o).isEmpty();
-                                  assertThat(o).isEmpty();
+                                  assertThat(o).isNotPresent();
                                   assertThat(o).isPresent();
                               }
                           }
