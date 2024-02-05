@@ -35,7 +35,7 @@ public class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
 
     @DocumentExample
     @Test
-    void testJUnit5() {
+    void jUnit5() {
         //language=java
         rewriteRun(
           java(
@@ -73,7 +73,7 @@ public class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
     }
 
     @Test
-    void testJUnit5WithReason() {
+    void jUnit5WithReason() {
         //language=java
         rewriteRun(
           java(
@@ -111,7 +111,7 @@ public class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
     }
 
     @Test
-    void testJUnit4() {
+    void jUnit4() {
         //language=java
         rewriteRun(
           java(
@@ -149,7 +149,7 @@ public class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
     }
 
     @Test
-    void testJUnit4WithReason() {
+    void jUnit4WithReason() {
         //language=java
         rewriteRun(
           java(
