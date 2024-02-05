@@ -527,11 +527,12 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
     void parameterizedTestWithEmptyConstructor() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+            """
               import java.util.Arrays;
               import java.util.Collection;
               import org.junit.runners.Parameterized;
-                          
+              
               class SampleTestClass {
                   @Parameterized.Parameter(value = 0)
                   public int num1;
@@ -542,12 +543,12 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                   
                   public SampleTestClass() {
                   }
-                          
+              
                   @Parameterized.Parameters
                   public static Collection<Object[]> data() {
                       return Arrays.asList(new Object[][]{
                               {1, 2, 3},
-                              {4, 5, 6},
+                              {4, 5, 6}
                       });
                   }
               }
@@ -555,22 +556,22 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
             """
               import java.util.Arrays;
               import java.util.Collection;
-            
+              
               class SampleTestClass {
                   public int num1;
                   public int num2;
                   public int num3;
-
+              
                   public SampleTestClass() {
                   }
-
+              
                   public static Collection<Object[]> data() {
                       return Arrays.asList(new Object[][]{
                               {1, 2, 3},
-                              {4, 5, 6},
+                              {4, 5, 6}
                       });
                   }
-
+              
                   public void initSampleTestClass(int num1, int num2, int num3) {
                       this.num1 = num1;
                       this.num2 = num2;

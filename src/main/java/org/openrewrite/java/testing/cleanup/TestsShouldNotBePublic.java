@@ -41,7 +41,7 @@ import java.util.List;
 import java.util.Set;
 
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class TestsShouldNotBePublic extends Recipe {
 
     @Option(displayName = "Remove protected modifiers",

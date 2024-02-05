@@ -258,7 +258,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             // If the method is an init-method then add a static modifier if necessary
             if (initMethods.contains(m.getSimpleName()) || initMethodReferences.containsValue(m.getSimpleName())) {
                 if (m.getModifiers().stream().noneMatch(it -> J.Modifier.Type.Static.equals(it.getType()))) {
-                    J.Modifier staticModifier = new J.Modifier(UUID.randomUUID(), Space.format(" "), Markers.EMPTY, null, J.Modifier.Type.Static, new ArrayList<>());
+                    J.Modifier staticModifier = new J.Modifier(Tree.randomId(), Space.format(" "), Markers.EMPTY, null, J.Modifier.Type.Static, new ArrayList<>());
                     m = maybeAutoFormat(m, m.withModifiers(ListUtils.concat(m.getModifiers(), staticModifier)), ctx, getCursor().getParentTreeCursor());
                 }
             }

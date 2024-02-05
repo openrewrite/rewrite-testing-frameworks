@@ -34,7 +34,7 @@ import java.time.Duration;
 import java.util.*;
 
 @Value
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class AddMissingNested extends Recipe {
     private static final String NESTED = "org.junit.jupiter.api.Nested";
     private static final List<String> TEST_ANNOTATIONS = Arrays.asList(

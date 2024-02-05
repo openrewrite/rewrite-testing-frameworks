@@ -482,26 +482,26 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               }
               """,
             """
-               import static org.mockito.Mockito.*;
-                             
-               import java.util.Currency;
-               import java.util.Locale;
-                             
-               import org.junit.jupiter.api.Test;
-               import org.mockito.MockedStatic;
-                             
-               public class MyTest {
-                             
-                   private MockedStatic<Currency> mockedCurrency;
-                 
-                   private Currency currencyMock = mock(Currency.class);
-                             
-                   @Test
-                   void testStaticMethod() {
-                       mockedCurrency.verify(() -> Currency.getInstance(Locale.ENGLISH), never());
-                       mockedCurrency.verify(Currency::getAvailableCurrencies, atLeastOnce());
-                   }
-               }
+              import static org.mockito.Mockito.*;
+                            
+              import java.util.Currency;
+              import java.util.Locale;
+                            
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+                            
+              public class MyTest {
+                            
+                  private MockedStatic<Currency> mockedCurrency;
+                
+                  private Currency currencyMock = mock(Currency.class);
+                            
+                  @Test
+                  void testStaticMethod() {
+                      mockedCurrency.verify(() -> Currency.getInstance(Locale.ENGLISH), never());
+                      mockedCurrency.verify(Currency::getAvailableCurrencies, atLeastOnce());
+                  }
+              }
               """
           )
         );
@@ -512,11 +512,11 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
         //language=java
         rewriteRun(java(
             """
-               public interface MyInterface {
-               
-                   void checkThis();
-               
-               }
+              public interface MyInterface {
+              
+                  void checkThis();
+              
+              }
               """)
           , java(
             """ 

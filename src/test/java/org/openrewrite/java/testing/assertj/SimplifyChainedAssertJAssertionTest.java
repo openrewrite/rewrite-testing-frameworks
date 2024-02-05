@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -33,6 +34,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
             "junit-jupiter-api-5.9", "assertj-core-3.24"));
     }
 
+    @DocumentExample
     @Test
     void stringIsEmpty() {
         rewriteRun(
