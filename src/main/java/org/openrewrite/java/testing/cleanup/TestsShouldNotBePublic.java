@@ -26,14 +26,7 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeMethodAccessLevelVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.tree.Comment;
-import org.openrewrite.java.tree.Flag;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.J.ClassDeclaration;
-import org.openrewrite.java.tree.J.MethodDeclaration;
-import org.openrewrite.java.tree.J.Modifier;
-import org.openrewrite.java.tree.J.Modifier.Type;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
