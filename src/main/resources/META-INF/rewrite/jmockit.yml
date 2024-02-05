@@ -22,13 +22,19 @@ tags:
   - testing
   - jmockit
 recipeList:
+  - org.openrewrite.java.testing.jmockit.JMockitExpectationsToMockito
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: mockit.Mocked
       newFullyQualifiedTypeName: org.mockito.Mock
   - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: mockit.Injectable
+      newFullyQualifiedTypeName: org.mockito.Mock
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: mockit.Tested
+      newFullyQualifiedTypeName: org.mockito.InjectMocks
+  - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: mockit.integration.junit5.JMockitExtension
       newFullyQualifiedTypeName: org.mockito.junit.jupiter.MockitoExtension
-  - org.openrewrite.java.testing.jmockit.JMockitExpectationsToMockito
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
       artifactId: mockito-core

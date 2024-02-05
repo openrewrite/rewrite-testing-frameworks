@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -33,6 +34,7 @@ class AssertNotEqualsBooleanToAssertBooleanTest implements RewriteTest {
           .recipe(new AssertNotEqualsBooleanToAssertBoolean());
     }
 
+    @DocumentExample
     @SuppressWarnings({"ConstantConditions"})
     @Test
     void assertNotEqualsFalseToToAssertTrue() {

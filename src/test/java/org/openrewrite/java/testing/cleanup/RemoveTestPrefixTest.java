@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.cleanup;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -29,7 +30,8 @@ class RemoveTestPrefixTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
           .recipe(new RemoveTestPrefix());
     }
 
@@ -50,6 +52,10 @@ class RemoveTestPrefixTest implements RewriteTest {
 
                   @Test
                   void test_snake_case() {
+                  }
+                  
+                  @Test
+                  void testRTFCharacters() {
                   }
 
                   @Nested
@@ -78,6 +84,10 @@ class RemoveTestPrefixTest implements RewriteTest {
 
                   @Test
                   void snake_case() {
+                  }
+                  
+                  @Test
+                  void rtfCharacters() {
                   }
 
                   @Nested
@@ -260,6 +270,55 @@ class RemoveTestPrefixTest implements RewriteTest {
                   }
                   
                   void myDoSomethingLogic() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void skipImpliedMethodSource() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.params.provider.Arguments;
+              import org.junit.jupiter.params.provider.MethodSource;
+              import java.util.stream.Stream;
+
+              class ATest {
+                  @Test
+                  @MethodSource
+                  void testMyDoSomethingLogic(Arguments args) {
+                  }
+                  
+                  static Stream<Arguments> testMyDoSomethingLogic() {
+                      return Stream.empty();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/471")
+    void ignoreTestingAsPrefix() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class ATest {
+                  @Test
+                  void testingEnvironment() {
+                  }
+
+                  @Test
+                  void tests() {
+                  }
               }
               """
           )

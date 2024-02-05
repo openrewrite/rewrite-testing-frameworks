@@ -98,7 +98,7 @@ class JUnit5MigrationTest implements RewriteTest {
               public class SampleTest {
                   @SuppressWarnings("ALL")
                   @Test
-                  void filterShouldRemoveUnusedConfig() {
+                  public void filterShouldRemoveUnusedConfig() {
                       assertThat(asList("1", "2", "3"),
                               containsInAnyOrder("3", "2", "1"));
                   }
@@ -215,4 +215,86 @@ class JUnit5MigrationTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/443")
+    @Test
+    void migrateInheritedTestBeforeAfterAnnotations() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.After;
+              import org.junit.Before;
+              import org.junit.Test;
+              
+              public class AbstractTest {
+                  @Before
+                  public void before() {
+                  }
+
+                  @After
+                  public void after() {
+                  }
+
+                  @Test
+                  public void test() {
+                  }
+              }
+              """,
+              """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              
+              public class AbstractTest {
+                  @BeforeEach
+                  public void before() {
+                  }
+
+                  @AfterEach
+                  public void after() {
+                  }
+
+                  @Test
+                  public void test() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              public class A extends AbstractTest {
+                  public void before() {
+                  }
+
+                  public void after() {
+                  }
+
+                  public void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              
+              public class A extends AbstractTest {
+                  @BeforeEach
+                  public void before() {
+                  }
+
+                  @AfterEach
+                  public void after() {
+                  }
+
+                  @Test
+                  public void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
 }

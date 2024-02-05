@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -108,7 +107,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
                   }
               
                   @Test
-                  void usingAnnotationBasedMock() {
+                  public void usingAnnotationBasedMock() {
               
                       mockedList.add("one");
                       mockedList.clear();

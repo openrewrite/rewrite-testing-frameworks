@@ -29,8 +29,8 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.marker.Markers;
 
-import java.util.Arrays;
-import java.util.UUID;
+
+import static java.util.Collections.singletonList;
 
 @RequiredArgsConstructor
 public class ExplicitContainerImage extends Recipe {
@@ -66,8 +66,12 @@ public class ExplicitContainerImage extends Recipe {
             @Override
             public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                 J.NewClass nc = super.visitNewClass(newClass, ctx);
-                if (methodMatcher.matches(newClass)) {
-                    return nc.withArguments(Arrays.asList(getConstructorArgument(newClass)));
+                if (methodMatcher.matches(nc)) {
+                    Expression constructorArgument = getConstructorArgument(nc);
+                    return nc.withArguments(singletonList(constructorArgument))
+                            .withMethodType(nc.getMethodType()
+                                    .withParameterTypes(singletonList(constructorArgument.getType()))
+                                    .withParameterNames(singletonList("image")));
                 }
                 return nc;
             }
@@ -80,10 +84,10 @@ public class ExplicitContainerImage extends Recipe {
                             .imports("org.testcontainers.utility.DockerImageName")
                             .javaParser(JavaParser.fromJavaVersion().classpath("testcontainers"))
                             .build()
-                            .apply(getCursor(), newClass.getArguments().get(0).getCoordinates().replace())
+                            .apply(getCursor(), newClass.getCoordinates().replace())
                             .withPrefix(Space.EMPTY);
                 }
-                return new J.Literal(UUID.randomUUID(), Space.EMPTY, Markers.EMPTY, image, "\"" + image + "\"", null, JavaType.Primitive.String);
+                return new J.Literal(Tree.randomId(), Space.EMPTY, Markers.EMPTY, image, "\"" + image + "\"", null, JavaType.Primitive.String);
             }
         });
     }

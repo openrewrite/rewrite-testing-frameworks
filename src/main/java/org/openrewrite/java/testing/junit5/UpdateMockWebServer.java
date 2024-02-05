@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.AnnotationMatcher;
@@ -31,7 +28,6 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.List;
-import java.util.UUID;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -127,7 +123,7 @@ public class UpdateMockWebServer extends Recipe {
                                         if (method.getBody() != null) {
                                             if (method.getThrows() == null || method.getThrows().stream()
                                                     .noneMatch(n -> TypeUtils.isOfClassType(n.getType(), IO_EXCEPTION_FQN))) {
-                                                J.Identifier ioExceptionIdent = new J.Identifier(UUID.randomUUID(),
+                                                J.Identifier ioExceptionIdent = new J.Identifier(Tree.randomId(),
                                                         Space.format(" "),
                                                         Markers.EMPTY,
                                                         emptyList(),
