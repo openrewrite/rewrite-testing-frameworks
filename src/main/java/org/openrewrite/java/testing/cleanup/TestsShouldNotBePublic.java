@@ -72,12 +72,12 @@ public class TestsShouldNotBePublic extends Recipe {
         }
 
         @Override
-        public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext ctx) {
-            ClassDeclaration c = super.visitClassDeclaration(classDecl, ctx);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration c = super.visitClassDeclaration(classDecl, ctx);
 
-            if (c.getKind() != ClassDeclaration.Kind.Type.Interface
+            if (c.getKind() != J.ClassDeclaration.Kind.Type.Interface
                     && c.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public)
-                    && c.getModifiers().stream().noneMatch(mod -> mod.getType() == Type.Abstract)) {
+                    && c.getModifiers().stream().noneMatch(mod -> mod.getType() == J.Modifier.Type.Abstract)) {
 
                 boolean hasTestMethods = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
@@ -98,7 +98,7 @@ public class TestsShouldNotBePublic extends Recipe {
                 if (hasTestMethods && !hasPublicNonTestMethods && !hasPublicVariableDeclarations) {
                     // Remove public modifier and move associated comment
                     final List<Comment> modifierComments = new ArrayList<>();
-                    List<Modifier> modifiers = ListUtils.map(c.getModifiers(), mod -> {
+                    List<J.Modifier> modifiers = ListUtils.map(c.getModifiers(), mod -> {
                         if (mod.getType() == J.Modifier.Type.Public) {
                             modifierComments.addAll(mod.getComments());
                             return null;
@@ -131,7 +131,7 @@ public class TestsShouldNotBePublic extends Recipe {
                 return m;
             }
 
-            if (m.getModifiers().stream().anyMatch(mod -> (mod.getType() == J.Modifier.Type.Public || (orProtected && mod.getType() == Type.Protected)))
+            if (m.getModifiers().stream().anyMatch(mod -> (mod.getType() == J.Modifier.Type.Public || (orProtected && mod.getType() == J.Modifier.Type.Protected)))
                     && Boolean.FALSE.equals(TypeUtils.isOverride(method.getMethodType()))
                     && hasJUnit5MethodAnnotation(m)) {
                 // remove public modifier
@@ -141,7 +141,7 @@ public class TestsShouldNotBePublic extends Recipe {
             return m;
         }
 
-        private boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {
+        private boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
             for (J.Annotation a : method.getLeadingAnnotations()) {
                 if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test")
                         || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest")
