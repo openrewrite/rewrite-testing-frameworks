@@ -33,7 +33,7 @@ class SimplifyChainedAssertJAssertionWithOptionalTest implements RewriteTest {
 
 
     @Test
-    void simplifiyPresenceAssertion() {
+    void simplifyPresenceAssertion() {
         rewriteRun(
           spec -> spec.recipes(
             new SimplifyChainedAssertJAssertion("isPresent", "isTrue", "isPresent", "java.util.Optional"),
