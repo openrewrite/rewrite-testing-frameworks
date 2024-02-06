@@ -300,6 +300,11 @@ recipeList:
       assertToReplace: isTrue
       dedicatedAssertion: isEmpty
       requiredType: java.util.Map
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isFalse
+      dedicatedAssertion: isNotEmpty
+      requiredType: java.util.Map
   # Optional Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: isPresent
