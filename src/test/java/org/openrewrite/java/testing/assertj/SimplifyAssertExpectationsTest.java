@@ -46,6 +46,7 @@ class SimplifyAssertExpectationsTest implements RewriteTest {
                   void simpleTest() {
                       List<String> list = List.of();
                       assertThat(list.size()).isEqualTo(0);
+                      assertThat(0).isEqualTo(0);
                       assertThat(list.size()).isNotEqualTo(0);
                   }
               }
@@ -61,6 +62,7 @@ class SimplifyAssertExpectationsTest implements RewriteTest {
                   void simpleTest() {
                       List<String> list = List.of();
                       assertThat(list.size()).isZero();
+                      assertThat(0).isZero();
                       assertThat(list.size()).isNotZero();
                   }
               }
