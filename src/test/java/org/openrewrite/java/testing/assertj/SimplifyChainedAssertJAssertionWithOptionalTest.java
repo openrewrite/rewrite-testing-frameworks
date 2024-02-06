@@ -81,4 +81,47 @@ class SimplifyChainedAssertJAssertionWithOptionalTest implements RewriteTest {
         );
     }
 
+    @Test
+    void simplifiyEqualityAssertion() {
+        rewriteRun(
+          spec -> spec.recipes(
+            new SimplifyChainedAssertJAssertion("get", "isEqualTo", "contains", "java.util.Optional"),
+            new SimplifyChainedAssertJAssertion("get", "isSameAs", "containsSame", "java.util.Optional")
+          ),
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import java.util.Optional;
+              import org.junit.jupiter.api.Test;
+              
+              class Test {
+              
+                  @Test
+                  void simpleTest() {
+                      Optional<String> o = Optional.empty();
+                      assertThat(o.get()).isEqualTo("foo");
+                      assertThat(o.get()).isSameAs("foo");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import java.util.Optional;
+              import org.junit.jupiter.api.Test;
+              
+              class Test {
+              
+                  @Test
+                  void simpleTest() {
+                      Optional<String> o = Optional.empty();
+                      assertThat(o).contains("foo");
+                      assertThat(o).containsSame("foo");
+                  }
+              }
+              """
+          )
+        );
+    }
+
 }
