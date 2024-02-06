@@ -82,6 +82,11 @@ recipeList:
       dedicatedAssertion: contains
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: contains
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotContain
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: startsWith
       assertToReplace: isTrue
       dedicatedAssertion: startsWith
@@ -290,11 +295,36 @@ recipeList:
       assertToReplace: isEqualTo
       dedicatedAssertion: containsEntry
       requiredType: java.util.Map
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isTrue
+      dedicatedAssertion: isEmpty
+      requiredType: java.util.Map
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isFalse
+      dedicatedAssertion: isNotEmpty
+      requiredType: java.util.Map
   # Optional Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: isPresent
       assertToReplace: isTrue
       dedicatedAssertion: isPresent
+      requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isTrue
+      dedicatedAssertion: isEmpty
+      requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isPresent
+      assertToReplace: isFalse
+      dedicatedAssertion: isNotPresent
+      requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isFalse
+      dedicatedAssertion: isNotEmpty
       requiredType: java.util.Optional
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: get
