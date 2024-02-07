@@ -326,6 +326,46 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
     }
 
     @Test
+    void stringContains() {
+        rewriteRun(
+          spec -> spec.recipes(
+            new SimplifyChainedAssertJAssertion("contains", "isTrue", "contains", "java.lang.String"),
+            new SimplifyChainedAssertJAssertion("contains", "isFalse", "doesNotContain", "java.lang.String")
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("hello world".contains("lo wo")).isTrue();
+                      assertThat("hello world".contains("lll")).isFalse();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("hello world").contains("lo wo");
+                      assertThat("hello world").doesNotContain("lll");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+
+    @Test
     void mapMethodDealsWithTwoArguments() {
         rewriteRun(
           spec -> spec.recipe(new SimplifyChainedAssertJAssertion("get", "isEqualTo", "containsEntry", "java.util.Map")),
