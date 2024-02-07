@@ -39,6 +39,7 @@ dependencies {
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
+    implementation("org.assertj:assertj-core:latest.release")
     implementation("org.testcontainers:testcontainers:latest.release")
 
     testImplementation("org.openrewrite:rewrite-java-17")
@@ -51,21 +52,13 @@ dependencies {
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
 
 //    testImplementation("org.hamcrest:hamcrest:latest.release")
-//    testImplementation("org.assertj:assertj-core:latest.release")
-
-    // The bom version can also be set to a specific version
-    // https://github.com/openrewrite/rewrite-recipe-bom/releases
-    implementation(platform("org.openrewrite.recipe:rewrite-recipe-bom:latest.release"))
 
     // Refaster style recipes need the rewrite-templating annotation processor and dependency for generated recipes
     // https://github.com/openrewrite/rewrite-templating/releases
-    annotationProcessor("org.openrewrite:rewrite-templating:latest.release")
-    implementation("org.openrewrite:rewrite-templating")
+    annotationProcessor("org.openrewrite:rewrite-templating:$rewriteVersion")
+    implementation("org.openrewrite:rewrite-templating:$rewriteVersion")
     // The `@BeforeTemplate` and `@AfterTemplate` annotations are needed for refaster style recipes
     compileOnly("com.google.errorprone:error_prone_core:2.19.1") {
         exclude("com.google.auto.service", "auto-service-annotations")
     }
-
-    implementation("org.assertj:assertj-core:3.+")
-
 }
