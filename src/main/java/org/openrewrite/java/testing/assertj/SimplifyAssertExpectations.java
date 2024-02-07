@@ -34,12 +34,12 @@ public class SimplifyAssertExpectations {
     public class SimplifyToIsZero {
 
         @BeforeTemplate
-        void before(Integer i) {
+        void before(int i) {
             assertThat(i).isEqualTo(0);
         }
 
         @AfterTemplate
-        void after(Integer i) {
+        void after(int i) {
             assertThat(i).isZero();
         }
     }
@@ -68,12 +68,12 @@ public class SimplifyAssertExpectations {
     public class SimplifyGreaterEqualComparison {
 
         @BeforeTemplate
-        void before(Integer i, Integer j) {
+        void before(int i, int j) {
             assertThat(i >= j).isTrue();
         }
 
         @AfterTemplate
-        void after(Integer i, Integer j) {
+        void after(int i, int j) {
             assertThat(i).isGreaterThanOrEqualTo(j);
         }
     }
