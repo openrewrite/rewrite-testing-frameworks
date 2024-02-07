@@ -44,22 +44,10 @@ public class AssertTrueNullToAssertNull extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesMethod<>(ASSERT_TRUE), new JavaVisitor<ExecutionContext>() {
-
-            JavaParser.Builder<?, ?> javaParser = null;
-
-            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9");
-                }
-                return javaParser;
-            }
-
-
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (ASSERT_TRUE.matches(mi) && isEqualBinary(mi)) {
+                if (ASSERT_TRUE.matches(mi) && isEqualBinaryWithNull(mi)) {
                     J.Binary binary = (J.Binary) mi.getArguments().get(0);
                     Expression nonNullExpression = getNonNullExpression(binary);
 
@@ -75,9 +63,9 @@ public class AssertTrueNullToAssertNull extends Recipe {
                     Object[] args;
                     if (mi.getArguments().size() == 2) {
                         sb.append(", #{any()}");
-                        args = new Object[]{nonNullExpression, mi.getArguments().get(1)};
+                        args = new J[]{nonNullExpression, mi.getArguments().get(1)};
                     } else {
-                        args = new Object[]{nonNullExpression};
+                        args = new J[]{nonNullExpression};
                     }
                     sb.append(")");
                     JavaTemplate t;
@@ -85,35 +73,33 @@ public class AssertTrueNullToAssertNull extends Recipe {
                         t = JavaTemplate.builder(sb.toString())
                                 .contextSensitive()
                                 .staticImports("org.junit.jupiter.api.Assertions.assertNull")
-                                .javaParser(javaParser(ctx))
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
                                 .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
                                 .contextSensitive()
                                 .imports("org.junit.jupiter.api.Assertions")
-                                .javaParser(javaParser(ctx))
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
                                 .build();
                     }
-                    return  t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
+                    return t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
                 }
                 return mi;
             }
 
-
             private Expression getNonNullExpression(J.Binary binary) {
-
                 if (binary.getRight() instanceof J.Literal) {
                     boolean isNull = ((J.Literal) binary.getRight()).getValue() == null;
                     if (isNull) {
                         return binary.getLeft();
                     }
                 }
-
                 return binary.getRight();
             }
 
-            private boolean isEqualBinary(J.MethodInvocation method) {
-
+            private boolean isEqualBinaryWithNull(J.MethodInvocation method) {
                 if (method.getArguments().isEmpty()) {
                     return false;
                 }
@@ -124,8 +110,11 @@ public class AssertTrueNullToAssertNull extends Recipe {
                 }
 
                 J.Binary binary = (J.Binary) firstArgument;
-                J.Binary.Type operator = binary.getOperator();
-                return operator.equals(J.Binary.Type.Equal);
+                if (binary.getOperator() != J.Binary.Type.Equal) {
+                    return false;
+                }
+                return binary.getLeft() instanceof J.Literal && ((J.Literal) binary.getLeft()).getValue() == null ||
+                       binary.getRight() instanceof J.Literal && ((J.Literal) binary.getRight()).getValue() == null;
             }
         });
     }

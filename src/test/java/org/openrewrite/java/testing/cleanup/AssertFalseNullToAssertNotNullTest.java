@@ -114,4 +114,23 @@ class AssertFalseNullToAssertNotNullTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void comparableComparedToZero() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertFalse;
+                
+              public class Test {
+                  void test() {
+                      Integer a = 0;
+                      assertFalse(a.compareTo(0) == 0);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
