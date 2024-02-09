@@ -23,7 +23,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.maven.Assertions.pomXml;
 
-public class UseXMLUnitLegacyTest implements RewriteTest {
+class UseXMLUnitLegacyTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
