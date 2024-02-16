@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.assertj;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -352,6 +353,54 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
                   private File notification() {
                       return new File("someFile");
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("479")
+    void shouldImportWhenCustomClassIsUsed() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              package org.example;
+              
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              class ATest {
+              
+                @Test void testEquals() {
+                  Assertions.assertEquals(new OwnClass(), new OwnClass());
+                }
+              
+                public record OwnClass(String a) {
+              
+                  public OwnClass() {this("1");}
+                }
+              }
+              """,
+            """
+              package org.example;
+               
+               import static org.assertj.core.api.Assertions.assertThat;
+               
+               import org.junit.jupiter.api.Test;
+               
+               class ATest {
+               
+                 @Test void testEquals() {
+                   assertThat(new OwnClass()).isEqualTo(new OwnClass());
+                 }
+               
+                 public record OwnClass(String a) {
+               
+                   public OwnClass() {this("1");}
+                 }
               }
               """
           )
