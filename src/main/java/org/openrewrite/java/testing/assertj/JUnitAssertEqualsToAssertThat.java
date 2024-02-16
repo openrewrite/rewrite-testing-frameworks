@@ -72,7 +72,8 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
             Expression expected = args.get(0);
             Expression actual = args.get(1);
 
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+            //always add the import (even if not referenced)
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
             maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
             if (args.size() == 2) {
