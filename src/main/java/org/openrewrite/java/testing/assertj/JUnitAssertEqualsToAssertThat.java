@@ -49,17 +49,6 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
     }
 
     public static class AssertEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private JavaParser.Builder<?, ?> assertionsParser;
-
-        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
-            if (assertionsParser == null) {
-                assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24");
-            }
-            return assertionsParser;
-        }
-
-
         private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertEquals(..)");
 
         @Override
@@ -79,7 +68,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
             if (args.size() == 2) {
                 return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(assertionsParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
                         .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
             } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
@@ -90,7 +79,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 return template
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .imports("java.util.function.Supplier")
-                        .javaParser(assertionsParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
                         .apply(
                                 getCursor(),
@@ -103,7 +92,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 maybeAddImport("org.assertj.core.api.Assertions", "within");
                 return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
                         .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                        .javaParser(assertionsParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
                         .apply(getCursor(), method.getCoordinates().replace(), actual, expected, args.get(2));
 
@@ -119,7 +108,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
             return template
                     .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                     .imports("java.util.function.Supplier")
-                    .javaParser(assertionsParser(ctx))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                     .build()
                     .apply(
                             getCursor(),
