@@ -55,8 +55,6 @@ public class JMockitMockedVariableToMockito extends Recipe {
     private static class RewriteMockedVariableVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, @NotNull ExecutionContext ctx) {
-            System.out.println(TreeVisitingPrinter.printTree(getCursor()));
-
             List<Statement> parameters = methodDeclaration.getParameters();
             if (!parameters.isEmpty()) {
                 this.maybeRemoveImport("mockit.Mocked");
