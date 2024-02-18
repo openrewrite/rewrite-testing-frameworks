@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.jmockit;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -42,6 +43,7 @@ class JMockitMockedVariableToMockitoTest implements RewriteTest {
           );
     }
 
+    @DocumentExample
     @Test
     void mockedVariableTest() {
         //language=java
