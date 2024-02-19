@@ -22,7 +22,6 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.openrewrite.java.Assertions.java;
 
 class JMockitMockedVariableToMockitoTest implements RewriteTest {
@@ -86,8 +85,10 @@ class JMockitMockedVariableToMockitoTest implements RewriteTest {
         );
     }
 
+    @Test
     void noVariableTest() {
         rewriteRun(
+          //language=java
           java(
             """
               import mockit.Mocked;
