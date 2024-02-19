@@ -43,7 +43,7 @@ public class AnyToNullable extends ScanningRecipe<AtomicBoolean> {
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(AtomicBoolean acc) {
         org.openrewrite.maven.search.FindDependency mavenFindDependency =
-                new org.openrewrite.maven.search.FindDependency("org.mockito", "mockito-all");
+                new org.openrewrite.maven.search.FindDependency("org.mockito", "mockito-all", null, null);
         org.openrewrite.gradle.search.FindDependency gradleFindDependency =
                 new org.openrewrite.gradle.search.FindDependency("org.mockito", "mockito-all", null);
         return new TreeVisitor<Tree, ExecutionContext>() {
