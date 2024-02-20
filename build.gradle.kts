@@ -43,7 +43,6 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
-    testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
 
     testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
 
