@@ -21,13 +21,12 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.maven.Assertions.pomXml;
 
-public class UpgradeOkHttpMockWebServerTest implements RewriteTest {
+class UpgradeOkHttpMockWebServerTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {

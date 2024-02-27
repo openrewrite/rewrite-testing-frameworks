@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -23,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-public class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
+class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -32,8 +33,9 @@ public class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
           .recipe(new AssertTrueInstanceofToAssertInstanceOf());
     }
 
+    @DocumentExample
     @Test
-    void testJUnit5() {
+    void jUnit5() {
         //language=java
         rewriteRun(
           java(
@@ -71,7 +73,7 @@ public class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
     }
 
     @Test
-    void testJUnit5WithReason() {
+    void jUnit5WithReason() {
         //language=java
         rewriteRun(
           java(
@@ -109,7 +111,7 @@ public class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
     }
 
     @Test
-    void testJUnit4() {
+    void jUnit4() {
         //language=java
         rewriteRun(
           java(
@@ -147,7 +149,7 @@ public class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
     }
 
     @Test
-    void testJUnit4WithReason() {
+    void jUnit4WithReason() {
         //language=java
         rewriteRun(
           java(

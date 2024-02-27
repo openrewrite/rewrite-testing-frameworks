@@ -186,6 +186,49 @@ class JUnit5MigrationTest implements RewriteTest {
         rewriteRun(pomXml(before, before));
     }
 
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/477")
+    void dontExcludeJunit4DependencyfromSpringBootTestcontainers() {
+        //language=xml
+        String before = """
+          <project>
+              <modelVersion>4.0.0</modelVersion>
+              <parent>
+                  <groupId>org.springframework.boot</groupId>
+                  <artifactId>spring-boot-starter-parent</artifactId>
+                  <version>3.2.1</version>
+                  <relativePath/> <!-- lookup parent from repository -->
+              </parent>
+              <groupId>dev.ted</groupId>
+              <artifactId>testcontainer-migrate</artifactId>
+              <version>0.0.1</version>
+              <dependencies>
+                  <dependency>
+                      <groupId>org.springframework.boot</groupId>
+                      <artifactId>spring-boot-starter</artifactId>
+                  </dependency>
+                  <dependency>
+                      <groupId>org.springframework.boot</groupId>
+                      <artifactId>spring-boot-starter-test</artifactId>
+                      <scope>test</scope>
+                  </dependency>
+                  <dependency>
+                      <groupId>org.springframework.boot</groupId>
+                      <artifactId>spring-boot-testcontainers</artifactId>
+                      <scope>test</scope>
+                  </dependency>
+                  <dependency>
+                      <groupId>org.testcontainers</groupId>
+                      <artifactId>junit-jupiter</artifactId>
+                      <scope>test</scope>
+                  </dependency>
+              </dependencies>
+          </project>
+          """;
+        // Output identical, but we want to make sure we don't exclude junit4 from testcontainers
+        rewriteRun(pomXml(before, before));
+    }
+
     // edge case for deprecated use of assertEquals
     // https://junit.org/junit4/javadoc/4.13/org/junit/Assert.html#assertEquals(java.lang.Object%5B%5D,%20java.lang.Object%5B%5D)
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/pull/384")
@@ -226,7 +269,7 @@ class JUnit5MigrationTest implements RewriteTest {
               import org.junit.After;
               import org.junit.Before;
               import org.junit.Test;
-              
+                            
               public class AbstractTest {
                   @Before
                   public void before() {
@@ -241,11 +284,11 @@ class JUnit5MigrationTest implements RewriteTest {
                   }
               }
               """,
-              """
+            """
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-              
+                            
               public class AbstractTest {
                   @BeforeEach
                   public void before() {
@@ -278,7 +321,7 @@ class JUnit5MigrationTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-              
+                            
               public class A extends AbstractTest {
                   @BeforeEach
                   public void before() {

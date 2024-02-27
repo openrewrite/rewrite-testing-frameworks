@@ -42,7 +42,7 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+                            
               public class Test {
                   void test() {
                       String a = null;
@@ -57,7 +57,7 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertNull;
-              
+                            
               public class Test {
                   void test() {
                       String a = null;
@@ -83,7 +83,7 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Assertions;
-              
+                            
               public class Test {
                   void test() {
                       String a = null;
@@ -98,7 +98,7 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-              
+                            
               public class Test {
                   void test() {
                       String a = null;
@@ -108,6 +108,25 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
                       String b = null;
                       Assertions.assertNull(b);
                       Assertions.assertNull(b, "message");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void comparableComparedToZero() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+                
+              public class Test {
+                  void test() {
+                      Integer a = 0;
+                      assertTrue(a.compareTo(0) == 0);
                   }
               }
               """

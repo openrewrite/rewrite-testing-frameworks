@@ -26,7 +26,7 @@ import org.openrewrite.java.tree.J;
 import java.util.List;
 
 @Value
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class RemoveObsoleteRunners extends Recipe {
     @Option(displayName = "Obsolete Runners",
             description = "The fully qualified class names of the JUnit 4 runners to be removed.",

@@ -101,6 +101,12 @@ recipeList:
       artifactId: testcontainers
       exclusionGroupId: junit
       exclusionArtifactId: junit
+  # Similar for https://github.com/openrewrite/rewrite-testing-frameworks/issues/477
+  - org.openrewrite.maven.RemoveExclusion:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-testcontainers
+      exclusionGroupId: junit
+      exclusionArtifactId: junit
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
@@ -111,14 +117,40 @@ recipeList:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter
       version: 5.x
+      onlyIfUsing: org.junit.Test
+      scope: test
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.junit.jupiter
+      artifactId: junit-jupiter
+      version: 5.x
       onlyIfUsing: org.junit.jupiter.api.Test
       acceptTransitive: true
+      scope: test
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.junit.jupiter
+      artifactId: junit-jupiter-api
+      version: 5.x
+      onlyIfUsing: org.junit.Test
+      scope: test
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.junit.jupiter
+      artifactId: junit-jupiter-api
+      version: 5.x
+      onlyIfUsing: org.junit.jupiter.api.Test
+      acceptTransitive: true
+      scope: test
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter-params
       version: 5.x
       onlyIfUsing: org.junit.jupiter.params.ParameterizedTest
       acceptTransitive: true
+      scope: test
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.mockito
+      artifactId: "*"
+      newVersion: 3.x
+      overrideManagedVersion: false
   - org.openrewrite.maven.UpgradePluginVersion:
       groupId: org.apache.maven.plugins
       artifactId: maven-surefire-plugin

@@ -32,7 +32,7 @@ import java.util.Comparator;
 import java.util.Set;
 
 @Value
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class EnclosedToNested extends Recipe {
     private static final String ENCLOSED = "org.junit.experimental.runners.Enclosed";
     private static final String RUN_WITH = "org.junit.runner.RunWith";

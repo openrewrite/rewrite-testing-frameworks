@@ -210,7 +210,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
     @DocumentExample
     @Test
-    void testThatPowerMockitoMockStaticIsReplacedInTestMethod() {
+    void thatPowerMockitoMockStaticIsReplacedInTestMethod() {
         //language=java
         rewriteRun(
           java(
@@ -299,7 +299,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     }
 
     @Test
-    void testThatPowerMockitoMockStaticIsReplacedInSetUpMethod() {
+    void thatPowerMockitoMockStaticIsReplacedInSetUpMethod() {
         //language=java
         rewriteRun(
           java(
@@ -374,7 +374,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     }
 
     @Test
-    void testThatPowerMockitoSpyIsReplaced() {
+    void thatPowerMockitoSpyIsReplaced() {
         //language=java
         rewriteRun(
           java(

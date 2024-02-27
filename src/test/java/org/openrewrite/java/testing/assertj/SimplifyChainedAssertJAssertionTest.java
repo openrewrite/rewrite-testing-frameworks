@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -33,6 +34,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
             "junit-jupiter-api-5.9", "assertj-core-3.24"));
     }
 
+    @DocumentExample
     @Test
     void stringIsEmpty() {
         rewriteRun(
@@ -322,6 +324,46 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void stringContains() {
+        rewriteRun(
+          spec -> spec.recipes(
+            new SimplifyChainedAssertJAssertion("contains", "isTrue", "contains", "java.lang.String"),
+            new SimplifyChainedAssertJAssertion("contains", "isFalse", "doesNotContain", "java.lang.String")
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("hello world".contains("lo wo")).isTrue();
+                      assertThat("hello world".contains("lll")).isFalse();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class MyTest {
+                  @Test
+                  void testMethod() {
+                      assertThat("hello world").contains("lo wo");
+                      assertThat("hello world").doesNotContain("lll");
+                  }
+              }
+              """
+          )
+        );
+    }
+
 
     @Test
     void mapMethodDealsWithTwoArguments() {
