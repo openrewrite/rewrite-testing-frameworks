@@ -15,11 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.Cursor;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -55,7 +51,7 @@ public class TempDirNonFinal extends Recipe {
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
             J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, ctx);
             if (varDecls.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches)
-                    && varDecls.hasModifier(Type.Final) && isField(getCursor())) {
+                && varDecls.hasModifier(Type.Final) && isField(getCursor())) {
                 return maybeAutoFormat(varDecls, varDecls.withModifiers(ListUtils
                                 .map(varDecls.getModifiers(), modifier -> modifier.getType() == Type.Final ? null : modifier)),
                         ctx, getCursor().getParentOrThrow());
