@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -116,7 +115,6 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             return expression instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", expression.getType());
         }
 
-        @NotNull
         private J.MethodInvocation replaceWithAssertDoesNotThrowWithoutStringExpression(ExecutionContext ctx, J.Try try_) {
             maybeAddImport("org.junit.jupiter.api.Assertions");
             maybeRemoveCatchTypes(try_);
@@ -139,7 +137,6 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             }
         }
 
-        @NotNull
         private J.MethodInvocation replaceWithAssertDoesNotThrowWithStringExpression(ExecutionContext ctx, J.Try try_, Expression failCallArgument) {
             // Retain the fail(String) call argument
             maybeAddImport("org.junit.jupiter.api.Assertions");
