@@ -17,7 +17,6 @@ package org.openrewrite.java.testing.hamcrest;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -134,7 +133,6 @@ public class HamcrestMatcherToAssertJ extends Recipe {
 
         private final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
 
-        @NotNull
         private String getArgumentsTemplate(J.MethodInvocation matcherArgument) {
             List<Expression> methodArguments = matcherArgument.getArguments();
             if (CLOSE_TO_MATCHER.matches(matcherArgument)) {

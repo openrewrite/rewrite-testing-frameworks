@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.testcontainers;
 
 import lombok.RequiredArgsConstructor;
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -75,7 +74,6 @@ public class ExplicitContainerImage extends Recipe {
                 return nc;
             }
 
-            @NotNull
             private Expression getConstructorArgument(J.NewClass newClass) {
                 if (parseImage != null && parseImage) {
                     maybeAddImport("org.testcontainers.utility.DockerImageName");
