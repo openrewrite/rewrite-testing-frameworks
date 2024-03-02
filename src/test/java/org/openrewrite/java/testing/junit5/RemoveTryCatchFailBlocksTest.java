@@ -74,6 +74,44 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
     }
 
     @Test
+    void removeStaticImportFail() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.fail;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (ArithmeticException e) {
+                          fail(e.getMessage());
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void removeTryCatchBlockWithoutMessage() {
         //language=java
         rewriteRun(

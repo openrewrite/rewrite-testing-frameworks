@@ -127,6 +127,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
         }
 
         private void maybeRemoveCatchTypes(J.Try try_) {
+            maybeRemoveImport("org.junit.jupiter.api.Assertions.fail");
             JavaType catchType = try_.getCatches().get(0).getParameter().getTree().getType();
             if (catchType != null) {
                 Stream.of(catchType)
