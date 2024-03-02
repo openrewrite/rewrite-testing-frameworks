@@ -63,7 +63,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
         public J visitTry(J.Try jtry, ExecutionContext ctx) {
             J.Try try_ = (J.Try) super.visitTry(jtry, ctx);
             // only one catch block, such that we know it's safe to apply this recipe, and doesn't have resources
-            if (try_.getResources() != null || try_.getCatches().size() != 1) {
+            if (try_.getResources() != null || try_.getCatches().size() != 1 || try_.getFinally() != null) {
                 return try_;
             }
 
