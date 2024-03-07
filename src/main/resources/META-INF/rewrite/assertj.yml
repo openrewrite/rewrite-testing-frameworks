@@ -346,6 +346,8 @@ tags:
   - testing
   - assertj
 recipeList:
+  # First improve the assertions for JUnit, to fix inverted expected/actual values
+  - org.openrewrite.java.testing.junit5.CleanupAssertions
   - org.openrewrite.java.testing.assertj.JUnitAssertArrayEqualsToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitAssertEqualsToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitAssertFalseToAssertThat
