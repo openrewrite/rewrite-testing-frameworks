@@ -72,6 +72,7 @@ public class JUnitAssertSameToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = JavaTemplate.builder("assertThat(#{any()}).isSameAs(#{any()});")
+                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(assertionsParser(ctx))
                         .build()
@@ -89,6 +90,7 @@ public class JUnitAssertSameToAssertThat extends Recipe {
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isSameAs(#{any()});");
 
                 method = template
+                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(assertionsParser(ctx))
                         .build()

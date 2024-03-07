@@ -67,6 +67,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")
+                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
@@ -77,6 +78,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isEqualTo(#{any()});") :
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isEqualTo(#{any()});");
                 return template
+                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .imports("java.util.function.Supplier")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
@@ -91,6 +93,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
             } else if (args.size() == 3) {
                 maybeAddImport("org.assertj.core.api.Assertions", "within");
                 return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
+                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
@@ -106,6 +109,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                     JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isCloseTo(#{any()}, within(#{any()}));") :
                     JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isCloseTo(#{any()}, within(#{any()}));");
             return template
+                    .contextSensitive()
                     .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                     .imports("java.util.function.Supplier")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))

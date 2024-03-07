@@ -71,6 +71,7 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
 
             if (args.size() == 1) {
                 method = JavaTemplate.builder("assertThat(#{any()}).isNotNull();")
+                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(assertionsParser(ctx))
                         .build()
@@ -88,6 +89,7 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotNull();");
 
                 method = template
+                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(assertionsParser(ctx))
                         .build()

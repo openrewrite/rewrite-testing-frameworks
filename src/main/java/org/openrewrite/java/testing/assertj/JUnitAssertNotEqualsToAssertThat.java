@@ -74,6 +74,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
+                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(assertionsParser(ctx))
                         .build()
@@ -92,6 +93,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
 
 
                 method = template
+                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(assertionsParser(ctx))
                         .build()
@@ -104,6 +106,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                         );
             } else if (args.size() == 3) {
                 method = JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
+                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                         .javaParser(assertionsParser(ctx))
                         .build()
@@ -123,6 +126,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotCloseTo(#{any()}, within(#{any()}));");
 
                 method = template
+                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                         .javaParser(assertionsParser(ctx))
                         .build()
