@@ -27,7 +27,7 @@ recipeList:
       newFullyQualifiedTypeName: net.datafaker.providers.base.Relationship
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: com.github.javafaker.Faker crypto()
-      name: hashing
+      newMethodName: hashing
   - org.openrewrite.java.ChangePackage:
       oldPackageName: com.github.javafaker
       newPackageName: net.datafaker
