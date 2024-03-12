@@ -122,7 +122,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
 
             String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
 
-            String finalArgument = firstArg.isEmpty() && !secondArg.equals("0") ? secondArg : firstArg;
+            String finalArgument = firstArg.isEmpty() && !"0".equals(secondArg) ? secondArg : firstArg;
             finalArgument = finalArgument.contains(".") ? finalArgument.split("\\.")[0] : finalArgument;
 
             String before = String.format(template, formattedAssertBefore);
@@ -180,7 +180,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
 
             String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
 
-            String finalArgument = firstArg.equals("") && !secondArg.equals("0") ? secondArg : firstArg;
+            String finalArgument = "".equals(firstArg) && !"0".equals(secondArg) ? secondArg : firstArg;
             finalArgument = finalArgument.contains(".") ? finalArgument.split("\\.")[0] : finalArgument;
 
             String before = String.format(template, formattedAssertBefore);
@@ -226,7 +226,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
 
             String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
 
-            String finalArgument = firstArg.equals("") && !secondArg.equals("0") ? secondArg : firstArg;
+            String finalArgument = "".equals(firstArg) && !"0".equals(secondArg) ? secondArg : firstArg;
             finalArgument = finalArgument.contains(".") ? finalArgument.split("\\.")[0] : finalArgument;
 
             String before = String.format(template, formattedAssertBefore);
@@ -273,7 +273,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
 
             String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
 
-            String finalArgument = firstArg.equals("") ? secondArg : firstArg;
+            String finalArgument = "".equals(firstArg) ? secondArg : firstArg;
 
             String before = String.format(template, formattedAssertBefore);
             String after = String.format(template, assertAfter.formatted(dedicatedAssertion, finalArgument));
@@ -318,14 +318,14 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
               }
               """;
             String assertBefore = "assertThat(map.%s(%s)).%s(%s);";
-            String assertAfter = !firstArg.equals("") && !secondArg.equals("") ? "assertThat(map).%s(%s, %s);" : "assertThat(map).%s(%s);";
+            String assertAfter = !"".equals(firstArg) && !"".equals(secondArg) ? "assertThat(map).%s(%s, %s);" : "assertThat(map).%s(%s);";
 
             String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
             String before = String.format(template, formattedAssertBefore);
 
-            String finalArgument = firstArg.equals("") ? secondArg : firstArg;
+            String finalArgument = "".equals(firstArg) ? secondArg : firstArg;
             List<String> formattedArgs = new ArrayList<>(Arrays.asList(dedicatedAssertion, finalArgument));
-            if (!firstArg.equals("") && !secondArg.equals("")) {
+            if (!"".equals(firstArg) && !"".equals(secondArg)) {
                 formattedArgs.add(secondArg);
             }
             String after = String.format(template, assertAfter.formatted(formattedArgs.toArray()));

@@ -27,6 +27,7 @@ import static org.openrewrite.java.Assertions.java;
 
 @SuppressWarnings({"NumericOverflow", "divzero", "TryWithIdenticalCatches"})
 class RemoveTryCatchFailBlocksTest implements RewriteTest {
+    @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
