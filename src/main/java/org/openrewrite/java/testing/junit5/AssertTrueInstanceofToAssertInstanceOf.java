@@ -36,6 +36,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
         return "Migration of JUnit4 (or potentially JUnit5) test case in form of assertTrue(x instanceof y) to assertInstanceOf(y.class, x).";
     }
 
+    @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
 
