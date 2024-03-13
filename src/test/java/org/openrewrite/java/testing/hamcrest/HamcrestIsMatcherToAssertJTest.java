@@ -196,4 +196,46 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
             }
             """));
     }
+
+    @Test
+    @DocumentExample
+    void isMatcherFromCore() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+        import static org.hamcrest.MatcherAssert.assertThat;
+        import static org.hamcrest.core.Is.is;
+        import org.junit.jupiter.api.Test;
+        
+        class DebugTest {
+            class Foo {
+                int i = 8;
+            }
+            @Test
+            void ba() {
+                assertThat(System.out, is(System.out));
+                assertThat(new Foo(), is(new Foo()));
+            }
+        }
+        """, """
+            import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+            import org.junit.jupiter.api.Test;
+            
+            class DebugTest {
+            
+                class Foo {
+                    int i = 8;
+                }
+                           
+                @Test
+                void ba() {
+                    assertThat(System.out).isEqualTo(System.out);
+                    assertThat(new Foo()).isEqualTo(new Foo());
+                }
+            }
+            """));
+    }
+
+    
 }
