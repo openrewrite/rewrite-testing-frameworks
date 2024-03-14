@@ -23,6 +23,11 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.List;
+import java.util.regex.MatchResult;
+import java.util.regex.Pattern;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.maven.Assertions.pomXml;
 
@@ -112,8 +117,8 @@ class JUnit5MigrationTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/279")
     void upgradeMavenPluginVersions() {
         rewriteRun(
-          //language=xml
           pomXml(
+            //language=xml
             """
               <project>
                   <modelVersion>4.0.0</modelVersion>
@@ -136,28 +141,15 @@ class JUnit5MigrationTest implements RewriteTest {
                   </build>
               </project>
               """,
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example.jackson</groupId>
-                  <artifactId>test-plugins</artifactId>
-                  <version>1.0.0</version>
-                  <build>
-                      <plugins>
-                          <plugin>
-                              <groupId>org.apache.maven.plugins</groupId>
-                              <artifactId>maven-surefire-plugin</artifactId>
-                              <version>2.22.2</version>
-                          </plugin>
-                          <plugin>
-                              <groupId>org.apache.maven.plugins</groupId>
-                              <artifactId>maven-failsafe-plugin</artifactId>
-                              <version>2.22.2</version>
-                          </plugin>
-                      </plugins>
-                  </build>
-              </project>
-              """
+            spec -> spec.after(actual -> {
+                List<MatchResult> list = Pattern.compile("<version>(.*)</version>")
+                  .matcher(actual).results().skip(1).toList();
+                assertThat(list)
+                  .hasSize(2)
+                  .extracting(mr -> mr.group(1))
+                  .allMatch(m -> m.startsWith("3."));
+                return actual;
+            })
           )
         );
     }
