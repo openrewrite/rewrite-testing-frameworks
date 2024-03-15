@@ -146,6 +146,7 @@ recipeList:
       groupId: org.apache.maven.plugins
       artifactId: maven-failsafe-plugin
       newVersion: 3.1.x
+  - org.openrewrite.java.testing.junit5.GradleUseJunitJupiter
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
