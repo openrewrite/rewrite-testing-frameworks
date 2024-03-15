@@ -47,7 +47,7 @@ public class GradleUseJunitJupiter extends Recipe {
 
     @Override
     public String getDescription() {
-        return "By default Gradle's `Test` tasks use JUnit 4." +
+        return "By default Gradle's `Test` tasks use JUnit 4. " +
                "Gradle `Test` tasks must be configured with `useJUnitPlatform()` to run JUnit Jupiter tests. " +
                "This recipe adds the `useJUnitPlatform()` method call to the `Test` task configuration.";
     }
