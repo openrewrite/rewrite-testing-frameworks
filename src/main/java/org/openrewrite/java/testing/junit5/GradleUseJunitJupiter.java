@@ -176,6 +176,10 @@ public class GradleUseJunitJupiter extends Recipe {
                     if (!(m.getArguments().size() == 1 && m.getArguments().get(0) instanceof J.Lambda)) {
                         return m;
                     }
+                    // Other DSLs may be named "test" so only assume it is test {} if it isn't enclosed in anything else
+                    if(getCursor().getParentTreeCursor().firstEnclosing(J.MethodInvocation.class) != null) {
+                        return m;
+                    }
                     break;
                 case "named":
                     if (m.getArguments().isEmpty()) {

@@ -202,4 +202,40 @@ public class GradleUseJunitJupiterTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void leaveOtherTestDslAlone() {
+        rewriteRun(
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java'
+              }
+              sourceSets {
+                  test {
+                      java {
+                          srcDir 'src/test/java'
+                      }
+                  }
+              }
+              """,
+            """
+              plugins {
+                  id 'java'
+              }
+              sourceSets {
+                  test {
+                      java {
+                          srcDir 'src/test/java'
+                      }
+                  }
+              }
+              tasks.withType(Test).configureEach {
+                  useJUnitPlatform()
+              }
+              """
+          )
+        );
+    }
 }
