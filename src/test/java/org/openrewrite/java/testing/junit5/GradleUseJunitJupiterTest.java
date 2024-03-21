@@ -16,13 +16,14 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 
-public class GradleUseJunitJupiterTest implements RewriteTest {
+class GradleUseJunitJupiterTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
@@ -30,6 +31,7 @@ public class GradleUseJunitJupiterTest implements RewriteTest {
           .beforeRecipe(withToolingApi());
     }
 
+    @DocumentExample
     @Test
     void addWhenMissing() {
         rewriteRun(
@@ -59,7 +61,7 @@ public class GradleUseJunitJupiterTest implements RewriteTest {
     }
 
     @Test
-    void testDsl() {
+    void dsl() {
         rewriteRun(
           //language=groovy
           buildGradle(
@@ -83,7 +85,7 @@ public class GradleUseJunitJupiterTest implements RewriteTest {
     }
 
     @Test
-    void testDslAlreadyExists() {
+    void dslAlreadyExists() {
         rewriteRun(
           //language=groovy
           buildGradle(

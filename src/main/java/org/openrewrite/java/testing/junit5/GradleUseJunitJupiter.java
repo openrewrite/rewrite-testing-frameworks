@@ -143,7 +143,7 @@ public class GradleUseJunitJupiter extends Recipe {
 
     private static class AddUseJUnitPlatform extends GroovyIsoVisitor<ExecutionContext> {
         @Override
-        public G.CompilationUnit visitCompilationUnit(G.CompilationUnit cu, ExecutionContext executionContext) {
+        public G.CompilationUnit visitCompilationUnit(G.CompilationUnit cu, ExecutionContext ctx) {
             G.CompilationUnit template = GradleParser.builder()
                     .build()
                     .parse("plugins {\n" +
