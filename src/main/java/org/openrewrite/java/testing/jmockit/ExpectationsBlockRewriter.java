@@ -45,7 +45,7 @@ class ExpectationsBlockRewriter {
     private J.Block methodBody;
     private JavaCoordinates nextStatementCoordinates;
 
-    private boolean expectationsRewriteFailed = false;
+    private boolean expectationsRewriteFailed;
 
     boolean isExpectationsRewriteFailed() {
         return expectationsRewriteFailed;
@@ -53,7 +53,7 @@ class ExpectationsBlockRewriter {
 
     // keep track of the additional statements being added to the method body, which impacts the statement indices
     // used with bodyStatementIndex to obtain the coordinates of the next statement to be written
-    private int numStatementsAdded = 0;
+    private int numStatementsAdded;
 
     ExpectationsBlockRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block methodBody,
                               J.NewClass newExpectations, int bodyStatementIndex) {
@@ -86,7 +86,7 @@ class ExpectationsBlockRewriter {
             if (expectationStatement instanceof J.MethodInvocation) {
                 // handle returns statements
                 J.MethodInvocation invocation = (J.MethodInvocation) expectationStatement;
-                if (invocation.getSelect() == null && invocation.getName().getSimpleName().equals("returns")) {
+                if (invocation.getSelect() == null && "returns".equals(invocation.getName().getSimpleName())) {
                     expectationStatements.add(expectationStatement);
                     continue;
                 }

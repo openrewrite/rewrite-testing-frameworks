@@ -120,7 +120,8 @@ class ArgumentMatchersRewriter {
     }
 
     private Expression rewriteMethodArgument(Expression methodArgument) {
-        String argumentMatcher = null, template = null;
+        String argumentMatcher = null;
+        String template = null;
         List<Object> templateParams = new ArrayList<>();
         JavaType type = methodArgument.getType();
         if (type == JavaType.Primitive.Null) {

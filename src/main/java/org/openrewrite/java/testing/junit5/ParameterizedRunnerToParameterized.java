@@ -347,7 +347,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                         m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))
                 );
                 assert m.getBody() != null;
-                JavaCoordinates newStatementCoordinates = !m.getBody().getStatements().isEmpty() ? m.getBody().getStatements().get(0).getCoordinates().before() : m.getBody().getCoordinates().lastStatement();
+                JavaCoordinates newStatementCoordinates = m.getBody().getStatements().isEmpty() ? m.getBody().getCoordinates().lastStatement() : m.getBody().getStatements().get(0).getCoordinates().before();
                 m = initMethodStatementTemplate.apply(updateCursor(m), newStatementCoordinates, initStatementParamString);
                 m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), m.getName(), ctx, getCursor().getParentTreeCursor());
             }

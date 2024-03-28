@@ -327,7 +327,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 if (methodDeclarationCursor != null) {
                     Optional<J.Annotation> testAnnotation = methodDeclarationCursor
                             .getLeadingAnnotations().stream()
-                            .filter(annotation -> annotation.getSimpleName().equals("Test")).findFirst();
+                            .filter(annotation -> "Test".equals(annotation.getSimpleName())).findFirst();
                     testAnnotation.ifPresent(
                             ta -> {
                                 if (ta.getArguments() != null) {
@@ -480,7 +480,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         }
 
         private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            String testGroupsAsString = (getTestGroupsAsString().isEmpty()) ? tearDownMethodAnnotationParameters : getTestGroupsAsString();
+            String testGroupsAsString = getTestGroupsAsString().isEmpty() ? tearDownMethodAnnotationParameters : getTestGroupsAsString();
             return maybeAddMethodWithAnnotation(classDecl, ctx, "tearDownStaticMocks",
                     tearDownMethodAnnotationSignature,
                     tearDownMethodAnnotation,
@@ -508,7 +508,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     .build()
                     .apply(
                             new Cursor(getCursor().getParentOrThrow(), classDecl),
-                            (firstTestMethod != null) ?
+                            firstTestMethod != null ?
                                     firstTestMethod.getCoordinates().before() :
                                     classDecl.getBody().getCoordinates().lastStatement()
                     );

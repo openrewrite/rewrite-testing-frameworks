@@ -71,7 +71,9 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     }
 
     @SuppressWarnings("DataFlowIssue")
-    private static class AdoptAssertJDurationAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
+    private static class AdoptAssertJDurationAssertionsVisitor extends JavaIsoVisitor<ExecutionContext>
+
+    {
         private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
         private static final MethodMatcher GET_NANO_MATCHER = new MethodMatcher("java.time.Duration getNano()");
         private static final MethodMatcher GET_SECONDS_MATCHER = new MethodMatcher("java.time.Duration getSeconds()");
@@ -86,20 +88,22 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                 new MethodMatcher(LONG_ASSERT_IS_GREATER_THAN, true),
                 new MethodMatcher(LONG_ASSERT_IS_LESS_THAN, true)
         );
-        private static final Map<String, String> METHOD_MAP = new HashMap<String, String>() {{
-            put("getSeconds", "hasSeconds");
-            put("getNano", "hasNanos");
+        private static final Map<String, String> METHOD_MAP;
+        static {
+            METHOD_MAP = new HashMap<>();
+            METHOD_MAP.put("getSeconds", "hasSeconds");
+            METHOD_MAP.put("getNano", "hasNanos");
 
-            put("hasNanos", "hasMillis");
-            put("hasMillis", "hasSeconds");
-            put("hasSeconds", "hasMinutes");
-            put("hasMinutes", "hasHours");
-            put("hasHours", "hasDays");
+            METHOD_MAP.put("hasNanos", "hasMillis");
+            METHOD_MAP.put("hasMillis", "hasSeconds");
+            METHOD_MAP.put("hasSeconds", "hasMinutes");
+            METHOD_MAP.put("hasMinutes", "hasHours");
+            METHOD_MAP.put("hasHours", "hasDays");
 
-            put("isGreaterThan", "isPositive");
-            put("isLessThan", "isNegative");
-            put("isEqualTo", "isZero");
-        }};
+            METHOD_MAP.put("isGreaterThan", "isPositive");
+            METHOD_MAP.put("isLessThan", "isNegative");
+            METHOD_MAP.put("isEqualTo", "isZero");
+        }
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -136,9 +140,9 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             J.MethodInvocation assertThatArg = (J.MethodInvocation) assertThatArgumentExpr;
 
             if (isZero(isEqualToArg) && checkIfRelatedToDuration(assertThatArg)) {
-                String formatted_template = formatTemplate("assertThat(#{any()}).%s();", m.getSimpleName(), asDescription);
+                String formattedTemplate = formatTemplate("assertThat(#{any()}).%s();", m.getSimpleName(), asDescription);
                 templateParameters.set(0, assertThatArg);
-                return applyTemplate(ctx, m, formatted_template, templateParameters.toArray());
+                return applyTemplate(ctx, m, formattedTemplate, templateParameters.toArray());
             }
 
             if (GET_NANO_MATCHER.matches(assertThatArg) || GET_SECONDS_MATCHER.matches(assertThatArg)) {
@@ -172,7 +176,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             List<Object> unitInfo = getUnitInfo(m.getSimpleName(), Math.toIntExact(argValue));
             String methodName = (String) unitInfo.get(0);
             int methodArg = (int) unitInfo.get(1);
-            if (!(m.getSimpleName().equals(methodName))) {
+            if (!m.getSimpleName().equals(methodName)) {
                 // update method invocation with new name and arg
                 String template = String.format("#{any()}.%s(%d)", methodName, methodArg);
                 return applyTemplate(ctx, m, template, m.getSelect());
@@ -183,11 +187,11 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
         private static List<Object> getUnitInfo(String name, int argValue) {
             final int timeLength;
-            if (name.equals("hasSeconds") || name.equals("hasMinutes")) {
+            if ("hasSeconds".equals(name) || "hasMinutes".equals(name)) {
                 timeLength = 60;
-            } else if (name.equals("hasNanos") || name.equals("hasMillis")) {
+            } else if ("hasNanos".equals(name) || "hasMillis".equals(name)) {
                 timeLength = 1000;
-            } else if (name.equals("hasHours")) {
+            } else if ("hasHours".equals(name)) {
                 timeLength = 24;
             } else {
                 return Arrays.asList(name, argValue);
