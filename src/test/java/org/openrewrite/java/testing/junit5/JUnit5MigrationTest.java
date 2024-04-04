@@ -28,9 +28,12 @@ import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.maven.Assertions.pomXml;
 
+@SuppressWarnings({"NewClassNamingConvention", "EqualsWithItself", "deprecation", "LanguageMismatch"})
 class JUnit5MigrationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
@@ -51,7 +54,7 @@ class JUnit5MigrationTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-                          
+              
               public class Sample {
                   void method() {
                       Class<Test> c = Test.class;
@@ -60,7 +63,7 @@ class JUnit5MigrationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                          
+              
               public class Sample {
                   void method() {
                       Class<Test> c = Test.class;
@@ -80,10 +83,10 @@ class JUnit5MigrationTest implements RewriteTest {
             """
               import org.junit.Assert;
               import org.junit.Test;
-
+              
               import static java.util.Arrays.asList;
               import static org.hamcrest.Matchers.containsInAnyOrder;
-
+              
               public class SampleTest {
                   @SuppressWarnings("ALL")
                   @Test
@@ -95,11 +98,11 @@ class JUnit5MigrationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-
+              
               import static java.util.Arrays.asList;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.containsInAnyOrder;
-
+              
               public class SampleTest {
                   @SuppressWarnings("ALL")
                   @Test
@@ -231,7 +234,7 @@ class JUnit5MigrationTest implements RewriteTest {
           java(
             """
               import org.junit.Assert;
-                            
+              
               class MyTest {
                   void test() {
                        Assert.assertEquals(new Object[1], new Object[1]);
@@ -240,7 +243,7 @@ class JUnit5MigrationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-                            
+              
               class MyTest {
                   void test() {
                        Assertions.assertArrayEquals(new Object[1], new Object[1]);
@@ -261,16 +264,16 @@ class JUnit5MigrationTest implements RewriteTest {
               import org.junit.After;
               import org.junit.Before;
               import org.junit.Test;
-                            
+              
               public class AbstractTest {
                   @Before
                   public void before() {
                   }
-
+              
                   @After
                   public void after() {
                   }
-
+              
                   @Test
                   public void test() {
                   }
@@ -280,16 +283,16 @@ class JUnit5MigrationTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-                            
+              
               public class AbstractTest {
                   @BeforeEach
                   public void before() {
                   }
-
+              
                   @AfterEach
                   public void after() {
                   }
-
+              
                   @Test
                   public void test() {
                   }
@@ -301,10 +304,10 @@ class JUnit5MigrationTest implements RewriteTest {
               public class A extends AbstractTest {
                   public void before() {
                   }
-
+              
                   public void after() {
                   }
-
+              
                   public void test() {
                   }
               }
@@ -318,11 +321,11 @@ class JUnit5MigrationTest implements RewriteTest {
                   @BeforeEach
                   public void before() {
                   }
-
+              
                   @AfterEach
                   public void after() {
                   }
-
+              
                   @Test
                   public void test() {
                   }
@@ -332,4 +335,42 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
+    @Test
+    void noJunitDependencyIfApiAlreadyPresent() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          //language=groovy
+          buildGradle("""
+            plugins {
+                id 'java-library'
+            }
+            repositories {
+                mavenCentral()
+            }
+            dependencies {
+                testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+            }
+            tasks.withType(Test).configureEach {
+                useJUnitPlatform()
+            }
+            """),
+          //language=xml
+          pomXml("""
+            <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>dev.ted</groupId>
+                <artifactId>testcontainer-migrate</artifactId>
+                <version>0.0.1</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.junit.jupiter</groupId>
+                        <artifactId>junit-jupiter-api</artifactId>
+                        <version>5.7.2</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+            </project>
+            """)
+        );
+    }
 }

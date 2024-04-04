@@ -113,12 +113,7 @@ recipeList:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.junit.jupiter
-      artifactId: junit-jupiter
-      version: 5.x
-      onlyIfUsing: org.junit..*
-      scope: test
+  - org.openrewrite.java.testing.junit5.AddJupiterDependencies
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter-params
