@@ -340,7 +340,8 @@ class JUnit5MigrationTest implements RewriteTest {
         rewriteRun(
           spec -> spec.beforeRecipe(withToolingApi()),
           //language=groovy
-          buildGradle("""
+          buildGradle(
+                """
             plugins {
                 id 'java-library'
             }
@@ -355,7 +356,8 @@ class JUnit5MigrationTest implements RewriteTest {
             }
             """),
           //language=xml
-          pomXml("""
+          pomXml(
+                """
             <project>
                 <modelVersion>4.0.0</modelVersion>
                 <groupId>dev.ted</groupId>

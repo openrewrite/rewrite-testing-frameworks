@@ -116,12 +116,12 @@ public class AddJupiterDependencies extends ScanningRecipe<AddDependency.Accumul
     private static class AddJupiterMaven extends MavenIsoVisitor<ExecutionContext> {
         AddDependency.Accumulator acc;
         @Override
-        public Xml.Document visitDocument(Xml.Document document, ExecutionContext executionContext) {
+        public Xml.Document visitDocument(Xml.Document document, ExecutionContext ctx) {
             Xml.Document d = document;
             List<ResolvedDependency> jupiterApi = getResolutionResult().findDependencies("org.junit.jupiter", "junit-jupiter-api", Scope.Test);
             if(jupiterApi.isEmpty()) {
                 d = (Xml.Document) addJupiterDependency().getVisitor(acc)
-                        .visitNonNull(d, executionContext);
+                        .visitNonNull(d, ctx);
             }
             return d;
         }
