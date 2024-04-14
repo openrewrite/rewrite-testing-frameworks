@@ -39,7 +39,7 @@ tags:
   - hamcrest
   - assertj
 recipeList:
-  # First change `is(..)` to `Matchers.is(..)` for consist
+  # First change `is(..)` to `Matchers.is(..)` for consistent matching
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.hamcrest.core.Is is(..)
       fullyQualifiedTargetTypeName: org.hamcrest.Matchers
