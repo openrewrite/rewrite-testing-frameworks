@@ -71,7 +71,6 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
 
             if (args.size() == 1) {
                 method = JavaTemplate.builder("assertThat(#{any()}).isNotNull();")
-                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(assertionsParser(ctx))
                         .build()
@@ -89,7 +88,6 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotNull();");
 
                 method = template
-                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(assertionsParser(ctx))
                         .build()
@@ -101,8 +99,11 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
                         );
             }
 
+            //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+
+            //And if there are no longer references to the JUnit assertions class, we can remove the import.
             maybeRemoveImport("org.junit.jupiter.api.Assertions");
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
 
             return method;
         }

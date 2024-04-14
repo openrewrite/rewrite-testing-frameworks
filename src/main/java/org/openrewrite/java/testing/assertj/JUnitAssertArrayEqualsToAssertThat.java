@@ -73,7 +73,8 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
             Expression expected = args.get(0);
             Expression actual = args.get(1);
 
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+            // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
             maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
 
             if (args.size() == 2) {
@@ -93,7 +94,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                         .build()
                         .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected);
             } else if (args.size() == 3) {
-                maybeAddImport("org.assertj.core.api.Assertions", "within");
+                maybeAddImport("org.assertj.core.api.Assertions", "within", false);
                 // assert is using floating points with a delta and no message.
                 return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
                         .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
@@ -104,7 +105,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
 
             // The assertEquals is using a floating point with a delta argument and a message.
             Expression message = args.get(3);
-            maybeAddImport("org.assertj.core.api.Assertions", "within");
+            maybeAddImport("org.assertj.core.api.Assertions", "within", false);
 
             JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                     JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()}, within(#{any()}));") :
