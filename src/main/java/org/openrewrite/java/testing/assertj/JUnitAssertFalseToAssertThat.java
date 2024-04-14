@@ -98,7 +98,7 @@ public class JUnitAssertFalseToAssertThat extends Recipe {
             }
 
             //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false););
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
             // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
             maybeRemoveImport("org.junit.jupiter.api.Assertions");

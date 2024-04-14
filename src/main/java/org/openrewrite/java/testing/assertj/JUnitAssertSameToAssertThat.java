@@ -105,7 +105,7 @@ public class JUnitAssertSameToAssertThat extends Recipe {
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
             // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
-            maybeRemoveImport(JUNIT_QUALIFIED_ASSERTIONS_CLASS_NAME);
+            maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
             return method;
         }
