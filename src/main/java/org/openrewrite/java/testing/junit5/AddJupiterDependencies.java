@@ -82,7 +82,7 @@ public class AddJupiterDependencies extends ScanningRecipe<AddDependency.Accumul
     private static AddDependency addJupiterDependency() {
         return new AddDependency("org.junit.jupiter", "junit-jupiter", "5.x", null,
                 "org.junit..*", null, null, null, null, "test",
-                null, null, null, null);
+                null, null, null, true);
     }
 
     @Value
