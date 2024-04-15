@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.assertj;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -243,6 +244,41 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
                       fail("This should fail");
                       fail("This should fail", new Throwable());
                       fail("", new Throwable());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/504")
+    void stringVariableArgument() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              public class OpenrewriteTest {
+                  @Test
+                  public void smokeTest() {
+                      String failMessage = "OpenrewriteTest.smokeTest() is not implemented yet";
+                      Assertions.fail(failMessage);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.fail;
+              
+              public class OpenrewriteTest {
+                  @Test
+                  public void smokeTest() {
+                      String failMessage = "OpenrewriteTest.smokeTest() is not implemented yet";
+                      fail(failMessage);
                   }
               }
               """

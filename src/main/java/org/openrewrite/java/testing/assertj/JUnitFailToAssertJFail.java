@@ -23,6 +23,7 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
@@ -72,8 +73,9 @@ public class JUnitFailToAssertJFail extends Recipe {
                             .javaParser(assertionsParser(ctx))
                             .build()
                             .apply(getCursor(), m.getCoordinates().replace());
-                } else if (args.get(0) instanceof J.Literal) {
-                    m = JavaTemplate.builder("org.assertj.core.api.Assertions.fail(#{});")
+                } else if (args.get(0) instanceof J.Literal ||
+                           TypeUtils.isAssignableTo("java.lang.String", args.get(0).getType())) {
+                    m = JavaTemplate.builder("org.assertj.core.api.Assertions.fail(#{any()});")
                             .javaParser(assertionsParser(ctx))
                             .build()
                             .apply(
