@@ -56,7 +56,7 @@ public class TestsShouldNotBePublic extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-5786");
+        return Collections.singleton("RSPEC-S5786");
     }
 
     @Override

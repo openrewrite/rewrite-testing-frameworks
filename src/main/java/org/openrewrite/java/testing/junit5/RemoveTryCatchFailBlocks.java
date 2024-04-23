@@ -50,7 +50,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-3658");
+        return Collections.singleton("RSPEC-S3658");
     }
 
     @Override

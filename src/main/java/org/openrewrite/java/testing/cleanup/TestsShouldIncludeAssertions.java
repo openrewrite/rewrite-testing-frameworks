@@ -73,7 +73,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-2699");
+        return Collections.singleton("RSPEC-S2699");
     }
 
     @Override
