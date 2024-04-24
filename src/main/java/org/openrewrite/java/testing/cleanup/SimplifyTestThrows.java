@@ -16,18 +16,13 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.openrewrite.*;
-import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.NameCaseConvention;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.java.tree.J.MethodDeclaration;
 import org.openrewrite.marker.Markers;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
@@ -62,66 +57,60 @@ public class SimplifyTestThrows extends Recipe {
                         new UsesType<>("org.junit.jupiter.params.ParameterizedTest", false),
                         new UsesType<>("org.junit.jupiter.api.TestFactory", false)
                 ),
-                new SimplifyTestThrowsVisitor());
+                new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                        J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+
+                        // reject invalid methods
+                        if (TypeUtils.isOverride(m.getMethodType())
+                            || !hasJUnit5MethodAnnotation(method)
+                            || throwsNothingOrException(method)) {
+                            return m;
+                        }
+
+                        // remove imports of the old exceptions
+                        for (NameTree t : m.getThrows()) {
+                            JavaType.FullyQualified type = TypeUtils.asFullyQualified(t.getType());
+                            if (type != null) {
+                                maybeRemoveImport(type);
+                            }
+                        }
+
+                        // overwrite the throws declarations
+                        J.Identifier exceptionIdentifier = new J.Identifier(Tree.randomId(),
+                                Space.SINGLE_SPACE,
+                                Markers.EMPTY,
+                                emptyList(),
+                                "Exception",
+                                JavaType.ShallowClass.build(FQN_JAVA_LANG_EXCEPTION),
+                                null);
+                        return m.withThrows(singletonList(exceptionIdentifier));
+                    }
+
+                    /**
+                     * @return true if the method has no throws clause or only throws Exception
+                     */
+                    private boolean throwsNothingOrException(J.MethodDeclaration method) {
+                        @Nullable List<NameTree> th = method.getThrows();
+                        if (th == null || th.isEmpty()) {
+                            return true;
+                        }
+                        return th.size() == 1 && TypeUtils.isOfClassType(th.get(0).getType(), FQN_JAVA_LANG_EXCEPTION);
+                    }
+
+                    private boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
+                        for (J.Annotation a : method.getLeadingAnnotations()) {
+                            if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test")
+                                || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")
+                                || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest")
+                                || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest")
+                                || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                });
     }
-
-    private static class SimplifyTestThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        @Override
-        public MethodDeclaration visitMethodDeclaration(MethodDeclaration method,
-                                                        ExecutionContext ctx) {
-            MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-
-            // reject invalid methods
-            if (TypeUtils.isOverride(m.getMethodType())
-                    || !hasJUnit5MethodAnnotation(method)
-                    || throwsIsMinimal(method)) {
-                return m;
-            }
-
-            // remove imports of the old exceptions
-            m.getThrows().forEach(t -> {
-                JavaType.FullyQualified type = TypeUtils.asFullyQualified(t.getType());
-                if (type != null) {
-                    maybeRemoveImport(type);
-                }
-            });
-
-            // overwrite the throws declarations
-            J.Identifier exceptionIdentifier = new J.Identifier(Tree.randomId(),
-                    Space.format(" "),
-                    Markers.EMPTY,
-                    emptyList(),
-                    "Exception",
-                    JavaType.ShallowClass.build(FQN_JAVA_LANG_EXCEPTION),
-                    null);
-            return m.withThrows(singletonList(exceptionIdentifier));
-        }
-
-        private boolean throwsIsMinimal(MethodDeclaration method) {
-            @Nullable List<NameTree> th = method.getThrows();
-            if (th == null || th.isEmpty()) {
-                return true;
-            }
-            if (th.size() > 1) {
-                return false;
-            }
-            @Nullable JavaType exType = th.get(0).getType();
-            return TypeUtils.isOfClassType(exType, FQN_JAVA_LANG_EXCEPTION);
-        }
-
-        private static boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {
-            for (J.Annotation a : method.getLeadingAnnotations()) {
-                if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
 }
