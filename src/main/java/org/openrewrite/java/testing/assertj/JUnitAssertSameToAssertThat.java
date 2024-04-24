@@ -72,7 +72,6 @@ public class JUnitAssertSameToAssertThat extends Recipe {
 
             if (args.size() == 2) {
                 method = JavaTemplate.builder("assertThat(#{any()}).isSameAs(#{any()});")
-                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(assertionsParser(ctx))
                         .build()
@@ -90,7 +89,6 @@ public class JUnitAssertSameToAssertThat extends Recipe {
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isSameAs(#{any()});");
 
                 method = template
-                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(assertionsParser(ctx))
                         .build()
@@ -103,8 +101,11 @@ public class JUnitAssertSameToAssertThat extends Recipe {
                         );
             }
 
+            // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+
+            // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
             maybeRemoveImport("org.junit.jupiter.api.Assertions");
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
 
             return method;
         }

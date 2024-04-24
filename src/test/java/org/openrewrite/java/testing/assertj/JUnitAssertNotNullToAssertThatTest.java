@@ -246,8 +246,9 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/491")
     void importAddedForCustomArguments() {
+        //language=java
         rewriteRun(
-          //language=java
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;

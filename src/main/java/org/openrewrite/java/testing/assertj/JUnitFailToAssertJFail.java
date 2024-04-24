@@ -147,7 +147,8 @@ public class JUnitFailToAssertJFail extends Recipe {
                                 method.getCoordinates().replace(),
                                 arguments.toArray()
                         );
-                maybeAddImport("org.assertj.core.api.Assertions", "fail");
+                //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
+                maybeAddImport("org.assertj.core.api.Assertions", "fail", false);
                 return super.visitMethodInvocation(method, ctx);
             }
         }
