@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -33,6 +34,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
           .recipe(new CollapseConsecutiveAssertThatStatements());
     }
 
+    @DocumentExample
     @Test
     void collapseIfConsecutiveAssertThatPresent() {
         //language=java
