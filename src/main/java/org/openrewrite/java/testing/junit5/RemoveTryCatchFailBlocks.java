@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -51,7 +50,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-3658");
+        return Collections.singleton("RSPEC-S3658");
     }
 
     @Override
@@ -64,7 +63,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
         public J visitTry(J.Try jtry, ExecutionContext ctx) {
             J.Try try_ = (J.Try) super.visitTry(jtry, ctx);
             // only one catch block, such that we know it's safe to apply this recipe, and doesn't have resources
-            if (try_.getResources() != null || try_.getCatches().size() != 1) {
+            if (try_.getResources() != null || try_.getCatches().size() != 1 || try_.getFinally() != null) {
                 return try_;
             }
 
@@ -116,7 +115,6 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             return expression instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", expression.getType());
         }
 
-        @NotNull
         private J.MethodInvocation replaceWithAssertDoesNotThrowWithoutStringExpression(ExecutionContext ctx, J.Try try_) {
             maybeAddImport("org.junit.jupiter.api.Assertions");
             maybeRemoveCatchTypes(try_);
@@ -129,6 +127,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
         }
 
         private void maybeRemoveCatchTypes(J.Try try_) {
+            maybeRemoveImport("org.junit.jupiter.api.Assertions.fail");
             JavaType catchType = try_.getCatches().get(0).getParameter().getTree().getType();
             if (catchType != null) {
                 Stream.of(catchType)
@@ -139,7 +138,6 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             }
         }
 
-        @NotNull
         private J.MethodInvocation replaceWithAssertDoesNotThrowWithStringExpression(ExecutionContext ctx, J.Try try_, Expression failCallArgument) {
             // Retain the fail(String) call argument
             maybeAddImport("org.junit.jupiter.api.Assertions");

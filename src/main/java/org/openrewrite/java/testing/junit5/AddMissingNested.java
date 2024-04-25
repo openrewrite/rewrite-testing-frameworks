@@ -65,7 +65,7 @@ public class AddMissingNested extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-5790");
+        return Collections.singleton("RSPEC-S5790");
     }
 
     @Override

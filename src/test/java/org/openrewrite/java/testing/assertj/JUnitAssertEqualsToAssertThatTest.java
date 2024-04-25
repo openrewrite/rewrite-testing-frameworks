@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.assertj;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -352,6 +353,49 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
                   private File notification() {
                       return new File("someFile");
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/479")
+    void shouldImportWhenCustomClassIsUsed() {
+        //language=java
+        rewriteRun(
+          // The JavaParer in JavaTemplate only has AssertJ on the classpath, and for now is not .contextSenstive()
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+              
+              class ATest {
+                @Test
+                void testEquals() {
+                  Assertions.assertEquals(new OwnClass(), new OwnClass());
+                }
+              
+                public record OwnClass(String a) {
+                  public OwnClass() {this("1");}
+                }
+              }
+              """,
+              """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+                
+              class ATest {
+                @Test
+                void testEquals() {
+                    assertThat(new OwnClass()).isEqualTo(new OwnClass());
+                }
+               
+                public record OwnClass(String a) {
+                  public OwnClass() {this("1");}
+                }
               }
               """
           )

@@ -100,6 +100,32 @@ class CategoryToTagTest implements RewriteTest {
     }
 
     @Test
+    void qualifiedCategory() {
+        //language=java
+        rewriteRun(
+          java("package foo; public interface FastTests {}"),
+          java(
+            """
+              import org.junit.experimental.categories.Category;
+
+              @Category(foo.FastTests.class)
+              public class B {
+
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Tag;
+
+              @Tag("FastTests")
+              public class B {
+
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void changeCategoryToTagOnClassAndMethod() {
         //language=java
         rewriteRun(

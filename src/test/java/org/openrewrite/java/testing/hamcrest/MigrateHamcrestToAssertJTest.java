@@ -34,7 +34,7 @@ import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
 import static org.openrewrite.gradle.Assertions.buildGradle;
-import static org.openrewrite.gradle.Assertions.withToolingApi;
+import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
@@ -67,7 +67,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                   Biscuit(String name) {
                       this.name = name;
                   }
-                  
+              
                   int getChocolateChipCount() {
                       return 10;
                   }
@@ -121,12 +121,12 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
           java(
                 """
             import org.junit.jupiter.api.Test;
-                        
+            
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.allOf;
             import static org.hamcrest.Matchers.equalTo;
             import static org.hamcrest.Matchers.hasLength;
-                            
+            
             class ATest {
                 @Test
                 void test() {
@@ -163,12 +163,12 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
           java(
                 """
             import org.junit.jupiter.api.Test;
-                        
+            
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.anyOf;
             import static org.hamcrest.Matchers.equalTo;
             import static org.hamcrest.Matchers.hasLength;
-                            
+            
             class ATest {
                 @Test
                 void test() {
@@ -217,9 +217,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         //language=java
         String template = """
           import org.junit.jupiter.api.Test;
-                    
+          
           %s
-                    
+          
           class ATest {
               @Test
               void test() {
@@ -275,9 +275,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         //language=java
         String template = """
           import org.junit.jupiter.api.Test;
-                    
+          
           %s
-                    
+          
           class ATest {
               @Test
               void test() {
@@ -314,9 +314,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         //language=java
         String template = """
           import org.junit.jupiter.api.Test;
-                    
+          
           %s
-                    
+          
           class ATest {
               @Test
               void test() {
@@ -361,9 +361,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         //language=java
         String template = """
           import org.junit.jupiter.api.Test;
-                    
+          
           %s
-                    
+          
           class ATest {
               @Test
               void test() {
@@ -403,9 +403,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String template = """
           import java.util.List;
           import org.junit.jupiter.api.Test;
-                    
+          
           %s
-                    
+          
           class ATest {
               @Test
               void test(String item) {
@@ -440,9 +440,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String template = """
           import java.util.Map;
           import org.junit.jupiter.api.Test;
-                    
+          
           %s
-                    
+          
           class ATest {
               @Test
               void test(String key, String value) {
@@ -489,9 +489,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         //language=java
         String template = """
           import org.junit.jupiter.api.Test;
-                    
+          
           %s
-                    
+          
           class ATest {
               @Test
               void test() {
@@ -511,10 +511,10 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         @Language("java")
         private static final String JAVA_BEFORE = """
           import org.junit.jupiter.api.Test;
-                              
+          
           import static org.hamcrest.MatcherAssert.assertThat;
           import static org.hamcrest.Matchers.equalTo;
-                        
+          
           class ATest {
               @Test
               void test() {
@@ -525,9 +525,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         @Language("java")
         private static final String JAVA_AFTER = """
           import org.junit.jupiter.api.Test;
-                              
+          
           import static org.assertj.core.api.Assertions.assertThat;
-                        
+          
           class ATest {
               @Test
               void test() {
@@ -595,11 +595,11 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                   plugins {
                       id "java-library"
                   }
-                                      
+                  
                   repositories {
                       mavenCentral()
                   }
-                                      
+                  
                   dependencies {
                       testImplementation "org.hamcrest:hamcrest:2.2"
                   }
@@ -608,11 +608,11 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                   plugins {
                       id "java-library"
                   }
-                                      
+                  
                   repositories {
                       mavenCentral()
                   }
-                                      
+                  
                   dependencies {
                       testImplementation "org.assertj:%s"
                       testImplementation "org.hamcrest:hamcrest:2.2"
@@ -672,5 +672,50 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               )
             );
         }
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/497")
+    void isMatcherFromCore() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.core.Is.is;
+              
+              import org.junit.jupiter.api.Test;
+              
+              class DebugTest {
+                  class Foo {
+                      int i = 8;
+                  }
+              
+                  @Test
+                  void ba() {
+                      assertThat(System.out, is(System.out));
+                      assertThat(new Foo(), is(new Foo()));
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              import org.junit.jupiter.api.Test;
+              
+              class DebugTest {
+                  class Foo {
+                      int i = 8;
+                  }
+              
+                  @Test
+                  void ba() {
+                      assertThat(System.out).isEqualTo(System.out);
+                      assertThat(new Foo()).isEqualTo(new Foo());
+                  }
+              }
+              """
+          )
+        );
     }
 }

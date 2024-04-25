@@ -18,11 +18,12 @@
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplacePowerMockito
 displayName: Replace PowerMock with raw Mockito
-description: Replace PowerMock with raw Mockito.
+description: Upgrade to Mockito 5 and replace PowerMockito with raw Mockito.
 tags:
   - testing
   - mockito
 recipeList:
+  - org.openrewrite.java.testing.mockito.Mockito1to5Migration
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.powermock.core.classloader.annotations.PowerMockIgnore"
   - org.openrewrite.java.ChangeMethodTargetToStatic:

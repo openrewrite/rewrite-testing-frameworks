@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.assertj;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -235,6 +236,47 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
                   }
                   private String notification() {
                       return "";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/491")
+    void importAddedForCustomArguments() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              class TTest {
+
+                  class A {}
+
+                  @Test
+                  public void testClass() {
+                      assertNotNull(new A());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class TTest {
+
+                  class A {}
+
+                  @Test
+                  public void testClass() {
+                      assertThat(new A()).isNotNull();
                   }
               }
               """

@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -27,6 +24,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.Modifier.Type;
 
 import java.time.Duration;
+import java.util.Iterator;
 
 public class TempDirNonFinal extends Recipe {
 
@@ -53,13 +51,28 @@ public class TempDirNonFinal extends Recipe {
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
             J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, ctx);
             if (varDecls.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches)
-                    && varDecls.hasModifier(Type.Final)) {
+                && varDecls.hasModifier(Type.Final) && isField(getCursor())) {
                 return maybeAutoFormat(varDecls, varDecls.withModifiers(ListUtils
                                 .map(varDecls.getModifiers(), modifier -> modifier.getType() == Type.Final ? null : modifier)),
                         ctx, getCursor().getParentOrThrow());
             }
             return varDecls;
         }
+    }
+
+    // copied from org.openrewrite.java.search.FindFieldsOfType.isField(Cursor), should probably become part of the API
+    private static boolean isField(Cursor cursor) {
+        Iterator<Object> path = cursor.getPath();
+        while (path.hasNext()) {
+            Object o = path.next();
+            if (o instanceof J.MethodDeclaration) {
+                return false;
+            }
+            if (o instanceof J.ClassDeclaration) {
+                return true;
+            }
+        }
+        return true;
     }
 
     @Override

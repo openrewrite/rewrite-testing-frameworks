@@ -30,8 +30,8 @@ class ExpectationsBlockRewriter {
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
     private static final String RETURN_TEMPLATE_PREFIX = "thenReturn(";
     private static final String THROW_TEMPLATE_PREFIX = "thenThrow(";
-    private static final String PRIMITIVE_TEMPLATE_FIELD = "#{}";
-    private static final String THROWABLE_TEMPLATE_FIELD = "#{any()}";
+    private static final String LITERAL_TEMPLATE_FIELD = "#{}";
+    private static final String ANY_TEMPLATE_FIELD = "#{any()}";
 
     private static String getObjectTemplateField(String fqn) {
         return "#{any(" + fqn + ")}";
@@ -44,6 +44,12 @@ class ExpectationsBlockRewriter {
     private final int bodyStatementIndex;
     private J.Block methodBody;
     private JavaCoordinates nextStatementCoordinates;
+
+    private boolean expectationsRewriteFailed = false;
+
+    boolean isExpectationsRewriteFailed() {
+        return expectationsRewriteFailed;
+    }
 
     // keep track of the additional statements being added to the method body, which impacts the statement indices
     // used with bodyStatementIndex to obtain the coordinates of the next statement to be written
@@ -64,6 +70,11 @@ class ExpectationsBlockRewriter {
 
         assert newExpectations.getBody() != null;
         J.Block expectationsBlock = (J.Block) newExpectations.getBody().getStatements().get(0);
+        if (expectationsBlock.getStatements().isEmpty()) {
+            // empty Expectations block, remove it
+            removeExpectationsStatement();
+            return methodBody;
+        }
 
         // rewrite the argument matchers in the expectations block
         ArgumentMatchersRewriter amr = new ArgumentMatchersRewriter(visitor, ctx, expectationsBlock);
@@ -103,6 +114,7 @@ class ExpectationsBlockRewriter {
         final MockInvocationResults mockInvocationResults = buildMockInvocationResults(expectationStatements);
         if (mockInvocationResults == null || !(expectationStatements.get(0) instanceof J.MethodInvocation)) {
             // invalid Expectations block, cannot rewrite
+            expectationsRewriteFailed = true;
             return;
         }
         J.MethodInvocation invocation = (J.MethodInvocation) expectationStatements.get(0);
@@ -128,6 +140,7 @@ class ExpectationsBlockRewriter {
         String template = getMockitoStatementTemplate(results);
         if (template == null) {
             // invalid template, cannot rewrite
+            expectationsRewriteFailed = true;
             return;
         }
         visitor.maybeAddImport("org.mockito.Mockito", "when");
@@ -178,12 +191,12 @@ class ExpectationsBlockRewriter {
         visitor.maybeAddImport("org.mockito.Mockito", "verify");
         visitor.maybeAddImport("org.mockito.Mockito", verificationMode);
 
-        String verifyTemplate = getVerifyTemplate(invocation.getArguments(), fqn, verificationMode);
-        Object[] templateParams = new Object[] {
-                invocation.getSelect(),
-                times,
-                invocation.getName().getSimpleName()
-        };
+        List<Object> templateParams = new ArrayList<>();
+        templateParams.add(invocation.getSelect());
+        templateParams.add(times);
+        templateParams.add(invocation.getName().getSimpleName());
+
+        String verifyTemplate = getVerifyTemplate(invocation.getArguments(), fqn, verificationMode, templateParams);
         methodBody = JavaTemplate.builder(verifyTemplate)
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                 .staticImports("org.mockito.Mockito.*")
@@ -192,7 +205,7 @@ class ExpectationsBlockRewriter {
                 .apply(
                         new Cursor(visitor.getCursor(), methodBody),
                         methodBody.getCoordinates().lastStatement(),
-                        templateParams
+                        templateParams.toArray()
                 );
     }
 
@@ -201,21 +214,20 @@ class ExpectationsBlockRewriter {
         final StringBuilder templateBuilder = new StringBuilder(WHEN_TEMPLATE_PREFIX);
         for (Expression result : results) {
             JavaType resultType = result.getType();
-            if (resultType instanceof JavaType.Primitive) {
-                if (result instanceof J.Literal) {
-                    appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX, PRIMITIVE_TEMPLATE_FIELD);
-                } else {
-                    appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX,
-                            getPrimitiveTemplateField((JavaType.Primitive) resultType));
+            if (result instanceof J.Literal) {
+                appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX, LITERAL_TEMPLATE_FIELD);
+            } else if (resultType instanceof JavaType.Primitive) {
+                String primitiveTemplateField = getPrimitiveTemplateField((JavaType.Primitive) resultType);
+                if (primitiveTemplateField == null) {
+                    // unhandled primitive type
+                    return null;
                 }
+                appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX, primitiveTemplateField);
+            } else if (TypeUtils.isAssignableTo(Throwable.class.getName(), resultType)) {
+                appendToTemplate(templateBuilder, buildingResults, THROW_TEMPLATE_PREFIX, ANY_TEMPLATE_FIELD);
             } else if (resultType instanceof JavaType.Class) {
-                boolean isThrowable = TypeUtils.isAssignableTo(Throwable.class.getName(), resultType);
-                if (isThrowable) {
-                    appendToTemplate(templateBuilder, buildingResults, THROW_TEMPLATE_PREFIX, THROWABLE_TEMPLATE_FIELD);
-                } else {
-                    appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX,
-                            getObjectTemplateField(((JavaType.Class) resultType).getFullyQualifiedName()));
-                }
+                appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX,
+                        getObjectTemplateField(((JavaType.Class) resultType).getFullyQualifiedName()));
             } else if (resultType instanceof JavaType.Parameterized) {
                 appendToTemplate(templateBuilder, buildingResults, RETURN_TEMPLATE_PREFIX,
                         getObjectTemplateField(((JavaType.Parameterized) resultType).getType().getFullyQualifiedName()));
@@ -239,7 +251,7 @@ class ExpectationsBlockRewriter {
         templateBuilder.append(templateField);
     }
 
-    private static String getVerifyTemplate(List<Expression> arguments, String fqn, String verificationMode) {
+    private static String getVerifyTemplate(List<Expression> arguments, String fqn, String verificationMode, List<Object> templateParams) {
         if (arguments.isEmpty()) {
             return "verify(#{any(" + fqn + ")}, "
                     + verificationMode
@@ -255,7 +267,8 @@ class ExpectationsBlockRewriter {
             } else if (argument instanceof J.Literal) {
                 templateBuilder.append(((J.Literal) argument).getValueSource());
             } else {
-                templateBuilder.append(argument);
+                templateBuilder.append("#{any()}");
+                templateParams.add(argument);
             }
             hasArgument = true;
             templateBuilder.append(", ");
@@ -335,7 +348,7 @@ class ExpectationsBlockRewriter {
             case Short:
                 return "#{any(short)}";
             case String:
-                return "#{}";
+                return "#{any(String)}";
             case Null:
                 return "#{any()}";
             default:

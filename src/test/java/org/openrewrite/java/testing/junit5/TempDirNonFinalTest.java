@@ -95,7 +95,7 @@ class TempDirNonFinalTest implements RewriteTest {
     }
 
     @Test
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241, https://github.com/openrewrite/rewrite-testing-frameworks/issues/483")
     void tempDirFileParameter() {
         //language=java
         rewriteRun(
@@ -109,7 +109,7 @@ class TempDirNonFinalTest implements RewriteTest {
               
               class MyTest {
                   @Test
-                  void fileTest(@TempDir File tempDir) {
+                  void fileTest(@TempDir final File tempDir) {
                   }
               }
               """
