@@ -130,8 +130,9 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                     chainCount.set(chainCount.get() + 1);
 
                     if (ASSERT_THAT.matches(mi)) {
-                        if (chainCount.get() > 2)
+                        if (chainCount.get() > 2) {
                             isValid.set(false);
+                        }
 
                         J assertThatArgument = mi.getArguments().get(0);
                         if (assertThatArgument instanceof J.MethodInvocation || assertThatArgument instanceof J.Lambda)
