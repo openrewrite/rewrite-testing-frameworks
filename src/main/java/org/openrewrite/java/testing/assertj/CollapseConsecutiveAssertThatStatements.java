@@ -135,8 +135,9 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                         }
 
                         J assertThatArgument = mi.getArguments().get(0);
-                        if (assertThatArgument instanceof J.MethodInvocation || assertThatArgument instanceof J.Lambda)
+                        if (assertThatArgument instanceof J.MethodInvocation || assertThatArgument instanceof J.Lambda) {
                             isValid.set(false);
+                        }
                     }
 
                     return super.visitMethodInvocation(mi, chainCount);
