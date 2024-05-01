@@ -149,6 +149,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                         );
                 //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
                 maybeAddImport("org.assertj.core.api.Assertions", "fail", false);
+                maybeRemoveImport("org.junit.jupiter.api.Assertions.fail");
                 return super.visitMethodInvocation(method, ctx);
             }
         }
