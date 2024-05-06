@@ -267,7 +267,7 @@ recipeList:
       oldPackageName: okhttp3.mockwebserver
       newPackageName: mockwebserver3
       recursive: true
-  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+  - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: com.squareup.okhttp3
       oldArtifactId: mockwebserver
       newArtifactId: mockwebserver3-junit5
@@ -301,10 +301,9 @@ tags:
   - junit
   - xmlunit
 recipeList:
-  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+  - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: xmlunit
       oldArtifactId: xmlunit
       newGroupId: org.xmlunit
       newArtifactId: xmlunit-legacy
       newVersion: 2.x
----
