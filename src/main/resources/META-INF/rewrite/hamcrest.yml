@@ -275,6 +275,12 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
       notMatcher: hasItem
       assertion: doesNotContain
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: hasItems
+      assertion: doesNotContain
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: empty
+      assertion: isNotEmpty
 
   # Add dependency if not already present
   - org.openrewrite.java.dependencies.AddDependency:
