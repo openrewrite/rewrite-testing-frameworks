@@ -23,6 +23,7 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.SourceSpec;
 import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
@@ -107,7 +108,7 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import org.junit.Test;
-              
+                            
               import static org.junit.jupiter.api.Assertions.assertFalse;
 
               public class MyTest {
@@ -411,7 +412,7 @@ class AssertToAssertionsTest implements RewriteTest {
           java(
             """
               import static org.junit.Assert.assertThrows;
-              
+                            
               class Test {
                   void test(Runnable run) {
                       assertThrows(
@@ -466,7 +467,7 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.*;
-                  
+                            
               class MyTest {
                   void test() {
                       assertNotNull(UnknownType.unknownMethod());
@@ -497,7 +498,7 @@ class AssertToAssertionsTest implements RewriteTest {
             """
               import static org.junit.Assert.assertNotNull;
               import static org.junit.jupiter.api.Assertions.assertNotNull;
-                  
+                            
               class MyTest {
                   void test() {
                       assertNotNull(UnknownType.unknownMethod());
@@ -507,4 +508,50 @@ class AssertToAssertionsTest implements RewriteTest {
           )
         );
     }
+
+@Test
+@Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/515")
+void verifyClassExtendsAssertMethodArgumentsOrderRetained() {
+    //language=java
+    rewriteRun(
+      java(
+        """
+          package foo;
+          import org.junit.Assert;
+          public class Verify extends Assert {
+              public static void assertContains(String expected, String actual) {
+              }
+          }
+          """,
+        SourceSpec::skip
+      ),
+      java(
+        """
+          import foo.Verify;
+          import org.junit.Assert;
+          import java.util.List;
+          
+          class A {
+              void test(String message, String expected, String actual) {
+                  Verify.assertContains(expected, actual);
+                  Assert.assertEquals(message, expected, actual);
+              }
+          }
+          """,
+        """
+          import foo.Verify;
+          import org.junit.jupiter.api.Assertions;
+          
+          import java.util.List;
+          
+          class A {
+              void test(String message, String expected, String actual) {
+                  Verify.assertContains(expected, actual);
+                  Assertions.assertEquals(expected, actual, message);
+              }
+          }
+          """
+      )
+    );
+}
 }
