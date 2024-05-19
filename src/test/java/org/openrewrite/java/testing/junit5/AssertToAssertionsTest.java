@@ -56,7 +56,7 @@ class AssertToAssertionsTest implements RewriteTest {
           java(
             """
               import static org.junit.Assert.assertEquals;
-                            
+              
               class MyTest {
                   void foo() {
                       Entity entity = new Entity();
@@ -67,7 +67,7 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertEquals;
-                            
+              
               class MyTest {
                   void foo() {
                       Entity entity = new Entity();
@@ -108,7 +108,7 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import org.junit.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertFalse;
 
               public class MyTest {
@@ -148,7 +148,7 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import org.junit.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertFalse;
 
               public class MyTest {
@@ -170,9 +170,9 @@ class AssertToAssertionsTest implements RewriteTest {
           java(
             """
               import org.junit.Assert;
-                            
+              
               class MyTest {
-                            
+              
                   void foo() {
                       Assert.assertEquals(1, 2);
                       Assert.assertArrayEquals(new int[]{}, new int[]{});
@@ -194,9 +194,9 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-                            
+              
               class MyTest {
-                            
+              
                   void foo() {
                       Assertions.assertEquals(1, 2);
                       Assertions.assertArrayEquals(new int[]{}, new int[]{});
@@ -227,9 +227,9 @@ class AssertToAssertionsTest implements RewriteTest {
           java(
             """
               import static org.junit.Assert.*;
-                            
+              
               class MyTest {
-                            
+              
                   void foo() {
                       assertEquals(1, 2);
                       assertArrayEquals(new int[]{}, new int[]{});
@@ -244,9 +244,9 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.*;
-                            
+              
               class MyTest {
-                            
+              
                   void foo() {
                       assertEquals(1, 2);
                       assertArrayEquals(new int[]{}, new int[]{});
@@ -270,9 +270,9 @@ class AssertToAssertionsTest implements RewriteTest {
           java(
             """
               import org.junit.Assert;
-                            
+              
               class MyTest {
-                            
+              
                   void foo() {
                       Assert.assertEquals("One is one", 1, 1);
                       Assert.assertArrayEquals("Empty is empty", new int[]{}, new int[]{});
@@ -291,9 +291,9 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-                            
+              
               class MyTest {
-                            
+              
                   void foo() {
                       Assertions.assertEquals(1, 1, "One is one");
                       Assertions.assertArrayEquals(new int[]{}, new int[]{}, "Empty is empty");
@@ -327,7 +327,7 @@ class AssertToAssertionsTest implements RewriteTest {
           java(
             """
               import org.junit.Assert;
-                            
+              
               class Test {
                   void test() {
                       Assert.assertEquals("One is one", 1, 1);
@@ -336,7 +336,7 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertEquals;
-                            
+              
               class Test {
                   void test() {
                       assertEquals(1, 1, "One is one");
@@ -355,7 +355,7 @@ class AssertToAssertionsTest implements RewriteTest {
           java(
             """
               import org.junit.Assert;
-                            
+              
               class Test {
                   void test() {
                       Assert.assertTrue("one" + "one", true);
@@ -364,7 +364,7 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-                            
+              
               class Test {
                   void test() {
                       Assertions.assertTrue(true, "one" + "one");
@@ -392,7 +392,7 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertNotNull;
-                            
+              
               class MyTest {
                   Long l = 1L;
                   void testNestedPartitionStepStepReference() {
@@ -412,7 +412,7 @@ class AssertToAssertionsTest implements RewriteTest {
           java(
             """
               import static org.junit.Assert.assertThrows;
-                            
+              
               class Test {
                   void test(Runnable run) {
                       assertThrows(
@@ -430,7 +430,7 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertThrows;
-                            
+              
               class Test {
                   void test(Runnable run) {
                       assertThrows(
@@ -458,7 +458,7 @@ class AssertToAssertionsTest implements RewriteTest {
           java(
             """
               import static org.junit.Assert.*;
-                            
+              
               class MyTest {
                   void test() {
                       assertNotNull(UnknownType.unknownMethod());
@@ -467,7 +467,7 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.*;
-                            
+              
               class MyTest {
                   void test() {
                       assertNotNull(UnknownType.unknownMethod());
@@ -488,7 +488,7 @@ class AssertToAssertionsTest implements RewriteTest {
           java(
             """
               import static org.junit.Assert.assertNotNull;
-                            
+              
               class MyTest {
                   void test() {
                       assertNotNull(UnknownType.unknownMethod());
@@ -498,7 +498,7 @@ class AssertToAssertionsTest implements RewriteTest {
             """
               import static org.junit.Assert.assertNotNull;
               import static org.junit.jupiter.api.Assertions.assertNotNull;
-                            
+              
               class MyTest {
                   void test() {
                       assertNotNull(UnknownType.unknownMethod());
