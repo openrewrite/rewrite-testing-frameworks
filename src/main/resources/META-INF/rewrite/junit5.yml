@@ -63,7 +63,9 @@ recipeList:
       pluginArtifactId: maven-surefire-plugin
       groupId: org.apache.maven.surefire
       artifactId: surefire-junit*
-  - org.openrewrite.maven.AddPlugin:
+  - org.openrewrite.maven.AddPluginDependency:
+      pluginGroupId: org.apache.maven.plugins
+      pluginArtifactId: maven-surefire-plugin
       groupId: org.junit.platform
       artifactId: junit-platform-surefire-provider
       version: 1.1.0
