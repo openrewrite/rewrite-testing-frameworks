@@ -63,6 +63,10 @@ recipeList:
       pluginArtifactId: maven-surefire-plugin
       groupId: org.apache.maven.surefire
       artifactId: surefire-junit*
+  - org.openrewrite.maven.AddPlugin:
+      groupId: org.junit.platform
+      artifactId: junit-platform-surefire-provider
+      version: 1.1.0
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.MigrateAssumptions
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
