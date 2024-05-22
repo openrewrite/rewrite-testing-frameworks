@@ -63,16 +63,7 @@ recipeList:
       pluginArtifactId: maven-surefire-plugin
       groupId: org.apache.maven.surefire
       artifactId: surefire-junit*
-  - org.openrewrite.maven.AddPlugin:
-      groupId: org.apache.maven.plugins
-      artifactId: maven-surefire-plugin
-      version: 3.2.5
-  - org.openrewrite.maven.AddPluginDependency:
-      pluginGroupId: org.apache.maven.plugins
-      pluginArtifactId: maven-surefire-plugin
-      groupId: org.junit.platform
-      artifactId: junit-platform-surefire-provider
-      version: 1.1.0
+  - org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.MigrateAssumptions
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
@@ -317,3 +308,24 @@ recipeList:
       newGroupId: org.xmlunit
       newArtifactId: xmlunit-legacy
       newVersion: 2.x
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin
+displayName: Upgrade Surefire Plugin
+description: Upgrades the Maven Surefire Plugin to the latest version if still using an older Maven version.
+preconditions:
+  - org.openrewrite.java.search.HasBuildToolVersion:
+      type: Maven
+      version: 0.0.1-3.5.4
+recipeList:
+  - org.openrewrite.maven.AddPlugin:
+      groupId: org.apache.maven.plugins
+      artifactId: maven-surefire-plugin
+      version: 3.2.5
+  - org.openrewrite.maven.AddPluginDependency:
+      pluginGroupId: org.apache.maven.plugins
+      pluginArtifactId: maven-surefire-plugin
+      groupId: org.junit.platform
+      artifactId: junit-platform-surefire-provider
+      version: 1.1.0
+

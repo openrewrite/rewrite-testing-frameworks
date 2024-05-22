@@ -16,15 +16,16 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.Tree;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.marker.BuildTool;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.List;
-import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,6 +75,7 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
+    @DocumentExample
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/145")
     void assertThatReceiver() {
@@ -170,22 +172,6 @@ class JUnit5MigrationTest implements RewriteTest {
                       <scope>test</scope>
                   </dependency>
               </dependencies>
-              <build>
-                  <plugins>
-                      <plugin>
-                          <groupId>org.apache.maven.plugins</groupId>
-                          <artifactId>maven-surefire-plugin</artifactId>
-                          <version>3.2.5</version>
-                          <dependencies>
-                              <dependency>
-                                  <groupId>org.junit.platform</groupId>
-                                  <artifactId>junit-platform-surefire-provider</artifactId>
-                                  <version>1.1.0</version>
-                              </dependency>
-                          </dependencies>
-                      </plugin>
-                  </plugins>
-              </build>
           </project>
           """;
         // Output identical, but we want to make sure we don't exclude junit4 from testcontainers
@@ -229,22 +215,6 @@ class JUnit5MigrationTest implements RewriteTest {
                       <scope>test</scope>
                   </dependency>
               </dependencies>
-              <build>
-                  <plugins>
-                      <plugin>
-                          <groupId>org.apache.maven.plugins</groupId>
-                          <artifactId>maven-surefire-plugin</artifactId>
-                          <version>3.2.5</version>
-                          <dependencies>
-                              <dependency>
-                                  <groupId>org.junit.platform</groupId>
-                                  <artifactId>junit-platform-surefire-provider</artifactId>
-                                  <version>1.1.0</version>
-                              </dependency>
-                          </dependencies>
-                      </plugin>
-                  </plugins>
-              </build>
           </project>
           """;
         // Output identical, but we want to make sure we don't exclude junit4 from testcontainers
@@ -343,7 +313,7 @@ class JUnit5MigrationTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-                            
+              
               public class A extends AbstractTest {
                   @BeforeEach
                   public void before() {
@@ -368,54 +338,82 @@ class JUnit5MigrationTest implements RewriteTest {
           spec -> spec.beforeRecipe(withToolingApi()),
           //language=groovy
           buildGradle(
-                """
-            plugins {
-                id 'java-library'
-            }
-            repositories {
-                mavenCentral()
-            }
-            dependencies {
-                testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
-            }
-            tasks.withType(Test).configureEach {
-                useJUnitPlatform()
-            }
-            """),
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+              }
+              tasks.withType(Test).configureEach {
+                  useJUnitPlatform()
+              }
+              """),
           //language=xml
           pomXml(
-                """
-            <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>dev.ted</groupId>
-                <artifactId>testcontainer-migrate</artifactId>
-                <version>0.0.1</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.junit.jupiter</groupId>
-                        <artifactId>junit-jupiter-api</artifactId>
-                        <version>5.7.2</version>
-                        <scope>test</scope>
-                    </dependency>
-                </dependencies>
-                <build>
-                    <plugins>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-surefire-plugin</artifactId>
-                            <version>3.2.5</version>
-                            <dependencies>
-                                <dependency>
-                                    <groupId>org.junit.platform</groupId>
-                                    <artifactId>junit-platform-surefire-provider</artifactId>
-                                    <version>1.1.0</version>
-                                </dependency>
-                            </dependencies>
-                        </plugin>
-                    </plugins>
-                </build>
-            </project>
-            """)
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>dev.ted</groupId>
+                  <artifactId>testcontainer-migrate</artifactId>
+                  <version>0.0.1</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.junit.jupiter</groupId>
+                          <artifactId>junit-jupiter-api</artifactId>
+                          <version>5.7.2</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """)
+        );
+    }
+
+    @Test
+    void bumpSurefireOnOlderMavenVersions() {
+        rewriteRun(
+          spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin"),
+          pomXml(
+            //language=xml
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>dev.ted</groupId>
+                  <artifactId>testcontainer-migrate</artifactId>
+                  <version>0.0.1</version>
+              </project>
+              """,
+            //language=xml
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>dev.ted</groupId>
+                  <artifactId>testcontainer-migrate</artifactId>
+                  <version>0.0.1</version>
+                  <build>
+                      <plugins>
+                          <plugin>
+                              <groupId>org.apache.maven.plugins</groupId>
+                              <artifactId>maven-surefire-plugin</artifactId>
+                              <version>3.2.5</version>
+                              <dependencies>
+                                  <dependency>
+                                      <groupId>org.junit.platform</groupId>
+                                      <artifactId>junit-platform-surefire-provider</artifactId>
+                                      <version>1.1.0</version>
+                                  </dependency>
+                              </dependencies>
+                          </plugin>
+                      </plugins>
+                  </build>
+              </project>
+              """,
+            spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.4"))
+          )
         );
     }
 }
