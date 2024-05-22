@@ -374,10 +374,9 @@ class JUnit5MigrationTest implements RewriteTest {
     @Test
     void bumpSurefireOnOlderMavenVersions() {
         rewriteRun(
-          java("class A {}",
-            spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.4"))),
-          //language=xml
+          spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin"),
           pomXml(
+            //language=xml
             """
               <project>
                   <modelVersion>4.0.0</modelVersion>
@@ -386,6 +385,7 @@ class JUnit5MigrationTest implements RewriteTest {
                   <version>0.0.1</version>
               </project>
               """,
+            //language=xml
             """
               <project>
                   <modelVersion>4.0.0</modelVersion>
@@ -409,7 +409,8 @@ class JUnit5MigrationTest implements RewriteTest {
                       </plugins>
                   </build>
               </project>
-              """
+              """,
+            spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.4"))
           )
         );
     }
