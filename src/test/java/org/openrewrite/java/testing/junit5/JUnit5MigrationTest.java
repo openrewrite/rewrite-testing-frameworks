@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.Tree;
@@ -74,6 +75,7 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
+    @DocumentExample
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/145")
     void assertThatReceiver() {
