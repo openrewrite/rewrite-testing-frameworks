@@ -145,12 +145,7 @@ class JUnit5MigrationTest implements RewriteTest {
               </project>
               """,
             spec -> spec.after(actual -> {
-                List<MatchResult> list = Pattern.compile("<version>(.*)</version>")
-                  .matcher(actual).results().skip(1).toList();
-                assertThat(list)
-                  .hasSize(2)
-                  .extracting(mr -> mr.group(1))
-                  .allMatch(m -> m.startsWith("3."));
+                assertThat(Pattern.compile("<version>3\\.(.*)</version>").matcher(actual).results().toList()).hasSize(2);
                 return actual;
             })
           )
@@ -175,6 +170,22 @@ class JUnit5MigrationTest implements RewriteTest {
                       <scope>test</scope>
                   </dependency>
               </dependencies>
+              <build>
+                  <plugins>
+                      <plugin>
+                          <groupId>org.apache.maven.plugins</groupId>
+                          <artifactId>maven-surefire-plugin</artifactId>
+                          <version>3.2.5</version>
+                          <dependencies>
+                              <dependency>
+                                  <groupId>org.junit.platform</groupId>
+                                  <artifactId>junit-platform-surefire-provider</artifactId>
+                                  <version>1.1.0</version>
+                              </dependency>
+                          </dependencies>
+                      </plugin>
+                  </plugins>
+              </build>
           </project>
           """;
         // Output identical, but we want to make sure we don't exclude junit4 from testcontainers
@@ -218,6 +229,22 @@ class JUnit5MigrationTest implements RewriteTest {
                       <scope>test</scope>
                   </dependency>
               </dependencies>
+              <build>
+                  <plugins>
+                      <plugin>
+                          <groupId>org.apache.maven.plugins</groupId>
+                          <artifactId>maven-surefire-plugin</artifactId>
+                          <version>3.2.5</version>
+                          <dependencies>
+                              <dependency>
+                                  <groupId>org.junit.platform</groupId>
+                                  <artifactId>junit-platform-surefire-provider</artifactId>
+                                  <version>1.1.0</version>
+                              </dependency>
+                          </dependencies>
+                      </plugin>
+                  </plugins>
+              </build>
           </project>
           """;
         // Output identical, but we want to make sure we don't exclude junit4 from testcontainers
@@ -371,6 +398,22 @@ class JUnit5MigrationTest implements RewriteTest {
                         <scope>test</scope>
                     </dependency>
                 </dependencies>
+                <build>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-surefire-plugin</artifactId>
+                            <version>3.2.5</version>
+                            <dependencies>
+                                <dependency>
+                                    <groupId>org.junit.platform</groupId>
+                                    <artifactId>junit-platform-surefire-provider</artifactId>
+                                    <version>1.1.0</version>
+                                </dependency>
+                            </dependencies>
+                        </plugin>
+                    </plugins>
+                </build>
             </project>
             """)
         );
