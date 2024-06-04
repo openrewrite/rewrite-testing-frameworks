@@ -35,17 +35,17 @@ public class TestNgAssertNotNullToAssertThat
 
     @Override
     public String getDisplayName() {
-        return "JUnit `assertNotNull` to AssertJ";
+        return "TestNG `assertNotNull` to AssertJ";
     }
 
     @Override
     public String getDescription() {
-        return "Convert JUnit-style `assertNotNull()` to AssertJ's `assertThat().isNotNull()`.";
+        return "Convert TestNG-style `assertNotNull()` to AssertJ's `assertThat().isNotNull()`.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Assertions", false), new AssertNotNullToAssertThatVisitor());
+        return Preconditions.check(new UsesType<>("org.testng.Assert", false), new AssertNotNullToAssertThatVisitor());
     }
 
     public static class AssertNotNullToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -59,11 +59,11 @@ public class TestNgAssertNotNullToAssertThat
             return assertionsParser;
         }
 
-        private static final MethodMatcher JUNIT_ASSERT_NOT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertNotNull(..)");
+        private static final MethodMatcher TESTNG_ASSERT_NOT_NULL_MATCHER = new MethodMatcher("org.testng.Assert" + " assertNotNull(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (!JUNIT_ASSERT_NOT_NULL_MATCHER.matches(method)) {
+            if (!TESTNG_ASSERT_NOT_NULL_MATCHER.matches(method)) {
                 return method;
             }
 
@@ -103,8 +103,8 @@ public class TestNgAssertNotNullToAssertThat
             //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
-            //And if there are no longer references to the JUnit assertions class, we can remove the import.
-            maybeRemoveImport("org.junit.jupiter.api.Assertions");
+            //And if there are no longer references to the TestNG assertions class, we can remove the import.
+            maybeRemoveImport("org.testng.Assert");
 
             return method;
         }

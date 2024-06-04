@@ -36,17 +36,17 @@ public class TestNgAssertNotEqualsToAssertThat
 
     @Override
     public String getDisplayName() {
-        return "JUnit `assertNotEquals` to AssertJ";
+        return "TestNG `assertNotEquals` to AssertJ";
     }
 
     @Override
     public String getDescription() {
-        return "Convert JUnit-style `assertNotEquals()` to AssertJ's `assertThat().isNotEqualTo()`.";
+        return "Convert TestNG-style `assertNotEquals()` to AssertJ's `assertThat().isNotEqualTo()`.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Assertions", false), new AssertNotEqualsToAssertThatVisitor());
+        return Preconditions.check(new UsesType<>("org.testng.Assert", false), new AssertNotEqualsToAssertThatVisitor());
     }
 
     public static class AssertNotEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -60,18 +60,18 @@ public class TestNgAssertNotEqualsToAssertThat
             return assertionsParser;
         }
 
-        private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertNotEquals(..)");
+        private static final MethodMatcher TESTNG_ASSERT_EQUALS = new MethodMatcher("org.testng.Assert" + " assertNotEquals(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (!JUNIT_ASSERT_EQUALS.matches(method)) {
+            if (!TESTNG_ASSERT_EQUALS.matches(method)) {
                 return method;
             }
 
             List<Expression> args = method.getArguments();
 
-            Expression expected = args.get(0);
-            Expression actual = args.get(1);
+            Expression expected = args.get(1);
+            Expression actual = args.get(0);
 
             if (args.size() == 2) {
                 method = JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
@@ -142,8 +142,8 @@ public class TestNgAssertNotEqualsToAssertThat
             //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
-            // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
-            maybeRemoveImport("org.junit.jupiter.api.Assertions");
+            // Remove import for "org.testng.Assert" if no longer used.
+            maybeRemoveImport("org.testng.Assert");
 
             return method;
         }

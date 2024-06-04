@@ -35,20 +35,20 @@ public class TestNgFailToAssertJFail
         extends Recipe {
     @Override
     public String getDisplayName() {
-        return "JUnit fail to AssertJ";
+        return "TestNG fail to AssertJ";
     }
 
     @Override
     public String getDescription() {
-        return "Convert JUnit-style `fail()` to AssertJ's `fail()`.";
+        return "Convert TestNG-style `fail()` to AssertJ's `fail()`.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Assertions", false), new JUnitFailToAssertJFailVisitor());
+        return Preconditions.check(new UsesType<>("org.testng.Assert", false), new TestNgFailToAssertJFailVisitor());
     }
 
-    public static class JUnitFailToAssertJFailVisitor extends JavaIsoVisitor<ExecutionContext> {
+    public static class TestNgFailToAssertJFailVisitor extends JavaIsoVisitor<ExecutionContext> {
         private JavaParser.Builder<?, ?> assertionsParser;
 
         private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
@@ -59,13 +59,13 @@ public class TestNgFailToAssertJFail
             return assertionsParser;
         }
 
-        private static final MethodMatcher JUNIT_FAIL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " fail(..)");
+        private static final MethodMatcher TESTNG_FAIL_MATCHER = new MethodMatcher("org.testng.Assert" + " fail(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = method;
 
-            if (!JUNIT_FAIL_MATCHER.matches(m)) {
+            if (!TESTNG_FAIL_MATCHER.matches(m)) {
                 return m;
             }
 
@@ -154,7 +154,7 @@ public class TestNgFailToAssertJFail
                         );
                 //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
                 maybeAddImport("org.assertj.core.api.Assertions", "fail", false);
-                maybeRemoveImport("org.junit.jupiter.api.Assertions.fail");
+                maybeRemoveImport("org.testng.Assert.fail");
                 return super.visitMethodInvocation(method, ctx);
             }
         }

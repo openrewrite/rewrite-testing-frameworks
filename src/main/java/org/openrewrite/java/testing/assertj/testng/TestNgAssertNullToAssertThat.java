@@ -35,17 +35,17 @@ public class TestNgAssertNullToAssertThat
 
     @Override
     public String getDisplayName() {
-        return "JUnit `assertNull` to AssertJ";
+        return "TestNG `assertNull` to AssertJ";
     }
 
     @Override
     public String getDescription() {
-        return "Convert JUnit-style `assertNull()` to AssertJ's `assertThat().isNull()`.";
+        return "Convert TestNG-style `assertNull()` to AssertJ's `assertThat().isNull()`.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Assertions", false), new AssertNullToAssertThatVisitor());
+        return Preconditions.check(new UsesType<>("org.testng.Assert", false), new AssertNullToAssertThatVisitor());
     }
 
     public static class AssertNullToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -59,11 +59,11 @@ public class TestNgAssertNullToAssertThat
             return assertionsParser;
         }
 
-        private static final MethodMatcher JUNIT_ASSERT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertNull(..)");
+        private static final MethodMatcher TESTNG_ASSERT_NULL_MATCHER = new MethodMatcher("org.testng.Assert" + " assertNull(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (!JUNIT_ASSERT_NULL_MATCHER.matches(method)) {
+            if (!TESTNG_ASSERT_NULL_MATCHER.matches(method)) {
                 return method;
             }
 
@@ -102,8 +102,8 @@ public class TestNgAssertNullToAssertThat
             // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
             maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
-            // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
-            maybeRemoveImport("org.junit.jupiter.api.Assertions");
+            // Remove import for "org.testng.Assert" if no longer used.
+            maybeRemoveImport("org.testng.Assert");
 
             return method;
         }
