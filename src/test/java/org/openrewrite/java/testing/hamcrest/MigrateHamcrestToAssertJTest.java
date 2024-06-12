@@ -522,6 +522,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               }
           }
           """;
+
         @Language("java")
         private static final String JAVA_AFTER = """
           import org.junit.jupiter.api.Test;

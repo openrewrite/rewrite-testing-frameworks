@@ -39,6 +39,7 @@ public class LifecycleNonPrivate extends Recipe {
             "org.junit.jupiter.api.AfterEach",
             "org.junit.jupiter.api.BeforeAll",
             "org.junit.jupiter.api.BeforeEach");
+
     @SuppressWarnings("unchecked")
     private static final TreeVisitor<?, ExecutionContext> PRECONDITION =
             Preconditions.or(ANNOTATION_TYPES.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new));
