@@ -719,4 +719,45 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/519")
+    void isEqualMatcherFromCore() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.core.IsEqual.equalTo;
+              import static org.hamcrest.core.IsNot.not;
+              import static org.hamcrest.core.IsSame.sameInstance;
+              
+              import org.junit.jupiter.api.Test;
+              
+              class DebugTest {
+                  @Test
+                  void ba() {
+                      assertThat(System.out, equalTo(System.out));
+                      assertThat(System.out, not(System.out));
+                      assertThat(System.out, sameInstance(System.out));
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              import org.junit.jupiter.api.Test;
+              
+              class DebugTest {
+                  @Test
+                  void ba() {
+                      assertThat(System.out).isEqualTo(System.out);
+                      assertThat(System.out).isNotEqualTo(System.out);
+                      assertThat(System.out).isSameAs(System.out);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
