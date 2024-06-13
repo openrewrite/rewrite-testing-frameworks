@@ -46,8 +46,8 @@ public class IsEqualToEmptyString extends Recipe {
                     private final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.AbstractStringAssert isEqualTo(java.lang.String)");
 
                     @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-                        J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                        J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (IS_EQUAL_TO.matches(mi) && J.Literal.isLiteralValue(mi.getArguments().get(0), "")) {
                             JavaType.Method isEmptyMethodType = mi.getMethodType().withName("isEmpty");
                             return mi
