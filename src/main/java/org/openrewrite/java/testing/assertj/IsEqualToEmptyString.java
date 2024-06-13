@@ -28,6 +28,9 @@ import org.openrewrite.java.tree.JavaType;
 import java.util.Collections;
 
 public class IsEqualToEmptyString extends Recipe {
+
+    private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.AbstractStringAssert isEqualTo(java.lang.String)");
+
     @Override
     public String getDisplayName() {
         return "Convert `assertThat(String).isEqualTo(\"\")` to `isEmpty()`";
@@ -41,10 +44,8 @@ public class IsEqualToEmptyString extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                new UsesMethod<>("org.assertj.core.api.Assertions assertThat(java.lang.String)"),
+                new UsesMethod<>(IS_EQUAL_TO),
                 new JavaIsoVisitor<ExecutionContext>() {
-                    private final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.AbstractStringAssert isEqualTo(java.lang.String)");
-
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
