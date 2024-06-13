@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.cleanup;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -488,6 +489,44 @@ class TestsShouldNotBePublicTest implements RewriteTest {
                   Collection<DynamicTest> testFactoryMethod() {
                       return null;
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/309")
+    void baseclassForTestsNeedsToStayPublic() {
+        //language=java
+        rewriteRun(
+          spec -> spec.recipe(new TestsShouldNotBePublic(true)),
+          java(
+            // base class for tests should stay public
+            """
+              package com.hello;
+
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class MyTestBase {
+                @BeforeEach
+                void setUp() {
+                }
+              }
+              """
+          ),
+          java(
+            // test class extends base class from another package
+            """
+              package com.world;
+
+              import com.hello.MyTestBase;
+              import org.junit.jupiter.api.Test;
+
+              class MyTest extends MyTestBase {
+                @Test
+                void isWorking() {
+                }
               }
               """
           )
