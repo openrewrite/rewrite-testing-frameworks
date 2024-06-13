@@ -70,8 +70,8 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
     public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext executionContext) {
-                J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, executionContext);
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
+                J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, ctx);
                 if (cd.getExtends() != null) {
                     acc.extendedClasses.add(String.valueOf(cd.getExtends().getType()));
                 }
