@@ -114,7 +114,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                                 expected,
                                 args.get(2)
                         );
-                maybeAddImport("org.assertj.core.api.Assertions", "within");
+                maybeAddImport("org.assertj.core.api.Assertions", "within", false);
             } else {
                 Expression message = args.get(3);
 
@@ -135,12 +135,13 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                                 args.get(2)
                         );
 
-                maybeAddImport("org.assertj.core.api.Assertions", "within");
+                maybeAddImport("org.assertj.core.api.Assertions", "within", false);
             }
 
-            //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat"
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-            //And if there are no longer references to the JUnit assertions class, we can remove the import.
+            //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+
+            // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
             maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
             return method;

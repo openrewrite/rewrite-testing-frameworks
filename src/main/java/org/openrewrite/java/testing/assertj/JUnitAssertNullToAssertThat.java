@@ -98,11 +98,11 @@ public class JUnitAssertNullToAssertThat extends Recipe {
                         );
             }
 
+            // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+
             // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
             maybeRemoveImport("org.junit.jupiter.api.Assertions");
-
-            // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat".
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
 
             return method;
         }

@@ -42,35 +42,38 @@ class HamcrestNotMatcherToAssertJTest implements RewriteTest {
           spec -> spec.recipe(new HamcrestNotMatcherToAssertJ("equalTo", "isNotEqualTo")),
           //language=java
           java(
-                """
-            import org.junit.jupiter.api.Test;
-            
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.not;
-            import static org.hamcrest.Matchers.equalTo;
-                            
-            class ATest {
-                @Test
-                void test() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1, not(equalTo(str2)));
-                }
-            }
-            """, """
-            import org.junit.jupiter.api.Test;
-            
-            import static org.assertj.core.api.Assertions.assertThat;
-                            
-            class ATest {
-                @Test
-                void test() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1).isNotEqualTo(str2);
-                }
-            }
-            """));
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.not;
+              import static org.hamcrest.Matchers.equalTo;
+              
+              class ATest {
+                  @Test
+                  void test() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, not(equalTo(str2)));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class ATest {
+                  @Test
+                  void test() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1).isNotEqualTo(str2);
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -79,32 +82,79 @@ class HamcrestNotMatcherToAssertJTest implements RewriteTest {
           spec -> spec.recipe(new HamcrestNotMatcherToAssertJ("nullValue", "isNotNull")),
           //language=java
           java(
-                """
-            import org.junit.jupiter.api.Test;
-            
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.not;
-            import static org.hamcrest.Matchers.nullValue;
-                            
-            class ATest {
-                @Test
-                void test() {
-                    String str1 = "Hello world!";
-                    assertThat("Reason", str1, not(nullValue()));
-                }
-            }
-            """, """
-            import org.junit.jupiter.api.Test;
-            
-            import static org.assertj.core.api.Assertions.assertThat;
-                            
-            class ATest {
-                @Test
-                void test() {
-                    String str1 = "Hello world!";
-                    assertThat(str1).as("Reason").isNotNull();
-                }
-            }
-            """));
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.not;
+              import static org.hamcrest.Matchers.nullValue;
+              
+              class ATest {
+                  @Test
+                  void test() {
+                      String str1 = "Hello world!";
+                      assertThat("Reason", str1, not(nullValue()));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class ATest {
+                  @Test
+                  void test() {
+                      String str1 = "Hello world!";
+                      assertThat(str1).as("Reason").isNotNull();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void notMatcherWithCollection() {
+        rewriteRun(
+          spec -> spec.recipe(new HamcrestNotMatcherToAssertJ("hasItem", "doesNotContain")),
+          //language=java
+          java(
+            """
+              import java.util.List;
+              
+              import org.junit.jupiter.api.Test;
+              
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.not;
+              import static org.hamcrest.Matchers.hasItem;
+              
+              class ATest {
+                  @Test
+                  void test() {
+                      List<String> str1 = List.of("Hello world!");
+                      String str2 = "Hello world!";
+                      assertThat(str1, not(hasItem(str2)));
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+              
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class ATest {
+                  @Test
+                  void test() {
+                      List<String> str1 = List.of("Hello world!");
+                      String str2 = "Hello world!";
+                      assertThat(str1).doesNotContain(str2);
+                  }
+              }
+              """
+          )
+        );
     }
 }

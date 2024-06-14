@@ -23,7 +23,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.maven.Assertions.pomXml;
 
-public class UseXMLUnitLegacyTest implements RewriteTest {
+class UseXMLUnitLegacyTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -64,7 +64,7 @@ public class UseXMLUnitLegacyTest implements RewriteTest {
                     <dependency>
                       <groupId>org.xmlunit</groupId>
                       <artifactId>xmlunit-legacy</artifactId>
-                      <version>2.9.1</version>
+                      <version>2.10.0</version>
                     </dependency>
                   </dependencies>
                 </project>

@@ -59,7 +59,6 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
             return assertionsParser;
         }
 
-
         private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertEquals(..)");
 
         @Override
@@ -72,7 +71,10 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
             Expression expected = args.get(0);
             Expression actual = args.get(1);
 
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+            //always add the import (even if not referenced)
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+
+            // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
             maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
             if (args.size() == 2) {
@@ -99,7 +101,8 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                                 expected
                         );
             } else if (args.size() == 3) {
-                maybeAddImport("org.assertj.core.api.Assertions", "within");
+                //always add the import (even if not referenced)
+                maybeAddImport("org.assertj.core.api.Assertions", "within", false);
                 return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
                         .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                         .javaParser(assertionsParser(ctx))
@@ -111,7 +114,8 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
             // The assertEquals is using a floating point with a delta argument and a message.
             Expression message = args.get(3);
 
-            maybeAddImport("org.assertj.core.api.Assertions", "within");
+            //always add the import (even if not referenced)
+            maybeAddImport("org.assertj.core.api.Assertions", "within", false);
             JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                     JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isCloseTo(#{any()}, within(#{any()}));") :
                     JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isCloseTo(#{any()}, within(#{any()}));");

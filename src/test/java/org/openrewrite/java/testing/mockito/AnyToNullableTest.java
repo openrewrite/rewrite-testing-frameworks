@@ -144,5 +144,3 @@ class AnyToNullableTest implements RewriteTest {
     }
 
 }
-
-

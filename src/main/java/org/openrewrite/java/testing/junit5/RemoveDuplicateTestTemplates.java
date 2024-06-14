@@ -29,14 +29,17 @@ public class RemoveDuplicateTestTemplates extends Recipe {
     private static final AnnotationMatcher TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.Test");
     private static final AnnotationMatcher REPEATED_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.RepeatedTest");
 
+    @Override
     public String getDisplayName() {
         return "Remove duplicates uses of @TestTemplate implementations for a single method";
     }
 
+    @Override
     public String getDescription() {
         return "Remove duplicates uses of @TestTemplate implementations for a single method.";
     }
 
+    @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 new UsesType<>("org.junit.jupiter.api.RepeatedTest", false),

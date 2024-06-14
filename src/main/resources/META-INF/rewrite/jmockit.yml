@@ -23,6 +23,7 @@ tags:
   - jmockit
 recipeList:
   - org.openrewrite.java.testing.jmockit.JMockitExpectationsToMockito
+  - org.openrewrite.java.testing.jmockit.JMockitMockedVariableToMockito
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: mockit.Mocked
       newFullyQualifiedTypeName: org.mockito.Mock
@@ -41,3 +42,9 @@ recipeList:
       version: 5.x
       onlyIfUsing: org.mockito.*
       acceptTransitive: true
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.jmockit
+      artifactId: jmockit
+  - org.openrewrite.maven.ExcludeDependency:
+      groupId: org.jmockit
+      artifactId: jmockit
