@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.assertj;
 
 import com.google.errorprone.refaster.annotation.AfterTemplate;
 import com.google.errorprone.refaster.annotation.BeforeTemplate;
+import org.openrewrite.java.template.Primitive;
 import org.openrewrite.java.template.RecipeDescriptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,15 +32,14 @@ public class SimplifyAssertExpectations {
             name = "Simplify `assertThat(int).isEqualTo(0)`",
             description = "Simplify `assertThat(int).isEqualTo(0)` to `assertThat(int).isZero()`."
     )
-    public class SimplifyToIsZero {
-
+    public static class SimplifyToIsZero {
         @BeforeTemplate
-        void before(int i) {
+        void before(@Primitive Integer i) {
             assertThat(i).isEqualTo(0);
         }
 
         @AfterTemplate
-        void after(int i) {
+        void after(@Primitive int i) {
             assertThat(i).isZero();
         }
     }
@@ -48,8 +48,7 @@ public class SimplifyAssertExpectations {
             name = "Simplify `assertThat(o).isEqualTo(null)`",
             description = "Simplify `assertThat(o).isEqualTo(null)` to `assertThat(o).isNull()`."
     )
-    public class SimplifyToIsNull {
-
+    public static class SimplifyToIsNull {
         @BeforeTemplate
         void before(Object o) {
             assertThat(o).isEqualTo(null);
@@ -65,7 +64,7 @@ public class SimplifyAssertExpectations {
             name = "Simplify `assertThat(i >= j).isTrue()`",
             description = "Simplify `assertThat(i >= j).isTrue()` to `assertThat(i).isGreaterThanOrEqualTo(j)`."
     )
-    public class SimplifyGreaterEqualComparison {
+    public static class SimplifyGreaterEqualComparison {
 
         @BeforeTemplate
         void before(int i, int j) {
