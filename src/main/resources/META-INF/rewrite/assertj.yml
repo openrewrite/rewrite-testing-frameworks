@@ -381,3 +381,4 @@ recipeList:
       version: 3.x
       onlyIfUsing: org.assertj.core.api.Assertions
       acceptTransitive: true
+  - tech.picnic.errorprone.refasterrules.JUnitToAssertJRulesRecipes
