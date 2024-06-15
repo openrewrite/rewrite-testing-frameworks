@@ -34,9 +34,7 @@ dependencies {
     implementation("org.openrewrite:rewrite-maven")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:$rewriteVersion")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:$rewriteVersion")
-    implementation("org.openrewrite.recipe:rewrite-third-party:$rewriteVersion") {
-        exclude(module = "jakarta.xml.bind-api")
-    }
+    implementation("org.openrewrite.recipe:rewrite-third-party:$rewriteVersion")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
     compileOnly("org.projectlombok:lombok:latest.release")
