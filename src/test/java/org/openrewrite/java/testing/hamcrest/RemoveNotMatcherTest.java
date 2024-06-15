@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -32,7 +33,9 @@ class RemoveNotMatcherTest implements RewriteTest {
           .recipe(new RemoveNotMatcher());
     }
 
-    @Test
+    @DocumentExample
+          java(
+                """
     void nestedNotMatcher() {
         rewriteRun(
           //language=java
@@ -50,7 +53,8 @@ class RemoveNotMatcherTest implements RewriteTest {
                     assertThat(str1, not(equalTo(str2)));
                 }
             }
-            ""","""
+            """,
+                """
             import org.junit.jupiter.api.Test;
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.equalTo;
@@ -70,7 +74,8 @@ class RemoveNotMatcherTest implements RewriteTest {
     void notMatcher() {
         rewriteRun(
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.Test;
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.not;
@@ -83,7 +88,8 @@ class RemoveNotMatcherTest implements RewriteTest {
                     assertThat(str1, not(str2));
                 }
             }
-            ""","""
+            """,
+                """
             import org.junit.jupiter.api.Test;
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.equalTo;

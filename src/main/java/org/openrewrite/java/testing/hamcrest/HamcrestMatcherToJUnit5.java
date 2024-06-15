@@ -118,8 +118,8 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
     private static class MigrationFromHamcrestVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-            J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
             MethodMatcher matcherAssertMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(.., org.hamcrest.Matcher)");
 
             if (matcherAssertMatcher.matches(mi)) {
@@ -144,7 +144,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                     while (matcherInvocation.getSimpleName().equals("not")) {
                         maybeRemoveImport("org.hamcrest.Matchers.not");
                         maybeRemoveImport("org.hamcrest.CoreMatchers.not");
-                        matcherInvocation = (J.MethodInvocation) removeNotRecipe.getVisitor().visit(matcherInvocation, executionContext);
+                        matcherInvocation = (J.MethodInvocation) removeNotRecipe.getVisitor().visit(matcherInvocation, ctx);
                     }
 
                     //we do not handle nested matchers
@@ -154,7 +154,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                         }
                     }
 
-                    boolean logicalContext = removeNotRecipe.getLogicalContext(matcherInvocation, executionContext);
+                    boolean logicalContext = removeNotRecipe.getLogicalContext(matcherInvocation, ctx);
 
                     Replacement replacement;
                     try {
@@ -171,7 +171,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                             + (reason == null ? ")" : ", #{any(java.lang.String)})");
 
                     JavaTemplate template = JavaTemplate.builder(templateString)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(executionContext, "junit-jupiter-api-5.9"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
                         .staticImports("org.junit.jupiter.api.Assertions." + assertion)
                         .build();
 
