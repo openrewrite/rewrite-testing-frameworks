@@ -41,33 +41,36 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
         rewriteRun(
           //language=java
           java(
-                """
-            import org.junit.jupiter.api.Test;
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.is;
-                            
-            class ATest {
-                @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1, is(str2));
-                }
-            }
-            """, """
-            import org.junit.jupiter.api.Test;
-                        
-            import static org.assertj.core.api.Assertions.assertThat;
-                        
-            class ATest {
-                @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1).isEqualTo(str2);
-                }
-            }
-            """));
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.is;
+              
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, is(str2));
+                  }
+              }
+              """,
+              """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1).isEqualTo(str2);
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -75,35 +78,38 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
         rewriteRun(
           //language=java
           java(
-                """
-            import org.junit.jupiter.api.Test;
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.is;
-                            
-            class ATest {
-                @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    // Foo
-                    assertThat("Reason", str1, is(str2));
-                }
-            }
-            """, """
-            import org.junit.jupiter.api.Test;
-                        
-            import static org.assertj.core.api.Assertions.assertThat;
-                        
-            class ATest {
-                @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    // Foo
-                    assertThat(str1).as("Reason").isEqualTo(str2);
-                }
-            }
-            """));
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.is;
+              
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      // Foo
+                      assertThat("Reason", str1, is(str2));
+                  }
+              }
+              """,
+              """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      // Foo
+                      assertThat(str1).as("Reason").isEqualTo(str2);
+                  }
+              }
+              """
+          )
+        );
     }
 
 
@@ -112,21 +118,23 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
         rewriteRun(
           //language=java
           java(
-                """
-                import org.junit.jupiter.api.Test;
-                import static org.hamcrest.MatcherAssert.assertThat;
-                import static org.hamcrest.Matchers.is;
-                import static org.hamcrest.Matchers.equalTo;
-                                
-                class ATest {
-                    @Test
-                    void test() {
-                        String str1 = "Hello world!";
-                        String str2 = "Hello world!";
-                        assertThat(str1, is(equalTo(str2)));
-                    }
-                }
-                """));
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.is;
+              import static org.hamcrest.Matchers.equalTo;
+              
+              class ATest {
+                  @Test
+                  void test() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, is(equalTo(str2)));
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -134,33 +142,36 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
         rewriteRun(
           //language=java
           java(
-                """
-            import org.junit.jupiter.api.Test;
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.is;
-                            
-            class ATest {
-                @Test
-                void testEquals() {
-                    String[] str1 = new String[]{"Hello world!"};
-                    String[] str2 = new String[]{"Hello world!"};
-                    assertThat(str1, is(str2));
-                }
-            }
-            """, """
-            import org.junit.jupiter.api.Test;
-                        
-            import static org.assertj.core.api.Assertions.assertThat;
-                        
-            class ATest {
-                @Test
-                void testEquals() {
-                    String[] str1 = new String[]{"Hello world!"};
-                    String[] str2 = new String[]{"Hello world!"};
-                    assertThat(str1).containsExactly(str2);
-                }
-            }
-            """));
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.is;
+              
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String[] str1 = new String[]{"Hello world!"};
+                      String[] str2 = new String[]{"Hello world!"};
+                      assertThat(str1, is(str2));
+                  }
+              }
+              """,
+              """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String[] str1 = new String[]{"Hello world!"};
+                      String[] str2 = new String[]{"Hello world!"};
+                      assertThat(str1).containsExactly(str2);
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -168,32 +179,35 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
         rewriteRun(
           //language=java
           java(
-                """
-            import org.junit.jupiter.api.Test;
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.is;
-                            
-            class ATest {
-                @Test
-                void testEquals() {
-                    int[] str1 = new int[]{1};
-                    int[] str2 = new int[]{1};
-                    assertThat(str1, is(str2));
-                }
-            }
-            """, """
-            import org.junit.jupiter.api.Test;
-                        
-            import static org.assertj.core.api.Assertions.assertThat;
-                        
-            class ATest {
-                @Test
-                void testEquals() {
-                    int[] str1 = new int[]{1};
-                    int[] str2 = new int[]{1};
-                    assertThat(str1).containsExactly(str2);
-                }
-            }
-            """));
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.is;
+              
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      int[] str1 = new int[]{1};
+                      int[] str2 = new int[]{1};
+                      assertThat(str1, is(str2));
+                  }
+              }
+              """,
+              """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      int[] str1 = new int[]{1};
+                      int[] str2 = new int[]{1};
+                      assertThat(str1).containsExactly(str2);
+                  }
+              }
+              """
+          )
+        );
     }
 }

@@ -24,7 +24,6 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 
-@SuppressWarnings("NullableProblems")
 public class RemoveIsMatcher extends Recipe {
     @Override
     public String getDisplayName() {

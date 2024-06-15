@@ -103,7 +103,7 @@ public class CategoryToTag extends Recipe {
                     categories = Stream.of((J.FieldAccess) annotationArgument);
                 }
                 return categories.map(category -> {
-                    String targetName = ((J.Identifier) category.getTarget()).getSimpleName();
+                    String targetName = convertToTagName(category);
                     J.Annotation tagAnnotation = new J.Annotation(
                             randomId(),
                             Space.EMPTY,
@@ -133,6 +133,16 @@ public class CategoryToTag extends Recipe {
                 });
             } else {
                 return Stream.of(maybeCategory);
+            }
+        }
+
+        private static String convertToTagName(J.FieldAccess category) {
+            if (category.getTarget() instanceof J.Identifier) {
+                return ((J.Identifier) category.getTarget()).getSimpleName();
+            } else if (category.getTarget() instanceof J.FieldAccess) {
+                return ((J.FieldAccess) category.getTarget()).getSimpleName();
+            } else {
+                return category.getTarget().toString();
             }
         }
     }

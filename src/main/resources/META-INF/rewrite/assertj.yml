@@ -26,6 +26,7 @@ recipeList:
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
   - org.openrewrite.java.testing.assertj.StaticImports
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
+  - org.openrewrite.java.testing.assertj.IsEqualToEmptyString
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -80,6 +81,11 @@ recipeList:
       chainedAssertion: contains
       assertToReplace: isTrue
       dedicatedAssertion: contains
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: contains
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotContain
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: startsWith
@@ -290,11 +296,36 @@ recipeList:
       assertToReplace: isEqualTo
       dedicatedAssertion: containsEntry
       requiredType: java.util.Map
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isTrue
+      dedicatedAssertion: isEmpty
+      requiredType: java.util.Map
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isFalse
+      dedicatedAssertion: isNotEmpty
+      requiredType: java.util.Map
   # Optional Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: isPresent
       assertToReplace: isTrue
       dedicatedAssertion: isPresent
+      requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isTrue
+      dedicatedAssertion: isEmpty
+      requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isPresent
+      assertToReplace: isFalse
+      dedicatedAssertion: isNotPresent
+      requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: isEmpty
+      assertToReplace: isFalse
+      dedicatedAssertion: isNotEmpty
       requiredType: java.util.Optional
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: get
@@ -316,6 +347,8 @@ tags:
   - testing
   - assertj
 recipeList:
+  # First improve the assertions for JUnit, to fix inverted expected/actual values
+  - org.openrewrite.java.testing.junit5.CleanupAssertions
   - org.openrewrite.java.testing.assertj.JUnitAssertArrayEqualsToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitAssertEqualsToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitAssertFalseToAssertThat

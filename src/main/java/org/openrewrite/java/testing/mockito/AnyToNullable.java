@@ -20,6 +20,7 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeMethodName;
 import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.xml.tree.Xml;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -43,7 +44,7 @@ public class AnyToNullable extends ScanningRecipe<AtomicBoolean> {
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(AtomicBoolean acc) {
         org.openrewrite.maven.search.FindDependency mavenFindDependency =
-                new org.openrewrite.maven.search.FindDependency("org.mockito", "mockito-all");
+                new org.openrewrite.maven.search.FindDependency("org.mockito", "mockito-all", null, null);
         org.openrewrite.gradle.search.FindDependency gradleFindDependency =
                 new org.openrewrite.gradle.search.FindDependency("org.mockito", "mockito-all", null);
         return new TreeVisitor<Tree, ExecutionContext>() {
@@ -63,20 +64,18 @@ public class AnyToNullable extends ScanningRecipe<AtomicBoolean> {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(AtomicBoolean acc) {
-        ChangeMethodName changeMethodName = new ChangeMethodName(
-                "org.mockito.Mockito any(java.lang.Class)", "nullable", null, null);
-        ChangeMethodTargetToStatic changeMethodTargetToStatic = new ChangeMethodTargetToStatic(
-                "org.mockito.Mockito nullable(java.lang.Class)", "org.mockito.ArgumentMatchers", null, null);
-        AnyStringToNullable anyStringToNullable = new AnyStringToNullable();
         return Preconditions.check(acc.get(), new TreeVisitor<Tree, ExecutionContext>() {
             @Override
-            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                if (tree instanceof J) {
-                    doAfterVisit(changeMethodName.getVisitor());
-                    doAfterVisit(changeMethodTargetToStatic.getVisitor());
-                    doAfterVisit(anyStringToNullable.getVisitor());
+            public @Nullable Tree preVisit(Tree tree, ExecutionContext ctx) {
+                if (tree instanceof JavaSourceFile) {
+                    stopAfterPreVisit();
+                    doAfterVisit(new ChangeMethodName(
+                            "org.mockito.Mockito any(java.lang.Class)", "nullable", null, null).getVisitor());
+                    doAfterVisit(new ChangeMethodTargetToStatic(
+                            "org.mockito.Mockito nullable(java.lang.Class)", "org.mockito.ArgumentMatchers", null, null).getVisitor());
+                    doAfterVisit(new AnyStringToNullable().getVisitor());
                 }
-                return super.visit(tree, ctx);
+                return super.preVisit(tree, ctx);
             }
         });
     }

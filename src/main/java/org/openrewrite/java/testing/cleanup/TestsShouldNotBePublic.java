@@ -17,9 +17,11 @@ package org.openrewrite.java.testing.cleanup;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
-import org.openrewrite.Recipe;
+import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
@@ -29,20 +31,13 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.J.ClassDeclaration;
-import org.openrewrite.java.tree.J.MethodDeclaration;
-import org.openrewrite.java.tree.J.Modifier;
-import org.openrewrite.java.tree.J.Modifier.Type;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
-public class TestsShouldNotBePublic extends Recipe {
+public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePublic.Accumulator> {
 
     @Option(displayName = "Remove protected modifiers",
             description = "Also remove protected modifiers from test methods",
@@ -63,29 +58,50 @@ public class TestsShouldNotBePublic extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-5786");
+        return Collections.singleton("RSPEC-S5786");
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new TestsNotPublicVisitor(Boolean.TRUE.equals(removeProtectedModifiers));
+    public Accumulator getInitialValue(ExecutionContext ctx) {
+        return new Accumulator();
     }
 
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
+                J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, ctx);
+                if (cd.getExtends() != null) {
+                    acc.extendedClasses.add(String.valueOf(cd.getExtends().getType()));
+                }
+                return cd;
+            }
+        };
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
+        return new TestsNotPublicVisitor(Boolean.TRUE.equals(removeProtectedModifiers), acc);
+    }
+
+    public static class Accumulator {
+        Set<String> extendedClasses = new HashSet<>();
+    }
+
+    @RequiredArgsConstructor
     private static final class TestsNotPublicVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final Boolean orProtected;
-
-        private TestsNotPublicVisitor(Boolean orProtected) {
-            this.orProtected = orProtected;
-        }
+        private final Accumulator acc;
 
         @Override
-        public ClassDeclaration visitClassDeclaration(ClassDeclaration classDecl, ExecutionContext ctx) {
-            ClassDeclaration c = super.visitClassDeclaration(classDecl, ctx);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration c = super.visitClassDeclaration(classDecl, ctx);
 
-            if (c.getKind() != ClassDeclaration.Kind.Type.Interface
+            if (c.getKind() != J.ClassDeclaration.Kind.Type.Interface
                     && c.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public)
-                    && c.getModifiers().stream().noneMatch(mod -> mod.getType() == Type.Abstract)) {
-
+                    && c.getModifiers().stream().noneMatch(mod -> mod.getType() == J.Modifier.Type.Abstract)
+                    && !acc.extendedClasses.contains(String.valueOf(c.getType()))) {
                 boolean hasTestMethods = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
                         .map(J.MethodDeclaration.class::cast)
@@ -105,7 +121,7 @@ public class TestsShouldNotBePublic extends Recipe {
                 if (hasTestMethods && !hasPublicNonTestMethods && !hasPublicVariableDeclarations) {
                     // Remove public modifier and move associated comment
                     final List<Comment> modifierComments = new ArrayList<>();
-                    List<Modifier> modifiers = ListUtils.map(c.getModifiers(), mod -> {
+                    List<J.Modifier> modifiers = ListUtils.map(c.getModifiers(), mod -> {
                         if (mod.getType() == J.Modifier.Type.Public) {
                             modifierComments.addAll(mod.getComments());
                             return null;
@@ -138,7 +154,7 @@ public class TestsShouldNotBePublic extends Recipe {
                 return m;
             }
 
-            if (m.getModifiers().stream().anyMatch(mod -> (mod.getType() == J.Modifier.Type.Public || (orProtected && mod.getType() == Type.Protected)))
+            if (m.getModifiers().stream().anyMatch(mod -> (mod.getType() == J.Modifier.Type.Public || (orProtected && mod.getType() == J.Modifier.Type.Protected)))
                     && Boolean.FALSE.equals(TypeUtils.isOverride(method.getMethodType()))
                     && hasJUnit5MethodAnnotation(m)) {
                 // remove public modifier
@@ -148,7 +164,7 @@ public class TestsShouldNotBePublic extends Recipe {
             return m;
         }
 
-        private boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {
+        private boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
             for (J.Annotation a : method.getLeadingAnnotations()) {
                 if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test")
                         || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest")

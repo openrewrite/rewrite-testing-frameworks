@@ -38,7 +38,7 @@ public class RunnerToExtension extends Recipe {
 
     @Option(displayName = "Runners",
             description = "The fully qualified class names of the JUnit 4 runners to replace. Sometimes several runners are replaced by a single JUnit Jupiter extension.",
-            example = "org.springframework.test.context.junit4.SpringRunner")
+            example = "[ org.springframework.test.context.junit4.SpringRunner ]")
     List<String> runners;
 
     @Option(displayName = "Extension",

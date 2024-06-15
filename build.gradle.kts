@@ -43,10 +43,17 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
+    testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
 
     testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
 
     testRuntimeOnly("com.tngtech.archunit:archunit:0.23.1")
+    testRuntimeOnly("com.github.javafaker:javafaker:latest.release") {
+        exclude(group = "org.yaml", module = "snakeyaml")
+    }
+    testRuntimeOnly("net.datafaker:datafaker:latest.release") {
+        exclude(group = "org.yaml", module = "snakeyaml")
+    }
     testRuntimeOnly("org.testcontainers:testcontainers:latest.release")
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
 

@@ -25,7 +25,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-public class RemoveDuplicateTestTemplatesTest implements RewriteTest {
+class RemoveDuplicateTestTemplatesTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec

@@ -121,7 +121,6 @@ public class UpdateTestAnnotation extends Recipe {
             if (m != method) {
                 if (cta.expectedException != null) {
                     m = JavaTemplate.builder("org.junit.jupiter.api.function.Executable o = () -> #{};")
-                            .contextSensitive()
                             .javaParser(javaParser(ctx))
                             .build()
                             .apply(

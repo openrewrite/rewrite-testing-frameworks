@@ -70,12 +70,12 @@ public class AssertionsArgumentOrder extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Assertions such as `org.junit.Assert.assertEquals` expect the first argument to be the expected value and the second argument to be the actual value; for `org.testng.Assert`, it’s the other way around.  This recipe detects `J.Literal`, `J.NewArray`, and `java.util.Iterable` arguments swapping them if necessary so that the error messages will be confusing.";
+        return "Assertions such as `org.junit.Assert.assertEquals` expect the first argument to be the expected value and the second argument to be the actual value; for `org.testng.Assert`, it’s the other way around.  This recipe detects `J.Literal`, `J.NewArray`, and `java.util.Iterable` arguments swapping them if necessary so that the error messages won't be confusing.";
     }
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-3415");
+        return Collections.singleton("RSPEC-S3415");
     }
 
     @Override

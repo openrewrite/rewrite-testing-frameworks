@@ -73,12 +73,12 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-2699");
+        return Collections.singleton("RSPEC-S2699");
     }
 
     @Override
-    public Validated validate() {
-        Validated validated = super.validate()
+    public Validated<Object> validate() {
+        Validated<Object> validated = super.validate()
                 .and(Validated.required("assertions", DEFAULT_ASSERTIONS));
         if (validated.isValid()) {
             validated = validated.and(Validated.test(
@@ -189,15 +189,11 @@ public class TestsShouldIncludeAssertions extends Recipe {
             Set<J.Block> methodBodies = new HashSet<>();
 
             methodMatchers.forEach(matcher -> {
-                Set<J.Block> declarationBodies = matcherPatternToClassInvocation.computeIfAbsent(matcherPattern(matcher),
+                Set<J.Block> declarationBodies = matcherPatternToClassInvocation.computeIfAbsent(matcher.toString(),
                         k -> findMethodDeclarations(classDeclaration, matcher));
                 methodBodies.addAll(declarationBodies);
             });
             return methodBodies.stream().anyMatch(this::methodHasAssertion);
-        }
-
-        private String matcherPattern(MethodMatcher methodMatcher) {
-            return methodMatcher.getTargetTypePattern() + " " + methodMatcher.getMethodNamePattern() + "(" + methodMatcher.getArgumentPattern() + ")";
         }
 
         private Set<J.Block> findMethodDeclarations(J.ClassDeclaration classDeclaration, MethodMatcher methodMatcher) {

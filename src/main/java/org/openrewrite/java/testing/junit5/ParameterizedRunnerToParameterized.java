@@ -142,8 +142,10 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         private final J.ClassDeclaration scope;
         private final String initMethodName;
         private final List<Statement> parameterizedTestMethodParameters;
+
         @Nullable
         private final List<Expression> parameterizedTestAnnotationParameters;
+
         private final String initStatementParamString;
 
         private final JavaTemplate parameterizedTestTemplate;

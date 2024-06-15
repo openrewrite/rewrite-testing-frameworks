@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -26,6 +27,7 @@ import static org.openrewrite.java.Assertions.java;
 
 @SuppressWarnings({"NumericOverflow", "divzero", "TryWithIdenticalCatches"})
 class RemoveTryCatchFailBlocksTest implements RewriteTest {
+    @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
@@ -51,6 +53,44 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                           int divide = 50 / 0;
                       } catch (ArithmeticException e) {
                           Assertions.fail(e.getMessage());
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      Assertions.assertDoesNotThrow(() -> {
+                          int divide = 50 / 0;
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeStaticImportFail() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.fail;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (ArithmeticException e) {
+                          fail(e.getMessage());
                       }
                   }
               }
@@ -569,6 +609,33 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                       Assertions.assertDoesNotThrow(() -> {
                           FileOutputStream outputStream = new FileOutputStream("test.txt");
                       }, "The error is: ");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/489")
+    void doesNotRunonTryFinally() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+                            
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      try {
+                          int divide = 50 / 0;
+                      } catch (ArithmeticException e) {
+                          Assertions.fail(e.getMessage());
+                      } finally {
+                          System.out.println("Some resource clean up should not be lost");
+                      }
                   }
               }
               """

@@ -32,10 +32,7 @@ class CleanupAssertionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
-          .recipe(Environment.builder()
-            .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
-            .build()
-            .activateRecipes("org.openrewrite.java.testing.junit5.CleanupAssertions"));
+          .recipeFromResources("org.openrewrite.java.testing.junit5.CleanupAssertions");
     }
 
     @DocumentExample
@@ -127,6 +124,45 @@ class CleanupAssertionsTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void assertNotEqualsInverted() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+                    import org.junit.jupiter.api.Assertions;
+                    import org.junit.jupiter.api.Test;
+                                              
+                    class A {
+                        class B {}
+
+                        @Test
+                        public void FlippedParams(){
+                            B myVariable = new B();
+
+                            Assertions.assertNotEquals(myVariable, null);
+                        }
+                    }
+                    """,
+            """
+                    import org.junit.jupiter.api.Assertions;
+                    import org.junit.jupiter.api.Test;
+                                              
+                    class A {
+                        class B {}
+
+                        @Test
+                        public void FlippedParams(){
+                            B myVariable = new B();
+
+                            Assertions.assertNotEquals(null, myVariable);
+                        }
+                    }
+                    """
           )
         );
     }
