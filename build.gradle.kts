@@ -34,10 +34,7 @@ dependencies {
     implementation("org.openrewrite:rewrite-maven")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:$rewriteVersion")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:$rewriteVersion")
-    implementation("org.openrewrite.recipe:rewrite-third-party:$rewriteVersion") {
-        // TODO remove once available from https://github.com/openrewrite/rewrite-third-party/commit/474b3461cdae4bcbd80
-        exclude(module = "jakarta.xml.bind-api")
-    }
+    implementation("org.openrewrite.recipe:rewrite-third-party:$rewriteVersion")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
     compileOnly("org.projectlombok:lombok:latest.release")
