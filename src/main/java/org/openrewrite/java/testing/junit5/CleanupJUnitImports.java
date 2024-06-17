@@ -22,6 +22,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 
 public class CleanupJUnitImports extends Recipe {
     @Override
@@ -44,14 +45,18 @@ public class CleanupJUnitImports extends Recipe {
 
     public static class CleanupJUnitImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            for (J.Import im : cu.getImports()) {
-                String packageName = im.getPackageName();
-                if (packageName.startsWith("junit") || (packageName.startsWith("org.junit") && !packageName.contains("jupiter"))) {
-                    maybeRemoveImport(im.getTypeName());
+        public J preVisit(J tree, ExecutionContext ctx) {
+            stopAfterPreVisit();
+            if (tree instanceof JavaSourceFile) {
+                JavaSourceFile c = (JavaSourceFile) tree;
+                for (J.Import imp : c.getImports()) {
+                    String packageName = imp.getPackageName();
+                    if (packageName.startsWith("junit") || (packageName.startsWith("org.junit") && !packageName.contains("jupiter"))) {
+                        maybeRemoveImport(imp.getTypeName());
+                    }
                 }
             }
-            return cu;
+            return tree;
         }
     }
 }
