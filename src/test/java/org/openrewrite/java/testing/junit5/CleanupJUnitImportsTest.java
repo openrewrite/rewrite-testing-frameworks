@@ -19,10 +19,12 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class CleanupJUnitImportsTest implements RewriteTest {
 
@@ -31,14 +33,16 @@ class CleanupJUnitImportsTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+          .parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
           .recipe(new CleanupJUnitImports());
     }
 
     @DocumentExample
     @Test
     void removesUnusedImport() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.Test;
@@ -48,14 +52,25 @@ class CleanupJUnitImportsTest implements RewriteTest {
             """
               public class MyTest {}
               """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.Test
+
+              class MyTest {}
+              """,
+            """
+              class MyTest {}
+              """
           )
         );
     }
 
     @Test
     void leavesOtherImportsAlone() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import java.util.Arrays;
@@ -65,14 +80,25 @@ class CleanupJUnitImportsTest implements RewriteTest {
               public class MyTest {
               }
               """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import java.util.Arrays
+              import java.util.Collections
+              import java.util.HashSet
+
+              class MyTest {
+              }
+              """
           )
         );
     }
 
     @Test
     void leavesUsedJUnitImportAlone() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.Test;
@@ -82,7 +108,19 @@ class CleanupJUnitImportsTest implements RewriteTest {
                   public void foo() {}
               }
               """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.Test
+
+              class MyTest {
+                  @Test
+                  fun foo() {}
+              }
+              """
           )
         );
+
     }
 }

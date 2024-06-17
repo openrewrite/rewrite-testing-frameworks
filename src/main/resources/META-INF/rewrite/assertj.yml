@@ -27,6 +27,7 @@ recipeList:
   - org.openrewrite.java.testing.testng.TestNgToAssertj
   - org.openrewrite.java.testing.assertj.StaticImports
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
+  - org.openrewrite.java.testing.assertj.IsEqualToEmptyString
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
