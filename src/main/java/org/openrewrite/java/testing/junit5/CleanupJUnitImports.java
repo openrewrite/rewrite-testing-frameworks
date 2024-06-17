@@ -46,6 +46,7 @@ public class CleanupJUnitImports extends Recipe {
     public static class CleanupJUnitImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J preVisit(J tree, ExecutionContext ctx) {
+            stopAfterPreVisit();
             if (tree instanceof JavaSourceFile) {
                 JavaSourceFile c = (JavaSourceFile) tree;
                 for (J.Import imp : c.getImports()) {
@@ -55,7 +56,7 @@ public class CleanupJUnitImports extends Recipe {
                     }
                 }
             }
-            return super.preVisit(tree, ctx);
+            return tree;
         }
     }
 }
