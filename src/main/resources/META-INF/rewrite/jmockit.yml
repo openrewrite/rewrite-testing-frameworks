@@ -42,3 +42,9 @@ recipeList:
       version: 5.x
       onlyIfUsing: org.mockito.*
       acceptTransitive: true
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.jmockit
+      artifactId: jmockit
+  - org.openrewrite.maven.ExcludeDependency:
+      groupId: org.jmockit
+      artifactId: jmockit
