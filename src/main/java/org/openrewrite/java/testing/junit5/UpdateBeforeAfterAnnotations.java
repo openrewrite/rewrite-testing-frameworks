@@ -49,15 +49,13 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
     public static class UpdateBeforeAfterAnnotationsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            //This visitor handles changing the method visibility for any method annotated with one of the four before/after
-            //annotations. It registers visitors that will sweep behind it making the type changes.
+        public J preVisit(J tree, ExecutionContext ctx) {
+            stopAfterPreVisit();
             doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true).getVisitor());
             doAfterVisit(new ChangeType("org.junit.After", "org.junit.jupiter.api.AfterEach", true).getVisitor());
             doAfterVisit(new ChangeType("org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll", true).getVisitor());
             doAfterVisit(new ChangeType("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll", true).getVisitor());
-
-            return super.visitCompilationUnit(cu, ctx);
+            return tree;
         }
     }
 }

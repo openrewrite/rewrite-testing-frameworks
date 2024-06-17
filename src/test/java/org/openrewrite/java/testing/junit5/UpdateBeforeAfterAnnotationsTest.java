@@ -15,16 +15,16 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("JUnitMalformedDeclaration")
 class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
@@ -34,8 +34,11 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+          .parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
           .recipe(new UpdateBeforeAfterAnnotations());
     }
+
 
     @DocumentExample
     @Test
@@ -45,9 +48,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.Before;
-              
+                            
               class Test {
-              
+                            
                   @Before
                   void before() {
                   }
@@ -55,17 +58,41 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.BeforeEach;
-              
+                            
               class Test {
-              
+                            
                   @BeforeEach
                   void before() {
+                  }
+              }
+              """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.Before
+
+              class Test {
+
+                  @Before
+                  fun before() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach
+
+              class Test {
+
+                  @BeforeEach
+                  fun before() {
                   }
               }
               """
           )
         );
     }
+
 
     @Test
     void afterToAfterEach() {
@@ -74,9 +101,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.After;
-              
+                            
               class Test {
-              
+                            
                   @After
                   void after() {
                   }
@@ -84,17 +111,41 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.AfterEach;
-              
+                            
               class Test {
-              
+                            
                   @AfterEach
                   void after() {
+                  }
+              }
+              """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.After
+
+              class Test {
+
+                  @After
+                  fun after() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterEach
+
+              class Test {
+
+                  @AfterEach
+                  fun after() {
                   }
               }
               """
           )
         );
     }
+
 
     @Test
     void beforeClassToBeforeAll() {
@@ -103,9 +154,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.BeforeClass;
-              
+                            
               class Test {
-              
+                            
                   @BeforeClass
                   void beforeClass() {
                   }
@@ -113,17 +164,41 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.BeforeAll;
-              
+                            
               class Test {
-              
+                            
                   @BeforeAll
                   void beforeClass() {
+                  }
+              }
+              """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.BeforeClass
+
+              class Test {
+
+                  @BeforeClass
+                  fun beforeClass() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeAll
+
+              class Test {
+
+                  @BeforeAll
+                  fun beforeClass() {
                   }
               }
               """
           )
         );
     }
+
 
     @Test
     void afterClassToAfterAll() {
@@ -132,7 +207,7 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.AfterClass;
-              
+                            
               class Test {
                   @AfterClass
                   void afterClass() {
@@ -141,10 +216,31 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.AfterAll;
-              
+                            
               class Test {
                   @AfterAll
                   void afterClass() {
+                  }
+              }
+              """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.AfterClass
+
+              class Test {
+                  @AfterClass
+                  fun afterClass() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterAll
+
+              class Test {
+                  @AfterAll
+                  fun afterClass() {
                   }
               }
               """
@@ -152,8 +248,6 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
         );
     }
 
-    @Issue("https://github.com/openrewrite/rewrite/issues/150")
-    @Disabled
     @Test
     void convertsToPackageVisibility() {
         //language=java
@@ -161,9 +255,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.Before;
-              
+                            
               class Test {
-              
+                            
                   @Before // comments
                   public void before() {
                   }
@@ -171,12 +265,34 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.BeforeEach;
-              
+                            
               class Test {
-              
-                  // comments
-                  @BeforeEach
-                  void before() {
+                            
+                  @BeforeEach // comments
+                  public void before() {
+                  }
+              }
+              """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.Before
+
+              class Test {
+
+                  @Before // comments
+                  fun before() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach
+
+              class Test {
+
+                  @BeforeEach // comments
+                  fun before() {
                   }
               }
               """
@@ -184,8 +300,8 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
         );
     }
 
+
     @Test
-    @Disabled("Issue #59")
     void beforeMethodOverridesPublicAbstract() {
         //language=java
         rewriteRun(
@@ -200,9 +316,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.Before;
-              
+                            
               public class A extends AbstractTest {
-              
+                            
                   @Before
                   public void setup() {
                   }
@@ -210,11 +326,42 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.BeforeEach;
-              
+                            
               public class A extends AbstractTest {
-              
+                            
                   @BeforeEach
                   public void setup() {
+                  }
+              }
+              """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              abstract class AbstractTest {
+                  abstract fun setup()
+              }
+              """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.Before
+
+              class A : AbstractTest() {
+
+                  @Before
+                  fun setup() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach
+
+              class A : AbstractTest() {
+
+                  @BeforeEach
+                  fun setup() {
                   }
               }
               """
