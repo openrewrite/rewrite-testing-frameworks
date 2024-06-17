@@ -41,8 +41,8 @@ class CleanupJUnitImportsTest implements RewriteTest {
     @DocumentExample
     @Test
     void removesUnusedImport() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.Test;
@@ -52,11 +52,8 @@ class CleanupJUnitImportsTest implements RewriteTest {
             """
               public class MyTest {}
               """
-          )
-        );
-
-        //language=kotlin
-        rewriteRun(
+          ),
+          //language=kotlin
           kotlin(
             """
               import org.junit.Test
@@ -72,8 +69,8 @@ class CleanupJUnitImportsTest implements RewriteTest {
 
     @Test
     void leavesOtherImportsAlone() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import java.util.Arrays;
@@ -83,11 +80,8 @@ class CleanupJUnitImportsTest implements RewriteTest {
               public class MyTest {
               }
               """
-          )
-        );
-
-        //language=kotlin
-        rewriteRun(
+          ),
+          //language=kotlin
           kotlin(
             """
               import java.util.Arrays
@@ -103,8 +97,8 @@ class CleanupJUnitImportsTest implements RewriteTest {
 
     @Test
     void leavesUsedJUnitImportAlone() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.Test;
@@ -114,11 +108,8 @@ class CleanupJUnitImportsTest implements RewriteTest {
                   public void foo() {}
               }
               """
-          )
-        );
-
-        //language=kotlin
-        rewriteRun(
+          ),
+          //language=kotlin
           kotlin(
             """
               import org.junit.Test
