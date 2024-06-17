@@ -24,13 +24,13 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class IsEqualToEmptyStringTest implements RewriteTest {
+class AssertJBestPracticesTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
-          .recipe(new IsEqualToEmptyString());
+          .recipeFromResources("org.openrewrite.java.testing.assertj.Assertj");
     }
 
     @DocumentExample
