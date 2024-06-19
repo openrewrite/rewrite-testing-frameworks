@@ -30,10 +30,7 @@ import java.util.Collections;
 /**
  * AssertJ has a more idiomatic way of asserting that a String is empty.
  * This recipe will find instances of `assertThat(String).isEqualTo("")` and replace them with `isEmpty()`.
- *
- * @deprecated Use {@link tech.picnic.errorprone.refasterrules.AssertJStringRulesRecipes.AbstractStringAssertStringIsEmptyRecipe} instead.
  */
-@Deprecated
 public class IsEqualToEmptyString extends Recipe {
 
     private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.AbstractStringAssert isEqualTo(java.lang.String)");
