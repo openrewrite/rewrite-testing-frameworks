@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.jmockit;
 
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
@@ -118,21 +119,30 @@ class ExpectationsBlockRewriter {
             return;
         }
         J.MethodInvocation invocation = (J.MethodInvocation) expectationStatements.get(0);
-        if (!mockInvocationResults.getResults().isEmpty()) {
+        boolean hasExpectationsResults = !mockInvocationResults.getResults().isEmpty();
+        if (hasExpectationsResults) {
             // rewrite the statement to mockito if there are results
             rewriteExpectationResult(mockInvocationResults.getResults(), invocation);
         } else if (nextStatementCoordinates.isReplacement()) {
             // if there are no results and the Expectations block is not yet replaced, remove it
             removeExpectationsStatement();
         }
+
+        boolean hasTimes = false;
         if (mockInvocationResults.getTimes() != null) {
+            hasTimes = true;
             writeMethodVerification(invocation, mockInvocationResults.getTimes(), "times");
         }
         if (mockInvocationResults.getMinTimes() != null) {
+            hasTimes = true;
             writeMethodVerification(invocation, mockInvocationResults.getMinTimes(), "atLeast");
         }
         if (mockInvocationResults.getMaxTimes() != null) {
+            hasTimes = true;
             writeMethodVerification(invocation, mockInvocationResults.getMaxTimes(), "atMost");
+        }
+        if (!hasExpectationsResults && !hasTimes) {
+            writeMethodVerification(invocation, null, null);
         }
     }
 
@@ -182,18 +192,22 @@ class ExpectationsBlockRewriter {
                 methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded).getCoordinates().after();
     }
 
-    private void writeMethodVerification(J.MethodInvocation invocation, Expression times, String verificationMode) {
+    private void writeMethodVerification(J.MethodInvocation invocation, @Nullable Expression times, @Nullable String verificationMode) {
         String fqn = getInvocationSelectFullyQualifiedClassName(invocation);
         if (fqn == null) {
             // cannot write a verification statement for an invocation without a select field
             return;
         }
         visitor.maybeAddImport("org.mockito.Mockito", "verify");
-        visitor.maybeAddImport("org.mockito.Mockito", verificationMode);
+        if (verificationMode != null) {
+            visitor.maybeAddImport("org.mockito.Mockito", verificationMode);
+        }
 
         List<Object> templateParams = new ArrayList<>();
         templateParams.add(invocation.getSelect());
-        templateParams.add(times);
+        if (times != null) {
+            templateParams.add(times);
+        }
         templateParams.add(invocation.getName().getSimpleName());
 
         String verifyTemplate = getVerifyTemplate(invocation.getArguments(), fqn, verificationMode, templateParams);
@@ -251,17 +265,20 @@ class ExpectationsBlockRewriter {
         templateBuilder.append(templateField);
     }
 
-    private static String getVerifyTemplate(List<Expression> arguments, String fqn, String verificationMode, List<Object> templateParams) {
-        if (arguments.isEmpty()) {
-            return "verify(#{any(" + fqn + ")}, "
-                    + verificationMode
-                    + "(#{any(int)})).#{}();";
+    private static String getVerifyTemplate(List<Expression> arguments, String fqn, @Nullable String verificationMode, List<Object> templateParams) {
+        StringBuilder templateBuilder = new StringBuilder("verify(#{any(" + fqn + ")}"); // verify(object
+        if (verificationMode != null) {
+            templateBuilder.append(", ").append(verificationMode).append("(#{any(int)})"); // verify(object, times(2)
         }
-        StringBuilder templateBuilder = new StringBuilder("verify(#{any(" + fqn + ")}, "
-                + verificationMode
-                + "(#{any(int)})).#{}(");
+        templateBuilder.append(").#{}("); // verify(object, times(2)).method(
+
+        if (arguments.isEmpty()) {
+            templateBuilder.append(");"); // verify(object, times(2)).method();
+            return templateBuilder.toString();
+        }
+
         boolean hasArgument = false;
-        for (Expression argument : arguments) {
+        for (Expression argument : arguments) { // verify(object, times(2).method(anyLong(), any Int()
             if (argument instanceof J.Empty) {
                 continue;
             } else if (argument instanceof J.Literal) {
@@ -276,7 +293,7 @@ class ExpectationsBlockRewriter {
         if (hasArgument) {
             templateBuilder.delete(templateBuilder.length() - 2, templateBuilder.length());
         }
-        templateBuilder.append(");");
+        templateBuilder.append(");"); // verify(object, times(2).method(anyLong(), any Int());
         return templateBuilder.toString();
     }
 
