@@ -38,12 +38,12 @@ import java.util.List;
 public class JMockitAnnotatedArgumentToMockito extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Rewrite JMockit `@Mocked` and `@Injectable` variables";
+        return "Convert JMockit `@Mocked` and `@Injectable` annotated arguments";
     }
 
     @Override
     public String getDescription() {
-        return "Rewrites JMockit `@Mocked` and `@Injectable` variable to Mockito statements.";
+        return "Convert JMockit `@Mocked` and `@Injectable` annotated arguments into Mockito statements.";
     }
 
     @Override
