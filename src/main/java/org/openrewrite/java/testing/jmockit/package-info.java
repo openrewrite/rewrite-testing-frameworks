@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2021 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@NonNullApi
 package org.openrewrite.java.testing.jmockit;
 
-import lombok.Value;
 import org.openrewrite.internal.lang.NonNullApi;
-
-@Value
-@NonNullApi
-public class JMockitMockedVariableToMockito extends JMockitAnnotationToMockito {
-
-    public JMockitMockedVariableToMockito() {
-        super("Mocked");
-    }
-}

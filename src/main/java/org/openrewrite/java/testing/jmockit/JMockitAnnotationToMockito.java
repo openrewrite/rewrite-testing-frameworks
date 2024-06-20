@@ -15,11 +15,12 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.Nls;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.NonNullApi;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -34,14 +35,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = false)
-@NonNullApi
-public abstract class JMockitAnnotationToMockito extends Recipe {
+@AllArgsConstructor
+@NoArgsConstructor
+public class JMockitAnnotationToMockito extends Recipe {
 
-    private final String annotationName;
+    @Option(displayName = "JMockit annotation name",
+            description = "The JMockit annotation name to rewrite.",
+            valid = {"Mocked", "Injectable"})
+    private String annotationName;
 
     @Override
     public String getDisplayName() {
-        return "Rewrite JMockit " + annotationName + " Variable";
+        return "Rewrite JMockit `" + annotationName + "` Variable";
     }
 
     @Override
@@ -49,71 +54,59 @@ public abstract class JMockitAnnotationToMockito extends Recipe {
         return "Rewrites JMockit `" + annotationName + " Variable` to Mockito statements.";
     }
 
-    JMockitAnnotationToMockito(String annotationName) {
-        this.annotationName = annotationName;
-    }
-
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("mockit." + annotationName, false),
-                new RewriteMockedVariableVisitor(this.annotationName));
-    }
+        return Preconditions.check(
+                new UsesType<>("mockit." + annotationName, false),
+                new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
+                        J.MethodDeclaration md = super.visitMethodDeclaration(methodDeclaration, ctx);
 
-    private static class RewriteMockedVariableVisitor extends JavaIsoVisitor<ExecutionContext> {
+                        List<Statement> parameters = md.getParameters();
+                        if (!parameters.isEmpty() && !(parameters.get(0) instanceof J.Empty)) {
+                            String fqn = "mockit." + annotationName;
+                            maybeRemoveImport(fqn);
+                            maybeAddImport("org.mockito.Mockito");
 
-        private final String annotationName;
+                            // Create lists to store the mocked parameters and the new type parameters
+                            List<J.VariableDeclarations> mockedParameter = new ArrayList<>();
 
-        public RewriteMockedVariableVisitor(String annotationName) {
-            this.annotationName = annotationName;
-        }
+                            // Remove any mocked parameters from the method declaration
+                            md = md.withParameters(ListUtils.map(parameters, parameter -> {
+                                if (parameter instanceof J.VariableDeclarations) {
+                                    J.VariableDeclarations variableDeclarations = (J.VariableDeclarations) parameter;
+                                    // Check if the parameter has the annotation "mockit.Mocked or mockit.Injectable"
+                                    if (!FindAnnotations.find(variableDeclarations, fqn).isEmpty()) {
+                                        mockedParameter.add(variableDeclarations);
+                                        return null;
+                                    }
+                                }
+                                return parameter;
+                            }));
 
-        @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
-            J.MethodDeclaration md = super.visitMethodDeclaration(methodDeclaration, ctx);
-
-            List<Statement> parameters = md.getParameters();
-            if (!parameters.isEmpty() && !(parameters.get(0) instanceof J.Empty)) {
-                String fqn = "mockit." + this.annotationName;
-                maybeRemoveImport(fqn);
-                maybeAddImport("org.mockito.Mockito");
-
-                // Create lists to store the mocked parameters and the new type parameters
-                List<J.VariableDeclarations> mockedParameter = new ArrayList<>();
-
-                // Remove any mocked parameters from the method declaration
-                md = md.withParameters(ListUtils.map(parameters, parameter -> {
-                    if (parameter instanceof J.VariableDeclarations) {
-                        J.VariableDeclarations variableDeclarations = (J.VariableDeclarations) parameter;
-                        // Check if the parameter has the annotation "mockit.Mocked or mockit.Injectable"
-                        if (!FindAnnotations.find(variableDeclarations, fqn).isEmpty()) {
-                            mockedParameter.add(variableDeclarations);
-                            return null;
+                            // Add mocked parameters as statements to the method declaration
+                            if (!mockedParameter.isEmpty()) {
+                                JavaTemplate addStatementsTemplate = JavaTemplate.builder("#{} #{} = Mockito.mock(#{}.class);\n")
+                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                                        .imports("org.mockito.Mockito")
+                                        .contextSensitive()
+                                        .build();
+                                // Retain argument order by iterating in reverse
+                                for (int i = mockedParameter.size() - 1; i >= 0; i--) {
+                                    J.VariableDeclarations variableDeclarations = mockedParameter.get(i);
+                                    // Apply the template and update the method declaration
+                                    md = addStatementsTemplate.apply(updateCursor(md),
+                                            md.getBody().getCoordinates().firstStatement(),
+                                            variableDeclarations.getTypeExpression().toString(),
+                                            variableDeclarations.getVariables().get(0).getSimpleName(),
+                                            variableDeclarations.getTypeExpression().toString());
+                                }
+                            }
                         }
-                    }
-                    return parameter;
-                }));
-
-                // Add mocked parameters as statements to the method declaration
-                if (!mockedParameter.isEmpty()) {
-                    JavaTemplate addStatementsTemplate = JavaTemplate.builder("#{} #{} = Mockito.mock(#{}.class);\n")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                            .imports("org.mockito.Mockito")
-                            .contextSensitive()
-                            .build();
-                    // Retain argument order by iterating in reverse
-                    for (int i = mockedParameter.size() - 1; i >= 0; i--) {
-                        J.VariableDeclarations variableDeclarations = mockedParameter.get(i);
-                        // Apply the template and update the method declaration
-                        md = addStatementsTemplate.apply(updateCursor(md),
-                                md.getBody().getCoordinates().firstStatement(),
-                                variableDeclarations.getTypeExpression().toString(),
-                                variableDeclarations.getVariables().get(0).getSimpleName(),
-                                variableDeclarations.getTypeExpression().toString());
+                        return md;
                     }
                 }
-            }
-
-            return md;
-        }
+        );
     }
 }
