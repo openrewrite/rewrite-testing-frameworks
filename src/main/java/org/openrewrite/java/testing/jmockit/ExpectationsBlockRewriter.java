@@ -17,12 +17,12 @@ package org.openrewrite.java.testing.jmockit;
 
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -128,15 +128,20 @@ class ExpectationsBlockRewriter {
             removeExpectationsStatement();
         }
 
-        // TODO doesn't cover cases with multiple times eg minTimes and maxTimes - this is typically rare scenario
+        boolean hasTimes = false;
         if (mockInvocationResults.getTimes() != null) {
+            hasTimes = true;
             writeMethodVerification(invocation, mockInvocationResults.getTimes(), "times");
-        } else if (mockInvocationResults.getMinTimes() != null) {
+        }
+        if (mockInvocationResults.getMinTimes() != null) {
+            hasTimes = true;
             writeMethodVerification(invocation, mockInvocationResults.getMinTimes(), "atLeast");
-        } else if (mockInvocationResults.getMaxTimes() != null) {
+        }
+        if (mockInvocationResults.getMaxTimes() != null) {
+            hasTimes = true;
             writeMethodVerification(invocation, mockInvocationResults.getMaxTimes(), "atMost");
-        } else if (!hasExpectationsResults) {
-            // no times, no results
+        }
+        if (!hasExpectationsResults && !hasTimes) {
             writeMethodVerification(invocation, null, null);
         }
     }
@@ -263,7 +268,7 @@ class ExpectationsBlockRewriter {
     private static String getVerifyTemplate(List<Expression> arguments, String fqn, @Nullable String verificationMode, List<Object> templateParams) {
         StringBuilder templateBuilder = new StringBuilder("verify(#{any(" + fqn + ")}"); // verify(object
         if (verificationMode != null) {
-            templateBuilder.append(", " + verificationMode + "(#{any(int)})"); // verify(object, times(2)
+            templateBuilder.append(", ").append(verificationMode).append("(#{any(int)})"); // verify(object, times(2)
         }
         templateBuilder.append(").#{}("); // verify(object, times(2)).method(
 

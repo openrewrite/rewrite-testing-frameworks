@@ -968,6 +968,149 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
     }
 
     @Test
+    void whenMinTimes() {
+        //language=java
+        rewriteRun(
+          java(
+            """                                          
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+                            
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+                  
+                  void test() {
+                      new Expectations() {{
+                          myObject.wait(anyLong, anyInt);
+                          minTimes = 2;
+                      }};
+                      myObject.wait(10L, 10);
+                  }
+              }
+              """,
+            """              
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+                            
+              import static org.mockito.Mockito.*;
+                            
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+                  
+                  void test() {
+                      myObject.wait(10L, 10);
+                      verify(myObject, atLeast(2)).wait(anyLong(), anyInt());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenMaxTimes() {
+        //language=java
+        rewriteRun(
+          java(
+            """                                          
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+                            
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+                  
+                  void test() {
+                      new Expectations() {{
+                          myObject.wait(anyLong, anyInt);
+                          maxTimes = 5;
+                      }};
+                      myObject.wait(10L, 10);
+                  }
+              }
+              """,
+            """              
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+                            
+              import static org.mockito.Mockito.*;
+                            
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+                  
+                  void test() {
+                      myObject.wait(10L, 10);
+                      verify(myObject, atMost(5)).wait(anyLong(), anyInt());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenMinTimesMaxTimes() {
+        //language=java
+        rewriteRun(
+          java(
+            """                                          
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+                            
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+                  
+                  void test() {
+                      new Expectations() {{
+                          myObject.wait(anyLong, anyInt);
+                          minTimes = 1;
+                          maxTimes = 3;
+                      }};
+                      myObject.wait(10L, 10);
+                  }
+              }
+              """,
+            """              
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+                            
+              import static org.mockito.Mockito.*;
+                            
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+                  
+                  void test() {
+                      myObject.wait(10L, 10);
+                      verify(myObject, atLeast(1)).wait(anyLong(), anyInt());
+                      verify(myObject, atMost(3)).wait(anyLong(), anyInt());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void whenSpy() {
         //language=java
         rewriteRun(
