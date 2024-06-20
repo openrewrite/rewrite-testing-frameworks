@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
@@ -37,6 +38,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
           .recipe(new AddParameterizedTestAnnotation());
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/314")
     @Test
     @DocumentExample
     void replaceTestWithParameterizedTest() {
