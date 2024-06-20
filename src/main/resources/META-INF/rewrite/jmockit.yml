@@ -23,7 +23,7 @@ tags:
   - jmockit
 recipeList:
   - org.openrewrite.java.testing.jmockit.JMockitExpectationsToMockito
-  - org.openrewrite.java.testing.jmockit.JMockitMockedVariableToMockito
+  - org.openrewrite.java.testing.jmockit.JMockitAnnotatedArgumentToMockito
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: mockit.Mocked
       newFullyQualifiedTypeName: org.mockito.Mock
