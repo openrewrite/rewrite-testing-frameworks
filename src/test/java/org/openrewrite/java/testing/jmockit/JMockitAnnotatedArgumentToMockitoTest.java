@@ -24,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class JMockitAnnotationToMockitoTest implements RewriteTest {
+class JMockitAnnotatedArgumentToMockitoTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec

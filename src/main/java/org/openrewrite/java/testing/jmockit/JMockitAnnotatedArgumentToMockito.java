@@ -18,11 +18,11 @@ package org.openrewrite.java.testing.jmockit;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
-import org.jetbrains.annotations.Nls;
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.NonNullApi;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -35,29 +35,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = false)
-@AllArgsConstructor
-@NoArgsConstructor
-public class JMockitAnnotationToMockito extends Recipe {
-
-    @Option(displayName = "JMockit annotation name",
-            description = "The JMockit annotation name to rewrite.",
-            valid = {"Mocked", "Injectable"})
-    private String annotationName;
-
+public class JMockitAnnotatedArgumentToMockito extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Rewrite JMockit `" + annotationName + "` Variable";
+        return "Rewrite JMockit `@Mocked` and `@Injectable` variables";
     }
 
     @Override
     public String getDescription() {
-        return "Rewrites JMockit `" + annotationName + " Variable` to Mockito statements.";
+        return "Rewrites JMockit `@Mocked` and `@Injectable` variable to Mockito statements.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                new UsesType<>("mockit." + annotationName, false),
+                Preconditions.or(
+                        new UsesType<>("mockit.Mocked", false),
+                        new UsesType<>("mockit.Injectable", false)
+                ),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
@@ -65,8 +60,8 @@ public class JMockitAnnotationToMockito extends Recipe {
 
                         List<Statement> parameters = md.getParameters();
                         if (!parameters.isEmpty() && !(parameters.get(0) instanceof J.Empty)) {
-                            String fqn = "mockit." + annotationName;
-                            maybeRemoveImport(fqn);
+                            maybeRemoveImport("mockit.Injectable");
+                            maybeRemoveImport("mockit.Mocked");
                             maybeAddImport("org.mockito.Mockito");
 
                             // Create lists to store the mocked parameters and the new type parameters
@@ -77,7 +72,8 @@ public class JMockitAnnotationToMockito extends Recipe {
                                 if (parameter instanceof J.VariableDeclarations) {
                                     J.VariableDeclarations variableDeclarations = (J.VariableDeclarations) parameter;
                                     // Check if the parameter has the annotation "mockit.Mocked or mockit.Injectable"
-                                    if (!FindAnnotations.find(variableDeclarations, fqn).isEmpty()) {
+                                    if (!FindAnnotations.find(variableDeclarations, "mockit.Injectable").isEmpty() ||
+                                        !FindAnnotations.find(variableDeclarations, "mockit.Mocked").isEmpty() ) {
                                         mockedParameter.add(variableDeclarations);
                                         return null;
                                     }
