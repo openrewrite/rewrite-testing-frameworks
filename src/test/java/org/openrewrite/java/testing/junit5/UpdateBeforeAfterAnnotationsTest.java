@@ -48,9 +48,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.Before;
-                            
+              
               class Test {
-                            
+              
                   @Before
                   void before() {
                   }
@@ -58,9 +58,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.BeforeEach;
-                            
+              
               class Test {
-                            
+              
                   @BeforeEach
                   void before() {
                   }
@@ -101,9 +101,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.After;
-                            
+              
               class Test {
-                            
+              
                   @After
                   void after() {
                   }
@@ -111,9 +111,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.AfterEach;
-                            
+              
               class Test {
-                            
+              
                   @AfterEach
                   void after() {
                   }
@@ -154,9 +154,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.BeforeClass;
-                            
+              
               class Test {
-                            
+              
                   @BeforeClass
                   void beforeClass() {
                   }
@@ -164,9 +164,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.BeforeAll;
-                            
+              
               class Test {
-                            
+              
                   @BeforeAll
                   void beforeClass() {
                   }
@@ -207,7 +207,7 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.AfterClass;
-                            
+              
               class Test {
                   @AfterClass
                   void afterClass() {
@@ -216,7 +216,7 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.AfterAll;
-                            
+              
               class Test {
                   @AfterAll
                   void afterClass() {
@@ -255,9 +255,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.Before;
-                            
+              
               class Test {
-                            
+              
                   @Before // comments
                   public void before() {
                   }
@@ -265,9 +265,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.BeforeEach;
-                            
+              
               class Test {
-                            
+              
                   @BeforeEach // comments
                   public void before() {
                   }
@@ -300,7 +300,6 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
         );
     }
 
-
     @Test
     void beforeMethodOverridesPublicAbstract() {
         //language=java
@@ -316,9 +315,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.Before;
-                            
+              
               public class A extends AbstractTest {
-                            
+              
                   @Before
                   public void setup() {
                   }
@@ -326,9 +325,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.BeforeEach;
-                            
+              
               public class A extends AbstractTest {
-                            
+              
                   @BeforeEach
                   public void setup() {
                   }
