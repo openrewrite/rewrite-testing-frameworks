@@ -20,9 +20,9 @@ import org.openrewrite.internal.lang.NonNullApi;
 
 @Value
 @NonNullApi
-public class JMockitMockedVariableToMockito extends JMockitAnnotationToMockito {
+public class JMockitInjectableVariableToMockito extends JMockitAnnotationToMockito {
 
-    public JMockitMockedVariableToMockito() {
-        super("Mocked");
+    public JMockitInjectableVariableToMockito() {
+        super("Injectable");
     }
 }
