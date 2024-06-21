@@ -248,6 +248,7 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite/issues/150")
     @Test
     void convertsToPackageVisibility() {
         //language=java
