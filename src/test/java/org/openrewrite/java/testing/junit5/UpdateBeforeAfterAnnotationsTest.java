@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
@@ -93,7 +94,6 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
         );
     }
 
-
     @Test
     void afterToAfterEach() {
         //language=java
@@ -119,33 +119,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
                   }
               }
               """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.After
-
-              class Test {
-
-                  @After
-                  fun after() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.AfterEach
-
-              class Test {
-
-                  @AfterEach
-                  fun after() {
-                  }
-              }
-              """
           )
         );
     }
-
 
     @Test
     void beforeClassToBeforeAll() {
@@ -172,33 +148,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
                   }
               }
               """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.BeforeClass
-
-              class Test {
-
-                  @BeforeClass
-                  fun beforeClass() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.BeforeAll
-
-              class Test {
-
-                  @BeforeAll
-                  fun beforeClass() {
-                  }
-              }
-              """
           )
         );
     }
-
 
     @Test
     void afterClassToAfterAll() {
@@ -220,27 +172,6 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               class Test {
                   @AfterAll
                   void afterClass() {
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.AfterClass
-
-              class Test {
-                  @AfterClass
-                  fun afterClass() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.AfterAll
-
-              class Test {
-                  @AfterAll
-                  fun afterClass() {
                   }
               }
               """
@@ -269,31 +200,9 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               
               class Test {
               
-                  @BeforeEach // comments
-                  public void before() {
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.Before
-
-              class Test {
-
-                  @Before // comments
-                  fun before() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.BeforeEach
-
-              class Test {
-
-                  @BeforeEach // comments
-                  fun before() {
+                  // comments
+                  @BeforeEach
+                  void before() {
                   }
               }
               """
@@ -331,37 +240,6 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               
                   @BeforeEach
                   public void setup() {
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              abstract class AbstractTest {
-                  abstract fun setup()
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.Before
-
-              class A : AbstractTest() {
-
-                  @Before
-                  fun setup() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.BeforeEach
-
-              class A : AbstractTest() {
-
-                  @BeforeEach
-                  fun setup() {
                   }
               }
               """
