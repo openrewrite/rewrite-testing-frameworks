@@ -113,7 +113,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-              
+                            
               class NumbersTest {
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
                   @Test
@@ -126,41 +126,12 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-              
+                            
               class NumbersTest {
                   @ParameterizedTest
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
                   void testIsOdd(int number) {
                       assertTrue(number % 2 != 0);
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.api.Test
-              import org.junit.jupiter.params.provider.ValueSource
-              import org.junit.jupiter.api.Assertions.assertTrue
-
-              class NumbersTest {
-                  @Test
-                  @ValueSource(ints = [1, 3, 5, -3, 15, Int.MAX_VALUE])
-                  fun testIsOdd(number: Int) {
-                      assertTrue(number % 2 != 0)
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.params.ParameterizedTest
-              import org.junit.jupiter.params.provider.ValueSource
-              import org.junit.jupiter.api.Assertions.assertTrue
-
-              class NumbersTest {
-                  @ParameterizedTest
-                  @ValueSource(ints = [1, 3, 5, -3, 15, Int.MAX_VALUE])
-                  fun testIsOdd(number: Int) {
-                      assertTrue(number % 2 != 0)
                   }
               }
               """
@@ -179,24 +150,11 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               class NumbersTest {
                   @Test
                   void printMessage() {
                       System.out.println("message");
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.api.Test
-
-              class NumbersTest {
-                  @Test
-                  fun printMessage() {
-                      System.out.println("message")
                   }
               }
               """
@@ -212,7 +170,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.provider.CsvSource;
               import org.junit.jupiter.api.Test;
-              
+                            
               class TestClass {
                   @Test
                   @CsvSource({"test@test.com"})
@@ -224,39 +182,12 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.CsvSource;
-              
+                            
               class TestClass {
                   @ParameterizedTest
                   @CsvSource({"test@test.com"})
                   void processUserData(String email) {
                       System.out.println(email);
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.params.provider.CsvSource
-              import org.junit.jupiter.api.Test
-
-              class TestClass {
-                  @Test
-                  @CsvSource(["test@test.com"])
-                  fun processUserData(email: String) {
-                      System.out.println(email)
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.params.ParameterizedTest
-              import org.junit.jupiter.params.provider.CsvSource
-
-              class TestClass {
-                  @ParameterizedTest
-                  @CsvSource(["test@test.com"])
-                  fun processUserData(email: String) {
-                      System.out.println(email)
                   }
               }
               """
@@ -272,7 +203,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.params.provider.MethodSource;
-              
+                            
               class TestClass {
                   @Test
                   @MethodSource()
@@ -284,39 +215,12 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
-              
+                            
               class TestClass {
                   @ParameterizedTest
                   @MethodSource()
                   void foo() {
                       System.out.println("bar");
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.api.Test
-              import org.junit.jupiter.params.provider.MethodSource
-
-              class TestClass {
-                  @Test
-                  @MethodSource
-                  fun foo() {
-                      System.out.println("bar")
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.params.ParameterizedTest
-              import org.junit.jupiter.params.provider.MethodSource
-
-              class TestClass {
-                  @ParameterizedTest
-                  @MethodSource
-                  fun foo() {
-                      System.out.println("bar")
                   }
               }
               """
@@ -333,7 +237,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-              
+                           
               class TestClass {
                   @Test
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
@@ -346,41 +250,12 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-              
+                            
               class TestClass {
                   @ParameterizedTest
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
                   void testIsOdd(int number) {
                       assertTrue(number % 2 != 0);
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.api.Test
-              import org.junit.jupiter.params.provider.ValueSource
-              import org.junit.jupiter.api.Assertions.assertTrue
-
-              class TestClass {
-                  @Test
-                  @ValueSource(ints = [1, 3, 5, -3, 15, Int.MAX_VALUE])
-                  fun testIsOdd(number: Int) {
-                      assertTrue(number % 2 != 0)
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.params.ParameterizedTest
-              import org.junit.jupiter.params.provider.ValueSource
-              import org.junit.jupiter.api.Assertions.assertTrue
-
-              class TestClass {
-                  @ParameterizedTest
-                  @ValueSource(ints = [1, 3, 5, -3, 15, Int.MAX_VALUE])
-                  fun testIsOdd(number: Int) {
-                      assertTrue(number % 2 != 0)
                   }
               }
               """
@@ -396,7 +271,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.provider.NullSource;
               import org.junit.jupiter.api.Test;
-              
+                           
               class TestClass {
                   @Test
                   @NullSource
@@ -408,39 +283,12 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.NullSource;
-              
+                            
               class TestClass {
                   @ParameterizedTest
                   @NullSource
                   void processUserData(String email) {
                       System.out.println(email);
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.params.provider.NullSource
-              import org.junit.jupiter.api.Test
-
-              class TestClass {
-                  @Test
-                  @NullSource
-                  fun processUserData(email: String?) {
-                      System.out.println(email)
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.params.ParameterizedTest
-              import org.junit.jupiter.params.provider.NullSource
-
-              class TestClass {
-                  @ParameterizedTest
-                  @NullSource
-                  fun processUserData(email: String?) {
-                      System.out.println(email)
                   }
               }
               """
@@ -456,7 +304,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.provider.EmptySource;
               import org.junit.jupiter.api.Test;
-              
+                           
               class TestClass {
                   @Test
                   @EmptySource
@@ -468,39 +316,12 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.EmptySource;
-              
+                            
               class TestClass {
                   @ParameterizedTest
                   @EmptySource
                   void processUserData(String email) {
                       System.out.println(email);
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.params.provider.EmptySource
-              import org.junit.jupiter.api.Test
-
-              class TestClass {
-                  @Test
-                  @EmptySource
-                  fun processUserData(email: String) {
-                      System.out.println(email)
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.params.ParameterizedTest
-              import org.junit.jupiter.params.provider.EmptySource
-
-              class TestClass {
-                  @ParameterizedTest
-                  @EmptySource
-                  fun processUserData(email: String) {
-                      System.out.println(email)
                   }
               }
               """
@@ -516,7 +337,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.provider.NullAndEmptySource;
               import org.junit.jupiter.api.Test;
-              
+                           
               class TestClass {
                   @Test
                   @NullAndEmptySource
@@ -528,39 +349,12 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.NullAndEmptySource;
-              
+                            
               class TestClass {
                   @ParameterizedTest
                   @NullAndEmptySource
                   void processUserData(String email) {
                       System.out.println(email);
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.params.provider.NullAndEmptySource
-              import org.junit.jupiter.api.Test
-
-              class TestClass {
-                  @Test
-                  @NullAndEmptySource
-                  fun processUserData(email: String?) {
-                      System.out.println(email)
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.params.ParameterizedTest
-              import org.junit.jupiter.params.provider.NullAndEmptySource
-
-              class TestClass {
-                  @ParameterizedTest
-                  @NullAndEmptySource
-                  fun processUserData(email: String?) {
-                      System.out.println(email)
                   }
               }
               """
@@ -576,7 +370,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.provider.EnumSource;
               import org.junit.jupiter.api.Test;
-              
+                           
               class TestClass {
                   enum time {
                       MORNING,
@@ -584,7 +378,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
                       AFTERNOON,
                       MIDNIGHT
                   }
-              
+                  
                   @Test
                   @EnumSource
                   void processTime(time timeOfDay) {
@@ -595,7 +389,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.EnumSource;
-              
+                            
               class TestClass {
                   enum time {
                       MORNING,
@@ -603,52 +397,11 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
                       AFTERNOON,
                       MIDNIGHT
                   }
-              
+                  
                   @ParameterizedTest
                   @EnumSource
                   void processTime(time timeOfDay) {
                       System.out.println("Its " + timeOfDay);
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.params.provider.EnumSource
-              import org.junit.jupiter.api.Test
-
-              class TestClass {
-                  enum class time {
-                      MORNING,
-                      NOON,
-                      AFTERNOON,
-                      MIDNIGHT
-                  }
-
-                  @Test
-                  @EnumSource
-                  fun processTime(timeOfDay: time) {
-                      System.out.println("Its " + timeOfDay)
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.params.ParameterizedTest
-              import org.junit.jupiter.params.provider.EnumSource
-
-              class TestClass {
-                  enum class time {
-                      MORNING,
-                      NOON,
-                      AFTERNOON,
-                      MIDNIGHT
-                  }
-
-                  @ParameterizedTest
-                  @EnumSource
-                  fun processTime(timeOfDay: time) {
-                      System.out.println("Its " + timeOfDay)
                   }
               }
               """
@@ -665,7 +418,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.params.provider.CsvFileSource;
               import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.*;
-              
+                           
               class TestClass {
                   @Test
                   @CsvFileSource(files = "src/test/resources/two-column.csv", numLinesToSkip = 1)
@@ -679,44 +432,13 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.CsvFileSource;
               import static org.junit.jupiter.api.Assertions.*;
-              
+                            
               class TestClass {
                   @ParameterizedTest
                   @CsvFileSource(files = "src/test/resources/two-column.csv", numLinesToSkip = 1)
                   void testWithCsvFileSourceFromFile(String country, int reference) {
                       assertNotNull(country);
                       assertNotEquals(0, reference);
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.params.provider.CsvFileSource
-              import org.junit.jupiter.api.Test
-              import org.junit.jupiter.api.Assertions.*
-
-              class TestClass {
-                  @Test
-                  @CsvFileSource(files = ["src/test/resources/two-column.csv"], numLinesToSkip = 1)
-                  fun testWithCsvFileSourceFromFile(country: String, reference: Int) {
-                      assertNotNull(country)
-                      assertNotEquals(0, reference)
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.params.ParameterizedTest
-              import org.junit.jupiter.params.provider.CsvFileSource
-              import org.junit.jupiter.api.Assertions.*
-
-              class TestClass {
-                  @ParameterizedTest
-                  @CsvFileSource(files = ["src/test/resources/two-column.csv"], numLinesToSkip = 1)
-                  fun testWithCsvFileSourceFromFile(country: String, reference: Int) {
-                      assertNotNull(country)
-                      assertNotEquals(0, reference)
                   }
               }
               """
@@ -771,54 +493,6 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
                       @Override
                       public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
                           return Stream.of("apple", "banana").map(Arguments::of);
-                      }
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.api.extension.ExtensionContext
-              import org.junit.jupiter.params.provider.Arguments
-              import org.junit.jupiter.params.provider.ArgumentsProvider
-              import org.junit.jupiter.params.provider.ArgumentsSource
-              import org.junit.jupiter.api.Test
-              import java.util.stream.Stream
-              import org.junit.jupiter.api.Assertions.*
-
-              class TestClass {
-                  @Test
-                  @ArgumentsSource(MyArgumentsProvider::class)
-                  fun testWithArgumentsSource(argument: String) {
-                      assertNotNull(argument)
-                  }
-                  class MyArgumentsProvider : ArgumentsProvider {
-                      override fun provideArguments(context: ExtensionContext): Stream<out Arguments> {
-                          return Stream.of("apple", "banana").map { Arguments.of(it) }
-                      }
-                  }
-              }
-              """,
-
-            """
-              import org.junit.jupiter.api.extension.ExtensionContext
-              import org.junit.jupiter.params.ParameterizedTest
-              import org.junit.jupiter.params.provider.Arguments
-              import org.junit.jupiter.params.provider.ArgumentsProvider
-              import org.junit.jupiter.params.provider.ArgumentsSource
-              import java.util.stream.Stream
-              import org.junit.jupiter.api.Assertions.*
-
-              class TestClass {
-                  @ParameterizedTest
-                  @ArgumentsSource(MyArgumentsProvider::class)
-                  fun testWithArgumentsSource(argument: String) {
-                      assertNotNull(argument)
-                  }
-                  class MyArgumentsProvider : ArgumentsProvider {
-                      override fun provideArguments(context: ExtensionContext): Stream<out Arguments> {
-                          return Stream.of("apple", "banana").map { Arguments.of(it) }
                       }
                   }
               }
