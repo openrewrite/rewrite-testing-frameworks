@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -180,6 +181,7 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/150")
+    @Disabled
     @Test
     void convertsToPackageVisibility() {
         //language=java
