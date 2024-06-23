@@ -41,7 +41,6 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           .recipe(new UpdateBeforeAfterAnnotations());
     }
 
-
     @DocumentExample
     @Test
     void beforeToBeforeEach() {
@@ -50,9 +49,8 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.Before;
-              
+
               class Test {
-              
                   @Before
                   void before() {
                   }
@@ -60,9 +58,8 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.BeforeEach;
-              
+
               class Test {
-              
                   @BeforeEach
                   void before() {
                   }
@@ -213,7 +210,8 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
     }
 
     @Test
-    void beforeMethodOverridesPublicAbstract() {
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/59")
+    void retainPublicModifierOnOverriddenMethod() {
         //language=java
         rewriteRun(
 
