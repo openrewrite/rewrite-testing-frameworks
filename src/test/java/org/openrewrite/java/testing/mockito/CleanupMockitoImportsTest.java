@@ -21,6 +21,7 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -276,6 +277,32 @@ class CleanupMockitoImportsTest implements RewriteTest {
               """,
             """
               public class MockitoArgumentMatchersTest {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotRemoveImportsIfMissingTypeInformation() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.mockito.kotlin.times;
+              import static org.mockito.Mockito.when;
+
+              class MyObjectTest {
+                MyObject myObject;
+                            
+                void test() {
+                  when(myObject.getSomeField()).thenReturn("testValue");
+                  verify(myObject, times(1)).getSomeField(); 
+                }
+              }
+              class MyObject {
+                String getSomeField() { return null; }
               }
               """
           )

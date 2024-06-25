@@ -21,6 +21,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.NoMissingTypes;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
@@ -47,7 +48,12 @@ public class CleanupMockitoImports extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.mockito.*", false), new CleanupMockitoImportsVisitor());
+        return Preconditions.check(
+                Preconditions.and(
+                        new NoMissingTypes(),
+                        new UsesType<>("org.mockito.*", false)
+                ),
+                new CleanupMockitoImportsVisitor());
     }
 
     private static class CleanupMockitoImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
