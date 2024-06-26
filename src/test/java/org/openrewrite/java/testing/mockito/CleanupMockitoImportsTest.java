@@ -19,11 +19,13 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class CleanupMockitoImportsTest implements RewriteTest {
 
@@ -32,6 +34,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "mockito-all-1.10"))
+          .parser(KotlinParser.builder().classpath("mockito-core", "mockito-kotlin"))
           .recipe(new CleanupMockitoImports());
     }
 
@@ -44,12 +47,12 @@ class CleanupMockitoImportsTest implements RewriteTest {
             """
               import org.mockito.Mock;
               import java.util.Arrays;
-                            
+
               public class MyTest {}
               """,
             """
               import java.util.Arrays;
-                            
+
               public class MyTest {}
               """
           )
@@ -66,7 +69,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
               import java.util.Collections;
               import java.util.HashSet;
               import java.util.List;
-                            
+
               public class MyTest {}
               """
           )
@@ -86,7 +89,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
               class MyObjectTest {
                 MyObject myObject;
                 MyMockClass myMock;
-                            
+
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
                   given(myObject.getSomeField()).willReturn("testValue");
@@ -117,7 +120,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
               class MyObjectTest {
                 MyObject myObject;
                 MyMockClass myMock;
-                            
+
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
                   given(myObject.getSomeField()).willReturn("testValue");
@@ -149,7 +152,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
               class MyObjectTest {
                 MyObject myObject;
                 MyMockClass myMock;
-                            
+
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
                   given(myObject.getSomeField()).willReturn("testValue");
@@ -179,7 +182,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
 
               class MyObjectTest {
                 MyObject myObject;
-                            
+
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
                 }
@@ -213,7 +216,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
               class MyObjectTest {
                 @Mock
                 MyObject myObject;
-                            
+
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
                 }
@@ -227,7 +230,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
               class MyObjectTest {
                 @Mock
                 MyObject myObject;
-                            
+
                 void test() {
                   when(myObject.getSomeField()).thenReturn("testValue");
                 }
@@ -244,16 +247,16 @@ class CleanupMockitoImportsTest implements RewriteTest {
           java(
             """
               package mockito.example;
-                            
+
               import java.util.List;
-                            
+
               import static org.mockito.Mockito.*;
-                            
+
               public class MockitoArgumentMatchersTest {
                   static class Foo {
                       boolean bool(String str, int i, Object obj) { return false; }
                   }
-                            
+
                   public void usesMatchers() {
                       Foo mockFoo = mock(Foo.class);
                       when(mockFoo.bool(anyString(), anyInt(), any(Object.class))).thenReturn(true);
@@ -271,7 +274,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
           java(
             """
               import static org.mockito.Mockito.*;
-                            
+
               public class MockitoArgumentMatchersTest {
               }
               """,
@@ -284,25 +287,23 @@ class CleanupMockitoImportsTest implements RewriteTest {
     }
 
     @Test
-    void doNotRemoveImportsIfMissingTypeInformation() {
-        //language=java
+    void handleKotlinImportsCorrectly() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
-          java(
+          //language=kotlin
+          kotlin(
             """
-              import org.mockito.kotlin.times;
-              import static org.mockito.Mockito.when;
-
-              class MyObjectTest {
-                MyObject myObject;
-                            
-                void test() {
-                  when(myObject.getSomeField()).thenReturn("testValue");
-                  verify(myObject, times(1)).getSomeField(); 
+              import org.mockito.kotlin.times
+              class Foo {
+                fun bar() {
+                  org.mockito.Mockito.mock(Foo::class.java)
                 }
               }
-              class MyObject {
-                String getSomeField() { return null; }
+              """,
+            """
+              class Foo {
+                fun bar() {
+                  org.mockito.Mockito.mock(Foo::class.java)
+                }
               }
               """
           )
