@@ -1375,7 +1375,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                       myObject.wait(1L);
                       myObject.wait();
                       verify(myObject).wait(anyLong());
-                      verify(myObject).wait();                
+                      verify(myObject).wait();
                   }
               }
               """

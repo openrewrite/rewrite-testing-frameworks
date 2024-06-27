@@ -60,7 +60,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   Object myObject;
 
                   void test() {
-                      myObject.wait(10L, 10);             
+                      myObject.wait(10L, 10);
                       new Verifications() {{
                           myObject.wait(anyLong, anyInt);
                       }};
@@ -110,7 +110,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                       myObject.wait(10L, 10);
                       new Verifications() {{
                           myObject.wait();
-                      }};                      
+                      }};
                   }
               }
               """,
@@ -176,7 +176,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                       new Verifications() {{
                           myObject.getSomeField((List<String>) any);
                           myObject.getSomeOtherField((Object) any);
-                      }};                      
+                      }};
                   }
               }
               """,
@@ -295,7 +295,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                       myObject.getSomeField("foo", "bar", bazz, 10L);
                       new Verifications() {{
                           myObject.getSomeField("foo", anyString, bazz, 10L);
-                      }};                      
+                      }};
                   }
               }
               """,
@@ -360,7 +360,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                       myObject.getSomeField("foo");
                       myObject.getString();
                       new Verifications() {{
-                          myObject.getSomeField(anyString);                            
+                          myObject.getSomeField(anyString);
                           myObject.getString();
                       }};
                   }
@@ -380,10 +380,10 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
 
                   void test() {
                       String a = "a";
-                      String s = "s";                           
+                      String s = "s";
                       myObject.getSomeField("foo");
                       myObject.getString();
-                      verify(myObject).getSomeField(anyString());            
+                      verify(myObject).getSomeField(anyString());
                       verify(myObject).getString();
                   }
               }
@@ -418,11 +418,11 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   MyObject myObject;
                             
                   void test() {
-                      String a = "a";                            
+                      String a = "a";
                       myObject.getSomeField("foo");
                       new Verifications() {{
                           myObject.getSomeField(anyString);
-                      }};                      
+                      }};
                   }
               }
               """,
@@ -474,7 +474,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                       new Verifications() {{
                           myObject.wait(anyLong, anyInt);
                           times = 3;
-                      }};                      
+                      }};
                   }
               }
               """,
@@ -690,7 +690,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                           myOtherObject.getSomeObjectField();
                           myObject.wait(anyLong, anyInt);
                           myOtherObject.getSomeStringField(anyString, anyLong);
-                      }};                      
+                      }};
                   }
               }
               """,
@@ -743,7 +743,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                             
                   void test() {
                       myObject.wait();
-                      new Verifications() {{             
+                      new Verifications() {{
                       
                           myObject.wait();
                           
