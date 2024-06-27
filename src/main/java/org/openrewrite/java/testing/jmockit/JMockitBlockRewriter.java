@@ -26,6 +26,8 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.Verifications;
+
 class JMockitBlockRewriter {
 
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
@@ -200,14 +202,19 @@ class JMockitBlockRewriter {
 
         String verifyTemplate = getVerifyTemplate(invocation.getArguments(), fqn, verificationMode, templateParams);
         JavaCoordinates verifyCoordinates;
-        if (this.blockType == JMockitBlockType.Verifications) {
+        if (this.blockType == Verifications) {
             // for Verifications, replace the Verifications block
             verifyCoordinates = nextStatementCoordinates;
+            numStatementsAdded++;
         } else {
             // for Expectations put the verify at the end of the method
             verifyCoordinates = methodBody.getCoordinates().lastStatement();
         }
+
         methodBody = rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
+        if (this.blockType == Verifications) {
+            nextStatementCoordinates = this.methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded - 1).getCoordinates().after();
+        }
     }
 
     private J.Block rewriteTemplate(String verifyTemplate, List<Object> templateParams, JavaCoordinates rewriteCoords) {

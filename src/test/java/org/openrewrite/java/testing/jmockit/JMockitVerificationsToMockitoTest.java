@@ -726,7 +726,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void whenMultipleVerifications() {
+    void whenMultipleVerificationsAndMultipleStatements() {
         //language=java
         rewriteRun(
           java(
@@ -745,6 +745,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                       myObject.wait();
                       new Verifications() {{
                           myObject.wait();
+                          myObject.wait(anyLong, anyInt);
                       }};
                       myObject.wait(1L);
                       myObject.wait(2L);
@@ -770,6 +771,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   void test() {
                       myObject.wait();
                       verify(myObject).wait();
+                      verify(myObject).wait(anyLong(), anyInt());
                       myObject.wait(1L);
                       myObject.wait(2L);
                       verify(myObject, times(2)).wait(anyLong());
