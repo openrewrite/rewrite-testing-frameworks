@@ -160,11 +160,7 @@ class JMockitBlockRewriter {
 
         methodBody = rewriteTemplate(template, templateParams, nextStatementCoordinates);
         numStatementsAdded++;
-
-        // the next statement coordinates are directly after the most recently written statement, and subtracting the
-        // removed jmockit block
-        nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded - 1)
-                .getCoordinates().after();
+        setNextCoordinatesAfterLastStatementAdded();
     }
 
     private void removeBlock() {
@@ -178,7 +174,7 @@ class JMockitBlockRewriter {
         if (bodyStatementIndex == 0) {
             nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
         } else {
-            nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex - 1).getCoordinates().after();
+            setNextCoordinatesAfterLastStatementAdded();
         }
     }
 
@@ -205,7 +201,6 @@ class JMockitBlockRewriter {
         if (this.blockType == Verifications) {
             // for Verifications, replace the Verifications block
             verifyCoordinates = nextStatementCoordinates;
-            numStatementsAdded++;
         } else {
             // for Expectations put the verify at the end of the method
             verifyCoordinates = methodBody.getCoordinates().lastStatement();
@@ -213,8 +208,15 @@ class JMockitBlockRewriter {
 
         methodBody = rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
         if (this.blockType == Verifications) {
-            nextStatementCoordinates = this.methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded - 1).getCoordinates().after();
+            numStatementsAdded++;
+            setNextCoordinatesAfterLastStatementAdded();
         }
+    }
+
+    private void setNextCoordinatesAfterLastStatementAdded() {
+        // the next statement coordinates are directly after the most recently written statement, calculated by
+        // subtracting the removed jmockit block
+        this.nextStatementCoordinates = this.methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded - 1).getCoordinates().after();
     }
 
     private J.Block rewriteTemplate(String verifyTemplate, List<Object> templateParams, JavaCoordinates rewriteCoords) {
