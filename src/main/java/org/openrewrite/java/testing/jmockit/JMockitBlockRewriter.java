@@ -72,62 +72,57 @@ class JMockitBlockRewriter {
         visitor.maybeRemoveImport(blockType.getFqn()); // eg mockit.Expectations
 
         assert newExpectations.getBody() != null;
-        J.Block expectationsBlock = (J.Block) newExpectations.getBody().getStatements().get(0);
-        if (expectationsBlock.getStatements().isEmpty()) {
+        J.Block jmockitBlock = (J.Block) newExpectations.getBody().getStatements().get(0);
+        if (jmockitBlock.getStatements().isEmpty()) {
             // empty Expectations block, remove it
-            removeExpectationsStatement();
+            removeBlock();
             return methodBody;
         }
 
         // rewrite the argument matchers in the expectations block
-        ArgumentMatchersRewriter amr = new ArgumentMatchersRewriter(visitor, ctx, expectationsBlock);
-        expectationsBlock = amr.rewriteExpectationsBlock();
+        ArgumentMatchersRewriter amr = new ArgumentMatchersRewriter(visitor, ctx, jmockitBlock);
+        jmockitBlock = amr.rewriteJMockitBlock();
 
-        // iterate over the expectations statements and rebuild the method body
-        List<Statement> expectationStatements = new ArrayList<>();
-        for (Statement expectationStatement : expectationsBlock.getStatements()) {
-            if (expectationStatement instanceof J.MethodInvocation) {
-                // handle returns statements
-                J.MethodInvocation invocation = (J.MethodInvocation) expectationStatement;
-                if (invocation.getSelect() == null && invocation.getName().getSimpleName().equals("returns")) {
-                    expectationStatements.add(expectationStatement);
-                    continue;
-                }
-                // if a new method invocation is found, apply the template to the previous statements
-                if (!expectationStatements.isEmpty()) {
-                    // apply template to build new method body
-                    rewriteMethodBody(expectationStatements);
-
-                    // reset statements for next expectation
-                    expectationStatements = new ArrayList<>();
+        // iterate over the statements and build a list of grouped method invocations and related statements eg times
+        List<List<Statement>> methodInvocationsToRewrite = new ArrayList<>();
+        int methodInvocationIdx = -1;
+        for (Statement jmockitBlockStatement : jmockitBlock.getStatements()) {
+            if (jmockitBlockStatement instanceof J.MethodInvocation) {
+                // ensure it's not a returns statement, we add that later to related statements
+                J.MethodInvocation invocation = (J.MethodInvocation) jmockitBlockStatement;
+                if (invocation.getSelect() != null && !invocation.getName().getSimpleName().equals("returns")) {
+                    methodInvocationIdx++;
+                    methodInvocationsToRewrite.add(new ArrayList<>());
                 }
             }
-            expectationStatements.add(expectationStatement);
+
+            if (methodInvocationIdx != -1) {
+                methodInvocationsToRewrite.get(methodInvocationIdx).add(jmockitBlockStatement);
+            }
         }
 
-        // handle the last statement
-        if (!expectationStatements.isEmpty()) {
-            rewriteMethodBody(expectationStatements);
+        // remove the jmockit block
+        if (nextStatementCoordinates.isReplacement()) {
+            removeBlock();
         }
 
+        // now rewrite
+        methodInvocationsToRewrite.forEach(this::rewriteMethodInvocation);
         return methodBody;
     }
 
-    private void rewriteMethodBody(List<Statement> expectationStatements) {
-        final MockInvocationResults mockInvocationResults = buildMockInvocationResults(expectationStatements);
-        if (mockInvocationResults == null || !(expectationStatements.get(0) instanceof J.MethodInvocation)) {
-            // invalid Expectations block, cannot rewrite
+    private void rewriteMethodInvocation(List<Statement> statementsToRewrite) {
+        final MockInvocationResults mockInvocationResults = buildMockInvocationResults(statementsToRewrite);
+        if (mockInvocationResults == null) {
+            // invalid block, cannot rewrite
             expectationsRewriteFailed = true;
             return;
         }
-        J.MethodInvocation invocation = (J.MethodInvocation) expectationStatements.get(0);
-        boolean hasExpectationsResults = !mockInvocationResults.getResults().isEmpty();
-        if (hasExpectationsResults) {
-            // rewrite the statement to mockito if there are results
-            rewriteExpectationResult(mockInvocationResults.getResults(), invocation);
-        } else if (nextStatementCoordinates.isReplacement()) {
-            // if there are no results and the Expectations block is not yet replaced, remove it
-            removeExpectationsStatement();
+
+        J.MethodInvocation invocation = (J.MethodInvocation) statementsToRewrite.get(0);
+        boolean hasResults = !mockInvocationResults.getResults().isEmpty();
+        if (hasResults) {
+            rewriteJMockitResult(mockInvocationResults.getResults(), invocation);
         }
 
         boolean hasTimes = false;
@@ -143,12 +138,12 @@ class JMockitBlockRewriter {
             hasTimes = true;
             writeMethodVerification(invocation, mockInvocationResults.getMaxTimes(), "atMost");
         }
-        if (!hasExpectationsResults && !hasTimes) {
+        if (!hasResults && !hasTimes) {
             writeMethodVerification(invocation, null, null);
         }
     }
 
-    private void rewriteExpectationResult(List<Expression> results, J.MethodInvocation invocation) {
+    private void rewriteJMockitResult(List<Expression> results, J.MethodInvocation invocation) {
         String template = getMockitoStatementTemplate(results);
         if (template == null) {
             // invalid template, cannot rewrite
@@ -162,16 +157,15 @@ class JMockitBlockRewriter {
         templateParams.addAll(results);
 
         methodBody = rewriteTemplate(template, templateParams, nextStatementCoordinates);
-        if (!nextStatementCoordinates.isReplacement()) {
-            numStatementsAdded += 1;
-        }
+        numStatementsAdded++;
 
-        // the next statement coordinates are directly after the most recently written statement
-        nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded)
+        // the next statement coordinates are directly after the most recently written statement, and subtracting the
+        // removed jmockit block
+        nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded - 1)
                 .getCoordinates().after();
     }
 
-    private void removeExpectationsStatement() {
+    private void removeBlock() {
         methodBody = JavaTemplate.builder("")
                 .javaParser(JavaParser.fromJavaVersion())
                 .build()
@@ -179,13 +173,11 @@ class JMockitBlockRewriter {
                         new Cursor(visitor.getCursor(), methodBody),
                         nextStatementCoordinates
                 );
-
-        // TODO: Removing this below doesn't change anything but may affect in test case where we have no args in first
-        // expectation and then there are args in next expectation in same test method
-//      the next statement coordinates are directly after the most recently added statement, or the first statement
-//        // of the test method body if the Expectations block was the first statement
-//        nextStatementCoordinates = bodyStatementIndex == 0 ? methodBody.getCoordinates().firstStatement() :
-//                methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded).getCoordinates().after();
+        if (bodyStatementIndex == 0) {
+            nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
+        } else {
+            nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex - 1).getCoordinates().after();
+        }
     }
 
     private void writeMethodVerification(J.MethodInvocation invocation, @Nullable Expression times, @Nullable String verificationMode) {
@@ -207,7 +199,15 @@ class JMockitBlockRewriter {
         templateParams.add(invocation.getName().getSimpleName());
 
         String verifyTemplate = getVerifyTemplate(invocation.getArguments(), fqn, verificationMode, templateParams);
-        methodBody = rewriteTemplate(verifyTemplate, templateParams, methodBody.getCoordinates().lastStatement());
+        JavaCoordinates verifyCoordinates;
+        if (this.blockType == JMockitBlockType.Verifications) {
+            // for Verifications, replace the Verifications block
+            verifyCoordinates = nextStatementCoordinates;
+        } else {
+            // for Expectations put the verify at the end of the method
+            verifyCoordinates = methodBody.getCoordinates().lastStatement();
+        }
+        methodBody = rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
     }
 
     private J.Block rewriteTemplate(String verifyTemplate, List<Object> templateParams, JavaCoordinates rewriteCoords) {

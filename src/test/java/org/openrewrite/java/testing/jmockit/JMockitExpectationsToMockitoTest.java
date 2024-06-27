@@ -836,9 +836,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   void test() {
                       String a = "a";
                       String s = "s";
-                            
                       when(myObject.getSomeField(anyString())).thenReturn(s);
-                            
                       when(myObject.getString()).thenReturn(a);
                             
                       assertEquals("s", myObject.getSomeField("foo"));
@@ -1377,7 +1375,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                       myObject.wait(1L);
                       myObject.wait();
                       verify(myObject).wait(anyLong());
-                      verify(myObject).wait();                  
+                      verify(myObject).wait();                
                   }
               }
               """

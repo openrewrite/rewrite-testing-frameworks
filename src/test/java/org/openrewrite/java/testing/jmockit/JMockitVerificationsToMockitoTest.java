@@ -726,7 +726,6 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
     }
 
     @Test
-        //TODO Preferably Verifications should be replaced inline and not appended to end of the method
     void whenMultipleVerifications() {
         //language=java
         rewriteRun(
@@ -770,9 +769,9 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
 
                   void test() {
                       myObject.wait();
+                      verify(myObject).wait();
                       myObject.wait(1L);
                       myObject.wait(2L);
-                      verify(myObject).wait();
                       verify(myObject, times(2)).wait(anyLong());
                   }
               }
