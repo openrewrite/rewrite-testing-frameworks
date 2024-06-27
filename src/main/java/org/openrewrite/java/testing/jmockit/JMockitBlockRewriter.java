@@ -26,7 +26,7 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.List;
 
-class ExpectationsBlockRewriter {
+class JMockitBlockRewriter {
 
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
     private static final String RETURN_TEMPLATE_PREFIX = "thenReturn(";
@@ -41,6 +41,7 @@ class ExpectationsBlockRewriter {
     private final JavaVisitor<ExecutionContext> visitor;
     private final ExecutionContext ctx;
     private final J.NewClass newExpectations;
+    private final JMockitBlockType blockType;
     // index of the Expectations block in the method body
     private final int bodyStatementIndex;
     private J.Block methodBody;
@@ -56,18 +57,19 @@ class ExpectationsBlockRewriter {
     // used with bodyStatementIndex to obtain the coordinates of the next statement to be written
     private int numStatementsAdded = 0;
 
-    ExpectationsBlockRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block methodBody,
-                              J.NewClass newExpectations, int bodyStatementIndex) {
+    JMockitBlockRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block methodBody,
+                         J.NewClass newExpectations, int bodyStatementIndex, JMockitBlockType blockType) {
         this.visitor = visitor;
         this.ctx = ctx;
         this.methodBody = methodBody;
         this.newExpectations = newExpectations;
         this.bodyStatementIndex = bodyStatementIndex;
+        this.blockType = blockType;
         nextStatementCoordinates = newExpectations.getCoordinates().replace();
     }
 
     J.Block rewriteMethodBody() {
-        visitor.maybeRemoveImport("mockit.Expectations");
+        visitor.maybeRemoveImport(blockType.getFqn()); // eg mockit.Expectations
 
         assert newExpectations.getBody() != null;
         J.Block expectationsBlock = (J.Block) newExpectations.getBody().getStatements().get(0);
@@ -159,15 +161,7 @@ class ExpectationsBlockRewriter {
         templateParams.add(invocation);
         templateParams.addAll(results);
 
-        methodBody = JavaTemplate.builder(template)
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                .staticImports("org.mockito.Mockito.*")
-                .build()
-                .apply(
-                        new Cursor(visitor.getCursor(), methodBody),
-                        nextStatementCoordinates,
-                        templateParams.toArray()
-                );
+        methodBody = getMockitoTemplate(template, templateParams, nextStatementCoordinates);
         if (!nextStatementCoordinates.isReplacement()) {
             numStatementsAdded += 1;
         }
@@ -186,10 +180,12 @@ class ExpectationsBlockRewriter {
                         nextStatementCoordinates
                 );
 
-        // the next statement coordinates are directly after the most recently added statement, or the first statement
-        // of the test method body if the Expectations block was the first statement
-        nextStatementCoordinates = bodyStatementIndex == 0 ? methodBody.getCoordinates().firstStatement() :
-                methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded).getCoordinates().after();
+        // TODO: Removing this below doesn't change anything but may affect in test case where we have no args in first
+        // expectation and then there are args in next expectation in same test method
+//      the next statement coordinates are directly after the most recently added statement, or the first statement
+//        // of the test method body if the Expectations block was the first statement
+//        nextStatementCoordinates = bodyStatementIndex == 0 ? methodBody.getCoordinates().firstStatement() :
+//                methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded).getCoordinates().after();
     }
 
     private void writeMethodVerification(J.MethodInvocation invocation, @Nullable Expression times, @Nullable String verificationMode) {
@@ -211,14 +207,17 @@ class ExpectationsBlockRewriter {
         templateParams.add(invocation.getName().getSimpleName());
 
         String verifyTemplate = getVerifyTemplate(invocation.getArguments(), fqn, verificationMode, templateParams);
-        methodBody = JavaTemplate.builder(verifyTemplate)
+        methodBody = getMockitoTemplate(verifyTemplate, templateParams, methodBody.getCoordinates().lastStatement());
+    }
+
+    private J.Block getMockitoTemplate(String verifyTemplate, List<Object> templateParams, JavaCoordinates rewriteCoords) {
+        return JavaTemplate.builder(verifyTemplate)
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                 .staticImports("org.mockito.Mockito.*")
-                .imports(fqn)
                 .build()
                 .apply(
                         new Cursor(visitor.getCursor(), methodBody),
-                        methodBody.getCoordinates().lastStatement(),
+                        rewriteCoords,
                         templateParams.toArray()
                 );
     }
@@ -268,17 +267,17 @@ class ExpectationsBlockRewriter {
     private static String getVerifyTemplate(List<Expression> arguments, String fqn, @Nullable String verificationMode, List<Object> templateParams) {
         StringBuilder templateBuilder = new StringBuilder("verify(#{any(" + fqn + ")}"); // verify(object
         if (verificationMode != null) {
-            templateBuilder.append(", ").append(verificationMode).append("(#{any(int)})"); // verify(object, times(2)
+            templateBuilder.append(", ").append(verificationMode).append("(#{any(int)})"); // eg verify(object, times(2)
         }
-        templateBuilder.append(").#{}("); // verify(object, times(2)).method(
+        templateBuilder.append(").#{}("); // eg verify(object, times(2)).method(
 
         if (arguments.isEmpty()) {
-            templateBuilder.append(");"); // verify(object, times(2)).method();
+            templateBuilder.append(");"); // eg verify(object, times(2)).method(); <- no args
             return templateBuilder.toString();
         }
 
         boolean hasArgument = false;
-        for (Expression argument : arguments) { // verify(object, times(2).method(anyLong(), any Int()
+        for (Expression argument : arguments) { // eg verify(object, times(2).method(anyLong(), anyInt()
             if (argument instanceof J.Empty) {
                 continue;
             } else if (argument instanceof J.Literal) {
@@ -293,7 +292,7 @@ class ExpectationsBlockRewriter {
         if (hasArgument) {
             templateBuilder.delete(templateBuilder.length() - 2, templateBuilder.length());
         }
-        templateBuilder.append(");"); // verify(object, times(2).method(anyLong(), any Int());
+        templateBuilder.append(");"); // eg verify(object, times(2).method(anyLong(), anyInt());
         return templateBuilder.toString();
     }
 
