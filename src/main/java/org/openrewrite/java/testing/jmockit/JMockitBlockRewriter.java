@@ -161,7 +161,7 @@ class JMockitBlockRewriter {
         templateParams.add(invocation);
         templateParams.addAll(results);
 
-        methodBody = getMockitoTemplate(template, templateParams, nextStatementCoordinates);
+        methodBody = rewriteTemplate(template, templateParams, nextStatementCoordinates);
         if (!nextStatementCoordinates.isReplacement()) {
             numStatementsAdded += 1;
         }
@@ -207,10 +207,10 @@ class JMockitBlockRewriter {
         templateParams.add(invocation.getName().getSimpleName());
 
         String verifyTemplate = getVerifyTemplate(invocation.getArguments(), fqn, verificationMode, templateParams);
-        methodBody = getMockitoTemplate(verifyTemplate, templateParams, methodBody.getCoordinates().lastStatement());
+        methodBody = rewriteTemplate(verifyTemplate, templateParams, methodBody.getCoordinates().lastStatement());
     }
 
-    private J.Block getMockitoTemplate(String verifyTemplate, List<Object> templateParams, JavaCoordinates rewriteCoords) {
+    private J.Block rewriteTemplate(String verifyTemplate, List<Object> templateParams, JavaCoordinates rewriteCoords) {
         return JavaTemplate.builder(verifyTemplate)
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                 .staticImports("org.mockito.Mockito.*")

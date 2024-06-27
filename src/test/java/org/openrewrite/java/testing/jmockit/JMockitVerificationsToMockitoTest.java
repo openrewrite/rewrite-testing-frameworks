@@ -160,21 +160,19 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               import java.util.ArrayList;
               import java.util.List;
                             
-              import mockit.Verifications;
               import mockit.Mocked;
+              import mockit.Verifications;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
-              import static org.junit.jupiter.api.Assertions.assertNull;
-                            
+                                                        
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
                             
                   void test() {
-                      assertNull(myObject.getSomeField(new ArrayList<>()));
-                      assertNull(myObject.getSomeOtherField(new Object()));
+                      myObject.getSomeField(new ArrayList<>());
+                      myObject.getSomeOtherField(new Object());
                       new Verifications() {{
                           myObject.getSomeField((List<String>) any);
                           myObject.getSomeOtherField((Object) any);
@@ -189,19 +187,15 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-                            
-              import static org.junit.jupiter.api.Assertions.assertNull;
-              import static org.mockito.Mockito.any;
-              import static org.mockito.Mockito.anyList;
-                            
+                                                        
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
                             
                   void test() {
-                      assertNull(myObject.getSomeField(new ArrayList<>()));
-                      assertNull(myObject.getSomeOtherField(new Object()));
+                      myObject.getSomeField(new ArrayList<>());
+                      myObject.getSomeOtherField(new Object());
                       verify(myObject).getSomeField(anyList());
                       verify(myObject).getSomeOtherField(any(Object.class));
                   }
@@ -217,17 +211,6 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import java.util.List;
-                            
-              class MyObject {
-                  public String getSomeField() {
-                      return "X";
-                  }
-              }
-              """
-          ),
-          java(
-            """
               import java.util.ArrayList;
               import java.util.List;
                             
@@ -235,16 +218,18 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-
+                            
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
-                  MyObject myObject;
+                  Object myObject;
                             
                   void test() {
-                      myObject.getSomeField();
+                      myObject.wait();
+                      myObject.wait();
                       new Verifications() {{
-                          myObject.getSomeField();
+                          myObject.wait();
+                          times = 2;
                       }};
                   }
               }
@@ -253,20 +238,21 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               import java.util.ArrayList;
               import java.util.List;
                             
+              import static org.mockito.Mockito.times;
+              import static org.mockito.Mockito.verify;
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-                            
-              import static org.mockito.Mockito.verify;
-                            
+                                                        
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
-                  MyObject myObject;
+                  Object myObject;
                             
                   void test() {
-                      myObject.getSomeField();
-                      verify(myObject).getSomeField();
+                      myObject.wait();
+                      myObject.wait();
+                      verify(myObject, times(2)).wait();
                   }
               }
               """
@@ -363,8 +349,6 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
                             
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-                            
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
@@ -373,14 +357,11 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   void test() {
                       String a = "a";
                       String s = "s";
-                      assertEquals("s", myObject.getSomeField("foo"));
-                      assertEquals("a", myObject.getString());
+                      myObject.getSomeField("foo");
+                      myObject.getString();
                       new Verifications() {{
-                          myObject.getSomeField(anyString);
-                          result = s;
-                            
+                          myObject.getSomeField(anyString);                            
                           myObject.getString();
-                          result = a;
                       }};
                   }
               }
@@ -390,7 +371,6 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
                             
-              import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.*;
 
               @ExtendWith(MockitoExtension.class)
@@ -401,8 +381,8 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   void test() {
                       String a = "a";
                       String s = "s";                           
-                      assertEquals("s", myObject.getSomeField("foo"));
-                      assertEquals("a", myObject.getString());
+                      myObject.getSomeField("foo");
+                      myObject.getString();
                       verify(myObject).getSomeField(anyString());            
                       verify(myObject).getString();
                   }
@@ -427,28 +407,22 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.Verifications;
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-                            
+                                                        
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
                             
                   void test() {
-                      String a = "a";
-                      new Expectations() {{
+                      String a = "a";                            
+                      myObject.getSomeField("foo");
+                      new Verifications() {{
                           myObject.getSomeField(anyString);
-                          String s = "s";
-                          String b = "b";
-                          result = s;
-                      }};
-                            
-                      assertEquals("s", myObject.getSomeField("foo"));
+                      }};                      
                   }
               }
               """,
@@ -459,7 +433,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                             
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.anyString;
-              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.verify;
 
               @ExtendWith(MockitoExtension.class)
               class MyTest {
@@ -468,11 +442,8 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
 
                   void test() {
                       String a = "a";
-                      String s = "s";
-                      String b = "b";
-                      when(myObject.getSomeField(anyString())).thenReturn(s);
-                            
-                      assertEquals("s", myObject.getSomeField("foo"));
+                      myObject.getSomeField("foo");
+                      verify(myObject).getSomeField(anyString());
                   }
               }
               """
@@ -486,7 +457,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import mockit.Expectations;
+              import mockit.Verifications;
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
@@ -497,13 +468,13 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   Object myObject;
                             
                   void test() {
-                      new Expectations() {{
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
+                      new Verifications() {{
                           myObject.wait(anyLong, anyInt);
                           times = 3;
-                      }};
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
+                      }};                      
                   }
               }
               """,
@@ -537,7 +508,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
         rewriteRun(
           java(
             """                                          
-              import mockit.Expectations;
+              import mockit.Verifications;
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
@@ -548,11 +519,11 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   Object myObject;
                   
                   void test() {
-                      new Expectations() {{
+                      myObject.wait(10L, 10);
+                      new Verifications() {{
                           myObject.wait(anyLong, anyInt);
                           minTimes = 2;
                       }};
-                      myObject.wait(10L, 10);
                   }
               }
               """,
@@ -584,7 +555,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
         rewriteRun(
           java(
             """                                          
-              import mockit.Expectations;
+              import mockit.Verifications;
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
@@ -595,11 +566,11 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   Object myObject;
                   
                   void test() {
-                      new Expectations() {{
+                      myObject.wait(10L, 10);
+                      new Verifications() {{
                           myObject.wait(anyLong, anyInt);
                           maxTimes = 5;
                       }};
-                      myObject.wait(10L, 10);
                   }
               }
               """,
@@ -631,7 +602,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
         rewriteRun(
           java(
             """                                          
-              import mockit.Expectations;
+              import mockit.Verifications;
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
@@ -642,12 +613,12 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   Object myObject;
                   
                   void test() {
-                      new Expectations() {{
+                      myObject.wait(10L, 10);
+                      new Verifications() {{
                           myObject.wait(anyLong, anyInt);
                           minTimes = 1;
                           maxTimes = 3;
                       }};
-                      myObject.wait(10L, 10);
                   }
               }
               """,
@@ -667,65 +638,6 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                       myObject.wait(10L, 10);
                       verify(myObject, atLeast(1)).wait(anyLong(), anyInt());
                       verify(myObject, atMost(3)).wait(anyLong(), anyInt());
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void whenSpy() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              class MyObject {
-                  public String getSomeField() {
-                      return "X";
-                  }
-              }
-              """
-          ),
-          java(
-            """
-              import mockit.Expectations;
-              import mockit.Tested;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
-                            
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-                            
-              @ExtendWith(JMockitExtension.class)
-              class MyTest {
-                  @Tested
-                  MyObject myObject;
-                            
-                  void test() {
-                      new Expectations(myObject) {{
-                          myObject.getSomeField();
-                          result = "foo";
-                      }};
-                      assertEquals("foo", myObject.getSomeField());
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.InjectMocks;
-              import org.mockito.junit.jupiter.MockitoExtension;
-                            
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.mockito.Mockito.when;
-                            
-              @ExtendWith(MockitoExtension.class)
-              class MyTest {
-                  @InjectMocks
-                  MyObject myObject;
-                            
-                  void test() {
-                      when(myObject.getSomeField()).thenReturn("foo");
-                      assertEquals("foo", myObject.getSomeField());
                   }
               }
               """
@@ -755,13 +667,10 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.Verifications;
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
                             
               @ExtendWith(JMockitExtension.class)
               class MyTest {
@@ -772,19 +681,16 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   MyObject myOtherObject;
                             
                   void test() {
-                      new Expectations() {{
+                      myObject.hashCode();
+                      myOtherObject.getSomeObjectField();
+                      myObject.wait(10L, 10);
+                      myOtherObject.getSomeStringField("bar", 10L);
+                      new Verifications() {{
                           myObject.hashCode();
-                          result = 10;
                           myOtherObject.getSomeObjectField();
-                          result = null;
                           myObject.wait(anyLong, anyInt);
                           myOtherObject.getSomeStringField(anyString, anyLong);
-                          result = "foo";
-                      }};
-                      assertEquals(10, myObject.hashCode());
-                      assertNull(myOtherObject.getSomeObjectField());
-                      myObject.wait(10L, 10);
-                      assertEquals("foo", myOtherObject.getSomeStringField("bar", 10L));
+                      }};                      
                   }
               }
               """,
@@ -793,8 +699,6 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
               import static org.mockito.Mockito.*;
 
               @ExtendWith(MockitoExtension.class)
@@ -806,14 +710,14 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   MyObject myOtherObject;
 
                   void test() {
-                      when(myObject.hashCode()).thenReturn(10);
-                      when(myOtherObject.getSomeObjectField()).thenReturn(null);
-                      when(myOtherObject.getSomeStringField(anyString(), anyLong())).thenReturn("foo");
-                      assertEquals(10, myObject.hashCode());
-                      assertNull(myOtherObject.getSomeObjectField());
+                      myObject.hashCode();
+                      myOtherObject.getSomeObjectField();
                       myObject.wait(10L, 10);
-                      assertEquals("foo", myOtherObject.getSomeStringField("bar", 10L));
+                      myOtherObject.getSomeStringField("bar", 10L);
+                      verify(myObject).hashCode();
+                      verify(myOtherObject).getSomeObjectField();
                       verify(myObject).wait(anyLong(), anyInt());
+                      verify(myOtherObject).getSomeStringField(anyString(), anyLong());
                   }
               }
               """
@@ -822,86 +726,16 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void whenMultipleExpectations() {
+        //TODO Preferably Verifications should be replaced inline and not appended to end of the method
+    void whenMultipleVerifications() {
         //language=java
         rewriteRun(
           java(
             """
-              class MyObject {
-                  public String getSomeStringField() {
-                      return "X";
-                  }
-              }
-              """
-          ),
-          java(
-            """
-              import mockit.Expectations;
+              import mockit.Verifications;
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
-                            
-              @ExtendWith(JMockitExtension.class)
-              class MyTest {
-                  @Mocked
-                  MyObject myObject;
-                            
-                  void test() {
-                      new Expectations() {{
-                          myObject.getSomeStringField();
-                          result = "a";
-                      }};
-                      assertEquals("a", myObject.getSomeStringField());
-                      new Expectations() {{
-                          myObject.getSomeStringField();
-                          result = "b";
-                      }};
-                      assertEquals("b", myObject.getSomeStringField());
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
-
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
-              import static org.mockito.Mockito.when;
-
-              @ExtendWith(MockitoExtension.class)
-              class MyTest {
-                  @Mock
-                  MyObject myObject;
-
-                  void test() {
-                      when(myObject.getSomeStringField()).thenReturn("a");
-                      assertEquals("a", myObject.getSomeStringField());
-                      when(myObject.getSomeStringField()).thenReturn("b");
-                      assertEquals("b", myObject.getSomeStringField());
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void whenMultipleExpectationsNoResults() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import mockit.Expectations;
-              import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
-                            
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
                             
               @ExtendWith(JMockitExtension.class)
               class MyTest {
@@ -909,14 +743,16 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   Object myObject;
                             
                   void test() {
-                      new Expectations() {{
-                          myObject.wait(anyLong);
-                      }};
-                      myObject.wait(1L);
-                      new Expectations() {{
+                      myObject.wait();
+                      new Verifications() {{
                           myObject.wait();
                       }};
-                      myObject.wait();
+                      myObject.wait(1L);
+                      myObject.wait(2L);
+                      new Verifications() {{
+                          myObject.wait(anyLong);
+                          times = 2;
+                      }};
                   }
               }
               """,
@@ -925,10 +761,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
-              import static org.mockito.Mockito.anyLong;
-              import static org.mockito.Mockito.verify;
+              import static org.mockito.Mockito.*;
 
               @ExtendWith(MockitoExtension.class)
               class MyTest {
@@ -936,10 +769,11 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   Object myObject;
 
                   void test() {
-                      myObject.wait(1L);
                       myObject.wait();
-                      verify(myObject).wait(anyLong());
-                      verify(myObject).wait();                  
+                      myObject.wait(1L);
+                      myObject.wait(2L);
+                      verify(myObject).wait();
+                      verify(myObject, times(2)).wait(anyLong());
                   }
               }
               """
