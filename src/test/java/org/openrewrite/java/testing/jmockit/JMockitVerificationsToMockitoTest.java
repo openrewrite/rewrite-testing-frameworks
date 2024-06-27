@@ -743,8 +743,10 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                             
                   void test() {
                       myObject.wait();
-                      new Verifications() {{
+                      new Verifications() {{             
+                      
                           myObject.wait();
+                          
                           myObject.wait(anyLong, anyInt);
                       }};
                       myObject.wait(1L);
