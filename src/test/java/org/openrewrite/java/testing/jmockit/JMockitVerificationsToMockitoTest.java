@@ -238,9 +238,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
             """
               import java.util.ArrayList;
               import java.util.List;
-                            
-              import static org.mockito.Mockito.*;
-                            
+                                                        
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
