@@ -36,7 +36,7 @@ class SetupStatementsRewriter {
 
     J.Block rewriteMethodBody() {
         List<Statement> statements = methodBody.getStatements();
-        // iterate over each statement in the method body, find Expectations blocks and rewrite them
+        // iterate over each statement in the method body, find JMockit blocks and rewrite them
         for (Statement s : statements) {
             if (!JMockitUtils.getJMockitBlock(s).isPresent()) {
                 continue;

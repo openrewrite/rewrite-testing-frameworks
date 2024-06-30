@@ -70,12 +70,12 @@ public class JMockitBlockToMockito extends Recipe {
                 Statement s = statements.get(bodyStatementIndex);
                 Optional<JMockitBlockType> blockType = JMockitUtils.getJMockitBlock(s);
                 if (blockType.isPresent()) {
-                    JMockitBlockRewriter ebr = new JMockitBlockRewriter(this, ctx, methodBody,
+                    JMockitBlockRewriter blockRewriter = new JMockitBlockRewriter(this, ctx, methodBody,
                             ((J.NewClass) s), bodyStatementIndex, blockType.get());
-                    methodBody = ebr.rewriteMethodBody();
+                    methodBody = blockRewriter.rewriteMethodBody();
                     statements = methodBody.getStatements();
                     // if the expectations rewrite failed, skip the next statement
-                    if (ebr.isExpectationsRewriteFailed()) {
+                    if (blockRewriter.isRewriteFailed()) {
                         bodyStatementIndex++;
                     }
                 } else {
