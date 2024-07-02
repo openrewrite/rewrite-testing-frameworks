@@ -15,6 +15,9 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.Setter;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.internal.lang.Nullable;
@@ -191,11 +194,6 @@ class JMockitBlockRewriter {
         }
         templateParams.add(invocation.getName().getSimpleName());
         String verifyTemplate = getVerifyTemplate(invocation.getArguments(), verificationMode, templateParams);
-        if (verifyTemplate == null) {
-            // invalid template, cannot rewrite
-            rewriteFailed = true;
-            return;
-        }
 
         JavaCoordinates verifyCoordinates;
         if (this.blockType == Verifications) {
@@ -244,7 +242,7 @@ class JMockitBlockRewriter {
                 );
     }
 
-    private static String getWhenTemplate(List<Expression> results) {
+    private static @Nullable String getWhenTemplate(List<Expression> results) {
         boolean buildingResults = false;
         final StringBuilder templateBuilder = new StringBuilder(WHEN_TEMPLATE_PREFIX);
         for (Expression result : results) {
@@ -320,7 +318,7 @@ class JMockitBlockRewriter {
         return templateBuilder.toString();
     }
 
-    private static MockInvocationResults buildMockInvocationResults(List<Statement> expectationStatements) {
+    private static @Nullable MockInvocationResults buildMockInvocationResults(List<Statement> expectationStatements) {
         final MockInvocationResults resultWrapper = new MockInvocationResults();
         for (int i = 1; i < expectationStatements.size(); i++) {
             Statement expectationStatement = expectationStatements.get(i);
@@ -356,20 +354,19 @@ class JMockitBlockRewriter {
         return resultWrapper;
     }
 
-    private static String getVariableNameFromAssignment(J.Assignment assignment) {
-        String name = null;
+    private static @Nullable String getVariableNameFromAssignment(J.Assignment assignment) {
         if (assignment.getVariable() instanceof J.Identifier) {
-            name = ((J.Identifier) assignment.getVariable()).getSimpleName();
+            return ((J.Identifier) assignment.getVariable()).getSimpleName();
         } else if (assignment.getVariable() instanceof J.FieldAccess) {
             J.FieldAccess fieldAccess = (J.FieldAccess) assignment.getVariable();
             if (fieldAccess.getTarget() instanceof J.Identifier) {
-                name = fieldAccess.getSimpleName();
+                return fieldAccess.getSimpleName();
             }
         }
-        return name;
+        return null;
     }
 
-    private static String getPrimitiveTemplateField(JavaType.Primitive primitiveType) {
+    private static @Nullable String getPrimitiveTemplateField(JavaType.Primitive primitiveType) {
         switch (primitiveType) {
             case Boolean:
                 return "#{any(boolean)}";
@@ -396,54 +393,16 @@ class JMockitBlockRewriter {
         }
     }
 
-    private static String getInvocationSelectFullyQualifiedClassName(J.MethodInvocation invocation) {
-        Expression select = invocation.getSelect();
-        if (select == null || select.getType() == null) {
-            return null;
-        }
-        String fqn = null;
-        if (select.getType() instanceof JavaType.FullyQualified) {
-            fqn = ((JavaType.FullyQualified) select.getType()).getFullyQualifiedName();
-        }
-        return fqn;
-    }
-
+    @Data
     private static class MockInvocationResults {
+        @Setter(AccessLevel.NONE)
         private final List<Expression> results = new ArrayList<>();
         private Expression times;
         private Expression minTimes;
         private Expression maxTimes;
 
-        private List<Expression> getResults() {
-            return results;
-        }
-
         private void addResult(Expression result) {
             results.add(result);
-        }
-
-        private Expression getTimes() {
-            return times;
-        }
-
-        private void setTimes(Expression times) {
-            this.times = times;
-        }
-
-        private Expression getMinTimes() {
-            return minTimes;
-        }
-
-        private void setMinTimes(Expression minTimes) {
-            this.minTimes = minTimes;
-        }
-
-        private Expression getMaxTimes() {
-            return maxTimes;
-        }
-
-        private void setMaxTimes(Expression maxTimes) {
-            this.maxTimes = maxTimes;
         }
     }
 }

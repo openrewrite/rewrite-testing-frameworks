@@ -15,17 +15,15 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+@Getter
 enum JMockitBlockType {
 
-    Expectations("mockit.Expectations"), Verifications("mockit.Verifications"); // Add NonStrictExpectations later
+    Expectations("mockit.Expectations"),
+    Verifications("mockit.Verifications"); // Add NonStrictExpectations later
 
     private final String fqn;
-
-    JMockitBlockType(String fqn) {
-        this.fqn = fqn;
-    }
-
-    String getFqn() {
-        return fqn;
-    }
 }
