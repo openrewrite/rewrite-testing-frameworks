@@ -274,8 +274,7 @@ class JMockitBlockRewriter {
         return templateBuilder.toString();
     }
 
-    private static void appendToTemplate(StringBuilder templateBuilder, boolean buildingResults, String
-            templatePrefix,
+    private static void appendToTemplate(StringBuilder templateBuilder, boolean buildingResults, String templatePrefix,
                                          String templateField) {
         if (!buildingResults) {
             templateBuilder.append(templatePrefix);
