@@ -760,4 +760,37 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/538")
+    void collectionMatchers() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+
+              import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+              import static org.hamcrest.MatcherAssert.assertThat;
+
+              class Foo {
+                  void bar(List<String> list) {
+                      assertThat(list, hasSize(12));
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Foo {
+                  void bar(List<String> list) {
+                      assertThat(list).hasSize(12);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

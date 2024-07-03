@@ -44,6 +44,7 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
+    testImplementation("org.openrewrite:rewrite-kotlin:$rewriteVersion")
     testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
 
     testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
@@ -55,6 +56,7 @@ dependencies {
     testRuntimeOnly("net.datafaker:datafaker:latest.release") {
         exclude(group = "org.yaml", module = "snakeyaml")
     }
+    testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:latest.release")
     testRuntimeOnly("org.testcontainers:testcontainers:latest.release")
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
 

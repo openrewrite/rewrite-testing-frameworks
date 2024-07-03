@@ -43,6 +43,9 @@ recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.hamcrest.core.* *(..)
       fullyQualifiedTargetTypeName: org.hamcrest.Matchers
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.hamcrest.collection.* *(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.Matchers
 
   # Then remove wrapping `is(Matcher)` calls such that further recipes will match
   - org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
