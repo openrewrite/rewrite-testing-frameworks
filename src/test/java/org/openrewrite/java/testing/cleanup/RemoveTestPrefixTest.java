@@ -327,7 +327,7 @@ class RemoveTestPrefixTest implements RewriteTest {
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/258")
-    void testRemoveTestPrefixWithClashingMethod() {
+    void removeTestPrefixWithClashingMethod() {
         rewriteRun(
           //language=java
           java(
