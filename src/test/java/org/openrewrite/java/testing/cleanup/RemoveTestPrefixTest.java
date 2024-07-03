@@ -53,7 +53,7 @@ class RemoveTestPrefixTest implements RewriteTest {
                   @Test
                   void test_snake_case() {
                   }
-                  
+
                   @Test
                   void testRTFCharacters() {
                   }
@@ -85,7 +85,7 @@ class RemoveTestPrefixTest implements RewriteTest {
                   @Test
                   void snake_case() {
                   }
-                  
+
                   @Test
                   void rtfCharacters() {
                   }
@@ -139,7 +139,7 @@ class RemoveTestPrefixTest implements RewriteTest {
               abstract class AbstractTest {
                   public abstract void testMethod();
               }
-              
+
               class BTest extends AbstractTest {
                   @Test
                   @Override
@@ -268,7 +268,7 @@ class RemoveTestPrefixTest implements RewriteTest {
                   @Test
                   void testMyDoSomethingLogic() {
                   }
-                  
+
                   void myDoSomethingLogic() {}
               }
               """
@@ -292,7 +292,7 @@ class RemoveTestPrefixTest implements RewriteTest {
                   @MethodSource
                   void testMyDoSomethingLogic(Arguments args) {
                   }
-                  
+
                   static Stream<Arguments> testMyDoSomethingLogic() {
                       return Stream.empty();
                   }
@@ -318,6 +318,27 @@ class RemoveTestPrefixTest implements RewriteTest {
 
                   @Test
                   void tests() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/258")
+    void testRemoveTestPrefixWithClashingMethod() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static java.util.List.of;
+
+              class FooTest {
+                  @Test
+                  void testOf() {
+                    of();
                   }
               }
               """

@@ -31,6 +31,7 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RemoveTestPrefix extends Recipe {
 
@@ -119,6 +120,21 @@ public class RemoveTestPrefix extends Recipe {
                     (annotation.getArguments() == null || annotation.getArguments().isEmpty())) {
                     return m;
                 }
+            }
+
+            // Skip when calling a similarly named method
+            AtomicBoolean skip = new AtomicBoolean(false);
+            new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
+                    if (method.getName().getSimpleName().equals(newMethodName)) {
+                        skip.set(true);
+                    }
+                    return super.visitMethodInvocation(method, atomicBoolean);
+                }
+            }.visitMethodDeclaration(m, skip);
+            if (skip.get()) {
+                return m;
             }
 
             // Rename method and return
