@@ -289,6 +289,7 @@ recipeList:
   - org.openrewrite.java.testing.cleanup.AssertFalseEqualsToAssertNotEquals
   - org.openrewrite.java.testing.cleanup.AssertEqualsNullToAssertNull
   - org.openrewrite.java.testing.cleanup.AssertFalseNullToAssertNotNull
+  - org.openrewrite.java.testing.cleanup.AssertTrueNullToAssertNull
   - org.openrewrite.java.testing.cleanup.AssertEqualsBooleanToAssertBoolean
   - org.openrewrite.java.testing.cleanup.AssertNotEqualsBooleanToAssertBoolean
   - org.openrewrite.java.testing.cleanup.AssertionsArgumentOrder
