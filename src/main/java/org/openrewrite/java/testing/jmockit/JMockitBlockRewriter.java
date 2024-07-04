@@ -144,7 +144,7 @@ class JMockitBlockRewriter {
             hasTimes = true;
             rewriteVerify(invocation, mockInvocationResults.getMaxTimes(), "atMost");
         }
-        if (!hasResults && !hasTimes) {
+        if (!hasTimes) {
             rewriteVerify(invocation, null, null);
         }
     }
@@ -160,7 +160,7 @@ class JMockitBlockRewriter {
         if (bodyStatementIndex == 0) {
             nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
         } else {
-            setNextCoordinatesAfterLastStatementAdded(0);
+            setNextStatementCoordinates(0);
         }
     }
 
@@ -172,13 +172,11 @@ class JMockitBlockRewriter {
             return;
         }
         visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when");
-
         List<Object> templateParams = new ArrayList<>();
         templateParams.add(invocation);
         templateParams.addAll(results);
-
         methodBody = rewriteTemplate(template, templateParams, nextStatementCoordinates);
-        setNextCoordinatesAfterLastStatementAdded(++numStatementsAdded);
+        setNextStatementCoordinates(++numStatementsAdded);
     }
 
     private void rewriteVerify(J.MethodInvocation invocation, @Nullable Expression times, @Nullable String verificationMode) {
@@ -206,7 +204,7 @@ class JMockitBlockRewriter {
 
         methodBody = rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
         if (this.blockType == Verifications) {
-            setNextCoordinatesAfterLastStatementAdded(++numStatementsAdded);
+            setNextStatementCoordinates(++numStatementsAdded);
         }
 
         // do this last making sure rewrite worked and specify hasReference=false because in verify case it cannot find
@@ -217,7 +215,7 @@ class JMockitBlockRewriter {
         }
     }
 
-    private void setNextCoordinatesAfterLastStatementAdded(int numStatementsAdded) {
+    private void setNextStatementCoordinates(int numStatementsAdded) {
         // the next statement coordinates are directly after the most recently written statement, calculated by
         // subtracting the removed jmockit block
         int nextStatementIdx = bodyStatementIndex + numStatementsAdded - 1;
@@ -228,12 +226,11 @@ class JMockitBlockRewriter {
         }
     }
 
-    private J.Block rewriteTemplate(String verifyTemplate, List<Object> templateParams, JavaCoordinates
+    private J.Block rewriteTemplate(String template, List<Object> templateParams, JavaCoordinates
             rewriteCoords) {
-        JavaTemplate.Builder builder = JavaTemplate.builder(verifyTemplate)
+        return JavaTemplate.builder(template)
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                .staticImports("org.mockito.Mockito.*");
-        return builder
+                .staticImports("org.mockito.Mockito.*")
                 .build()
                 .apply(
                         new Cursor(visitor.getCursor(), methodBody),

@@ -197,6 +197,8 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
     void whenClassArgumentMatcher() {
         //language=java
         rewriteRun(
+          // below is disabling type verification because framework complains about missing type due to verify(object)
+          // due to MyObject being a separate class
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java(
             """
@@ -269,6 +271,20 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
     void whenMixedArgumentMatcher() {
         //language=java
         rewriteRun(
+          // below is disabling type verification because framework complains about missing type due to verify(object)
+          // due to MyObject being a separate class
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
+          java(
+            """
+              import java.util.List;
+
+              class MyObject {
+                  public String getSomeField(String s, String s2, String s3, long l1) {
+                      return "X";
+                  }
+              }
+              """
+          ),
           java(
             """
               import java.util.ArrayList;
@@ -282,12 +298,13 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
-                  Object myObject;
+                  MyObject myObject;
 
                   void test() {
-                      myObject.wait(10L, 10);
+                      String bazz = "bazz";
+                      myObject.getSomeField("foo", "bar", bazz, 10L);
                       new Verifications() {{
-                          myObject.wait(anyLong, 10);
+                          myObject.getSomeField("foo", anyString, bazz, 10L);
                       }};
                   }
               }
@@ -295,7 +312,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
             """
               import java.util.ArrayList;
               import java.util.List;
-
+                            
               import static org.mockito.Mockito.*;
 
               import org.junit.jupiter.api.extension.ExtendWith;
@@ -305,11 +322,12 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
-                  Object myObject;
+                  MyObject myObject;
 
                   void test() {
-                      myObject.wait(10L, 10);
-                      verify(myObject).wait(anyLong(), eq(10));
+                      String bazz = "bazz";
+                      myObject.getSomeField("foo", "bar", bazz, 10L);
+                      verify(myObject).getSomeField(eq("foo"), anyString(), eq(bazz), eq(10L));
                   }
               }
               """
