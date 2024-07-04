@@ -29,26 +29,28 @@ import org.openrewrite.java.tree.Statement;
 import java.util.List;
 import java.util.Optional;
 
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.*;
+
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class JMockitBlockToMockito extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Rewrite JMockit Expectations and Verifications";
+        return "Rewrite JMockit Expectations, Verifications and NonStrictExpectations";
     }
 
     @Override
     public String getDescription() {
-        return "Rewrites JMockit `Expectations and Verifications` blocks to Mockito statements.";
+        return "Rewrites JMockit `Expectations, Verifications and NonStrictExpectations` blocks to Mockito statements.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(Preconditions.or(
-                new UsesType<>(JMockitBlockType.Expectations.getFqn(), false),
-                new UsesType<>(JMockitBlockType.Verifications.getFqn(), false)
-        ), new RewriteJMockitBlockVisitor());
+                new UsesType<>(Expectations.getFqn(), false),
+                new UsesType<>(Verifications.getFqn(), false),
+                new UsesType<>(NonStrictExpectations.getFqn(), false)), new RewriteJMockitBlockVisitor());
     }
 
     private static class RewriteJMockitBlockVisitor extends JavaIsoVisitor<ExecutionContext> {

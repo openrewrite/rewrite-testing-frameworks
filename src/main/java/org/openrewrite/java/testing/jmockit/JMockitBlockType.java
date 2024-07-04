@@ -23,7 +23,8 @@ import lombok.RequiredArgsConstructor;
 enum JMockitBlockType {
 
     Expectations("mockit.Expectations"),
-    Verifications("mockit.Verifications"); // Add NonStrictExpectations later
+    Verifications("mockit.Verifications"),
+    NonStrictExpectations("mockit.NonStrictExpectations");
 
     private final String fqn;
 }

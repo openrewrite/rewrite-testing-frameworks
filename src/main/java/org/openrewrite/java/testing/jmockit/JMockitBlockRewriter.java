@@ -29,6 +29,7 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.NonStrictExpectations;
 import static org.openrewrite.java.testing.jmockit.JMockitBlockType.Verifications;
 
 class JMockitBlockRewriter {
@@ -131,6 +132,11 @@ class JMockitBlockRewriter {
             rewriteResult(invocation, mockInvocationResults.getResults());
         }
 
+        if (blockType == NonStrictExpectations) {
+            // no verify for NonStrictExpectations
+            return;
+        }
+
         boolean hasTimes = false;
         if (mockInvocationResults.getTimes() != null) {
             hasTimes = true;
@@ -172,6 +178,9 @@ class JMockitBlockRewriter {
             return;
         }
         visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when");
+        if (this.blockType == NonStrictExpectations) {
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "*");
+        }
 
         List<Object> templateParams = new ArrayList<>();
         templateParams.add(invocation);
@@ -194,7 +203,6 @@ class JMockitBlockRewriter {
         }
         templateParams.add(invocation.getName().getSimpleName());
         String verifyTemplate = getVerifyTemplate(invocation.getArguments(), verificationMode, templateParams);
-
         JavaCoordinates verifyCoordinates;
         if (this.blockType == Verifications) {
             // for Verifications, replace the Verifications block
@@ -211,9 +219,11 @@ class JMockitBlockRewriter {
 
         // do this last making sure rewrite worked and specify hasReference=false because in verify case it cannot find
         // the static reference in AddImport class, and getSelect() returns not null
-        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
-        if (verificationMode != null) {
-            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
+        if (!rewriteFailed) {
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
+            if (verificationMode != null) {
+                visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
+            }
         }
     }
 
@@ -228,12 +238,11 @@ class JMockitBlockRewriter {
         }
     }
 
-    private J.Block rewriteTemplate(String verifyTemplate, List<Object> templateParams, JavaCoordinates
+    private J.Block rewriteTemplate(String template, List<Object> templateParams, JavaCoordinates
             rewriteCoords) {
-        JavaTemplate.Builder builder = JavaTemplate.builder(verifyTemplate)
+        return JavaTemplate.builder(template)
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                .staticImports("org.mockito.Mockito.*");
-        return builder
+                .staticImports("org.mockito.Mockito.*")
                 .build()
                 .apply(
                         new Cursor(visitor.getCursor(), methodBody),
@@ -242,9 +251,13 @@ class JMockitBlockRewriter {
                 );
     }
 
-    private static @Nullable String getWhenTemplate(List<Expression> results) {
+    private @Nullable String getWhenTemplate(List<Expression> results) {
         boolean buildingResults = false;
-        final StringBuilder templateBuilder = new StringBuilder(WHEN_TEMPLATE_PREFIX);
+        StringBuilder templateBuilder = new StringBuilder();
+        if (this.blockType == NonStrictExpectations) {
+            templateBuilder.append("lenient().");
+        }
+        templateBuilder.append(WHEN_TEMPLATE_PREFIX);
         for (Expression result : results) {
             JavaType resultType = result.getType();
             if (result instanceof J.Literal) {
@@ -284,8 +297,7 @@ class JMockitBlockRewriter {
         templateBuilder.append(templateField);
     }
 
-    private static String getVerifyTemplate(List<Expression> arguments, @Nullable String
-            verificationMode, List<Object> templateParams) {
+    private static String getVerifyTemplate(List<Expression> arguments, @Nullable String verificationMode, List<Object> templateParams) {
         StringBuilder templateBuilder = new StringBuilder("verify(#{any()}"); // eg verify(object
         if (verificationMode != null) {
             templateBuilder.append(", ").append(verificationMode).append("(#{any(int)})"); // eg verify(object, times(2)
