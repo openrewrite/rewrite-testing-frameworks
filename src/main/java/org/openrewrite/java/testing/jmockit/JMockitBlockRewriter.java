@@ -29,11 +29,15 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.NonStrictExpectations;
 import static org.openrewrite.java.testing.jmockit.JMockitBlockType.Verifications;
 
 class JMockitBlockRewriter {
 
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
+    private static final String VERIFY_TEMPLATE_PREFIX = "verify(#{any()}";
+    private static final String LENIENT_TEMPLATE_PREFIX = "lenient().";
+
     private static final String RETURN_TEMPLATE_PREFIX = "thenReturn(";
     private static final String THROW_TEMPLATE_PREFIX = "thenThrow(";
     private static final String LITERAL_TEMPLATE_FIELD = "#{}";
@@ -131,6 +135,11 @@ class JMockitBlockRewriter {
             rewriteResult(invocation, mockInvocationResults.getResults());
         }
 
+        if (blockType == NonStrictExpectations) {
+            // no verify for NonStrictExpectations
+            return;
+        }
+
         boolean hasTimes = false;
         if (mockInvocationResults.getTimes() != null) {
             hasTimes = true;
@@ -145,7 +154,7 @@ class JMockitBlockRewriter {
             rewriteVerify(invocation, mockInvocationResults.getMaxTimes(), "atMost");
         }
         if (!hasResults && !hasTimes) {
-            rewriteVerify(invocation, null, null);
+            rewriteVerify(invocation, null, "");
         }
     }
 
@@ -153,14 +162,11 @@ class JMockitBlockRewriter {
         methodBody = JavaTemplate.builder("")
                 .javaParser(JavaParser.fromJavaVersion())
                 .build()
-                .apply(
-                        new Cursor(visitor.getCursor(), methodBody),
-                        nextStatementCoordinates
-                );
+                .apply(new Cursor(visitor.getCursor(), methodBody), nextStatementCoordinates);
         if (bodyStatementIndex == 0) {
             nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
         } else {
-            setNextCoordinatesAfterLastStatementAdded(0);
+            setNextStatementCoordinates(0);
         }
     }
 
@@ -171,17 +177,26 @@ class JMockitBlockRewriter {
             rewriteFailed = true;
             return;
         }
-        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when");
 
         List<Object> templateParams = new ArrayList<>();
         templateParams.add(invocation);
         templateParams.addAll(results);
-
-        methodBody = rewriteTemplate(template, templateParams, nextStatementCoordinates);
-        setNextCoordinatesAfterLastStatementAdded(++numStatementsAdded);
+        this.rewriteFailed = !rewriteTemplate(template, templateParams, nextStatementCoordinates);
+        if (!this.rewriteFailed) {
+            this.rewriteFailed = true;
+            setNextStatementCoordinates(++numStatementsAdded);
+            // do this last making sure rewrite worked and specify hasReference=false because framework cannot find static
+            // reference for when method invocation when lenient is added.
+            boolean hasReferencesForWhen = true;
+            if (this.blockType == NonStrictExpectations) {
+                visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "lenient");
+                hasReferencesForWhen = false;
+            }
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when", hasReferencesForWhen);
+        }
     }
 
-    private void rewriteVerify(J.MethodInvocation invocation, @Nullable Expression times, @Nullable String verificationMode) {
+    private void rewriteVerify(J.MethodInvocation invocation, @Nullable Expression times, String verificationMode) {
         if (invocation.getSelect() == null) {
             // cannot write a verification statement for an invocation without a select field
             return;
@@ -194,7 +209,6 @@ class JMockitBlockRewriter {
         }
         templateParams.add(invocation.getName().getSimpleName());
         String verifyTemplate = getVerifyTemplate(invocation.getArguments(), verificationMode, templateParams);
-
         JavaCoordinates verifyCoordinates;
         if (this.blockType == Verifications) {
             // for Verifications, replace the Verifications block
@@ -203,21 +217,22 @@ class JMockitBlockRewriter {
             // for Expectations put the verify at the end of the method
             verifyCoordinates = methodBody.getCoordinates().lastStatement();
         }
+        this.rewriteFailed = !rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
+        if (!this.rewriteFailed) {
+            if (this.blockType == Verifications) {
+                setNextStatementCoordinates(++numStatementsAdded); // for Expectations, verify statements added to end of method
+            }
 
-        methodBody = rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
-        if (this.blockType == Verifications) {
-            setNextCoordinatesAfterLastStatementAdded(++numStatementsAdded);
-        }
-
-        // do this last making sure rewrite worked and specify hasReference=false because in verify case it cannot find
-        // the static reference in AddImport class, and getSelect() returns not null
-        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
-        if (verificationMode != null) {
-            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
+            // do this last making sure rewrite worked and specify hasReference=false because in verify case framework
+            // cannot find the static reference
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
+            if (!verificationMode.isEmpty()) {
+                visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
+            }
         }
     }
 
-    private void setNextCoordinatesAfterLastStatementAdded(int numStatementsAdded) {
+    private void setNextStatementCoordinates(int numStatementsAdded) {
         // the next statement coordinates are directly after the most recently written statement, calculated by
         // subtracting the removed jmockit block
         int nextStatementIdx = bodyStatementIndex + numStatementsAdded - 1;
@@ -228,23 +243,28 @@ class JMockitBlockRewriter {
         }
     }
 
-    private J.Block rewriteTemplate(String verifyTemplate, List<Object> templateParams, JavaCoordinates
+    private boolean rewriteTemplate(String template, List<Object> templateParams, JavaCoordinates
             rewriteCoords) {
-        JavaTemplate.Builder builder = JavaTemplate.builder(verifyTemplate)
+        int numStatementsBefore = methodBody.getStatements().size();
+        methodBody = JavaTemplate.builder(template)
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                .staticImports("org.mockito.Mockito.*");
-        return builder
+                .staticImports("org.mockito.Mockito.*")
                 .build()
                 .apply(
                         new Cursor(visitor.getCursor(), methodBody),
                         rewriteCoords,
                         templateParams.toArray()
                 );
+        return methodBody.getStatements().size() > numStatementsBefore;
     }
 
-    private static @Nullable String getWhenTemplate(List<Expression> results) {
+    private @Nullable String getWhenTemplate(List<Expression> results) {
         boolean buildingResults = false;
-        final StringBuilder templateBuilder = new StringBuilder(WHEN_TEMPLATE_PREFIX);
+        StringBuilder templateBuilder = new StringBuilder();
+        if (this.blockType == NonStrictExpectations) {
+            templateBuilder.append(LENIENT_TEMPLATE_PREFIX);
+        }
+        templateBuilder.append(WHEN_TEMPLATE_PREFIX);
         for (Expression result : results) {
             JavaType resultType = result.getType();
             if (result instanceof J.Literal) {
@@ -284,10 +304,9 @@ class JMockitBlockRewriter {
         templateBuilder.append(templateField);
     }
 
-    private static String getVerifyTemplate(List<Expression> arguments, @Nullable String
-            verificationMode, List<Object> templateParams) {
-        StringBuilder templateBuilder = new StringBuilder("verify(#{any()}"); // eg verify(object
-        if (verificationMode != null) {
+    private static String getVerifyTemplate(List<Expression> arguments, String verificationMode, List<Object> templateParams) {
+        StringBuilder templateBuilder = new StringBuilder(VERIFY_TEMPLATE_PREFIX); // eg verify(object
+        if (!verificationMode.isEmpty()) {
             templateBuilder.append(", ").append(verificationMode).append("(#{any(int)})"); // eg verify(object, times(2)
         }
         templateBuilder.append(").#{}("); // eg verify(object, times(2)).method(

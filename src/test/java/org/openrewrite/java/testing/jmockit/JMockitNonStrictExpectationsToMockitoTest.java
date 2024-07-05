@@ -21,107 +21,17 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
+import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.MOCKITO_CORE_DEPENDENCY;
+import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setParserSettings;
 
-class JMockitExpectationsToMockitoTest implements RewriteTest {
+class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
+
+    private static final String JUNIT_4_DEPENDENCY = "junit-4.13.2";
+    private static final String LEGACY_JMOCKIT_DEPENDENCY = "jmockit-1.22";
 
     @Override
     public void defaults(RecipeSpec spec) {
-        setDefaultParserSettings(spec);
-    }
-
-    @DocumentExample
-    @Test
-    void whenNoResultNoTimes() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import mockit.Expectations;
-              import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
-
-              @ExtendWith(JMockitExtension.class)
-              class MyTest {
-                  @Mocked
-                  Object myObject;
-
-                  void test() {
-                      new Expectations() {{
-                          myObject.wait(anyLong, anyInt);
-                      }};
-                      myObject.wait(10L, 10);
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
-
-              import static org.mockito.Mockito.*;
-
-              @ExtendWith(MockitoExtension.class)
-              class MyTest {
-                  @Mock
-                  Object myObject;
-
-                  void test() {
-                      myObject.wait(10L, 10);
-                      verify(myObject).wait(anyLong(), anyInt());
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void whenNoResultNoTimesNoArgs() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import mockit.Expectations;
-              import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
-
-              @ExtendWith(JMockitExtension.class)
-              class MyTest {
-                  @Mocked
-                  Object myObject;
-
-                  void test() {
-                      new Expectations() {{
-                          myObject.wait();
-                      }};
-                      myObject.wait(10L, 10);
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
-
-              import static org.mockito.Mockito.verify;
-
-              @ExtendWith(MockitoExtension.class)
-              class MyTest {
-                  @Mock
-                  Object myObject;
-
-                  void test() {
-                      myObject.wait(10L, 10);
-                      verify(myObject).wait();
-                  }
-              }
-              """
-          )
-        );
+        setParserSettings(spec, JUNIT_4_DEPENDENCY, LEGACY_JMOCKIT_DEPENDENCY, MOCKITO_CORE_DEPENDENCY);
     }
 
     @Test
@@ -139,20 +49,20 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertNull;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
 
                   void test() {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField();
                           result = null;
                       }};
@@ -161,20 +71,21 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertNull;
+              import static org.mockito.Mockito.lenient;
               import static org.mockito.Mockito.when;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
 
                   void test() {
-                      when(myObject.getSomeField()).thenReturn(null);
+                      lenient().when(myObject.getSomeField()).thenReturn(null);
                       assertNull(myObject.getSomeField());
                   }
               }
@@ -198,25 +109,25 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.Assert.assertEquals;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
 
                   void test() {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField();
                           result = 10;
                       }};
                       assertEquals(10, myObject.getSomeField());
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField();
                           this.result = 100;
                       }};
@@ -225,22 +136,23 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.lenient;
               import static org.mockito.Mockito.when;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
 
                   void test() {
-                      when(myObject.getSomeField()).thenReturn(10);
+                      lenient().when(myObject.getSomeField()).thenReturn(10);
                       assertEquals(10, myObject.getSomeField());
-                      when(myObject.getSomeField()).thenReturn(100);
+                      lenient().when(myObject.getSomeField()).thenReturn(100);
                       assertEquals(100, myObject.getSomeField());
                   }
               }
@@ -264,20 +176,20 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.Assert.assertEquals;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
 
                   void test() {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField(anyString);
                           result = "foo";
                       }};
@@ -286,21 +198,20 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.mockito.Mockito.anyString;
-              import static org.mockito.Mockito.when;
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
 
                   void test() {
-                      when(myObject.getSomeField(anyString())).thenReturn("foo");
+                      lenient().when(myObject.getSomeField(anyString())).thenReturn("foo");
                       assertEquals("foo", myObject.getSomeField("bar"));
                   }
               }
@@ -324,14 +235,14 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.Assert.assertEquals;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
@@ -339,7 +250,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   String expected = "expected";
 
                   void test() {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField();
                           result = expected;
                       }};
@@ -348,14 +259,15 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.lenient;
               import static org.mockito.Mockito.when;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
@@ -363,7 +275,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   String expected = "expected";
 
                   void test() {
-                      when(myObject.getSomeField()).thenReturn(expected);
+                      lenient().when(myObject.getSomeField()).thenReturn(expected);
                       assertEquals(expected, myObject.getSomeField());
                   }
               }
@@ -387,20 +299,20 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              import static org.junit.Assert.assertNotNull;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
 
                   void test() {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField();
                           result = new Object();
                       }};
@@ -409,20 +321,21 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              import static org.junit.Assert.assertNotNull;
+              import static org.mockito.Mockito.lenient;
               import static org.mockito.Mockito.when;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
 
                   void test() {
-                      when(myObject.getSomeField()).thenReturn(new Object());
+                      lenient().when(myObject.getSomeField()).thenReturn(new Object());
                       assertNotNull(myObject.getSomeField());
                   }
               }
@@ -446,18 +359,18 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
 
                   void test() throws RuntimeException {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField();
                           result = new RuntimeException();
                       }};
@@ -466,19 +379,20 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
+              import static org.mockito.Mockito.lenient;
               import static org.mockito.Mockito.when;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
 
                   void test() throws RuntimeException {
-                      when(myObject.getSomeField()).thenThrow(new RuntimeException());
+                      lenient().when(myObject.getSomeField()).thenThrow(new RuntimeException());
                       myObject.getSomeField();
                   }
               }
@@ -502,20 +416,20 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.Assert.assertEquals;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
 
                   void test() throws RuntimeException {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField();
                           returns("foo", "bar");
                       }};
@@ -525,20 +439,21 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.lenient;
               import static org.mockito.Mockito.when;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
 
                   void test() throws RuntimeException {
-                      when(myObject.getSomeField()).thenReturn("foo", "bar");
+                      lenient().when(myObject.getSomeField()).thenReturn("foo", "bar");
                       assertEquals("foo", myObject.getSomeField());
                       assertEquals("bar", myObject.getSomeField());
                   }
@@ -571,20 +486,20 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               import java.util.ArrayList;
               import java.util.List;
 
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertNull;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
 
                   void test() {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField((List<String>) any);
                           result = null;
                           myObject.getSomeOtherField((Object) any);
@@ -599,21 +514,21 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               import java.util.ArrayList;
               import java.util.List;
 
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertNull;
               import static org.mockito.Mockito.*;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
 
                   void test() {
-                      when(myObject.getSomeField(anyList())).thenReturn(null);
-                      when(myObject.getSomeOtherField(any(Object.class))).thenReturn(null);
+                      lenient().when(myObject.getSomeField(anyList())).thenReturn(null);
+                      lenient().when(myObject.getSomeOtherField(any(Object.class))).thenReturn(null);
                       assertNull(myObject.getSomeField(new ArrayList<>()));
                       assertNull(myObject.getSomeOtherField(new Object()));
                   }
@@ -643,20 +558,20 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               import java.util.ArrayList;
               import java.util.List;
 
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertNull;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
 
                   void test() {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField();
                           result = null;
                       }};
@@ -668,20 +583,21 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               import java.util.ArrayList;
               import java.util.List;
 
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertNull;
+              import static org.mockito.Mockito.lenient;
               import static org.mockito.Mockito.when;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
 
                   void test() {
-                      when(myObject.getSomeField()).thenReturn(null);
+                      lenient().when(myObject.getSomeField()).thenReturn(null);
                       assertNull(myObject.getSomeField());
                   }
               }
@@ -690,6 +606,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
         );
     }
 
+    @DocumentExample
     @Test
     void whenMixedArgumentMatcher() {
         //language=java
@@ -710,21 +627,21 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               import java.util.ArrayList;
               import java.util.List;
 
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertNull;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
 
                   void test() {
                       String bazz = "bazz";
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField("foo", anyString, bazz, 10L);
                           result = null;
                       }};
@@ -736,21 +653,21 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               import java.util.ArrayList;
               import java.util.List;
 
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertNull;
               import static org.mockito.Mockito.*;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
 
                   void test() {
                       String bazz = "bazz";
-                      when(myObject.getSomeField(eq("foo"), anyString(), eq(bazz), eq(10L))).thenReturn(null);
+                      lenient().when(myObject.getSomeField(eq("foo"), anyString(), eq(bazz), eq(10L))).thenReturn(null);
                       assertNull(myObject.getSomeField("foo", "bar", bazz, 10L));
                   }
               }
@@ -778,14 +695,14 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.Assert.assertEquals;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
@@ -794,7 +711,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                       String a = "a";
                       String s = "s";
 
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField(anyString);
                           result = s;
 
@@ -808,15 +725,14 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.mockito.Mockito.anyString;
-              import static org.mockito.Mockito.when;
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
@@ -824,8 +740,8 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   void test() {
                       String a = "a";
                       String s = "s";
-                      when(myObject.getSomeField(anyString())).thenReturn(s);
-                      when(myObject.getString()).thenReturn(a);
+                      lenient().when(myObject.getSomeField(anyString())).thenReturn(s);
+                      lenient().when(myObject.getString()).thenReturn(a);
 
                       assertEquals("s", myObject.getSomeField("foo"));
                       assertEquals("a", myObject.getString());
@@ -851,21 +767,21 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.Assert.assertEquals;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
 
                   void test() {
                       String a = "a";
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeField(anyString);
                           String s = "s";
                           String b = "b";
@@ -877,15 +793,14 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.mockito.Mockito.anyString;
-              import static org.mockito.Mockito.when;
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
@@ -894,203 +809,9 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                       String a = "a";
                       String s = "s";
                       String b = "b";
-                      when(myObject.getSomeField(anyString())).thenReturn(s);
+                      lenient().when(myObject.getSomeField(anyString())).thenReturn(s);
 
                       assertEquals("s", myObject.getSomeField("foo"));
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void whenTimes() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import mockit.Expectations;
-              import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
-
-              @ExtendWith(JMockitExtension.class)
-              class MyTest {
-                  @Mocked
-                  Object myObject;
-
-                  void test() {
-                      new Expectations() {{
-                          myObject.wait(anyLong, anyInt);
-                          times = 3;
-                      }};
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
-
-              import static org.mockito.Mockito.*;
-
-              @ExtendWith(MockitoExtension.class)
-              class MyTest {
-                  @Mock
-                  Object myObject;
-
-                  void test() {
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
-                      verify(myObject, times(3)).wait(anyLong(), anyInt());
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void whenMinTimes() {
-        //language=java
-        rewriteRun(
-          java(
-            """              
-              import mockit.Expectations;
-              import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
-
-              @ExtendWith(JMockitExtension.class)
-              class MyTest {
-                  @Mocked
-                  Object myObject;
-                  
-                  void test() {
-                      new Expectations() {{
-                          myObject.wait(anyLong, anyInt);
-                          minTimes = 2;
-                      }};
-                      myObject.wait(10L, 10);
-                  }
-              }
-              """,
-            """              
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
-
-              import static org.mockito.Mockito.*;
-
-              @ExtendWith(MockitoExtension.class)
-              class MyTest {
-                  @Mock
-                  Object myObject;
-                  
-                  void test() {
-                      myObject.wait(10L, 10);
-                      verify(myObject, atLeast(2)).wait(anyLong(), anyInt());
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void whenMaxTimes() {
-        //language=java
-        rewriteRun(
-          java(
-            """              
-              import mockit.Expectations;
-              import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
-
-              @ExtendWith(JMockitExtension.class)
-              class MyTest {
-                  @Mocked
-                  Object myObject;
-                  
-                  void test() {
-                      new Expectations() {{
-                          myObject.wait(anyLong, anyInt);
-                          maxTimes = 5;
-                      }};
-                      myObject.wait(10L, 10);
-                  }
-              }
-              """,
-            """              
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
-
-              import static org.mockito.Mockito.*;
-
-              @ExtendWith(MockitoExtension.class)
-              class MyTest {
-                  @Mock
-                  Object myObject;
-                  
-                  void test() {
-                      myObject.wait(10L, 10);
-                      verify(myObject, atMost(5)).wait(anyLong(), anyInt());
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void whenMinTimesMaxTimes() {
-        //language=java
-        rewriteRun(
-          java(
-            """              
-              import mockit.Expectations;
-              import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
-
-              @ExtendWith(JMockitExtension.class)
-              class MyTest {
-                  @Mocked
-                  Object myObject;
-                  
-                  void test() {
-                      new Expectations() {{
-                          myObject.wait(anyLong, anyInt);
-                          minTimes = 1;
-                          maxTimes = 3;
-                      }};
-                      myObject.wait(10L, 10);
-                  }
-              }
-              """,
-            """              
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
-
-              import static org.mockito.Mockito.*;
-
-              @ExtendWith(MockitoExtension.class)
-              class MyTest {
-                  @Mock
-                  Object myObject;
-                  
-                  void test() {
-                      myObject.wait(10L, 10);
-                      verify(myObject, atLeast(1)).wait(anyLong(), anyInt());
-                      verify(myObject, atMost(3)).wait(anyLong(), anyInt());
                   }
               }
               """
@@ -1113,20 +834,20 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Tested;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.Assert.assertEquals;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Tested
                   MyObject myObject;
 
                   void test() {
-                      new Expectations(myObject) {{
+                      new NonStrictExpectations(myObject) {{
                           myObject.getSomeField();
                           result = "foo";
                       }};
@@ -1135,20 +856,21 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.InjectMocks;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.lenient;
               import static org.mockito.Mockito.when;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @InjectMocks
                   MyObject myObject;
 
                   void test() {
-                      when(myObject.getSomeField()).thenReturn("foo");
+                      lenient().when(myObject.getSomeField()).thenReturn("foo");
                       assertEquals("foo", myObject.getSomeField());
                   }
               }
@@ -1179,15 +901,15 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertEquals;
+              import static org.junit.Assert.assertNull;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   Object myObject;
@@ -1196,7 +918,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   MyObject myOtherObject;
 
                   void test() {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.hashCode();
                           result = 10;
                           myOtherObject.getSomeObjectField();
@@ -1213,15 +935,15 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertEquals;
+              import static org.junit.Assert.assertNull;
               import static org.mockito.Mockito.*;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   Object myObject;
@@ -1230,14 +952,13 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   MyObject myOtherObject;
 
                   void test() {
-                      when(myObject.hashCode()).thenReturn(10);
-                      when(myOtherObject.getSomeObjectField()).thenReturn(null);
-                      when(myOtherObject.getSomeStringField(anyString(), anyLong())).thenReturn("foo");
+                      lenient().when(myObject.hashCode()).thenReturn(10);
+                      lenient().when(myOtherObject.getSomeObjectField()).thenReturn(null);
+                      lenient().when(myOtherObject.getSomeStringField(anyString(), anyLong())).thenReturn("foo");
                       assertEquals(10, myObject.hashCode());
                       assertNull(myOtherObject.getSomeObjectField());
                       myObject.wait(10L, 10);
                       assertEquals("foo", myOtherObject.getSomeStringField("bar", 10L));
-                      verify(myObject).wait(anyLong(), anyInt());
                   }
               }
               """
@@ -1260,26 +981,26 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertEquals;
+              import static org.junit.Assert.assertNull;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
 
                   void test() {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeStringField();
                           result = "a";
                       }};
                       assertEquals("a", myObject.getSomeStringField());
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.getSomeStringField();
                           result = "b";
                       }};
@@ -1288,23 +1009,24 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertEquals;
+              import static org.junit.Assert.assertNull;
+              import static org.mockito.Mockito.lenient;
               import static org.mockito.Mockito.when;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
 
                   void test() {
-                      when(myObject.getSomeStringField()).thenReturn("a");
+                      lenient().when(myObject.getSomeStringField()).thenReturn("a");
                       assertEquals("a", myObject.getSomeStringField());
-                      when(myObject.getSomeStringField()).thenReturn("b");
+                      lenient().when(myObject.getSomeStringField()).thenReturn("b");
                       assertEquals("b", myObject.getSomeStringField());
                   }
               }
@@ -1314,56 +1036,47 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void whenMultipleExpectationsNoResults() {
+    void whenNoResultsNoTimes() {
         //language=java
         rewriteRun(
           java(
             """
-              import mockit.Expectations;
+              import mockit.NonStrictExpectations;
               import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertEquals;
+              import static org.junit.Assert.assertNull;
 
-              @ExtendWith(JMockitExtension.class)
+              @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   Object myObject;
 
                   void test() {
-                      new Expectations() {{
+                      new NonStrictExpectations() {{
                           myObject.wait(anyLong);
                       }};
                       myObject.wait(1L);
-                      new Expectations() {{
-                          myObject.wait();
-                      }};
-                      myObject.wait();
                   }
               }
               """,
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertNull;
-              import static org.mockito.Mockito.anyLong;
-              import static org.mockito.Mockito.verify;
+              import static org.junit.Assert.assertEquals;
+              import static org.junit.Assert.assertNull;
 
-              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   Object myObject;
 
                   void test() {
                       myObject.wait(1L);
-                      myObject.wait();
-                      verify(myObject).wait(anyLong());
-                      verify(myObject).wait();
                   }
               }
               """
