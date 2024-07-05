@@ -17,30 +17,17 @@ package org.openrewrite.java.testing.jmockit;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
-import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
 
 class JMockitVerificationsToMockitoTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec
-          .parser(JavaParser.fromJavaVersion()
-            .logCompilationWarningsAndErrors(true)
-            .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-jupiter-api-5.9",
-              "jmockit-1.49",
-              "mockito-core-3.12",
-              "mockito-junit-jupiter-3.12"
-            ))
-          .recipeFromResource(
-            "/META-INF/rewrite/jmockit.yml",
-            "org.openrewrite.java.testing.jmockit.JMockitToMockito"
-          );
+        setDefaultParserSettings(spec);
     }
 
     @DocumentExample

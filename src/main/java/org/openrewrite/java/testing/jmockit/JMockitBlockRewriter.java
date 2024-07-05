@@ -35,6 +35,9 @@ import static org.openrewrite.java.testing.jmockit.JMockitBlockType.Verification
 class JMockitBlockRewriter {
 
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
+    private static final String VERIFY_TEMPLATE_PREFIX = "verify(#{any()}";
+    private static final String LENIENT_TEMPLATE_PREFIX = "lenient().";
+
     private static final String RETURN_TEMPLATE_PREFIX = "thenReturn(";
     private static final String THROW_TEMPLATE_PREFIX = "thenThrow(";
     private static final String LITERAL_TEMPLATE_FIELD = "#{}";
@@ -151,7 +154,7 @@ class JMockitBlockRewriter {
             rewriteVerify(invocation, mockInvocationResults.getMaxTimes(), "atMost");
         }
         if (!hasResults && !hasTimes) {
-            rewriteVerify(invocation, null, null);
+            rewriteVerify(invocation, null, "");
         }
     }
 
@@ -159,14 +162,11 @@ class JMockitBlockRewriter {
         methodBody = JavaTemplate.builder("")
                 .javaParser(JavaParser.fromJavaVersion())
                 .build()
-                .apply(
-                        new Cursor(visitor.getCursor(), methodBody),
-                        nextStatementCoordinates
-                );
+                .apply(new Cursor(visitor.getCursor(), methodBody), nextStatementCoordinates);
         if (bodyStatementIndex == 0) {
             nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
         } else {
-            setNextCoordinatesAfterLastStatementAdded(0);
+            setNextStatementCoordinates(0);
         }
     }
 
@@ -177,20 +177,26 @@ class JMockitBlockRewriter {
             rewriteFailed = true;
             return;
         }
-        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when");
-        if (this.blockType == NonStrictExpectations) {
-            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "*");
-        }
 
         List<Object> templateParams = new ArrayList<>();
         templateParams.add(invocation);
         templateParams.addAll(results);
-
-        methodBody = rewriteTemplate(template, templateParams, nextStatementCoordinates);
-        setNextCoordinatesAfterLastStatementAdded(++numStatementsAdded);
+        this.rewriteFailed = !rewriteTemplate(template, templateParams, nextStatementCoordinates);
+        if (!this.rewriteFailed) {
+            this.rewriteFailed = true;
+            setNextStatementCoordinates(++numStatementsAdded);
+            // do this last making sure rewrite worked and specify hasReference=false because framework cannot find static
+            // reference for when method invocation when lenient is added.
+            boolean hasReferencesForWhen = true;
+            if (this.blockType == NonStrictExpectations) {
+                visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "lenient");
+                hasReferencesForWhen = false;
+            }
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when", hasReferencesForWhen);
+        }
     }
 
-    private void rewriteVerify(J.MethodInvocation invocation, @Nullable Expression times, @Nullable String verificationMode) {
+    private void rewriteVerify(J.MethodInvocation invocation, @Nullable Expression times, String verificationMode) {
         if (invocation.getSelect() == null) {
             // cannot write a verification statement for an invocation without a select field
             return;
@@ -211,23 +217,22 @@ class JMockitBlockRewriter {
             // for Expectations put the verify at the end of the method
             verifyCoordinates = methodBody.getCoordinates().lastStatement();
         }
+        this.rewriteFailed = !rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
+        if (!this.rewriteFailed) {
+            if (this.blockType == Verifications) {
+                setNextStatementCoordinates(++numStatementsAdded); // for Expectations, verify statements added to end of method
+            }
 
-        methodBody = rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
-        if (this.blockType == Verifications) {
-            setNextCoordinatesAfterLastStatementAdded(++numStatementsAdded);
-        }
-
-        // do this last making sure rewrite worked and specify hasReference=false because in verify case it cannot find
-        // the static reference in AddImport class, and getSelect() returns not null
-        if (!rewriteFailed) {
+            // do this last making sure rewrite worked and specify hasReference=false because in verify case framework
+            // cannot find the static reference
             visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
-            if (verificationMode != null) {
+            if (!verificationMode.isEmpty()) {
                 visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
             }
         }
     }
 
-    private void setNextCoordinatesAfterLastStatementAdded(int numStatementsAdded) {
+    private void setNextStatementCoordinates(int numStatementsAdded) {
         // the next statement coordinates are directly after the most recently written statement, calculated by
         // subtracting the removed jmockit block
         int nextStatementIdx = bodyStatementIndex + numStatementsAdded - 1;
@@ -238,9 +243,10 @@ class JMockitBlockRewriter {
         }
     }
 
-    private J.Block rewriteTemplate(String template, List<Object> templateParams, JavaCoordinates
+    private boolean rewriteTemplate(String template, List<Object> templateParams, JavaCoordinates
             rewriteCoords) {
-        return JavaTemplate.builder(template)
+        int numStatementsBefore = methodBody.getStatements().size();
+        methodBody = JavaTemplate.builder(template)
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                 .staticImports("org.mockito.Mockito.*")
                 .build()
@@ -249,13 +255,14 @@ class JMockitBlockRewriter {
                         rewriteCoords,
                         templateParams.toArray()
                 );
+        return methodBody.getStatements().size() > numStatementsBefore;
     }
 
-    private @Nullable String getWhenTemplate(List<Expression> results) {
+    private String getWhenTemplate(List<Expression> results) {
         boolean buildingResults = false;
         StringBuilder templateBuilder = new StringBuilder();
         if (this.blockType == NonStrictExpectations) {
-            templateBuilder.append("lenient().");
+            templateBuilder.append(LENIENT_TEMPLATE_PREFIX);
         }
         templateBuilder.append(WHEN_TEMPLATE_PREFIX);
         for (Expression result : results) {
@@ -297,9 +304,9 @@ class JMockitBlockRewriter {
         templateBuilder.append(templateField);
     }
 
-    private static String getVerifyTemplate(List<Expression> arguments, @Nullable String verificationMode, List<Object> templateParams) {
-        StringBuilder templateBuilder = new StringBuilder("verify(#{any()}"); // eg verify(object
-        if (verificationMode != null) {
+    private static String getVerifyTemplate(List<Expression> arguments, String verificationMode, List<Object> templateParams) {
+        StringBuilder templateBuilder = new StringBuilder(VERIFY_TEMPLATE_PREFIX); // eg verify(object
+        if (!verificationMode.isEmpty()) {
             templateBuilder.append(", ").append(verificationMode).append("(#{any(int)})"); // eg verify(object, times(2)
         }
         templateBuilder.append(").#{}("); // eg verify(object, times(2)).method(
@@ -329,7 +336,7 @@ class JMockitBlockRewriter {
         return templateBuilder.toString();
     }
 
-    private static @Nullable MockInvocationResults buildMockInvocationResults(List<Statement> expectationStatements) {
+    private static MockInvocationResults buildMockInvocationResults(List<Statement> expectationStatements) {
         final MockInvocationResults resultWrapper = new MockInvocationResults();
         for (int i = 1; i < expectationStatements.size(); i++) {
             Statement expectationStatement = expectationStatements.get(i);
@@ -365,7 +372,7 @@ class JMockitBlockRewriter {
         return resultWrapper;
     }
 
-    private static @Nullable String getVariableNameFromAssignment(J.Assignment assignment) {
+    private static String getVariableNameFromAssignment(J.Assignment assignment) {
         if (assignment.getVariable() instanceof J.Identifier) {
             return ((J.Identifier) assignment.getVariable()).getSimpleName();
         } else if (assignment.getVariable() instanceof J.FieldAccess) {
@@ -377,7 +384,7 @@ class JMockitBlockRewriter {
         return null;
     }
 
-    private static @Nullable String getPrimitiveTemplateField(JavaType.Primitive primitiveType) {
+    private static String getPrimitiveTemplateField(JavaType.Primitive primitiveType) {
         switch (primitiveType) {
             case Boolean:
                 return "#{any(boolean)}";
