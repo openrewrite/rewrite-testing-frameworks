@@ -20,7 +20,6 @@ import lombok.Data;
 import lombok.Setter;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
@@ -196,7 +195,7 @@ class JMockitBlockRewriter {
         }
     }
 
-    private void rewriteVerify(J.MethodInvocation invocation, @Nullable Expression times, String verificationMode) {
+    private void rewriteVerify(J.MethodInvocation invocation, Expression times, String verificationMode) {
         if (invocation.getSelect() == null) {
             // cannot write a verification statement for an invocation without a select field
             return;
