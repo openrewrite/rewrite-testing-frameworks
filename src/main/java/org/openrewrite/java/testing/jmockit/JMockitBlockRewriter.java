@@ -20,6 +20,7 @@ import lombok.Data;
 import lombok.Setter;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
@@ -195,7 +196,7 @@ class JMockitBlockRewriter {
         }
     }
 
-    private void rewriteVerify(J.MethodInvocation invocation, Expression times, String verificationMode) {
+    private void rewriteVerify(J.MethodInvocation invocation, @Nullable Expression times, String verificationMode) {
         if (invocation.getSelect() == null) {
             // cannot write a verification statement for an invocation without a select field
             return;
@@ -257,7 +258,7 @@ class JMockitBlockRewriter {
         return methodBody.getStatements().size() > numStatementsBefore;
     }
 
-    private String getWhenTemplate(List<Expression> results) {
+    private @Nullable String getWhenTemplate(List<Expression> results) {
         boolean buildingResults = false;
         StringBuilder templateBuilder = new StringBuilder();
         if (this.blockType == NonStrictExpectations) {
@@ -335,7 +336,7 @@ class JMockitBlockRewriter {
         return templateBuilder.toString();
     }
 
-    private static MockInvocationResults buildMockInvocationResults(List<Statement> expectationStatements) {
+    private static @Nullable MockInvocationResults buildMockInvocationResults(List<Statement> expectationStatements) {
         final MockInvocationResults resultWrapper = new MockInvocationResults();
         for (int i = 1; i < expectationStatements.size(); i++) {
             Statement expectationStatement = expectationStatements.get(i);
@@ -371,7 +372,7 @@ class JMockitBlockRewriter {
         return resultWrapper;
     }
 
-    private static String getVariableNameFromAssignment(J.Assignment assignment) {
+    private static @Nullable String getVariableNameFromAssignment(J.Assignment assignment) {
         if (assignment.getVariable() instanceof J.Identifier) {
             return ((J.Identifier) assignment.getVariable()).getSimpleName();
         } else if (assignment.getVariable() instanceof J.FieldAccess) {
@@ -383,7 +384,7 @@ class JMockitBlockRewriter {
         return null;
     }
 
-    private static String getPrimitiveTemplateField(JavaType.Primitive primitiveType) {
+    private static @Nullable String getPrimitiveTemplateField(JavaType.Primitive primitiveType) {
         switch (primitiveType) {
             case Boolean:
                 return "#{any(boolean)}";
