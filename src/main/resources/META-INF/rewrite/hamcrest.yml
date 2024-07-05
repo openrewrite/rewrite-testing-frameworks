@@ -41,7 +41,10 @@ tags:
 recipeList:
   # First change `is(..)` to `Matchers.is(..)` for consistent matching
   - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.hamcrest.core.Is is(..)
+      methodPattern: org.hamcrest.core.* *(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.Matchers
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.hamcrest.collection.* *(..)
       fullyQualifiedTargetTypeName: org.hamcrest.Matchers
 
   # Then remove wrapping `is(Matcher)` calls such that further recipes will match
@@ -275,6 +278,12 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
       notMatcher: hasItem
       assertion: doesNotContain
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: hasItems
+      assertion: doesNotContain
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: empty
+      assertion: isNotEmpty
 
   # Add dependency if not already present
   - org.openrewrite.java.dependencies.AddDependency:

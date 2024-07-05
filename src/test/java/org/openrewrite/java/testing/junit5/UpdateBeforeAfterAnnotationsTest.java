@@ -21,10 +21,12 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("JUnitMalformedDeclaration")
 class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
@@ -33,6 +35,8 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+          .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
           .recipe(new UpdateBeforeAfterAnnotations());
     }
@@ -45,9 +49,8 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           java(
             """
               import org.junit.Before;
-              
+
               class Test {
-              
                   @Before
                   void before() {
                   }
@@ -55,11 +58,33 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.BeforeEach;
-              
+
               class Test {
-              
                   @BeforeEach
                   void before() {
+                  }
+              }
+              """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.Before
+
+              class Test {
+
+                  @Before
+                  fun before() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach
+
+              class Test {
+
+                  @BeforeEach
+                  fun before() {
                   }
               }
               """
@@ -185,8 +210,8 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
     }
 
     @Test
-    @Disabled("Issue #59")
-    void beforeMethodOverridesPublicAbstract() {
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/59")
+    void retainPublicModifierOnOverriddenMethod() {
         //language=java
         rewriteRun(
 

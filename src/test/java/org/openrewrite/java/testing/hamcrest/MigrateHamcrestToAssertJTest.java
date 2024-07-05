@@ -522,6 +522,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               }
           }
           """;
+
         @Language("java")
         private static final String JAVA_AFTER = """
           import org.junit.jupiter.api.Test;
@@ -712,6 +713,80 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                   void ba() {
                       assertThat(System.out).isEqualTo(System.out);
                       assertThat(new Foo()).isEqualTo(new Foo());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/519")
+    void isEqualMatcherFromCore() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.core.IsEqual.equalTo;
+              import static org.hamcrest.core.IsNot.not;
+              import static org.hamcrest.core.IsSame.sameInstance;
+              
+              import org.junit.jupiter.api.Test;
+              
+              class DebugTest {
+                  @Test
+                  void ba() {
+                      assertThat(System.out, equalTo(System.out));
+                      assertThat(System.out, not(System.out));
+                      assertThat(System.out, sameInstance(System.out));
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              
+              import org.junit.jupiter.api.Test;
+              
+              class DebugTest {
+                  @Test
+                  void ba() {
+                      assertThat(System.out).isEqualTo(System.out);
+                      assertThat(System.out).isNotEqualTo(System.out);
+                      assertThat(System.out).isSameAs(System.out);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/538")
+    void collectionMatchers() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+
+              import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+              import static org.hamcrest.MatcherAssert.assertThat;
+
+              class Foo {
+                  void bar(List<String> list) {
+                      assertThat(list, hasSize(12));
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Foo {
+                  void bar(List<String> list) {
+                      assertThat(list).hasSize(12);
                   }
               }
               """

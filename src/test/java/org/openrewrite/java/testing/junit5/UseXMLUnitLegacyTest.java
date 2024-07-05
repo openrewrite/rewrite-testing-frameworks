@@ -64,7 +64,7 @@ class UseXMLUnitLegacyTest implements RewriteTest {
                     <dependency>
                       <groupId>org.xmlunit</groupId>
                       <artifactId>xmlunit-legacy</artifactId>
-                      <version>2.9.1</version>
+                      <version>2.10.0</version>
                     </dependency>
                   </dependencies>
                 </project>
