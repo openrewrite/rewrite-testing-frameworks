@@ -68,6 +68,40 @@ recipeList:
       assertion: isEqualByComparingTo
 
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: lessThan
+      assertion: isBefore
+      argumentType: java.util.Date
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: lessThanOrEqualTo
+      assertion: isBeforeOrEqualTo
+      argumentType: java.util.Date
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: greaterThan
+      assertion: isAfter
+      argumentType: java.util.Date
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: greaterThanOrEqualTo
+      assertion: isAfterOrEqualTo
+      argumentType: java.util.Date
+
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: lessThan
+      assertion: isBefore
+      argumentType: java.time.Instant
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: lessThanOrEqualTo
+      assertion: isBeforeOrEqualTo
+      argumentType: java.time.Instant
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: greaterThan
+      assertion: isAfter
+      argumentType: java.time.Instant
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: greaterThanOrEqualTo
+      assertion: isAfterOrEqualTo
+      argumentType: java.time.Instant
+
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: equalTo
       assertion: isEqualTo
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
