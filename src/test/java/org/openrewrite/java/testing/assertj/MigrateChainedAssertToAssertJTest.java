@@ -414,4 +414,45 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             rewriteRun(java(before, after));
         }
     }
+    
+
+    @Nested
+    class Iteratorz {
+        private static Stream<Arguments> collectionReplacements() {
+            return Stream.of(
+              Arguments.arguments("hasNext", "isTrue", "hasNext"),
+              Arguments.arguments("hasNext", "isFalse", "isExhausted")
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource("collectionReplacements")
+        void collectionReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion) {
+            //language=java
+            String template = """
+              import java.util.Iterator;
+                        
+              import static org.assertj.core.api.Assertions.assertThat;
+                        
+              class A {
+                  void test(Iterator<String> iterator, Iterator<String> otherIterator) {
+                      String something = "";
+                      %s
+                  }
+              }
+              """;
+            String assertBefore = "assertThat(iterator.%s()).%s();";
+            String assertAfter = "assertThat(iterator).%s();";
+
+            String formattedAssertBefore = assertBefore.formatted(chainedAssertion, assertToReplace);
+
+            String before = String.format(template, formattedAssertBefore);
+            String after = String.format(template, assertAfter.formatted(dedicatedAssertion));
+
+            rewriteRun(
+              java(before, after)
+            );
+        }
+ 
+    }
 }
