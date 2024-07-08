@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import org.openrewrite.DocumentExample;
 import static org.openrewrite.java.Assertions.java;
 
 import org.junit.jupiter.api.Test;
@@ -31,8 +32,10 @@ class IsEqualToEmptyStringTest implements RewriteTest {
         .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
           .recipe(new IsEqualToEmptyString());
     }
-    
-    @Test
+
+    @DocumentExample
+                java(
+                """
     void convertsIsEqualToEmptyString() {
         rewriteRun(
                 // language=java
