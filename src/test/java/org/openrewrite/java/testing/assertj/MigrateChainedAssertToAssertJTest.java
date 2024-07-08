@@ -56,31 +56,33 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             rewriteRun(
               //language=java
               java(
-                    """
-                import org.junit.jupiter.api.Test;
-                              
-                import static org.assertj.core.api.Assertions.assertThat;
-                              
-                class MyTest {
-                    @Test
-                    void testMethod() {
-                        String s = "hello world";
-                        assertThat(s.isEmpty()).isTrue();
-                    }
-                }
-                """, """
-                import org.junit.jupiter.api.Test;
-                              
-                import static org.assertj.core.api.Assertions.assertThat;
-                              
-                class MyTest {
-                    @Test
-                    void testMethod() {
-                        String s = "hello world";
-                        assertThat(s).isEmpty();
-                    }
-                }
-                """)
+                """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.assertj.core.api.Assertions.assertThat;
+                                
+                  class MyTest {
+                      @Test
+                      void testMethod() {
+                          String s = "hello world";
+                          assertThat(s.isEmpty()).isTrue();
+                      }
+                  }
+                  """,
+                  """
+                  import org.junit.jupiter.api.Test;
+                                
+                  import static org.assertj.core.api.Assertions.assertThat;
+                                
+                  class MyTest {
+                      @Test
+                      void testMethod() {
+                          String s = "hello world";
+                          assertThat(s).isEmpty();
+                      }
+                  }
+                  """
+              )
             );
         }
 
@@ -343,9 +345,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import java.util.Map;
-                  
+                                    
                   import static org.assertj.core.api.Assertions.assertThat;
-        
+                          
                   class MyTest {
                       @Test
                       void testMethod() {
@@ -358,9 +360,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import java.util.Map;
-                  
+                                    
                   import static org.assertj.core.api.Assertions.assertThat;
-        
+                          
                   class MyTest {
                       @Test
                       void testMethod() {
@@ -414,7 +416,6 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             rewriteRun(java(before, after));
         }
     }
-    
 
     @Nested
     class Iteratorz {
@@ -431,9 +432,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             //language=java
             String template = """
               import java.util.Iterator;
-                        
+
               import static org.assertj.core.api.Assertions.assertThat;
-                        
+
               class A {
                   void test(Iterator<String> iterator, Iterator<String> otherIterator) {
                       String something = "";
@@ -453,6 +454,5 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
               java(before, after)
             );
         }
- 
     }
 }

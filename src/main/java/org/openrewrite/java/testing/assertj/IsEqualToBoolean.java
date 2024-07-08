@@ -31,7 +31,7 @@ import java.util.Collections;
 /**
  * AssertJ has a more idiomatic way of asserting that a boolean is true. This
  * recipe will find instances of:
- * 
+ * <p>
  * -`assertThat(boolean).isEqualTo(true)` and replace them with `isTrue()`.
  * -`assertThat(boolean).isEqualTo(false)` and replace them with `isFalse()`.
  */

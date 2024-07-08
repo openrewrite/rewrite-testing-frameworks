@@ -15,67 +15,72 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.openrewrite.DocumentExample;
-import static org.openrewrite.java.Assertions.java;
-
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.openrewrite.java.Assertions.java;
+
 class IsEqualToBooleanTest implements RewriteTest {
-    
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-        .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
-                .recipe(new IsEqualToBoolean());
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
+          .recipe(new IsEqualToBoolean());
     }
 
     @DocumentExample
-                java(
-                """
     void convertsIsEqualToTrue() {
         rewriteRun(
-                // language=java
-                java("""
-                        import static org.assertj.core.api.Assertions.assertThat;
-                        class Test {
-                            void test() {
-                                assertThat(true).isEqualTo(true);
-                            }
-                        }
-                        """, """
-                        import static org.assertj.core.api.Assertions.assertThat;
-                        class Test {
-                            void test() {
-                                assertThat(true).isTrue();
-                            }
-                        }
-                        """));
+          // language=java
+          java(
+            """
+            import static org.assertj.core.api.Assertions.assertThat;
+            class Test {
+                void test() {
+                    assertThat(true).isEqualTo(true);
+                }
+            }
+            """,
+            """
+            import static org.assertj.core.api.Assertions.assertThat;
+            class Test {
+                void test() {
+                    assertThat(true).isTrue();
+                }
+            }
+            """
+          )
+        );
     }
 
     @Test
     void convertsIsEqualToFalse() {
         rewriteRun(
-                // language=java
-                java(
-                """
-                        import static org.assertj.core.api.Assertions.assertThat;
-                        class Test {
-                            void test() {
-                                assertThat(false).isEqualTo(false);
-                            }
-                        }
-                        """, """
-                        import static org.assertj.core.api.Assertions.assertThat;
-                        class Test {
-                            void test() {
-                                assertThat(false).isFalse();
-                            }
-                        }
-                        """));
+          // language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              class Test {
+                  void test() {
+                      assertThat(false).isEqualTo(false);
+                  }
+              }
+              """,
+              """
+              import static org.assertj.core.api.Assertions.assertThat;
+              class Test {
+                  void test() {
+                      assertThat(false).isFalse();
+                  }
+              }
+              """
+          )
+        );
     }
 
 }

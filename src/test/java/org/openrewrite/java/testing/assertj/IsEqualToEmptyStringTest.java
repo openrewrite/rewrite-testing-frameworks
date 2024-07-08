@@ -16,44 +16,45 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.DocumentExample;
-import static org.openrewrite.java.Assertions.java;
-
-import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.openrewrite.java.Assertions.java;
+
 class IsEqualToEmptyStringTest implements RewriteTest {
-    
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-        .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
           .recipe(new IsEqualToEmptyString());
     }
 
     @DocumentExample
-                java(
-                """
     void convertsIsEqualToEmptyString() {
         rewriteRun(
-                // language=java
-                java("""
-                        import static org.assertj.core.api.Assertions.assertThat;
-                        class Test {
-                            void test() {
-                                assertThat("test").isEqualTo("");
-                            }
-                        }
-                        """, """
-                        import static org.assertj.core.api.Assertions.assertThat;
-                        class Test {
-                            void test() {
-                                assertThat("test").isEmpty();
-                            }
-                        }
-                        """));
+          // language=java
+          java(
+            """
+            import static org.assertj.core.api.Assertions.assertThat;
+            class Test {
+                void test() {
+                    assertThat("test").isEqualTo("");
+                }
+            }
+            """,
+            """
+            import static org.assertj.core.api.Assertions.assertThat;
+            class Test {
+                void test() {
+                    assertThat("test").isEmpty();
+                }
+            }
+            """
+          )
+        );
     }
 
 }
