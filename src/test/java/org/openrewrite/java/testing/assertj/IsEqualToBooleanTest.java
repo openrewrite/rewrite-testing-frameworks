@@ -34,6 +34,7 @@ class IsEqualToBooleanTest implements RewriteTest {
     }
 
     @DocumentExample
+    @Test
     void convertsIsEqualToTrue() {
         rewriteRun(
           // language=java
@@ -82,5 +83,4 @@ class IsEqualToBooleanTest implements RewriteTest {
           )
         );
     }
-
 }

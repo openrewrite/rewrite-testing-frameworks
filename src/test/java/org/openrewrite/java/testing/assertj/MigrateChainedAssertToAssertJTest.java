@@ -58,9 +58,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
               java(
                 """
                   import org.junit.jupiter.api.Test;
-                                
+
                   import static org.assertj.core.api.Assertions.assertThat;
-                                
+
                   class MyTest {
                       @Test
                       void testMethod() {
@@ -71,9 +71,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
                   """,
                   """
                   import org.junit.jupiter.api.Test;
-                                
+
                   import static org.assertj.core.api.Assertions.assertThat;
-                                
+
                   class MyTest {
                       @Test
                       void testMethod() {
@@ -107,9 +107,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             //language=java
             String template = """
               import org.junit.jupiter.api.Test;
-                        
+
               import static org.assertj.core.api.Assertions.assertThat;
-                        
+
               class MyTest {
                   @Test
                   void test() {
@@ -163,9 +163,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             String template = """
               import org.junit.jupiter.api.Test;
               import java.io.File;
-                        
+
               import static org.assertj.core.api.Assertions.assertThat;
-                        
+
               class MyTest {
                   @Test
                   void test() {
@@ -212,9 +212,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.nio.file.Path;
               import java.nio.file.Paths;
-                        
+
               import static org.assertj.core.api.Assertions.assertThat;
-                        
+
               class MyTest {
                   @Test
                   void test() {
@@ -260,9 +260,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             //language=java
             String template = """
               import java.util.Collection;
-                        
+
               import static org.assertj.core.api.Assertions.assertThat;
-                        
+
               class A {
                   void test(Collection<String> collection, Collection<String> otherCollection) {
                       String something = "";
@@ -305,9 +305,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.Collections;
               import java.util.Map;
-                        
+
               import static org.assertj.core.api.Assertions.assertThat;
-                        
+
               class MyTest {
                   @Test
                   void test() {
@@ -345,9 +345,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import java.util.Map;
-                                    
+    
                   import static org.assertj.core.api.Assertions.assertThat;
-                          
+
                   class MyTest {
                       @Test
                       void testMethod() {
@@ -360,9 +360,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import java.util.Map;
-                                    
+    
                   import static org.assertj.core.api.Assertions.assertThat;
-                          
+
                   class MyTest {
                       @Test
                       void testMethod() {
@@ -394,9 +394,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             String template = """
               import org.junit.jupiter.api.Test;
               import java.util.Optional;
-                      
+
               import static org.assertj.core.api.Assertions.assertThat;
-                      
+
               class MyTest {
                   @Test
                   void test() {
@@ -418,7 +418,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
     }
 
     @Nested
-    class Iteratorz {
+    class Iterators {
         private static Stream<Arguments> collectionReplacements() {
             return Stream.of(
               Arguments.arguments("hasNext", "isTrue", "hasNext"),
