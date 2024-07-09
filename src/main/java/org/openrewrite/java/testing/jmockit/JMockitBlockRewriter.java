@@ -75,7 +75,7 @@ class JMockitBlockRewriter {
         this.newExpectations = newExpectations;
         this.bodyStatementIndex = bodyStatementIndex;
         this.blockType = blockType;
-        nextStatementCoordinates = newExpectations.getCoordinates().replace();
+        this.nextStatementCoordinates = newExpectations.getCoordinates().replace();
     }
 
     J.Block rewriteMethodBody() {
@@ -125,36 +125,29 @@ class JMockitBlockRewriter {
         final MockInvocationResults mockInvocationResults = buildMockInvocationResults(statementsToRewrite);
         if (mockInvocationResults == null) {
             // invalid block, cannot rewrite
-            rewriteFailed = true;
+            this.rewriteFailed = true;
             return;
         }
 
         J.MethodInvocation invocation = (J.MethodInvocation) statementsToRewrite.get(0);
         boolean hasResults = !mockInvocationResults.getResults().isEmpty();
+        boolean hasTimes = mockInvocationResults.hasAnyTimes();
         if (hasResults) {
-            rewriteResult(invocation, mockInvocationResults.getResults());
+            rewriteResult(invocation, mockInvocationResults.getResults(), hasTimes);
         }
 
-        if (blockType == NonStrictExpectations) {
-            // no verify for NonStrictExpectations
+        if (!hasResults && !hasTimes && (this.blockType == JMockitBlockType.Expectations || this.blockType == Verifications)) {
+            rewriteVerify(invocation, null, "");
             return;
         }
-
-        boolean hasTimes = false;
         if (mockInvocationResults.getTimes() != null) {
-            hasTimes = true;
             rewriteVerify(invocation, mockInvocationResults.getTimes(), "times");
         }
         if (mockInvocationResults.getMinTimes() != null) {
-            hasTimes = true;
             rewriteVerify(invocation, mockInvocationResults.getMinTimes(), "atLeast");
         }
         if (mockInvocationResults.getMaxTimes() != null) {
-            hasTimes = true;
             rewriteVerify(invocation, mockInvocationResults.getMaxTimes(), "atMost");
-        }
-        if (!hasResults && !hasTimes) {
-            rewriteVerify(invocation, null, "");
         }
     }
 
@@ -163,15 +156,12 @@ class JMockitBlockRewriter {
                 .javaParser(JavaParser.fromJavaVersion())
                 .build()
                 .apply(new Cursor(visitor.getCursor(), methodBody), nextStatementCoordinates);
-        if (bodyStatementIndex == 0) {
-            nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
-        } else {
-            setNextStatementCoordinates(0);
-        }
+        setNextStatementCoordinates(0);
     }
 
-    private void rewriteResult(J.MethodInvocation invocation, List<Expression> results) {
-        String template = getWhenTemplate(results);
+    private void rewriteResult(J.MethodInvocation invocation, List<Expression> results, boolean hasTimes) {
+        boolean lenient = this.blockType == NonStrictExpectations && !hasTimes;
+        String template = getWhenTemplate(results, lenient);
         if (template == null) {
             // invalid template, cannot rewrite
             rewriteFailed = true;
@@ -182,18 +172,19 @@ class JMockitBlockRewriter {
         templateParams.add(invocation);
         templateParams.addAll(results);
         this.rewriteFailed = !rewriteTemplate(template, templateParams, nextStatementCoordinates);
-        if (!this.rewriteFailed) {
-            this.rewriteFailed = true;
-            setNextStatementCoordinates(++numStatementsAdded);
-            // do this last making sure rewrite worked and specify hasReference=false because framework cannot find static
-            // reference for when method invocation when lenient is added.
-            boolean hasReferencesForWhen = true;
-            if (this.blockType == NonStrictExpectations) {
-                visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "lenient");
-                hasReferencesForWhen = false;
-            }
-            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when", hasReferencesForWhen);
+        if (this.rewriteFailed) {
+            return;
         }
+
+        setNextStatementCoordinates(++numStatementsAdded);
+        // do this last making sure rewrite worked and specify hasReference=false because framework cannot find static
+        // reference for when method invocation when lenient is added.
+        boolean hasReferencesForWhen = true;
+        if (lenient) {
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "lenient");
+            hasReferencesForWhen = false;
+        }
+        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when", hasReferencesForWhen);
     }
 
     private void rewriteVerify(J.MethodInvocation invocation, @Nullable Expression times, String verificationMode) {
@@ -218,29 +209,37 @@ class JMockitBlockRewriter {
             verifyCoordinates = methodBody.getCoordinates().lastStatement();
         }
         this.rewriteFailed = !rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
-        if (!this.rewriteFailed) {
-            if (this.blockType == Verifications) {
-                setNextStatementCoordinates(++numStatementsAdded); // for Expectations, verify statements added to end of method
-            }
+        if (this.rewriteFailed) {
+            return;
+        }
 
-            // do this last making sure rewrite worked and specify hasReference=false because in verify case framework
-            // cannot find the static reference
-            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
-            if (!verificationMode.isEmpty()) {
-                visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
-            }
+        if (this.blockType == Verifications) {
+            setNextStatementCoordinates(++numStatementsAdded); // for Expectations, verify statements added to end of method
+        }
+
+        // do this last making sure rewrite worked and specify hasReference=false because in verify case framework
+        // cannot find the static reference
+        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
+        if (!verificationMode.isEmpty()) {
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
         }
     }
 
     private void setNextStatementCoordinates(int numStatementsAdded) {
+        if (numStatementsAdded <= 0 && bodyStatementIndex == 0) {
+            nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
+            return;
+        }
+
         // the next statement coordinates are directly after the most recently written statement, calculated by
         // subtracting the removed jmockit block
-        int nextStatementIdx = bodyStatementIndex + numStatementsAdded - 1;
-        if (nextStatementIdx >= this.methodBody.getStatements().size()) {
-            rewriteFailed = true;
-        } else {
-            this.nextStatementCoordinates = this.methodBody.getStatements().get(nextStatementIdx).getCoordinates().after();
+        int lastStatementIdx = bodyStatementIndex + numStatementsAdded - 1;
+        if (lastStatementIdx >= this.methodBody.getStatements().size()) {
+            this.rewriteFailed = true;
+            return;
         }
+
+        this.nextStatementCoordinates = this.methodBody.getStatements().get(lastStatementIdx).getCoordinates().after();
     }
 
     private boolean rewriteTemplate(String template, List<Object> templateParams, JavaCoordinates
@@ -258,10 +257,10 @@ class JMockitBlockRewriter {
         return methodBody.getStatements().size() > numStatementsBefore;
     }
 
-    private @Nullable String getWhenTemplate(List<Expression> results) {
+    private @Nullable String getWhenTemplate(List<Expression> results, boolean lenient) {
         boolean buildingResults = false;
         StringBuilder templateBuilder = new StringBuilder();
-        if (this.blockType == NonStrictExpectations) {
+        if (lenient) {
             templateBuilder.append(LENIENT_TEMPLATE_PREFIX);
         }
         templateBuilder.append(WHEN_TEMPLATE_PREFIX);
@@ -421,6 +420,10 @@ class JMockitBlockRewriter {
 
         private void addResult(Expression result) {
             results.add(result);
+        }
+
+        private boolean hasAnyTimes() {
+            return times != null || minTimes != null || maxTimes != null;
         }
     }
 }
