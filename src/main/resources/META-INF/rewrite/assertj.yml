@@ -25,6 +25,7 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
   - org.openrewrite.java.testing.assertj.StaticImports
+  - org.openrewrite.java.testing.assertj.IsEqualToBoolean
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.IsEqualToEmptyString
 
@@ -337,6 +338,16 @@ recipeList:
       assertToReplace: isSameAs
       dedicatedAssertion: containsSame
       requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: hasNext
+      assertToReplace: isTrue
+      dedicatedAssertion: hasNext
+      requiredType: java.util.Iterator
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: hasNext
+      assertToReplace: isFalse
+      dedicatedAssertion: isExhausted
+      requiredType: java.util.Iterator
 
 ---
 type: specs.openrewrite.org/v1beta/recipe

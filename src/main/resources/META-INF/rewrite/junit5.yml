@@ -122,18 +122,7 @@ recipeList:
       onlyIfUsing: org.junit.jupiter.params.ParameterizedTest
       acceptTransitive: true
       scope: test
-  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
-      groupId: org.mockito
-      artifactId: "*"
-      newVersion: 3.x
-      overrideManagedVersion: false
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.mockito
-      artifactId: mockito-junit-jupiter
-      version: 3.x
-      onlyIfUsing: org.mockito..*
-      acceptTransitive: true
-      scope: test
+  - org.openrewrite.java.testing.mockito.Mockito1to4Migration
   - org.openrewrite.maven.UpgradePluginVersion:
       groupId: org.apache.maven.plugins
       artifactId: maven-surefire-plugin
