@@ -60,8 +60,10 @@ public class IsEqualToBoolean extends Recipe {
                     String methodName;
                     if (J.Literal.isLiteralValue(mi.getArguments().get(0), true)) {
                         methodName = "isTrue";
-                    } else {
+                    } else if (J.Literal.isLiteralValue(mi.getArguments().get(0), false)) {
                         methodName = "isFalse";
+                    } else {
+                        return mi;
                     }
                     Method isBooleanMethod = mi.getMethodType().withName(methodName);
                     return mi.withName(mi.getName().withSimpleName(methodName).withType(isBooleanMethod))

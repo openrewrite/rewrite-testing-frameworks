@@ -72,11 +72,28 @@ class IsEqualToBooleanTest implements RewriteTest {
                   }
               }
               """,
-              """
+            """
+            import static org.assertj.core.api.Assertions.assertThat;
+            class Test {
+                void test() {
+                    assertThat(false).isFalse();
+                }
+            }
+            """
+          )
+        );
+    }
+
+    @Test
+    void noChangeOnVariable() {
+        rewriteRun(
+          // language=java
+          java(
+            """
               import static org.assertj.core.api.Assertions.assertThat;
               class Test {
-                  void test() {
-                      assertThat(false).isFalse();
+                  void test(boolean b) {
+                      assertThat(false).isEqualTo(b);
                   }
               }
               """
