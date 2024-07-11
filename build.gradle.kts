@@ -33,6 +33,7 @@ dependencies {
     implementation("org.openrewrite:rewrite-java")
     implementation("org.openrewrite:rewrite-gradle")
     implementation("org.openrewrite:rewrite-maven")
+    implementation("org.openrewrite:rewrite-templating:$rewriteVersion")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:$rewriteVersion")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:$rewriteVersion")
     runtimeOnly("org.openrewrite:rewrite-java-17")
@@ -40,7 +41,13 @@ dependencies {
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
+    annotationProcessor("org.openrewrite:rewrite-templating:$rewriteVersion")
+    compileOnly("com.google.errorprone:error_prone_core:2.19.1") {
+        exclude("com.google.auto.service", "auto-service-annotations")
+    }
+
     implementation("org.testcontainers:testcontainers:latest.release")
+    implementation("org.assertj:assertj-core:latest.release")
 
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
@@ -61,5 +68,4 @@ dependencies {
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
 
 //    testImplementation("org.hamcrest:hamcrest:latest.release")
-//    testImplementation("org.assertj:assertj-core:latest.release")
 }

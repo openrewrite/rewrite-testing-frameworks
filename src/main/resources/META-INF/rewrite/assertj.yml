@@ -28,6 +28,7 @@ recipeList:
   - org.openrewrite.java.testing.assertj.IsEqualToBoolean
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.IsEqualToEmptyString
+  - org.openrewrite.java.testing.assertj.IdiomaticAssertionsRecipes
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
