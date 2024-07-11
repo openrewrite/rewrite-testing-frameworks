@@ -177,14 +177,12 @@ class JMockitBlockRewriter {
         }
 
         setNextStatementCoordinates(++numStatementsAdded);
-        // do this last making sure rewrite worked and specify hasReference=false because framework cannot find static
-        // reference for when method invocation when lenient is added.
-        boolean hasReferencesForWhen = true;
+        // do this last making sure rewrite worked and specify onlyifReferenced=false because framework cannot find static
+        // reference for when method invocation when another static mockit reference is added
+        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when", false);
         if (lenient) {
             visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "lenient");
-            hasReferencesForWhen = false;
         }
-        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when", hasReferencesForWhen);
     }
 
     private void rewriteVerify(J.MethodInvocation invocation, @Nullable Expression times, String verificationMode) {
@@ -217,8 +215,8 @@ class JMockitBlockRewriter {
             setNextStatementCoordinates(++numStatementsAdded); // for Expectations, verify statements added to end of method
         }
 
-        // do this last making sure rewrite worked and specify hasReference=false because in verify case framework
-        // cannot find the static reference
+        // do this last making sure rewrite worked and specify onlyifReferenced=false because framework cannot find the
+        // static reference to verify when another static mockit reference is added
         visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
         if (!verificationMode.isEmpty()) {
             visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
