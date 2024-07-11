@@ -164,7 +164,7 @@ class JMockitBlockRewriter {
         String template = getWhenTemplate(results, lenient);
         if (template == null) {
             // invalid template, cannot rewrite
-            rewriteFailed = true;
+            this.rewriteFailed = true;
             return;
         }
 
