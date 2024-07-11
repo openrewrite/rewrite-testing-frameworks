@@ -1083,4 +1083,106 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void whenTimes() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.NonStrictExpectations;
+              import mockit.Mocked;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
+
+              @RunWith(JMockit.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test() {
+                      new NonStrictExpectations() {{
+                          myObject.wait(anyLong, anyInt);
+                          times = 3;
+                      }};
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
+                  }
+              }
+              """,
+            """
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              import static org.mockito.Mockito.*;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test() {
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
+                      verify(myObject, times(3)).wait(anyLong(), anyInt());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenTimesAndResult() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.NonStrictExpectations;
+              import mockit.Mocked;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
+
+              @RunWith(JMockit.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test() {
+                      new NonStrictExpectations() {{
+                          myObject.toString();
+                          result = "foo";
+                          times = 2;
+                      }};
+                      myObject.toString();
+                      myObject.toString();
+                  }
+              }
+              """,
+            """
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              import static org.mockito.Mockito.*;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test() {
+                      when(myObject.toString()).thenReturn("foo");
+                      myObject.toString();
+                      myObject.toString();
+                      verify(myObject, times(2)).toString();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
