@@ -137,8 +137,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             return anno;
         }
 
-        @Nullable
-        private String getLiteralAnnotationArgumentValue(J.Annotation anno) {
+        private @Nullable String getLiteralAnnotationArgumentValue(J.Annotation anno) {
             String annotationArgumentValue = null;
             if (anno.getArguments() != null && anno.getArguments().size() == 1 && anno.getArguments().get(0) instanceof J.Literal) {
                 J.Literal literal = (J.Literal) anno.getArguments().get(0);
@@ -147,8 +146,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             return annotationArgumentValue;
         }
 
-        @Nullable
-        private String getAnnotationArgumentForInitMethod(J.Annotation anno, String... variableNames) {
+        private @Nullable String getAnnotationArgumentForInitMethod(J.Annotation anno, String... variableNames) {
             String value = null;
             if (anno.getArguments() != null && anno.getArguments().size() == 1
                 && anno.getArguments().get(0) instanceof J.Assignment
@@ -292,8 +290,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             return anno.getValue();
         }
 
-        @Nullable
-        private String getAnnotationArgumentValueForMethodTemplate(J.Annotation anno) {
+        private @Nullable String getAnnotationArgumentValueForMethodTemplate(J.Annotation anno) {
             String annotationArgumentValue = null;
             if (anno.getArguments() != null && anno.getArguments().size() == 1) {
                 Expression annoArg = anno.getArguments().get(0);
