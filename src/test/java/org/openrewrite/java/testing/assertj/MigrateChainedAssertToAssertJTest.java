@@ -458,7 +458,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
     
     @Nested
     class Objects {
-        
+        @Test
         void objectoToStringReplacement() {
             rewriteRun(
               //language=java
