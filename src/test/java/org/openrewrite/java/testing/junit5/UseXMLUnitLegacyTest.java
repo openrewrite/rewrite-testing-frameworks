@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.config.Environment;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -27,10 +26,7 @@ class UseXMLUnitLegacyTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .recipe(Environment.builder()
-            .scanRuntimeClasspath()
-            .build()
-            .activateRecipes("org.openrewrite.java.testing.junit5.UseXMLUnitLegacy"));
+          .recipeFromResources("org.openrewrite.java.testing.junit5.UseXMLUnitLegacy");
     }
 
     @Test

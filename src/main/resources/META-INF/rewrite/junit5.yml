@@ -247,7 +247,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
 displayName: Use OkHttp 3 MockWebServer for JUnit 5
-description: Migrates OkHttp 3 `MockWebServer` to enable JUnit Jupiter Extension support
+description: Migrates OkHttp 3 `MockWebServer` to enable JUnit Jupiter Extension support.
 tags:
   - testing
   - junit
@@ -266,7 +266,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.CleanupAssertions
 displayName: Clean Up Assertions
-description: Simplifies JUnit Jupiter assertions to their most-direct equivalents
+description: Simplifies JUnit Jupiter assertions to their most-direct equivalents.
 tags:
   - testing
   - junit
@@ -286,7 +286,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseXMLUnitLegacy
 displayName: Use XMLUnit Legacy for JUnit 5
-description: Migrates XMLUnit 1.x to XMLUnit legacy 2.x
+description: Migrates XMLUnit 1.x to XMLUnit legacy 2.x.
 tags:
   - testing
   - junit

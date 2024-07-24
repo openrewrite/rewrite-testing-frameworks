@@ -471,7 +471,7 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
                   class MyTest {
                       void testMethod(Object argument) {
                           String s = "hello world";
-                          assertThat(argument.toString()).isEqualTo(("value");
+                          assertThat(argument.toString()).isEqualTo("value");
                       }
                   }
                   """,
