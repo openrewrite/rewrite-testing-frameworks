@@ -455,4 +455,40 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             );
         }
     }
+    
+    @Nested
+    class Objects {
+        
+        void objectoToStringReplacement() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class MyTest {
+                      void testMethod(Object argument) {
+                          String s = "hello world";
+                          assertThat(argument.toString()).isEqualTo(("value");
+                      }
+                  }
+                  """,
+                  """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class MyTest {
+                      void testMethod(Object argument) {
+                          String s = "hello world";
+                          assertThat(argument).hasToString("value");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+    }
 }
