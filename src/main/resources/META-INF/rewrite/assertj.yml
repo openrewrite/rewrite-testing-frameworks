@@ -26,6 +26,7 @@ recipeList:
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
   - org.openrewrite.java.testing.assertj.StaticImports
   - org.openrewrite.java.testing.assertj.IsEqualToBoolean
+  - org.openrewrite.java.testing.assertj.IsEqualToNull
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.IsEqualToEmptyString
 
