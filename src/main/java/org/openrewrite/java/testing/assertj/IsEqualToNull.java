@@ -16,16 +16,15 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.trait.Traits;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodInvocation;
 import org.openrewrite.java.tree.JavaType.Method;
+import org.openrewrite.java.tree.MethodCall;
 
 import java.util.Collections;
 
@@ -37,8 +36,8 @@ import java.util.Collections;
  */
 public class IsEqualToNull extends Recipe {
 
-    private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.AbstractAssert isEqualTo(..)");
-    
+    private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.AbstractAssert isEqualTo(..)", true);
+
     @Override
     public String getDisplayName() {
         return "Convert `assertThat(Object).isEqualTo(null)` to `isNull()`";
@@ -51,32 +50,20 @@ public class IsEqualToNull extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(IS_EQUAL_TO), new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (IS_EQUAL_TO.matches(mi)) {
-                    String methodName;
-                    if (isNull(mi.getArguments().get(0))) {
-                        methodName = "isNull";
-                    } else {
-                        return mi;
+        return Traits.methodAccess(IS_EQUAL_TO).asVisitor(methodAccess -> {
+                    MethodCall methodCall = methodAccess.getTree();
+                    if (methodCall instanceof MethodInvocation && isNull(methodCall.getArguments().get(0))) {
+                        Method isBooleanMethod = methodCall.getMethodType().withName("isNull");
+                        return ((MethodInvocation) methodCall)
+                                .withName(((MethodInvocation) methodCall).getName().withSimpleName("isNull").withType(isBooleanMethod))
+                                .withMethodType(isBooleanMethod).withArguments(Collections.emptyList());
                     }
-                    Method isBooleanMethod = mi.getMethodType().withName(methodName);
-                    return mi.withName(mi.getName().withSimpleName(methodName).withType(isBooleanMethod))
-                            .withMethodType(isBooleanMethod).withArguments(Collections.emptyList());
+                    return methodCall;
                 }
-                return mi;
-            }
-
-        });
+        );
     }
-    
 
     private boolean isNull(Expression expression) {
-        if(expression instanceof J.Literal literal) {
-            return literal.getValue() == null;
-        }
-        return false;
+        return expression instanceof J.Literal && ((J.Literal) expression).getValue() == null;
     }
 }

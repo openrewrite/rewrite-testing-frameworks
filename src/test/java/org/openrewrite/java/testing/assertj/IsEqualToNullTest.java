@@ -83,5 +83,4 @@ class IsEqualToNullTest implements RewriteTest {
           )
         );
     }
- 
 }
