@@ -22,7 +22,6 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.trait.Traits;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.J.MethodInvocation;
 import org.openrewrite.java.tree.JavaType.Method;
 import org.openrewrite.java.tree.MethodCall;
 
@@ -52,10 +51,11 @@ public class IsEqualToNull extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Traits.methodAccess(IS_EQUAL_TO).asVisitor(methodAccess -> {
                     MethodCall methodCall = methodAccess.getTree();
-                    if (methodCall instanceof MethodInvocation && isNull(methodCall.getArguments().get(0))) {
+                    if (methodCall instanceof J.MethodInvocation && isNull(methodCall.getArguments().get(0))) {
+                        @SuppressWarnings("DataFlowIssue")
                         Method isBooleanMethod = methodCall.getMethodType().withName("isNull");
-                        return ((MethodInvocation) methodCall)
-                                .withName(((MethodInvocation) methodCall).getName().withSimpleName("isNull").withType(isBooleanMethod))
+                        return ((J.MethodInvocation) methodCall)
+                                .withName(((J.MethodInvocation) methodCall).getName().withSimpleName("isNull").withType(isBooleanMethod))
                                 .withMethodType(isBooleanMethod).withArguments(Collections.emptyList());
                     }
                     return methodCall;
