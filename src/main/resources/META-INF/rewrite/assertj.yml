@@ -25,10 +25,8 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
   - org.openrewrite.java.testing.assertj.StaticImports
-  - org.openrewrite.java.testing.assertj.IsEqualToBoolean
-  - org.openrewrite.java.testing.assertj.IsEqualToNull
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
-  - org.openrewrite.java.testing.assertj.IsEqualToEmptyString
+  - org.openrewrite.java.testing.assertj.ShortenChainedAssertJAssertions
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -354,6 +352,56 @@ recipeList:
       assertToReplace: isEqualTo
       dedicatedAssertion: hasToString
       requiredType: java.lang.Object
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.assertj.ShortenChainedAssertJAssertions
+displayName: Shorten AssertJ chained assertions
+description: Replace AssertJ chained assertions with hardcoded values by deicated assertions that function the same way.
+tags:
+  - testing
+  - assertj
+recipeList:
+  - org.openrewrite.java.testing.assertj.ShortenChainedAssertJAssertion:
+      assertToReplace: isEqualTo
+      assertArgument: null
+      dedicatedAssertion: isNull
+      requiredType: java.lang.Object
+  - org.openrewrite.java.testing.assertj.ShortenChainedAssertJAssertion:
+      assertToReplace: isEqualTo
+      assertArgument: true
+      dedicatedAssertion: isTrue
+      requiredType: java.lang.Boolean
+  - org.openrewrite.java.testing.assertj.ShortenChainedAssertJAssertion:
+      assertToReplace: isEqualTo
+      assertArgument: '""'
+      dedicatedAssertion: isEmpty
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.ShortenChainedAssertJAssertion:
+      assertToReplace: isEqualTo
+      assertArgument: false
+      dedicatedAssertion: isFalse
+      requiredType: java.lang.Boolean
+  - org.openrewrite.java.testing.assertj.ShortenChainedAssertJAssertion:
+      assertToReplace: hasSize
+      assertArgument: 0
+      dedicatedAssertion: isEmpty
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.ShortenChainedAssertJAssertion:
+      assertToReplace: hasSize
+      assertArgument: 0
+      dedicatedAssertion: isEmpty
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.ShortenChainedAssertJAssertion:
+      assertToReplace: hasSize
+      assertArgument: 0
+      dedicatedAssertion: isEmpty
+      requiredType: java.util.Collection
+  - org.openrewrite.java.testing.assertj.ShortenChainedAssertJAssertion:
+      assertToReplace: hasSize
+      assertArgument: 0
+      dedicatedAssertion: isEmpty
+      requiredType: java.util.Map
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
