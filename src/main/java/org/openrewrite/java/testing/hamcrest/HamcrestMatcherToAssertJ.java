@@ -37,21 +37,21 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class HamcrestMatcherToAssertJ extends Recipe {
 
-    @Option(displayName = "Hamcrest Matcher",
+    @Option(displayName = "Hamcrest matcher",
             description = "The Hamcrest `Matcher` to migrate to JUnit5.",
             example = "equalTo",
             required = false)
     @Nullable
     String matcher;
 
-    @Option(displayName = "AssertJ Assertion",
+    @Option(displayName = "AssertJ assertion",
             description = "The AssertJ method to migrate to.",
             example = "isEqualTo",
             required = false)
     @Nullable
     String assertion;
 
-    @Option(displayName = "Argument Type",
+    @Option(displayName = "Argument type",
             description = "The type of the argument to the Hamcrest `Matcher`.",
             example = "java.math.BigDecimal",
             required = false)

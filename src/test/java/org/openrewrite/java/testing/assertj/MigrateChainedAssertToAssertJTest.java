@@ -56,31 +56,33 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             rewriteRun(
               //language=java
               java(
-                    """
-                import org.junit.jupiter.api.Test;
-                              
-                import static org.assertj.core.api.Assertions.assertThat;
-                              
-                class MyTest {
-                    @Test
-                    void testMethod() {
-                        String s = "hello world";
-                        assertThat(s.isEmpty()).isTrue();
-                    }
-                }
-                """, """
-                import org.junit.jupiter.api.Test;
-                              
-                import static org.assertj.core.api.Assertions.assertThat;
-                              
-                class MyTest {
-                    @Test
-                    void testMethod() {
-                        String s = "hello world";
-                        assertThat(s).isEmpty();
-                    }
-                }
-                """)
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class MyTest {
+                      @Test
+                      void testMethod() {
+                          String s = "hello world";
+                          assertThat(s.isEmpty()).isTrue();
+                      }
+                  }
+                  """,
+                  """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class MyTest {
+                      @Test
+                      void testMethod() {
+                          String s = "hello world";
+                          assertThat(s).isEmpty();
+                      }
+                  }
+                  """
+              )
             );
         }
 
@@ -105,9 +107,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             //language=java
             String template = """
               import org.junit.jupiter.api.Test;
-                        
+
               import static org.assertj.core.api.Assertions.assertThat;
-                        
+
               class MyTest {
                   @Test
                   void test() {
@@ -161,9 +163,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             String template = """
               import org.junit.jupiter.api.Test;
               import java.io.File;
-                        
+
               import static org.assertj.core.api.Assertions.assertThat;
-                        
+
               class MyTest {
                   @Test
                   void test() {
@@ -210,9 +212,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.nio.file.Path;
               import java.nio.file.Paths;
-                        
+
               import static org.assertj.core.api.Assertions.assertThat;
-                        
+
               class MyTest {
                   @Test
                   void test() {
@@ -258,9 +260,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             //language=java
             String template = """
               import java.util.Collection;
-                        
+
               import static org.assertj.core.api.Assertions.assertThat;
-                        
+
               class A {
                   void test(Collection<String> collection, Collection<String> otherCollection) {
                       String something = "";
@@ -303,9 +305,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.Collections;
               import java.util.Map;
-                        
+
               import static org.assertj.core.api.Assertions.assertThat;
-                        
+
               class MyTest {
                   @Test
                   void test() {
@@ -343,9 +345,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import java.util.Map;
-                  
+    
                   import static org.assertj.core.api.Assertions.assertThat;
-        
+
                   class MyTest {
                       @Test
                       void testMethod() {
@@ -358,9 +360,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import java.util.Map;
-                  
+    
                   import static org.assertj.core.api.Assertions.assertThat;
-        
+
                   class MyTest {
                       @Test
                       void testMethod() {
@@ -392,9 +394,9 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             String template = """
               import org.junit.jupiter.api.Test;
               import java.util.Optional;
-                      
+
               import static org.assertj.core.api.Assertions.assertThat;
-                      
+
               class MyTest {
                   @Test
                   void test() {
@@ -412,6 +414,81 @@ class MigrateChainedAssertToAssertJTest implements RewriteTest {
             String after = String.format(template, assertAfter);
 
             rewriteRun(java(before, after));
+        }
+    }
+
+    @Nested
+    class Iterators {
+        private static Stream<Arguments> collectionReplacements() {
+            return Stream.of(
+              Arguments.arguments("hasNext", "isTrue", "hasNext"),
+              Arguments.arguments("hasNext", "isFalse", "isExhausted")
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource("collectionReplacements")
+        void collectionReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion) {
+            //language=java
+            String template = """
+              import java.util.Iterator;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class A {
+                  void test(Iterator<String> iterator, Iterator<String> otherIterator) {
+                      String something = "";
+                      %s
+                  }
+              }
+              """;
+            String assertBefore = "assertThat(iterator.%s()).%s();";
+            String assertAfter = "assertThat(iterator).%s();";
+
+            String formattedAssertBefore = assertBefore.formatted(chainedAssertion, assertToReplace);
+
+            String before = String.format(template, formattedAssertBefore);
+            String after = String.format(template, assertAfter.formatted(dedicatedAssertion));
+
+            rewriteRun(
+              java(before, after)
+            );
+        }
+    }
+    
+    @Nested
+    class Objects {
+        @Test
+        void objectoToStringReplacement() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class MyTest {
+                      void testMethod(Object argument) {
+                          String s = "hello world";
+                          assertThat(argument.toString()).isEqualTo("value");
+                      }
+                  }
+                  """,
+                  """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class MyTest {
+                      void testMethod(Object argument) {
+                          String s = "hello world";
+                          assertThat(argument).hasToString("value");
+                      }
+                  }
+                  """
+              )
+            );
         }
     }
 }

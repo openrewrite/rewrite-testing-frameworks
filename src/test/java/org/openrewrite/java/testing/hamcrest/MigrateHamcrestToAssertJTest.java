@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
@@ -790,6 +791,49 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+      strings = {
+        "java.util.Date",
+        "java.time.Instant"
+      }
+    )
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/526")
+    void greaterThanOrEqualToDate(String type){
+        rewriteRun(
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.greaterThan;
+              import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+              import static org.hamcrest.Matchers.lessThan;
+              import static org.hamcrest.Matchers.lessThanOrEqualTo;
+
+              class Foo {
+                  void bar(%1$s type) {
+                      assertThat(type, lessThan(type));
+                      assertThat(type, lessThanOrEqualTo(type));
+                      assertThat(type, greaterThan(type));
+                      assertThat(type, greaterThanOrEqualTo(type));
+                  }
+              }
+              """.formatted(type),
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Foo {
+                  void bar(%1$s type) {
+                      assertThat(type).isBefore(type);
+                      assertThat(type).isBeforeOrEqualTo(type);
+                      assertThat(type).isAfter(type);
+                      assertThat(type).isAfterOrEqualTo(type);
+                  }
+              }
+              """.formatted(type)
           )
         );
     }

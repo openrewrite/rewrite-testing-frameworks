@@ -25,6 +25,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
+@SuppressWarnings({"deprecation", "JUnitMalformedDeclaration", "JUnit3StyleTestMethodInJUnit4Class", "Convert2MethodRef"})
 class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
 
     @Override
@@ -105,9 +106,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               
                   @Test
                   public void testEmptyPath() {
-                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
-                          foo();
-                      });
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> foo());
                       assertTrue(exception.getMessage().contains("Invalid location: gs://"));
                   }
                   void foo() {

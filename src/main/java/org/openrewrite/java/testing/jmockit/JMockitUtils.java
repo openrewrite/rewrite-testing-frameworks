@@ -40,10 +40,9 @@ class JMockitUtils {
             return empty();
         }
 
-        for (JMockitBlockType blockType : JMockitBlockType.values()) {
-            if (TypeUtils.isAssignableTo(blockType.getFqn(), clazz.getType())) {
-                return Optional.of(blockType);
-            }
+        JMockitBlockType blockType = JMockitBlockType.valueOf(clazz.getSimpleName());
+        if (blockType != null && TypeUtils.isOfClassType(clazz.getType(), blockType.getFqn())) {
+            return Optional.of(blockType);
         }
         return empty();
     }
