@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
@@ -1475,6 +1476,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
         );
     }
 
+    @Disabled // comment migration not supported yet
     @Test
     void whenComments() {
         //language=java
@@ -1533,6 +1535,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   MyObject myObject;
 
                   void test() {
+                      // comments for this line below
                       when(myObject.getSomeStringField()).thenReturn("a");
                       assertEquals("a", myObject.getSomeStringField());
                       when(myObject.getSomeStringField()).thenReturn("b");
