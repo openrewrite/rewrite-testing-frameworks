@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.jmockit;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -36,6 +37,7 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
         setDefaultParserSettings(spec);
     }
 
+    @DocumentExample
     @Test
     void whenNoArgsVoidMethod() {
         //language=java
