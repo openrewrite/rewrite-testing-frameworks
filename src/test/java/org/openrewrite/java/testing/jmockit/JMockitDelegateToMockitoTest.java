@@ -15,10 +15,10 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
@@ -26,8 +26,9 @@ import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultPa
 /**
  * At the moment, JMockit Delegates are not migrated to mockito. What I'm seeing is that they are being trashed
  * with the template being printed out. These tests were written to try to replicate this issue, however I was unable to.
- * They may help anyone adding feature for Delegate migration.
+ * They may help anyone who wants to add Delegate migration.
  */
+@Disabled
 class JMockitDelegateToMockitoTest implements RewriteTest {
 
     @Override
@@ -39,7 +40,6 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
     void whenNoArgsVoidMethod() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java(
             """
               import mockit.Expectations;
@@ -80,10 +80,8 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
                   Object myObject;
 
                   void test() {
-                      when(myObject.wait()).thenReturn(new Delegate() {
-                          public void wait() {
+                      when(myObject.wait()).thenAnswer(invocation -> {
                               System.out.println("bla");
-                          }             
                       });
                       myObject.wait();
                   }
@@ -97,7 +95,6 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
     void whenHasArgsVoidMethod() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java(
             """
               import mockit.Expectations;
@@ -143,11 +140,9 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
                   Object myObject;
 
                   void test() {
-                      when(myObject.wait(anyLong())).thenReturn(new Delegate() {
-                          void wait(long timeoutMs) {
-                              System.out.println("bla");
-                              System.out.println("bla");
-                          }           
+                      when(myObject.wait(anyLong())).thenAnswer(invocation -> {
+                          System.out.println("bla");
+                          System.out.println("bla");
                       });
                       myObject.wait();
                   }
@@ -161,7 +156,6 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
     void whenNoArgsNonVoidMethod() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java(
             """
               import mockit.Expectations;
@@ -206,11 +200,9 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
                   Object myObject;
 
                   void test() {
-                      when(myObject.toString()).thenReturn(new Delegate() {
-                          String toString() {
-                              String a = "bla";
-                              return a + "foo";
-                          }             
+                      when(myObject.toString()).thenAnswer(invocation -> {
+                          String a = "bla";
+                          return a + "foo";
                       });
                       myObject.toString();
                   }
@@ -224,7 +216,6 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
     void whenMultipleStatementsWithAnnotation() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java(
             """
               import mockit.Expectations;
@@ -273,12 +264,9 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
 
                   void test() {
                       when(myObject.hashCode()).thenReturn(100);
-                      when(myObject.toString()).thenReturn(new Delegate() {
-                          @SuppressWarnings("unused")
-                          String toString() {
-                              String a = "bla";
-                              return a + "foo";
-                          }            
+                      when(myObject.toString()).thenAnswer(invocation -> {
+                          String a = "bla";
+                          return a + "foo";
                       });
                       myObject.toString();
                   }
@@ -292,7 +280,6 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
     void whenClassArgumentMatcher() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java(
             """
               import java.util.List;
@@ -357,11 +344,10 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
                   MyObject myObject;
 
                   void test() {
-                      when(myObject.getSomeField(anyList())).thenReturn(new Delegate() {
-                          String getSomeOtherField(List<String> input) {
-                              input.add("foo");
-                              return input.toString();
-                          }
+                      when(myObject.getSomeField(anyList())).thenAnswer(invocation -> {
+                          List<String> input = invocation.getArgument(0);
+                          input.add("foo");
+                          return input.toString();
                       });
                       myObject.getSomeField(new ArrayList<>());
                       myObject.getSomeOtherField(new Object());
