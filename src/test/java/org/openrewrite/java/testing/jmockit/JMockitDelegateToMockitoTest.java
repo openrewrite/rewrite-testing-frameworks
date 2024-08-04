@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.jmockit;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.Issue;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -30,6 +31,7 @@ import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultPa
  * They may help anyone who wants to add Delegate migration.
  */
 @Disabled
+@Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/522")
 class JMockitDelegateToMockitoTest implements RewriteTest {
 
     @Override
@@ -49,7 +51,7 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
+
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
@@ -75,7 +77,7 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import org.mockito.junit.jupiter.MockitoExtension;
 
               import static org.mockito.Mockito.when;
-                                              
+
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
@@ -105,7 +107,7 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
+
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
@@ -133,7 +135,7 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
 
               import static org.mockito.Mockito.anyLong;
               import static org.mockito.Mockito.when;
-                                              
+
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
@@ -164,7 +166,7 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               @ExtendWith(JMockitExtension.class)
@@ -194,7 +196,7 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.when;
-                                              
+
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
@@ -224,7 +226,7 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               @ExtendWith(JMockitExtension.class)
@@ -258,7 +260,7 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.when;
-                                              
+
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
@@ -333,7 +335,7 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import java.util.List;
 
               import mockit.Delegate;
-                             
+
               import static org.mockito.Mockito.anyList;
               import static org.mockito.Mockito.when;
 
