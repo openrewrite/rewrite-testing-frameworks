@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class AssertTrueLiteralFalseToFailTest implements RewriteTest {
+class AssertLiteralBooleanToFailTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
@@ -35,25 +35,29 @@ class AssertTrueLiteralFalseToFailTest implements RewriteTest {
 
     @Test
     @DocumentExample
-    void assertTrueToFail() {
+    @SuppressWarnings("SimplifiableAssertion")
+    void assertWithStaticImports() {
         //language=java
         rewriteRun(
           java(
             """
+              import static org.junit.jupiter.api.Assertions.assertFalse;
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                            
+
               public class Test {
                   void test() {
-                      assertTrue(false, "message");
+                      assertFalse(true, "assert false true");
+                      assertTrue(false, "assert true false");
                   }
               }
               """,
             """
               import org.junit.jupiter.api.Assertions;
-                            
+
               public class Test {
                   void test() {
-                      Assertions.fail("message");
+                      Assertions.fail("assert false true");
+                      Assertions.fail("assert true false");
                   }
               }
               """
@@ -62,25 +66,28 @@ class AssertTrueLiteralFalseToFailTest implements RewriteTest {
     }
 
     @Test
-    void assertTrueToFailNonStatic() {
+    @SuppressWarnings("SimplifiableAssertion")
+    void assertWithAssertionsImport() {
         //language=java
         rewriteRun(
           java(
             """
               import org.junit.jupiter.api.Assertions;
-                            
+
               public class Test {
                   void test() {
-                      Assertions.assertTrue(false, "message");
+                      Assertions.assertFalse(true, "assert false true");
+                      Assertions.assertTrue(false, "assert true false");
                   }
               }
               """,
             """
               import org.junit.jupiter.api.Assertions;
-                            
+
               public class Test {
                   void test() {
-                      Assertions.fail("message");
+                      Assertions.fail("assert false true");
+                      Assertions.fail("assert true false");
                   }
               }
               """
@@ -89,18 +96,18 @@ class AssertTrueLiteralFalseToFailTest implements RewriteTest {
     }
 
     @Test
-    void assertTrueNonLiteralNoChange() {
+    void noChangeWhenNotLiteral() {
         //language=java
         rewriteRun(
           java(
             """
+              import static org.junit.jupiter.api.Assertions.assertFalse;
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                            
+
               public class Test {
-                  void test() {
-                      String a = "a";
-                      String b = "b";
-                      assertTrue(a.equals(b), "message");
+                  void test(boolean a, Object b) {
+                      assertTrue(a, "message");
+                      assertFalse(b.equals("foo"), "message");
                   }
               }
               """

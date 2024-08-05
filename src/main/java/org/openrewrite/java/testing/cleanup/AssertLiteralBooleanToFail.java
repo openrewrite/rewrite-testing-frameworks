@@ -47,5 +47,3 @@ public class AssertLiteralBooleanToFail {
         fail(message);
     }
 }
-
-
