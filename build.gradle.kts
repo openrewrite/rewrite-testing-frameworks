@@ -37,6 +37,8 @@ dependencies {
     implementation("org.openrewrite.recipe:rewrite-static-analysis:$rewriteVersion")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
+    compileOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
@@ -46,6 +48,12 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-groovy")
     testImplementation("org.openrewrite:rewrite-kotlin:$rewriteVersion")
     testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
+
+    annotationProcessor("org.openrewrite:rewrite-templating:${rewriteVersion}")
+    implementation("org.openrewrite:rewrite-templating:${rewriteVersion}")
+    compileOnly("com.google.errorprone:error_prone_core:2.19.1:with-dependencies") {
+        exclude("com.google.auto.service", "auto-service-annotations")
+    }
 
     testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
 
