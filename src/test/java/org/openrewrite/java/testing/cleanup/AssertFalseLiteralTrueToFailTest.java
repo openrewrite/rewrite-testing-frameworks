@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -33,6 +34,7 @@ class AssertFalseLiteralTrueToFailTest implements RewriteTest {
     }
 
     @Test
+    @DocumentExample
     void assertFalseToFail() {
         //language=java
         rewriteRun(
@@ -47,11 +49,11 @@ class AssertFalseLiteralTrueToFailTest implements RewriteTest {
               }
               """,
             """
-              import static org.junit.jupiter.api.Assertions.fail;
+              import org.junit.jupiter.api.Assertions;
                             
               public class Test {
                   void test() {
-                      fail("message");
+                      Assertions.fail("message");
                   }
               }
               """
@@ -105,5 +107,4 @@ class AssertFalseLiteralTrueToFailTest implements RewriteTest {
           )
         );
     }
-
 }
