@@ -76,9 +76,9 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
               import static org.junit.jupiter.api.Assertions.assertThrows;
               import java.util.concurrent.CompletableFuture;
               import java.util.concurrent.ExecutionException;
-
+              
               public class MemberReferenceTest {
-
+              
                   public void throwsWithMemberReference() {
                       CompletableFuture<Boolean> future = new CompletableFuture<>();
                       assertThrows(ExecutionException.class, future::get);
@@ -89,9 +89,9 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
               import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
               import java.util.concurrent.CompletableFuture;
               import java.util.concurrent.ExecutionException;
-
+              
               public class MemberReferenceTest {
-
+              
                   public void throwsWithMemberReference() {
                       CompletableFuture<Boolean> future = new CompletableFuture<>();
                       assertThatExceptionOfType(ExecutionException.class).isThrownBy(future::get);
@@ -110,7 +110,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertThrows;
-
+              
               public class SimpleExpectedExceptionTest {
                   public void throwsExceptionWithSpecificType() {
                       NullPointerException npe = assertThrows(NullPointerException.class, () -> {
@@ -135,7 +135,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertThrows;
-
+              
               public class SimpleExpectedExceptionTest {
                   public void throwsExceptionWithSpecificType() {
                       NullPointerException npe = hashCode() == 42
@@ -143,6 +143,44 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                         : assertThrows(NullPointerException.class, () -> {
                           throw new NullPointerException();
                       });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/511")
+    void assertThrowsExecutableVariable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.function.Executable;
+              
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+              
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      Executable executable = () -> {
+                          throw new NullPointerException();
+                      };
+                      assertThrows(NullPointerException.class, executable);
+                  }
+              }
+              """,
+            """
+              import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      ThrowingCallable executable = () -> {
+                          throw new NullPointerException();
+                      };
+                      assertThatExceptionOfType(NullPointerException.class).isThrownBy(executable);
                   }
               }
               """
