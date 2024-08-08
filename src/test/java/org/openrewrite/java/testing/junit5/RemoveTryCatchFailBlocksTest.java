@@ -646,16 +646,13 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/547")
     void removeTryCatchFailBlocksWithReturningTry() {
+        //language=java
         rewriteRun(
-          spec -> spec.recipe(new RemoveTryCatchFailBlocks()),
           java(
             """
-              package com.helloworld;
-
               import static org.junit.jupiter.api.Assertions.fail;
 
-              public class Foo {
-
+              class Foo {
                   String getFoo() {
                     try {
                       return "foo";
@@ -663,6 +660,9 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                       fail();
                     }
                   }
-              }"""));
+              }
+              """
+          )
+        );
     }
 }
