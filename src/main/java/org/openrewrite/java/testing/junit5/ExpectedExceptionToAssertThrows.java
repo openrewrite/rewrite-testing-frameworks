@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -179,6 +176,13 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                             statement
                     );
 
+            // Clear out any declared thrown exceptions
+            List<NameTree> thrown = m.getThrows();
+            if (thrown != null && !thrown.isEmpty()) {
+                assert m.getBody() != null;
+                m = m.withBody(m.getBody().withPrefix(thrown.get(0).getPrefix())).withThrows(Collections.emptyList());
+            }
+
             maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
 
             if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
@@ -222,7 +226,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 maybeAddImport("org.hamcrest.MatcherAssert", "assertThat");
             }
 
-            return m.withThrows(Collections.emptyList());
+            return m;
         }
 
         @Override

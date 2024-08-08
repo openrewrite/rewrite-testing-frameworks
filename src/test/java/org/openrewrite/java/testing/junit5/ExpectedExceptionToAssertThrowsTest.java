@@ -420,4 +420,53 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/563")
+    void expectedCheckedExceptionThrowsRemoved() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.IOException;
+
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              class MyTest {
+              
+                  @Rule
+                  ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testEmptyPath() throws IOException{
+                      this.thrown.expect(IOException.class);
+                      foo();
+                  }
+                  void foo() throws IOException {
+                      throw new IOException();
+                  }
+              }
+              """,
+            """
+              import java.io.IOException;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+              import org.junit.Test;
+              
+              class MyTest {
+              
+                  @Test
+                  public void testEmptyPath() {
+                      assertThrows(IOException.class, () -> foo());
+                  }
+                  void foo() throws IOException {
+                      throw new IOException();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
