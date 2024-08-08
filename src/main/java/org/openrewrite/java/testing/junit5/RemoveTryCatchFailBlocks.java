@@ -19,16 +19,14 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 public class RemoveTryCatchFailBlocks extends Recipe {
@@ -45,7 +43,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
     @Override
     public String getDescription() {
         return "Replace `try-catch` blocks where `catch` merely contains a `fail()` for `fail(String)` statement " +
-                "with `Assertions.assertDoesNotThrow(() -> { ... })`.";
+               "with `Assertions.assertDoesNotThrow(() -> { ... })`.";
     }
 
     @Override
@@ -67,7 +65,16 @@ public class RemoveTryCatchFailBlocks extends Recipe {
                 return try_;
             }
 
-            if (try_.getBody().getStatements().stream().anyMatch((statement -> statement instanceof J.Return))) {
+            // Skip if any return is found, since we can't return from `assertDoesNotThrow`
+            AtomicBoolean returnFound = new AtomicBoolean(false);
+            new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.Return visitReturn(J.Return _return, AtomicBoolean atomicBoolean) {
+                    atomicBoolean.set(true);
+                    return _return;
+                }
+            }.visit(try_, returnFound, getCursor().getParentOrThrow());
+            if (returnFound.get()) {
                 return try_;
             }
 
@@ -85,9 +92,9 @@ public class RemoveTryCatchFailBlocks extends Recipe {
                 return try_;
             }
             J.MethodInvocation failCall = (J.MethodInvocation) statement;
-            if (!ASSERT_FAIL_NO_ARG.matches(failCall)
-                    && !ASSERT_FAIL_STRING_ARG.matches(failCall)
-                    && !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)) {
+            if (!ASSERT_FAIL_NO_ARG.matches(failCall) &&
+                !ASSERT_FAIL_STRING_ARG.matches(failCall) &&
+                !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)) {
                 return try_;
             }
 
