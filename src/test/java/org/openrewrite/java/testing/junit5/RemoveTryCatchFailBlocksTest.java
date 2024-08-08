@@ -644,6 +644,7 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
     }
 
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/547")
     void removeTryCatchFailBlocksWithReturningTry() {
         rewriteRun(
           spec -> spec.recipe(new RemoveTryCatchFailBlocks()),
