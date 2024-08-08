@@ -559,6 +559,8 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   @Test(expected = IOException.class)
                   public void testWithThrows() throws IOException {
                       foo();
+                      // Second call shows why we wrap the entire method body in the lambda
+                      foo();
                   }
     
                   void foo() throws IOException {
@@ -578,6 +580,8 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   @Test
                   public void testWithThrows() {
                       assertThrows(IOException.class, () -> {
+                          foo();
+                          // Second call shows why we wrap the entire method body in the lambda
                           foo();
                       });
                   }
