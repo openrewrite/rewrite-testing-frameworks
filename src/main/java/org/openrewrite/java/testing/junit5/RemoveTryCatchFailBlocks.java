@@ -45,7 +45,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
     @Override
     public String getDescription() {
         return "Replace `try-catch` blocks where `catch` merely contains a `fail()` for `fail(String)` statement " +
-               "with `Assertions.assertDoesNotThrow(() -> { ... })`.";
+                "with `Assertions.assertDoesNotThrow(() -> { ... })`.";
     }
 
     @Override
@@ -67,6 +67,10 @@ public class RemoveTryCatchFailBlocks extends Recipe {
                 return try_;
             }
 
+            if (try_.getBody().getStatements().stream().anyMatch((statement -> statement instanceof J.Return))) {
+                return try_;
+            }
+
             /*
             Only one statement in the catch block, which is a fail(), with no or a simple String argument.
             We would not want to convert for instance fail(cleanUpAndReturnMessage()) might still have side
@@ -82,8 +86,8 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             }
             J.MethodInvocation failCall = (J.MethodInvocation) statement;
             if (!ASSERT_FAIL_NO_ARG.matches(failCall)
-                && !ASSERT_FAIL_STRING_ARG.matches(failCall)
-                && !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)) {
+                    && !ASSERT_FAIL_STRING_ARG.matches(failCall)
+                    && !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)) {
                 return try_;
             }
 
