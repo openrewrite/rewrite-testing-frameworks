@@ -27,6 +27,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -221,7 +222,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 maybeAddImport("org.hamcrest.MatcherAssert", "assertThat");
             }
 
-            return m;
+            return m.withThrows(Collections.emptyList());
         }
 
         @Override
