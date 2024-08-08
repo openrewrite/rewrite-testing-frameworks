@@ -43,9 +43,9 @@ class UpdateTestAnnotationTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-              
+
               public class MyTest {
-              
+
                   @Test(expected = Test.None.class)
                   public void test_printLine() {
                       int arr = new int[]{0}[0];
@@ -54,11 +54,11 @@ class UpdateTestAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-              
+
               public class MyTest {
-              
+
                   @Test
                   public void test_printLine() {
                       assertDoesNotThrow(() -> {
@@ -78,9 +78,9 @@ class UpdateTestAnnotationTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-              
+
               public class MyTest {
-              
+
                   @Test(expected = IllegalArgumentException.class)
                   public void test() {
                       throw new IllegalArgumentException("boom");
@@ -89,11 +89,11 @@ class UpdateTestAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+
               public class MyTest {
-              
+
                   @Test
                   public void test() {
                       assertThrows(IllegalArgumentException.class, () -> {
@@ -125,11 +125,11 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+
               public class MyTest {
-              
+
                   @Test
                   public void test() {
                       assertThrows(IndexOutOfBoundsException.class, () -> {
@@ -149,9 +149,9 @@ class UpdateTestAnnotationTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-              
+
               public class MyTest {
-              
+
                   @Test(expected = IllegalArgumentException.class)
                   public void test() {
                       String foo = "foo";
@@ -161,11 +161,11 @@ class UpdateTestAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+
               public class MyTest {
-              
+
                   @Test
                   public void test() {
                       assertThrows(IllegalArgumentException.class, () -> {
@@ -186,9 +186,9 @@ class UpdateTestAnnotationTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-              
+
               public class MyTest {
-              
+
                   @Test
                   public void test() {
                   }
@@ -196,9 +196,9 @@ class UpdateTestAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               public class MyTest {
-              
+
                   @Test
                   public void test() {
                   }
@@ -224,20 +224,20 @@ class UpdateTestAnnotationTest implements RewriteTest {
             """
               import org.junit.Test;
               import org.openrewrite.Issue;
-              
+
               public class MyTest {
-              
+
                   // some comments
                   @Issue("some issue")
                   @Test
                   public void test() {
                   }
-                  
+
                   // some comments
                   @Test
                   public void test1() {
                   }
-                  
+
                   @Test
                   // some comments
                   public void test2() {
@@ -247,20 +247,20 @@ class UpdateTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.openrewrite.Issue;
-              
+
               public class MyTest {
-              
+
                   // some comments
                   @Issue("some issue")
                   @Test
                   public void test() {
                   }
-              
+
                   // some comments
                   @Test
                   public void test1() {
                   }
-              
+
                   @Test
                   // some comments
                   public void test2() {
@@ -279,9 +279,9 @@ class UpdateTestAnnotationTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-              
+
               public class MyTest {
-              
+
                   @Test(timeout = 500)
                   public void test() {
                   }
@@ -290,11 +290,11 @@ class UpdateTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.Timeout;
-              
+
               import java.util.concurrent.TimeUnit;
-              
+
               public class MyTest {
-              
+
                   @Test
                   @Timeout(value = 500, unit = TimeUnit.MILLISECONDS)
                   public void test() {
@@ -323,9 +323,9 @@ class UpdateTestAnnotationTest implements RewriteTest {
             """
               import com.abc.MyException;
               import org.junit.Test;
-              
+
               public class MyTest {
-              
+
                   @Test(expected = MyException.class)
                   public void test() {
                       throw new MyException("my exception");
@@ -335,11 +335,11 @@ class UpdateTestAnnotationTest implements RewriteTest {
             """
               import com.abc.MyException;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+
               public class MyTest {
-              
+
                   @Test
                   public void test() {
                       assertThrows(MyException.class, () -> {
@@ -359,9 +359,9 @@ class UpdateTestAnnotationTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-              
+
               public class MyTest {
-              
+
                   @Test(expected = IllegalArgumentException.class, timeout = 500)
                   public void test() {
                       throw new IllegalArgumentException("boom");
@@ -371,13 +371,13 @@ class UpdateTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.Timeout;
-              
+
               import java.util.concurrent.TimeUnit;
-              
+
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+
               public class MyTest {
-              
+
                   @Test
                   @Timeout(value = 500, unit = TimeUnit.MILLISECONDS)
                   public void test() {
@@ -398,7 +398,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
           java(
             """
               package com.test;
-              
+
               public interface Foo {
                   void foo();
               }
@@ -407,11 +407,11 @@ class UpdateTestAnnotationTest implements RewriteTest {
           java(
             """
               package com.test;
-              
+
               import org.junit.Test;
-              
+
               public class FooTest implements Foo {
-                  
+
                   @Test
                   public void foo() {
                   }
@@ -419,11 +419,11 @@ class UpdateTestAnnotationTest implements RewriteTest {
               """,
             """
               package com.test;
-              
+
               import org.junit.jupiter.api.Test;
-              
+
               public class FooTest implements Foo {
-                  
+
                   @Test
                   public void foo() {
                   }
@@ -447,7 +447,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               public class MyTest {
                   Object o = Test.class;
               }
@@ -463,7 +463,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-              
+
               /** @see org.junit.Test */
               public class MyTest {
                   @Test
@@ -473,7 +473,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               /** @see org.junit.jupiter.api.Test */
               public class MyTest {
                   @Test
@@ -499,7 +499,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               public class MyTest {
                   @org.junit.jupiter.api.Test
                   public void feature1() {
@@ -521,7 +521,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   @org.junit.Test
                   public void feature1() {
                   }
-                  
+
                   @Test
                   public void feature2() {
                   }
@@ -529,14 +529,61 @@ class UpdateTestAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               public class MyTest {
                   @org.junit.jupiter.api.Test
                   public void feature1() {
                   }
-                  
+
                   @Test
                   public void feature2() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/563")
+    void removeThrowsCheckedException() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import java.io.IOException;
+
+              public class MyTest {
+
+                  @Test(expected = IOException.class)
+                  public void testWithThrows() throws IOException {
+                      foo();
+                  }
+    
+                  void foo() throws IOException {
+                      throw new IOException();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.io.IOException;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  @Test
+                  public void testWithThrows() {
+                      assertThrows(IOException.class, () -> {
+                          foo();
+                      });
+                  }
+    
+                  void foo() throws IOException {
+                      throw new IOException();
                   }
               }
               """

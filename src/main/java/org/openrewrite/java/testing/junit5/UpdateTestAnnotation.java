@@ -26,6 +26,7 @@ import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markup;
+import org.openrewrite.staticanalysis.UnnecessaryThrows;
 
 import java.util.Comparator;
 import java.util.Set;
@@ -149,6 +150,7 @@ public class UpdateTestAnnotation extends Recipe {
                                 .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                 .build()
                                 .apply(updateCursor(m), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
+                        m = (J.MethodDeclaration) new UnnecessaryThrows().getVisitor().visit(m, ctx, getCursor().getParentOrThrow());
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                     }
                 }

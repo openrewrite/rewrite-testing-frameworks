@@ -37,7 +37,6 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
           .recipe(new ExpectedExceptionToAssertThrows());
     }
 
-    @DocumentExample
     @Test
     void leavesOtherRulesAlone() {
         //language=java
@@ -71,6 +70,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         );
     }
 
+    @DocumentExample
     @Test
     void expectedExceptionRule() {
         //language=java
