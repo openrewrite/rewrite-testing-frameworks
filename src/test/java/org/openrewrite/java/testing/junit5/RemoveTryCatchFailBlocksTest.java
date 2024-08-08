@@ -645,7 +645,7 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/547")
-    void removeTryCatchFailBlocksWithReturningTry() {
+    void noChangeOnDirectReturn() {
         //language=java
         rewriteRun(
           java(
@@ -656,6 +656,31 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                   String getFoo() {
                     try {
                       return "foo";
+                    } catch (RuntimeException e) {
+                      fail();
+                    }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/547")
+    void noChangeOnNestedReturn() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class Foo {
+                  String getBar(boolean b) {
+                    try {
+                      if (b) {
+                        return "bar";
+                      }
                     } catch (RuntimeException e) {
                       fail();
                     }
