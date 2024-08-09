@@ -1,0 +1,45 @@
+#
+# Copyright 2024 the original author or authors.
+# <p>
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://www.apache.org/licenses/LICENSE-2.0
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.fest.MigrateFest2ToAssertJ
+displayName: Migrate to AssertJ assertions
+description: Migrate Fest `Assertions` to AssertJ `Assertions`.
+tags:
+  - testing
+  - fest
+  - assertj
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.fest.assertions.api.Assertions
+      newFullyQualifiedTypeName: org.assertj.core.api.Assertions
+  - org.openrewrite.java.testing.assertj.StaticImports
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.assertj.core.api.AbstractObjectAssert isLenientEqualsToByIgnoringFields(..)
+      newMethodName: isEqualToIgnoringGivenFields
+      ignoreDefinition: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.assertj.core.api.AbstractObjectAssert isLenientEqualsToByAcceptingFields(..)
+      newMethodName: isEqualToComparingOnlyGivenFields
+      ignoreDefinition: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.assertj.core.api.AbstractObjectAssert isLenientEqualsToByIgnoringNullFields(..)
+      newMethodName: isEqualToIgnoringNullFields
+      ignoreDefinition: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.assertj.core.api.AbstractObjectAssert isEqualsToByComparingFields(..)
+      newMethodName: isEqualToComparingFieldByField
+      ignoreDefinition: true

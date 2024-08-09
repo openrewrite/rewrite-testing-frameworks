@@ -9,6 +9,7 @@ description = "A rewrite module automating best practices and major version migr
 
 recipeDependencies {
     parserClasspath("org.assertj:assertj-core:3.+")
+    parserClasspath("org.easytesting:fest-assert-core:2.+")
     parserClasspath("junit:junit:latest.release")
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
     parserClasspath("org.junit.jupiter:junit-jupiter-api:latest.release")
@@ -70,4 +71,5 @@ dependencies {
 
 //    testImplementation("org.hamcrest:hamcrest:latest.release")
 //    testImplementation("org.assertj:assertj-core:latest.release")
+    testImplementation("org.easytesting:fest-assert-core:latest.release")
 }
