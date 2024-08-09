@@ -31,7 +31,7 @@ class TestRuleToTestInfoTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "testng-7."))
           .recipe(new TestRuleToTestInfo());
     }
 
@@ -129,6 +129,64 @@ class TestRuleToTestInfoTest implements RewriteTest {
                   }
 
                   @BeforeEach
+                  public void setup(TestInfo testInfo) {
+                      Optional<Method> testMethod = testInfo.getTestMethod();
+                      if (testMethod.isPresent()) {
+                          this.name = testMethod.get().getName();
+                      }
+                      count++;
+                  }
+
+                  private static class SomeInnerClass {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ruleHasTestNGBeforeMethodToTestInfo() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.TestName;
+              import org.testng.annotations.BeforeMethod;
+
+              public class SomeTest {
+                  protected int count;
+                  @Rule
+                  public TestName name = new TestName();
+                  protected String randomName() {
+                      return name.getMethodName();
+                  }
+
+                  @BeforeMethod
+                  public void setup() {
+                      count++;
+                  }
+
+                  private static class SomeInnerClass {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.TestInfo;
+              import org.testng.annotations.BeforeMethod;
+              import java.lang.reflect.Method;
+              import java.util.Optional;
+
+              public class SomeTest {
+                  protected int count;
+                 \s
+                  public String name;
+                  protected String randomName() {
+                      return name;
+                  }
+
+                  @BeforeMethod
                   public void setup(TestInfo testInfo) {
                       Optional<Method> testMethod = testInfo.getTestMethod();
                       if (testMethod.isPresent()) {

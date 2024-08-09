@@ -30,7 +30,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-2.2"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-2.2", "testng-7."))
           .recipe(new MigrateJUnitTestCase());
     }
 
@@ -330,6 +330,34 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   }
 
                   @AfterEach
+                  public void tearDown() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void dontAddJUnitWhenUsingTestNG(){
+        rewriteRun(
+          spec -> spec.recipes(
+            new MigrateJUnitTestCase(),
+            new UpdateBeforeAfterAnnotations()
+          ),
+          //language=java
+          java(
+            """
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+
+              public class MathTest {
+
+                  @BeforeMethod
+                  public void setUp() {
+                  }
+
+                  @AfterMethod
                   public void tearDown() {
                   }
               }
