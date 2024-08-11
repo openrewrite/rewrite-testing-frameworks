@@ -76,8 +76,7 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                 List<List<J.MethodInvocation>> consecutiveAssertThatList = new ArrayList<>();
                 String prevArg = "";
                 int currListIndex = 0;
-                int statementListSize = statements.size();
-                for (int currIndex = 0; currIndex < statementListSize; currIndex++) {
+                for (int currIndex = 0; currIndex < statements.size(); currIndex++) {
 
                     consecutiveAssertThatList.add(new ArrayList<>());
 
