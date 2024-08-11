@@ -34,7 +34,7 @@ import java.util.stream.Stream;
 
 import static org.openrewrite.java.Assertions.java;
 
-class MigrateChainedAssertToAssertJTest implements RewriteTest {
+class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
