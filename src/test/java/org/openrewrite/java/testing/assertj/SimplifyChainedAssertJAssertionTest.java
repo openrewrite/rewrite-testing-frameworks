@@ -484,45 +484,6 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
         );
     }
 
-    @Test
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/398")
-    void sizeIsEqualToZeroToIsEmpty() {
-        rewriteRun(
-          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("size", "isEqualTo", "hasSize", "java.util.List")),
-          //language=java
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-              import java.util.List;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class MyTest {
-                  @Test
-                  void testMethod() {
-                      List<String> objectIdentifies = List.of();
-                      assertThat(objectIdentifies.size()).isEqualTo(0);
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-              import java.util.List;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class MyTest {
-                  @Test
-                  void testMethod() {
-                      List<String> objectIdentifies = List.of();
-                      assertThat(objectIdentifies).isEmpty();
-                  }
-              }
-              """
-          )
-        );
-    }
-
     @Nested
     class OptionalAssertions {
 

@@ -22,6 +22,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -61,6 +62,38 @@ class AssertJBestPracticesTest implements RewriteTest {
               class Test {
                   void test() {
                       assertThat("test").isEmpty();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/398")
+    void sizeIsEqualToZeroToIsEmpty() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(List<String> list) {
+                      assertThat(list.size()).isEqualTo(0);
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(List<String> list) {
+                      assertThat(list).isEmpty();
                   }
               }
               """
