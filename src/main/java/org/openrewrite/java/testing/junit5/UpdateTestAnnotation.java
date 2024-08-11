@@ -27,6 +27,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markup;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Set;
 
@@ -149,6 +150,7 @@ public class UpdateTestAnnotation extends Recipe {
                                 .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                 .build()
                                 .apply(updateCursor(m), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
+                        m = m.withThrows(Collections.emptyList());
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                     }
                 }
