@@ -80,31 +80,31 @@ class AssertJBestPracticesTest implements RewriteTest {
               arguments("Boolean", "assertThat(x).isEqualTo(true)", "assertThat(x).isTrue()"),
               arguments("Boolean", "assertThat(x).isEqualTo(false)", "assertThat(x).isFalse()"),
               arguments("Object", "assertThat(x.equals(y)).isTrue()", "assertThat(x).isEqualTo(y)"),
-//          arguments("Object", "assertThat(x == y).isTrue()", "assertThat(x).isSameAs(y)"),
-//          arguments("Object", "assertThat(x == null).isTrue()", "assertThat(x).isNull()"),
+//              arguments("Object", "assertThat(x == y).isTrue()", "assertThat(x).isSameAs(y)"),
+//              arguments("Object", "assertThat(x == null).isTrue()", "assertThat(x).isNull()"),
               arguments(
                 "Object",
                 "assertThat(x.toString()).isEqualTo(\"y\")",
                 "assertThat(x).hasToString(\"y\")"),
-//          arguments(
-//              "Object",
-//              "assertThat(x.hashCode()).isEqualTo(y.hashCode())",
-//              "assertThat(x).hasSameHashCodeAs(y)"),
-//          arguments(
-//              "Object",
-//              "assertThat(x instanceof String).isTrue()",
-//              "assertThat(x).isInstanceOf(String.class)"),
+//              arguments(
+//                "Object",
+//                "assertThat(x.hashCode()).isEqualTo(y.hashCode())",
+//                "assertThat(x).hasSameHashCodeAs(y)"),
+//              arguments(
+//                "Object",
+//                "assertThat(x instanceof String).isTrue()",
+//                "assertThat(x).isInstanceOf(String.class)"),
               // Related to Comparable
-//          arguments(
-//              "java.math.BigDecimal",
-//              "assertThat(x.compareTo(y)).isZero()",
-//              "assertThat(x).isEqualByComparingTo(y)"),
-//          arguments(
-//              "int", "assertThat(x >= y).isTrue()", "assertThat(x).isGreaterThanOrEqualTo(y)"),
-//          arguments("long", "assertThat(x > y).isTrue()", "assertThat(x).isGreaterThan(y)"),
-//          arguments(
-//              "double", "assertThat(x <= y).isTrue()", "assertThat(x).isLessThanOrEqualTo(y)"),
-//          arguments("float", "assertThat(x < y).isTrue()", "assertThat(x).isLessThan(y)"),
+//              arguments(
+//                "java.math.BigDecimal",
+//                "assertThat(x.compareTo(y)).isZero()",
+//                "assertThat(x).isEqualByComparingTo(y)"),
+//              arguments(
+//                "int", "assertThat(x >= y).isTrue()", "assertThat(x).isGreaterThanOrEqualTo(y)"),
+//              arguments("long", "assertThat(x > y).isTrue()", "assertThat(x).isGreaterThan(y)"),
+//              arguments(
+//                "double", "assertThat(x <= y).isTrue()", "assertThat(x).isLessThanOrEqualTo(y)"),
+//              arguments("float", "assertThat(x < y).isTrue()", "assertThat(x).isLessThan(y)"),
               // Related to String
               arguments("String", "assertThat(x.isEmpty()).isTrue()", "assertThat(x).isEmpty()"),
               arguments("String", "assertThat(x).hasSize(0)", "assertThat(x).isEmpty()"),
@@ -120,8 +120,7 @@ class AssertJBestPracticesTest implements RewriteTest {
               arguments("String", "assertThat(x.matches(y)).isTrue()", "assertThat(x).matches(y)"),
               arguments("String", "assertThat(x.trim()).isEmpty()", "assertThat(x).isBlank()"),
               arguments("String", "assertThat(x.length()).isEqualTo(5)", "assertThat(x).hasSize(5)"),
-//          arguments(
-//              "String", "assertThat(x).hasSize(y.length())", "assertThat(x).hasSameSizeAs(y)"),
+//              arguments("String", "assertThat(x).hasSize(y.length())", "assertThat(x).hasSameSizeAs(y)"),
               // Related to File
               arguments("java.io.File", "assertThat(x).hasSize(0)", "assertThat(x).isEmpty()"),
               arguments("java.io.File", "assertThat(x.length()).isZero()", "assertThat(x).isEmpty()"),
@@ -180,26 +179,26 @@ class AssertJBestPracticesTest implements RewriteTest {
                 "assertThat(x.isAbsolute()).isFalse()",
                 "assertThat(x).isRelative()"),
               // Related to Array
-//          arguments("Object[]", "assertThat(x.length).isZero()", "assertThat(x).isEmpty()"),
-//          arguments("String[]", "assertThat(x.length).isEqualTo(7)", "assertThat(x).hasSize(7)"),
-//          arguments(
-//              "int[]",
-//              "assertThat(x.length).isEqualTo(y.length)",
-//              "assertThat(x).hasSameSizeAs(y)"),
-//          arguments(
-//              "boolean[]",
-//              "assertThat(x.length).isLessThanOrEqualTo(2)",
-//              "assertThat(x).hasSizeLessThanOrEqualTo(2)"),
-//          arguments(
-//              "double[]", "assertThat(x.length).isLessThan(5)", "assertThat(x).hasSizeLessThan(5)"),
-//          arguments(
-//              "long[]",
-//              "assertThat(x.length).isGreaterThan(4)",
-//              "assertThat(x).hasSizeGreaterThan(4)"),
-//          arguments(
-//              "char[]",
-//              "assertThat(x.length).isGreaterThanOrEqualTo(1)",
-//              "assertThat(x).hasSizeGreaterThanOrEqualTo(1)"),
+//              arguments("Object[]", "assertThat(x.length).isZero()", "assertThat(x).isEmpty()"),
+//              arguments("String[]", "assertThat(x.length).isEqualTo(7)", "assertThat(x).hasSize(7)"),
+//              arguments(
+//                "int[]",
+//                "assertThat(x.length).isEqualTo(y.length)",
+//                "assertThat(x).hasSameSizeAs(y)"),
+//              arguments(
+//                "boolean[]",
+//                "assertThat(x.length).isLessThanOrEqualTo(2)",
+//                "assertThat(x).hasSizeLessThanOrEqualTo(2)"),
+//              arguments(
+//                "double[]", "assertThat(x.length).isLessThan(5)", "assertThat(x).hasSizeLessThan(5)"),
+//              arguments(
+//                "long[]",
+//                "assertThat(x.length).isGreaterThan(4)",
+//                "assertThat(x).hasSizeGreaterThan(4)"),
+//              arguments(
+//                "char[]",
+//                "assertThat(x.length).isGreaterThanOrEqualTo(1)",
+//                "assertThat(x).hasSizeGreaterThanOrEqualTo(1)"),
               // Related to Collection
               arguments(
                 "java.util.Collection<String>",
@@ -218,10 +217,10 @@ class AssertJBestPracticesTest implements RewriteTest {
                 "assertThat(x.containsAll(y)).isTrue()",
                 "assertThat(x).containsAll(y)"),
               // Related to Map
-//          arguments(
-//              "java.util.Map<String, Object>",
-//              "assertThat(x).hasSize(y.size())",
-//              "assertThat(x).hasSameSizeAs(y)"),
+//              arguments(
+//                "java.util.Map<String, Object>",
+//                "assertThat(x).hasSize(y.size())",
+//                "assertThat(x).hasSameSizeAs(y)"),
               arguments(
                 "java.util.Map<String, Object>",
                 "assertThat(x.containsKey(\"b\")).isTrue()",
@@ -230,10 +229,10 @@ class AssertJBestPracticesTest implements RewriteTest {
                 "java.util.Map<String, Object>",
                 "assertThat(x.keySet()).contains(\"b\")",
                 "assertThat(x).containsKey(\"b\")"),
-//          arguments(
-//              "java.util.Map<String, Object>",
-//              "assertThat(x.keySet()).containsOnly(\"a\")",
-//              "assertThat(x).containsOnlyKey(\"a\")"),
+              arguments(
+                "java.util.Map<String, Object>",
+                "assertThat(x.keySet()).containsOnly(\"a\")",
+                "assertThat(x).containsOnlyKeys(\"a\")"),
               arguments(
                 "java.util.Map<String, Object>",
                 "assertThat(x.containsValue(value)).isTrue()",
