@@ -79,7 +79,7 @@ class AssertJBestPracticesTest implements RewriteTest {
               arguments("Object", "assertThat(x).isEqualTo(null)", "assertThat(x).isNull()"),
               arguments("Boolean", "assertThat(x).isEqualTo(true)", "assertThat(x).isTrue()"),
               arguments("Boolean", "assertThat(x).isEqualTo(false)", "assertThat(x).isFalse()"),
-//          arguments("Object", "assertThat(x.equals(y)).isTrue()", "assertThat(x).isEqualTo(y)"),
+              arguments("Object", "assertThat(x.equals(y)).isTrue()", "assertThat(x).isEqualTo(y)"),
 //          arguments("Object", "assertThat(x == y).isTrue()", "assertThat(x).isSameAs(y)"),
 //          arguments("Object", "assertThat(x == null).isTrue()", "assertThat(x).isNull()"),
               arguments(
@@ -179,7 +179,7 @@ class AssertJBestPracticesTest implements RewriteTest {
                 "java.nio.file.Path",
                 "assertThat(x.isAbsolute()).isFalse()",
                 "assertThat(x).isRelative()"),
-              /// Related to Array
+              // Related to Array
 //          arguments("Object[]", "assertThat(x.length).isZero()", "assertThat(x).isEmpty()"),
 //          arguments("String[]", "assertThat(x.length).isEqualTo(7)", "assertThat(x).hasSize(7)"),
 //          arguments(

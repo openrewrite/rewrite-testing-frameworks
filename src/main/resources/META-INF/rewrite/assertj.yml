@@ -363,10 +363,16 @@ recipeList:
       assertToReplace: isFalse
       dedicatedAssertion: isExhausted
       requiredType: java.util.Iterator
+  # Object assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: toString
       assertToReplace: isEqualTo
       dedicatedAssertion: hasToString
+      requiredType: java.lang.Object
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: equals
+      assertToReplace: isTrue
+      dedicatedAssertion: isEqualTo
       requiredType: java.lang.Object
 
 ---
