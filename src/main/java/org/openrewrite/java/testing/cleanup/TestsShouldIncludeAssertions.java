@@ -68,7 +68,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     @Override
     public String getDescription() {
-        return "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertThrowDoesNotThrow(..)`.";
+        return "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertDoesNotThrow(..)`.";
     }
 
     @Override

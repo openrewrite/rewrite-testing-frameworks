@@ -19,16 +19,14 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 public class RemoveTryCatchFailBlocks extends Recipe {
@@ -67,6 +65,19 @@ public class RemoveTryCatchFailBlocks extends Recipe {
                 return try_;
             }
 
+            // Skip if any return is found, since we can't return from `assertDoesNotThrow`
+            AtomicBoolean returnFound = new AtomicBoolean(false);
+            new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.Return visitReturn(J.Return _return, AtomicBoolean atomicBoolean) {
+                    atomicBoolean.set(true);
+                    return _return;
+                }
+            }.visit(try_, returnFound, getCursor().getParentOrThrow());
+            if (returnFound.get()) {
+                return try_;
+            }
+
             /*
             Only one statement in the catch block, which is a fail(), with no or a simple String argument.
             We would not want to convert for instance fail(cleanUpAndReturnMessage()) might still have side
@@ -81,9 +92,9 @@ public class RemoveTryCatchFailBlocks extends Recipe {
                 return try_;
             }
             J.MethodInvocation failCall = (J.MethodInvocation) statement;
-            if (!ASSERT_FAIL_NO_ARG.matches(failCall)
-                && !ASSERT_FAIL_STRING_ARG.matches(failCall)
-                && !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)) {
+            if (!ASSERT_FAIL_NO_ARG.matches(failCall) &&
+                !ASSERT_FAIL_STRING_ARG.matches(failCall) &&
+                !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)) {
                 return try_;
             }
 
