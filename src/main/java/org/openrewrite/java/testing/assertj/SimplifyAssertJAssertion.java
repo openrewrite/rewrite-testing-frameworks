@@ -33,7 +33,7 @@ import org.openrewrite.java.tree.TypeUtils;
 
 @AllArgsConstructor
 @NoArgsConstructor
-public class ShortenChainedAssertJAssertion extends Recipe {
+public class SimplifyAssertJAssertion extends Recipe {
 
     @Option(displayName = "AssertJ assertion",
             description = "The AssertJ assert that should be replaced.",

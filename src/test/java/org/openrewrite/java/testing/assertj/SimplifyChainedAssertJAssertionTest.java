@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -43,9 +44,9 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
@@ -55,9 +56,9 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
@@ -78,7 +79,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           java(
             """              
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class MyTest {
                   void testMethod(String actual) {
                       assertThat(actual.isEmpty()).as("Reason").isTrue();
@@ -87,7 +88,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               """,
             """              
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class MyTest {
                   void testMethod(String actual) {
                       assertThat(actual).as("Reason").isEmpty();
@@ -109,15 +110,15 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
                       assertThat(getString().isEmpty()).isTrue();
                   }
-    
+                  
                   String getString() {
                       return "hello world";
                   }
@@ -125,15 +126,15 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
                       assertThat(getString()).isEmpty();
                   }
-    
+                  
                   String getString() {
                       return "hello world";
                   }
@@ -154,11 +155,11 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import java.nio.file.Path;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void string(String actual) {
@@ -202,16 +203,16 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
                       String expected = "hello world";
                       assertThat(getString().equalsIgnoreCase(expected)).isTrue();
                   }
-    
+                  
                   String getString() {
                       return "hello world";
                   }
@@ -219,16 +220,16 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
                       String expected = "hello world";
                       assertThat(getString()).isEqualToIgnoringCase(expected);
                   }
-    
+                  
                   String getString() {
                       return "hello world";
                   }
@@ -246,16 +247,16 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
                       int length = 5;
                       assertThat(getString().length()).isEqualTo(length);
                   }
-    
+                  
                   String getString() {
                       return "hello world";
                   }
@@ -263,16 +264,16 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
                       int length = 5;
                       assertThat(getString()).hasSize(length);
                   }
-    
+                  
                   String getString() {
                       return "hello world";
                   }
@@ -291,15 +292,15 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
                       assertThat(getString().trim()).isEmpty();
                   }
-    
+                  
                   String getString() {
                       return "hello world";
                   }
@@ -307,15 +308,15 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
                       assertThat(getString()).isBlank();
                   }
-    
+                  
                   String getString() {
                       return "hello world";
                   }
@@ -336,9 +337,9 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
@@ -349,9 +350,9 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-              
+                            
               class MyTest {
                   @Test
                   void testMethod() {
@@ -375,9 +376,9 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.Collections;
               import java.util.Map;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
@@ -385,7 +386,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
                       String value = "value";
                       assertThat(getMap().get(key)).isEqualTo(value);
                   }
-    
+                  
                   Map<String, String> getMap() {
                       return Collections.emptyMap();
                   }
@@ -395,9 +396,9 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.Collections;
               import java.util.Map;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
@@ -405,7 +406,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
                       String value = "value";
                       assertThat(getMap()).containsEntry(key, value);
                   }
-    
+                  
                   Map<String, String> getMap() {
                       return Collections.emptyMap();
                   }
@@ -423,15 +424,15 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
                       assertThat(getString().isEmpty()).isFalse();
                   }
-    
+                  
                   String getString() {
                       return "hello world";
                   }
@@ -439,15 +440,15 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
                       assertThat(getString()).isNotEmpty();
                   }
-    
+                  
                   String getString() {
                       return "hello world";
                   }
@@ -465,15 +466,15 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-    
+                  
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
                       assertThat(getString().isBlank()).isFalse();
                   }
-    
+                  
                   String getString() {
                       return "hello world";
                   }
@@ -493,9 +494,9 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import java.util.List;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
@@ -507,9 +508,9 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import java.util.List;
-              
+                            
               import static org.assertj.core.api.Assertions.assertThat;
-    
+                  
               class MyTest {
                   @Test
                   void testMethod() {
@@ -520,5 +521,85 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class OptionalAssertions {
+
+        @Test
+        void simplifyPresenceAssertion() {
+            rewriteRun(
+              spec -> spec.recipes(
+                new SimplifyChainedAssertJAssertion("isPresent", "isTrue", "isPresent", "java.util.Optional"),
+                new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty", "java.util.Optional"),
+                new SimplifyChainedAssertJAssertion("isPresent", "isFalse", "isNotPresent", "java.util.Optional"),
+                new SimplifyChainedAssertJAssertion("isEmpty", "isFalse", "isNotEmpty", "java.util.Optional")
+              ),
+              //language=java
+              java(
+                """
+                  import static org.assertj.core.api.Assertions.assertThat;
+                  import java.util.Optional;
+
+                  class Test {
+                      void simpleTest(Optional<String> o) {
+                          assertThat(o.isPresent()).isTrue();
+                          assertThat(o.isEmpty()).isTrue();
+                          assertThat(o.isPresent()).isFalse();
+                          assertThat(o.isEmpty()).isFalse();
+                      }
+                  }
+                  """,
+                """
+                  import static org.assertj.core.api.Assertions.assertThat;
+                  import java.util.Optional;
+
+                  class Test {
+                      void simpleTest(Optional<String> o) {
+                          assertThat(o).isPresent();
+                          assertThat(o).isEmpty();
+                          assertThat(o).isNotPresent();
+                          assertThat(o).isNotEmpty();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void simplifiyEqualityAssertion() {
+            rewriteRun(
+              spec -> spec.recipes(
+                new SimplifyChainedAssertJAssertion("get", "isEqualTo", "contains", "java.util.Optional"),
+                new SimplifyChainedAssertJAssertion("get", "isSameAs", "containsSame", "java.util.Optional")
+              ),
+              //language=java
+              java(
+                """
+                  import static org.assertj.core.api.Assertions.assertThat;
+                  import java.util.Optional;
+
+                  class Test {
+                      void simpleTest(Optional<String> o) {
+                          assertThat(o.get()).isEqualTo("foo");
+                          assertThat(o.get()).isSameAs("foo");
+                      }
+                  }
+                  """,
+                """
+                  import static org.assertj.core.api.Assertions.assertThat;
+                  import java.util.Optional;
+
+                  class Test {
+                      void simpleTest(Optional<String> o) {
+                          assertThat(o).contains("foo");
+                          assertThat(o).containsSame("foo");
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }

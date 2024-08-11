@@ -38,28 +38,28 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SimplifyChainedAssertJAssertion extends Recipe {
-    @Option(displayName = "AssertJ Assertion",
+    @Option(displayName = "AssertJ chained assertion",
             description = "The chained AssertJ assertion to move to dedicated assertion.",
             example = "equals",
             required = false)
     @Nullable
     String chainedAssertion;
 
-    @Option(displayName = "AssertJ Assertion",
+    @Option(displayName = "AssertJ replaced assertion",
             description = "The AssertJ assert that should be replaced.",
             example = "isTrue",
             required = false)
     @Nullable
     String assertToReplace;
 
-    @Option(displayName = "AssertJ Assertion",
+    @Option(displayName = "AssertJ replacement assertion",
             description = "The AssertJ method to migrate to.",
             example = "isEqualTo",
             required = false)
     @Nullable
     String dedicatedAssertion;
 
-    @Option(displayName = "Required Type",
+    @Option(displayName = "Required type",
             description = "Specifies the type the recipe should run on.",
             example = "java.lang.String",
             required = false)

@@ -24,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class ShortenChainedAssertJAssertionTest implements RewriteTest {
+class SimplifyAssertJAssertionTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -35,7 +35,7 @@ class ShortenChainedAssertJAssertionTest implements RewriteTest {
     @Test
     void primitiveBooleanIsFalse() {
         rewriteRun(
-          spec -> spec.recipe(new ShortenChainedAssertJAssertion("isEqualTo", "false", "isFalse", "boolean")),
+          spec -> spec.recipe(new SimplifyAssertJAssertion("isEqualTo", "false", "isFalse", "boolean")),
           //language=java
           java(
             """
@@ -61,7 +61,7 @@ class ShortenChainedAssertJAssertionTest implements RewriteTest {
     @Test
     void objectBooleanIsFalse() {
         rewriteRun(
-          spec -> spec.recipe(new ShortenChainedAssertJAssertion("isEqualTo", "false", "isFalse", "java.lang.Boolean")),
+          spec -> spec.recipe(new SimplifyAssertJAssertion("isEqualTo", "false", "isFalse", "java.lang.Boolean")),
           //language=java
           java(
             """
@@ -89,7 +89,7 @@ class ShortenChainedAssertJAssertionTest implements RewriteTest {
     @Test
     void convertsStringIsEqualToNull() {
         rewriteRun(
-          spec -> spec.recipe(new ShortenChainedAssertJAssertion("isEqualTo", "null", "isNull", "java.lang.Object")),
+          spec -> spec.recipe(new SimplifyAssertJAssertion("isEqualTo", "null", "isNull", "java.lang.Object")),
           // language=java
           java(
             """
@@ -115,7 +115,7 @@ class ShortenChainedAssertJAssertionTest implements RewriteTest {
     @Test
     void convertsObjectIsEqualToNull() {
         rewriteRun(
-          spec -> spec.recipe(new ShortenChainedAssertJAssertion("isEqualTo", "null", "isNull", "java.lang.Object")),
+          spec -> spec.recipe(new SimplifyAssertJAssertion("isEqualTo", "null", "isNull", "java.lang.Object")),
           // language=java
           java(
             """
@@ -142,7 +142,7 @@ class ShortenChainedAssertJAssertionTest implements RewriteTest {
     @Test
     void convertsIsEqualToEmptyString() {
         rewriteRun(
-          spec -> spec.recipe(new ShortenChainedAssertJAssertion("isEqualTo", "\"\"", "isEmpty", "java.lang.String")),
+          spec -> spec.recipe(new SimplifyAssertJAssertion("isEqualTo", "\"\"", "isEmpty", "java.lang.String")),
           // language=java
           java(
             """
