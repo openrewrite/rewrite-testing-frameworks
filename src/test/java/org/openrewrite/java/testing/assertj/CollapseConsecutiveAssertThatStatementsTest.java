@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24", "junit-jupiter-api-5.9"))
+          .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
           .recipe(new CollapseConsecutiveAssertThatStatements());
     }
 
@@ -41,15 +41,12 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.jupiter.api.Test;
-              
               import java.util.Arrays;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
-              public class MyTest {
-                  @Test
-                  public void test() {
+              class MyTest {
+                  void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA).isNotNull();
                       assertThat(listA).hasSize(3);
@@ -62,15 +59,12 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
-              
               import java.util.Arrays;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
-              public class MyTest {
-                  @Test
-                  public void test() {
+              class MyTest {
+                  void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA)
                               .isNotNull()
@@ -93,15 +87,12 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.jupiter.api.Test;
-              
               import java.util.Arrays;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
-              public class MyTest {
-                  @Test
-                  public void test() {
+              class MyTest {
+                  void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA).isNotNull();
                       assertThat(listA).hasSize(3);
@@ -117,15 +108,12 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
-              
               import java.util.Arrays;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
-              public class MyTest {
-                  @Test
-                  public void test() {
+              class MyTest {
+                  void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA)
                               .isNotNull()
@@ -152,20 +140,17 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.jupiter.api.Test;
-              
               import java.util.Arrays;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
-              public class MyTest2 {
-                  @Test
-                  public void test() {
+              class MyTest2 {
+                  void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA).isNotNull();
                       assertThat(listA).hasSize(3);
                       List<String> listB = Arrays.asList("a", "b", "c");
-                      assertThat(listA).containsExactly("a", "b", "c");              
+                      assertThat(listA).containsExactly("a", "b", "c");
                       assertThat(listB).isNotNull();
                       assertThat(listB).hasSize(3);
                   }
@@ -176,15 +161,12 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
-              
               import java.util.Arrays;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
-              public class MyTest2 {
-                  @Test
-                  public void test() {
+              class MyTest2 {
+                  void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA)
                               .isNotNull()
@@ -211,15 +193,12 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.jupiter.api.Test;
-              
               import java.util.Arrays;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
-              public class MyTest {
-                  @Test
-                  public void test() {
+              class MyTest {
+                  void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA).isNotNull();
                       int x = listA.size();
@@ -242,15 +221,12 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.jupiter.api.Test;
-              
               import java.util.Arrays;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
-              public class MyTest {
-                  @Test
-                  public void test() {              
+              class MyTest {
+                  void test() {
                       assertThat(notification()).isNotNull();
                       assertThat(notification()).isTrue();
                   }
@@ -269,15 +245,12 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.jupiter.api.Test;
-              
               import java.util.Arrays;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
-              public class MyTest {
-                  @Test
-                  public void test() {              
+              class MyTest {
+                  void test() {
                       assertThat(() -> notification()).isNotNull();
                       assertThat(() -> notification()).isTrue();
                   }
@@ -296,15 +269,12 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.jupiter.api.Test;
-              
               import java.util.Arrays;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
-              public class MyTest {
-                  @Test
-                  public void test() {
+              class MyTest {
+                  void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA)
                           .isNotNull()
@@ -326,15 +296,12 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.jupiter.api.Test;
-              
               import java.util.Arrays;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
-              public class MyTest {
-                  @Test
-                  public void test() {
+              class MyTest {
+                  void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
                       assertThat(listA).isNotNull();
                       int x=3;
