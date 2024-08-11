@@ -155,14 +155,14 @@ class AssertJBestPracticesTest implements RewriteTest {
               arguments(
                 "java.io.File", "assertThat(x.list()).isEmpty()", "assertThat(x).isEmptyDirectory()"),
               // Related to Path
-//          arguments(
-//              "java.nio.file.Path",
-//              "assertThat(x.startsWith(\"x\")).isTrue()",
-//              "assertThat(x).startsWithRaw(\"x\")"),
-//          arguments(
-//              "java.nio.file.Path",
-//              "assertThat(x.endsWith(\"y\")).isTrue()",
-//              "assertThat(x).endsWithRaw(\"y\")"),
+              arguments(
+                "java.nio.file.Path",
+                "assertThat(x.startsWith(\"x\")).isTrue()",
+                "assertThat(x).startsWithRaw(Path.of(\"x\"))"),
+              arguments(
+                "java.nio.file.Path",
+                "assertThat(x.endsWith(\"y\")).isTrue()",
+                "assertThat(x).endsWithRaw(Path.of(\"y\"))"),
               arguments(
                 "java.nio.file.Path",
                 "assertThat(x.getParent()).isEqualTo(y)",
@@ -267,18 +267,22 @@ class AssertJBestPracticesTest implements RewriteTest {
           String argumentsType, String assertToReplace, String dedicatedAssertion) {
             String template =
               """
+                import %1$s;
                 import static org.assertj.core.api.Assertions.assertThat;
 
                 class A {
-                    void test(%s x, %s y, Object value) {
-                        %s;
+                    void test(%2$s x, %2$s y, Object value) {
+                        %3$s;
                     }
                 }
                 """;
+            String imprt = argumentsType
+              .replaceAll("^([A-Z])", "java.lang.$1")
+              .replaceAll("<.*>", "");
             rewriteRun(
               java(
-                String.format(template, argumentsType, argumentsType, assertToReplace),
-                String.format(template, argumentsType, argumentsType, dedicatedAssertion)));
+                template.formatted(imprt, argumentsType, assertToReplace),
+                template.formatted(imprt, argumentsType, dedicatedAssertion)));
         }
     }
 }

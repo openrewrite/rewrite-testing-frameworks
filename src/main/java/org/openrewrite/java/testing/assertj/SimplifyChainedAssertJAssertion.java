@@ -136,38 +136,38 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
         }
-    }
 
-    private String getStringTemplateAndAppendArguments(J.MethodInvocation assertThatArg, J.MethodInvocation methodToReplace, List<Expression> arguments) {
-        Expression assertThatArgument = assertThatArg.getArguments().get(0);
-        Expression methodToReplaceArgument = methodToReplace.getArguments().get(0);
-        boolean assertThatArgumentIsEmpty = assertThatArgument instanceof J.Empty;
-        boolean methodToReplaceArgumentIsEmpty = methodToReplaceArgument instanceof J.Empty;
+        private String getStringTemplateAndAppendArguments(J.MethodInvocation assertThatArg, J.MethodInvocation methodToReplace, List<Expression> arguments) {
+            Expression assertThatArgument = assertThatArg.getArguments().get(0);
+            Expression methodToReplaceArgument = methodToReplace.getArguments().get(0);
+            boolean assertThatArgumentIsEmpty = assertThatArgument instanceof J.Empty;
+            boolean methodToReplaceArgumentIsEmpty = methodToReplaceArgument instanceof J.Empty;
 
-        // If both arguments are empty, then the select is already added to the arguments list, and we use a minimal template
-        if (assertThatArgumentIsEmpty && methodToReplaceArgumentIsEmpty) {
-            return "assertThat(#{any()}).%s()";
+            // If both arguments are empty, then the select is already added to the arguments list, and we use a minimal template
+            if (assertThatArgumentIsEmpty && methodToReplaceArgumentIsEmpty) {
+                return "assertThat(#{any()}).%s()";
+            }
+
+            // If both arguments are not empty, then we add both to the arguments to the arguments list, and return a template with two arguments
+            if (!assertThatArgumentIsEmpty && !methodToReplaceArgumentIsEmpty) {
+                // This should only happen for map assertions using a key and value
+                arguments.add(assertThatArgument);
+                arguments.add(methodToReplaceArgument);
+                return "assertThat(#{any()}).%s(#{any()}, #{any()})";
+            }
+
+            // If either argument is empty, we choose which one to add to the arguments list, and optionally extract the select
+            arguments.add(extractEitherArgument(assertThatArgumentIsEmpty, assertThatArgument, methodToReplaceArgument));
+
+            // Special case for Path.of() assertions
+            if ("java.nio.file.Path".equals(requiredType) && dedicatedAssertion.contains("Raw")
+                && TypeUtils.isAssignableTo("java.lang.String", assertThatArgument.getType())) {
+                maybeAddImport("java.nio.file.Path");
+                return "assertThat(#{any()}).%s(Path.of(#{any()}))";
+            }
+
+            return "assertThat(#{any()}).%s(#{any()})";
         }
-
-        // If both arguments are not empty, then we add both to the arguments to the arguments list, and return a template with two arguments
-        if (!assertThatArgumentIsEmpty && !methodToReplaceArgumentIsEmpty) {
-            // This should only happen for map assertions using a key and value
-            arguments.add(assertThatArgument);
-            arguments.add(methodToReplaceArgument);
-            return "assertThat(#{any()}).%s(#{any()}, #{any()})";
-        }
-
-        // If either argument is empty, we choose which one to add to the arguments list, and optionally extract the select
-        arguments.add(extractEitherArgument(assertThatArgumentIsEmpty, assertThatArgument, methodToReplaceArgument));
-
-        // Special case for Path.of() assertions
-        if ("java.nio.file.Path".equals(requiredType) && dedicatedAssertion.contains("Raw")
-            && TypeUtils.isAssignableTo("java.lang.String", assertThatArgument.getType())) {
-            return "assertThat(#{any()}).%s(Path.of(#{any()}))";
-        }
-
-        return "assertThat(#{any()}).%s(#{any()})";
-
     }
 
     private static Expression extractEitherArgument(boolean assertThatArgumentIsEmpty, Expression assertThatArgument, Expression methodToReplaceArgument) {
