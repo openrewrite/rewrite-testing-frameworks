@@ -17,7 +17,6 @@ package org.openrewrite.java.testing.assertj;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
-
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
@@ -28,38 +27,34 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.java.tree.J.Literal;
-import org.openrewrite.java.tree.J.MethodInvocation;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 @AllArgsConstructor
 @NoArgsConstructor
 public class ShortenChainedAssertJAssertion extends Recipe {
 
-    @Option(displayName = "AssertJ Assertion",
+    @Option(displayName = "AssertJ assertion",
             description = "The AssertJ assert that should be replaced.",
             example = "isTrue",
             required = false)
     @Nullable
     String assertToReplace;
-    
-    @Option(displayName = "AssertJ Assertion",
+
+    @Option(displayName = "Assertion argument",
             description = "The chained AssertJ assertion to move to dedicated assertion.",
             example = "equals",
             required = false)
     @Nullable
     String assertArgument;
 
-
-    @Option(displayName = "AssertJ Assertion",
+    @Option(displayName = "Dedicated assertion",
             description = "The AssertJ method to migrate to.",
-            example = "isEqualTo",
-            required = false)
-    @Nullable
+            example = "isEqualTo")
     String dedicatedAssertion;
 
-    @Option(displayName = "Required Type",
+    @Option(displayName = "Required type",
             description = "Specifies the type the recipe should run on.",
             example = "java.lang.String",
             required = false)
@@ -76,20 +71,15 @@ public class ShortenChainedAssertJAssertion extends Recipe {
     public String getDescription() {
         return "Adopt idiomatic AssertJ assertion for null check.";
     }
-    
-    private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("org.assertj.core.api.Assert isEqualTo(..)", true);
-
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new ShorthenChainedAssertJAssertionsVisitor();
     }
-    
-    
 
     private class ShorthenChainedAssertJAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
-            private final MethodMatcher ASSERT_TO_REPLACE = new MethodMatcher("org.assertj.core.api.* " + assertToReplace + "(..)");
+        private final MethodMatcher ASSERT_TO_REPLACE = new MethodMatcher("org.assertj.core.api.* " + assertToReplace + "(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
@@ -99,13 +89,13 @@ public class ShortenChainedAssertJAssertion extends Recipe {
             if (!ASSERT_TO_REPLACE.matches(mi)) {
                 return mi;
             }
-            
-            if(!(mi.getArguments().get(0) instanceof J.Literal)) {
+
+            if (!(mi.getArguments().get(0) instanceof J.Literal)) {
                 return mi;
             }
-            
-            Literal literal = (J.Literal)mi.getArguments().get(0);
-            if(!literal.getValueSource().equals(String.valueOf(assertArgument))) {
+
+            Literal literal = (J.Literal) mi.getArguments().get(0);
+            if (!literal.getValueSource().equals(String.valueOf(assertArgument))) {
                 return mi;
             }
 
@@ -114,23 +104,18 @@ public class ShortenChainedAssertJAssertion extends Recipe {
             if (!ASSERT_THAT_MATCHER.matches(assertThat)) {
                 return mi;
             }
-            
+
             JavaType assertThatArgType = assertThat.getArguments().get(0).getType();
             if (!TypeUtils.isAssignableTo(requiredType, assertThatArgType)) {
                 return mi;
             }
 
             String template = mi.getSelect() + "." + dedicatedAssertion + "()";
-            return applyTemplate(template, mi, ctx);
-        }
-
-        private J.MethodInvocation applyTemplate(String formattedTemplate,   J.MethodInvocation mi, ExecutionContext ctx) {
-            return JavaTemplate.builder(formattedTemplate)
+            return JavaTemplate.builder(template)
                     .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
                     .build()
-                    .apply(getCursor(), mi.getCoordinates().replace() );
+                    .apply(getCursor(), mi.getCoordinates().replace());
         }
     }
- 
 }

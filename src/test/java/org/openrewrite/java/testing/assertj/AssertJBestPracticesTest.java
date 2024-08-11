@@ -15,10 +15,6 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.openrewrite.java.Assertions.java;
-
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,61 +26,66 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.openrewrite.java.Assertions.java;
+
 class AssertJBestPracticesTest implements RewriteTest {
 
-  @Override
-  public void defaults(RecipeSpec spec) {
-    spec.parser(
+    @Override
+    public void defaults(RecipeSpec spec) {
+        spec.parser(
             JavaParser.fromJavaVersion()
-                .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
-        .recipeFromResources("org.openrewrite.java.testing.assertj.Assertj");
-  }
+              .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
+          .recipeFromResources("org.openrewrite.java.testing.assertj.Assertj");
+    }
 
-  @DocumentExample
-  @Test
-  @SuppressWarnings("DataFlowIssue")
-  void convertsIsEqualToEmptyString() {
-    rewriteRun(
-        // language=java
-        java(
+    @DocumentExample
+    @Test
+    @SuppressWarnings("DataFlowIssue")
+    void convertsIsEqualToEmptyString() {
+        rewriteRun(
+          // language=java
+          java(
             """
-            import static org.assertj.core.api.Assertions.assertThat;
-            class Test {
-                void test() {
-                    assertThat("test").isEqualTo("");
-                }
-            }
-            """,
+              import static org.assertj.core.api.Assertions.assertThat;
+              class Test {
+                  void test() {
+                      assertThat("test").isEqualTo("");
+                  }
+              }
+              """,
             """
-            import static org.assertj.core.api.Assertions.assertThat;
-            class Test {
-                void test() {
-                    assertThat("test").isEmpty();
-                }
-            }
-            """));
-  }
+              import static org.assertj.core.api.Assertions.assertThat;
+              class Test {
+                  void test() {
+                      assertThat("test").isEmpty();
+                  }
+              }
+              """));
+    }
 
-  /**
-   * Chained AssertJ assertions should be simplified to the corresponding dedicated assertion, as
-   * per <a
-   * href="https://next.sonarqube.com/sonarqube/coding_rules?open=java%3AS5838&rule_key=java%3AS5838">java:S5838</a>
-   */
-  @Nested
-  class SonarDedicatedAssertions {
-    private static Stream<Arguments> replacements() {
-      return Stream.of(
-          // Related to Object
-          arguments("Object", "assertThat(x).isEqualTo(null)", "assertThat(x).isNull()"),
-          arguments("Boolean", "assertThat(x).isEqualTo(true)", "assertThat(x).isTrue()"),
-          arguments("Boolean", "assertThat(x).isEqualTo(false)", "assertThat(x).isFalse()"),
+    /**
+     * Chained AssertJ assertions should be simplified to the corresponding dedicated assertion, as
+     * per <a
+     * href="https://next.sonarqube.com/sonarqube/coding_rules?open=java%3AS5838&rule_key=java%3AS5838">java:S5838</a>
+     */
+    @Nested
+    class SonarDedicatedAssertions {
+        private static Stream<Arguments> replacements() {
+            return Stream.of(
+              // Related to Object
+              arguments("Object", "assertThat(x).isEqualTo(null)", "assertThat(x).isNull()"),
+              arguments("Boolean", "assertThat(x).isEqualTo(true)", "assertThat(x).isTrue()"),
+              arguments("Boolean", "assertThat(x).isEqualTo(false)", "assertThat(x).isFalse()"),
 //          arguments("Object", "assertThat(x.equals(y)).isTrue()", "assertThat(x).isEqualTo(y)"),
 //          arguments("Object", "assertThat(x == y).isTrue()", "assertThat(x).isSameAs(y)"),
 //          arguments("Object", "assertThat(x == null).isTrue()", "assertThat(x).isNull()"),
-          arguments(
-              "Object",
-              "assertThat(x.toString()).isEqualTo(\"y\")",
-              "assertThat(x).hasToString(\"y\")"),
+              arguments(
+                "Object",
+                "assertThat(x.toString()).isEqualTo(\"y\")",
+                "assertThat(x).hasToString(\"y\")"),
 //          arguments(
 //              "Object",
 //              "assertThat(x.hashCode()).isEqualTo(y.hashCode())",
@@ -93,7 +94,7 @@ class AssertJBestPracticesTest implements RewriteTest {
 //              "Object",
 //              "assertThat(x instanceof String).isTrue()",
 //              "assertThat(x).isInstanceOf(String.class)"),
-          // Related to Comparable
+              // Related to Comparable
 //          arguments(
 //              "java.math.BigDecimal",
 //              "assertThat(x.compareTo(y)).isZero()",
@@ -104,56 +105,56 @@ class AssertJBestPracticesTest implements RewriteTest {
 //          arguments(
 //              "double", "assertThat(x <= y).isTrue()", "assertThat(x).isLessThanOrEqualTo(y)"),
 //          arguments("float", "assertThat(x < y).isTrue()", "assertThat(x).isLessThan(y)"),
-          // Related to String
-          arguments("String", "assertThat(x.isEmpty()).isTrue()", "assertThat(x).isEmpty()"),
-          arguments("String", "assertThat(x).hasSize(0)", "assertThat(x).isEmpty()"),
-          arguments("String", "assertThat(x.equals(y)).isTrue()", "assertThat(x).isEqualTo(y)"),
-          arguments(
-              "String",
-              "assertThat(x.equalsIgnoreCase(y)).isTrue()",
-              "assertThat(x).isEqualToIgnoringCase(y)"),
-          arguments("String", "assertThat(x.contains(y)).isTrue()", "assertThat(x).contains(y)"),
-          arguments(
-              "String", "assertThat(x.startsWith(y)).isTrue()", "assertThat(x).startsWith(y)"),
-          arguments("String", "assertThat(x.endsWith(y)).isTrue()", "assertThat(x).endsWith(y)"),
-          arguments("String", "assertThat(x.matches(y)).isTrue()", "assertThat(x).matches(y)"),
-          arguments("String", "assertThat(x.trim()).isEmpty()", "assertThat(x).isBlank()"),
-          arguments("String", "assertThat(x.length()).isEqualTo(5)", "assertThat(x).hasSize(5)"),
+              // Related to String
+              arguments("String", "assertThat(x.isEmpty()).isTrue()", "assertThat(x).isEmpty()"),
+              arguments("String", "assertThat(x).hasSize(0)", "assertThat(x).isEmpty()"),
+              arguments("String", "assertThat(x.equals(y)).isTrue()", "assertThat(x).isEqualTo(y)"),
+              arguments(
+                "String",
+                "assertThat(x.equalsIgnoreCase(y)).isTrue()",
+                "assertThat(x).isEqualToIgnoringCase(y)"),
+              arguments("String", "assertThat(x.contains(y)).isTrue()", "assertThat(x).contains(y)"),
+              arguments(
+                "String", "assertThat(x.startsWith(y)).isTrue()", "assertThat(x).startsWith(y)"),
+              arguments("String", "assertThat(x.endsWith(y)).isTrue()", "assertThat(x).endsWith(y)"),
+              arguments("String", "assertThat(x.matches(y)).isTrue()", "assertThat(x).matches(y)"),
+              arguments("String", "assertThat(x.trim()).isEmpty()", "assertThat(x).isBlank()"),
+              arguments("String", "assertThat(x.length()).isEqualTo(5)", "assertThat(x).hasSize(5)"),
 //          arguments(
 //              "String", "assertThat(x).hasSize(y.length())", "assertThat(x).hasSameSizeAs(y)"),
-          // Related to File
-          arguments("java.io.File", "assertThat(x).hasSize(0)", "assertThat(x).isEmpty()"),
-          arguments("java.io.File", "assertThat(x.length()).isZero()", "assertThat(x).isEmpty()"),
-          arguments(
-              "java.io.File", "assertThat(x.length()).isEqualTo(3)", "assertThat(x).hasSize(3)"),
-          arguments("java.io.File", "assertThat(x.canRead()).isTrue()", "assertThat(x).canRead()"),
-          arguments(
-              "java.io.File", "assertThat(x.canWrite()).isTrue()", "assertThat(x).canWrite()"),
-          arguments("java.io.File", "assertThat(x.exists()).isTrue()", "assertThat(x).exists()"),
-          arguments(
-              "java.io.File",
-              "assertThat(x.getName()).isEqualTo(\"a\")",
-              "assertThat(x).hasName(\"a\")"),
-          arguments(
-              "java.io.File",
-              "assertThat(x.getParent()).isEqualTo(\"b\")",
-              "assertThat(x).hasParent(\"b\")"),
-          arguments(
-              "java.io.File",
-              "assertThat(x.getParentFile()).isNull()",
-              "assertThat(x).hasNoParent()"),
-          arguments(
-              "java.io.File", "assertThat(x.isAbsolute()).isTrue()", "assertThat(x).isAbsolute()"),
-          arguments(
-              "java.io.File", "assertThat(x.isAbsolute()).isFalse()", "assertThat(x).isRelative()"),
-          arguments(
-              "java.io.File",
-              "assertThat(x.isDirectory()).isTrue()",
-              "assertThat(x).isDirectory()"),
-          arguments("java.io.File", "assertThat(x.isFile()).isTrue()", "assertThat(x).isFile()"),
-          arguments(
-              "java.io.File", "assertThat(x.list()).isEmpty()", "assertThat(x).isEmptyDirectory()"),
-          // Related to Path
+              // Related to File
+              arguments("java.io.File", "assertThat(x).hasSize(0)", "assertThat(x).isEmpty()"),
+              arguments("java.io.File", "assertThat(x.length()).isZero()", "assertThat(x).isEmpty()"),
+              arguments(
+                "java.io.File", "assertThat(x.length()).isEqualTo(3)", "assertThat(x).hasSize(3)"),
+              arguments("java.io.File", "assertThat(x.canRead()).isTrue()", "assertThat(x).canRead()"),
+              arguments(
+                "java.io.File", "assertThat(x.canWrite()).isTrue()", "assertThat(x).canWrite()"),
+              arguments("java.io.File", "assertThat(x.exists()).isTrue()", "assertThat(x).exists()"),
+              arguments(
+                "java.io.File",
+                "assertThat(x.getName()).isEqualTo(\"a\")",
+                "assertThat(x).hasName(\"a\")"),
+              arguments(
+                "java.io.File",
+                "assertThat(x.getParent()).isEqualTo(\"b\")",
+                "assertThat(x).hasParent(\"b\")"),
+              arguments(
+                "java.io.File",
+                "assertThat(x.getParentFile()).isNull()",
+                "assertThat(x).hasNoParent()"),
+              arguments(
+                "java.io.File", "assertThat(x.isAbsolute()).isTrue()", "assertThat(x).isAbsolute()"),
+              arguments(
+                "java.io.File", "assertThat(x.isAbsolute()).isFalse()", "assertThat(x).isRelative()"),
+              arguments(
+                "java.io.File",
+                "assertThat(x.isDirectory()).isTrue()",
+                "assertThat(x).isDirectory()"),
+              arguments("java.io.File", "assertThat(x.isFile()).isTrue()", "assertThat(x).isFile()"),
+              arguments(
+                "java.io.File", "assertThat(x.list()).isEmpty()", "assertThat(x).isEmptyDirectory()"),
+              // Related to Path
 //          arguments(
 //              "java.nio.file.Path",
 //              "assertThat(x.startsWith(\"x\")).isTrue()",
@@ -162,23 +163,23 @@ class AssertJBestPracticesTest implements RewriteTest {
 //              "java.nio.file.Path",
 //              "assertThat(x.endsWith(\"y\")).isTrue()",
 //              "assertThat(x).endsWithRaw(\"y\")"),
-          arguments(
-              "java.nio.file.Path",
-              "assertThat(x.getParent()).isEqualTo(y)",
-              "assertThat(x).hasParentRaw(y)"),
-          arguments(
-              "java.nio.file.Path",
-              "assertThat(x.getParent()).isNull()",
-              "assertThat(x).hasNoParentRaw()"),
-          arguments(
-              "java.nio.file.Path",
-              "assertThat(x.isAbsolute()).isTrue()",
-              "assertThat(x).isAbsolute()"),
-          arguments(
-              "java.nio.file.Path",
-              "assertThat(x.isAbsolute()).isFalse()",
-              "assertThat(x).isRelative()"),
-          /// Related to Array
+              arguments(
+                "java.nio.file.Path",
+                "assertThat(x.getParent()).isEqualTo(y)",
+                "assertThat(x).hasParentRaw(y)"),
+              arguments(
+                "java.nio.file.Path",
+                "assertThat(x.getParent()).isNull()",
+                "assertThat(x).hasNoParentRaw()"),
+              arguments(
+                "java.nio.file.Path",
+                "assertThat(x.isAbsolute()).isTrue()",
+                "assertThat(x).isAbsolute()"),
+              arguments(
+                "java.nio.file.Path",
+                "assertThat(x.isAbsolute()).isFalse()",
+                "assertThat(x).isRelative()"),
+              /// Related to Array
 //          arguments("Object[]", "assertThat(x.length).isZero()", "assertThat(x).isEmpty()"),
 //          arguments("String[]", "assertThat(x.length).isEqualTo(7)", "assertThat(x).hasSize(7)"),
 //          arguments(
@@ -199,85 +200,85 @@ class AssertJBestPracticesTest implements RewriteTest {
 //              "char[]",
 //              "assertThat(x.length).isGreaterThanOrEqualTo(1)",
 //              "assertThat(x).hasSizeGreaterThanOrEqualTo(1)"),
-          // Related to Collection
-          arguments(
-              "java.util.Collection<String>",
-              "assertThat(x.isEmpty()).isTrue()",
-              "assertThat(x).isEmpty()"),
-          arguments(
-              "java.util.Collection<String>",
-              "assertThat(x.size()).isZero()",
-              "assertThat(x).isEmpty()"),
-          arguments(
-              "java.util.Collection<String>",
-              "assertThat(x.contains(\"f\")).isTrue()",
-              "assertThat(x).contains(\"f\")"),
-          arguments(
-              "java.util.Collection<String>",
-              "assertThat(x.containsAll(y)).isTrue()",
-              "assertThat(x).containsAll(y)"),
-          // Related to Map
+              // Related to Collection
+              arguments(
+                "java.util.Collection<String>",
+                "assertThat(x.isEmpty()).isTrue()",
+                "assertThat(x).isEmpty()"),
+              arguments(
+                "java.util.Collection<String>",
+                "assertThat(x.size()).isZero()",
+                "assertThat(x).isEmpty()"),
+              arguments(
+                "java.util.Collection<String>",
+                "assertThat(x.contains(\"f\")).isTrue()",
+                "assertThat(x).contains(\"f\")"),
+              arguments(
+                "java.util.Collection<String>",
+                "assertThat(x.containsAll(y)).isTrue()",
+                "assertThat(x).containsAll(y)"),
+              // Related to Map
 //          arguments(
 //              "java.util.Map<String, Object>",
 //              "assertThat(x).hasSize(y.size())",
 //              "assertThat(x).hasSameSizeAs(y)"),
-          arguments(
-              "java.util.Map<String, Object>",
-              "assertThat(x.containsKey(\"b\")).isTrue()",
-              "assertThat(x).containsKey(\"b\")"),
-          arguments(
-              "java.util.Map<String, Object>",
-              "assertThat(x.keySet()).contains(\"b\")",
-              "assertThat(x).containsKey(\"b\")"),
+              arguments(
+                "java.util.Map<String, Object>",
+                "assertThat(x.containsKey(\"b\")).isTrue()",
+                "assertThat(x).containsKey(\"b\")"),
+              arguments(
+                "java.util.Map<String, Object>",
+                "assertThat(x.keySet()).contains(\"b\")",
+                "assertThat(x).containsKey(\"b\")"),
 //          arguments(
 //              "java.util.Map<String, Object>",
 //              "assertThat(x.keySet()).containsOnly(\"a\")",
 //              "assertThat(x).containsOnlyKey(\"a\")"),
-          arguments(
-              "java.util.Map<String, Object>",
-              "assertThat(x.containsValue(value)).isTrue()",
-              "assertThat(x).containsValue(value)"),
-          arguments(
-              "java.util.Map<String, Object>",
-              "assertThat(x.values()).contains(value)",
-              "assertThat(x).containsValue(value)"),
-          arguments(
-              "java.util.Map<String, Object>",
-              "assertThat(x.get(\"a\")).isEqualTo(value)",
-              "assertThat(x).containsEntry(\"a\", value)"),
-          // Related to Optional
-          arguments(
-              "java.util.Optional<Object>",
-              "assertThat(x.isPresent()).isTrue()",
-              "assertThat(x).isPresent()"),
-          arguments(
-              "java.util.Optional<Object>",
-              "assertThat(x.get()).isEqualTo(value)",
-              "assertThat(x).contains(value)"),
-          arguments(
-              "java.util.Optional<Object>",
-              "assertThat(x.get()).isSameAs(value)",
-              "assertThat(x).containsSame(value)"));
-    }
+              arguments(
+                "java.util.Map<String, Object>",
+                "assertThat(x.containsValue(value)).isTrue()",
+                "assertThat(x).containsValue(value)"),
+              arguments(
+                "java.util.Map<String, Object>",
+                "assertThat(x.values()).contains(value)",
+                "assertThat(x).containsValue(value)"),
+              arguments(
+                "java.util.Map<String, Object>",
+                "assertThat(x.get(\"a\")).isEqualTo(value)",
+                "assertThat(x).containsEntry(\"a\", value)"),
+              // Related to Optional
+              arguments(
+                "java.util.Optional<Object>",
+                "assertThat(x.isPresent()).isTrue()",
+                "assertThat(x).isPresent()"),
+              arguments(
+                "java.util.Optional<Object>",
+                "assertThat(x.get()).isEqualTo(value)",
+                "assertThat(x).contains(value)"),
+              arguments(
+                "java.util.Optional<Object>",
+                "assertThat(x.get()).isSameAs(value)",
+                "assertThat(x).containsSame(value)"));
+        }
 
-    @ParameterizedTest
-    @MethodSource("replacements")
-    void sonarReplacements(
-        String argumentsType, String assertToReplace, String dedicatedAssertion) {
-      String template =
-          """
-          import static org.assertj.core.api.Assertions.assertThat;
+        @ParameterizedTest
+        @MethodSource("replacements")
+        void sonarReplacements(
+          String argumentsType, String assertToReplace, String dedicatedAssertion) {
+            String template =
+              """
+                import static org.assertj.core.api.Assertions.assertThat;
 
-          class A {
-              void test(%s x, %s y, Object value) {
-                  %s;
-              }
-          }
-          """;
-      rewriteRun(
-          java(
-              String.format(template, argumentsType, argumentsType, assertToReplace),
-              String.format(template, argumentsType, argumentsType, dedicatedAssertion)));
+                class A {
+                    void test(%s x, %s y, Object value) {
+                        %s;
+                    }
+                }
+                """;
+            rewriteRun(
+              java(
+                String.format(template, argumentsType, argumentsType, assertToReplace),
+                String.format(template, argumentsType, argumentsType, dedicatedAssertion)));
+        }
     }
-  }
 }
