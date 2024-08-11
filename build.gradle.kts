@@ -37,6 +37,7 @@ dependencies {
     implementation("org.openrewrite.recipe:rewrite-static-analysis:$rewriteVersion")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
+    runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:latest.release:recipes")
     compileOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
 
     compileOnly("org.projectlombok:lombok:latest.release")
