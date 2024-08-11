@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
@@ -32,7 +32,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class CollapseConsecutiveAssertThatStatements extends Recipe {
-    private static final String ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME = "org.assertj.core.api.Assertions";
     private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
 
     @Override
@@ -47,125 +46,115 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(ASSERTJ_QUALIFIED_ASSERTIONS_CLASS_NAME, true), new CollapseConsecutiveAssertThatStatementsVisitor());
-    }
+        return Preconditions.check(new UsesMethod<>(ASSERT_THAT), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.Block visitBlock(J.Block _block, ExecutionContext ctx) {
+                J.Block block = super.visitBlock(_block, ctx);
 
-    private static class CollapseConsecutiveAssertThatStatementsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        @Override
-        public J.Block visitBlock(J.Block _block, ExecutionContext ctx) {
-            J.Block block = super.visitBlock(_block, ctx);
+                List<List<J.MethodInvocation>> consecutiveAssertThatStatementList = getConsecutiveAssertThatList(block.getStatements());
 
-            List<List<J.MethodInvocation>> consecutiveAssertThatStatementList = getConsecutiveAssertThatList(block.getStatements());
-
-            List<Statement> modifiedStatements = new ArrayList<>();
-            int currIndex = 0;
-            while (currIndex < consecutiveAssertThatStatementList.size()) {
-                if (consecutiveAssertThatStatementList.get(currIndex).size() <= 1) {
-                    modifiedStatements.add(block.getStatements().get(currIndex));
-                    currIndex += 1;
-                } else {
-                    modifiedStatements.add(getCollapsedAssertThat(consecutiveAssertThatStatementList.get(currIndex)));
-                    currIndex += consecutiveAssertThatStatementList.get(currIndex).size();
+                List<Statement> modifiedStatements = new ArrayList<>();
+                int currIndex = 0;
+                while (currIndex < consecutiveAssertThatStatementList.size()) {
+                    List<J.MethodInvocation> groupedMethodInvocations = consecutiveAssertThatStatementList.get(currIndex);
+                    if (groupedMethodInvocations.size() <= 1) {
+                        // Retain the statement as is
+                        modifiedStatements.add(block.getStatements().get(currIndex));
+                        currIndex++;
+                    } else {
+                        modifiedStatements.add(getCollapsedAssertThat(groupedMethodInvocations));
+                        currIndex += groupedMethodInvocations.size();
+                    }
                 }
+
+                block = block.withStatements(modifiedStatements);
+
+                return maybeAutoFormat(_block, block.withStatements(modifiedStatements), ctx);
             }
 
-            block = block.withStatements(modifiedStatements);
+            private List<List<J.MethodInvocation>> getConsecutiveAssertThatList(List<Statement> statements) {
+                List<List<J.MethodInvocation>> consecutiveAssertThatList = new ArrayList<>();
+                String prevArg = "";
+                int currListIndex = 0;
+                int statementListSize = statements.size();
+                for (int currIndex = 0; currIndex < statementListSize; currIndex++) {
 
-            return maybeAutoFormat(_block, block.withStatements(modifiedStatements), ctx);
-        }
+                    consecutiveAssertThatList.add(new ArrayList<>());
 
-
-        private List<List<J.MethodInvocation>> getConsecutiveAssertThatList(List<Statement> statements) {
-            List<List<J.MethodInvocation>> consecutiveAssertThatList = new ArrayList<>();
-            String prevArg = "";
-            int currListIndex = 0;
-            int statementListSize = statements.size();
-            List<J.MethodInvocation> currList = new ArrayList<>();
-            for (int currIndex = 0; currIndex < statementListSize; currIndex++) {
-
-                consecutiveAssertThatList.add(new ArrayList<>());
-
-                Statement statement = statements.get(currIndex);
-                if (statement instanceof J.MethodInvocation) {
-                    Optional<J.MethodInvocation> assertThatMi = getAssertThatMi(statement);
-                    if (assertThatMi.isPresent()) {
-                        if (isAssertThatValid(statement)) {
-                            if (!getFirstArgumentName(assertThatMi.get()).equals(prevArg)) {
-                                currListIndex = currIndex;
+                    Statement statement = statements.get(currIndex);
+                    if (statement instanceof J.MethodInvocation) {
+                        Optional<J.MethodInvocation> assertThatMi = getAssertThatMi(statement);
+                        if (assertThatMi.isPresent()) {
+                            if (isAssertThatValid(statement)) {
+                                if (!getFirstArgumentName(assertThatMi.get()).equals(prevArg)) {
+                                    currListIndex = currIndex;
+                                }
+                                consecutiveAssertThatList.get(currListIndex).add((J.MethodInvocation) statement);
+                                prevArg = getFirstArgumentName(assertThatMi.get());
+                                continue;
                             }
-                            consecutiveAssertThatList.get(currListIndex).add((J.MethodInvocation) statement);
-                            prevArg = getFirstArgumentName(assertThatMi.get());
-                            continue;
                         }
                     }
+                    prevArg = "";
                 }
-                prevArg = "";
+                return consecutiveAssertThatList;
             }
-            return consecutiveAssertThatList;
-        }
 
-        private Optional<J.MethodInvocation> getAssertThatMi(J subtree) {
-            AtomicReference<J.MethodInvocation> assertThatMi = new AtomicReference<>(null);
-            new JavaIsoVisitor<AtomicReference<J.MethodInvocation>>() {
+            private Optional<J.MethodInvocation> getAssertThatMi(J subtree) {
+                AtomicReference<J.MethodInvocation> assertThatMi = new AtomicReference<>(null);
+                new JavaIsoVisitor<AtomicReference<J.MethodInvocation>>() {
 
-                @Override
-                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, AtomicReference<J.MethodInvocation> assertThatMiHolder) {
-                    if (ASSERT_THAT.matches(mi)) {
-                        assertThatMiHolder.set(mi);
-                        return mi;
-                    }
-                    return super.visitMethodInvocation(mi, assertThatMi);
-                }
-
-            }.reduce(subtree, assertThatMi);
-            return Optional.of(assertThatMi.get());
-        }
-
-        private boolean isAssertThatValid(J subtree) {
-            AtomicInteger chainCount = new AtomicInteger(0);
-            AtomicBoolean isValid = new AtomicBoolean(true);
-            new JavaIsoVisitor<AtomicInteger>() {
-                @Override
-                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, AtomicInteger chainCount) {
-                    chainCount.set(chainCount.get() + 1);
-
-                    if (ASSERT_THAT.matches(mi)) {
-                        if (chainCount.get() > 2) {
-                            isValid.set(false);
+                    @Override
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, AtomicReference<J.MethodInvocation> assertThatMiHolder) {
+                        if (ASSERT_THAT.matches(mi)) {
+                            assertThatMiHolder.set(mi);
+                            return mi;
                         }
-
-                        J assertThatArgument = mi.getArguments().get(0);
-                        if (assertThatArgument instanceof J.MethodInvocation || assertThatArgument instanceof J.Lambda) {
-                            isValid.set(false);
-                        }
+                        return super.visitMethodInvocation(mi, assertThatMi);
                     }
 
-                    return super.visitMethodInvocation(mi, chainCount);
-                }
-            }.reduce(subtree, chainCount);
-            return isValid.get();
-        }
-
-        private String getFirstArgumentName(J.MethodInvocation mi) {
-            return ((J.Identifier) mi.getArguments().get(0)).getSimpleName();
-        }
-
-        private J.MethodInvocation getCollapsedAssertThat(List<J.MethodInvocation> consecutiveAssertThatStatement) {
-            J.MethodInvocation collapsedAssertThatMi = null;
-            for (J.MethodInvocation mi : consecutiveAssertThatStatement) {
-                if (collapsedAssertThatMi == null) {
-                    Space afterSpace = mi.getPrefix();
-                    JRightPadded<Expression> jRightPadded = JRightPadded.build(mi.getSelect()).withAfter(afterSpace);
-                    collapsedAssertThatMi = mi.getPadding().withSelect(jRightPadded);
-                    continue;
-                }
-                Space prefixSpace = collapsedAssertThatMi.getPrefix();
-                Expression expression = collapsedAssertThatMi.withPrefix(Space.EMPTY);
-                JRightPadded<Expression> jRightPadded = JRightPadded.build(expression).withAfter(prefixSpace);
-                collapsedAssertThatMi = mi.getPadding().withSelect(jRightPadded);
+                }.reduce(subtree, assertThatMi);
+                return Optional.of(assertThatMi.get());
             }
-            return collapsedAssertThatMi;
-        }
+
+            private boolean isAssertThatValid(J subtree) {
+                AtomicInteger chainCount = new AtomicInteger(0);
+                AtomicBoolean isValid = new AtomicBoolean(true);
+                new JavaIsoVisitor<AtomicInteger>() {
+                    @Override
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, AtomicInteger chainCount) {
+                        chainCount.set(chainCount.get() + 1);
+
+                        if (ASSERT_THAT.matches(mi)) {
+                            if (chainCount.get() > 2) {
+                                isValid.set(false);
+                            }
+
+                            J assertThatArgument = mi.getArguments().get(0);
+                            if (assertThatArgument instanceof J.MethodInvocation || assertThatArgument instanceof J.Lambda) {
+                                isValid.set(false);
+                            }
+                        }
+
+                        return super.visitMethodInvocation(mi, chainCount);
+                    }
+                }.reduce(subtree, chainCount);
+                return isValid.get();
+            }
+
+            private String getFirstArgumentName(J.MethodInvocation mi) {
+                return ((J.Identifier) mi.getArguments().get(0)).getSimpleName();
+            }
+
+            private J.MethodInvocation getCollapsedAssertThat(List<J.MethodInvocation> consecutiveAssertThatStatement) {
+                J.MethodInvocation collapsed = null;
+                for (J.MethodInvocation mi : consecutiveAssertThatStatement) {
+                    collapsed = collapsed == null ?
+                            mi.getPadding().withSelect(JRightPadded.build(mi.getSelect()).withAfter(mi.getPrefix())) :
+                            mi.getPadding().withSelect(JRightPadded.build((Expression) collapsed.withPrefix(Space.EMPTY)).withAfter(collapsed.getPrefix()));
+                }
+                return collapsed;
+            }
+        });
     }
-
 }
