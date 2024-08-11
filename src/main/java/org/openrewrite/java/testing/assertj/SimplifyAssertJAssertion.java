@@ -27,8 +27,6 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.J.Literal;
-import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 @AllArgsConstructor
@@ -36,40 +34,35 @@ import org.openrewrite.java.tree.TypeUtils;
 public class SimplifyAssertJAssertion extends Recipe {
 
     @Option(displayName = "AssertJ assertion",
-            description = "The AssertJ assert that should be replaced.",
-            example = "isTrue",
+            description = "The assertion method that should be replaced.",
+            example = "hasSize",
             required = false)
     @Nullable
     String assertToReplace;
 
-    @Option(displayName = "Assertion argument",
-            description = "The chained AssertJ assertion to move to dedicated assertion.",
-            example = "equals",
-            required = false)
-    @Nullable
-    String assertArgument;
+    @Option(displayName = "Assertion argument literal",
+            description = "The literal argument passed into the assertion to replace; use \"null\" for `null`.",
+            example = "0")
+    String literalArgument;
 
     @Option(displayName = "Dedicated assertion",
-            description = "The AssertJ method to migrate to.",
-            example = "isEqualTo")
+            description = "The zero argument assertion to adopt instead.",
+            example = "isEmpty")
     String dedicatedAssertion;
 
     @Option(displayName = "Required type",
-            description = "Specifies the type the recipe should run on.",
-            example = "java.lang.String",
-            required = false)
-    @Nullable
+            description = "The type of the actual assertion argument.",
+            example = "java.lang.String")
     String requiredType;
-
 
     @Override
     public String getDisplayName() {
-        return "Convert `assertThat(Object).isEqualTo(null)` to `isNull()`";
+        return "Simplify AssertJ assertions with literal arguments";
     }
 
     @Override
     public String getDescription() {
-        return "Adopt idiomatic AssertJ assertion for null check.";
+        return "Simplify AssertJ assertions by replacing them with more expressiove dedicated assertions.";
     }
 
     @Override
@@ -85,37 +78,28 @@ public class SimplifyAssertJAssertion extends Recipe {
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
 
-            // assert has correct assertion
-            if (!ASSERT_TO_REPLACE.matches(mi)) {
+            // Match the end of the chain first, then the select to avoid matching the wrong method chain
+            if (!ASSERT_TO_REPLACE.matches(mi) || !ASSERT_THAT_MATCHER.matches(mi.getSelect())) {
                 return mi;
             }
 
-            if (!(mi.getArguments().get(0) instanceof J.Literal)) {
+            // Compare argument with passed in literal
+            if (!(mi.getArguments().get(0) instanceof J.Literal) ||
+                !literalArgument.equals(((J.Literal) mi.getArguments().get(0)).getValueSource())) { // Implies "null" is `null`
                 return mi;
             }
 
-            Literal literal = (J.Literal) mi.getArguments().get(0);
-            if (!literal.getValueSource().equals(String.valueOf(assertArgument))) {
+            // Check argument type of assertThat
+            if (!TypeUtils.isAssignableTo(requiredType, ((J.MethodInvocation) mi.getSelect()).getArguments().get(0).getType())) {
                 return mi;
             }
 
-            // assertThat has method call
-            J.MethodInvocation assertThat = (J.MethodInvocation) mi.getSelect();
-            if (!ASSERT_THAT_MATCHER.matches(assertThat)) {
-                return mi;
-            }
-
-            JavaType assertThatArgType = assertThat.getArguments().get(0).getType();
-            if (!TypeUtils.isAssignableTo(requiredType, assertThatArgType)) {
-                return mi;
-            }
-
-            String template = mi.getSelect() + "." + dedicatedAssertion + "()";
-            return JavaTemplate.builder(template)
+            // Assume zero argument replacement method
+            return JavaTemplate.builder(dedicatedAssertion + "()")
                     .contextSensitive()
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                     .build()
-                    .apply(getCursor(), mi.getCoordinates().replace());
+                    .apply(getCursor(), mi.getCoordinates().replaceMethod());
         }
     }
 }

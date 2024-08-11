@@ -386,42 +386,42 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
       assertToReplace: isEqualTo
-      assertArgument: null
+      literalArgument: "null"
       dedicatedAssertion: isNull
       requiredType: java.lang.Object
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
       assertToReplace: isEqualTo
-      assertArgument: true
+      literalArgument: true
       dedicatedAssertion: isTrue
       requiredType: java.lang.Boolean
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
       assertToReplace: isEqualTo
-      assertArgument: '""'
+      literalArgument: '""'
       dedicatedAssertion: isEmpty
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
       assertToReplace: isEqualTo
-      assertArgument: false
+      literalArgument: false
       dedicatedAssertion: isFalse
       requiredType: java.lang.Boolean
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
       assertToReplace: hasSize
-      assertArgument: 0
+      literalArgument: 0
       dedicatedAssertion: isEmpty
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
       assertToReplace: hasSize
-      assertArgument: 0
+      literalArgument: 0
       dedicatedAssertion: isEmpty
       requiredType: java.io.File
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
       assertToReplace: hasSize
-      assertArgument: 0
+      literalArgument: 0
       dedicatedAssertion: isEmpty
       requiredType: java.util.Collection
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
       assertToReplace: hasSize
-      assertArgument: 0
+      literalArgument: 0
       dedicatedAssertion: isEmpty
       requiredType: java.util.Map
 

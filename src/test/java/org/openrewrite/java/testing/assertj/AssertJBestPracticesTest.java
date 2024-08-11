@@ -63,7 +63,9 @@ class AssertJBestPracticesTest implements RewriteTest {
                       assertThat("test").isEmpty();
                   }
               }
-              """));
+              """
+          )
+        );
     }
 
     /**

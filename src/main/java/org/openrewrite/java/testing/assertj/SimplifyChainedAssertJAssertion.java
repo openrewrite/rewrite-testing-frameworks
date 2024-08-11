@@ -60,7 +60,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
     String dedicatedAssertion;
 
     @Option(displayName = "Required type",
-            description = "Specifies the type the recipe should run on.",
+            description = "The type of the actual assertion argument.",
             example = "java.lang.String",
             required = false)
     @Nullable
@@ -120,11 +120,6 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             List<Expression> arguments = new ArrayList<>();
             arguments.add(actual);
 
-            // Special case for more expressive assertions: assertThat(x.size()).isEqualTo(0) -> isEmpty()
-            if ("size".equals(chainedAssertion) && "isEqualTo".equals(assertToReplace) && hasZeroArgument(mi)) {
-                return applyTemplate("assertThat(#{any()}).isEmpty()", arguments, mi, ctx);
-            }
-
             String template = getStringTemplateAndAppendArguments(assertThatArg, mi, arguments);
             return applyTemplate(String.format(template, dedicatedAssertion), arguments, mi, ctx);
         }
@@ -182,14 +177,5 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             }
         }
         return assertThatArgument;
-    }
-
-    private boolean hasZeroArgument(J.MethodInvocation method) {
-        List<Expression> arguments = method.getArguments();
-        if (arguments.size() == 1 && arguments.get(0) instanceof J.Literal) {
-            J.Literal literalArg = (J.Literal) arguments.get(0);
-            return literalArg.getValue() != null && literalArg.getValue().equals(0);
-        }
-        return false;
     }
 }
