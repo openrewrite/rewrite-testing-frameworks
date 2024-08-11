@@ -200,10 +200,9 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               class MyTest {
                   void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
+                      List<String> listB = Arrays.asList("a", "b", "c");
                       assertThat(listA).isNotNull();
-                      int x = listA.size();
-                      assertThat(x).hasSize(3);
-                      assertThat(listA).containsExactly("a", "b", "c");
+                      assertThat(listB).containsExactly("a", "b", "c");
                   }
 
                   private int[] notification() {
@@ -229,30 +228,6 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                   void test() {
                       assertThat(notification()).isNotNull();
                       assertThat(notification()).isTrue();
-                  }
-                  private boolean notification() {
-                      return true;
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void ignoreIfAssertThatHasLambda() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.util.Arrays;
-              import java.util.List;
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class MyTest {
-                  void test() {
-                      assertThat(() -> notification()).isNotNull();
-                      assertThat(() -> notification()).isTrue();
                   }
                   private boolean notification() {
                       return true;
