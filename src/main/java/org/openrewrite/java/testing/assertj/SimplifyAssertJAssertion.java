@@ -95,8 +95,7 @@ public class SimplifyAssertJAssertion extends Recipe {
             }
 
             // Assume zero argument replacement method
-            String receiverType = mi.getSelect().getType().toString().replaceAll("<.*>", "");
-            return JavaTemplate.builder("#{any(" + receiverType + ")}." + dedicatedAssertion + "()")
+            return JavaTemplate.builder("#{any()}." + dedicatedAssertion + "()")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), mi.getSelect());
