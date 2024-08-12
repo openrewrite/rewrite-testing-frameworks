@@ -95,11 +95,11 @@ public class SimplifyAssertJAssertion extends Recipe {
             }
 
             // Assume zero argument replacement method
-            return JavaTemplate.builder(dedicatedAssertion + "()")
-                    .contextSensitive()
+            String receiverType = mi.getSelect().getType().toString().replaceAll("<.*>", "");
+            return JavaTemplate.builder("#{any(" + receiverType + ")}." + dedicatedAssertion + "()")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                     .build()
-                    .apply(getCursor(), mi.getCoordinates().replaceMethod());
+                    .apply(getCursor(), mi.getCoordinates().replace(), mi.getSelect());
         }
     }
 }
