@@ -133,6 +133,9 @@ recipeList:
       artifactId: maven-failsafe-plugin
       newVersion: 3.1.x
   - org.openrewrite.java.testing.junit5.GradleUseJunitJupiter
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.hamcrest
+      artifactId: hamcrest-junit
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
