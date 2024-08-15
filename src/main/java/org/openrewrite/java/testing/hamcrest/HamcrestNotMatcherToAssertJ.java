@@ -17,8 +17,8 @@ package org.openrewrite.java.testing.hamcrest;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
