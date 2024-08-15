@@ -114,7 +114,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
             """
               import org.junit.Test;
 
-              public class MyTest {
+              class MyTest {
 
                   @Test(expected = IllegalArgumentException.class)
                   public void test() {
@@ -130,7 +130,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
 
               import static org.junit.jupiter.api.Assertions.assertThrows;
 
-              public class MyTest {
+              class MyTest {
 
                   @Test
                   public void test() {
@@ -153,9 +153,9 @@ class UpdateTestAnnotationTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-                                
+
               public class MyTest {
-                                
+
                   @Test(expected = IndexOutOfBoundsException.class)
                   public void test() {
                       int arr = new int[]{}[0];
@@ -601,7 +601,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
                       // Second call shows why we wrap the entire method body in the lambda
                       foo();
                   }
-                  
+
                   void foo() throws IOException {
                       throw new IOException();
                   }
@@ -624,7 +624,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
                           foo();
                       });
                   }
-                  
+
                   void foo() throws IOException {
                       throw new IOException();
                   }
