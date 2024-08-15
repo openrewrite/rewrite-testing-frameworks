@@ -176,8 +176,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
      */
     private static class ParametersNoArgsImplicitMethodSource extends JavaIsoVisitor<ExecutionContext> {
 
-        @Nullable
-        private JavaParser.Builder<?, ?> javaParser;
+        private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {

@@ -70,8 +70,7 @@ public class UpdateMockWebServer extends Recipe {
                         new UsesType<>("okhttp3.mockwebserver.MockWebServer", false)
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
-                    @Nullable
-                    private JavaParser.Builder<?, ?> javaParser;
+                    private JavaParser.@Nullable Builder<?, ?> javaParser;
 
                     private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                         if (javaParser == null) {

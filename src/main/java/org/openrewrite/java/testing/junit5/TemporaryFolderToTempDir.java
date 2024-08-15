@@ -49,8 +49,8 @@ public class TemporaryFolderToTempDir extends Recipe {
             final AnnotationMatcher classRule = new AnnotationMatcher("@org.junit.ClassRule");
             final AnnotationMatcher rule = new AnnotationMatcher("@org.junit.Rule");
 
-            @Nullable
-            private JavaParser.Builder<?, ?> javaParser;
+            
+            private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {
@@ -157,8 +157,8 @@ public class TemporaryFolderToTempDir extends Recipe {
     private static class AddNewFolderMethod extends JavaIsoVisitor<ExecutionContext> {
         private final J.MethodInvocation methodInvocation;
 
-        @Nullable
-        private JavaParser.Builder<?, ?> javaParser;
+        
+        private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
@@ -236,8 +236,8 @@ public class TemporaryFolderToTempDir extends Recipe {
             J.MethodInvocation methodScope;
             JavaType.Method newMethodType;
 
-            @Nullable
-            private JavaParser.Builder<?, ?> javaParser;
+            
+            private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {

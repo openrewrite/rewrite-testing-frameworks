@@ -54,8 +54,8 @@ public class UpdateTestAnnotation extends Recipe {
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
 
-        @Nullable
-        private JavaParser.Builder<?, ?> javaParser;
+        
+        private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
@@ -182,8 +182,7 @@ public class UpdateTestAnnotation extends Recipe {
 
             boolean found;
 
-            @Nullable
-            private JavaParser.Builder<?, ?> javaParser;
+            private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {
