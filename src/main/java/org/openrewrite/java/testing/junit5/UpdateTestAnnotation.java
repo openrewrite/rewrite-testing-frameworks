@@ -26,6 +26,7 @@ import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markup;
+import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -168,6 +169,8 @@ public class UpdateTestAnnotation extends Recipe {
                     maybeAddImport("java.util.concurrent.TimeUnit");
                 }
                 maybeAddImport("org.junit.jupiter.api.Test");
+
+                doAfterVisit(new LambdaBlockToExpression().getVisitor());
             }
 
             return super.visitMethodDeclaration(m, ctx);
