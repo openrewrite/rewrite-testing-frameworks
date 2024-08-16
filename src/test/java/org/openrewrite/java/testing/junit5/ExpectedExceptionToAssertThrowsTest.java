@@ -469,4 +469,51 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void variableDeclarationsShouldNotBePulledIntoAssertThrowsLambda() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              class MyTest {
+
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testMethod() {
+                      int num = 1;
+                      String message = "message";
+
+                      thrown.expect(RuntimeException.class);
+                      thrown.expectMessage("Using vars" + num + message);
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              class MyTest {
+
+                  @Test
+                  public void testMethod() {
+                      int num = 1;
+                      String message = "message";
+                      Throwable exception = assertThrows(RuntimeException.class, () -> {
+                      });
+                      assertTrue(exception.getMessage().contains("Using vars" + num + message));
+                  }
+              }
+              """
+          )
+        );
+    }
 }
