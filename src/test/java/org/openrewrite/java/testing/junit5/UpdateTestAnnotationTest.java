@@ -134,7 +134,8 @@ class UpdateTestAnnotationTest implements RewriteTest {
 
                   @Test
                   public void test() {
-                      assertThrows(IllegalArgumentException.class, () -> foo());
+                      assertThrows(IllegalArgumentException.class, () ->
+                          foo());
                   }
                   private void foo() {
                       throw new IllegalArgumentException("boom");
