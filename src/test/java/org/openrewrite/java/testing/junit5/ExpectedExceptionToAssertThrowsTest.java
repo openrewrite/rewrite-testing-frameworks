@@ -492,6 +492,11 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
 
                       thrown.expect(RuntimeException.class);
                       thrown.expectMessage("Using vars" + num + message);
+                      foo();
+                  }
+    
+                  void foo() {
+                      throw new RuntimeException("Using vars");
                   }
               }
               """,
@@ -508,8 +513,12 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                       int num = 1;
                       String message = "message";
                       Throwable exception = assertThrows(RuntimeException.class, () -> {
-                      });
-                      assertTrue(exception.getMessage().contains("Using vars" + num + message));
+                          foo();
+                      }, "Using vars" + num + message);
+                  }
+    
+                  void foo() {
+                      throw new RuntimeException("Using vars");
                   }
               }
               """
