@@ -71,19 +71,13 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                             J.MethodInvocation assertThat = (J.MethodInvocation) assertion.getSelect();
                             assert assertThat != null;
                             Expression actual = assertThat.getArguments().get(0);
-                            if (currentActual == null) {
-                                currentActual = actual;
-                            }
-                            if (SemanticallyEqual.areEqual(currentActual, actual)) {
-                                currentGroup.add(statement);
-                            } else {
+                            if (currentActual == null || !SemanticallyEqual.areEqual(currentActual, actual)) {
                                 // Conclude the previous group
                                 groupedStatements.add(currentGroup);
                                 currentGroup = new ArrayList<>();
                                 currentActual = actual;
-                                // Add current statement to the new group
-                                currentGroup.add(statement);
                             }
+                            currentGroup.add(statement);
                             continue;
                         }
                     }
