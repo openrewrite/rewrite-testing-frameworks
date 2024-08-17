@@ -100,7 +100,7 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
             }
 
             private Optional<J.MethodInvocation> getAssertThatMi(J subtree) {
-                AtomicReference<J.MethodInvocation> assertThatMi = new AtomicReference<>(null);
+                AtomicReference<J.MethodInvocation> assertThatMi = new AtomicReference<>();
                 new JavaIsoVisitor<AtomicReference<J.MethodInvocation>>() {
 
                     @Override

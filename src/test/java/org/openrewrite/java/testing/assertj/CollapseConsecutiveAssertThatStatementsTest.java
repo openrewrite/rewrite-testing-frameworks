@@ -30,7 +30,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
+            .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
           .recipe(new CollapseConsecutiveAssertThatStatements());
     }
 
@@ -284,6 +284,28 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                   }
                   private int[] notification() {
                       return new int[]{1, 2, 3};
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ignoreIncorrectUseOfExtracting() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Node { Node parent; Node getParent() { return parent; } }
+
+              class MyTest {
+                  // Should not collapse these two, even if `extracting` is used incorrectly
+                  void b(Node node) {
+                      assertThat(node).extracting(Node::getParent);
+                      assertThat(node).isNotNull();
                   }
               }
               """
