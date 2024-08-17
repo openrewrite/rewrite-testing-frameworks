@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.hamcrest;
+package org.openrewrite.java.testing.junit5;
 
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Test;
