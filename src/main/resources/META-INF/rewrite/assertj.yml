@@ -44,6 +44,8 @@ recipeList:
   - tech.picnic.errorprone.refasterrules.AssertJStringRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJThrowingCallableRulesRecipes
 
+  - org.openrewrite.java.testing.assertj.CollapseConsecutiveAssertThatStatements
+
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.StaticImports
