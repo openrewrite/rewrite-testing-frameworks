@@ -48,12 +48,10 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               class MyTest {
                   void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
-                      // Collapse these three
                       assertThat(listA).isNotNull();
                       assertThat(listA).hasSize(3);
                       assertThat(listA).containsExactly("a", "b", "c");
                   }
-
                   private int[] notification() {
                       return new int[]{1, 2, 3};
                   }
@@ -67,13 +65,11 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               class MyTest {
                   void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
-                      // Collapse these three
                       assertThat(listA)
                               .isNotNull()
                               .hasSize(3)
                               .containsExactly("a", "b", "c");
                   }
-
                   private int[] notification() {
                       return new int[]{1, 2, 3};
                   }
@@ -96,10 +92,13 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               class MyTest {
                   void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
+                      // Comment nor whitespace below duplicated
                       assertThat(listA).isNotNull();
                       assertThat(listA).hasSize(3);
                       assertThat(listA).containsExactly("a", "b", "c");
+
                       List<String> listB = Arrays.asList("a", "b", "c");
+
                       assertThat(listB).isNotNull();
                       assertThat(listB).hasSize(3);
                   }
@@ -117,11 +116,14 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               class MyTest {
                   void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
+                      // Comment nor whitespace below duplicated
                       assertThat(listA)
                               .isNotNull()
                               .hasSize(3)
                               .containsExactly("a", "b", "c");
+
                       List<String> listB = Arrays.asList("a", "b", "c");
+
                       assertThat(listB)
                               .isNotNull()
                               .hasSize(3);
