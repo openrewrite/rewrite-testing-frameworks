@@ -106,6 +106,46 @@ class UpdateTestAnnotationTest implements RewriteTest {
         );
     }
 
+    @Test
+    void assertThrowsSingleLineInlined() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+
+              class MyTest {
+
+                  @Test(expected = IllegalArgumentException.class)
+                  public void test() {
+                      foo();
+                  }
+                  private void foo() {
+                      throw new IllegalArgumentException("boom");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  public void test() {
+                      assertThrows(IllegalArgumentException.class, () ->
+                          foo());
+                  }
+                  private void foo() {
+                      throw new IllegalArgumentException("boom");
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @SuppressWarnings("ConstantConditions")
     @Test
     void assertThrowsSingleStatement() {
@@ -113,16 +153,16 @@ class UpdateTestAnnotationTest implements RewriteTest {
         rewriteRun(
           java(
             """
-                  import org.junit.Test;
-                  
-                  public class MyTest {
-                  
-                      @Test(expected = IndexOutOfBoundsException.class)
-                      public void test() {
-                          int arr = new int[]{}[0];
-                      }
+              import org.junit.Test;
+
+              public class MyTest {
+
+                  @Test(expected = IndexOutOfBoundsException.class)
+                  public void test() {
+                      int arr = new int[]{}[0];
                   }
-                  """,
+              }
+              """,
             """
               import org.junit.jupiter.api.Test;
 
@@ -562,7 +602,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
                       // Second call shows why we wrap the entire method body in the lambda
                       foo();
                   }
-    
+
                   void foo() throws IOException {
                       throw new IOException();
                   }
@@ -585,7 +625,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
                           foo();
                       });
                   }
-    
+
                   void foo() throws IOException {
                       throw new IOException();
                   }

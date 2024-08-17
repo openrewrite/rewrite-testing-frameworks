@@ -15,17 +15,18 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markup;
+import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -54,8 +55,8 @@ public class UpdateTestAnnotation extends Recipe {
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
 
-        @Nullable
-        private JavaParser.Builder<?, ?> javaParser;
+        
+        private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
@@ -170,6 +171,8 @@ public class UpdateTestAnnotation extends Recipe {
                 maybeAddImport("org.junit.jupiter.api.Test");
             }
 
+            doAfterVisit(new LambdaBlockToExpression().getVisitor());
+
             return super.visitMethodDeclaration(m, ctx);
         }
 
@@ -182,8 +185,7 @@ public class UpdateTestAnnotation extends Recipe {
 
             boolean found;
 
-            @Nullable
-            private JavaParser.Builder<?, ?> javaParser;
+            private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {
