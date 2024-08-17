@@ -21,15 +21,13 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class CollapseConsecutiveAssertThatStatements extends Recipe {
     private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
@@ -48,106 +46,67 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesMethod<>(ASSERT_THAT), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.Block visitBlock(J.Block _block, ExecutionContext ctx) {
-                J.Block block = super.visitBlock(_block, ctx);
-
-                List<List<J.MethodInvocation>> consecutiveAssertThatStatementList = getConsecutiveAssertThatList(block.getStatements());
+            public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
+                J.Block bl = super.visitBlock(block, ctx);
 
                 List<Statement> modifiedStatements = new ArrayList<>();
-                int currIndex = 0;
-                while (currIndex < consecutiveAssertThatStatementList.size()) {
-                    List<J.MethodInvocation> groupedMethodInvocations = consecutiveAssertThatStatementList.get(currIndex);
-                    if (groupedMethodInvocations.size() <= 1) {
-                        // Retain the statement as is
-                        modifiedStatements.add(block.getStatements().get(currIndex));
-                        currIndex++;
+                for (List<Statement> group : getGroupedStatements(bl)) {
+                    if (group.size() <= 1) {
+                        modifiedStatements.addAll(group);
                     } else {
-                        modifiedStatements.add(getCollapsedAssertThat(groupedMethodInvocations));
-                        currIndex += groupedMethodInvocations.size();
+                        modifiedStatements.add(getCollapsedAssertThat(group));
                     }
                 }
 
-                block = block.withStatements(modifiedStatements);
-
-                return maybeAutoFormat(_block, block.withStatements(modifiedStatements), ctx);
+                return maybeAutoFormat(block, bl.withStatements(modifiedStatements), ctx);
             }
 
-            private List<List<J.MethodInvocation>> getConsecutiveAssertThatList(List<Statement> statements) {
-                List<List<J.MethodInvocation>> consecutiveAssertThatList = new ArrayList<>();
-                String prevArg = "";
-                int currListIndex = 0;
-                for (int currIndex = 0; currIndex < statements.size(); currIndex++) {
-
-                    consecutiveAssertThatList.add(new ArrayList<>());
-
-                    Statement statement = statements.get(currIndex);
+            private List<List<Statement>> getGroupedStatements(J.Block bl) {
+                List<Statement> originalStatements = bl.getStatements();
+                List<List<Statement>> groupedStatements = new ArrayList<>();
+                Expression currentActual = null; // The actual argument of the current group of assertThat statements
+                List<Statement> currentGroup = new ArrayList<>();
+                for (Statement statement : originalStatements) {
                     if (statement instanceof J.MethodInvocation) {
-                        Optional<J.MethodInvocation> assertThatMi = getAssertThatMi(statement);
-                        if (assertThatMi.isPresent()) {
-                            if (isAssertThatValid(statement)) {
-                                if (!getFirstArgumentName(assertThatMi.get()).equals(prevArg)) {
-                                    currListIndex = currIndex;
-                                }
-                                consecutiveAssertThatList.get(currListIndex).add((J.MethodInvocation) statement);
-                                prevArg = getFirstArgumentName(assertThatMi.get());
-                                continue;
+                        J.MethodInvocation assertion = (J.MethodInvocation) statement;
+                        if (ASSERT_THAT.matches(assertion.getSelect())) {
+                            J.MethodInvocation assertThat = (J.MethodInvocation) assertion.getSelect();
+                            Expression actual = assertThat.getArguments().get(0);
+                            if (currentActual == null) {
+                                currentActual = actual;
                             }
+                            if (SemanticallyEqual.areEqual(currentActual, actual) && !(actual instanceof MethodCall)) {
+                                currentGroup.add(statement);
+                            } else {
+                                // Conclude the previous group
+                                groupedStatements.add(currentGroup);
+                                currentGroup = new ArrayList<>();
+                                currentActual = actual;
+                                // Add current statement to the new group
+                                currentGroup.add(statement);
+                            }
+                            continue;
                         }
                     }
-                    prevArg = "";
+
+                    // Conclude the previous group, and start a new group
+                    groupedStatements.add(currentGroup);
+                    currentGroup = new ArrayList<>();
+                    currentActual = null;
+                    // The current statement should not be grouped with any other statement
+                    groupedStatements.add(Collections.singletonList(statement));
                 }
-                return consecutiveAssertThatList;
+                if (!currentGroup.isEmpty()) {
+                    // Conclude the last group
+                    groupedStatements.add(currentGroup);
+                }
+                return groupedStatements;
             }
 
-            private Optional<J.MethodInvocation> getAssertThatMi(J subtree) {
-                AtomicReference<J.MethodInvocation> assertThatMi = new AtomicReference<>();
-                new JavaIsoVisitor<AtomicReference<J.MethodInvocation>>() {
-
-                    @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, AtomicReference<J.MethodInvocation> assertThatMiHolder) {
-                        if (ASSERT_THAT.matches(mi)) {
-                            assertThatMiHolder.set(mi);
-                            return mi;
-                        }
-                        return super.visitMethodInvocation(mi, assertThatMi);
-                    }
-
-                }.reduce(subtree, assertThatMi);
-                return Optional.of(assertThatMi.get());
-            }
-
-            private boolean isAssertThatValid(J subtree) {
-                AtomicInteger chainCount = new AtomicInteger(0);
-                AtomicBoolean isValid = new AtomicBoolean(true);
-                new JavaIsoVisitor<AtomicInteger>() {
-                    @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, AtomicInteger chainCount) {
-                        chainCount.set(chainCount.get() + 1);
-
-                        if (ASSERT_THAT.matches(mi)) {
-                            if (chainCount.get() > 2) {
-                                isValid.set(false);
-                            }
-
-                            J assertThatArgument = mi.getArguments().get(0);
-                            if (assertThatArgument instanceof J.MethodInvocation || assertThatArgument instanceof J.Lambda) {
-                                isValid.set(false);
-                            }
-                        }
-
-                        return super.visitMethodInvocation(mi, chainCount);
-                    }
-                }.reduce(subtree, chainCount);
-                return isValid.get();
-            }
-
-            private String getFirstArgumentName(J.MethodInvocation mi) {
-                return ((J.Identifier) mi.getArguments().get(0)).getSimpleName();
-            }
-
-            private J.MethodInvocation getCollapsedAssertThat(List<J.MethodInvocation> consecutiveAssertThatStatement) {
+            private J.MethodInvocation getCollapsedAssertThat(List<Statement> consecutiveAssertThatStatement) {
                 J.MethodInvocation collapsed = null;
-                for (J.MethodInvocation mi : consecutiveAssertThatStatement) {
+                for (Statement st : consecutiveAssertThatStatement) {
+                    J.MethodInvocation mi = (J.MethodInvocation) st;
                     collapsed = collapsed == null ?
                             mi.getPadding().withSelect(JRightPadded.build(mi.getSelect()).withAfter(mi.getPrefix())) :
                             mi.getPadding().withSelect(JRightPadded.build((Expression) collapsed.withPrefix(Space.EMPTY)).withAfter(collapsed.getPrefix()));
