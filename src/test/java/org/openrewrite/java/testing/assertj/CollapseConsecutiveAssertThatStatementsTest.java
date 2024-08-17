@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -252,6 +251,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               class MyTest {
                   void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
+                      assertThat(listA).containsExactly("a", "b", "c");
                       assertThat(listA)
                           .isNotNull()
                           .hasSize(3);
@@ -293,7 +293,6 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
     }
 
     @Test
-    @Disabled("FIXME Necessary for reliable changes at scale")
     void ignoreIncorrectUseOfExtracting() {
         //language=java
         rewriteRun(

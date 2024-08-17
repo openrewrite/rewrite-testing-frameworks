@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.SemanticallyEqual;
@@ -29,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@Incubating(since = "2.17.0")
 public class CollapseConsecutiveAssertThatStatements extends Recipe {
     private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
 
@@ -49,16 +47,16 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
             public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
                 J.Block bl = super.visitBlock(block, ctx);
 
-                List<Statement> modifiedStatements = new ArrayList<>();
+                List<Statement> statementsCollapsed = new ArrayList<>();
                 for (List<Statement> group : getGroupedStatements(bl)) {
                     if (group.size() <= 1) {
-                        modifiedStatements.addAll(group);
+                        statementsCollapsed.addAll(group);
                     } else {
-                        modifiedStatements.add(getCollapsedAssertThat(group));
+                        statementsCollapsed.add(getCollapsedAssertThat(group));
                     }
                 }
 
-                return maybeAutoFormat(block, bl.withStatements(modifiedStatements), ctx);
+                return maybeAutoFormat(block, bl.withStatements(statementsCollapsed), ctx);
             }
 
             private List<List<Statement>> getGroupedStatements(J.Block bl) {
@@ -69,13 +67,14 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                 for (Statement statement : originalStatements) {
                     if (statement instanceof J.MethodInvocation) {
                         J.MethodInvocation assertion = (J.MethodInvocation) statement;
-                        if (ASSERT_THAT.matches(assertion.getSelect())) {
+                        if (isGroupableAssertion(assertion)) {
                             J.MethodInvocation assertThat = (J.MethodInvocation) assertion.getSelect();
+                            assert assertThat != null;
                             Expression actual = assertThat.getArguments().get(0);
                             if (currentActual == null) {
                                 currentActual = actual;
                             }
-                            if (SemanticallyEqual.areEqual(currentActual, actual) && !(actual instanceof MethodCall)) {
+                            if (SemanticallyEqual.areEqual(currentActual, actual)) {
                                 currentGroup.add(statement);
                             } else {
                                 // Conclude the previous group
@@ -103,10 +102,23 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                 return groupedStatements;
             }
 
+            private boolean isGroupableAssertion(J.MethodInvocation assertion) {
+                // Only match method invocations where the select is an assertThat, containing a non-method call argument
+                if (ASSERT_THAT.matches(assertion.getSelect())) {
+                    J.MethodInvocation assertThat = (J.MethodInvocation) assertion.getSelect();
+                    if (assertThat != null && !(assertThat.getArguments().get(0) instanceof MethodCall)) {
+                        return TypeUtils.isOfType(assertThat.getType(), assertion.getType());
+                    }
+                }
+                return false;
+            }
+
             private J.MethodInvocation getCollapsedAssertThat(List<Statement> consecutiveAssertThatStatement) {
+                assert !consecutiveAssertThatStatement.isEmpty();
                 J.MethodInvocation collapsed = null;
                 for (Statement st : consecutiveAssertThatStatement) {
                     J.MethodInvocation mi = (J.MethodInvocation) st;
+                    assert mi.getSelect() != null;
                     collapsed = collapsed == null ?
                             mi.getPadding().withSelect(JRightPadded.build(mi.getSelect()).withAfter(mi.getPrefix())) :
                             mi.getPadding().withSelect(JRightPadded.build((Expression) collapsed.withPrefix(Space.EMPTY)).withAfter(collapsed.getPrefix()));
