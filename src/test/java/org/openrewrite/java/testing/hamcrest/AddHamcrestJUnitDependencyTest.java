@@ -44,6 +44,7 @@ class AddHamcrestJUnitDependencyTest implements RewriteTest {
           </dependencies>
       </project>
       """;
+
     @Language("xml")
     private static final String POM_AFTER = """
       <project>
