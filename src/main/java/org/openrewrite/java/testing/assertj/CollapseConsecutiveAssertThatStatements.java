@@ -56,7 +56,7 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                     }
                 }
 
-                return maybeAutoFormat(block, bl.withStatements(statementsCollapsed), ctx);
+                return bl.withStatements(statementsCollapsed);
             }
 
             private List<List<Statement>> getGroupedStatements(J.Block bl) {
@@ -109,15 +109,19 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
 
             private J.MethodInvocation getCollapsedAssertThat(List<Statement> consecutiveAssertThatStatement) {
                 assert !consecutiveAssertThatStatement.isEmpty();
+                Space originalPrefix = consecutiveAssertThatStatement.get(0).getPrefix();
+                Space indentedNewline = Space.format(originalPrefix.getLastWhitespace() + originalPrefix.getIndent());
                 J.MethodInvocation collapsed = null;
                 for (Statement st : consecutiveAssertThatStatement) {
-                    J.MethodInvocation mi = (J.MethodInvocation) st;
-                    assert mi.getSelect() != null;
-                    collapsed = collapsed == null ?
-                            mi.getPadding().withSelect(JRightPadded.build(mi.getSelect()).withAfter(mi.getPrefix())) :
-                            mi.getPadding().withSelect(JRightPadded.build((Expression) collapsed.withPrefix(Space.EMPTY)).withAfter(collapsed.getPrefix()));
+                    J.MethodInvocation assertion = (J.MethodInvocation) st;
+                    J.MethodInvocation assertThat = (J.MethodInvocation) assertion.getSelect();
+                    assert assertThat != null;
+                    J.MethodInvocation newSelect = collapsed == null ? assertThat : collapsed;
+                    collapsed = assertion.getPadding().withSelect(JRightPadded
+                            .build((Expression) newSelect.withPrefix(Space.EMPTY))
+                            .withAfter(indentedNewline));
                 }
-                return collapsed;
+                return collapsed.withPrefix(originalPrefix);
             }
         });
     }

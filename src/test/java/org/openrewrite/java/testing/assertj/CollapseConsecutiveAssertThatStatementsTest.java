@@ -48,6 +48,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               class MyTest {
                   void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
+                      // Collapse these three
                       assertThat(listA).isNotNull();
                       assertThat(listA).hasSize(3);
                       assertThat(listA).containsExactly("a", "b", "c");
@@ -66,6 +67,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               class MyTest {
                   void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
+                      // Collapse these three
                       assertThat(listA)
                               .isNotNull()
                               .hasSize(3)
