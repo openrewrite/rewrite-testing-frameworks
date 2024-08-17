@@ -35,6 +35,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
           .recipe(new JUnitAssertThrowsToAssertExceptionType());
     }
 
+    @SuppressWarnings({"Convert2MethodRef", "CodeBlock2Expr"})
     @DocumentExample
     @Test
     void toAssertExceptionOfType() {
@@ -47,8 +48,11 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
               public class SimpleExpectedExceptionTest {
                   public void throwsExceptionWithSpecificType() {
                       assertThrows(NullPointerException.class, () -> {
-                          throw new NullPointerException();
+                          foo();
                       });
+                  }
+                  void foo() {
+                      throw new NullPointerException();
                   }
               }
               """,
@@ -57,9 +61,11 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
               
               public class SimpleExpectedExceptionTest {
                   public void throwsExceptionWithSpecificType() {
-                      assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> {
-                          throw new NullPointerException();
-                      });
+                      assertThatExceptionOfType(NullPointerException.class).isThrownBy(() ->
+                          foo());
+                  }
+                  void foo() {
+                      throw new NullPointerException();
                   }
               }
               """
@@ -127,6 +133,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
      * A degenerate case showing we need to make sure the <code>assertThrows</code> appears
      * immediately inside a J.Block.
      */
+    @SuppressWarnings("ThrowableNotThrown")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/pull/331")
     void assertThrowsTernaryAssignment() {

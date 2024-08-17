@@ -173,6 +173,8 @@ public class UpdateTestAnnotation extends Recipe {
                 doAfterVisit(new LambdaBlockToExpression().getVisitor());
             }
 
+            doAfterVisit(new LambdaBlockToExpression().getVisitor());
+
             return super.visitMethodDeclaration(m, ctx);
         }
 

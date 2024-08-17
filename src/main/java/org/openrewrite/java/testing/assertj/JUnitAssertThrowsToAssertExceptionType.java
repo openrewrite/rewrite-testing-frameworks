@@ -26,6 +26,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
 
@@ -45,18 +46,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
     }
 
     private static class AssertExceptionTypeVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private JavaParser.Builder<?, ?> assertionsParser;
-
-        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
-            if (assertionsParser == null) {
-                assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24");
-            }
-            return assertionsParser;
-        }
-
         private static final MethodMatcher ASSERT_THROWS_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertThrows(..)");
-
         private static final JavaType THROWING_CALLABLE_TYPE = JavaType.buildType("org.assertj.core.api.ThrowableAssert.ThrowingCallable");
 
         @Override
@@ -77,7 +67,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                 if (executable != null) {
                     mi = JavaTemplate
                             .builder("assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
-                            .javaParser(assertionsParser(ctx))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                             .staticImports("org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType")
                             .build()
                             .apply(
@@ -88,6 +78,8 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                     maybeAddImport("org.assertj.core.api.AssertionsForClassTypes", "assertThatExceptionOfType", false);
                     maybeRemoveImport("org.junit.jupiter.api.Assertions.assertThrows");
                     maybeRemoveImport("org.junit.jupiter.api.Assertions");
+
+                    doAfterVisit(new LambdaBlockToExpression().getVisitor());
                 }
             }
             return mi;

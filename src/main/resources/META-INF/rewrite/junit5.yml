@@ -65,6 +65,7 @@ recipeList:
       groupId: org.apache.maven.surefire
       artifactId: surefire-junit*
   - org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin
+  - org.openrewrite.java.testing.junit5.AddHamcrestJUnitDependency
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.MigrateAssumptions
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
@@ -160,13 +161,6 @@ tags:
   - junit
   - hamcrest
 recipeList:
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.hamcrest
-      artifactId: hamcrest-junit
-      version: 2.x
-      scope: test
-      onlyIfUsing: org.junit.Assume
-      acceptTransitive: true
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.junit.Assume assumeThat(..)
       fullyQualifiedTargetTypeName: org.hamcrest.junit.MatcherAssume
