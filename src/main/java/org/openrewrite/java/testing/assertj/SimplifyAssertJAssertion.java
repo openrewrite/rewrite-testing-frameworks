@@ -17,11 +17,11 @@ package org.openrewrite.java.testing.assertj;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -95,11 +95,10 @@ public class SimplifyAssertJAssertion extends Recipe {
             }
 
             // Assume zero argument replacement method
-            return JavaTemplate.builder(dedicatedAssertion + "()")
-                    .contextSensitive()
+            return JavaTemplate.builder("#{any()}." + dedicatedAssertion + "()")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                     .build()
-                    .apply(getCursor(), mi.getCoordinates().replaceMethod());
+                    .apply(getCursor(), mi.getCoordinates().replace(), mi.getSelect());
         }
     }
 }

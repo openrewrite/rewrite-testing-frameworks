@@ -106,7 +106,8 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               
                   @Test
                   public void testEmptyPath() {
-                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> foo());
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () ->
+                          foo());
                       assertTrue(exception.getMessage().contains("Invalid location: gs://"));
                   }
                   void foo() {
@@ -459,7 +460,8 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               
                   @Test
                   public void testEmptyPath() {
-                      assertThrows(IOException.class, () -> foo());
+                      assertThrows(IOException.class, () ->
+                          foo());
                   }
                   void foo() throws IOException {
                       throw new IOException();

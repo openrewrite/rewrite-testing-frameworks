@@ -15,14 +15,15 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.Collections;
 import java.util.List;
@@ -58,8 +59,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
     public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        @Nullable
-        private JavaParser.Builder<?, ?> javaParser;
+        private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
@@ -159,10 +159,6 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     "Exception.class" : expectMethodInvocation.getArguments().get(0);
 
             String templateString = expectedExceptionParam instanceof String ? "#{}assertThrows(#{}, () -> #{any()});" : "#{}assertThrows(#{any()}, () -> #{any()});";
-
-            Statement statement = bodyWithoutExpectedExceptionCalls.getStatements().size() == 1 &&
-                                  !(bodyWithoutExpectedExceptionCalls.getStatements().get(0) instanceof J.Throw) ?
-                    bodyWithoutExpectedExceptionCalls.getStatements().get(0) : bodyWithoutExpectedExceptionCalls;
             m = JavaTemplate.builder(templateString)
                     .contextSensitive()
                     .javaParser(javaParser(ctx))
@@ -173,7 +169,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                             m.getCoordinates().replaceBody(),
                             exceptionDeclParam,
                             expectedExceptionParam,
-                            statement
+                            bodyWithoutExpectedExceptionCalls
                     );
 
             // Clear out any declared thrown exceptions
@@ -225,6 +221,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                         "exception.getCause()", expectCauseMethodInvocation.getArguments().get(0));
                 maybeAddImport("org.hamcrest.MatcherAssert", "assertThat");
             }
+
+            doAfterVisit(new LambdaBlockToExpression().getVisitor());
 
             return m;
         }
