@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import lombok.Value;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.dependencies.AddDependency;
@@ -46,14 +47,15 @@ public class AddHamcrestJUnitDependency extends ScanningRecipe<AddHamcrestJUnitD
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
         TreeVisitor<Tree, ExecutionContext> usesMethodVisitor = getUsesMethodVisitor(acc.shouldAdd);
-        AddDependency addDependency = getAddDependency();
+        TreeVisitor<?, ExecutionContext> addDependencyScanner = getAddDependency().getScanner(acc.delegate);
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
-            public Tree visit(Tree tree, ExecutionContext ctx) {
+            public Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
                 if (!acc.shouldAdd.get()) {
                     usesMethodVisitor.visit(tree, ctx);
-                    addDependency.getScanner(acc.delegate).visit(tree, ctx);
+                    addDependencyScanner.visit(tree, ctx);
                 }
+                //noinspection DataFlowIssue
                 return tree;
             }
         };
