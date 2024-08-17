@@ -133,9 +133,6 @@ recipeList:
       artifactId: maven-failsafe-plugin
       newVersion: 3.1.x
   - org.openrewrite.java.testing.junit5.GradleUseJunitJupiter
-  - org.openrewrite.java.dependencies.RemoveDependency:
-      groupId: org.hamcrest
-      artifactId: hamcrest-junit
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -163,13 +160,7 @@ tags:
   - junit
   - hamcrest
 recipeList:
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.hamcrest
-      artifactId: hamcrest-junit
-      version: 2.x
-      scope: test
-      onlyIfUsing: org.junit.Assume
-      acceptTransitive: true
+  - org.openrewrite.java.testing.junit5.AddHamcrestJUnitDependency
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.junit.Assume assumeThat(..)
       fullyQualifiedTargetTypeName: org.hamcrest.junit.MatcherAssume
