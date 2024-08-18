@@ -327,7 +327,7 @@ class RemoveTestPrefixTest implements RewriteTest {
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/258")
-    void removeTestPrefixWithClashingMethod() {
+    void ignoreWhenStaticImportConflicts() {
         rewriteRun(
           //language=java
           java(
@@ -339,6 +339,38 @@ class RemoveTestPrefixTest implements RewriteTest {
                   @Test
                   void testOf() {
                     of();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/258")
+    void removeOnQualifiedMethodDespiteConflict() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.List;
+
+              class FooTest {
+                  @Test
+                  void testOf() {
+                    List.of();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.List;
+
+              class FooTest {
+                  @Test
+                  void of() {
+                    List.of();
                   }
               }
               """

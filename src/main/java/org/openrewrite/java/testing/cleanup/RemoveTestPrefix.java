@@ -127,7 +127,7 @@ public class RemoveTestPrefix extends Recipe {
             new JavaIsoVisitor<AtomicBoolean>() {
                 @Override
                 public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
-                    if (method.getName().getSimpleName().equals(newMethodName)) {
+                    if (method.getName().getSimpleName().equals(newMethodName) && method.getSelect() == null) {
                         skip.set(true);
                     }
                     return super.visitMethodInvocation(method, atomicBoolean);
