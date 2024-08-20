@@ -43,8 +43,8 @@ public class MockitoJUnitAddMockitoSettingsLenientStrictness extends Recipe {
                         Preconditions.not(new UsesType<>("org.mockito.junit.jupiter.MockitoSettings", true))
                 ), new JavaIsoVisitor<ExecutionContext>() {
                     @Override
-                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-                        return super.visitClassDeclaration(classDecl, executionContext);
+                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                        return super.visitClassDeclaration(classDecl, ctx);
                         // TODO
                     }
                 });
