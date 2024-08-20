@@ -53,7 +53,7 @@ class TestsShouldNotBePublicTest implements RewriteTest {
 
                   @Nested
                   public class NestedTestClass {
-                  
+
                       @Test
                       void anotherTestMethod() {
                       }
@@ -198,9 +198,9 @@ class TestsShouldNotBePublicTest implements RewriteTest {
               abstract class AbstractTest {
                   public abstract void testMethod();
               }
-                            
+
               class BTest extends AbstractTest {
-                            
+
                   @Test
                   @Override
                   public void testMethod() {

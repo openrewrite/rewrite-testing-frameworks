@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.cleanup;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
@@ -154,9 +153,12 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
                 return m;
             }
 
-            if (m.getModifiers().stream().anyMatch(mod -> (mod.getType() == J.Modifier.Type.Public || (orProtected && mod.getType() == J.Modifier.Type.Protected)))
-                    && Boolean.FALSE.equals(TypeUtils.isOverride(method.getMethodType()))
-                    && hasJUnit5MethodAnnotation(m)) {
+            if (m.hasModifier(J.Modifier.Type.Abstract) || TypeUtils.isOverride(method.getMethodType())) {
+                return m;
+            }
+
+            if ((m.hasModifier(J.Modifier.Type.Public) || (orProtected && m.hasModifier(J.Modifier.Type.Protected))) &&
+                hasJUnit5MethodAnnotation(m)) {
                 // remove public modifier
                 doAfterVisit(new ChangeMethodAccessLevelVisitor<>(new MethodMatcher(method), null));
             }
