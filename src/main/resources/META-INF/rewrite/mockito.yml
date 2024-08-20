@@ -147,3 +147,4 @@ recipeList:
       oldGroupId: org.mockito
       oldArtifactId: mockito-all
       newArtifactId: mockito-core
+  - org.openrewrite.java.testing.junit5.MockitoJUnitAddMockitoSettingsLenientStrictness
