@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ public class MockitoJUnitAddMockitoSettingsLenientStrictness extends ScanningRec
 
     @Override
     public String getDescription() {
-        return "Add `@MockitoSettings(strictness = Strictness.LENIENT)` when migration to JUnit 5.";
+        return "Add `@MockitoSettings(strictness = Strictness.LENIENT)` when migrating to JUnit 5 which is possible as early as Mockito version 2.17. This way we preserve the original default lenience on stubbing, preventing failing tests.";
     }
 
     @Override
@@ -56,7 +56,8 @@ public class MockitoJUnitAddMockitoSettingsLenientStrictness extends ScanningRec
 
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(AtomicBoolean usingOlderMockito) {
-        TreeVisitor<?, ExecutionContext> div = new DependencyInsight("org.mockito", "mockito-core", "[2.0,2.17)").getVisitor();
+        // Theoretically 1.x.x versions (going back to 1.1) could be artifact id `mockito-all` as well
+        TreeVisitor<?, ExecutionContext> div = new DependencyInsight("org.mockito", "mockito-core", "[1.3,2.17)").getVisitor();
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
