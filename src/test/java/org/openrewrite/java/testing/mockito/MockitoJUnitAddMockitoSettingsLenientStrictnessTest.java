@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -22,17 +23,55 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import static org.openrewrite.java.Assertions.*;
+import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class MockitoJUnitAddMockitoSettingsLenientStrictnessTest implements RewriteTest {
+
+    @Language("xml")
+    private static final String POM_XML_WITH_OLDER_MOCKITO = """
+      <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>bla.bla</groupId>
+        <artifactId>bla-bla</artifactId>
+        <version>1.0.0</version>
+        <dependencies>
+          <dependency>
+              <groupId>org.mockito</groupId>
+              <artifactId>mockito-core</artifactId>
+              <version>2.1.0</version>
+              <scope>test</scope>
+          </dependency>
+        </dependencies>
+      </project>
+      """;
+
+    @Language("java")
+    private static final String JAVA_BEFORE = """
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.junit.jupiter.MockitoExtension;
+      
+      @ExtendWith(MockitoExtension.class)
+      class MyTest {
+      }
+      """;
+
+    @Language("java")
+    private static final String JAVA_AFTER = """
+      import org.mockito.junit.jupiter.MockitoSettings;
+      import org.mockito.quality.Strictness;
+      
+      @MockitoSettings(strictness = Strictness.LENIENT)
+      class MyTest {
+      }
+      """;
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "mockito-core", "mockito-junit-jupiter", "junit-jupiter-api", "junit"))
+              "mockito-core", "mockito-junit-jupiter", "junit-jupiter-api"))
           .recipe(new MockitoJUnitAddMockitoSettingsLenientStrictness());
     }
 
@@ -41,24 +80,8 @@ class MockitoJUnitAddMockitoSettingsLenientStrictnessTest implements RewriteTest
     void shouldAddMockitoSettingsWithLenientStubbing() {
         //language=java
         rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.junit.jupiter.MockitoExtension;
-
-              @ExtendWith(MockitoExtension.class)
-              class MyTest {
-              }
-              """,
-            """
-              import org.mockito.junit.jupiter.MockitoSettings;
-              import org.mockito.quality.Strictness;
-
-              @MockitoSettings(strictness = Strictness.LENIENT)
-              class MyTest {
-              }
-              """
-          )
+          pomXml(POM_XML_WITH_OLDER_MOCKITO),
+          java(JAVA_BEFORE, JAVA_AFTER)
         );
     }
 
@@ -66,11 +89,12 @@ class MockitoJUnitAddMockitoSettingsLenientStrictnessTest implements RewriteTest
     void shouldLeaveExisting() {
         //language=java
         rewriteRun(
+          pomXml(POM_XML_WITH_OLDER_MOCKITO),
           java(
             """
               import org.mockito.junit.jupiter.MockitoSettings;
               import org.mockito.quality.Strictness;
-
+              
               @MockitoSettings(strictness = Strictness.STRICT_STUBS)
               class MyTest {
               }
@@ -82,93 +106,34 @@ class MockitoJUnitAddMockitoSettingsLenientStrictnessTest implements RewriteTest
     @Test
     void shouldRunBeforeMockitoCore2_17() {
         rewriteRun(
-          spec -> spec.recipeFromResources("org.openrewrite.java.testing.mockito.MockitoRetainLenientStubbing"),
-          mavenProject("project",
-            //language=xml
-            pomXml(
-              """
-                <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>bla.bla</groupId>
-                  <artifactId>bla-bla</artifactId>
-                  <version>1.0.0</version>
-                  <name>project</name>
-                  <dependencies>
-                    <dependency>
-                        <groupId>org.mockito</groupId>
-                        <artifactId>mockito-core</artifactId>
-                        <version>2.1.0</version>
-                        <scope>test</scope>
-                    </dependency>
-                  </dependencies>
-                </project>
-                """
-            ),
-            //language=java
-            srcMainJava(
-              java(
-                """
-                  import org.junit.jupiter.api.extension.ExtendWith;
-                  import org.mockito.junit.jupiter.MockitoExtension;
-    
-                  @ExtendWith(MockitoExtension.class)
-                  class MyTest {
-                  }
-                  """,
-                """
-                  import org.mockito.junit.jupiter.MockitoSettings;
-                  import org.mockito.quality.Strictness;
-    
-                  @MockitoSettings(strictness = Strictness.LENIENT)
-                  class MyTest {
-                  }
-                  """
-              )
-            )
-          )
+          pomXml(POM_XML_WITH_OLDER_MOCKITO),
+          java(JAVA_BEFORE, JAVA_AFTER)
         );
     }
 
     @Test
-    void shouldNotRunAfterMockitoCore2_17() {
+    void shouldNotRunOnNewerMockito() {
         rewriteRun(
-          spec -> spec.recipeFromResources("org.openrewrite.java.testing.mockito.MockitoRetainLenientStubbing"),
-          mavenProject("project",
-            //language=xml
-            pomXml(
+          //language=xml
+          pomXml(
+            """
+              <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>bla.bla</groupId>
+                <artifactId>bla-bla</artifactId>
+                <version>1.0.0</version>
+                <dependencies>
+                  <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <version>2.17.0</version>
+                      <scope>test</scope>
+                  </dependency>
+                </dependencies>
+              </project>
               """
-                <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>bla.bla</groupId>
-                  <artifactId>bla-bla</artifactId>
-                  <version>1.0.0</version>
-                  <name>project</name>
-                  <dependencies>
-                    <dependency>
-                        <groupId>org.mockito</groupId>
-                        <artifactId>mockito-core</artifactId>
-                        <version>2.17.0</version>
-                        <scope>test</scope>
-                    </dependency>
-                  </dependencies>
-                </project>
-                """
-            ),
-            //language=java
-            srcMainJava(
-              java(
-                """
-                  import org.junit.jupiter.api.extension.ExtendWith;
-                  import org.mockito.junit.jupiter.MockitoExtension;
-    
-                  @ExtendWith(MockitoExtension.class)
-                  class MyTest {
-                  }
-                  """
-              )
-            )
-          )
+          ),
+          java(JAVA_BEFORE)
         );
     }
-
 }

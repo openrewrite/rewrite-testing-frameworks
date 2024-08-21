@@ -133,6 +133,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
 # https://github.com/openrewrite/rewrite-testing-frameworks/issues/360
 #  - org.openrewrite.java.testing.mockito.ReplacePowerMockito
+  - org.openrewrite.java.testing.mockito.MockitoJUnitAddMockitoSettingsLenientStrictness
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
       artifactId: mockito-junit-jupiter
@@ -147,19 +148,3 @@ recipeList:
       oldGroupId: org.mockito
       oldArtifactId: mockito-all
       newArtifactId: mockito-core
-  - org.openrewrite.java.testing.mockito.MockitoRetainLenientStubbing
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.mockito.MockitoRetainLenientStubbing
-displayName: Retain lenient strictness for stubbing during JUnit 5 migration
-description: Retain lenient strictness for stubbing during JUnit 4 to 5 (possible from mockito 2.17) migration.
-tags:
-  - testing
-  - mockito
-preconditions:
-  - org.openrewrite.java.dependencies.DependencyInsight:
-      groupIdPattern: org.mockito
-      artifactIdPattern: mockito-core
-      version: "[2.0,2.17)"
-recipeList:
-  - org.openrewrite.java.testing.mockito.MockitoJUnitAddMockitoSettingsLenientStrictness
