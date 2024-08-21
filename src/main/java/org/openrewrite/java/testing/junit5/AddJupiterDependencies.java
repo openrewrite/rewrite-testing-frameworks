@@ -26,7 +26,6 @@ import org.openrewrite.groovy.tree.G;
 import org.openrewrite.java.dependencies.AddDependency;
 import org.openrewrite.maven.MavenIsoVisitor;
 import org.openrewrite.maven.tree.ResolvedDependency;
-import org.openrewrite.maven.tree.Scope;
 import org.openrewrite.xml.tree.Xml;
 
 import java.util.List;
@@ -64,14 +63,14 @@ public class AddJupiterDependencies extends ScanningRecipe<AddDependency.Accumul
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx, Cursor parent) {
-                if(!(tree instanceof SourceFile)) {
+                if (!(tree instanceof SourceFile)) {
                     return tree;
                 }
                 SourceFile s = (SourceFile) tree;
-                if(gv.isAcceptable(s, ctx)) {
+                if (gv.isAcceptable(s, ctx)) {
                     s = (SourceFile) gv.visitNonNull(s, ctx);
                 }
-                if(mv.isAcceptable(s, ctx)) {
+                if (mv.isAcceptable(s, ctx)) {
                     s = (SourceFile) mv.visitNonNull(s, ctx);
                 }
                 return s;
@@ -81,7 +80,7 @@ public class AddJupiterDependencies extends ScanningRecipe<AddDependency.Accumul
 
     private static AddDependency addJupiterDependency() {
         return new AddDependency("org.junit.jupiter", "junit-jupiter", "5.x", null,
-                "org.junit..*", null, null, null, null, "test",
+                "org.junit..*", null, null, null, null, null,
                 null, null, null, null);
     }
 
@@ -93,16 +92,16 @@ public class AddJupiterDependencies extends ScanningRecipe<AddDependency.Accumul
         @Override
         public G.CompilationUnit visitCompilationUnit(G.CompilationUnit t, ExecutionContext ctx) {
             Optional<GradleProject> maybeGp = t.getMarkers().findFirst(GradleProject.class);
-            if(!maybeGp.isPresent()) {
+            if (!maybeGp.isPresent()) {
                 return t;
             }
             GradleProject gp = maybeGp.get();
             GradleDependencyConfiguration trc = gp.getConfiguration("testRuntimeClasspath");
-            if(trc == null) {
+            if (trc == null) {
                 return t;
             }
             ResolvedDependency jupiterApi = trc.findResolvedDependency("org.junit.jupiter", "junit-jupiter-api");
-            if(jupiterApi == null) {
+            if (jupiterApi == null) {
                 t = (G.CompilationUnit) addJupiterDependency().getVisitor(acc)
                         .visitNonNull(t, ctx);
             }
@@ -115,11 +114,12 @@ public class AddJupiterDependencies extends ScanningRecipe<AddDependency.Accumul
     @EqualsAndHashCode(callSuper = false)
     private static class AddJupiterMaven extends MavenIsoVisitor<ExecutionContext> {
         AddDependency.Accumulator acc;
+
         @Override
         public Xml.Document visitDocument(Xml.Document document, ExecutionContext ctx) {
             Xml.Document d = document;
-            List<ResolvedDependency> jupiterApi = getResolutionResult().findDependencies("org.junit.jupiter", "junit-jupiter-api", Scope.Test);
-            if(jupiterApi.isEmpty()) {
+            List<ResolvedDependency> jupiterApi = getResolutionResult().findDependencies("org.junit.jupiter", "junit-jupiter-api", null);
+            if (jupiterApi.isEmpty()) {
                 d = (Xml.Document) addJupiterDependency().getVisitor(acc)
                         .visitNonNull(d, ctx);
             }
