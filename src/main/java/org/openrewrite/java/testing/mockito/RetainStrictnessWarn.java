@@ -41,7 +41,7 @@ public class RetainStrictnessWarn extends ScanningRecipe<AtomicBoolean> {
 
     @Override
     public String getDisplayName() {
-        return "Add `@MockitoSettings(strictness = Strictness.WARN)` when switching to JUnit 5";
+        return "Retain Mockito strictness `WARN` when switching to JUnit 5";
     }
 
     @Override
