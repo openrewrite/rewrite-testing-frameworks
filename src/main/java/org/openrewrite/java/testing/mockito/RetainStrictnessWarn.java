@@ -30,23 +30,24 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class MockitoJUnitAddMockitoSettingsLenientStrictness extends ScanningRecipe<AtomicBoolean> {
+public class RetainStrictnessWarn extends ScanningRecipe<AtomicBoolean> {
 
-    private static String EXTEND_WITH_FQ = "org.junit.jupiter.api.extension.ExtendWith";
-    private static String MOCKITO_EXTENSION_FQ = "org.mockito.junit.jupiter.MockitoExtension";
-    private static String MOCKITO_SETTINGS_FQ = "org.mockito.junit.jupiter.MockitoSettings";
-    private static String MOCKITO_STRICTNESS_FQ = "org.mockito.quality.Strictness";
+    private static final String EXTEND_WITH_FQ = "org.junit.jupiter.api.extension.ExtendWith";
+    private static final String MOCKITO_EXTENSION_FQ = "org.mockito.junit.jupiter.MockitoExtension";
+    private static final String MOCKITO_SETTINGS_FQ = "org.mockito.junit.jupiter.MockitoSettings";
+    private static final String MOCKITO_STRICTNESS_FQ = "org.mockito.quality.Strictness";
 
     private static final String EXTEND_WITH_MOCKITO_EXTENSION = "@" + EXTEND_WITH_FQ + "(" + MOCKITO_EXTENSION_FQ + ".class)";
 
     @Override
     public String getDisplayName() {
-        return "Add `@MockitoSettings(strictness = Strictness.LENIENT)` when migration to JUnit 5";
+        return "Add `@MockitoSettings(strictness = Strictness.WARN)` when switching to JUnit 5";
     }
 
     @Override
     public String getDescription() {
-        return "Add `@MockitoSettings(strictness = Strictness.LENIENT)` when migrating to JUnit 5 which is possible as early as Mockito version 2.17. This way we preserve the original default lenience on stubbing, preventing failing tests.";
+        return "Migrating from JUnit 4 to 5 [changes the default strictness](https://stackoverflow.com/a/53234137/53444) of the mocks from `WARN` to `STRICT_STUBS`. " +
+               "To prevent tests from failing we restore the original behavior by adding `@MockitoSettings(strictness = Strictness.WARN)`.";
     }
 
     @Override
@@ -83,7 +84,7 @@ public class MockitoJUnitAddMockitoSettingsLenientStrictness extends ScanningRec
                                 if (!annotations.isEmpty()) {
                                     maybeAddImport(MOCKITO_SETTINGS_FQ);
                                     maybeAddImport(MOCKITO_STRICTNESS_FQ);
-                                    classDecl = JavaTemplate.builder("@MockitoSettings(strictness = Strictness.LENIENT)")
+                                    classDecl = JavaTemplate.builder("@MockitoSettings(strictness = Strictness.WARN)")
                                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-junit-jupiter", "mockito-core"))
                                             .imports(MOCKITO_SETTINGS_FQ, MOCKITO_STRICTNESS_FQ)
                                             .build()

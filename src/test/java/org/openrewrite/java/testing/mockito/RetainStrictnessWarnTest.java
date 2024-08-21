@@ -26,7 +26,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.maven.Assertions.pomXml;
 
-class MockitoJUnitAddMockitoSettingsLenientStrictnessTest implements RewriteTest {
+class RetainStrictnessWarnTest implements RewriteTest {
 
     @Language("xml")
     private static final String POM_XML_WITH_OLDER_MOCKITO = """
@@ -61,7 +61,7 @@ class MockitoJUnitAddMockitoSettingsLenientStrictnessTest implements RewriteTest
       import org.mockito.junit.jupiter.MockitoSettings;
       import org.mockito.quality.Strictness;
       
-      @MockitoSettings(strictness = Strictness.LENIENT)
+      @MockitoSettings(strictness = Strictness.WARN)
       class MyTest {
       }
       """;
@@ -72,7 +72,7 @@ class MockitoJUnitAddMockitoSettingsLenientStrictnessTest implements RewriteTest
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "mockito-core", "mockito-junit-jupiter", "junit-jupiter-api"))
-          .recipe(new MockitoJUnitAddMockitoSettingsLenientStrictness());
+          .recipe(new RetainStrictnessWarn());
     }
 
     @Test
