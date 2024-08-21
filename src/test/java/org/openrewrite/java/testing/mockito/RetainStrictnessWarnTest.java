@@ -30,7 +30,7 @@ class RetainStrictnessWarnTest implements RewriteTest {
 
     @Language("xml")
     private static final String POM_XML_WITH_OLDER_MOCKITO = """
-      <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+      <project>
         <modelVersion>4.0.0</modelVersion>
         <groupId>bla.bla</groupId>
         <artifactId>bla-bla</artifactId>
@@ -38,8 +38,8 @@ class RetainStrictnessWarnTest implements RewriteTest {
         <dependencies>
           <dependency>
               <groupId>org.mockito</groupId>
-              <artifactId>mockito-core</artifactId>
-              <version>2.1.0</version>
+              <artifactId>mockito-all</artifactId>
+              <version>1.1</version>
               <scope>test</scope>
           </dependency>
         </dependencies>
@@ -117,7 +117,7 @@ class RetainStrictnessWarnTest implements RewriteTest {
           //language=xml
           pomXml(
             """
-              <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+              <project>
                 <modelVersion>4.0.0</modelVersion>
                 <groupId>bla.bla</groupId>
                 <artifactId>bla-bla</artifactId>

@@ -57,8 +57,7 @@ public class RetainStrictnessWarn extends ScanningRecipe<AtomicBoolean> {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(AtomicBoolean usingOlderMockito) {
-        // Theoretically 1.x.x versions (going back to 1.1) could be artifact id `mockito-all` as well
-        TreeVisitor<?, ExecutionContext> div = new DependencyInsight("org.mockito", "mockito-core", "[1.3,2.17)").getVisitor();
+        TreeVisitor<?, ExecutionContext> div = new DependencyInsight("org.mockito", "mockito-*", "[1.1,2.17)").getVisitor();
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
