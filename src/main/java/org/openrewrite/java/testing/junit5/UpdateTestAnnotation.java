@@ -15,18 +15,20 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markup;
+import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Set;
 
@@ -53,8 +55,7 @@ public class UpdateTestAnnotation extends Recipe {
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
 
-        @Nullable
-        private JavaParser.Builder<?, ?> javaParser;
+        private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
@@ -63,7 +64,6 @@ public class UpdateTestAnnotation extends Recipe {
             }
             return javaParser;
         }
-
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
@@ -149,6 +149,7 @@ public class UpdateTestAnnotation extends Recipe {
                                 .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                 .build()
                                 .apply(updateCursor(m), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
+                        m = m.withThrows(Collections.emptyList());
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                     }
                 }
@@ -166,6 +167,8 @@ public class UpdateTestAnnotation extends Recipe {
                     maybeAddImport("java.util.concurrent.TimeUnit");
                 }
                 maybeAddImport("org.junit.jupiter.api.Test");
+
+                doAfterVisit(new LambdaBlockToExpression().getVisitor());
             }
 
             return super.visitMethodDeclaration(m, ctx);
@@ -180,8 +183,7 @@ public class UpdateTestAnnotation extends Recipe {
 
             boolean found;
 
-            @Nullable
-            private JavaParser.Builder<?, ?> javaParser;
+            private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {

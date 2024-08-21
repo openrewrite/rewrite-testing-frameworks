@@ -17,11 +17,11 @@ package org.openrewrite.java.testing.assertj;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -38,29 +38,29 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SimplifyChainedAssertJAssertion extends Recipe {
-    @Option(displayName = "AssertJ Assertion",
+    @Option(displayName = "AssertJ chained assertion",
             description = "The chained AssertJ assertion to move to dedicated assertion.",
             example = "equals",
             required = false)
     @Nullable
     String chainedAssertion;
 
-    @Option(displayName = "AssertJ Assertion",
+    @Option(displayName = "AssertJ replaced assertion",
             description = "The AssertJ assert that should be replaced.",
             example = "isTrue",
             required = false)
     @Nullable
     String assertToReplace;
 
-    @Option(displayName = "AssertJ Assertion",
+    @Option(displayName = "AssertJ replacement assertion",
             description = "The AssertJ method to migrate to.",
             example = "isEqualTo",
             required = false)
     @Nullable
     String dedicatedAssertion;
 
-    @Option(displayName = "Required Type",
-            description = "Specifies the type the recipe should run on.",
+    @Option(displayName = "Required type",
+            description = "The type of the actual assertion argument.",
             example = "java.lang.String",
             required = false)
     @Nullable
@@ -120,11 +120,6 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             List<Expression> arguments = new ArrayList<>();
             arguments.add(actual);
 
-            // Special case for more expressive assertions: assertThat(x.size()).isEqualTo(0) -> isEmpty()
-            if ("size".equals(chainedAssertion) && "isEqualTo".equals(assertToReplace) && hasZeroArgument(mi)) {
-                return applyTemplate("assertThat(#{any()}).isEmpty()", arguments, mi, ctx);
-            }
-
             String template = getStringTemplateAndAppendArguments(assertThatArg, mi, arguments);
             return applyTemplate(String.format(template, dedicatedAssertion), arguments, mi, ctx);
         }
@@ -136,38 +131,38 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
         }
-    }
 
-    private String getStringTemplateAndAppendArguments(J.MethodInvocation assertThatArg, J.MethodInvocation methodToReplace, List<Expression> arguments) {
-        Expression assertThatArgument = assertThatArg.getArguments().get(0);
-        Expression methodToReplaceArgument = methodToReplace.getArguments().get(0);
-        boolean assertThatArgumentIsEmpty = assertThatArgument instanceof J.Empty;
-        boolean methodToReplaceArgumentIsEmpty = methodToReplaceArgument instanceof J.Empty;
+        private String getStringTemplateAndAppendArguments(J.MethodInvocation assertThatArg, J.MethodInvocation methodToReplace, List<Expression> arguments) {
+            Expression assertThatArgument = assertThatArg.getArguments().get(0);
+            Expression methodToReplaceArgument = methodToReplace.getArguments().get(0);
+            boolean assertThatArgumentIsEmpty = assertThatArgument instanceof J.Empty;
+            boolean methodToReplaceArgumentIsEmpty = methodToReplaceArgument instanceof J.Empty;
 
-        // If both arguments are empty, then the select is already added to the arguments list, and we use a minimal template
-        if (assertThatArgumentIsEmpty && methodToReplaceArgumentIsEmpty) {
-            return "assertThat(#{any()}).%s()";
+            // If both arguments are empty, then the select is already added to the arguments list, and we use a minimal template
+            if (assertThatArgumentIsEmpty && methodToReplaceArgumentIsEmpty) {
+                return "assertThat(#{any()}).%s()";
+            }
+
+            // If both arguments are not empty, then we add both to the arguments to the arguments list, and return a template with two arguments
+            if (!assertThatArgumentIsEmpty && !methodToReplaceArgumentIsEmpty) {
+                // This should only happen for map assertions using a key and value
+                arguments.add(assertThatArgument);
+                arguments.add(methodToReplaceArgument);
+                return "assertThat(#{any()}).%s(#{any()}, #{any()})";
+            }
+
+            // If either argument is empty, we choose which one to add to the arguments list, and optionally extract the select
+            arguments.add(extractEitherArgument(assertThatArgumentIsEmpty, assertThatArgument, methodToReplaceArgument));
+
+            // Special case for Path.of() assertions
+            if ("java.nio.file.Path".equals(requiredType) && dedicatedAssertion.contains("Raw")
+                && TypeUtils.isAssignableTo("java.lang.String", assertThatArgument.getType())) {
+                maybeAddImport("java.nio.file.Path");
+                return "assertThat(#{any()}).%s(Path.of(#{any()}))";
+            }
+
+            return "assertThat(#{any()}).%s(#{any()})";
         }
-
-        // If both arguments are not empty, then we add both to the arguments to the arguments list, and return a template with two arguments
-        if (!assertThatArgumentIsEmpty && !methodToReplaceArgumentIsEmpty) {
-            // This should only happen for map assertions using a key and value
-            arguments.add(assertThatArgument);
-            arguments.add(methodToReplaceArgument);
-            return "assertThat(#{any()}).%s(#{any()}, #{any()})";
-        }
-
-        // If either argument is empty, we choose which one to add to the arguments list, and optionally extract the select
-        arguments.add(extractEitherArgument(assertThatArgumentIsEmpty, assertThatArgument, methodToReplaceArgument));
-
-        // Special case for Path.of() assertions
-        if ("java.nio.file.Path".equals(requiredType) && dedicatedAssertion.contains("Raw")
-            && TypeUtils.isAssignableTo("java.lang.String", assertThatArgument.getType())) {
-            return "assertThat(#{any()}).%s(Path.of(#{any()}))";
-        }
-
-        return "assertThat(#{any()}).%s(#{any()})";
-
     }
 
     private static Expression extractEitherArgument(boolean assertThatArgumentIsEmpty, Expression assertThatArgument, Expression methodToReplaceArgument) {
@@ -182,14 +177,5 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
             }
         }
         return assertThatArgument;
-    }
-
-    private boolean hasZeroArgument(J.MethodInvocation method) {
-        List<Expression> arguments = method.getArguments();
-        if (arguments.size() == 1 && arguments.get(0) instanceof J.Literal) {
-            J.Literal literalArg = (J.Literal) arguments.get(0);
-            return literalArg.getValue() != null && literalArg.getValue().equals(0);
-        }
-        return false;
     }
 }

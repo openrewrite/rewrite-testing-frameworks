@@ -43,6 +43,9 @@ recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.hamcrest.core.* *(..)
       fullyQualifiedTargetTypeName: org.hamcrest.Matchers
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.hamcrest.collection.* *(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.Matchers
 
   # Then remove wrapping `is(Matcher)` calls such that further recipes will match
   - org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
@@ -63,6 +66,40 @@ recipeList:
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: comparesEqualTo
       assertion: isEqualByComparingTo
+
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: lessThan
+      assertion: isBefore
+      argumentType: java.util.Date
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: lessThanOrEqualTo
+      assertion: isBeforeOrEqualTo
+      argumentType: java.util.Date
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: greaterThan
+      assertion: isAfter
+      argumentType: java.util.Date
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: greaterThanOrEqualTo
+      assertion: isAfterOrEqualTo
+      argumentType: java.util.Date
+
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: lessThan
+      assertion: isBefore
+      argumentType: java.time.Instant
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: lessThanOrEqualTo
+      assertion: isBeforeOrEqualTo
+      argumentType: java.time.Instant
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: greaterThan
+      assertion: isAfter
+      argumentType: java.time.Instant
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
+      matcher: greaterThanOrEqualTo
+      assertion: isAfterOrEqualTo
+      argumentType: java.time.Instant
 
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
       matcher: equalTo

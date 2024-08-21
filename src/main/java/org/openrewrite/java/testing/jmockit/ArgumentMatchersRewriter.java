@@ -60,6 +60,7 @@ class ArgumentMatchersRewriter {
     }
 
     private static final Map<JavaType.Primitive, String> PRIMITIVE_TO_MOCKITO_ARGUMENT_MATCHER = new HashMap<>();
+
     static {
         PRIMITIVE_TO_MOCKITO_ARGUMENT_MATCHER.put(JavaType.Primitive.Int, "anyInt");
         PRIMITIVE_TO_MOCKITO_ARGUMENT_MATCHER.put(JavaType.Primitive.Long, "anyLong");
@@ -81,7 +82,7 @@ class ArgumentMatchersRewriter {
         this.expectationsBlock = expectationsBlock;
     }
 
-    J.Block rewriteExpectationsBlock() {
+    J.Block rewriteJMockitBlock() {
         List<Statement> newStatements = new ArrayList<>(expectationsBlock.getStatements().size());
         for (Statement expectationStatement : expectationsBlock.getStatements()) {
             // for each statement, check if it's a method invocation and replace any argument matchers

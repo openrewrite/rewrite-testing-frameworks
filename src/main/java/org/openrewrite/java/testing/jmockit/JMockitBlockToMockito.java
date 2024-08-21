@@ -27,27 +27,33 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
 import java.util.List;
+import java.util.Optional;
+
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.*;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
-public class JMockitExpectationsToMockito extends Recipe {
+public class JMockitBlockToMockito extends Recipe {
+
     @Override
     public String getDisplayName() {
-        return "Rewrite JMockit Expectations";
+        return "Rewrite JMockit Expectations, Verifications and NonStrictExpectations";
     }
 
     @Override
     public String getDescription() {
-        return "Rewrites JMockit `Expectations` blocks to Mockito statements.";
+        return "Rewrites JMockit `Expectations, Verifications and NonStrictExpectations` blocks to Mockito statements.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("mockit.Expectations", false),
-                new RewriteExpectationsVisitor());
+        return Preconditions.check(Preconditions.or(
+                new UsesType<>(Expectations.getFqn(), false),
+                new UsesType<>(Verifications.getFqn(), false),
+                new UsesType<>(NonStrictExpectations.getFqn(), false)), new RewriteJMockitBlockVisitor());
     }
 
-    private static class RewriteExpectationsVisitor extends JavaIsoVisitor<ExecutionContext> {
+    private static class RewriteJMockitBlockVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
@@ -63,17 +69,19 @@ public class JMockitExpectationsToMockito extends Recipe {
             int bodyStatementIndex = 0;
             // iterate over each statement in the method body, find Expectations blocks and rewrite them
             while (bodyStatementIndex < statements.size()) {
-                if (!JMockitUtils.isValidExpectationsNewClassStatement(statements.get(bodyStatementIndex))) {
-                    bodyStatementIndex += 1;
-                    continue;
-                }
-                ExpectationsBlockRewriter ebr = new ExpectationsBlockRewriter(this, ctx, methodBody,
-                        ((J.NewClass) statements.get(bodyStatementIndex)), bodyStatementIndex);
-                methodBody = ebr.rewriteMethodBody();
-                statements = methodBody.getStatements();
-                // if the expectations rewrite failed, skip the next statement
-                if (ebr.isExpectationsRewriteFailed()) {
-                    bodyStatementIndex += 1;
+                Statement s = statements.get(bodyStatementIndex);
+                Optional<JMockitBlockType> blockType = JMockitUtils.getJMockitBlock(s);
+                if (blockType.isPresent()) {
+                    JMockitBlockRewriter blockRewriter = new JMockitBlockRewriter(this, ctx, methodBody,
+                            ((J.NewClass) s), bodyStatementIndex, blockType.get());
+                    methodBody = blockRewriter.rewriteMethodBody();
+                    statements = methodBody.getStatements();
+                    // if the expectations rewrite failed, skip the next statement
+                    if (blockRewriter.isRewriteFailed()) {
+                        bodyStatementIndex++;
+                    }
+                } else {
+                    bodyStatementIndex++;
                 }
             }
             return md.withBody(methodBody);

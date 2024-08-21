@@ -20,6 +20,7 @@ recipeDependencies {
     parserClasspath("org.mockito:mockito-all:1.10.19")
     parserClasspath("org.mockito:mockito-core:3.+")
     parserClasspath("org.jmockit:jmockit:1.49")
+    parserClasspath("org.jmockit:jmockit:1.22") // last version with NonStrictExpectations
     parserClasspath("org.mockito:mockito-junit-jupiter:3.+")
     parserClasspath("org.powermock:powermock-api-mockito:1.7.+")
     parserClasspath("org.powermock:powermock-core:1.7.+")
@@ -34,8 +35,10 @@ dependencies {
     implementation("org.openrewrite:rewrite-maven")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:$rewriteVersion")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:$rewriteVersion")
-    implementation("org.openrewrite.recipe:rewrite-third-party:$rewriteVersion")
     runtimeOnly("org.openrewrite:rewrite-java-17")
+
+    runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:latest.release:recipes")
+    compileOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
@@ -47,6 +50,12 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-kotlin:$rewriteVersion")
     testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
 
+    annotationProcessor("org.openrewrite:rewrite-templating:${rewriteVersion}")
+    implementation("org.openrewrite:rewrite-templating:${rewriteVersion}")
+    compileOnly("com.google.errorprone:error_prone_core:2.19.1:with-dependencies") {
+        exclude("com.google.auto.service", "auto-service-annotations")
+    }
+
     testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
 
     testRuntimeOnly("com.tngtech.archunit:archunit:0.23.1")
@@ -56,6 +65,7 @@ dependencies {
     testRuntimeOnly("net.datafaker:datafaker:latest.release") {
         exclude(group = "org.yaml", module = "snakeyaml")
     }
+    testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:latest.release")
     testRuntimeOnly("org.testcontainers:testcontainers:latest.release")
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
 

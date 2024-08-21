@@ -19,20 +19,31 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.Optional;
+
+import static java.util.Optional.empty;
+
 class JMockitUtils {
-    static boolean isValidExpectationsNewClassStatement(Statement s) {
+
+    static Optional<JMockitBlockType> getJMockitBlock(Statement s) {
         if (!(s instanceof J.NewClass)) {
-            return false;
+            return empty();
         }
         J.NewClass nc = (J.NewClass) s;
         if (!(nc.getClazz() instanceof J.Identifier)) {
-            return false;
+            return empty();
         }
         J.Identifier clazz = (J.Identifier) nc.getClazz();
-        if (!TypeUtils.isAssignableTo("mockit.Expectations", clazz.getType())) {
-            return false;
+
+        // JMockit block should be composed of a block within another block
+        if (nc.getBody() == null || nc.getBody().getStatements().size() != 1) {
+            return empty();
         }
-        // Expectations block should be composed of a block within another block
-        return nc.getBody() != null && nc.getBody().getStatements().size() == 1;
+
+        JMockitBlockType blockType = JMockitBlockType.valueOf(clazz.getSimpleName());
+        if (blockType != null && TypeUtils.isOfClassType(clazz.getType(), blockType.getFqn())) {
+            return Optional.of(blockType);
+        }
+        return empty();
     }
 }

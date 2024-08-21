@@ -25,6 +25,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
+@SuppressWarnings({"deprecation", "JUnitMalformedDeclaration", "JUnit3StyleTestMethodInJUnit4Class", "Convert2MethodRef"})
 class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
 
     @Override
@@ -36,7 +37,6 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
           .recipe(new ExpectedExceptionToAssertThrows());
     }
 
-    @DocumentExample
     @Test
     void leavesOtherRulesAlone() {
         //language=java
@@ -70,6 +70,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         );
     }
 
+    @DocumentExample
     @Test
     void expectedExceptionRule() {
         //language=java
@@ -105,9 +106,8 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               
                   @Test
                   public void testEmptyPath() {
-                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
-                          foo();
-                      });
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () ->
+                          foo());
                       assertTrue(exception.getMessage().contains("Invalid location: gs://"));
                   }
                   void foo() {
@@ -415,6 +415,56 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                       assertThat(exception, isA(NullPointerException.class));
                       assertThat(exception.getMessage(), containsString("rewrite expectMessage"));
                       assertThat(exception.getCause(), nullValue());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/563")
+    void expectedCheckedExceptionThrowsRemoved() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.IOException;
+
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              class MyTest {
+              
+                  @Rule
+                  ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testEmptyPath() throws IOException{
+                      this.thrown.expect(IOException.class);
+                      foo();
+                  }
+                  void foo() throws IOException {
+                      throw new IOException();
+                  }
+              }
+              """,
+            """
+              import java.io.IOException;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+              import org.junit.Test;
+              
+              class MyTest {
+              
+                  @Test
+                  public void testEmptyPath() {
+                      assertThrows(IOException.class, () ->
+                          foo());
+                  }
+                  void foo() throws IOException {
+                      throw new IOException();
                   }
               }
               """

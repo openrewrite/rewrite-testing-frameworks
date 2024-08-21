@@ -15,9 +15,9 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
@@ -210,8 +210,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             return false;
         }
 
-        @Nullable
-        private static J.MethodDeclaration getFirstTestMethod(List<J.MethodDeclaration> methods) {
+        private static J.@Nullable MethodDeclaration getFirstTestMethod(List<J.MethodDeclaration> methods) {
             for (J.MethodDeclaration methodDeclaration : methods) {
                 for (J.Annotation annotation : methodDeclaration.getLeadingAnnotations()) {
                     if ("Test".equals(annotation.getSimpleName())) {
@@ -559,8 +558,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             return whenMethod;
         }
 
-        @Nullable
-        private String getDeclaringClassName(J.MethodInvocation mi) {
+        private @Nullable String getDeclaringClassName(J.MethodInvocation mi) {
             JavaType.Method methodType = mi.getMethodType();
             if (methodType != null) {
                 JavaType.FullyQualified declaringType = methodType.getDeclaringType();
@@ -569,8 +567,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             return null;
         }
 
-        @Nullable
-        private J.Identifier getFieldIdentifier(String fieldName) {
+        private J.@Nullable Identifier getFieldIdentifier(String fieldName) {
             return getMockedTypesFields().keySet().stream()
                     .filter(identifier -> identifier.getSimpleName().equals(fieldName)).findFirst()
                     .orElseGet(() -> {

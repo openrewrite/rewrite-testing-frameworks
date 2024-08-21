@@ -15,6 +15,10 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.Setter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -25,13 +29,20 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.List;
 
-class ExpectationsBlockRewriter {
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.NonStrictExpectations;
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.Verifications;
+
+class JMockitBlockRewriter {
 
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
+    private static final String VERIFY_TEMPLATE_PREFIX = "verify(#{any()}";
+    private static final String LENIENT_TEMPLATE_PREFIX = "lenient().";
+
     private static final String RETURN_TEMPLATE_PREFIX = "thenReturn(";
     private static final String THROW_TEMPLATE_PREFIX = "thenThrow(";
     private static final String LITERAL_TEMPLATE_FIELD = "#{}";
     private static final String ANY_TEMPLATE_FIELD = "#{any()}";
+    private static final String MOCKITO_IMPORT_FQN_PREFX = "org.mockito.Mockito";
 
     private static String getObjectTemplateField(String fqn) {
         return "#{any(" + fqn + ")}";
@@ -40,178 +51,217 @@ class ExpectationsBlockRewriter {
     private final JavaVisitor<ExecutionContext> visitor;
     private final ExecutionContext ctx;
     private final J.NewClass newExpectations;
+    private final JMockitBlockType blockType;
     // index of the Expectations block in the method body
     private final int bodyStatementIndex;
     private J.Block methodBody;
     private JavaCoordinates nextStatementCoordinates;
 
-    private boolean expectationsRewriteFailed = false;
+    private boolean rewriteFailed = false;
 
-    boolean isExpectationsRewriteFailed() {
-        return expectationsRewriteFailed;
+    boolean isRewriteFailed() {
+        return rewriteFailed;
     }
 
     // keep track of the additional statements being added to the method body, which impacts the statement indices
     // used with bodyStatementIndex to obtain the coordinates of the next statement to be written
     private int numStatementsAdded = 0;
 
-    ExpectationsBlockRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block methodBody,
-                              J.NewClass newExpectations, int bodyStatementIndex) {
+    JMockitBlockRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block methodBody,
+                         J.NewClass newExpectations, int bodyStatementIndex, JMockitBlockType blockType) {
         this.visitor = visitor;
         this.ctx = ctx;
         this.methodBody = methodBody;
         this.newExpectations = newExpectations;
         this.bodyStatementIndex = bodyStatementIndex;
-        nextStatementCoordinates = newExpectations.getCoordinates().replace();
+        this.blockType = blockType;
+        this.nextStatementCoordinates = newExpectations.getCoordinates().replace();
     }
 
     J.Block rewriteMethodBody() {
-        visitor.maybeRemoveImport("mockit.Expectations");
+        visitor.maybeRemoveImport(blockType.getFqn()); // eg mockit.Expectations
 
         assert newExpectations.getBody() != null;
-        J.Block expectationsBlock = (J.Block) newExpectations.getBody().getStatements().get(0);
-        if (expectationsBlock.getStatements().isEmpty()) {
+        J.Block jmockitBlock = (J.Block) newExpectations.getBody().getStatements().get(0);
+        if (jmockitBlock.getStatements().isEmpty()) {
             // empty Expectations block, remove it
-            removeExpectationsStatement();
+            removeBlock();
             return methodBody;
         }
 
         // rewrite the argument matchers in the expectations block
-        ArgumentMatchersRewriter amr = new ArgumentMatchersRewriter(visitor, ctx, expectationsBlock);
-        expectationsBlock = amr.rewriteExpectationsBlock();
+        ArgumentMatchersRewriter amr = new ArgumentMatchersRewriter(visitor, ctx, jmockitBlock);
+        jmockitBlock = amr.rewriteJMockitBlock();
 
-        // iterate over the expectations statements and rebuild the method body
-        List<Statement> expectationStatements = new ArrayList<>();
-        for (Statement expectationStatement : expectationsBlock.getStatements()) {
-            if (expectationStatement instanceof J.MethodInvocation) {
-                // handle returns statements
-                J.MethodInvocation invocation = (J.MethodInvocation) expectationStatement;
-                if (invocation.getSelect() == null && invocation.getName().getSimpleName().equals("returns")) {
-                    expectationStatements.add(expectationStatement);
-                    continue;
-                }
-                // if a new method invocation is found, apply the template to the previous statements
-                if (!expectationStatements.isEmpty()) {
-                    // apply template to build new method body
-                    rewriteMethodBody(expectationStatements);
-
-                    // reset statements for next expectation
-                    expectationStatements = new ArrayList<>();
+        // iterate over the statements and build a list of grouped method invocations and related statements eg times
+        List<List<Statement>> methodInvocationsToRewrite = new ArrayList<>();
+        int methodInvocationIdx = -1;
+        for (Statement jmockitBlockStatement : jmockitBlock.getStatements()) {
+            if (jmockitBlockStatement instanceof J.MethodInvocation) {
+                // ensure it's not a returns statement, we add that later to related statements
+                J.MethodInvocation invocation = (J.MethodInvocation) jmockitBlockStatement;
+                if (invocation.getSelect() != null && !invocation.getName().getSimpleName().equals("returns")) {
+                    methodInvocationIdx++;
+                    methodInvocationsToRewrite.add(new ArrayList<>());
                 }
             }
-            expectationStatements.add(expectationStatement);
+
+            if (methodInvocationIdx != -1) {
+                methodInvocationsToRewrite.get(methodInvocationIdx).add(jmockitBlockStatement);
+            }
         }
 
-        // handle the last statement
-        if (!expectationStatements.isEmpty()) {
-            rewriteMethodBody(expectationStatements);
+        // remove the jmockit block
+        if (nextStatementCoordinates.isReplacement()) {
+            removeBlock();
         }
 
+        // now rewrite
+        methodInvocationsToRewrite.forEach(this::rewriteMethodInvocation);
         return methodBody;
     }
 
-    private void rewriteMethodBody(List<Statement> expectationStatements) {
-        final MockInvocationResults mockInvocationResults = buildMockInvocationResults(expectationStatements);
-        if (mockInvocationResults == null || !(expectationStatements.get(0) instanceof J.MethodInvocation)) {
-            // invalid Expectations block, cannot rewrite
-            expectationsRewriteFailed = true;
+    private void rewriteMethodInvocation(List<Statement> statementsToRewrite) {
+        final MockInvocationResults mockInvocationResults = buildMockInvocationResults(statementsToRewrite);
+        if (mockInvocationResults == null) {
+            // invalid block, cannot rewrite
+            this.rewriteFailed = true;
             return;
         }
-        J.MethodInvocation invocation = (J.MethodInvocation) expectationStatements.get(0);
-        if (!mockInvocationResults.getResults().isEmpty()) {
-            // rewrite the statement to mockito if there are results
-            rewriteExpectationResult(mockInvocationResults.getResults(), invocation);
-        } else if (nextStatementCoordinates.isReplacement()) {
-            // if there are no results and the Expectations block is not yet replaced, remove it
-            removeExpectationsStatement();
+
+        J.MethodInvocation invocation = (J.MethodInvocation) statementsToRewrite.get(0);
+        boolean hasResults = !mockInvocationResults.getResults().isEmpty();
+        boolean hasTimes = mockInvocationResults.hasAnyTimes();
+        if (hasResults) {
+            rewriteResult(invocation, mockInvocationResults.getResults(), hasTimes);
+        }
+
+        if (!hasResults && !hasTimes && (this.blockType == JMockitBlockType.Expectations || this.blockType == Verifications)) {
+            rewriteVerify(invocation, null, "");
+            return;
         }
         if (mockInvocationResults.getTimes() != null) {
-            writeMethodVerification(invocation, mockInvocationResults.getTimes(), "times");
+            rewriteVerify(invocation, mockInvocationResults.getTimes(), "times");
         }
         if (mockInvocationResults.getMinTimes() != null) {
-            writeMethodVerification(invocation, mockInvocationResults.getMinTimes(), "atLeast");
+            rewriteVerify(invocation, mockInvocationResults.getMinTimes(), "atLeast");
         }
         if (mockInvocationResults.getMaxTimes() != null) {
-            writeMethodVerification(invocation, mockInvocationResults.getMaxTimes(), "atMost");
+            rewriteVerify(invocation, mockInvocationResults.getMaxTimes(), "atMost");
         }
     }
 
-    private void rewriteExpectationResult(List<Expression> results, J.MethodInvocation invocation) {
-        String template = getMockitoStatementTemplate(results);
+    private void removeBlock() {
+        methodBody = JavaTemplate.builder("")
+                .javaParser(JavaParser.fromJavaVersion())
+                .build()
+                .apply(new Cursor(visitor.getCursor(), methodBody), nextStatementCoordinates);
+        setNextStatementCoordinates(0);
+    }
+
+    private void rewriteResult(J.MethodInvocation invocation, List<Expression> results, boolean hasTimes) {
+        boolean lenient = this.blockType == NonStrictExpectations && !hasTimes;
+        String template = getWhenTemplate(results, lenient);
         if (template == null) {
             // invalid template, cannot rewrite
-            expectationsRewriteFailed = true;
+            this.rewriteFailed = true;
             return;
         }
-        visitor.maybeAddImport("org.mockito.Mockito", "when");
 
         List<Object> templateParams = new ArrayList<>();
         templateParams.add(invocation);
         templateParams.addAll(results);
+        this.rewriteFailed = !rewriteTemplate(template, templateParams, nextStatementCoordinates);
+        if (this.rewriteFailed) {
+            return;
+        }
 
+        setNextStatementCoordinates(++numStatementsAdded);
+        // do this last making sure rewrite worked and specify onlyifReferenced=false because framework cannot find static
+        // reference for when method invocation when another static mockit reference is added
+        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when", false);
+        if (lenient) {
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "lenient");
+        }
+    }
+
+    private void rewriteVerify(J.MethodInvocation invocation, @Nullable Expression times, String verificationMode) {
+        if (invocation.getSelect() == null) {
+            // cannot write a verification statement for an invocation without a select field
+            return;
+        }
+
+        List<Object> templateParams = new ArrayList<>();
+        templateParams.add(invocation.getSelect());
+        if (times != null) {
+            templateParams.add(times);
+        }
+        templateParams.add(invocation.getName().getSimpleName());
+        String verifyTemplate = getVerifyTemplate(invocation.getArguments(), verificationMode, templateParams);
+        JavaCoordinates verifyCoordinates;
+        if (this.blockType == Verifications) {
+            // for Verifications, replace the Verifications block
+            verifyCoordinates = nextStatementCoordinates;
+        } else {
+            // for Expectations put the verify at the end of the method
+            verifyCoordinates = methodBody.getCoordinates().lastStatement();
+        }
+        this.rewriteFailed = !rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
+        if (this.rewriteFailed) {
+            return;
+        }
+
+        if (this.blockType == Verifications) {
+            setNextStatementCoordinates(++numStatementsAdded); // for Expectations, verify statements added to end of method
+        }
+
+        // do this last making sure rewrite worked and specify onlyifReferenced=false because framework cannot find the
+        // static reference to verify when another static mockit reference is added
+        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
+        if (!verificationMode.isEmpty()) {
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
+        }
+    }
+
+    private void setNextStatementCoordinates(int numStatementsAdded) {
+        if (numStatementsAdded <= 0 && bodyStatementIndex == 0) {
+            nextStatementCoordinates = methodBody.getCoordinates().firstStatement();
+            return;
+        }
+
+        // the next statement coordinates are directly after the most recently written statement, calculated by
+        // subtracting the removed jmockit block
+        int lastStatementIdx = bodyStatementIndex + numStatementsAdded - 1;
+        if (lastStatementIdx >= this.methodBody.getStatements().size()) {
+            this.rewriteFailed = true;
+            return;
+        }
+
+        this.nextStatementCoordinates = this.methodBody.getStatements().get(lastStatementIdx).getCoordinates().after();
+    }
+
+    private boolean rewriteTemplate(String template, List<Object> templateParams, JavaCoordinates
+            rewriteCoords) {
+        int numStatementsBefore = methodBody.getStatements().size();
         methodBody = JavaTemplate.builder(template)
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                 .staticImports("org.mockito.Mockito.*")
                 .build()
                 .apply(
                         new Cursor(visitor.getCursor(), methodBody),
-                        nextStatementCoordinates,
+                        rewriteCoords,
                         templateParams.toArray()
                 );
-        if (!nextStatementCoordinates.isReplacement()) {
-            numStatementsAdded += 1;
-        }
-
-        // the next statement coordinates are directly after the most recently written statement
-        nextStatementCoordinates = methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded)
-                .getCoordinates().after();
+        return methodBody.getStatements().size() > numStatementsBefore;
     }
 
-    private void removeExpectationsStatement() {
-        methodBody = JavaTemplate.builder("")
-                .javaParser(JavaParser.fromJavaVersion())
-                .build()
-                .apply(
-                        new Cursor(visitor.getCursor(), methodBody),
-                        nextStatementCoordinates
-                );
-
-        // the next statement coordinates are directly after the most recently added statement, or the first statement
-        // of the test method body if the Expectations block was the first statement
-        nextStatementCoordinates = bodyStatementIndex == 0 ? methodBody.getCoordinates().firstStatement() :
-                methodBody.getStatements().get(bodyStatementIndex + numStatementsAdded).getCoordinates().after();
-    }
-
-    private void writeMethodVerification(J.MethodInvocation invocation, Expression times, String verificationMode) {
-        String fqn = getInvocationSelectFullyQualifiedClassName(invocation);
-        if (fqn == null) {
-            // cannot write a verification statement for an invocation without a select field
-            return;
-        }
-        visitor.maybeAddImport("org.mockito.Mockito", "verify");
-        visitor.maybeAddImport("org.mockito.Mockito", verificationMode);
-
-        List<Object> templateParams = new ArrayList<>();
-        templateParams.add(invocation.getSelect());
-        templateParams.add(times);
-        templateParams.add(invocation.getName().getSimpleName());
-
-        String verifyTemplate = getVerifyTemplate(invocation.getArguments(), fqn, verificationMode, templateParams);
-        methodBody = JavaTemplate.builder(verifyTemplate)
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                .staticImports("org.mockito.Mockito.*")
-                .imports(fqn)
-                .build()
-                .apply(
-                        new Cursor(visitor.getCursor(), methodBody),
-                        methodBody.getCoordinates().lastStatement(),
-                        templateParams.toArray()
-                );
-    }
-
-    private static String getMockitoStatementTemplate(List<Expression> results) {
+    private @Nullable String getWhenTemplate(List<Expression> results, boolean lenient) {
         boolean buildingResults = false;
-        final StringBuilder templateBuilder = new StringBuilder(WHEN_TEMPLATE_PREFIX);
+        StringBuilder templateBuilder = new StringBuilder();
+        if (lenient) {
+            templateBuilder.append(LENIENT_TEMPLATE_PREFIX);
+        }
+        templateBuilder.append(WHEN_TEMPLATE_PREFIX);
         for (Expression result : results) {
             JavaType resultType = result.getType();
             if (result instanceof J.Literal) {
@@ -251,23 +301,26 @@ class ExpectationsBlockRewriter {
         templateBuilder.append(templateField);
     }
 
-    private static String getVerifyTemplate(List<Expression> arguments, String fqn, String verificationMode, List<Object> templateParams) {
-        if (arguments.isEmpty()) {
-            return "verify(#{any(" + fqn + ")}, "
-                    + verificationMode
-                    + "(#{any(int)})).#{}();";
+    private static String getVerifyTemplate(List<Expression> arguments, String verificationMode, List<Object> templateParams) {
+        StringBuilder templateBuilder = new StringBuilder(VERIFY_TEMPLATE_PREFIX); // eg verify(object
+        if (!verificationMode.isEmpty()) {
+            templateBuilder.append(", ").append(verificationMode).append("(#{any(int)})"); // eg verify(object, times(2)
         }
-        StringBuilder templateBuilder = new StringBuilder("verify(#{any(" + fqn + ")}, "
-                + verificationMode
-                + "(#{any(int)})).#{}(");
+        templateBuilder.append(").#{}("); // eg verify(object, times(2)).method(
+
+        if (arguments.isEmpty()) {
+            templateBuilder.append(");"); // eg verify(object, times(2)).method(); <- no args
+            return templateBuilder.toString();
+        }
+
         boolean hasArgument = false;
-        for (Expression argument : arguments) {
+        for (Expression argument : arguments) { // eg verify(object, times(2).method(anyLong(), anyInt()
             if (argument instanceof J.Empty) {
                 continue;
             } else if (argument instanceof J.Literal) {
                 templateBuilder.append(((J.Literal) argument).getValueSource());
             } else {
-                templateBuilder.append("#{any()}");
+                templateBuilder.append(ANY_TEMPLATE_FIELD);
                 templateParams.add(argument);
             }
             hasArgument = true;
@@ -276,11 +329,11 @@ class ExpectationsBlockRewriter {
         if (hasArgument) {
             templateBuilder.delete(templateBuilder.length() - 2, templateBuilder.length());
         }
-        templateBuilder.append(");");
+        templateBuilder.append(");"); // eg verify(object, times(2).method(anyLong(), anyInt());
         return templateBuilder.toString();
     }
 
-    private static MockInvocationResults buildMockInvocationResults(List<Statement> expectationStatements) {
+    private static @Nullable MockInvocationResults buildMockInvocationResults(List<Statement> expectationStatements) {
         final MockInvocationResults resultWrapper = new MockInvocationResults();
         for (int i = 1; i < expectationStatements.size(); i++) {
             Statement expectationStatement = expectationStatements.get(i);
@@ -316,20 +369,19 @@ class ExpectationsBlockRewriter {
         return resultWrapper;
     }
 
-    private static String getVariableNameFromAssignment(J.Assignment assignment) {
-        String name = null;
+    private static @Nullable String getVariableNameFromAssignment(J.Assignment assignment) {
         if (assignment.getVariable() instanceof J.Identifier) {
-            name = ((J.Identifier) assignment.getVariable()).getSimpleName();
+            return ((J.Identifier) assignment.getVariable()).getSimpleName();
         } else if (assignment.getVariable() instanceof J.FieldAccess) {
             J.FieldAccess fieldAccess = (J.FieldAccess) assignment.getVariable();
             if (fieldAccess.getTarget() instanceof J.Identifier) {
-                name = fieldAccess.getSimpleName();
+                return fieldAccess.getSimpleName();
             }
         }
-        return name;
+        return null;
     }
 
-    private static String getPrimitiveTemplateField(JavaType.Primitive primitiveType) {
+    private static @Nullable String getPrimitiveTemplateField(JavaType.Primitive primitiveType) {
         switch (primitiveType) {
             case Boolean:
                 return "#{any(boolean)}";
@@ -356,54 +408,20 @@ class ExpectationsBlockRewriter {
         }
     }
 
-    private static String getInvocationSelectFullyQualifiedClassName(J.MethodInvocation invocation) {
-        Expression select = invocation.getSelect();
-        if (select == null || select.getType() == null) {
-            return null;
-        }
-        String fqn = null;
-        if (select.getType() instanceof JavaType.FullyQualified) {
-            fqn = ((JavaType.FullyQualified) select.getType()).getFullyQualifiedName();
-        }
-        return fqn;
-    }
-
+    @Data
     private static class MockInvocationResults {
+        @Setter(AccessLevel.NONE)
         private final List<Expression> results = new ArrayList<>();
         private Expression times;
         private Expression minTimes;
         private Expression maxTimes;
 
-        private List<Expression> getResults() {
-            return results;
-        }
-
         private void addResult(Expression result) {
             results.add(result);
         }
 
-        private Expression getTimes() {
-            return times;
-        }
-
-        private void setTimes(Expression times) {
-            this.times = times;
-        }
-
-        private Expression getMinTimes() {
-            return minTimes;
-        }
-
-        private void setMinTimes(Expression minTimes) {
-            this.minTimes = minTimes;
-        }
-
-        private Expression getMaxTimes() {
-            return maxTimes;
-        }
-
-        private void setMaxTimes(Expression maxTimes) {
-            this.maxTimes = maxTimes;
+        private boolean hasAnyTimes() {
+            return times != null || minTimes != null || maxTimes != null;
         }
     }
 }
