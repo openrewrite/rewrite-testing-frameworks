@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.testcontainers;
 
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -45,6 +46,7 @@ public class ExplicitContainerImage extends Recipe {
     @Option(displayName = "Parse image",
             description = "Whether to call `DockerImageName.parse(image)`.",
             required = false)
+    @Nullable
     private final Boolean parseImage;
 
     @Override
