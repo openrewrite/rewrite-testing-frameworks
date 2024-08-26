@@ -69,6 +69,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private static final MethodMatcher DYNAMIC_WHEN_METHOD_MATCHER = new MethodMatcher("org.mockito.Mockito when(java.lang.Class, String, ..)");
         private static final String MOCK_PREFIX = "mocked";
         private static final String TEST_GROUP = "testGroup";
+
         private String setUpMethodAnnotationSignature;
         private String setUpMethodAnnotation;
         private String tearDownMethodAnnotationSignature;
