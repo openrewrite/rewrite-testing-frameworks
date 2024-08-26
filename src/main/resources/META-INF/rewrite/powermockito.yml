@@ -30,28 +30,18 @@ recipeList:
       methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
       returnType: org.mockito.MockedStatic
-      matchOverrides: null
-      matchUnknownTypes:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito do*(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
-      matchOverrides: null
-      matchUnknownTypes: null
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mock(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
-      matchOverrides: null
-      matchUnknownTypes: null
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito spy(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
-      matchOverrides: null
-      matchUnknownTypes: null
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito when(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
-      matchOverrides: null
-      matchUnknownTypes: null
   - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
