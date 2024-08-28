@@ -57,7 +57,8 @@ public class AssertEqualsBooleanToAssertBoolean extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (ASSERT_EQUALS.matches(mi) && isBooleanLiteral(mi)) {
+                if (ASSERT_EQUALS.matches(mi) && isBooleanLiteral(mi) &&
+                    JavaType.Primitive.Boolean.equals(mi.getArguments().get(1).getType())) {
                     StringBuilder sb = new StringBuilder();
                     String assertMethod = Boolean.parseBoolean(((J.Literal) mi.getArguments().get(0)).getValueSource())
                             ? "assertTrue" : "assertFalse";
