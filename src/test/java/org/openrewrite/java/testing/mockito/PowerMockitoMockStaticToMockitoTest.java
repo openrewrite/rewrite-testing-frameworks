@@ -603,6 +603,84 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
     }
 
     @Test
+    void shouldNotDuplicateVarsAndMethods() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package test;
+              
+              public class A {
+                public static class B {
+                    public static String helloWorld() {
+                        return "Hello World";
+                    }
+                }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.mockito.Mockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import test.A;
+              
+              @PrepareForTest({ A.B.class })
+              public class MyTest {
+              
+                  private static final String TEST_MESSAGE = "this is a test message";
+              
+                  @Before
+                  void setUp() {
+                      Mockito.mockStatic(A.B.class);
+                  }
+              
+                  @Test
+                  public void testStaticMethod() {
+                  }
+              }
+              """,
+
+            """
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+              import test.A;
+
+              public class MyTest {
+
+                  private MockedStatic<A.B> mockedAB;
+                  private static final String TEST_MESSAGE = "this is a test message";
+
+                  @Before
+                  void setUp() {
+                  }
+
+                  @BeforeEach
+                  void setUpStaticMocks() {
+                      mockedAB = Mockito.mockStatic(A.B.class);
+                  }
+
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      mockedAB.closeOnDemand();
+                  }
+
+                  @Test
+                  public void testStaticMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/358")
     void doesNotExplodeOnTopLevelMethodDeclaration() {
         rewriteRun(
