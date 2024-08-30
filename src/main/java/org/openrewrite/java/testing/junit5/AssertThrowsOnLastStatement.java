@@ -74,40 +74,49 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 if (methodStatement instanceof J.VariableDeclarations) {
                     J.VariableDeclarations variableDeclarations = (J.VariableDeclarations) methodStatement;
                     List<J.VariableDeclarations.NamedVariable> variables = variableDeclarations.getVariables();
-                    if (variables.isEmpty())
+                    if (variables.isEmpty()) {
                         continue;
+                    }
                     statementToCheck = variables.get(0).getInitializer();
                 }
 
-                if (!(statementToCheck instanceof J.MethodInvocation))
+                if (!(statementToCheck instanceof J.MethodInvocation)) {
                     continue;
+                }
 
                 J.MethodInvocation methodInvocation = (J.MethodInvocation) statementToCheck;
-                if (methodInvocation.getMethodType() == null || !methodInvocation.getName().getSimpleName().equals("assertThrows"))
+                if (methodInvocation.getMethodType() == null || !methodInvocation.getName().getSimpleName().equals("assertThrows")) {
                     continue;
+                }
 
-                if (!ASSERTIONS_FQN.equals(methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName()))
+                if (!ASSERTIONS_FQN.equals(methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName())) {
                     continue;
+                }
 
                 List<Expression> arguments = methodInvocation.getArguments();
-                if (arguments.size() <= 1)
+                if (arguments.size() <= 1) {
                     continue;
+                }
 
                 Expression arg = arguments.get(1);
-                if (!(arg instanceof J.Lambda))
+                if (!(arg instanceof J.Lambda)) {
                     continue;
+                }
 
                 J.Lambda lambda = (J.Lambda) arg;
-                if (!(lambda.getBody() instanceof J.Block))
+                if (!(lambda.getBody() instanceof J.Block)) {
                     continue;
+                }
 
                 J.Block body = (J.Block) lambda.getBody();
-                if (body == null)
+                if (body == null) {
                     continue;
+                }
 
                 List<Statement> lambdaStatements = body.getStatements();
-                if (lambdaStatements.size() <= 1)
+                if (lambdaStatements.size() <= 1) {
                     continue;
+                }
 
                 // move all the statements from the body into before the method invocation, except last one
                 JavaCoordinates beforeCoords = methodStatement.getCoordinates().before();
