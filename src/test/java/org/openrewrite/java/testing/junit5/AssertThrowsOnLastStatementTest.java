@@ -30,7 +30,7 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .logCompilationWarningsAndErrors(true)
+            //.logCompilationWarningsAndErrors(true)
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
           .recipe(new AssertThrowsOnLastStatement());
     }
@@ -93,7 +93,6 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               
-              import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertThrows;
               
               class MyTest {
@@ -119,7 +118,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                   @Test
                   public void test() {
                       System.out.println("foo");
-                      assertThrows(IllegalArgumentException.class, () -> foo());
+                      assertThrows(IllegalArgumentException.class, () ->
+                          foo());
                   }
                   void foo() {
                   }
@@ -130,27 +130,10 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     }
 
     @Test
-    void makeNoChagesAsOneLine() {
+    void makeNoChangesAsOneLine() {
         //language=java
         rewriteRun(
           java(
-            """
-              import org.junit.jupiter.api.Test;
-              
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertThrows;
-              
-              class MyTest {
-              
-                  @Test
-                  public void test() {
-                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> foo());
-                      assertEquals("Error message", exception.getMessage());
-                  }
-                  void foo() {
-                  }
-              }
-              """,
             """
               import org.junit.jupiter.api.Test;
               

@@ -15,20 +15,20 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaCoordinates;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
+import java.util.Collections;
 import java.util.List;
 
 
@@ -48,88 +48,80 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        // TODO change to uses method below?
-        return Preconditions.check(new UsesType<>(ASSERTIONS_FQN, false), new AssertThrowsOnLastStatementVisitor());
-    }
+        MethodMatcher assertThrowsMatcher = new MethodMatcher(
+                "org.junit.jupiter.api.Assertions assertThrows(java.lang.Class, org.junit.jupiter.api.function.Executable, ..)");
+        return Preconditions.check(new UsesMethod<>(assertThrowsMatcher), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
+                J.MethodDeclaration m = super.visitMethodDeclaration(methodDecl, ctx);
 
-    private static class AssertThrowsOnLastStatementVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        private JavaParser.@Nullable Builder<?, ?> javaParser;
-
-        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            if (javaParser == null) {
-                javaParser = JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9");
-            }
-            return javaParser;
-
-        }
-
-        @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
-            J.MethodDeclaration m = super.visitMethodDeclaration(methodDecl, ctx);
-            List<Statement> methodStatements = m.getBody().getStatements();
-
-            for (Statement methodStatement : methodStatements) {
-                J statementToCheck = methodStatement;
-                if (methodStatement instanceof J.VariableDeclarations) {
-                    J.VariableDeclarations variableDeclarations = (J.VariableDeclarations) methodStatement;
-                    List<J.VariableDeclarations.NamedVariable> variables = variableDeclarations.getVariables();
-                    if (variables.isEmpty()) {
-                        continue;
+                m = m.withBody(m.getBody().withStatements(ListUtils.flatMap(m.getBody().getStatements(), methodStatement -> {
+                    J statementToCheck = methodStatement;
+                    if (methodStatement instanceof J.VariableDeclarations) {
+                        J.VariableDeclarations variableDeclarations = (J.VariableDeclarations) methodStatement;
+                        List<J.VariableDeclarations.NamedVariable> variables = variableDeclarations.getVariables();
+                        if (variables.isEmpty()) {
+                            return methodStatement;
+                        }
+                        statementToCheck = variables.get(0).getInitializer();
                     }
-                    statementToCheck = variables.get(0).getInitializer();
-                }
 
-                if (!(statementToCheck instanceof J.MethodInvocation)) {
-                    continue;
-                }
+                    if (!(statementToCheck instanceof J.MethodInvocation)) {
+                        return methodStatement;
+                    }
 
-                J.MethodInvocation methodInvocation = (J.MethodInvocation) statementToCheck;
-                if (methodInvocation.getMethodType() == null || !methodInvocation.getName().getSimpleName().equals("assertThrows")) {
-                    continue;
-                }
+                    J.MethodInvocation methodInvocation = (J.MethodInvocation) statementToCheck;
+                    if (!assertThrowsMatcher.matches(methodInvocation)) {
+                        return methodStatement;
+                    }
 
-                if (!ASSERTIONS_FQN.equals(methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName())) {
-                    continue;
-                }
+                    List<Expression> arguments = methodInvocation.getArguments();
+                    if (arguments.size() <= 1) {
+                        return methodStatement;
+                    }
 
-                List<Expression> arguments = methodInvocation.getArguments();
-                if (arguments.size() <= 1) {
-                    continue;
-                }
+                    Expression arg = arguments.get(1);
+                    if (!(arg instanceof J.Lambda)) {
+                        return methodStatement;
+                    }
 
-                Expression arg = arguments.get(1);
-                if (!(arg instanceof J.Lambda)) {
-                    continue;
-                }
+                    J.Lambda lambda = (J.Lambda) arg;
+                    if (!(lambda.getBody() instanceof J.Block)) {
+                        return methodStatement;
+                    }
 
-                J.Lambda lambda = (J.Lambda) arg;
-                if (!(lambda.getBody() instanceof J.Block)) {
-                    continue;
-                }
+                    J.Block body = (J.Block) lambda.getBody();
+                    if (body == null) {
+                        return methodStatement;
+                    }
 
-                J.Block body = (J.Block) lambda.getBody();
-                if (body == null) {
-                    continue;
-                }
+                    List<Statement> lambdaStatements = body.getStatements();
+                    if (lambdaStatements.size() <= 1) {
+                        return methodStatement;
+                    }
 
-                List<Statement> lambdaStatements = body.getStatements();
-                if (lambdaStatements.size() <= 1) {
-                    continue;
-                }
+                    // move all the statements from the body into before the method invocation, except last one
+                    return ListUtils.map(lambdaStatements, (idx, lambdaStatement) -> {
+                        if (idx < lambdaStatements.size() - 1) {
+                            return lambdaStatement.withPrefix(methodStatement.getPrefix().withComments(Collections.emptyList()));
+                        }
 
-                // move all the statements from the body into before the method invocation, except last one
-                JavaCoordinates beforeCoords = methodStatement.getCoordinates().before();
-                int lastStatementIdx = lambdaStatements.size() - 1;
-                Statement last = lambdaStatements.get(lastStatementIdx);
-                lambdaStatements.remove(lastStatementIdx);
-                for (Statement statement : lambdaStatements) {
-                    // add the new statements before the assertThrows
-                }
+                        // TODO This currently assumes there's not variable assignment; handle that case too
+                        return methodInvocation.withArguments(
+                                ListUtils.map(arguments, (argIdx, argument) -> {
+                                    if (argIdx == 1) {
+                                        // Only retain the last statement in the lambda block
+                                        return lambda.withBody(body.withStatements(Collections.singletonList(lambdaStatement)));
+                                    }
+                                    return argument;
+                                })
+                        );
+                    });
+                })));
+
+                doAfterVisit(new LambdaBlockToExpression().getVisitor());
+                return m;
             }
-
-            super.doAfterVisit(new LambdaBlockToExpression().getVisitor());
-            return m;
-        }
+        });
     }
 }
