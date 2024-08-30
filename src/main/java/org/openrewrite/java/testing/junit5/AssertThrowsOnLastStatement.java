@@ -100,6 +100,8 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         return methodStatement;
                     }
 
+                    // TODO Check to see if last line in lambda does not use a non-final variable
+
                     // move all the statements from the body into before the method invocation, except last one
                     return ListUtils.map(lambdaStatements, (idx, lambdaStatement) -> {
                         if (idx < lambdaStatements.size() - 1) {
