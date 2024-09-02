@@ -24,6 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
+// TODO possible to remove the curly braces for lamdba and inline?
 class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Override
@@ -43,12 +44,12 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+                            
               class MyTest {
-              
+                            
                   @Test
                   public void test() {
                       Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
@@ -64,17 +65,19 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+                            
               class MyTest {
-              
+                            
                   @Test
                   public void test() {
                       foo();
                       System.out.println("foo");
-                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> foo());
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
+                          foo();
+                      });
                       assertEquals("Error message", exception.getMessage());
                   }
                   void foo() {
@@ -86,17 +89,70 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     }
 
     @Test
-    void applyToLastStatementNoDeclaringVariableTwoLines() {
+    void applyToLastStatementWithDeclaringVariableThreeLinesHasLineBefore() {
         //language=java
         rewriteRun(
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+                            
+              import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+                            
               class MyTest {
-              
+                            
+                  @Test
+                  public void test() {             
+                      System.out.println("bla");
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
+                          foo();
+                          System.out.println("foo");
+                          foo();
+                      });
+                      assertEquals("Error message", exception.getMessage());
+                  }
+                  void foo() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+                            
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+                            
+              class MyTest {
+                            
+                  @Test
+                  public void test() {
+                      System.out.println("bla");
+                      foo();
+                      System.out.println("foo");
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
+                          foo();
+                      });
+                      assertEquals("Error message", exception.getMessage());
+                  }
+                  void foo() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void applyToLastStatementNoDeclaringVariableTwoLinesNoLinesAfter() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+                            
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+                            
+              class MyTest {
+                            
                   @Test
                   public void test() {
                       assertThrows(IllegalArgumentException.class, () -> {
@@ -110,16 +166,17 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+                            
               class MyTest {
-              
+                            
                   @Test
                   public void test() {
                       System.out.println("foo");
-                      assertThrows(IllegalArgumentException.class, () ->
-                          foo());
+                      assertThrows(IllegalArgumentException.class, () -> {
+                          foo();
+                      });
                   }
                   void foo() {
                   }
@@ -136,12 +193,12 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+                            
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+                            
               class MyTest {
-              
+                            
                   @Test
                   public void test() {
                       Throwable exception = assertThrows(IllegalArgumentException.class, () -> foo());

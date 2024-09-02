@@ -34,8 +34,6 @@ import java.util.List;
 
 public class AssertThrowsOnLastStatement extends Recipe {
 
-    private static final String ASSERTIONS_FQN = "org.junit.jupiter.api.Assertions";
-
     @Override
     public String getDisplayName() {
         return "Applies Junit 5 assertThrows on last statement in lamdba block only";
@@ -57,13 +55,22 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                 m = m.withBody(m.getBody().withStatements(ListUtils.flatMap(m.getBody().getStatements(), methodStatement -> {
                     J statementToCheck = methodStatement;
+                    final J.VariableDeclarations assertThrowsWithVarDec;
+                    final J.VariableDeclarations.NamedVariable assertThrowsVar;
+
                     if (methodStatement instanceof J.VariableDeclarations) {
-                        J.VariableDeclarations variableDeclarations = (J.VariableDeclarations) methodStatement;
-                        List<J.VariableDeclarations.NamedVariable> variables = variableDeclarations.getVariables();
-                        if (variables.isEmpty()) {
+                        assertThrowsWithVarDec = (J.VariableDeclarations) methodStatement;
+                        List<J.VariableDeclarations.NamedVariable> assertThrowsNamedVars = assertThrowsWithVarDec.getVariables();
+                        if (assertThrowsNamedVars.size() != 1) {
                             return methodStatement;
                         }
-                        statementToCheck = variables.get(0).getInitializer();
+
+                        // has variable declaration for assertThrows eg Throwable ex = assertThrows(....)
+                        assertThrowsVar = assertThrowsNamedVars.get(0);
+                        statementToCheck = assertThrowsVar.getInitializer();
+                    } else {
+                        assertThrowsWithVarDec = null;
+                        assertThrowsVar = null;
                     }
 
                     if (!(statementToCheck instanceof J.MethodInvocation)) {
@@ -108,8 +115,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             return lambdaStatement.withPrefix(methodStatement.getPrefix().withComments(Collections.emptyList()));
                         }
 
-                        // TODO This currently assumes there's not variable assignment; handle that case too
-                        return methodInvocation.withArguments(
+                        J.MethodInvocation newAssertThrows = methodInvocation.withArguments(
                                 ListUtils.map(arguments, (argIdx, argument) -> {
                                     if (argIdx == 1) {
                                         // Only retain the last statement in the lambda block
@@ -118,7 +124,15 @@ public class AssertThrowsOnLastStatement extends Recipe {
                                     return argument;
                                 })
                         );
+
+                        if (assertThrowsWithVarDec == null) {
+                            return newAssertThrows;
+                        }
+
+                        J.VariableDeclarations.NamedVariable newAssertThrowsVar = assertThrowsVar.withInitializer(newAssertThrows);
+                        return assertThrowsWithVarDec.withVariables(Collections.singletonList(newAssertThrowsVar));
                     });
+
                 })));
 
                 doAfterVisit(new LambdaBlockToExpression().getVisitor());
