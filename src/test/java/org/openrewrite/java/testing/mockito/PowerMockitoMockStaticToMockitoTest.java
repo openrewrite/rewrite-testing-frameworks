@@ -654,7 +654,8 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
               public class MyTest {
 
-                  private MockedStatic<A.B> mockedAB;
+                  private MockedStatic<A.B> mockedA_B;
+
                   private static final String TEST_MESSAGE = "this is a test message";
 
                   @Before
@@ -663,12 +664,12 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
                   @BeforeEach
                   void setUpStaticMocks() {
-                      mockedAB = Mockito.mockStatic(A.B.class);
+                      mockedA_B = Mockito.mockStatic(A.B.class);
                   }
 
                   @AfterEach
                   void tearDownStaticMocks() {
-                      mockedAB.closeOnDemand();
+                      mockedA_B.closeOnDemand();
                   }
 
                   @Test

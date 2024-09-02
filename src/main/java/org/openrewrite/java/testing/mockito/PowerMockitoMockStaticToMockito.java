@@ -43,8 +43,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 Preconditions.or(
-                    new UsesType<>("org.powermock..*", false),
-                    new UsesType<>("org.mockito..*", false)
+                        new UsesType<>("org.powermock..*", false),
+                        new UsesType<>("org.mockito..*", false)
                 ),
                 new PowerMockitoToMockitoVisitor()
         );
@@ -446,7 +446,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                                 new Cursor(getCursor().getParentOrThrow(), classDecl),
                                 classDecl.getBody().getCoordinates().firstStatement(),
                                 classlessTypeName,
-                                classlessTypeName
+                                // Not sure if replacing `.` with `_` is a structural solution, but it works for inner classes for now
+                                classlessTypeName.replace(".", "_")
                         );
 
                 J.VariableDeclarations mockField = (J.VariableDeclarations) classDecl.getBody().getStatements().get(0);
