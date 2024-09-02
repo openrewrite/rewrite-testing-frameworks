@@ -446,7 +446,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                                 new Cursor(getCursor().getParentOrThrow(), classDecl),
                                 classDecl.getBody().getCoordinates().firstStatement(),
                                 classlessTypeName,
-                                // Not sure if replacing `.` with `_` is a structural solution, but it works for inner classes for now
                                 classlessTypeName.replace(".", "_")
                         );
 
