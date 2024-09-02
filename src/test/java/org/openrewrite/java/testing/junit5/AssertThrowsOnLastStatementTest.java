@@ -187,6 +187,51 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     }
 
     @Test
+    void applyToLastStatementHasMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+                            
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+                            
+              class MyTest {
+                            
+                  @Test
+                  public void test() {
+                      assertThrows(IllegalArgumentException.class, () -> {
+                          System.out.println("foo");
+                          foo();
+                      }, "message");
+                  }
+                  void foo() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+                            
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+                            
+              class MyTest {
+                            
+                  @Test
+                  public void test() {
+                      System.out.println("foo");
+                      assertThrows(IllegalArgumentException.class, () -> {
+                          foo();
+                      }, "message");
+                  }
+                  void foo() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void makeNoChangesAsOneLine() {
         //language=java
         rewriteRun(
