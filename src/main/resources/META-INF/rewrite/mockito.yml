@@ -15,6 +15,18 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.MockitoBestPractices
+displayName: Mockito best practices
+description: .
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.testing.mockito.Mockito1to5Migration
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@org.mockito.junit.jupiter.MockitoSettings(strictness=org.mockito.quality.Strictness.WARN)"
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to5Migration
 displayName: Mockito 5.x upgrade
 description: Upgrade Mockito from 1.x to 5.x.
