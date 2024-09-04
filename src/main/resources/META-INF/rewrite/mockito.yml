@@ -17,7 +17,7 @@
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.MockitoBestPractices
 displayName: Mockito best practices
-description: .
+description: Applies best practices for Mockito tests.
 tags:
   - testing
   - mockito
