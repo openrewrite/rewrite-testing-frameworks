@@ -20,6 +20,7 @@ import lombok.Getter;
 @Getter
 enum JMockitBlockType {
 
+    MockUp,
     Expectations,
     Verifications,
     NonStrictExpectations;
