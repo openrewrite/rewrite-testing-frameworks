@@ -51,6 +51,9 @@ description: Migrates JUnit 4.x tests to JUnit Jupiter.
 tags:
   - testing
   - junit
+preconditions:
+  - org.openrewrite.java.search.DoesNotUseType:
+      fullyQualifiedTypeName: org.testng..*
 recipeList:
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
