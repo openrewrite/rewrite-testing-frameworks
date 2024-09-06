@@ -31,6 +31,8 @@ import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 import java.util.Collections;
 import java.util.List;
 
+import static java.util.Collections.singletonList;
+
 
 public class AssertThrowsOnLastStatement extends Recipe {
 
@@ -41,7 +43,8 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Applies Junit 5 assertThrows on last statement in lambda block only.";
+        return "Applies Junit 5 assertThrows on last statement in lambda block only, in rare cases may cause compilation " +
+                "errors if lambda uses non final variables.";
     }
 
     @Override
@@ -119,7 +122,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                                 ListUtils.map(arguments, (argIdx, argument) -> {
                                     if (argIdx == 1) {
                                         // Only retain the last statement in the lambda block
-                                        return lambda.withBody(body.withStatements(Collections.singletonList(lambdaStatement)));
+                                        return lambda.withBody(body.withStatements(singletonList(lambdaStatement)));
                                     }
                                     return argument;
                                 })
@@ -130,7 +133,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         }
 
                         J.VariableDeclarations.NamedVariable newAssertThrowsVar = assertThrowsVar.withInitializer(newAssertThrows);
-                        return assertThrowsWithVarDec.withVariables(Collections.singletonList(newAssertThrowsVar));
+                        return assertThrowsWithVarDec.withVariables(singletonList(newAssertThrowsVar));
                     });
 
                 })));

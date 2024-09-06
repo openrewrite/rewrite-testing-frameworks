@@ -24,7 +24,6 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-// TODO possible to remove the curly braces for lamdba and inline?
 class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Override
@@ -75,9 +74,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                   public void test() {
                       foo();
                       System.out.println("foo");
-                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
-                          foo();
-                      });
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () ->
+                          foo());
                       assertEquals("Error message", exception.getMessage());
                   }
                   void foo() {
@@ -102,7 +100,7 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
               class MyTest {
                             
                   @Test
-                  public void test() {             
+                  public void test() {
                       System.out.println("bla");
                       Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
                           foo();
@@ -128,9 +126,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                       System.out.println("bla");
                       foo();
                       System.out.println("foo");
-                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
-                          foo();
-                      });
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () ->
+                          foo());
                       assertEquals("Error message", exception.getMessage());
                   }
                   void foo() {
@@ -174,9 +171,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                   @Test
                   public void test() {
                       System.out.println("foo");
-                      assertThrows(IllegalArgumentException.class, () -> {
-                          foo();
-                      });
+                      assertThrows(IllegalArgumentException.class, () ->
+                          foo());
                   }
                   void foo() {
                   }
