@@ -43,8 +43,8 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Applies Junit 5 assertThrows on last statement in lambda block only, in rare cases may cause compilation " +
-                "errors if lambda uses non final variables.";
+        return "Applies Junit 5 assertThrows on last statement in lambda block only, in extremely rare cases may cause " +
+                "compilation errors if lambda uses non final variables.";
     }
 
     @Override
