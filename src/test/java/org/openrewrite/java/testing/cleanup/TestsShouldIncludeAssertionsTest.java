@@ -34,7 +34,7 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "junit-jupiter-api-5.9", "mockito-all-1.10", "hamcrest-2.2", "assertj-core-3.24")
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "junit-jupiter-api-5.9", "mockito-all-1.10", "hamcrest-2.2", "assertj-core-3.24", "spring-test-6.1.12")
             .dependsOn(
               List.of(
                 //language=java
@@ -371,6 +371,28 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
                           when(myMathService.addIntegers("1", "2")).thenReturn(3);
                           myMathService.addIntegers("1", "2");
                       });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void hasMockRestServiceServerVerify() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.springframework.test.web.client.MockRestServiceServer;
+              
+              class AaTest {
+                  private MockRestServiceServer mockServer;
+              
+                  @Test
+                  public void verifyTest() {
+                      mockServer.verify();
                   }
               }
               """
