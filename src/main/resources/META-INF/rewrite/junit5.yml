@@ -51,6 +51,10 @@ description: Migrates JUnit 4.x tests to JUnit Jupiter.
 tags:
   - testing
   - junit
+preconditions:
+  - org.openrewrite.java.search.DoesNotUseType:
+      fullyQualifiedTypeName: org.testng..*
+      includeImplicit: true
 recipeList:
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
@@ -134,6 +138,9 @@ recipeList:
       artifactId: maven-failsafe-plugin
       newVersion: 3.1.x
   - org.openrewrite.java.testing.junit5.GradleUseJunitJupiter
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.jbehave.core.junit.JUnitStories
+      newFullyQualifiedTypeName: org.jbehave.core.junit.JupiterStories
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
