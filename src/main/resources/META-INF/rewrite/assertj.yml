@@ -111,14 +111,29 @@ recipeList:
       dedicatedAssertion: startsWith
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: startsWith
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotStartWith
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: endsWith
       assertToReplace: isTrue
       dedicatedAssertion: endsWith
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: endsWith
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotEndWith
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: matches
       assertToReplace: isTrue
       dedicatedAssertion: matches
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: matches
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotMatch
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: trim

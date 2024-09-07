@@ -85,8 +85,11 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
               Arguments.arguments("equalsIgnoreCase", "isTrue", "isEqualToIgnoringCase", "expected", ""),
               Arguments.arguments("contains", "isTrue", "contains", "expected", ""),
               Arguments.arguments("startsWith", "isTrue", "startsWith", "expected", ""),
+              Arguments.arguments("startsWith", "isFalse", "doesNotStartWith", "expected", ""),
               Arguments.arguments("endsWith", "isTrue", "endsWith", "expected", ""),
+              Arguments.arguments("endsWith", "isFalse", "doesNotEndWith", "expected", ""),
               Arguments.arguments("matches", "isTrue", "matches", "expected", ""),
+              Arguments.arguments("matches", "isFalse", "doesNotMatch", "expected", ""),
               Arguments.arguments("trim", "isEmpty", "isBlank", "", ""),
               Arguments.arguments("length", "isEqualTo", "hasSize", "", "length"),
               Arguments.arguments("isEmpty", "isFalse", "isNotEmpty", "", "")
