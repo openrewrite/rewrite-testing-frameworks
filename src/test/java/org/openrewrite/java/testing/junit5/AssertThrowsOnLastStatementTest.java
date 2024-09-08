@@ -43,12 +43,12 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-                            
+              
               class MyTest {
-                            
+              
                   @Test
                   public void test() {
                       Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
@@ -64,12 +64,12 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-                            
+              
               class MyTest {
-                            
+              
                   @Test
                   public void test() {
                       foo();
@@ -93,12 +93,12 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-                            
+              
               class MyTest {
-                            
+              
                   @Test
                   public void test() {
                       System.out.println("bla");
@@ -115,12 +115,12 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-                            
+              
               class MyTest {
-                            
+              
                   @Test
                   public void test() {
                       System.out.println("bla");
@@ -145,11 +145,11 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertThrows;
-                            
+              
               class MyTest {
-                            
+              
                   @Test
                   public void test() {
                       assertThrows(IllegalArgumentException.class, () -> {
@@ -163,11 +163,11 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertThrows;
-                            
+              
               class MyTest {
-                            
+              
                   @Test
                   public void test() {
                       System.out.println("foo");
@@ -189,11 +189,11 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertThrows;
-                            
+              
               class MyTest {
-                            
+              
                   @Test
                   public void test() {
                       assertThrows(IllegalArgumentException.class, () -> {
@@ -207,11 +207,11 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertThrows;
-                            
+              
               class MyTest {
-                            
+              
                   @Test
                   public void test() {
                       System.out.println("foo");
@@ -234,12 +234,12 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-                            
+              
               class MyTest {
-                            
+              
                   @Test
                   public void test() {
                       Throwable exception = assertThrows(IllegalArgumentException.class, () -> foo());
