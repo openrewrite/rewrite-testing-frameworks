@@ -1456,7 +1456,6 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                           result = "x1";
                         }
                         {
-                        
                           myObject.getY();
                           result = "y1";
                         }
