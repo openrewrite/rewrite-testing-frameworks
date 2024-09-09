@@ -1450,16 +1450,17 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   MyObject myObject;
 
                   void test() {
-                      new Expectations() {{
-                          
+                      new Expectations() {
+                        { 
                           myObject.getX();
                           result = "x1";
-                        
+                        }
+                        {
                         
                           myObject.getY();
                           result = "y1";
-                        
-                      }};
+                        }
+                      };
                       assertEquals("x1", myObject.getX());
                       assertEquals("y1", myObject.getY());
                   }
