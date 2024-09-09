@@ -1419,7 +1419,80 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void whenMultipleExpectationsNoResults() {
+    void whenMultipleBlockInSingleExpectation() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyObject {
+                  public String getX() {
+                      return "X";
+                  }
+                  public String getY() {
+                      return "Y";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertNull;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  MyObject myObject;
+
+                  void test() {
+                      new Expectations() {{
+                          
+                          myObject.getX();
+                          result = "x1";
+                        
+                        
+                          myObject.getY();
+                          result = "y1";
+                        
+                      }};
+                      assertEquals("x1", myObject.getX());
+                      assertEquals("y1", myObject.getY());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  MyObject myObject;
+
+                  void test() {
+                      when(myObject.getX()).thenReturn("x1");
+                      when(myObject.getY()).thenReturn("y1");
+                      assertEquals("x1", myObject.getX());
+                      assertEquals("y1", myObject.getY());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenMultipleExpectationsNoResults() { 
         //language=java
         rewriteRun(
           java(
