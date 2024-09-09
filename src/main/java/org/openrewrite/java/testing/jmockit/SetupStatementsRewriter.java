@@ -50,20 +50,34 @@ class SetupStatementsRewriter {
             }
 
             assert nc.getBody() != null;
+
             J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
+
+            // in case there are more than one blocks (with curly braces) in one expectations, just for readability
+            List<Statement> statementList = new ArrayList<Statement>();
+            if(JMockitBlockType.valueOf(((J.Identifier) nc.getClazz()).getSimpleName()).equals(JMockitBlockType.Expectations)) {
+                statementList.addAll(nc.getBody().getStatements());
+            } else {
+                statementList.add(nc.getBody().getStatements().get(0));
+            }
 
             // statement needs to be moved directly before expectations class instantiation
             JavaCoordinates coordinates = nc.getCoordinates().before();
             List<Statement> newExpectationsBlockStatements = new ArrayList<>();
-            for (Statement expectationStatement : expectationsBlock.getStatements()) {
-                if (!isSetupStatement(expectationStatement, spies)) {
-                    newExpectationsBlockStatements.add(expectationStatement);
-                    continue;
+
+            for(Statement st : statementList) {
+
+                for (Statement expectationStatement : ((J.Block) st).getStatements()) {
+                    if (!isSetupStatement(expectationStatement, spies)) {
+                        newExpectationsBlockStatements.add(expectationStatement);
+                        continue;
+                    }
+                    rewriteBodyStatement(expectationStatement, coordinates);
+                    // subsequent setup statements are moved in order
+                    coordinates = expectationStatement.getCoordinates().after();
                 }
-                rewriteBodyStatement(expectationStatement, coordinates);
-                // subsequent setup statements are moved in order
-                coordinates = expectationStatement.getCoordinates().after();
             }
+            
             // the new expectations block has the setup statements removed
             J.Block newExpectationsBlock = expectationsBlock.withStatements(newExpectationsBlockStatements);
             nc = nc.withBody(nc.getBody().withStatements(Collections.singletonList(newExpectationsBlock)));
