@@ -54,7 +54,7 @@ class SetupStatementsRewriter {
             J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
 
             // in case there are more than one blocks (with curly braces) in one expectations, just for readability
-            List<Statement> statementList = new ArrayList<Statement>();
+            List<Statement> statementList = new ArrayList<>();
             if(JMockitBlockType.valueOf(((J.Identifier) nc.getClazz()).getSimpleName()).equals(JMockitBlockType.Expectations)) {
                 statementList.addAll(nc.getBody().getStatements());
             } else {
