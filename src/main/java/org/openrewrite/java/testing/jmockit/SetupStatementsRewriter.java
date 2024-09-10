@@ -50,12 +50,11 @@ class SetupStatementsRewriter {
             }
 
             assert nc.getBody() != null;
-
             J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
 
-            // in case there are more than one blocks (with curly braces) in one expectations, just for readability
+            // in case there is more than one block (with curly braces) in one Expectations block, just for readability
             List<Statement> statementList = new ArrayList<>();
-            if(JMockitBlockType.valueOf(((J.Identifier) nc.getClazz()).getSimpleName()).equals(JMockitBlockType.Expectations)) {
+            if (TypeUtils.isAssignableTo("mockit.Expectations", nc.getType())) {
                 statementList.addAll(nc.getBody().getStatements());
             } else {
                 statementList.add(nc.getBody().getStatements().get(0));
@@ -64,9 +63,7 @@ class SetupStatementsRewriter {
             // statement needs to be moved directly before expectations class instantiation
             JavaCoordinates coordinates = nc.getCoordinates().before();
             List<Statement> newExpectationsBlockStatements = new ArrayList<>();
-
-            for(Statement st : statementList) {
-
+            for (Statement st : statementList) {
                 for (Statement expectationStatement : ((J.Block) st).getStatements()) {
                     if (!isSetupStatement(expectationStatement, spies)) {
                         newExpectationsBlockStatements.add(expectationStatement);
@@ -77,7 +74,7 @@ class SetupStatementsRewriter {
                     coordinates = expectationStatement.getCoordinates().after();
                 }
             }
-            
+
             // the new expectations block has the setup statements removed
             J.Block newExpectationsBlock = expectationsBlock.withStatements(newExpectationsBlockStatements);
             nc = nc.withBody(nc.getBody().withStatements(Collections.singletonList(newExpectationsBlock)));
@@ -142,7 +139,7 @@ class SetupStatementsRewriter {
             return false;
         }
         if (identifier.getType() instanceof JavaType.Method
-                && TypeUtils.isAssignableTo("mockit.Invocations",
+            && TypeUtils.isAssignableTo("mockit.Invocations",
                 ((JavaType.Method) identifier.getType()).getDeclaringType())) {
             return false;
         }
@@ -152,8 +149,8 @@ class SetupStatementsRewriter {
         }
         for (JavaType.FullyQualified annotationType : fieldType.getAnnotations()) {
             if (TypeUtils.isAssignableTo("mockit.Mocked", annotationType)
-                    || TypeUtils.isAssignableTo("mockit.Injectable", annotationType)
-                    || TypeUtils.isAssignableTo("mockit.Tested", annotationType)) {
+                || TypeUtils.isAssignableTo("mockit.Injectable", annotationType)
+                || TypeUtils.isAssignableTo("mockit.Tested", annotationType)) {
                 return false;
             }
         }

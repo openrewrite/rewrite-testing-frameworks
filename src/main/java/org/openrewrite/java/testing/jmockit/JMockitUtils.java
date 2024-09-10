@@ -36,15 +36,11 @@ class JMockitUtils {
         J.Identifier clazz = (J.Identifier) nc.getClazz();
 
         // JMockit block should be composed of a block within another block
-        if (nc.getBody() == null || (nc.getBody().getStatements().size() != 1
-                && !JMockitBlockType.valueOf(clazz.getSimpleName()).equals(JMockitBlockType.Expectations))) {
+        if (nc.getBody() == null || (nc.getBody().getStatements().size() != 1 &&
+                !TypeUtils.isAssignableTo("mockit.Expectations", clazz.getType()))) {
             return empty();
         }
 
-        JMockitBlockType blockType = JMockitBlockType.valueOf(clazz.getSimpleName());
-        if (blockType != null && TypeUtils.isOfClassType(clazz.getType(), blockType.getFqn())) {
-            return Optional.of(blockType);
-        }
-        return empty();
+        return Optional.of(JMockitBlockType.valueOf(clazz.getSimpleName()));
     }
 }
