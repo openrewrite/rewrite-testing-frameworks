@@ -52,18 +52,29 @@ class SetupStatementsRewriter {
             assert nc.getBody() != null;
             J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
 
+            // Account for Expectations which may contain multiple blocks
+            List<Statement> statementList = new ArrayList<>();
+            if (TypeUtils.isAssignableTo("mockit.Expectations", nc.getType())) {
+                statementList.addAll(nc.getBody().getStatements());
+            } else {
+                statementList.add(expectationsBlock);
+            }
+
             // statement needs to be moved directly before expectations class instantiation
             JavaCoordinates coordinates = nc.getCoordinates().before();
             List<Statement> newExpectationsBlockStatements = new ArrayList<>();
-            for (Statement expectationStatement : expectationsBlock.getStatements()) {
-                if (!isSetupStatement(expectationStatement, spies)) {
-                    newExpectationsBlockStatements.add(expectationStatement);
-                    continue;
+            for (Statement st : statementList) {
+                for (Statement expectationStatement : ((J.Block) st).getStatements()) {
+                    if (!isSetupStatement(expectationStatement, spies)) {
+                        newExpectationsBlockStatements.add(expectationStatement);
+                        continue;
+                    }
+                    rewriteBodyStatement(expectationStatement, coordinates);
+                    // subsequent setup statements are moved in order
+                    coordinates = expectationStatement.getCoordinates().after();
                 }
-                rewriteBodyStatement(expectationStatement, coordinates);
-                // subsequent setup statements are moved in order
-                coordinates = expectationStatement.getCoordinates().after();
             }
+
             // the new expectations block has the setup statements removed
             J.Block newExpectationsBlock = expectationsBlock.withStatements(newExpectationsBlockStatements);
             nc = nc.withBody(nc.getBody().withStatements(Collections.singletonList(newExpectationsBlock)));
@@ -128,7 +139,7 @@ class SetupStatementsRewriter {
             return false;
         }
         if (identifier.getType() instanceof JavaType.Method
-                && TypeUtils.isAssignableTo("mockit.Invocations",
+            && TypeUtils.isAssignableTo("mockit.Invocations",
                 ((JavaType.Method) identifier.getType()).getDeclaringType())) {
             return false;
         }
@@ -138,8 +149,8 @@ class SetupStatementsRewriter {
         }
         for (JavaType.FullyQualified annotationType : fieldType.getAnnotations()) {
             if (TypeUtils.isAssignableTo("mockit.Mocked", annotationType)
-                    || TypeUtils.isAssignableTo("mockit.Injectable", annotationType)
-                    || TypeUtils.isAssignableTo("mockit.Tested", annotationType)) {
+                || TypeUtils.isAssignableTo("mockit.Injectable", annotationType)
+                || TypeUtils.isAssignableTo("mockit.Tested", annotationType)) {
                 return false;
             }
         }
