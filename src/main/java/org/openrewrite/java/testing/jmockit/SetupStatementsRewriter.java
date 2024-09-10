@@ -52,12 +52,12 @@ class SetupStatementsRewriter {
             assert nc.getBody() != null;
             J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
 
-            // in case there is more than one block (with curly braces) in one Expectations block, just for readability
+            // Account for Expectations which may contain multiple blocks
             List<Statement> statementList = new ArrayList<>();
             if (TypeUtils.isAssignableTo("mockit.Expectations", nc.getType())) {
                 statementList.addAll(nc.getBody().getStatements());
             } else {
-                statementList.add(nc.getBody().getStatements().get(0));
+                statementList.add(expectationsBlock);
             }
 
             // statement needs to be moved directly before expectations class instantiation
