@@ -244,7 +244,6 @@ public class JMockitMockUpToMockito extends Recipe {
                         .apply(updateCursor(md), md.getBody().getCoordinates().lastStatement());
             }
 
-            doAfterVisit(new FindMissingTypes().getVisitor());
             return maybeAutoFormat(methodDeclaration, md, ctx);
         }
     }
