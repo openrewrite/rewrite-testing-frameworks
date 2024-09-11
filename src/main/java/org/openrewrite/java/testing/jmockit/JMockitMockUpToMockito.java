@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import static java.util.stream.Collectors.toList;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -22,7 +23,10 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.search.FindMissingTypes;
 import org.openrewrite.java.search.UsesType;
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.MockUp;
+import static org.openrewrite.java.tree.Flag.Static;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
@@ -32,10 +36,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.toList;
-import static org.openrewrite.java.testing.jmockit.JMockitBlockType.MockUp;
-import static org.openrewrite.java.tree.Flag.Static;
 
 public class JMockitMockUpToMockito extends Recipe {
     @Override
@@ -114,10 +114,10 @@ public class JMockitMockUpToMockito extends Recipe {
                 return md;
             }
 
-            // Create the new statement
-            J.Block body = md.getBody();
-            List<String> shouldClose = new ArrayList<>();
-            for (Statement statement : body.getStatements()) {
+            List<String> closeVariables = new ArrayList<>();
+            List<Statement> aggregateOtherStatements = new ArrayList<>();
+            List<Statement> excludeMockUp = new ArrayList<>();
+            for (Statement statement : md.getBody().getStatements()) {
                 if (!(statement instanceof J.NewClass)) {
                     continue;
                 }
@@ -128,10 +128,10 @@ public class JMockitMockUpToMockito extends Recipe {
                     continue;
                 }
 
+                excludeMockUp.add(statement);
                 JavaType mockType = ((J.ParameterizedType) newClass.getClazz()).getTypeParameters().get(0).getType();
                 String className = TypeUtils.asFullyQualified(mockType).getClassName();
                 String mockName = className.replace(".", "_");
-                StringBuilder mockStatements = new StringBuilder();
 
                 List<Statement> mockedMethods = newClass.getBody()
                         .getStatements()
@@ -156,14 +156,24 @@ public class JMockitMockUpToMockito extends Recipe {
                         .filter(s -> staticMethods.contains(((J.MethodDeclaration) s).getSimpleName()))
                         .collect(toList());
                 if (!methods.isEmpty()) {
-                    mockStatements.append("MockedStatic<").append(className).append("> mockStatic").append(mockName).append(" = mockStatic(").append(className).append(".class);");
+                    StringBuilder tpl = new StringBuilder();
+                    tpl.append("MockedStatic<").append(className).append("> mockStatic").append(mockName)
+                            .append(" = mockStatic(").append(className).append(".class);");
                     for (Statement method : methods) {
                         J.MethodDeclaration m = (J.MethodDeclaration) method;
-                        mockStatements.append("mockStatic").append(mockName).append(".when(() -> ").append(className).append(".").append(m.getSimpleName());
-                        appendMethod(mockStatements, m);
+                        tpl.append("mockStatic").append(mockName).append(".when(() -> ").append(className).append(".").append(m.getSimpleName());
+                        appendMethod(tpl, m);
                     }
+
+                    md = JavaTemplate.builder(tpl.toString())
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
+                            .imports("org.mockito.MockedStatic")
+                            .staticImports("org.mockito.Mockito.*")
+                            .contextSensitive()
+                            .build()
+                            .apply(updateCursor(md), statement.getCoordinates().after());
                     maybeAddImport("org.mockito.MockedStatic");
-                    shouldClose.add("mockStatic" + mockName);
+                    closeVariables.add("mockStatic" + mockName);
                 }
 
                 // Instance
@@ -172,60 +182,70 @@ public class JMockitMockUpToMockito extends Recipe {
                         .filter(s -> !staticMethods.contains(((J.MethodDeclaration) s).getSimpleName()))
                         .collect(toList());
                 if (!methods.isEmpty()) {
-                    mockStatements.append("MockedConstruction<").append(className).append("> mockObj").append(mockName).append(" = mockConstruction(").append(className).append(".class, (mock, context) -> {");
+                    StringBuilder tpl = new StringBuilder();
+                    tpl.append("MockedConstruction<").append(className).append("> mockObj").append(mockName)
+                            .append(" = mockConstruction(").append(className).append(".class, (mock, context) -> {");
                     for (Statement method : methods) {
                         J.MethodDeclaration m = (J.MethodDeclaration) method;
-                        mockStatements.append("when(mock.").append(m.getSimpleName());
-                        appendMethod(mockStatements, m);
+                        tpl.append("when(mock.").append(m.getSimpleName());
+                        appendMethod(tpl, m);
                     }
-                    mockStatements.append("});");
+                    tpl.append("});");
 
-                    maybeAddImport("org.mockito.MockedConstruction", null, false);
-                    shouldClose.add("mockObj" + mockName);
+                    md = JavaTemplate.builder(tpl.toString())
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
+                            .imports("org.mockito.MockedConstruction")
+                            .staticImports("org.mockito.Mockito.*")
+                            .contextSensitive()
+                            .build()
+                            .apply(updateCursor(md), statement.getCoordinates().after());
+                    maybeAddImport("org.mockito.MockedConstruction");
+                    closeVariables.add("mockObj" + mockName);
                 }
 
-                StringBuilder otherStatements = new StringBuilder();
-                newClass.getBody()
-                        .getStatements()
-                        .stream()
-                        .filter(s -> {
-                            if (s instanceof J.MethodDeclaration) {
-                                return ((J.MethodDeclaration) s).getLeadingAnnotations().stream()
-                                        .noneMatch(o -> TypeUtils.isOfClassType(o.getType(), "mockit.Mock"));
-                            }
-                            return true;
-                        })
-                        .forEach(s -> {
-                            otherStatements.append(s.printTrimmed());
-                            otherStatements.append(";");
-                        });
+                // Only discard @Mock method declarations
+                aggregateOtherStatements.addAll(
+                        newClass
+                                .getBody()
+                                .getStatements()
+                                .stream()
+                                .filter(s -> {
+                                    if (s instanceof J.MethodDeclaration) {
+                                        return ((J.MethodDeclaration) s).getLeadingAnnotations().stream()
+                                                .noneMatch(o -> TypeUtils.isOfClassType(o.getType(), "mockit.Mock"));
+                                    }
+                                    return true;
+                                })
+                                .collect(toList())
+                );
 
-                JavaTemplate tpl = JavaTemplate
-                        .builder(otherStatements.toString() + mockStatements)
+                maybeAddImport("org.mockito.Mockito", "*", false);
+                maybeRemoveImport("mockit.Mock");
+                maybeRemoveImport("mockit.MockUp");
+            }
+
+            // Add other statements at the front
+            List<Statement> newBodyStatements = md.getBody()
+                    .getStatements()
+                    .stream()
+                    .filter(s -> !excludeMockUp.contains(s))
+                    .collect(toList());
+            newBodyStatements.addAll(0, aggregateOtherStatements);
+            md = md.withBody(md.getBody().withStatements(newBodyStatements));
+
+            // Add close statement at the end
+            for (String v : closeVariables) {
+                md = JavaTemplate.builder(v + ".close();")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
                         .imports("org.mockito.MockedStatic", "org.mockito.MockedConstruction")
                         .staticImports("org.mockito.Mockito.*")
                         .contextSensitive()
-                        .build();
-                md = maybeAutoFormat(md, tpl.apply(updateCursor(md), statement.getCoordinates().replace()), ctx);
+                        .build()
+                        .apply(updateCursor(md), md.getBody().getCoordinates().lastStatement());
             }
 
-            for (String o : shouldClose) {
-                JavaTemplate tpl = JavaTemplate
-                        .builder(o + ".close();")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
-                        .imports("org.mockito.MockedStatic", "org.mockito.MockedConstruction")
-                        .staticImports("org.mockito.Mockito.*")
-                        .contextSensitive()
-                        .build();
-                md = maybeAutoFormat(md, tpl.apply(updateCursor(md), md.getBody().getCoordinates().lastStatement()), ctx);
-            }
-
-            maybeAddImport("org.mockito.Mockito", "*", false);
-            maybeRemoveImport("mockit.Mock");
-            maybeRemoveImport("mockit.MockUp");
-
-            return md;
+            doAfterVisit(new FindMissingTypes().getVisitor());
+            return maybeAutoFormat(methodDeclaration, md, ctx);
         }
     }
 }
