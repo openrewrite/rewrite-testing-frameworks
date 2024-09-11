@@ -210,6 +210,14 @@ public class JMockitMockUpToMockitoTest implements RewriteTest {
                                                 return msg;
                                             }
                                         };
+        
+                                        // Should ignore the newClass statement
+                                        new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                System.out.println("run");
+                                            }
+                                        };
                                         assertEquals("newMsg", new MyClazz().getMsg());
                                     }
                                 
@@ -230,12 +238,20 @@ public class JMockitMockUpToMockitoTest implements RewriteTest {
                                 public class MockUpTest {
                                     @Test
                                     public void test() {
-                                        String msg = "newMsg";
+                                        final String msg = "newMsg";
                                         MockedConstruction<MockUpTest.MyClazz> mockObjMockUpTest_MyClazz = mockConstruction(MockUpTest.MyClazz.class, (mock, context) -> {
                                             when(mock.getMsg()).thenAnswer(invocation -> {
                                                 return msg;
                                             });
                                         });
+        
+                                        // Should ignore the newClass statement
+                                        new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                System.out.println("run");
+                                            }
+                                        };
                                         assertEquals("newMsg", new MyClazz().getMsg());
                                         mockObjMockUpTest_MyClazz.close();
                                     }
@@ -250,4 +266,5 @@ public class JMockitMockUpToMockitoTest implements RewriteTest {
                 )
         );
     }
+
 }

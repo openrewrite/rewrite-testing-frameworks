@@ -122,7 +122,8 @@ public class JMockitMockUpToMockito extends Recipe {
                 }
 
                 J.NewClass newClass = (J.NewClass) statement;
-                if (newClass.getClazz() == null || newClass.getBody() == null) {
+                if (newClass.getClazz() == null || newClass.getBody() == null ||
+                        !TypeUtils.isOfClassType(newClass.getClazz().getType(), "mockit.MockUp")) {
                     continue;
                 }
 
