@@ -200,7 +200,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
                 JavaTemplate tpl = JavaTemplate
                         .builder(otherStatements.toString() + mockStatements)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5.12"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
                         .imports("org.mockito.MockedStatic", "org.mockito.MockedConstruction")
                         .staticImports("org.mockito.Mockito.*")
                         .contextSensitive()
@@ -211,7 +211,7 @@ public class JMockitMockUpToMockito extends Recipe {
             for (String o : shouldClose) {
                 JavaTemplate tpl = JavaTemplate
                         .builder(o + ".close();")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5.12"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
                         .imports("org.mockito.MockedStatic", "org.mockito.MockedConstruction")
                         .staticImports("org.mockito.Mockito.*")
                         .contextSensitive()
