@@ -45,11 +45,7 @@ recipeList:
       newVersion: 5.x
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: net.bytebuddy
-      artifactId: byte-buddy
-      newVersion: 1.15.x
-  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
-      groupId: net.bytebuddy
-      artifactId: byte-buddy-agent
+      artifactId: byte-buddy*
       newVersion: 1.15.x
   - org.openrewrite.maven.RemoveDuplicateDependencies
 
@@ -69,11 +65,7 @@ recipeList:
       newVersion: 4.x
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: net.bytebuddy
-      artifactId: byte-buddy
-      newVersion: 1.12.19
-  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
-      groupId: net.bytebuddy
-      artifactId: byte-buddy-agent
+      artifactId: byte-buddy*
       newVersion: 1.12.19
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -178,9 +170,5 @@ recipeList:
       newArtifactId: mockito-core
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: net.bytebuddy
-      artifactId: byte-buddy
-      newVersion: 1.11.13
-  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
-      groupId: net.bytebuddy
-      artifactId: byte-buddy-agent
+      artifactId: byte-buddy*
       newVersion: 1.11.13
