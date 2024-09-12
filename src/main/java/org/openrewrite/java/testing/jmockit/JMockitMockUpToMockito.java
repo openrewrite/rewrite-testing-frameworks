@@ -23,7 +23,6 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.search.FindMissingTypes;
 import org.openrewrite.java.search.UsesType;
 import static org.openrewrite.java.testing.jmockit.JMockitBlockType.MockUp;
 import static org.openrewrite.java.tree.Flag.Static;

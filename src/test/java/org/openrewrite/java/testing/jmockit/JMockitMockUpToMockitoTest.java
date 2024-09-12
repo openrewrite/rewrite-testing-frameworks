@@ -34,73 +34,73 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     void mockUpStaticMethodTest() {
         //language=java
         rewriteRun(
-                java(
-                        """
-                                import mockit.Mock;
-                                import mockit.MockUp;
-                                import static org.junit.Assert.assertEquals;
-                                
-                                class MockUpTest {
-                                    void test() {
-                                        new MockUp<MyClazz>() {
-                                
-                                            @Mock
-                                            public int staticMethod() {
-                                                return 1024;
-                                            }
-                                
-                                            @Mock
-                                            public int staticMethod(int v) {
-                                                return 128;
-                                            }
-                                        };
-                                        assertEquals(1024, MyClazz.staticMethod());
-                                        assertEquals(128, MyClazz.staticMethod(0));
-                                    }
-                                
-                                    public static class MyClazz {
-                                        public static int staticMethod() {
-                                            return 0;
-                                        }
-                                
-                                        public static int staticMethod(int v) {
-                                            return 1;
-                                        }
-                                    }
-                                }
-                                """,
-                        """
-                                import org.mockito.MockedStatic;
-                                
-                                import static org.junit.Assert.assertEquals;
-                                import static org.mockito.Mockito.*;
-                                
-                                class MockUpTest {
-                                    void test() {
-                                        MockedStatic<MockUpTest.MyClazz> mockStaticMockUpTest_MyClazz = mockStatic(MockUpTest.MyClazz.class);
-                                        mockStaticMockUpTest_MyClazz.when(() -> MockUpTest.MyClazz.staticMethod()).thenAnswer(invocation -> {
-                                            return 1024;
-                                        });
-                                        mockStaticMockUpTest_MyClazz.when(() -> MockUpTest.MyClazz.staticMethod(anyInt())).thenAnswer(invocation -> {
-                                            return 128;
-                                        });
-                                        assertEquals(1024, MyClazz.staticMethod());
-                                        assertEquals(128, MyClazz.staticMethod(0));
-                                        mockStaticMockUpTest_MyClazz.close();
-                                    }
-                                
-                                    public static class MyClazz {
-                                        public static int staticMethod() {
-                                            return 0;
-                                        }
-                                
-                                        public static int staticMethod(int v) {
-                                            return 1;
-                                        }
-                                    }
-                                }
-                                """
-                )
+          java(
+            """
+              import mockit.Mock;
+              import mockit.MockUp;
+              import static org.junit.Assert.assertEquals;
+              
+              class MockUpTest {
+                  void test() {
+                      new MockUp<MyClazz>() {
+              
+                          @Mock
+                          public int staticMethod() {
+                              return 1024;
+                          }
+              
+                          @Mock
+                          public int staticMethod(int v) {
+                              return 128;
+                          }
+                      };
+                      assertEquals(1024, MyClazz.staticMethod());
+                      assertEquals(128, MyClazz.staticMethod(0));
+                  }
+              
+                  public static class MyClazz {
+                      public static int staticMethod() {
+                          return 0;
+                      }
+              
+                      public static int staticMethod(int v) {
+                          return 1;
+                      }
+                  }
+              }
+              """,
+            """
+              import org.mockito.MockedStatic;
+              
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+              
+              class MockUpTest {
+                  void test() {
+                      MockedStatic<MockUpTest.MyClazz> mockStaticMockUpTest_MyClazz = mockStatic(MockUpTest.MyClazz.class);
+                      mockStaticMockUpTest_MyClazz.when(() -> MockUpTest.MyClazz.staticMethod()).thenAnswer(invocation -> {
+                          return 1024;
+                      });
+                      mockStaticMockUpTest_MyClazz.when(() -> MockUpTest.MyClazz.staticMethod(anyInt())).thenAnswer(invocation -> {
+                          return 128;
+                      });
+                      assertEquals(1024, MyClazz.staticMethod());
+                      assertEquals(128, MyClazz.staticMethod(0));
+                      mockStaticMockUpTest_MyClazz.close();
+                  }
+              
+                  public static class MyClazz {
+                      public static int staticMethod() {
+                          return 0;
+                      }
+              
+                      public static int staticMethod(int v) {
+                          return 1;
+                      }
+                  }
+              }
+              """
+          )
         );
     }
 
@@ -108,74 +108,74 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     void mockUpInstanceMethodTest() {
         //language=java
         rewriteRun(
-                java(
-                        """
-                                import mockit.Mock;
-                                import mockit.MockUp;
-                                import static org.junit.Assert.assertEquals;
-                                
-                                class MockUpTest {
-                                    void test() {
-                                        new MockUp<MyClazz>() {
-                                
-                                            @Mock
-                                            public String getMsg() {
-                                                return "mockMsg";
-                                            }
-                                
-                                            @Mock
-                                            public String getMsg(String echo) {
-                                                return "mockEchoMsg";
-                                            }
-                                        };
-                                        assertEquals("mockMsg", new MyClazz().getMsg());
-                                        assertEquals("mockEchoMsg", new MyClazz().getMsg("echo"));
-                                    }
-                                
-                                    public static class MyClazz {
-                                        public String getMsg() {
-                                            return "msg";
-                                        }
-                                
-                                        public String getMsg(String echo) {
-                                            return echo;
-                                        }
-                                    }
-                                }
-                                """,
-                        """
-                                import org.mockito.MockedConstruction;
-                                
-                                import static org.junit.Assert.assertEquals;
-                                import static org.mockito.Mockito.*;
-                                
-                                class MockUpTest {
-                                    void test() {
-                                        MockedConstruction<MockUpTest.MyClazz> mockObjMockUpTest_MyClazz = mockConstruction(MockUpTest.MyClazz.class, (mock, context) -> {
-                                            when(mock.getMsg()).thenAnswer(invocation -> {
-                                                return "mockMsg";
-                                            });
-                                            when(mock.getMsg(nullable(String.class))).thenAnswer(invocation -> {
-                                                return "mockEchoMsg";
-                                            });
-                                        });
-                                        assertEquals("mockMsg", new MyClazz().getMsg());
-                                        assertEquals("mockEchoMsg", new MyClazz().getMsg("echo"));
-                                        mockObjMockUpTest_MyClazz.close();
-                                    }
-                                
-                                    public static class MyClazz {
-                                        public String getMsg() {
-                                            return "msg";
-                                        }
-                                
-                                        public String getMsg(String echo) {
-                                            return echo;
-                                        }
-                                    }
-                                }
-                                """
-                )
+          java(
+            """
+              import mockit.Mock;
+              import mockit.MockUp;
+              import static org.junit.Assert.assertEquals;
+              
+              class MockUpTest {
+                  void test() {
+                      new MockUp<MyClazz>() {
+              
+                          @Mock
+                          public String getMsg() {
+                              return "mockMsg";
+                          }
+              
+                          @Mock
+                          public String getMsg(String echo) {
+                              return "mockEchoMsg";
+                          }
+                      };
+                      assertEquals("mockMsg", new MyClazz().getMsg());
+                      assertEquals("mockEchoMsg", new MyClazz().getMsg("echo"));
+                  }
+              
+                  public static class MyClazz {
+                      public String getMsg() {
+                          return "msg";
+                      }
+              
+                      public String getMsg(String echo) {
+                          return echo;
+                      }
+                  }
+              }
+              """,
+            """
+              import org.mockito.MockedConstruction;
+              
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+              
+              class MockUpTest {
+                  void test() {
+                      MockedConstruction<MockUpTest.MyClazz> mockObjMockUpTest_MyClazz = mockConstruction(MockUpTest.MyClazz.class, (mock, context) -> {
+                          when(mock.getMsg()).thenAnswer(invocation -> {
+                              return "mockMsg";
+                          });
+                          when(mock.getMsg(nullable(String.class))).thenAnswer(invocation -> {
+                              return "mockEchoMsg";
+                          });
+                      });
+                      assertEquals("mockMsg", new MyClazz().getMsg());
+                      assertEquals("mockEchoMsg", new MyClazz().getMsg("echo"));
+                      mockObjMockUpTest_MyClazz.close();
+                  }
+              
+                  public static class MyClazz {
+                      public String getMsg() {
+                          return "msg";
+                      }
+              
+                      public String getMsg(String echo) {
+                          return echo;
+                      }
+                  }
+              }
+              """
+          )
         );
     }
 
@@ -183,78 +183,78 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     void mockUpInnerStatementTest() {
         //language=java
         rewriteRun(
-                java(
-                        """
-                                import mockit.Mock;
-                                import mockit.MockUp;
-                                import org.junit.Test;
-                                import static org.junit.Assert.assertEquals;
-                                
-                                public class MockUpTest {
-                                    @Test
-                                    public void test() {
-                                        new MockUp<MyClazz>() {
-                                            final String msg = "newMsg";
-                                
-                                            @Mock
-                                            public String getMsg() {
-                                                return msg;
-                                            }
-                                        };
-                                
-                                        // Should ignore the newClass statement
-                                        new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                System.out.println("run");
-                                            }
-                                        };
-                                        assertEquals("newMsg", new MyClazz().getMsg());
-                                    }
-                                
-                                    public static class MyClazz {
-                                        public String getMsg() {
-                                            return "msg";
-                                        }
-                                    }
-                                }
-                                """,
-                        """
-                                import org.junit.Test;
-                                import org.mockito.MockedConstruction;
-                                
-                                import static org.junit.Assert.assertEquals;
-                                import static org.mockito.Mockito.*;
-                                
-                                public class MockUpTest {
-                                    @Test
-                                    public void test() {
-                                        String msg = "newMsg";
-                                        MockedConstruction<MockUpTest.MyClazz> mockObjMockUpTest_MyClazz = mockConstruction(MockUpTest.MyClazz.class, (mock, context) -> {
-                                            when(mock.getMsg()).thenAnswer(invocation -> {
-                                                return msg;
-                                            });
-                                        });
-                                
-                                        // Should ignore the newClass statement
-                                        new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                System.out.println("run");
-                                            }
-                                        };
-                                        assertEquals("newMsg", new MyClazz().getMsg());
-                                        mockObjMockUpTest_MyClazz.close();
-                                    }
-                                
-                                    public static class MyClazz {
-                                        public String getMsg() {
-                                            return "msg";
-                                        }
-                                    }
-                                }
-                                """
-                )
+          java(
+            """
+              import mockit.Mock;
+              import mockit.MockUp;
+              import org.junit.Test;
+              import static org.junit.Assert.assertEquals;
+              
+              public class MockUpTest {
+                  @Test
+                  public void test() {
+                      new MockUp<MyClazz>() {
+                          final String msg = "newMsg";
+              
+                          @Mock
+                          public String getMsg() {
+                              return msg;
+                          }
+                      };
+              
+                      // Should ignore the newClass statement
+                      new Runnable() {
+                          @Override
+                          public void run() {
+                              System.out.println("run");
+                          }
+                      };
+                      assertEquals("newMsg", new MyClazz().getMsg());
+                  }
+              
+                  public static class MyClazz {
+                      public String getMsg() {
+                          return "msg";
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.mockito.MockedConstruction;
+              
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+              
+              public class MockUpTest {
+                  @Test
+                  public void test() {
+                      String msg = "newMsg";
+                      MockedConstruction<MockUpTest.MyClazz> mockObjMockUpTest_MyClazz = mockConstruction(MockUpTest.MyClazz.class, (mock, context) -> {
+                          when(mock.getMsg()).thenAnswer(invocation -> {
+                              return msg;
+                          });
+                      });
+              
+                      // Should ignore the newClass statement
+                      new Runnable() {
+                          @Override
+                          public void run() {
+                              System.out.println("run");
+                          }
+                      };
+                      assertEquals("newMsg", new MyClazz().getMsg());
+                      mockObjMockUpTest_MyClazz.close();
+                  }
+              
+                  public static class MyClazz {
+                      public String getMsg() {
+                          return "msg";
+                      }
+                  }
+              }
+              """
+          )
         );
     }
 
@@ -262,117 +262,117 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     void mockUpMixTest() {
         //language=java
         rewriteRun(
-                java(
-                        """
-                                import mockit.Mock;
-                                import mockit.MockUp;
-                                import org.junit.Test;
-                                import static org.junit.Assert.assertEquals;
-                                
-                                public class MockUpTest {
-                                    @Test
-                                    public void test() {
-                                        new MockUp<MyClazz>() {
-                                            final String msg = "newMsg";
-                                
-                                            @Mock
-                                            public String getMsg() {
-                                                return msg;
-                                            }
-                                
-                                            @Mock
-                                            public int staticMethod() {
-                                                return 1024;
-                                            }
-                                
-                                            @Mock
-                                            public int staticMethod(int v) {
-                                                return 128;
-                                            }
-                                        };
-                                
-                                        // Should ignore the newClass statement
-                                        new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                System.out.println("run");
-                                            }
-                                        };
-                                        assertEquals("newMsg", new MyClazz().getMsg());
-                                        assertEquals(1024, MyClazz.staticMethod());
-                                        assertEquals(128, MyClazz.staticMethod(0));
-                                    }
-                                
-                                    public static class MyClazz {
-                                        public String getMsg() {
-                                            return "msg";
-                                        }
-                                
-                                        public static int staticMethod() {
-                                            return 0;
-                                        }
-                                
-                                        public static int staticMethod(int v) {
-                                            return 1;
-                                        }
-                                    }
-                                }
-                                """,
-                        """
-                                import org.junit.Test;
-                                import org.mockito.MockedConstruction;
-                                import org.mockito.MockedStatic;
-                                
-                                import static org.junit.Assert.assertEquals;
-                                import static org.mockito.Mockito.*;
-                                
-                                public class MockUpTest {
-                                    @Test
-                                    public void test() {
-                                        final String msg = "newMsg";
-                                        MockedConstruction<MockUpTest.MyClazz> mockObjMockUpTest_MyClazz = mockConstruction(MockUpTest.MyClazz.class, (mock, context) -> {
-                                            when(mock.getMsg()).thenAnswer(invocation -> {
-                                                return msg;
-                                            });
-                                        });
-                                        MockedStatic<MockUpTest.MyClazz> mockStaticMockUpTest_MyClazz = mockStatic(MockUpTest.MyClazz.class);
-                                        mockStaticMockUpTest_MyClazz.when(() -> MockUpTest.MyClazz.staticMethod()).thenAnswer(invocation -> {
-                                            return 1024;
-                                        });
-                                        mockStaticMockUpTest_MyClazz.when(() -> MockUpTest.MyClazz.staticMethod(anyInt())).thenAnswer(invocation -> {
-                                            return 128;
-                                        });
-                                
-                                        // Should ignore the newClass statement
-                                        new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                System.out.println("run");
-                                            }
-                                        };
-                                        assertEquals("newMsg", new MyClazz().getMsg());
-                                        assertEquals(1024, MyClazz.staticMethod());
-                                        assertEquals(128, MyClazz.staticMethod(0));
-                                        mockStaticMockUpTest_MyClazz.close();
-                                        mockObjMockUpTest_MyClazz.close();
-                                    }
-                                
-                                    public static class MyClazz {
-                                        public String getMsg() {
-                                            return "msg";
-                                        }
-                                
-                                        public static int staticMethod() {
-                                            return 0;
-                                        }
-                                
-                                        public static int staticMethod(int v) {
-                                            return 1;
-                                        }
-                                    }
-                                }
-                                """
-                )
+          java(
+            """
+              import mockit.Mock;
+              import mockit.MockUp;
+              import org.junit.Test;
+              import static org.junit.Assert.assertEquals;
+              
+              public class MockUpTest {
+                  @Test
+                  public void test() {
+                      new MockUp<MyClazz>() {
+                          final String msg = "newMsg";
+              
+                          @Mock
+                          public String getMsg() {
+                              return msg;
+                          }
+              
+                          @Mock
+                          public int staticMethod() {
+                              return 1024;
+                          }
+              
+                          @Mock
+                          public int staticMethod(int v) {
+                              return 128;
+                          }
+                      };
+              
+                      // Should ignore the newClass statement
+                      new Runnable() {
+                          @Override
+                          public void run() {
+                              System.out.println("run");
+                          }
+                      };
+                      assertEquals("newMsg", new MyClazz().getMsg());
+                      assertEquals(1024, MyClazz.staticMethod());
+                      assertEquals(128, MyClazz.staticMethod(0));
+                  }
+              
+                  public static class MyClazz {
+                      public String getMsg() {
+                          return "msg";
+                      }
+              
+                      public static int staticMethod() {
+                          return 0;
+                      }
+              
+                      public static int staticMethod(int v) {
+                          return 1;
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.mockito.MockedConstruction;
+              import org.mockito.MockedStatic;
+              
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+              
+              public class MockUpTest {
+                  @Test
+                  public void test() {
+                      final String msg = "newMsg";
+                      MockedConstruction<MockUpTest.MyClazz> mockObjMockUpTest_MyClazz = mockConstruction(MockUpTest.MyClazz.class, (mock, context) -> {
+                          when(mock.getMsg()).thenAnswer(invocation -> {
+                              return msg;
+                          });
+                      });
+                      MockedStatic<MockUpTest.MyClazz> mockStaticMockUpTest_MyClazz = mockStatic(MockUpTest.MyClazz.class);
+                      mockStaticMockUpTest_MyClazz.when(() -> MockUpTest.MyClazz.staticMethod()).thenAnswer(invocation -> {
+                          return 1024;
+                      });
+                      mockStaticMockUpTest_MyClazz.when(() -> MockUpTest.MyClazz.staticMethod(anyInt())).thenAnswer(invocation -> {
+                          return 128;
+                      });
+              
+                      // Should ignore the newClass statement
+                      new Runnable() {
+                          @Override
+                          public void run() {
+                              System.out.println("run");
+                          }
+                      };
+                      assertEquals("newMsg", new MyClazz().getMsg());
+                      assertEquals(1024, MyClazz.staticMethod());
+                      assertEquals(128, MyClazz.staticMethod(0));
+                      mockStaticMockUpTest_MyClazz.close();
+                      mockObjMockUpTest_MyClazz.close();
+                  }
+              
+                  public static class MyClazz {
+                      public String getMsg() {
+                          return "msg";
+                      }
+              
+                      public static int staticMethod() {
+                          return 0;
+                      }
+              
+                      public static int staticMethod(int v) {
+                          return 1;
+                      }
+                  }
+              }
+              """
+          )
         );
     }
 
