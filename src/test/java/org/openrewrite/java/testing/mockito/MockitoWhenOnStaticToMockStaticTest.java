@@ -24,7 +24,7 @@ import org.openrewrite.test.SourceSpec;
 
 import static org.openrewrite.java.Assertions.java;
 
-public class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
+class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {

@@ -56,13 +56,13 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         List<Statement> statementsAfterWhen = new ArrayList<>();
                         for (Statement stmt : m.getBody().getStatements()) {
                             if (stmt instanceof J.MethodInvocation &&
-                                MOCKITO_WHEN.matches(((J.MethodInvocation)stmt).getSelect())) {
-                                J.MethodInvocation when = (J.MethodInvocation)((J.MethodInvocation) stmt).getSelect();
-                                if (when.getArguments().get(0) instanceof J.MethodInvocation && ((J.MethodInvocation)when.getArguments().get(0)).getMethodType().getFlags().contains(Flag.Static)){
+                                MOCKITO_WHEN.matches(((J.MethodInvocation) stmt).getSelect())) {
+                                J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) stmt).getSelect();
+                                if (when.getArguments().get(0) instanceof J.MethodInvocation && ((J.MethodInvocation) when.getArguments().get(0)).getMethodType().getFlags().contains(Flag.Static)) {
                                     JavaType.FullyQualified arg_fq = TypeUtils.asFullyQualified(when.getArguments().get(0).getType());
                                     String template = String.format("try(MockedStatic<%s> mock%s = mockStatic(%s.class)){\n" +
                                                                     "mock%s.when(%s::%s).thenReturn(%s);\n" +
-                                                                    "}", arg_fq.getClassName(), arg_fq.getClassName(), arg_fq.getClassName(), arg_fq.getClassName(), arg_fq.getClassName(), ((J.MethodInvocation)when.getArguments().get(0)).getSimpleName(), ((J.MethodInvocation) stmt).getArguments().get(0));
+                                                                    "}", arg_fq.getClassName(), arg_fq.getClassName(), arg_fq.getClassName(), arg_fq.getClassName(), arg_fq.getClassName(), ((J.MethodInvocation) when.getArguments().get(0)).getSimpleName(), ((J.MethodInvocation) stmt).getArguments().get(0));
                                     m = JavaTemplate.builder(template)
                                             .contextSensitive()
                                             .javaParser(JavaParser.fromJavaVersion())
