@@ -122,4 +122,61 @@ class MockitoInlineToCoreTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void shouldUpdateByteBuddy() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example</groupId>
+                <artifactId>demo</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>5.13.0</version>
+                        <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                        <groupId>net.bytebuddy</groupId>
+                        <artifactId>byte-buddy</artifactId>
+                        <version>1.12.19</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+              </project>
+              """,
+            sourceSpecs -> sourceSpecs.after(after -> {
+                String mockitoVersion = Pattern.compile("<version>(5.+)</version>").matcher(after).results().reduce((a, b) -> b).orElseThrow().group(1);
+                String byteBuddyVersion = Pattern.compile("<version>(1.15.+)</version>").matcher(after).results().reduce((a, b) -> b).orElseThrow().group(1);
+                return """
+                  <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>demo</artifactId>
+                    <version>0.0.1-SNAPSHOT</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>%s</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>net.bytebuddy</groupId>
+                            <artifactId>byte-buddy</artifactId>
+                            <version>%s</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                  </project>
+                  """.formatted(mockitoVersion, byteBuddyVersion);
+            })
+          )
+        );
+    }
 }
