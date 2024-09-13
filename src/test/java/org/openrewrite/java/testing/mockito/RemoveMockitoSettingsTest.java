@@ -32,7 +32,7 @@ class RemoveMockitoSettingsTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "mockito-core", "mockito-junit-jupiter", "junit-jupiter-api"))
-          .recipeFromResource("/META-INF/rewrite/mockito.yml", "org.openrewrite.java.testing.mockito.MockitoBestPractices");
+          .recipeFromResources("org.openrewrite.java.testing.mockito.MockitoBestPractices");
     }
 
     @Test
