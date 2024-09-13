@@ -78,6 +78,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             """,
             """
             import a.b.A;
+            import org.mockito.MockedStatic;
 
             import static org.junit.Assert.assertEquals;
             import static org.mockito.Mockito.*;
@@ -87,8 +88,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                 private A aMock = mock(A.class);
             
                 void test() {
-                    try (MockedStatic<A> mockA = mockStatic(A.class)) {
-                        mockA.when(A::getA).thenReturn(aMock);
+                    try (MockedStatic<a.b.A> mockA = mockStatic(a.b.A.class)) {
+                        mockA.when(A.getA()).thenReturn(aMock);
                         assertEquals(A.getA(), aMock);
                     }
                 }

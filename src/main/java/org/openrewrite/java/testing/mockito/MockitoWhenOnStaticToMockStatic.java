@@ -36,12 +36,12 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "";
+        return "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic";
     }
 
     @Override
     public String getDescription() {
-        return ".";
+        return "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic as Mockito4 no longer allows this.";
     }
 
     @Override
@@ -60,16 +60,19 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                 J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) stmt).getSelect();
                                 if (when.getArguments().get(0) instanceof J.MethodInvocation && ((J.MethodInvocation) when.getArguments().get(0)).getMethodType().getFlags().contains(Flag.Static)) {
                                     JavaType.FullyQualified arg_fq = TypeUtils.asFullyQualified(when.getArguments().get(0).getType());
-                                    String template = String.format("try(MockedStatic<%s> mock%s = mockStatic(%s.class)){\n" +
-                                                                    "mock%s.when(%s::%s).thenReturn(%s);\n" +
-                                                                    "}", arg_fq.getClassName(), arg_fq.getClassName(), arg_fq.getClassName(), arg_fq.getClassName(), arg_fq.getClassName(), ((J.MethodInvocation) when.getArguments().get(0)).getSimpleName(), ((J.MethodInvocation) stmt).getArguments().get(0));
+                                    J.Identifier ident = (J.Identifier) ((J.MethodInvocation)when.getArguments().get(0)).getSelect();
+                                    String template = String.format("try(MockedStatic<#{}> mock%s = mockStatic(#{}.class)){\n" +
+                                                                    "    mock%s.when(#{any()}).thenReturn(#{any()});\n" +
+                                                                    "}", arg_fq.getClassName(), arg_fq.getClassName());
                                     m = JavaTemplate.builder(template)
                                             .contextSensitive()
                                             .javaParser(JavaParser.fromJavaVersion())
+                                            .imports("org.mockito.MockedStatic")
                                             .staticImports("org.mockito.Mockito.mockStatic")
                                             .build()
-                                            .apply(getCursor(), stmt.getCoordinates().replace());
+                                            .apply(getCursor(), stmt.getCoordinates().replace(), ident.getType(), ident.getType(), when.getArguments().get(0), ((J.MethodInvocation) stmt).getArguments().get(0));
                                     rewrittenWhen = true;
+                                    maybeAddImport("org.mockito.MockedStatic", false);
                                     maybeAddImport("org.mockito.Mockito", "mockStatic");
                                     continue;
                                 }

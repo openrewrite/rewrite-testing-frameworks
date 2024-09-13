@@ -67,6 +67,7 @@ recipeList:
       groupId: net.bytebuddy
       artifactId: byte-buddy*
       newVersion: 1.12.19
+  - org.openrewrite.java.testing.mockito.MockitoWhenOnStaticToMockStatic
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to3Migration
