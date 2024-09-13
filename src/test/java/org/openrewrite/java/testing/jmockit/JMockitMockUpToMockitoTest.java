@@ -176,7 +176,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     void mockUpInnerStatementTest() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
             import mockit.Mock;
             import mockit.MockUp;
             
