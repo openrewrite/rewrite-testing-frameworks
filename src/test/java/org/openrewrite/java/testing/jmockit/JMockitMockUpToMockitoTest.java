@@ -252,7 +252,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     void mockUpVoidTest() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
               import mockit.Mock;
               import mockit.MockUp;
               import static org.junit.Assert.assertEquals;
