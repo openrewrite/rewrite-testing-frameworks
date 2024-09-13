@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.jmockit;
 
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -25,15 +26,19 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import static org.openrewrite.java.testing.jmockit.JMockitBlockType.MockUp;
+import static org.openrewrite.java.tree.Flag.Private;
 import static org.openrewrite.java.tree.Flag.Static;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class JMockitMockUpToMockito extends Recipe {
@@ -53,57 +58,128 @@ public class JMockitMockUpToMockito extends Recipe {
     }
 
     private static class JMockitMockUpToMockitoVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private void appendMethod(StringBuilder sb, J.MethodDeclaration m) {
-            sb.append("(");
-            if (!m.getParameters().isEmpty()) {
-                for (int i = 0; i < m.getParameters().size(); i++) {
-                    Statement s = m.getParameters().get(i);
-                    if (s instanceof J.VariableDeclarations) {
-                        J.VariableDeclarations param = (J.VariableDeclarations) s;
-                        if (param.getType() instanceof JavaType.Primitive) {
-                            switch (param.getType().toString()) {
-                                case "int":
-                                    sb.append("anyInt()");
-                                    break;
-                                case "long":
-                                    sb.append("anyLong()");
-                                    break;
-                                case "double":
-                                    sb.append("anyDouble()");
-                                    break;
-                                case "float":
-                                    sb.append("anyFloat()");
-                                    break;
-                                case "short":
-                                    sb.append("anyShort()");
-                                    break;
-                                case "byte":
-                                    sb.append("anyByte()");
-                                    break;
-                                case "char":
-                                    sb.append("anyChar()");
-                                    break;
-                                case "boolean":
-                                    sb.append("anyBoolean()");
-                                    break;
-                            }
-                        } else {
-                            String paramType = param.getTypeAsFullyQualified().getClassName();
-                            sb.append("nullable(").append(paramType).append(".class").append(")");
-                        }
-                    }
-                    if (i < m.getParameters().size() - 1) {
-                        sb.append(", ");
-                    }
+        private String getMatcher(JavaType s) {
+            if (s instanceof JavaType.Primitive) {
+                switch (s.toString()) {
+                    case "int":
+                        return "anyInt()";
+                    case "long":
+                        return "anyLong()";
+                    case "double":
+                        return "anyDouble()";
+                    case "float":
+                        return "anyFloat()";
+                    case "short":
+                        return "anyShort()";
+                    case "byte":
+                        return "anyByte()";
+                    case "char":
+                        return "anyChar()";
+                    case "boolean":
+                        return "anyBoolean()";
                 }
+            } else if (s instanceof JavaType.Array) {
+                String elem = TypeUtils.asArray(s).getElemType().toString();
+                return "nullable(" + elem + "[].class)";
             }
-            sb.append(")").append(")");
-            sb.append(".thenAnswer(invocation -> {");
-            for (Statement s : m.getBody().getStatements()) {
-                sb.append(s.printTrimmed());
+            return "nullable(" + TypeUtils.asFullyQualified(s).getClassName() + ".class)";
+        }
+
+        private void appendAnswer(StringBuilder sb, List<Statement> statements) {
+            boolean hasReturn = false;
+            for (Statement s : statements) {
+                hasReturn = hasReturn || s instanceof J.Return;
+                sb.append(s.print());
                 sb.append(";");
             }
-            sb.append("});");
+            if (!hasReturn) {
+                sb.append("return null;");
+            }
+        }
+
+        private void appendDoAnswer(StringBuilder sb, J.MethodDeclaration m, String objName) {
+            sb.append("doAnswer(invocation -> {");
+            appendAnswer(sb, m.getBody().getStatements());
+            sb.append("}).when(").append(objName).append(").").append(m.getSimpleName()).append("(");
+
+            sb.append(m.getParameters()
+                    .stream()
+                    .filter(p -> p instanceof J.VariableDeclarations)
+                    .map(o -> getMatcher(((J.VariableDeclarations) o).getType()))
+                    .collect(Collectors.joining(", ")));
+            sb.append(");");
+        }
+
+        private void appendCallRealMethod(StringBuilder sb, JavaType.Method m) {
+            sb.append("(");
+            for (int i = 0; i < m.getParameterTypes().size(); i++) {
+                JavaType s = m.getParameterTypes().get(i);
+                sb.append(getMatcher(s));
+                if (i < m.getParameterTypes().size() - 1) {
+                    sb.append(", ");
+                }
+            }
+            sb.append(")).thenCallRealMethod();");
+        }
+
+        private String addMockStaticMethods(JavaType.Class clazz, String className, String mockName, Map<J.MethodDeclaration, JavaType.Method> mockedMethods) {
+            StringBuilder tpl = new StringBuilder();
+
+            // Handle mocked static mockedMethods
+            tpl.append("MockedStatic<").append(className).append("> mockStatic").append(mockName)
+                    .append(" = mockStatic(").append(className).append(".class);");
+            for (J.MethodDeclaration m : mockedMethods.keySet()) {
+                tpl.append("mockStatic").append(mockName);
+                tpl.append(".when(() -> ").append(className).append(".").append(m.getSimpleName()).append("(");
+                tpl.append(m.getParameters()
+                        .stream()
+                        .filter(p -> p instanceof J.VariableDeclarations)
+                        .map(o -> getMatcher(((J.VariableDeclarations) o).getType()))
+                        .collect(Collectors.joining(", ")));
+                tpl.append(")).thenAnswer(invocation -> {");
+                appendAnswer(tpl, m.getBody().getStatements());
+                tpl.append("});");
+            }
+
+            // Call real method for non private, static methods
+            clazz.getMethods()
+                    .stream()
+                    .filter(m -> !m.isConstructor())
+                    .filter(m -> !m.getFlags().contains(Private))
+                    .filter(m -> m.getFlags().contains(Static))
+                    .filter(m -> !mockedMethods.containsValue(m))
+                    .forEach(m -> {
+                        tpl.append("mockStatic").append(mockName).append(".when(() -> ")
+                                .append(className).append(".").append(m.getName());
+                        appendCallRealMethod(tpl, m);
+                        tpl.append(");");
+                    });
+
+            return tpl.toString();
+        }
+
+        private String addMockInstanceMethods(JavaType.Class clazz, String className, String mockName, Map<J.MethodDeclaration, JavaType.Method> mockedMethods) {
+            StringBuilder tpl = new StringBuilder();
+            tpl.append("MockedConstruction<").append(className).append("> mockObj").append(mockName)
+                    .append(" = mockConstruction(").append(className).append(".class, (mock, context) -> {");
+            for (J.MethodDeclaration m : mockedMethods.keySet()) {
+                appendDoAnswer(tpl, m, "mock");
+            }
+
+            // Call real method for non private, non static methods
+            clazz.getMethods()
+                    .stream()
+                    .filter(m -> !m.isConstructor())
+                    .filter(m -> !m.getFlags().contains(Static))
+                    .filter(m -> !m.getFlags().contains(Private))
+                    .filter(m -> !mockedMethods.containsValue(m))
+                    .forEach(m -> {
+                        tpl.append("when(mock.").append(m.getName());
+                        appendCallRealMethod(tpl, m);
+                    });
+
+            tpl.append("});");
+            return tpl.toString();
         }
 
         @Override
@@ -114,8 +190,6 @@ public class JMockitMockUpToMockito extends Recipe {
             }
 
             List<String> closeVariables = new ArrayList<>();
-            List<Statement> aggregateOtherStatements = new ArrayList<>();
-            List<Statement> excludeMockUp = new ArrayList<>();
             for (Statement statement : md.getBody().getStatements()) {
                 if (!(statement instanceof J.NewClass)) {
                     continue;
@@ -127,44 +201,60 @@ public class JMockitMockUpToMockito extends Recipe {
                     continue;
                 }
 
-                excludeMockUp.add(statement);
+                // Only discard @Mock method declarations
+                List<Statement> otherStatements = newClass
+                        .getBody()
+                        .getStatements()
+                        .stream()
+                        .filter(s -> {
+                            if (s instanceof J.MethodDeclaration) {
+                                return ((J.MethodDeclaration) s).getLeadingAnnotations().stream()
+                                        .noneMatch(o -> TypeUtils.isOfClassType(o.getType(), "mockit.Mock"));
+                            }
+                            return true;
+                        })
+                        .collect(toList());
+                List<Statement> bodyStatements = md.getBody().getStatements();
+                bodyStatements.addAll(bodyStatements.indexOf(statement), otherStatements);
+                md = md.withBody(md.getBody().withStatements(bodyStatements));
+
                 JavaType mockType = ((J.ParameterizedType) newClass.getClazz()).getTypeParameters().get(0).getType();
                 String className = TypeUtils.asFullyQualified(mockType).getClassName();
                 String mockName = className.replace(".", "_");
 
-                List<Statement> mockedMethods = newClass.getBody()
+                Map<J.MethodDeclaration, JavaType.Method> mockedMethods = newClass.getBody()
                         .getStatements()
                         .stream()
                         .filter(s -> s instanceof J.MethodDeclaration)
                         .filter(s -> ((J.MethodDeclaration) s).getLeadingAnnotations().stream()
                                 .anyMatch(o -> TypeUtils.isOfClassType(o.getType(), "mockit.Mock")))
-                        // Ignore void methods
-                        .filter(s -> !"void".equals(((J.MethodDeclaration) s).getReturnTypeExpression().toString()))
-                        .collect(toList());
-
-                Set<String> staticMethods = ((JavaType.Class) mockType)
-                        .getMethods()
-                        .stream()
-                        .filter(m -> m.getFlags().contains(Static))
-                        .map(JavaType.Method::getName)
-                        .collect(Collectors.toSet());
+                        .map(s -> {
+                            J.MethodDeclaration method = (J.MethodDeclaration) s;
+                            Optional<JavaType.Method> found = TypeUtils.findDeclaredMethod(
+                                    TypeUtils.asFullyQualified(mockType),
+                                    method.getSimpleName(),
+                                    method.getMethodType().getParameterTypes()
+                            );
+                            if (found.isPresent()) {
+                                JavaType.Method m = found.get();
+                                if (!m.getFlags().contains(Private)) {
+                                    return new AbstractMap.SimpleEntry<>(method, found.get());
+                                }
+                            }
+                            return null;
+                        })
+                        .filter(Objects::nonNull)
+                        .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
                 // Static
-                List<Statement> methods = mockedMethods
+                Map<J.MethodDeclaration, JavaType.Method> mockedPublicStaticMethods = mockedMethods
+                        .entrySet()
                         .stream()
-                        .filter(s -> staticMethods.contains(((J.MethodDeclaration) s).getSimpleName()))
-                        .collect(toList());
-                if (!methods.isEmpty()) {
-                    StringBuilder tpl = new StringBuilder();
-                    tpl.append("MockedStatic<").append(className).append("> mockStatic").append(mockName)
-                            .append(" = mockStatic(").append(className).append(".class);");
-                    for (Statement method : methods) {
-                        J.MethodDeclaration m = (J.MethodDeclaration) method;
-                        tpl.append("mockStatic").append(mockName).append(".when(() -> ").append(className).append(".").append(m.getSimpleName());
-                        appendMethod(tpl, m);
-                    }
-
-                    md = JavaTemplate.builder(tpl.toString())
+                        .filter(m -> m.getValue().getFlags().contains(Static))
+                        .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+                if (!mockedPublicStaticMethods.isEmpty()) {
+                    String tpl = addMockStaticMethods((JavaType.Class) mockType, className, mockName, mockedPublicStaticMethods);
+                    md = JavaTemplate.builder(tpl)
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
                             .imports("org.mockito.MockedStatic")
                             .staticImports("org.mockito.Mockito.*")
@@ -176,22 +266,14 @@ public class JMockitMockUpToMockito extends Recipe {
                 }
 
                 // Instance
-                methods = mockedMethods
+                Map<J.MethodDeclaration, JavaType.Method> mockedPublicMethods = mockedMethods
+                        .entrySet()
                         .stream()
-                        .filter(s -> !staticMethods.contains(((J.MethodDeclaration) s).getSimpleName()))
-                        .collect(toList());
-                if (!methods.isEmpty()) {
-                    StringBuilder tpl = new StringBuilder();
-                    tpl.append("MockedConstruction<").append(className).append("> mockObj").append(mockName)
-                            .append(" = mockConstruction(").append(className).append(".class, (mock, context) -> {");
-                    for (Statement method : methods) {
-                        J.MethodDeclaration m = (J.MethodDeclaration) method;
-                        tpl.append("when(mock.").append(m.getSimpleName());
-                        appendMethod(tpl, m);
-                    }
-                    tpl.append("});");
-
-                    md = JavaTemplate.builder(tpl.toString())
+                        .filter(m -> !m.getValue().getFlags().contains(Static))
+                        .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+                if (!mockedPublicMethods.isEmpty()) {
+                    String tpl = addMockInstanceMethods((JavaType.Class) mockType, className, mockName, mockedPublicMethods);
+                    md = JavaTemplate.builder(tpl)
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
                             .imports("org.mockito.MockedConstruction")
                             .staticImports("org.mockito.Mockito.*")
@@ -202,35 +284,15 @@ public class JMockitMockUpToMockito extends Recipe {
                     closeVariables.add("mockObj" + mockName);
                 }
 
-                // Only discard @Mock method declarations
-                aggregateOtherStatements.addAll(
-                        newClass
-                                .getBody()
-                                .getStatements()
-                                .stream()
-                                .filter(s -> {
-                                    if (s instanceof J.MethodDeclaration) {
-                                        return ((J.MethodDeclaration) s).getLeadingAnnotations().stream()
-                                                .noneMatch(o -> TypeUtils.isOfClassType(o.getType(), "mockit.Mock"));
-                                    }
-                                    return true;
-                                })
-                                .collect(toList())
-                );
-
                 maybeAddImport("org.mockito.Mockito", "*", false);
                 maybeRemoveImport("mockit.Mock");
                 maybeRemoveImport("mockit.MockUp");
-            }
 
-            // Add other statements at the front
-            List<Statement> newBodyStatements = md.getBody()
-                    .getStatements()
-                    .stream()
-                    .filter(s -> !excludeMockUp.contains(s))
-                    .collect(toList());
-            newBodyStatements.addAll(0, aggregateOtherStatements);
-            md = md.withBody(md.getBody().withStatements(newBodyStatements));
+                // Remove MockUp statement
+                bodyStatements = md.getBody().getStatements();
+                bodyStatements.remove(statement);
+                md = md.withBody(md.getBody().withStatements(bodyStatements));
+            }
 
             // Add close statement at the end
             for (String v : closeVariables) {
