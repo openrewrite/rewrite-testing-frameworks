@@ -724,4 +724,57 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void whenMultipleBlockInSingleVerification() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Verifications;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test() {
+                      new Verifications() {
+                          {
+                          myObject.wait();
+                          myObject.wait(anyLong, anyInt);
+                          }
+                          {
+                          myObject.wait(anyLong);
+                          times = 2;
+                          }
+                      };
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.*;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test() {
+                      verify(myObject).wait();
+                      verify(myObject).wait(anyLong(), anyInt());
+                      verify(myObject, times(2)).wait(anyLong());
+                  }
+              }
+              """
+          )
+        );
+    }
 }
