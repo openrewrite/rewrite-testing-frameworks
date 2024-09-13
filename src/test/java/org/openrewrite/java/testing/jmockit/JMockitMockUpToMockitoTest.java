@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setParserSettings;
+
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
