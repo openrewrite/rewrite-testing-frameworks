@@ -41,6 +41,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.MockUp;
+import static org.openrewrite.java.tree.Flag.Private;
+import static org.openrewrite.java.tree.Flag.Static;
+
 public class JMockitMockUpToMockito extends Recipe {
     @Override
     public String getDisplayName() {
