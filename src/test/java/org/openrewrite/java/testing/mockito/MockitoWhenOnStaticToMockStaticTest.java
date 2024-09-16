@@ -47,31 +47,31 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.builder().methodInvocations(false).identifiers(false).build()),
           java(
             """
-            package a.b;
-            
-            public class A {
-            
-                public A() {
-                }
-            
-                public static A getA() {
-                    return new A();
-                }
-            }
-            """,
+              package a.b;
+
+              public class A {
+
+                  public A() {
+                  }
+
+                  public static A getA() {
+                      return new A();
+                  }
+              }
+              """,
             SourceSpec::skip
           ),
           java(
             """
             import a.b.A;
-            
+
             import static org.junit.Assert.assertEquals;
             import static org.mockito.Mockito.*;
-            
+
             class Test {
-            
+
                 private A aMock = mock(A.class);
-            
+
                 void test() {
                     when(A.getA()).thenReturn(aMock);
                     assertEquals(A.getA(), aMock);
@@ -84,11 +84,11 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
             import static org.junit.Assert.assertEquals;
             import static org.mockito.Mockito.*;
-            
+
             class Test {
-            
+
                 private A aMock = mock(A.class);
-            
+
                 void test() {
                     try (MockedStatic<a.b.A> mockA = mockStatic(a.b.A.class)) {
                         mockA.when(A.getA()).thenReturn(aMock);

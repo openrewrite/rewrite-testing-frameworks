@@ -54,41 +54,50 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         boolean rewrittenWhen = false;
                         List<Statement> statementsBeforeWhen = new ArrayList<>();
                         List<Statement> statementsAfterWhen = new ArrayList<>();
-                        for (Statement stmt : m.getBody().getStatements()) {
-                            if (stmt instanceof J.MethodInvocation &&
-                                MOCKITO_WHEN.matches(((J.MethodInvocation) stmt).getSelect())) {
-                                J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) stmt).getSelect();
-                                if (when.getArguments().get(0) instanceof J.MethodInvocation && ((J.MethodInvocation) when.getArguments().get(0)).getMethodType().getFlags().contains(Flag.Static)) {
-                                    JavaType.FullyQualified arg_fq = TypeUtils.asFullyQualified(when.getArguments().get(0).getType());
-                                    J.Identifier ident = (J.Identifier) ((J.MethodInvocation)when.getArguments().get(0)).getSelect();
-                                    String template = String.format("try(MockedStatic<#{}> mock%s = mockStatic(#{}.class)){\n" +
-                                                                    "    mock%s.when(#{any()}).thenReturn(#{any()});\n" +
-                                                                    "}", arg_fq.getClassName(), arg_fq.getClassName());
-                                    m = JavaTemplate.builder(template)
-                                            .contextSensitive()
-                                            .javaParser(JavaParser.fromJavaVersion())
-                                            .imports("org.mockito.MockedStatic")
-                                            .staticImports("org.mockito.Mockito.mockStatic")
-                                            .build()
-                                            .apply(getCursor(), stmt.getCoordinates().replace(), ident.getType(), ident.getType(), when.getArguments().get(0), ((J.MethodInvocation) stmt).getArguments().get(0));
-                                    rewrittenWhen = true;
-                                    maybeAddImport("org.mockito.MockedStatic", false);
-                                    maybeAddImport("org.mockito.Mockito", "mockStatic");
-                                    continue;
+                        if (m.getBody() != null) {
+                            for (Statement stmt : m.getBody().getStatements()) {
+                                if (stmt instanceof J.MethodInvocation &&
+                                    MOCKITO_WHEN.matches(((J.MethodInvocation) stmt).getSelect())) {
+                                    J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) stmt).getSelect();
+                                    if (when != null && when.getArguments().get(0) instanceof J.MethodInvocation) {
+                                        J.MethodInvocation whenArg = (J.MethodInvocation) when.getArguments().get(0);
+                                        if (whenArg.getMethodType() != null && whenArg.getMethodType().getFlags().contains(Flag.Static)) {
+                                            JavaType.FullyQualified arg_fq = TypeUtils.asFullyQualified(whenArg.getType());
+                                            J.Identifier ident = (J.Identifier) whenArg.getSelect();
+                                            if (arg_fq != null && ident != null && ident.getType() != null) {
+                                                String template = String.format("try(MockedStatic<#{}> mock%s = mockStatic(#{}.class)){\n" +
+                                                                                "    mock%s.when(#{any()}).thenReturn(#{any()});\n" +
+                                                                                "}", arg_fq.getClassName(), arg_fq.getClassName());
+                                                m = JavaTemplate.builder(template)
+                                                        .contextSensitive()
+                                                        .javaParser(JavaParser.fromJavaVersion())
+                                                        .imports("org.mockito.MockedStatic")
+                                                        .staticImports("org.mockito.Mockito.mockStatic")
+                                                        .build()
+                                                        .apply(getCursor(), stmt.getCoordinates().replace(), ident.getType(), ident.getType(), whenArg, ((J.MethodInvocation) stmt).getArguments().get(0));
+                                                rewrittenWhen = true;
+                                                maybeAddImport("org.mockito.MockedStatic", false);
+                                                maybeAddImport("org.mockito.Mockito", "mockStatic");
+                                                continue;
+                                            }
+                                        }
+
+                                    }
                                 }
-                            }
-                            if (rewrittenWhen) {
-                                statementsAfterWhen.add(stmt);
-                            } else {
-                                statementsBeforeWhen.add(stmt);
+                                if (rewrittenWhen) {
+                                    statementsAfterWhen.add(stmt);
+                                } else {
+                                    statementsBeforeWhen.add(stmt);
+                                }
                             }
                         }
                         if (rewrittenWhen) {
-                            J.Try try_catch = (J.Try) m.getBody().getStatements().get(statementsBeforeWhen.size());
-                            return maybeAutoFormat(method, m.withBody(m.getBody().withStatements(ListUtils.concat(statementsBeforeWhen, try_catch.withBody(try_catch.getBody().withStatements(ListUtils.concatAll(try_catch.getBody().getStatements(), statementsAfterWhen)))))), ctx);
-                        } else {
-                            return m;
+                            if (m.getBody() != null) {
+                                J.Try try_catch = (J.Try) m.getBody().getStatements().get(statementsBeforeWhen.size());
+                                return maybeAutoFormat(method, m.withBody(m.getBody().withStatements(ListUtils.concat(statementsBeforeWhen, try_catch.withBody(try_catch.getBody().withStatements(ListUtils.concatAll(try_catch.getBody().getStatements(), statementsAfterWhen)))))), ctx);
+                            }
                         }
+                        return m;
                     }
                 });
     }
