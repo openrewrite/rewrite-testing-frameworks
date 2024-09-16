@@ -38,21 +38,22 @@ public class TestsShouldIncludeAssertions extends Recipe {
     private static final List<String> TEST_ANNOTATIONS = Collections.singletonList("org.junit.jupiter.api.Test");
 
     private static final List<String> DEFAULT_ASSERTIONS = Arrays.asList(
+            "com.github.tomakehurst.wiremock.client.WireMock",
+            "io.restassured",
+            "mockit",
             "org.assertj.core.api",
-            "org.junit.jupiter.api.Assertions",
+            "org.easymock",
             "org.hamcrest.MatcherAssert",
+            "org.jmock",
+            "org.junit.Assert", // rarely, the test annotation is junit 5 but the assert is junit 4
+            "org.junit.jupiter.api.Assertions",
             "org.mockito.Mockito.verify",
             "org.mockito.Mockito.verifyNoInteractions",
             "org.mockito.Mockito.verifyNoMoreInteractions",
             "org.mockito.Mockito.verifyZeroInteractions",
-            "org.easymock",
-            "org.jmock",
-            "mockit",
-            "io.restassured",
-            "org.springframework.test.web.servlet.ResultActions",
             "org.springframework.test.web.client.MockRestServiceServer.verify",
-            "com.github.tomakehurst.wiremock.client.WireMock",
-            "org.junit.Assert"// rarely, the test annotation is junit 5 but the assert is junit 4
+            "org.springframework.test.web.servlet.ResultActions",
+            "reactor.test.StepVerifier"
     );
 
     @Option(displayName = "Additional assertions",
