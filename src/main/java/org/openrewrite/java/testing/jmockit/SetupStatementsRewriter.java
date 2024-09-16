@@ -36,8 +36,7 @@ class SetupStatementsRewriter {
 
     J.Block rewriteMethodBody() {
         List<Statement> statements = methodBody.getStatements();
-        // iterate over each statement in the method body, find JMockit blocks and
-        // rewrite them
+        // iterate over each statement in the method body, find JMockit blocks and rewrite them
         for (Statement s : statements) {
             if (!JMockitUtils.getJMockitBlock(s).isPresent()) {
                 continue;
@@ -55,8 +54,8 @@ class SetupStatementsRewriter {
 
             // Account for Expectations which may contain multiple blocks
             List<Statement> statementList = new ArrayList<>();
-            if (TypeUtils.isAssignableTo("mockit.Expectations", nc.getType())
-                    || TypeUtils.isAssignableTo("mockit.Verifications", nc.getType())) {
+            if (TypeUtils.isAssignableTo("mockit.Expectations", nc.getType()) ||
+                TypeUtils.isAssignableTo("mockit.Verifications", nc.getType())) {
                 statementList.addAll(nc.getBody().getStatements());
             } else {
                 statementList.add(expectationsBlock);
@@ -141,8 +140,8 @@ class SetupStatementsRewriter {
             return false;
         }
         if (identifier.getType() instanceof JavaType.Method
-                && TypeUtils.isAssignableTo("mockit.Invocations",
-                        ((JavaType.Method) identifier.getType()).getDeclaringType())) {
+            && TypeUtils.isAssignableTo("mockit.Invocations",
+                ((JavaType.Method) identifier.getType()).getDeclaringType())) {
             return false;
         }
         JavaType.Variable fieldType = identifier.getFieldType();
@@ -151,8 +150,8 @@ class SetupStatementsRewriter {
         }
         for (JavaType.FullyQualified annotationType : fieldType.getAnnotations()) {
             if (TypeUtils.isAssignableTo("mockit.Mocked", annotationType)
-                    || TypeUtils.isAssignableTo("mockit.Injectable", annotationType)
-                    || TypeUtils.isAssignableTo("mockit.Tested", annotationType)) {
+                || TypeUtils.isAssignableTo("mockit.Injectable", annotationType)
+                || TypeUtils.isAssignableTo("mockit.Tested", annotationType)) {
                 return false;
             }
         }
