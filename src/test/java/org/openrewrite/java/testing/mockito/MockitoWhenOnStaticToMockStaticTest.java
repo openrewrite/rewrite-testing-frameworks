@@ -64,9 +64,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               import static org.mockito.Mockito.*;
               
               class Test {
-              
-                  private A aMock = mock(A.class);
-              
                   void test() {
                       when(A.getNumber()).thenReturn(-1);
                       assertEquals(A.getNumber(), -1);
@@ -81,9 +78,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               import static org.mockito.Mockito.*;
               
               class Test {
-              
-                  private A aMock = mock(A.class);
-              
                   void test() {
                       try (MockedStatic<com.foo.A> mockA = mockStatic(com.foo.A.class)) {
                           mockA.when(A.getNumber()).thenReturn(-1);
@@ -105,8 +99,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             """
               package com.foo;
               public class A {
-                  public static A getA() {
-                      return new A();
+                  public static Integer getNumber() {
+                      return 42;
                   }
               }
               """,
@@ -120,20 +114,35 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               import static org.mockito.Mockito.*;
               
               class Test {
-              
-                  private A aMock = mock(A.class);
-              
                   void test() {
-                      when(A.getA()).thenReturn(aMock);
-                      assertEquals(A.getA(), aMock);
+                      when(A.getNumber()).thenReturn(-1);
+                      assertEquals(A.getNumber(), -1);
               
-                      when(A.getA()).thenReturn(aMock);
-                      assertEquals(A.getA(), aMock);
+                      when(A.getNumber()).thenReturn(-2);
+                      assertEquals(A.getNumber(), -2);
                   }
               }
               """,
             """
-              class TODO {}
+              import com.foo.A;
+              import org.mockito.MockedStatic;
+              
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+              
+              class Test {
+                  void test() {
+                      try (MockedStatic<com.foo.A> mockA = mockStatic(com.foo.A.class)) {
+                          mockA.when(A.getNumber()).thenReturn(-1);
+                          assertEquals(A.getNumber(), -1);
+            
+                          try (MockedStatic<com.foo.A> mockA2 = mockStatic(com.foo.A.class)) {
+                              mockA2.when(A.getNumber()).thenReturn(-2);
+                              assertEquals(A.getNumber(), -2);
+                          }
+                      }
+                  }
+              }
               """
           )
         );

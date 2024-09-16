@@ -15,17 +15,17 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.Flag;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Statement;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
@@ -53,56 +53,51 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                             return m;
                         }
 
-                        boolean rewrittenWhen = false;
-                        List<Statement> statementsBeforeWhen = new ArrayList<>();
-                        List<Statement> statementsAfterWhen = new ArrayList<>();
-                        for (Statement stmt : m.getBody().getStatements()) {
-                            if (stmt instanceof J.MethodInvocation &&
-                                MOCKITO_WHEN.matches(((J.MethodInvocation) stmt).getSelect())) {
-                                J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) stmt).getSelect();
+                        AtomicBoolean restInTry = new AtomicBoolean(false);
+                        List<Statement> originalStatements = m.getBody().getStatements();
+                        List<Statement> newStatements = ListUtils.flatMap(originalStatements, (index, statement) -> {
+                            if (restInTry.get()) {
+                                // Rest of the statements have ended up in the try block
+                                return Collections.emptyList();
+                            }
+
+                            if (statement instanceof J.MethodInvocation &&
+                                MOCKITO_WHEN.matches(((J.MethodInvocation) statement).getSelect())) {
+                                J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) statement).getSelect();
                                 if (when != null && when.getArguments().get(0) instanceof J.MethodInvocation) {
                                     J.MethodInvocation whenArg = (J.MethodInvocation) when.getArguments().get(0);
                                     if (whenArg.getMethodType() != null && whenArg.getMethodType().getFlags().contains(Flag.Static)) {
-                                        JavaType.FullyQualified argFq = TypeUtils.asFullyQualified(whenArg.getType());
-                                        J.Identifier ident = (J.Identifier) whenArg.getSelect();
-                                        if (argFq != null && ident != null && ident.getType() != null) {
-                                            String mockName = VariableNameUtils.generateVariableName("mock" + ident.getSimpleName(), getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
-                                            m = JavaTemplate.builder(String.format(
-                                                            "try(MockedStatic<#{}> %1$s = mockStatic(#{}.class)) {\n" +
-                                                            "    %1$s.when(#{any()}).thenReturn(#{any()});\n" +
-                                                            "}", mockName))
+                                        J.Identifier clazz = (J.Identifier) whenArg.getSelect();
+                                        if (clazz != null && clazz.getType() != null) {
+                                            String mockName = VariableNameUtils.generateVariableName("mock" + clazz.getSimpleName(), getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                                            maybeAddImport("org.mockito.MockedStatic", false);
+                                            maybeAddImport("org.mockito.Mockito", "mockStatic");
+                                            String template = String.format(
+                                                    "try(MockedStatic<#{}> %1$s = mockStatic(#{}.class)) {\n" +
+                                                    "    %1$s.when(#{any()}).thenReturn(#{any()});\n" +
+                                                    "}", mockName);
+                                            J.Try try_ = (J.Try) ((J.MethodDeclaration)  JavaTemplate.builder(template)
                                                     .contextSensitive()
-                                                    .javaParser(JavaParser.fromJavaVersion())
                                                     .imports("org.mockito.MockedStatic")
                                                     .staticImports("org.mockito.Mockito.mockStatic")
                                                     .build()
-                                                    .apply(getCursor(), stmt.getCoordinates().replace(),
-                                                            ident.getType(),
-                                                            ident.getType(),
-                                                            whenArg,
-                                                            ((J.MethodInvocation) stmt).getArguments().get(0));
-                                            rewrittenWhen = true;
-                                            maybeAddImport("org.mockito.MockedStatic", false);
-                                            maybeAddImport("org.mockito.Mockito", "mockStatic");
-                                            continue;
+                                                    .apply(getCursor(), m.getCoordinates().replaceBody(),
+                                                            clazz.getType(), clazz.getType(),
+                                                            whenArg, ((J.MethodInvocation) statement).getArguments().get(0)))
+                                                    .getBody().getStatements().get(0);
+
+                                            restInTry.set(true);
+                                            return try_.withBody(try_.getBody().withStatements(ListUtils.concatAll(
+                                                    try_.getBody().getStatements(),
+                                                    originalStatements.subList(index + 1, originalStatements.size()))));
                                         }
                                     }
-
                                 }
                             }
-                            if (rewrittenWhen) {
-                                statementsAfterWhen.add(stmt);
-                            } else {
-                                statementsBeforeWhen.add(stmt);
-                            }
-                        }
-                        if (rewrittenWhen) {
-                            if (m.getBody() != null) {
-                                J.Try try_catch = (J.Try) m.getBody().getStatements().get(statementsBeforeWhen.size());
-                                return maybeAutoFormat(method, m.withBody(m.getBody().withStatements(ListUtils.concat(statementsBeforeWhen, try_catch.withBody(try_catch.getBody().withStatements(ListUtils.concatAll(try_catch.getBody().getStatements(), statementsAfterWhen)))))), ctx);
-                            }
-                        }
-                        return m;
+                            return statement;
+                        });
+
+                        return maybeAutoFormat(m, m.withBody(m.getBody().withStatements(newStatements)), ctx);
                     }
                 });
     }
