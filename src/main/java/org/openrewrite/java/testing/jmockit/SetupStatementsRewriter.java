@@ -54,7 +54,8 @@ class SetupStatementsRewriter {
 
             // Account for Expectations which may contain multiple blocks
             List<Statement> statementList = new ArrayList<>();
-            if (TypeUtils.isAssignableTo("mockit.Expectations", nc.getType())) {
+            if (TypeUtils.isAssignableTo("mockit.Expectations", nc.getType()) ||
+                TypeUtils.isAssignableTo("mockit.Verifications", nc.getType())) {
                 statementList.addAll(nc.getBody().getStatements());
             } else {
                 statementList.add(expectationsBlock);
