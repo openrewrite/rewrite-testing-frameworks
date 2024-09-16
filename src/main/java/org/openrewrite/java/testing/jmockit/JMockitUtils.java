@@ -36,8 +36,10 @@ class JMockitUtils {
         J.Identifier clazz = (J.Identifier) nc.getClazz();
 
         // JMockit block should be composed of a block within another block
-        if (nc.getBody() == null || (nc.getBody().getStatements().size() != 1 &&
-                !TypeUtils.isAssignableTo("mockit.Expectations", clazz.getType()))) {
+        if (nc.getBody() == null ||
+            (nc.getBody().getStatements().size() != 1 &&
+             !TypeUtils.isAssignableTo("mockit.Expectations", clazz.getType()) &&
+             !TypeUtils.isAssignableTo("mockit.Verifications", clazz.getType()))) {
             return empty();
         }
 
