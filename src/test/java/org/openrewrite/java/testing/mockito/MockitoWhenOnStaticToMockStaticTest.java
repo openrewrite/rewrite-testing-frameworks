@@ -95,4 +95,47 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void shouldHandleMultipleStaticMocks() {
+        //language=java
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).identifiers(false).build()),
+          java(
+            """
+              package com.foo;
+              public class A {
+                  public static A getA() {
+                      return new A();
+                  }
+              }
+              """,
+            SourceSpec::skip
+          ),
+          java(
+            """
+              import com.foo.A;
+              
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+              
+              class Test {
+              
+                  private A aMock = mock(A.class);
+              
+                  void test() {
+                      when(A.getA()).thenReturn(aMock);
+                      assertEquals(A.getA(), aMock);
+              
+                      when(A.getA()).thenReturn(aMock);
+                      assertEquals(A.getA(), aMock);
+                  }
+              }
+              """,
+            """
+              class TODO {}
+              """
+          )
+        );
+    }
 }
