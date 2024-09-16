@@ -24,6 +24,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
@@ -46,49 +47,52 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.mockito.Mockito", true),
+        return Preconditions.check(
+                new UsesMethod<>(MOCKITO_WHEN),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                         J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+                        if (m.getBody() == null) {
+                            return m;
+                        }
+
                         boolean rewrittenWhen = false;
                         List<Statement> statementsBeforeWhen = new ArrayList<>();
                         List<Statement> statementsAfterWhen = new ArrayList<>();
-                        if (m.getBody() != null) {
-                            for (Statement stmt : m.getBody().getStatements()) {
-                                if (stmt instanceof J.MethodInvocation &&
-                                    MOCKITO_WHEN.matches(((J.MethodInvocation) stmt).getSelect())) {
-                                    J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) stmt).getSelect();
-                                    if (when != null && when.getArguments().get(0) instanceof J.MethodInvocation) {
-                                        J.MethodInvocation whenArg = (J.MethodInvocation) when.getArguments().get(0);
-                                        if (whenArg.getMethodType() != null && whenArg.getMethodType().getFlags().contains(Flag.Static)) {
-                                            JavaType.FullyQualified arg_fq = TypeUtils.asFullyQualified(whenArg.getType());
-                                            J.Identifier ident = (J.Identifier) whenArg.getSelect();
-                                            if (arg_fq != null && ident != null && ident.getType() != null) {
-                                                String template = String.format("try(MockedStatic<#{}> mock%s = mockStatic(#{}.class)){\n" +
-                                                                                "    mock%s.when(#{any()}).thenReturn(#{any()});\n" +
-                                                                                "}", arg_fq.getClassName(), arg_fq.getClassName());
-                                                m = JavaTemplate.builder(template)
-                                                        .contextSensitive()
-                                                        .javaParser(JavaParser.fromJavaVersion())
-                                                        .imports("org.mockito.MockedStatic")
-                                                        .staticImports("org.mockito.Mockito.mockStatic")
-                                                        .build()
-                                                        .apply(getCursor(), stmt.getCoordinates().replace(), ident.getType(), ident.getType(), whenArg, ((J.MethodInvocation) stmt).getArguments().get(0));
-                                                rewrittenWhen = true;
-                                                maybeAddImport("org.mockito.MockedStatic", false);
-                                                maybeAddImport("org.mockito.Mockito", "mockStatic");
-                                                continue;
-                                            }
+                        for (Statement stmt : m.getBody().getStatements()) {
+                            if (stmt instanceof J.MethodInvocation &&
+                                MOCKITO_WHEN.matches(((J.MethodInvocation) stmt).getSelect())) {
+                                J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) stmt).getSelect();
+                                if (when != null && when.getArguments().get(0) instanceof J.MethodInvocation) {
+                                    J.MethodInvocation whenArg = (J.MethodInvocation) when.getArguments().get(0);
+                                    if (whenArg.getMethodType() != null && whenArg.getMethodType().getFlags().contains(Flag.Static)) {
+                                        JavaType.FullyQualified arg_fq = TypeUtils.asFullyQualified(whenArg.getType());
+                                        J.Identifier ident = (J.Identifier) whenArg.getSelect();
+                                        if (arg_fq != null && ident != null && ident.getType() != null) {
+                                            String template = String.format("try(MockedStatic<#{}> mock%s = mockStatic(#{}.class)){\n" +
+                                                                            "    mock%s.when(#{any()}).thenReturn(#{any()});\n" +
+                                                                            "}", arg_fq.getClassName(), arg_fq.getClassName());
+                                            m = JavaTemplate.builder(template)
+                                                    .contextSensitive()
+                                                    .javaParser(JavaParser.fromJavaVersion())
+                                                    .imports("org.mockito.MockedStatic")
+                                                    .staticImports("org.mockito.Mockito.mockStatic")
+                                                    .build()
+                                                    .apply(getCursor(), stmt.getCoordinates().replace(), ident.getType(), ident.getType(), whenArg, ((J.MethodInvocation) stmt).getArguments().get(0));
+                                            rewrittenWhen = true;
+                                            maybeAddImport("org.mockito.MockedStatic", false);
+                                            maybeAddImport("org.mockito.Mockito", "mockStatic");
+                                            continue;
                                         }
-
                                     }
+
                                 }
-                                if (rewrittenWhen) {
-                                    statementsAfterWhen.add(stmt);
-                                } else {
-                                    statementsBeforeWhen.add(stmt);
-                                }
+                            }
+                            if (rewrittenWhen) {
+                                statementsAfterWhen.add(stmt);
+                            } else {
+                                statementsBeforeWhen.add(stmt);
                             }
                         }
                         if (rewrittenWhen) {

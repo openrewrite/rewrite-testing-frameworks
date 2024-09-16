@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -29,31 +30,25 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec
+        spec.recipe(new MockitoWhenOnStaticToMockStatic())
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4.13",
-              "junit-jupiter-api-5.9",
               "mockito-core-3.12",
               "mockito-junit-jupiter-3.12"
-            ))
-          .recipe(new MockitoWhenOnStaticToMockStatic());
+            ));
     }
 
+    @DocumentExample
     @Test
     void shouldRefactorMockito_When() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.builder().methodInvocations(false).identifiers(false).build()),
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).identifiers(false).build()),
           java(
             """
-              package a.b;
-
+              package com.foo;
               public class A {
-
-                  public A() {
-                  }
-
                   public static A getA() {
                       return new A();
                   }
@@ -63,40 +58,40 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           ),
           java(
             """
-            import a.b.A;
-
-            import static org.junit.Assert.assertEquals;
-            import static org.mockito.Mockito.*;
-
-            class Test {
-
-                private A aMock = mock(A.class);
-
-                void test() {
-                    when(A.getA()).thenReturn(aMock);
-                    assertEquals(A.getA(), aMock);
-                }
-            }
-            """,
+              import com.foo.A;
+              
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+              
+              class Test {
+              
+                  private A aMock = mock(A.class);
+              
+                  void test() {
+                      when(A.getA()).thenReturn(aMock);
+                      assertEquals(A.getA(), aMock);
+                  }
+              }
+              """,
             """
-            import a.b.A;
-            import org.mockito.MockedStatic;
-
-            import static org.junit.Assert.assertEquals;
-            import static org.mockito.Mockito.*;
-
-            class Test {
-
-                private A aMock = mock(A.class);
-
-                void test() {
-                    try (MockedStatic<a.b.A> mockA = mockStatic(a.b.A.class)) {
-                        mockA.when(A.getA()).thenReturn(aMock);
-                        assertEquals(A.getA(), aMock);
-                    }
-                }
-            }
-            """
+              import com.foo.A;
+              import org.mockito.MockedStatic;
+              
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+              
+              class Test {
+              
+                  private A aMock = mock(A.class);
+              
+                  void test() {
+                      try (MockedStatic<com.foo.A> mockA = mockStatic(com.foo.A.class)) {
+                          mockA.when(A.getA()).thenReturn(aMock);
+                          assertEquals(A.getA(), aMock);
+                      }
+                  }
+              }
+              """
           )
         );
     }
