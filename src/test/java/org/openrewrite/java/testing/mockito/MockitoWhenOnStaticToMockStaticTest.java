@@ -21,6 +21,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.SourceSpec;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -43,6 +44,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldRefactorMockito_When() {
         //language=java
         rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.builder().methodInvocations(false).identifiers(false).build()),
           java(
             """
             package a.b;
