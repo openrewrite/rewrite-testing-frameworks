@@ -151,8 +151,7 @@ recipeList:
   - org.openrewrite.java.testing.mockito.CleanupMockitoImports
   - org.openrewrite.java.testing.mockito.MockUtilsToStatic
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
-  # https://github.com/openrewrite/rewrite-testing-frameworks/issues/360
-  #  - org.openrewrite.java.testing.mockito.ReplacePowerMockito
+  - org.openrewrite.java.testing.mockito.ReplacePowerMockito
   - org.openrewrite.java.testing.mockito.RetainStrictnessWarn
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
