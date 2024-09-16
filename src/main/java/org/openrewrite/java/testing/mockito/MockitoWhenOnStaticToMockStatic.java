@@ -20,12 +20,8 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
@@ -67,19 +63,24 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                 if (when != null && when.getArguments().get(0) instanceof J.MethodInvocation) {
                                     J.MethodInvocation whenArg = (J.MethodInvocation) when.getArguments().get(0);
                                     if (whenArg.getMethodType() != null && whenArg.getMethodType().getFlags().contains(Flag.Static)) {
-                                        JavaType.FullyQualified arg_fq = TypeUtils.asFullyQualified(whenArg.getType());
+                                        JavaType.FullyQualified argFq = TypeUtils.asFullyQualified(whenArg.getType());
                                         J.Identifier ident = (J.Identifier) whenArg.getSelect();
-                                        if (arg_fq != null && ident != null && ident.getType() != null) {
-                                            String template = String.format("try(MockedStatic<#{}> mock%s = mockStatic(#{}.class)){\n" +
-                                                                            "    mock%s.when(#{any()}).thenReturn(#{any()});\n" +
-                                                                            "}", arg_fq.getClassName(), arg_fq.getClassName());
-                                            m = JavaTemplate.builder(template)
+                                        if (argFq != null && ident != null && ident.getType() != null) {
+                                            String mockName = VariableNameUtils.generateVariableName("mock" + ident.getSimpleName(), getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                                            m = JavaTemplate.builder(String.format(
+                                                            "try(MockedStatic<#{}> %1$s = mockStatic(#{}.class)) {\n" +
+                                                            "    %1$s.when(#{any()}).thenReturn(#{any()});\n" +
+                                                            "}", mockName))
                                                     .contextSensitive()
                                                     .javaParser(JavaParser.fromJavaVersion())
                                                     .imports("org.mockito.MockedStatic")
                                                     .staticImports("org.mockito.Mockito.mockStatic")
                                                     .build()
-                                                    .apply(getCursor(), stmt.getCoordinates().replace(), ident.getType(), ident.getType(), whenArg, ((J.MethodInvocation) stmt).getArguments().get(0));
+                                                    .apply(getCursor(), stmt.getCoordinates().replace(),
+                                                            ident.getType(),
+                                                            ident.getType(),
+                                                            whenArg,
+                                                            ((J.MethodInvocation) stmt).getArguments().get(0));
                                             rewrittenWhen = true;
                                             maybeAddImport("org.mockito.MockedStatic", false);
                                             maybeAddImport("org.mockito.Mockito", "mockStatic");

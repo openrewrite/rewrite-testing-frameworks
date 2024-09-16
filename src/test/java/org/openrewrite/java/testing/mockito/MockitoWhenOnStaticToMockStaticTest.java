@@ -49,8 +49,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             """
               package com.foo;
               public class A {
-                  public static A getA() {
-                      return new A();
+                  public static Integer getNumber() {
+                      return 42;
                   }
               }
               """,
@@ -68,8 +68,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   private A aMock = mock(A.class);
               
                   void test() {
-                      when(A.getA()).thenReturn(aMock);
-                      assertEquals(A.getA(), aMock);
+                      when(A.getNumber()).thenReturn(-1);
+                      assertEquals(A.getNumber(), -1);
                   }
               }
               """,
@@ -86,8 +86,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               
                   void test() {
                       try (MockedStatic<com.foo.A> mockA = mockStatic(com.foo.A.class)) {
-                          mockA.when(A.getA()).thenReturn(aMock);
-                          assertEquals(A.getA(), aMock);
+                          mockA.when(A.getNumber()).thenReturn(-1);
+                          assertEquals(A.getNumber(), -1);
                       }
                   }
               }
