@@ -99,16 +99,6 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     private static class TestShouldIncludeAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        JavaParser.Builder<?, ?> javaParser;
-
-        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            if (javaParser == null) {
-                javaParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9");
-            }
-            return javaParser;
-        }
-
         private final Map<String, Set<J.Block>> matcherPatternToClassInvocation = new HashMap<>();
         private final List<String> additionalAsserts;
 
@@ -123,7 +113,8 @@ public class TestsShouldIncludeAssertions extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext
                 ctx) {
-            if ((!methodIsTest(method) || method.getBody() == null) ||
+            if ((!methodIsTest(method) || method.getBody() == null || method.getBody().getStatements().isEmpty()) ||
+                methodIsDisabled(method) ||
                 methodHasAssertion(method.getBody()) ||
                 methodInvocationInBodyContainsAssertion()) {
                 return method;
@@ -135,7 +126,8 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
                 md = JavaTemplate.builder("assertDoesNotThrow(() -> #{any()});")
                         .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
-                        .javaParser(javaParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
                         .build()
                         .apply(updateCursor(md), md.getCoordinates().replaceBody(), body);
             }
@@ -148,6 +140,15 @@ public class TestsShouldIncludeAssertions extends Recipe {
                     if (TypeUtils.isOfClassType(leadingAnnotation.getType(), testAnnotation)) {
                         return true;
                     }
+                }
+            }
+            return false;
+        }
+
+        private boolean methodIsDisabled(J.MethodDeclaration methodDeclaration) {
+            for (J.Annotation leadingAnnotation : methodDeclaration.getLeadingAnnotations()) {
+                if (TypeUtils.isOfClassType(leadingAnnotation.getType(), "org.junit.jupiter.api.Disabled")) {
+                    return true;
                 }
             }
             return false;

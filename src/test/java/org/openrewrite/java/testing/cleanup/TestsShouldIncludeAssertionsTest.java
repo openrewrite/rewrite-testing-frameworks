@@ -399,4 +399,42 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void ignoreDisabled() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Disabled;
+              import org.junit.jupiter.api.Test;
+              public class AaTest {
+                  @Disabled
+                  @Test
+                  public void methodTest() {
+                      Integer it = Integer.valueOf("2");
+                      System.out.println(it);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ignoreEmpty() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              public class AaTest {
+                  @Test
+                  public void methodTest() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
