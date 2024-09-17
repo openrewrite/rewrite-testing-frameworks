@@ -65,7 +65,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
                     private List<Statement> getStatements(List<Statement> originalStatements, J.MethodDeclaration m) {
                         AtomicBoolean restInTry = new AtomicBoolean(false);
-                        List<Statement> newStatements = ListUtils.flatMap(originalStatements, (index, statement) -> {
+                        return ListUtils.flatMap(originalStatements, (index, statement) -> {
                             if (restInTry.get()) {
                                 // Rest of the statements have ended up in the try block
                                 return Collections.emptyList();
@@ -108,7 +108,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                             }
                             return statement;
                         });
-                        return newStatements;
                     }
                 });
     }
