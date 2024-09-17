@@ -85,7 +85,8 @@ class ArgumentMatchersRewriter {
     J.Block rewriteJMockitBlock() {
         List<Statement> newStatements = new ArrayList<>(expectationsBlock.getStatements().size());
         for (Statement expectationStatement : expectationsBlock.getStatements()) {
-            // for each statement, check if it's a method invocation and replace any argument matchers
+            // for each statement, check if it's a method invocation and replace any
+            // argument matchers
             if (!(expectationStatement instanceof J.MethodInvocation)) {
                 newStatements.add(expectationStatement);
                 continue;
@@ -100,16 +101,25 @@ class ArgumentMatchersRewriter {
             invocation = invocation.withSelect(rewriteMethodInvocation((J.MethodInvocation) invocation.getSelect()));
         }
         // in mockito, argument matchers must be used for all arguments or none
-        boolean hasArgumentMatcher = false;
-        List<Expression> arguments = invocation.getArguments();
-        for (Expression methodArgument : arguments) {
-            if (isJmockitArgumentMatcher(methodArgument)) {
-                hasArgumentMatcher = true;
-                break;
+        List<Expression> arguments = new ArrayList<>(invocation.getArguments().size());
+        for (Expression methodArgument : invocation.getArguments()) {
+            Expression expression = methodArgument;
+
+            // identifiers following "this." should be also be considered if they are
+            // eligible
+            if (methodArgument instanceof J.FieldAccess) {
+                J.FieldAccess fa = (J.FieldAccess) methodArgument;
+                if (fa.getTarget() instanceof J.Identifier &&
+                        ((J.Identifier) fa.getTarget()).getSimpleName().equals("this")) {
+
+                }
+                expression = ((J.FieldAccess) methodArgument).getName();
             }
+            arguments.add(expression);
         }
+
         // if there are no argument matchers, return the invocation as-is
-        if (!hasArgumentMatcher) {
+        if (!arguments.stream().anyMatch(arg -> isJmockitArgumentMatcher(arg))) {
             return invocation;
         }
         // replace each argument with the appropriate argument matcher
@@ -157,7 +167,7 @@ class ArgumentMatchersRewriter {
     }
 
     private Expression applyArgumentTemplate(Expression methodArgument, String argumentMatcher, String template,
-                                             List<Object> templateParams) {
+            List<Object> templateParams) {
         visitor.maybeAddImport("org.mockito.Mockito", argumentMatcher);
         return JavaTemplate.builder(template)
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
@@ -166,8 +176,7 @@ class ArgumentMatchersRewriter {
                 .apply(
                         new Cursor(visitor.getCursor(), methodArgument),
                         methodArgument.getCoordinates().replace(),
-                        templateParams.toArray()
-                );
+                        templateParams.toArray());
     }
 
     private Expression applyClassArgumentTemplate(Expression methodArgument, JavaType.FullyQualified type) {
@@ -179,8 +188,7 @@ class ArgumentMatchersRewriter {
                 .apply(
                         new Cursor(visitor.getCursor(), methodArgument),
                         methodArgument.getCoordinates().replace(),
-                        type.getClassName()
-                ))
+                        type.getClassName()))
                 .withType(type);
     }
 
@@ -209,9 +217,9 @@ class ArgumentMatchersRewriter {
                 || !(invocationArgument.getMethodType().getParameterTypes().get(0) instanceof JavaType.Parameterized)) {
             return invocationArgument;
         }
-        JavaType.Parameterized newParameterType =
-                ((JavaType.Parameterized) invocationArgument.getMethodType().getParameterTypes().get(0))
-                        .withTypeParameters(Collections.singletonList(classArgument.getType()));
+        JavaType.Parameterized newParameterType = ((JavaType.Parameterized) invocationArgument.getMethodType()
+                .getParameterTypes().get(0))
+                .withTypeParameters(Collections.singletonList(classArgument.getType()));
         JavaType.Method newMethodType = invocationArgument.getMethodType()
                 .withReturnType(classArgument.getType())
                 .withParameterTypes(Collections.singletonList(newParameterType));
