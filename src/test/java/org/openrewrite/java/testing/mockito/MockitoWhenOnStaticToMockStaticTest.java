@@ -59,10 +59,10 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           java(
             """
               import com.foo.A;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.Mockito.*;
-              
+
               class Test {
                   void test() {
                       when(A.getNumber()).thenReturn(-1);
@@ -73,10 +73,10 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             """
               import com.foo.A;
               import org.mockito.MockedStatic;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.Mockito.*;
-              
+
               class Test {
                   void test() {
                       try (MockedStatic<com.foo.A> mockA = mockStatic(com.foo.A.class)) {
@@ -109,15 +109,15 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           java(
             """
               import com.foo.A;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.Mockito.*;
-              
+
               class Test {
                   void test() {
                       when(A.getNumber()).thenReturn(-1);
                       assertEquals(A.getNumber(), -1);
-              
+
                       when(A.getNumber()).thenReturn(-2);
                       assertEquals(A.getNumber(), -2);
                   }
@@ -126,18 +126,18 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             """
               import com.foo.A;
               import org.mockito.MockedStatic;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.Mockito.*;
-              
+
               class Test {
                   void test() {
                       try (MockedStatic<com.foo.A> mockA = mockStatic(com.foo.A.class)) {
                           mockA.when(A.getNumber()).thenReturn(-1);
                           assertEquals(A.getNumber(), -1);
-            
-                          try (MockedStatic<com.foo.A> mockA2 = mockStatic(com.foo.A.class)) {
-                              mockA2.when(A.getNumber()).thenReturn(-2);
+
+                          try (MockedStatic<com.foo.A> mockA1 = mockStatic(com.foo.A.class)) {
+                              mockA1.when(A.getNumber()).thenReturn(-2);
                               assertEquals(A.getNumber(), -2);
                           }
                       }
