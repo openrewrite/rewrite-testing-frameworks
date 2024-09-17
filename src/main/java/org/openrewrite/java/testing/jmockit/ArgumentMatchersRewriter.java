@@ -106,14 +106,13 @@ class ArgumentMatchersRewriter {
             Expression expression = methodArgument;
 
             // identifiers following "this." should be also be considered if they are
-            // eligible
+            // eligible, if so, convert it to the identifier for refactoring
             if (methodArgument instanceof J.FieldAccess) {
-                J.FieldAccess fa = (J.FieldAccess) methodArgument;
-                if (fa.getTarget() instanceof J.Identifier &&
-                        ((J.Identifier) fa.getTarget()).getSimpleName().equals("this")) {
-
+                J.FieldAccess fieldAccess = (J.FieldAccess) methodArgument;
+                if (fieldAccess.getTarget() instanceof J.Identifier &&
+                        ((J.Identifier) fieldAccess.getTarget()).getSimpleName().equals("this")) {
+                            expression = fieldAccess.getName();
                 }
-                expression = ((J.FieldAccess) methodArgument).getName();
             }
             arguments.add(expression);
         }
