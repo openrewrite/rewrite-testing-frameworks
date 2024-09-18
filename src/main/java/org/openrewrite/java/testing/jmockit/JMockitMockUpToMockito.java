@@ -50,7 +50,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Rewrites JMockit `MockUp` blocks to Mockito statements.";
+        return "Rewrites JMockit `MockUp` blocks to Mockito statements. This recipe will not rewrite private methods in MockUp.";
     }
 
     @Override
