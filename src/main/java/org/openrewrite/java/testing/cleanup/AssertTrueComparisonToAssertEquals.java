@@ -115,10 +115,10 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
                 // Prevent breaking identity comparison.
                 // Objects that are compared with == should not be compared with `.equals()` instead.
                 // Out of the primitives == is not allowed when both are of type String
-                return binary.getLeft().getType() instanceof JavaType.Primitive
-                       && binary.getRight().getType() instanceof JavaType.Primitive
-                       && !(binary.getLeft().getType() == JavaType.Primitive.String
-                            && binary.getRight().getType() == JavaType.Primitive.String);
+                return binary.getLeft().getType() instanceof JavaType.Primitive &&
+                       binary.getRight().getType() instanceof JavaType.Primitive &&
+                       !(binary.getLeft().getType() == JavaType.Primitive.String &&
+                            binary.getRight().getType() == JavaType.Primitive.String);
             }
         });
     }

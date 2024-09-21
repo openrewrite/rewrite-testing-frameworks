@@ -93,8 +93,8 @@ public class EnclosedToNested extends Recipe {
         }
 
         private boolean hasTestMethods(final J.ClassDeclaration cd) {
-            return !FindAnnotations.find(cd, "@" + TEST_JUNIT4).isEmpty()
-                    || !FindAnnotations.find(cd, "@" + TEST_JUNIT_JUPITER).isEmpty();
+            return !FindAnnotations.find(cd, "@" + TEST_JUNIT4).isEmpty() ||
+                    !FindAnnotations.find(cd, "@" + TEST_JUNIT_JUPITER).isEmpty();
         }
     }
 }

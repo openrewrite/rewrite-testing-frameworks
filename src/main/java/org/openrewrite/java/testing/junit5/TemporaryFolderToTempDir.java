@@ -103,16 +103,16 @@ public class TemporaryFolderToTempDir extends Recipe {
             }
 
             private boolean isRuleAnnotatedTemporaryFolder(J.VariableDeclarations vd) {
-                return TypeUtils.isOfClassType(vd.getTypeAsFullyQualified(), "org.junit.rules.TemporaryFolder")
-                       && vd.getLeadingAnnotations().stream().anyMatch(anno -> classRule.matches(anno) || rule.matches(anno));
+                return TypeUtils.isOfClassType(vd.getTypeAsFullyQualified(), "org.junit.rules.TemporaryFolder") &&
+                       vd.getLeadingAnnotations().stream().anyMatch(anno -> classRule.matches(anno) || rule.matches(anno));
             }
 
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 updateCursor(mi);
-                if (mi.getSelect() != null && mi.getMethodType() != null
-                    && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "org.junit.rules.TemporaryFolder")) {
+                if (mi.getSelect() != null && mi.getMethodType() != null &&
+                    TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "org.junit.rules.TemporaryFolder")) {
                     switch (mi.getSimpleName()) {
                         case "newFile":
                             return convertToNewFile(mi, ctx);
