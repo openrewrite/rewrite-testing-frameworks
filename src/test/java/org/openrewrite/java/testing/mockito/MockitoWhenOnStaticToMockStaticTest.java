@@ -44,7 +44,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldRefactorMockito_When() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).identifiers(false).build()),
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
               package com.foo;
@@ -79,7 +79,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
               class Test {
                   void test() {
-                      try (MockedStatic<com.foo.A> mockA = mockStatic(com.foo.A.class)) {
+                      try (MockedStatic<A> mockA = mockStatic(A.class)) {
                           mockA.when(A.getNumber()).thenReturn(-1);
                           assertEquals(A.getNumber(), -1);
                       }
@@ -94,7 +94,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldHandleMultipleStaticMocks() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).identifiers(false).build()),
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
               package com.foo;
@@ -132,11 +132,11 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
               class Test {
                   void test() {
-                      try (MockedStatic<com.foo.A> mockA = mockStatic(com.foo.A.class)) {
+                      try (MockedStatic<A> mockA = mockStatic(A.class)) {
                           mockA.when(A.getNumber()).thenReturn(-1);
                           assertEquals(A.getNumber(), -1);
 
-                          try (MockedStatic<com.foo.A> mockA1 = mockStatic(com.foo.A.class)) {
+                          try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
                               mockA1.when(A.getNumber()).thenReturn(-2);
                               assertEquals(A.getNumber(), -2);
                           }

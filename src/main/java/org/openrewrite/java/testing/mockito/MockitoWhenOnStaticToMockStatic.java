@@ -81,16 +81,15 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                     maybeAddImport("org.mockito.MockedStatic", false);
                                     maybeAddImport("org.mockito.Mockito", "mockStatic");
                                     String template = String.format(
-                                            "try(MockedStatic<#{}> %1$s = mockStatic(#{}.class)) {\n" +
-                                            "    %1$s.when(#{any()}).thenReturn(#{any()});\n" +
-                                            "}", mockName);
+                                            "try(MockedStatic<%1$s> %2$s = mockStatic(%1$s.class)) {\n" +
+                                            "    %2$s.when(#{any()}).thenReturn(#{any()});\n" +
+                                            "}", clazz.getSimpleName(), mockName);
                                     J.Try try_ = (J.Try) ((J.MethodDeclaration) JavaTemplate.builder(template)
                                             .contextSensitive()
                                             .imports("org.mockito.MockedStatic")
                                             .staticImports("org.mockito.Mockito.mockStatic")
                                             .build()
                                             .apply(getCursor(), m.getCoordinates().replaceBody(),
-                                                    clazz.getType(), clazz.getType(),
                                                     whenArg, ((J.MethodInvocation) statement).getArguments().get(0)))
                                             .getBody().getStatements().get(0);
 
