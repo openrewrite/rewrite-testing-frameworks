@@ -61,9 +61,9 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 return maybeAutoFormat(m, m.withBody(m.getBody().withStatements(newStatements)), ctx);
             }
 
-            private List<Statement> maybeWrapStatementsInTryWithResourcesMockedStatic(J.MethodDeclaration m, List<Statement> originalStatements) {
+            private List<Statement> maybeWrapStatementsInTryWithResourcesMockedStatic(J.MethodDeclaration m, List<Statement> remainingStatements) {
                 AtomicBoolean restInTry = new AtomicBoolean(false);
-                return ListUtils.flatMap(originalStatements, (index, statement) -> {
+                return ListUtils.flatMap(remainingStatements, (index, statement) -> {
                     if (restInTry.get()) {
                         // Rest of the statements have ended up in the try block
                         return Collections.emptyList();
@@ -96,11 +96,12 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
                                     restInTry.set(true);
 
+                                    List<Statement> precedingStatements = remainingStatements.subList(0, index);
                                     return try_.withBody(try_.getBody().withStatements(ListUtils.concatAll(
                                                     try_.getBody().getStatements(),
                                                     maybeWrapStatementsInTryWithResourcesMockedStatic(
-                                                            m.withBody(m.getBody().withStatements(ListUtils.concat(m.getBody().getStatements(), try_))),
-                                                            originalStatements.subList(index + 1, originalStatements.size())
+                                                            m.withBody(m.getBody().withStatements(ListUtils.concat(precedingStatements, try_))),
+                                                            remainingStatements.subList(index + 1, remainingStatements.size())
                                                     ))))
                                             .withPrefix(statement.getPrefix());
                                 }
