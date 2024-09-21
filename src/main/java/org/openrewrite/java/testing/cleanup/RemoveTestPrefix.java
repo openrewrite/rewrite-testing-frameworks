@@ -84,26 +84,26 @@ public class RemoveTestPrefix extends Recipe {
             // Quickly reject invalid methods
             String simpleName = method.getSimpleName();
             int nameLength = simpleName.length();
-            if (nameLength < 5
-                    || !simpleName.startsWith("test")
-                    || !(simpleName.charAt(4) == '_' || Character.isUpperCase(simpleName.charAt(4)))
-                    || TypeUtils.isOverride(method.getMethodType())
-                    || !hasJUnit5MethodAnnotation(method)) {
+            if (nameLength < 5 ||
+                    !simpleName.startsWith("test") ||
+                    !(simpleName.charAt(4) == '_' || Character.isUpperCase(simpleName.charAt(4))) ||
+                    TypeUtils.isOverride(method.getMethodType()) ||
+                    !hasJUnit5MethodAnnotation(method)) {
                 return m;
             }
 
             // Reject invalid start character
-            boolean snakecase = simpleName.charAt(4) == '_'
-                    && 5 < nameLength
-                    && Character.isAlphabetic(simpleName.charAt(5));
+            boolean snakecase = simpleName.charAt(4) == '_' &&
+                    5 < nameLength &&
+                    Character.isAlphabetic(simpleName.charAt(5));
             if (!snakecase && !Character.isAlphabetic(simpleName.charAt(4))) {
                 return m;
             }
 
             // Avoid reserved keywords
-            String newMethodName = snakecase
-                    ? NameCaseConvention.format(NameCaseConvention.LOWER_UNDERSCORE, simpleName.substring(5))
-                    : NameCaseConvention.format(NameCaseConvention.LOWER_CAMEL, simpleName.substring(4));
+            String newMethodName = snakecase ?
+                    NameCaseConvention.format(NameCaseConvention.LOWER_UNDERSCORE, simpleName.substring(5)) :
+                    NameCaseConvention.format(NameCaseConvention.LOWER_CAMEL, simpleName.substring(4));
             if (RESERVED_KEYWORDS.contains(newMethodName)) {
                 return m;
             }
@@ -149,11 +149,11 @@ public class RemoveTestPrefix extends Recipe {
 
         private static boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {
             for (J.Annotation a : method.getLeadingAnnotations()) {
-                if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")) {
+                if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")) {
                     return true;
                 }
             }

@@ -60,8 +60,8 @@ public class AssertEqualsBooleanToAssertBoolean extends Recipe {
                 if (ASSERT_EQUALS.matches(mi) && isBooleanLiteral(mi) &&
                     JavaType.Primitive.Boolean.equals(mi.getArguments().get(1).getType())) {
                     StringBuilder sb = new StringBuilder();
-                    String assertMethod = Boolean.parseBoolean(((J.Literal) mi.getArguments().get(0)).getValueSource())
-                            ? "assertTrue" : "assertFalse";
+                    String assertMethod = Boolean.parseBoolean(((J.Literal) mi.getArguments().get(0)).getValueSource()) ?
+                            "assertTrue" : "assertFalse";
                     Expression assertion = mi.getArguments().get(1);
                     if (mi.getSelect() == null) {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");

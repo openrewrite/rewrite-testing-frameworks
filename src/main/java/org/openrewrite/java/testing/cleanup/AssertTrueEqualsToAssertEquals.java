@@ -102,8 +102,8 @@ public class AssertTrueEqualsToAssertEquals extends Recipe {
 
                 J.MethodInvocation methodInvocation = (J.MethodInvocation) expr;
 
-                return "equals".equals(methodInvocation.getName().getSimpleName())
-                        && methodInvocation.getArguments().size() == 1;
+                return "equals".equals(methodInvocation.getName().getSimpleName()) &&
+                        methodInvocation.getArguments().size() == 1;
             }
         });
     }
