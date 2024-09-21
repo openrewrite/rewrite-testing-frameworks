@@ -210,10 +210,7 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
             """
               import static org.assertj.core.api.Assertions.assertThat;
 
-              import org.junit.jupiter.api.Test;
-
               class MyTest {
-                  @Test
                   void test() {
                       Integer i = 1+1;
                       assertThat(i)
