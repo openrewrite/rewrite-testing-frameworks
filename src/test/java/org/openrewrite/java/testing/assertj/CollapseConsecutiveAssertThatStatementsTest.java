@@ -192,6 +192,42 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
     }
 
     @Test
+    void collapseAssertThatsOnInteger() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              import org.junit.jupiter.api.Test;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      Integer i = 1+1;
+                      assertThat(i).isNotNull();
+                      assertThat(i).isEqualTo(2);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              import org.junit.jupiter.api.Test;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      Integer i = 1+1;
+                      assertThat(i).isNotNull().isEqualTo(2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void ignoreIfAssertThatOnDifferentVariables() {
         //language=java
         rewriteRun(
