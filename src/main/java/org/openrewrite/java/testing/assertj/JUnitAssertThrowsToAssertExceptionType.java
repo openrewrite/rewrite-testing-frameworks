@@ -52,9 +52,9 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-            if (ASSERT_THROWS_MATCHER.matches(mi)
-                && mi.getArguments().size() == 2
-                && getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
+            if (ASSERT_THROWS_MATCHER.matches(mi) &&
+                mi.getArguments().size() == 2 &&
+                getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
                 J executable = mi.getArguments().get(1);
                 if (executable instanceof J.Lambda) {
                     executable = ((J.Lambda) executable).withType(THROWING_CALLABLE_TYPE);
