@@ -216,7 +216,9 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                   @Test
                   void test() {
                       Integer i = 1+1;
-                      assertThat(i).isNotNull().isEqualTo(2);
+                      assertThat(i)
+                              .isNotNull()
+                              .isEqualTo(2);
                   }
               }
               """
