@@ -15,34 +15,34 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Statement;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.search.*;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.SearchResult;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.openrewrite.java.testing.jmockit.JMockitBlockType.MockUp;
+import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
 import static org.openrewrite.java.tree.Flag.Private;
 import static org.openrewrite.java.tree.Flag.Static;
 
 public class JMockitMockUpToMockito extends Recipe {
+    private static final String MOCKITO_CLASSPATH = "mockito-core-5";
+    private static final String MOCKITO_ALL_IMPORT = "org.mockito.Mockito.*";
+    private static final String JMOCKIT_MOCKUP_IMPORT = "mockit.MockUp";
+    private static final String JMOCKIT_MOCK_IMPORT = "mockit.Mock";
+    private static final String MOCKITO_STATIC_PREFIX = "mockStatic";
+    private static final String MOCKITO_STATIC_IMPORT = "org.mockito.MockedStatic";
+    private static final String MOCKITO_CONSTRUCTION_PREFIX = "mockObj";
+    private static final String MOCKITO_CONSTRUCTION_IMPORT = "org.mockito.MockedConstruction";
+
     @Override
     public String getDisplayName() {
         return "Rewrite JMockit MockUp to Mockito statements";
@@ -59,6 +59,8 @@ public class JMockitMockUpToMockito extends Recipe {
     }
 
     private static class JMockitMockUpToMockitoVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private List<String> tearDownMocks = new ArrayList<>();
+
         private String getMatcher(JavaType s) {
             if (s instanceof JavaType.Primitive) {
                 switch (s.toString()) {
@@ -104,10 +106,10 @@ public class JMockitMockUpToMockito extends Recipe {
             sb.append("}).when(").append(objName).append(").").append(m.getSimpleName()).append("(");
 
             sb.append(m.getParameters()
-                    .stream()
-                    .filter(p -> p instanceof J.VariableDeclarations)
-                    .map(o -> getMatcher(((J.VariableDeclarations) o).getType()))
-                    .collect(Collectors.joining(", ")));
+              .stream()
+              .filter(J.VariableDeclarations.class::isInstance)
+              .map(o -> getMatcher(((J.VariableDeclarations) o).getType()))
+              .collect(Collectors.joining(", ")));
             sb.append(");");
         }
 
@@ -123,20 +125,27 @@ public class JMockitMockUpToMockito extends Recipe {
             sb.append(")).thenCallRealMethod();");
         }
 
-        private String addMockStaticMethods(JavaType.Class clazz, String className, String mockName, Map<J.MethodDeclaration, JavaType.Method> mockedMethods) {
+        private String addMockStaticMethods(boolean isBeforeTest, JavaType.Class clazz, String className, String mockName, Map<J.MethodDeclaration, JavaType.Method> mockedMethods) {
             StringBuilder tpl = new StringBuilder();
 
             // Handle mocked static mockedMethods
-            tpl.append("MockedStatic<").append(className).append("> mockStatic").append(mockName)
-                    .append(" = mockStatic(").append(className).append(".class);");
-            for (J.MethodDeclaration m : mockedMethods.keySet()) {
+            if (!isBeforeTest) {
+                tpl.append("MockedStatic<").append(className).append("> ");
+            }
+            tpl.append(MOCKITO_STATIC_PREFIX).append(mockName).append(" = mockStatic(").append(className).append(".class);");
+
+            // To generate predictable method order
+            List<J.MethodDeclaration> keys = mockedMethods.keySet().stream()
+              .sorted(Comparator.comparing((J.MethodDeclaration::print)))
+              .collect(toList());
+            for (J.MethodDeclaration m : keys) {
                 tpl.append("mockStatic").append(mockName);
                 tpl.append(".when(() -> ").append(className).append(".").append(m.getSimpleName()).append("(");
                 tpl.append(m.getParameters()
-                        .stream()
-                        .filter(p -> p instanceof J.VariableDeclarations)
-                        .map(o -> getMatcher(((J.VariableDeclarations) o).getType()))
-                        .collect(Collectors.joining(", ")));
+                  .stream()
+                  .filter(J.VariableDeclarations.class::isInstance)
+                  .map(o -> getMatcher(((J.VariableDeclarations) o).getType()))
+                  .collect(Collectors.joining(", ")));
                 tpl.append(")).thenAnswer(invocation -> {");
                 appendAnswer(tpl, m.getBody().getStatements());
                 tpl.append("});");
@@ -144,77 +153,228 @@ public class JMockitMockUpToMockito extends Recipe {
 
             // Call real method for non private, static methods
             clazz.getMethods()
-                    .stream()
-                    .filter(m -> !m.isConstructor())
-                    .filter(m -> !m.getFlags().contains(Private))
-                    .filter(m -> m.getFlags().contains(Static))
-                    .filter(m -> !mockedMethods.containsValue(m))
-                    .forEach(m -> {
-                        tpl.append("mockStatic").append(mockName).append(".when(() -> ")
-                                .append(className).append(".").append(m.getName());
-                        appendCallRealMethod(tpl, m);
-                        tpl.append(");");
-                    });
+              .stream()
+              .filter(m -> !m.isConstructor())
+              .filter(m -> !m.getFlags().contains(Private))
+              .filter(m -> m.getFlags().contains(Static))
+              .filter(m -> !mockedMethods.containsValue(m))
+              .forEach(m -> {
+                  tpl.append("mockStatic").append(mockName).append(".when(() -> ")
+                    .append(className).append(".").append(m.getName());
+                  appendCallRealMethod(tpl, m);
+                  tpl.append(");");
+              });
 
             return tpl.toString();
         }
 
-        private String addMockInstanceMethods(JavaType.Class clazz, String className, String mockName, Map<J.MethodDeclaration, JavaType.Method> mockedMethods) {
+        private String addMockInstanceMethods(boolean isBeforeTest, JavaType.Class clazz, String className, String mockName, Map<J.MethodDeclaration, JavaType.Method> mockedMethods) {
             StringBuilder tpl = new StringBuilder();
-            tpl.append("MockedConstruction<").append(className).append("> mockObj").append(mockName)
-                    .append(" = mockConstruction(").append(className).append(".class, (mock, context) -> {");
-            for (J.MethodDeclaration m : mockedMethods.keySet()) {
+            // Handle mocked static mockedMethods
+            if (!isBeforeTest) {
+                tpl.append("MockedConstruction<").append(className).append("> ");
+            }
+            tpl.append(MOCKITO_CONSTRUCTION_PREFIX).append(mockName)
+              .append(" = mockConstruction(").append(className).append(".class, (mock, context) -> {");
+
+            // To generate predictable method order
+            List<J.MethodDeclaration> keys = mockedMethods.keySet().stream()
+              .sorted(Comparator.comparing((J.MethodDeclaration::print)))
+              .collect(toList());
+            for (J.MethodDeclaration m : keys) {
                 appendDoAnswer(tpl, m, "mock");
             }
 
             // Call real method for non private, non static methods
             clazz.getMethods()
-                    .stream()
-                    .filter(m -> !m.isConstructor())
-                    .filter(m -> !m.getFlags().contains(Static))
-                    .filter(m -> !m.getFlags().contains(Private))
-                    .filter(m -> !mockedMethods.containsValue(m))
-                    .forEach(m -> {
-                        tpl.append("when(mock.").append(m.getName());
-                        appendCallRealMethod(tpl, m);
-                    });
+              .stream()
+              .filter(m -> !m.isConstructor())
+              .filter(m -> !m.getFlags().contains(Static))
+              .filter(m -> !m.getFlags().contains(Private))
+              .filter(m -> !mockedMethods.containsValue(m))
+              .forEach(m -> {
+                  tpl.append("when(mock.").append(m.getName());
+                  appendCallRealMethod(tpl, m);
+              });
 
             tpl.append("});");
             return tpl.toString();
         }
 
+        private boolean isMockUpStatement(Tree tree) {
+            return tree instanceof J.NewClass &&
+              ((J.NewClass) tree).getClazz() != null &&
+              TypeUtils.isOfClassType(((J.NewClass) tree).getClazz().getType(), JMOCKIT_MOCKUP_IMPORT);
+        }
+
+        private boolean isSetUpMethod(J.MethodDeclaration md) {
+            return md.getLeadingAnnotations().stream()
+              .anyMatch(o ->
+                TypeUtils.isOfClassType(o.getType(), "org.junit.Before") ||
+                  TypeUtils.isOfClassType(o.getType(), "org.junit.jupiter.api.BeforeEach")
+              );
+        }
+
+        private boolean isTearDownMethod(J.MethodDeclaration md) {
+            return md.getLeadingAnnotations().stream()
+              .anyMatch(o ->
+                TypeUtils.isOfClassType(o.getType(), "org.junit.After") ||
+                  TypeUtils.isOfClassType(o.getType(), "org.junit.jupiter.api.AfterEach")
+              );
+        }
+
+        private Map<J.MethodDeclaration, JavaType.Method> getMockUpMethods(J.NewClass newClass) {
+            JavaType mockType = ((J.ParameterizedType) newClass.getClazz()).getTypeParameters().get(0).getType();
+            return newClass.getBody()
+              .getStatements()
+              .stream()
+              .filter(J.MethodDeclaration.class::isInstance)
+              .map(J.MethodDeclaration.class::cast)
+              .filter(s -> s.getLeadingAnnotations().stream()
+                .anyMatch(o -> TypeUtils.isOfClassType(o.getType(), JMOCKIT_MOCK_IMPORT)))
+              .map(method -> {
+                  Optional<JavaType.Method> found = TypeUtils.findDeclaredMethod(
+                    TypeUtils.asFullyQualified(mockType),
+                    method.getSimpleName(),
+                    method.getMethodType().getParameterTypes()
+                  );
+                  if (found.isPresent()) {
+                      JavaType.Method m = found.get();
+                      if (!m.getFlags().contains(Private)) {
+                          return new AbstractMap.SimpleEntry<>(method, found.get());
+                      }
+                  }
+                  return null;
+              })
+              .filter(Objects::nonNull)
+              .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+        }
+
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
-            J.MethodDeclaration md = super.visitMethodDeclaration(methodDeclaration, ctx);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            // Handle @Before/@BeforeEach mockUp
+            Set<J.MethodDeclaration> mds = TreeVisitor.collect(
+                new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
+                        if (isSetUpMethod(md)) {
+                            return SearchResult.found(md);
+                        }
+                        return super.visitMethodDeclaration(md, ctx);
+                    }
+                },
+                classDecl,
+                new HashSet<>()
+              )
+              .stream()
+              .filter(J.MethodDeclaration.class::isInstance)
+              .map(J.MethodDeclaration.class::cast)
+              .collect(Collectors.toSet());
+            if (mds.isEmpty()) {
+                return super.visitClassDeclaration(classDecl, ctx);
+            }
+
+            final J.ClassDeclaration[] cd = {classDecl};
+            mds.forEach(md -> md.getBody()
+              .getStatements()
+              .stream()
+              .filter(this::isMockUpStatement)
+              .map(J.NewClass.class::cast)
+              .forEach(newClass -> {
+                  JavaType mockType = ((J.ParameterizedType) newClass.getClazz()).getTypeParameters().get(0).getType();
+                  String className = TypeUtils.asFullyQualified(mockType).getClassName();
+                  String mockName = className.replace(".", "_");
+                  Map<J.MethodDeclaration, JavaType.Method> mockedMethods = getMockUpMethods(newClass);
+
+                  // Add mockStatic field
+                  if (mockedMethods.values().stream().anyMatch(m -> m.getFlags().contains(Static))) {
+                      cd[0] = JavaTemplate.builder("private MockedStatic<#{}> " + MOCKITO_STATIC_PREFIX + "#{};")
+                        .contextSensitive()
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                        .imports(MOCKITO_STATIC_IMPORT)
+                        .staticImports(MOCKITO_ALL_IMPORT)
+                        .build()
+                        .apply(
+                          new Cursor(getCursor().getParentOrThrow(), cd[0]),
+                          cd[0].getBody().getCoordinates().firstStatement(),
+                          className,
+                          mockName
+                        );
+                      tearDownMocks.add(MOCKITO_STATIC_PREFIX + mockName);
+                  }
+                  // Add mockConstruction field
+                  if (mockedMethods.values().stream().anyMatch(m -> !m.getFlags().contains(Static))) {
+                      cd[0] = JavaTemplate.builder("private MockedConstruction<" + className + "> " + MOCKITO_CONSTRUCTION_PREFIX + mockName + ";")
+                        .contextSensitive()
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                        .imports(MOCKITO_CONSTRUCTION_IMPORT)
+                        .staticImports(MOCKITO_ALL_IMPORT)
+                        .doBeforeParseTemplate(System.out::println)
+                        .build()
+                        .apply(
+                          updateCursor(cd[0]),
+                          cd[0].getBody().getCoordinates().firstStatement()
+                        );
+                      tearDownMocks.add(MOCKITO_CONSTRUCTION_PREFIX + mockName);
+                  }
+              }));
+
+            cd[0] = maybeAddMethodWithAnnotation(this, cd[0], ctx, "tearDownMocks",
+              "@org.junit.After",
+              "@After",
+              "junit-4.13",
+              "org.junit.After",
+              "");
+
+            maybeAutoFormat(cd[0], cd[0].withPrefix(cd[0].getPrefix().
+              withWhitespace("")), cd[0].getName(), ctx, getCursor());
+            return super.visitClassDeclaration(cd[0], ctx);
+        }
+
+        @Override
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
             if (md.getBody() == null) {
                 return md;
             }
+            if (isTearDownMethod(md)) {
+                for (String v : tearDownMocks) {
+                    md = JavaTemplate.builder(v + ".closeOnDemand();")
+                      .contextSensitive()
+                      .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                      .imports(MOCKITO_STATIC_IMPORT, MOCKITO_CONSTRUCTION_IMPORT)
+                      .staticImports(MOCKITO_ALL_IMPORT)
+                      .doBeforeParseTemplate(System.out::println)
+                      .build()
+                      .apply(
+                        updateCursor(md),
+                        md.getBody().getCoordinates().lastStatement()
+                      );
+                }
+                return super.visitMethodDeclaration(md, ctx);
+            }
 
-            List<String> closeVariables = new ArrayList<>();
+            List<String> openedMocks = new ArrayList<>();
+            boolean isBeforeTest = isSetUpMethod(md);
             for (Statement statement : md.getBody().getStatements()) {
-                if (!(statement instanceof J.NewClass)) {
+                if (!isMockUpStatement(statement)) {
                     continue;
                 }
 
                 J.NewClass newClass = (J.NewClass) statement;
-                if (newClass.getClazz() == null || newClass.getBody() == null ||
-                        !TypeUtils.isOfClassType(newClass.getClazz().getType(), "mockit.MockUp")) {
-                    continue;
-                }
 
                 // Only discard @Mock method declarations
                 List<Statement> otherStatements = newClass
-                        .getBody()
-                        .getStatements()
-                        .stream()
-                        .filter(s -> {
-                            if (s instanceof J.MethodDeclaration) {
-                                return ((J.MethodDeclaration) s).getLeadingAnnotations().stream()
-                                        .noneMatch(o -> TypeUtils.isOfClassType(o.getType(), "mockit.Mock"));
-                            }
-                            return true;
-                        })
-                        .collect(toList());
+                  .getBody()
+                  .getStatements()
+                  .stream()
+                  .filter(s -> {
+                      if (s instanceof J.MethodDeclaration) {
+                          return ((J.MethodDeclaration) s).getLeadingAnnotations().stream()
+                            .noneMatch(o -> TypeUtils.isOfClassType(o.getType(), JMOCKIT_MOCK_IMPORT));
+                      }
+                      return true;
+                  })
+                  .collect(toList());
                 List<Statement> bodyStatements = md.getBody().getStatements();
                 bodyStatements.addAll(bodyStatements.indexOf(statement), otherStatements);
                 md = md.withBody(md.getBody().withStatements(bodyStatements));
@@ -223,71 +383,52 @@ public class JMockitMockUpToMockito extends Recipe {
                 String className = TypeUtils.asFullyQualified(mockType).getClassName();
                 String mockName = className.replace(".", "_");
 
-                Map<J.MethodDeclaration, JavaType.Method> mockedMethods = newClass.getBody()
-                        .getStatements()
-                        .stream()
-                        .filter(s -> s instanceof J.MethodDeclaration)
-                        .filter(s -> ((J.MethodDeclaration) s).getLeadingAnnotations().stream()
-                                .anyMatch(o -> TypeUtils.isOfClassType(o.getType(), "mockit.Mock")))
-                        .map(s -> {
-                            J.MethodDeclaration method = (J.MethodDeclaration) s;
-                            Optional<JavaType.Method> found = TypeUtils.findDeclaredMethod(
-                                    TypeUtils.asFullyQualified(mockType),
-                                    method.getSimpleName(),
-                                    method.getMethodType().getParameterTypes()
-                            );
-                            if (found.isPresent()) {
-                                JavaType.Method m = found.get();
-                                if (!m.getFlags().contains(Private)) {
-                                    return new AbstractMap.SimpleEntry<>(method, found.get());
-                                }
-                            }
-                            return null;
-                        })
-                        .filter(Objects::nonNull)
-                        .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+                Map<J.MethodDeclaration, JavaType.Method> mockedMethods = getMockUpMethods(newClass);
 
-                // Static
+                // Add MockStatic
                 Map<J.MethodDeclaration, JavaType.Method> mockedPublicStaticMethods = mockedMethods
-                        .entrySet()
-                        .stream()
-                        .filter(m -> m.getValue().getFlags().contains(Static))
-                        .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+                  .entrySet()
+                  .stream()
+                  .filter(m -> m.getValue().getFlags().contains(Static))
+                  .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
                 if (!mockedPublicStaticMethods.isEmpty()) {
-                    String tpl = addMockStaticMethods((JavaType.Class) mockType, className, mockName, mockedPublicStaticMethods);
-                    md = JavaTemplate.builder(tpl)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
-                            .imports("org.mockito.MockedStatic")
-                            .staticImports("org.mockito.Mockito.*")
-                            .contextSensitive()
-                            .build()
-                            .apply(updateCursor(md), statement.getCoordinates().after());
-                    maybeAddImport("org.mockito.MockedStatic");
-                    closeVariables.add("mockStatic" + mockName);
+                    md = JavaTemplate.builder(
+                        addMockStaticMethods(isBeforeTest, (JavaType.Class) mockType, className, mockName, mockedPublicStaticMethods)
+                      )
+                      .contextSensitive()
+                      .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                      .imports(MOCKITO_STATIC_IMPORT)
+                      .staticImports(MOCKITO_ALL_IMPORT)
+                      .build()
+                      .apply(updateCursor(md), statement.getCoordinates().after());
+                    maybeAddImport(MOCKITO_STATIC_IMPORT);
+                    openedMocks.add(MOCKITO_STATIC_PREFIX + mockName);
                 }
 
-                // Instance
+                // Add MockConstruction
                 Map<J.MethodDeclaration, JavaType.Method> mockedPublicMethods = mockedMethods
-                        .entrySet()
-                        .stream()
-                        .filter(m -> !m.getValue().getFlags().contains(Static))
-                        .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+                  .entrySet()
+                  .stream()
+                  .filter(m -> !m.getValue().getFlags().contains(Static))
+                  .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
                 if (!mockedPublicMethods.isEmpty()) {
-                    String tpl = addMockInstanceMethods((JavaType.Class) mockType, className, mockName, mockedPublicMethods);
-                    md = JavaTemplate.builder(tpl)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
-                            .imports("org.mockito.MockedConstruction")
-                            .staticImports("org.mockito.Mockito.*")
-                            .contextSensitive()
-                            .build()
-                            .apply(updateCursor(md), statement.getCoordinates().after());
-                    maybeAddImport("org.mockito.MockedConstruction");
-                    closeVariables.add("mockObj" + mockName);
+                    md = JavaTemplate.builder(
+                        addMockInstanceMethods(isBeforeTest, (JavaType.Class) mockType, className, mockName, mockedPublicMethods)
+                      )
+                      .contextSensitive()
+                      .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                      .doBeforeParseTemplate(System.out::println)
+                      .imports(MOCKITO_CONSTRUCTION_IMPORT)
+                      .staticImports(MOCKITO_ALL_IMPORT)
+                      .build()
+                      .apply(updateCursor(md), statement.getCoordinates().after());
+                    maybeAddImport(MOCKITO_CONSTRUCTION_IMPORT);
+                    openedMocks.add(MOCKITO_CONSTRUCTION_PREFIX + mockName);
                 }
 
                 maybeAddImport("org.mockito.Mockito", "*", false);
-                maybeRemoveImport("mockit.Mock");
-                maybeRemoveImport("mockit.MockUp");
+                maybeRemoveImport(JMOCKIT_MOCK_IMPORT);
+                maybeRemoveImport(JMOCKIT_MOCKUP_IMPORT);
 
                 // Remove MockUp statement
                 bodyStatements = md.getBody().getStatements();
@@ -296,17 +437,19 @@ public class JMockitMockUpToMockito extends Recipe {
             }
 
             // Add close statement at the end
-            for (String v : closeVariables) {
-                md = JavaTemplate.builder(v + ".close();")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
-                        .imports("org.mockito.MockedStatic", "org.mockito.MockedConstruction")
-                        .staticImports("org.mockito.Mockito.*")
-                        .contextSensitive()
-                        .build()
-                        .apply(updateCursor(md), md.getBody().getCoordinates().lastStatement());
+            if (!isBeforeTest) {
+                for (String v : openedMocks) {
+                    md = JavaTemplate.builder(v + ".closeOnDemand();")
+                      .contextSensitive()
+                      .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                      .imports(MOCKITO_STATIC_IMPORT, MOCKITO_CONSTRUCTION_IMPORT)
+                      .staticImports(MOCKITO_ALL_IMPORT)
+                      .build()
+                      .apply(updateCursor(md), md.getBody().getCoordinates().lastStatement());
+                }
             }
 
-            return maybeAutoFormat(methodDeclaration, md, ctx);
+            return super.visitMethodDeclaration(md, ctx);
         }
     }
 }
