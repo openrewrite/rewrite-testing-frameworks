@@ -227,19 +227,17 @@ public class JMockitMockUpToMockito extends Recipe {
         }
 
         private boolean isSetUpMethod(J.MethodDeclaration md) {
-            return md.getLeadingAnnotations().stream()
-              .anyMatch(o ->
-                TypeUtils.isOfClassType(o.getType(), "org.junit.Before") ||
-                  TypeUtils.isOfClassType(o.getType(), "org.junit.jupiter.api.BeforeEach")
-              );
+            return md
+              .getLeadingAnnotations()
+              .stream()
+              .anyMatch(o -> TypeUtils.isOfClassType(o.getType(), "org.junit.Before"));
         }
 
         private boolean isTearDownMethod(J.MethodDeclaration md) {
-            return md.getLeadingAnnotations().stream()
-              .anyMatch(o ->
-                TypeUtils.isOfClassType(o.getType(), "org.junit.After") ||
-                  TypeUtils.isOfClassType(o.getType(), "org.junit.jupiter.api.AfterEach")
-              );
+            return md
+              .getLeadingAnnotations()
+              .stream()
+              .anyMatch(o -> TypeUtils.isOfClassType(o.getType(), "org.junit.After"));
         }
 
         private Map<J.MethodDeclaration, JavaType.Method> getMockUpMethods(J.NewClass newClass) {
@@ -337,15 +335,13 @@ public class JMockitMockUpToMockito extends Recipe {
                   }
               }));
 
-            cd[0] = maybeAddMethodWithAnnotation(this, cd[0], ctx, "tearDownMocks",
+            cd[0] = maybeAddMethodWithAnnotation(this, cd[0], ctx, "tearDown",
               "@org.junit.After",
               "@After",
               "junit-4.13",
               "org.junit.After",
               "");
 
-            maybeAutoFormat(cd[0], cd[0].withPrefix(cd[0].getPrefix().
-              withWhitespace("")), cd[0].getName(), ctx, getCursor());
             return super.visitClassDeclaration(cd[0], ctx);
         }
 
@@ -466,6 +462,7 @@ public class JMockitMockUpToMockito extends Recipe {
                 }
             }
 
+            doAfterVisit(new RemoveUnusedLocalVariables(new String[]{}).getVisitor());
             return maybeAutoFormat(methodDecl, md, ctx);
         }
     }

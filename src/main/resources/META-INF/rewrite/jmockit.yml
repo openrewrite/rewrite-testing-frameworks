@@ -25,7 +25,6 @@ recipeList:
   - org.openrewrite.java.testing.jmockit.JMockitBlockToMockito
   - org.openrewrite.java.testing.jmockit.JMockitMockUpToMockito
   - org.openrewrite.java.testing.jmockit.JMockitAnnotatedArgumentToMockito
-  - org.openrewrite.staticanalysis.RemoveUnusedLocalVariables
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: mockit.Mocked
       newFullyQualifiedTypeName: org.mockito.Mock

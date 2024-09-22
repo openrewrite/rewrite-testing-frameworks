@@ -425,7 +425,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                   }
                             
                   @After
-                  public void tearDownMocks() {
+                  public void tearDown() {
                       mockObjMockUpTest_MyClazz.closeOnDemand();
                   }
                             
