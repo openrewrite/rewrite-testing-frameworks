@@ -82,6 +82,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           return 1024;
                       });
                       mockStaticMockUpTest_MyClazz.when(() -> MockUpTest.MyClazz.staticMethod(anyInt())).thenAnswer(invocation -> {
+                          int v = (int) invocation.getArgument(0);
                           return 128;
                       });
                       assertEquals(1024, MyClazz.staticMethod());
@@ -154,6 +155,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                               return "mockMsg";
                           }).when(mock).getMsg();
                           doAnswer(invocation -> {
+                              String echo = (String) invocation.getArgument(0);
                               return "mockEchoMsg";
                           }).when(mock).getMsg(nullable(String.class));
                       });
@@ -329,6 +331,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       });
                       MockedStatic<MockUpTest.MockUpClass> mockStaticMockUpTest_MockUpClass = mockStatic(MockUpTest.MockUpClass.class);
                       mockStaticMockUpTest_MockUpClass.when(() -> MockUpTest.MockUpClass.changeText(nullable(String.class))).thenAnswer(invocation -> {
+                          String text = (String) invocation.getArgument(0);
                           MockUpClass.Save.text = "mockText";
                           return null;
                       });
@@ -408,25 +411,94 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import org.mockito.MockedConstruction;
               import static org.junit.Assert.assertEquals;
               import static org.mockito.Mockito.*;
-
+                            
               public class MockUpTest {
                   private MockedConstruction<MockUpTest.MyClazz> mockObjMockUpTest_MyClazz;
+                  
                   @Before
                   public void init() {
+                      mockObjMockUpTest_MyClazz = mockConstruction(MockUpTest.MyClazz.class, (mock, context) -> {
+                          doAnswer(invocation -> {
+                              return "mockMsg";
+                          }).when(mock).getMsg();
+                      });
                   }
-
+                            
                   @After
                   public void tearDownMocks() {
                       mockObjMockUpTest_MyClazz.closeOnDemand();
                   }
-
+                            
                   @Test
                   public void test() {
                       assertEquals("mockMsg", new MyClazz().getMsg());
                   }
-
+                            
                   public static class MyClazz {
                       public String getMsg() {
+                          return "msg";
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    public void mockUpWithParamsTest() {
+        rewriteRun(
+          java(
+            """
+              import mockit.Mock;
+              import mockit.MockUp;
+              import org.junit.Test;
+                            
+              import static org.junit.Assert.assertEquals;
+                            
+              public class MockUpTest {
+                  @Test
+                  public void init() {
+                      new MockUp<MyClazz>() {
+                          @Mock
+                          public String getMsg(String foo, String bar, String unused) {
+                              return foo + bar;
+                          }
+                      };
+                      assertEquals("foobar", new MyClazz().getMsg("foo", "bar", "unused"));
+                  }
+                            
+                  public static class MyClazz {
+                      public String getMsg(String foo, String bar, String unused) {
+                          return "msg";
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.mockito.MockedConstruction;
+                            
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+                            
+              public class MockUpTest {
+                  @Test
+                  public void init() {
+                      MockedConstruction<MockUpTest.MyClazz> mockObjMockUpTest_MyClazz = mockConstruction(MockUpTest.MyClazz.class, (mock, context) -> {
+                          doAnswer(invocation -> {
+                              String foo = (String) invocation.getArgument(0);
+                              String bar = (String) invocation.getArgument(1);
+                              String unused = (String) invocation.getArgument(2);
+                              return foo + bar;
+                          }).when(mock).getMsg(nullable(String.class), nullable(String.class), nullable(String.class));
+                      });
+                      assertEquals("foobar", new MyClazz().getMsg("foo", "bar", "unused"));
+                      mockObjMockUpTest_MyClazz.closeOnDemand();
+                  }
+                            
+                  public static class MyClazz {
+                      public String getMsg(String foo, String bar, String unused) {
                           return "msg";
                       }
                   }

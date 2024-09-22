@@ -22,6 +22,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.*;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.SearchResult;
+import org.openrewrite.staticanalysis.RemoveUnusedLocalVariables;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -88,13 +89,31 @@ public class JMockitMockUpToMockito extends Recipe {
             return "nullable(" + TypeUtils.asFullyQualified(s).getClassName() + ".class)";
         }
 
-        private void appendAnswer(StringBuilder sb, List<Statement> statements) {
+        private void appendAnswer(StringBuilder sb, J.MethodDeclaration md) {
+            List<Statement> parameters = md.getParameters();
+            for (int i = 0; i < parameters.size(); i++) {
+                if (!(parameters.get(i) instanceof J.VariableDeclarations)) {
+                    continue;
+                }
+                J.VariableDeclarations vd = (J.VariableDeclarations) parameters.get(i);
+                String className;
+                if (vd.getType() instanceof JavaType.Primitive) {
+                    className = vd.getType().toString();
+                } else {
+                    className = vd.getTypeAsFullyQualified().getClassName();
+                }
+                String varName = vd.getVariables().get(0).getName().getSimpleName();
+                sb.append(className).append(" ").append(varName)
+                  .append(" = (").append(className).append(") invocation.getArgument(").append(i).append(");");
+            }
+
             boolean hasReturn = false;
-            for (Statement s : statements) {
+            for (Statement s : md.getBody().getStatements()) {
                 hasReturn = hasReturn || s instanceof J.Return;
                 sb.append(s.print());
                 sb.append(";");
             }
+            // Avoid syntax error
             if (!hasReturn) {
                 sb.append("return null;");
             }
@@ -102,7 +121,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
         private void appendDoAnswer(StringBuilder sb, J.MethodDeclaration m, String objName) {
             sb.append("doAnswer(invocation -> {");
-            appendAnswer(sb, m.getBody().getStatements());
+            appendAnswer(sb, m);
             sb.append("}).when(").append(objName).append(").").append(m.getSimpleName()).append("(");
 
             sb.append(m.getParameters()
@@ -147,7 +166,7 @@ public class JMockitMockUpToMockito extends Recipe {
                   .map(o -> getMatcher(((J.VariableDeclarations) o).getType()))
                   .collect(Collectors.joining(", ")));
                 tpl.append(")).thenAnswer(invocation -> {");
-                appendAnswer(tpl, m.getBody().getStatements());
+                appendAnswer(tpl, m);
                 tpl.append("});");
             }
 
@@ -309,7 +328,6 @@ public class JMockitMockUpToMockito extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
                         .imports(MOCKITO_CONSTRUCTION_IMPORT)
                         .staticImports(MOCKITO_ALL_IMPORT)
-                        .doBeforeParseTemplate(System.out::println)
                         .build()
                         .apply(
                           updateCursor(cd[0]),
@@ -332,7 +350,8 @@ public class JMockitMockUpToMockito extends Recipe {
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
+            J.MethodDeclaration md = methodDecl;
             if (md.getBody() == null) {
                 return md;
             }
@@ -343,7 +362,6 @@ public class JMockitMockUpToMockito extends Recipe {
                       .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
                       .imports(MOCKITO_STATIC_IMPORT, MOCKITO_CONSTRUCTION_IMPORT)
                       .staticImports(MOCKITO_ALL_IMPORT)
-                      .doBeforeParseTemplate(System.out::println)
                       .build()
                       .apply(
                         updateCursor(md),
@@ -417,7 +435,6 @@ public class JMockitMockUpToMockito extends Recipe {
                       )
                       .contextSensitive()
                       .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
-                      .doBeforeParseTemplate(System.out::println)
                       .imports(MOCKITO_CONSTRUCTION_IMPORT)
                       .staticImports(MOCKITO_ALL_IMPORT)
                       .build()
@@ -449,7 +466,7 @@ public class JMockitMockUpToMockito extends Recipe {
                 }
             }
 
-            return super.visitMethodDeclaration(md, ctx);
+            return maybeAutoFormat(methodDecl, md, ctx);
         }
     }
 }
