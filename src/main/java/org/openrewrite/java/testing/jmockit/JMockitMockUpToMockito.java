@@ -15,24 +15,40 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
-import org.openrewrite.*;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import org.openrewrite.Cursor;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.Tree;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.search.*;
-import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.SearchResult;
-import org.openrewrite.staticanalysis.RemoveUnusedLocalVariables;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
+import org.openrewrite.java.search.UsesType;
 import static org.openrewrite.java.testing.jmockit.JMockitBlockType.MockUp;
 import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
 import static org.openrewrite.java.tree.Flag.Private;
 import static org.openrewrite.java.tree.Flag.Static;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.SearchResult;
+import org.openrewrite.staticanalysis.RemoveUnusedLocalVariables;
+
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class JMockitMockUpToMockito extends Recipe {
     private static final String MOCKITO_CLASSPATH = "mockito-core-5";
@@ -60,7 +76,7 @@ public class JMockitMockUpToMockito extends Recipe {
     }
 
     private static class JMockitMockUpToMockitoVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private List<String> tearDownMocks = new ArrayList<>();
+        private final Map<String, J.Identifier> tearDownMocks = new HashMap<>();
 
         private String getMatcher(JavaType s) {
             if (s instanceof JavaType.Primitive) {
@@ -148,10 +164,12 @@ public class JMockitMockUpToMockito extends Recipe {
             StringBuilder tpl = new StringBuilder();
 
             // Handle mocked static mockedMethods
-            if (!isBeforeTest) {
-                tpl.append("MockedStatic<").append(className).append("> ");
+            if (isBeforeTest) {
+                tpl.append("#{any(").append(MOCKITO_STATIC_IMPORT).append(")}");
+            } else {
+                tpl.append("MockedStatic ").append(MOCKITO_STATIC_PREFIX).append(mockName);
             }
-            tpl.append(MOCKITO_STATIC_PREFIX).append(mockName).append(" = mockStatic(").append(className).append(".class);");
+            tpl.append(" = mockStatic(").append(className).append(".class);");
 
             // To generate predictable method order
             List<J.MethodDeclaration> keys = mockedMethods.keySet().stream()
@@ -189,12 +207,13 @@ public class JMockitMockUpToMockito extends Recipe {
 
         private String addMockInstanceMethods(boolean isBeforeTest, JavaType.Class clazz, String className, String mockName, Map<J.MethodDeclaration, JavaType.Method> mockedMethods) {
             StringBuilder tpl = new StringBuilder();
-            // Handle mocked static mockedMethods
-            if (!isBeforeTest) {
-                tpl.append("MockedConstruction<").append(className).append("> ");
+            // Handle mocked construction mockedMethods
+            if (isBeforeTest) {
+                tpl.append("#{any(").append(MOCKITO_CONSTRUCTION_IMPORT).append(")}");
+            } else {
+                tpl.append("MockedConstruction ").append(MOCKITO_CONSTRUCTION_PREFIX).append(mockName);
             }
-            tpl.append(MOCKITO_CONSTRUCTION_PREFIX).append(mockName)
-              .append(" = mockConstruction(").append(className).append(".class, (mock, context) -> {");
+            tpl.append(" = mockConstruction(").append(className).append(".class, (mock, context) -> {");
 
             // To generate predictable method order
             List<J.MethodDeclaration> keys = mockedMethods.keySet().stream()
@@ -305,7 +324,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
                   // Add mockStatic field
                   if (mockedMethods.values().stream().anyMatch(m -> m.getFlags().contains(Static))) {
-                      cd[0] = JavaTemplate.builder("private MockedStatic<#{}> " + MOCKITO_STATIC_PREFIX + "#{};")
+                      cd[0] = JavaTemplate.builder("private MockedStatic #{};")
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
                         .imports(MOCKITO_STATIC_IMPORT)
@@ -314,14 +333,15 @@ public class JMockitMockUpToMockito extends Recipe {
                         .apply(
                           new Cursor(getCursor().getParentOrThrow(), cd[0]),
                           cd[0].getBody().getCoordinates().firstStatement(),
-                          className,
-                          mockName
+                          MOCKITO_STATIC_PREFIX + mockName
                         );
-                      tearDownMocks.add(MOCKITO_STATIC_PREFIX + mockName);
+                      J.VariableDeclarations mockField = (J.VariableDeclarations) cd[0].getBody().getStatements().get(0);
+                      J.Identifier mockFieldId = mockField.getVariables().get(0).getName();
+                      tearDownMocks.put(MOCKITO_STATIC_PREFIX + mockName, mockFieldId);
                   }
                   // Add mockConstruction field
                   if (mockedMethods.values().stream().anyMatch(m -> !m.getFlags().contains(Static))) {
-                      cd[0] = JavaTemplate.builder("private MockedConstruction<" + className + "> " + MOCKITO_CONSTRUCTION_PREFIX + mockName + ";")
+                      cd[0] = JavaTemplate.builder("private MockedConstruction #{};")
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
                         .imports(MOCKITO_CONSTRUCTION_IMPORT)
@@ -329,9 +349,12 @@ public class JMockitMockUpToMockito extends Recipe {
                         .build()
                         .apply(
                           updateCursor(cd[0]),
-                          cd[0].getBody().getCoordinates().firstStatement()
+                          cd[0].getBody().getCoordinates().firstStatement(),
+                          MOCKITO_CONSTRUCTION_PREFIX + mockName
                         );
-                      tearDownMocks.add(MOCKITO_CONSTRUCTION_PREFIX + mockName);
+                      J.VariableDeclarations mockField = (J.VariableDeclarations) cd[0].getBody().getStatements().get(0);
+                      J.Identifier mockFieldId = mockField.getVariables().get(0).getName();
+                      tearDownMocks.put(MOCKITO_CONSTRUCTION_PREFIX + mockName, mockFieldId);
                   }
               }));
 
@@ -352,8 +375,9 @@ public class JMockitMockUpToMockito extends Recipe {
                 return md;
             }
             if (isTearDownMethod(md)) {
-                for (String v : tearDownMocks) {
-                    md = JavaTemplate.builder(v + ".closeOnDemand();")
+                for (J.Identifier id : tearDownMocks.values()) {
+                    String type = TypeUtils.asFullyQualified(id.getFieldType().getType()).getFullyQualifiedName();
+                    md = JavaTemplate.builder("#{any(" + type + ")}.closeOnDemand();")
                       .contextSensitive()
                       .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
                       .imports(MOCKITO_STATIC_IMPORT, MOCKITO_CONSTRUCTION_IMPORT)
@@ -361,10 +385,11 @@ public class JMockitMockUpToMockito extends Recipe {
                       .build()
                       .apply(
                         updateCursor(md),
-                        md.getBody().getCoordinates().lastStatement()
+                        md.getBody().getCoordinates().lastStatement(),
+                        id
                       );
                 }
-                return super.visitMethodDeclaration(md, ctx);
+                return md;
             }
 
             List<String> openedMocks = new ArrayList<>();
@@ -406,15 +431,27 @@ public class JMockitMockUpToMockito extends Recipe {
                   .filter(m -> m.getValue().getFlags().contains(Static))
                   .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
                 if (!mockedPublicStaticMethods.isEmpty()) {
-                    md = JavaTemplate.builder(
+                    JavaTemplate tpl = JavaTemplate.builder(
                         addMockStaticMethods(isBeforeTest, (JavaType.Class) mockType, className, mockName, mockedPublicStaticMethods)
                       )
                       .contextSensitive()
                       .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
                       .imports(MOCKITO_STATIC_IMPORT)
                       .staticImports(MOCKITO_ALL_IMPORT)
-                      .build()
-                      .apply(updateCursor(md), statement.getCoordinates().after());
+                      .build();
+                    if (isBeforeTest) {
+                        md = tpl.apply(
+                          updateCursor(md),
+                          statement.getCoordinates().after(),
+                          tearDownMocks.get(MOCKITO_STATIC_PREFIX + mockName)
+                        );
+                    } else {
+                        md = tpl.apply(
+                          updateCursor(md),
+                          statement.getCoordinates().after()
+                        );
+                    }
+
                     maybeAddImport(MOCKITO_STATIC_IMPORT);
                     openedMocks.add(MOCKITO_STATIC_PREFIX + mockName);
                 }
@@ -426,15 +463,27 @@ public class JMockitMockUpToMockito extends Recipe {
                   .filter(m -> !m.getValue().getFlags().contains(Static))
                   .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
                 if (!mockedPublicMethods.isEmpty()) {
-                    md = JavaTemplate.builder(
+                    JavaTemplate tpl = JavaTemplate.builder(
                         addMockInstanceMethods(isBeforeTest, (JavaType.Class) mockType, className, mockName, mockedPublicMethods)
                       )
                       .contextSensitive()
                       .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
                       .imports(MOCKITO_CONSTRUCTION_IMPORT)
                       .staticImports(MOCKITO_ALL_IMPORT)
-                      .build()
-                      .apply(updateCursor(md), statement.getCoordinates().after());
+                      .build();
+                    if (isBeforeTest) {
+                        md = tpl.apply(
+                          updateCursor(md),
+                          statement.getCoordinates().after(),
+                          tearDownMocks.get(MOCKITO_CONSTRUCTION_PREFIX + mockName)
+                        );
+                    } else {
+                        md = tpl.apply(
+                          updateCursor(md),
+                          statement.getCoordinates().after()
+                        );
+                    }
+
                     maybeAddImport(MOCKITO_CONSTRUCTION_IMPORT);
                     openedMocks.add(MOCKITO_CONSTRUCTION_PREFIX + mockName);
                 }
