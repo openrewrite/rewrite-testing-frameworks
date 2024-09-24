@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.jmockit;
 
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import lombok.SneakyThrows;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -32,12 +33,14 @@ import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWi
 import static org.openrewrite.java.tree.Flag.Private;
 import static org.openrewrite.java.tree.Flag.Static;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.SearchResult;
 import org.openrewrite.staticanalysis.RemoveUnusedLocalVariables;
 
+import java.lang.reflect.Method;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -105,7 +108,26 @@ public class JMockitMockUpToMockito extends Recipe {
             return "nullable(" + TypeUtils.asFullyQualified(s).getClassName() + ".class)";
         }
 
+        @SneakyThrows
         private void appendAnswer(StringBuilder sb, J.MethodDeclaration md) {
+            Method findRefs = RemoveUnusedLocalVariables.class
+              .getDeclaredClasses()[0]
+              .getDeclaredMethod("findRhsReferences", J.class, J.Identifier.class);
+            findRefs.setAccessible(true);
+
+            Set<String> usedVariables = new HashSet<>();
+            (new JavaIsoVisitor<Set<String>>() {
+                @SneakyThrows
+                public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> ctx) {
+                    Cursor scope = getCursor().dropParentUntil((is) -> is instanceof J.ClassDeclaration || is instanceof J.Block || is instanceof J.MethodDeclaration || is instanceof J.ForLoop || is instanceof J.ForEachLoop || is instanceof J.ForLoop.Control || is instanceof J.ForEachLoop.Control || is instanceof J.Case || is instanceof J.Try || is instanceof J.Try.Resource || is instanceof J.Try.Catch || is instanceof J.MultiCatch || is instanceof J.Lambda || is instanceof JavaSourceFile);
+                    List<J> refs = (List<J>) findRefs.invoke(null, scope.getValue(), variable.getName());
+                    if (!refs.isEmpty()) {
+                        ctx.add(variable.getSimpleName());
+                    }
+                    return super.visitVariable(variable, ctx);
+                }
+            }).visit(md, usedVariables);
+
             List<Statement> parameters = md.getParameters();
             for (int i = 0; i < parameters.size(); i++) {
                 if (!(parameters.get(i) instanceof J.VariableDeclarations)) {
@@ -119,8 +141,10 @@ public class JMockitMockUpToMockito extends Recipe {
                     className = vd.getTypeAsFullyQualified().getClassName();
                 }
                 String varName = vd.getVariables().get(0).getName().getSimpleName();
-                sb.append(className).append(" ").append(varName)
-                  .append(" = (").append(className).append(") invocation.getArgument(").append(i).append(");");
+                if (usedVariables.contains(varName)) {
+                    sb.append(className).append(" ").append(varName)
+                      .append(" = (").append(className).append(") invocation.getArgument(").append(i).append(");");
+                }
             }
 
             boolean hasReturn = false;
@@ -511,7 +535,6 @@ public class JMockitMockUpToMockito extends Recipe {
                 }
             }
 
-            doAfterVisit(new RemoveUnusedLocalVariables(new String[]{}).getVisitor());
             return maybeAutoFormat(methodDecl, md, ctx);
         }
     }

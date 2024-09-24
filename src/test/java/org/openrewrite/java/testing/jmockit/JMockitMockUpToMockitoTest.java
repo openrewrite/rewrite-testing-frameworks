@@ -81,7 +81,6 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           return 1024;
                       });
                       mockStaticMockUpTest_MyClazz.when(() -> MockUpTest.MyClazz.staticMethod(anyInt())).thenAnswer(invocation -> {
-                          int v = (int) invocation.getArgument(0);
                           return 128;
                       });
                       assertEquals(1024, MyClazz.staticMethod());
@@ -154,7 +153,6 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                               return "mockMsg";
                           }).when(mock).getMsg();
                           doAnswer(invocation -> {
-                              String echo = (String) invocation.getArgument(0);
                               return "mockEchoMsg";
                           }).when(mock).getMsg(nullable(String.class));
                       });
@@ -591,7 +589,6 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           doAnswer(invocation -> {
                               String foo = (String) invocation.getArgument(0);
                               String bar = (String) invocation.getArgument(1);
-                              String unused = (String) invocation.getArgument(2);
                               return foo + bar;
                           }).when(mock).getMsg(nullable(String.class), nullable(String.class), nullable(String.class));
                       });
