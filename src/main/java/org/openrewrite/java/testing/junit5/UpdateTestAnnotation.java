@@ -135,8 +135,8 @@ public class UpdateTestAnnotation extends Recipe {
 
                     assert lambda != null;
 
-                    if (cta.expectedException instanceof J.FieldAccess
-                        && TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
+                    if (cta.expectedException instanceof J.FieldAccess &&
+                        TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
                         m = JavaTemplate.builder("assertDoesNotThrow(#{any(org.junit.jupiter.api.function.Executable)});")
                                 .javaParser(javaParser(ctx))
                                 .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")

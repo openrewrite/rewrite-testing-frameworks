@@ -139,8 +139,8 @@ class SetupStatementsRewriter {
         if (spies.contains(identifier.getSimpleName())) {
             return false;
         }
-        if (identifier.getType() instanceof JavaType.Method
-            && TypeUtils.isAssignableTo("mockit.Invocations",
+        if (identifier.getType() instanceof JavaType.Method &&
+            TypeUtils.isAssignableTo("mockit.Invocations",
                 ((JavaType.Method) identifier.getType()).getDeclaringType())) {
             return false;
         }
@@ -149,9 +149,9 @@ class SetupStatementsRewriter {
             return true;
         }
         for (JavaType.FullyQualified annotationType : fieldType.getAnnotations()) {
-            if (TypeUtils.isAssignableTo("mockit.Mocked", annotationType)
-                || TypeUtils.isAssignableTo("mockit.Injectable", annotationType)
-                || TypeUtils.isAssignableTo("mockit.Tested", annotationType)) {
+            if (TypeUtils.isAssignableTo("mockit.Mocked", annotationType) ||
+                TypeUtils.isAssignableTo("mockit.Injectable", annotationType) ||
+                TypeUtils.isAssignableTo("mockit.Tested", annotationType)) {
                 return false;
             }
         }

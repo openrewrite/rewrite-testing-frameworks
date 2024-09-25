@@ -210,10 +210,10 @@ class ArgumentMatchersRewriter {
 
         // update the Class type parameter and method return type
         Expression classArgument = (Expression) templateParams.get(0);
-        if (classArgument.getType() == null
-                || invocationArgument.getMethodType() == null
-                || invocationArgument.getMethodType().getParameterTypes().size() != 1
-                || !(invocationArgument.getMethodType().getParameterTypes().get(0) instanceof JavaType.Parameterized)) {
+        if (classArgument.getType() == null ||
+                invocationArgument.getMethodType() == null ||
+                invocationArgument.getMethodType().getParameterTypes().size() != 1 ||
+                !(invocationArgument.getMethodType().getParameterTypes().get(0) instanceof JavaType.Parameterized)) {
             return invocationArgument;
         }
         JavaType.Parameterized newParameterType = ((JavaType.Parameterized) invocationArgument.getMethodType()

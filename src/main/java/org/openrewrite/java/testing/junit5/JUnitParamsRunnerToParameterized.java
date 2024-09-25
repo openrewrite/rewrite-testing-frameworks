@@ -148,10 +148,10 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
         private @Nullable String getAnnotationArgumentForInitMethod(J.Annotation anno, String... variableNames) {
             String value = null;
-            if (anno.getArguments() != null && anno.getArguments().size() == 1
-                && anno.getArguments().get(0) instanceof J.Assignment
-                && ((J.Assignment) anno.getArguments().get(0)).getVariable() instanceof J.Identifier
-                && ((J.Assignment) anno.getArguments().get(0)).getAssignment() instanceof J.Literal) {
+            if (anno.getArguments() != null && anno.getArguments().size() == 1 &&
+                anno.getArguments().get(0) instanceof J.Assignment &&
+                ((J.Assignment) anno.getArguments().get(0)).getVariable() instanceof J.Identifier &&
+                ((J.Assignment) anno.getArguments().get(0)).getAssignment() instanceof J.Literal) {
                 J.Assignment annoArg = (J.Assignment) anno.getArguments().get(0);
                 J.Literal assignment = (J.Literal) annoArg.getAssignment();
                 String identifier = ((J.Identifier) annoArg.getVariable()).getSimpleName();
