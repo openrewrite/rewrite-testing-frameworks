@@ -684,10 +684,8 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               
                   void test() {
                       myObject.wait();
-                      new Verifications() {{
-              
-                          myObject.wait();
-              
+                      new Verifications() {{              
+                          myObject.wait();              
                           myObject.wait(anyLong, anyInt);
                       }};
                       myObject.wait(1L);
@@ -779,7 +777,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void whenRedundantThisInVerification() {
+    void whenWithRedundantThisModifier() {
         //language=java
         rewriteRun(
           java(
@@ -788,17 +786,15 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-
+              
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-
+              
                   void test() {
                       new Verifications() {{
-                          myObject.wait(this.anyLong, anyInt);
-                          myObject.wait(anyLong);
-
+                          myObject.wait(this.anyLong, this.anyInt);
                       }};
                   }
               }
@@ -807,21 +803,22 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-
+              
               import static org.mockito.Mockito.*;
-
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   Object myObject;
-
+              
                   void test() {
                       verify(myObject).wait(anyLong(), anyInt());
-                      verify(myObject).wait(anyLong());
                   }
               }
               """
           )
         );
     }
+
+
 }
