@@ -507,6 +507,7 @@ public class JMockitMockUpToMockito extends Recipe {
                     }
 
                     maybeAddImport(MOCKITO_CONSTRUCTION_IMPORT);
+                    maybeAddImport("org.mockito.Answers", "CALLS_REAL_METHODS", false);
                     maybeAddImport("org.mockito.AdditionalAnswers", "delegatesTo", false);
                 }
 
@@ -516,7 +517,7 @@ public class JMockitMockUpToMockito extends Recipe {
             }
 
             if (!varDeclarationInTry.isEmpty()) {
-                String tpl = String.join(";", mockConstructionMethodInTry) +
+                String tpl = String.join("", mockConstructionMethodInTry) +
                   "try (" +
                   String.join(";", varDeclarationInTry) +
                   ") {" +
@@ -543,7 +544,6 @@ public class JMockitMockUpToMockito extends Recipe {
                 md = md.withBody(residualMd.getBody().withStatements(mdStatements));
             }
 
-            maybeAddImport("org.mockito.Answers", "CALLS_REAL_METHODS");
             maybeAddImport(MOCKITO_ALL_IMPORT.replace(".*", ""), "*", false);
             maybeRemoveImport(JMOCKIT_MOCK_IMPORT);
             maybeRemoveImport(JMOCKIT_MOCKUP_IMPORT);

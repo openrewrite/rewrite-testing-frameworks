@@ -109,20 +109,20 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void mockUpInstanceMethodTest() {
+    void mockUpMultipleTest() {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
-              package com.foo;
-              public static class MyClazz {
+              package com.openrewrite;
+              public static class Foo {
                   public String getMsg() {
-                      return "msg";
+                      return "foo";
                   }
               
                   public String getMsg(String echo) {
-                      return echo;
+                      return "foo" + echo;
                   }
               }
               """,
@@ -130,7 +130,23 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
           ),
           java(
             """
-              import com.foo.MyClazz;
+              package com.openrewrite;
+              public static class Bar {
+                  public String getMsg() {
+                      return "bar";
+                  }
+              
+                  public String getMsg(String echo) {
+                      return "bar" + echo;
+                  }
+              }
+              """,
+            SourceSpec::skip
+          ),
+          java(
+            """
+              import com.openrewrite.Foo;
+              import com.openrewrite.Bar;
               import org.junit.Test;
               import mockit.Mock;
               import mockit.MockUp;
@@ -139,42 +155,67 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               public class MockUpTest {
                   @Test
                   public void test() {
-                      new MockUp<MyClazz>() {
+                      new MockUp<Foo>() {
                           @Mock
                           public String getMsg() {
-                              return "mockMsg";
+                              return "FOO";
                           }
                           @Mock
                           public String getMsg(String echo) {
-                              return "mockEchoMsg";
+                              return "FOO" + echo;
                           }
                       };
-                      assertEquals("mockMsg", new MyClazz().getMsg());
-                      assertEquals("mockEchoMsg", new MyClazz().getMsg("echo"));
+                      new MockUp<Bar>() {
+                          @Mock
+                          public String getMsg() {
+                              return "BAR";
+                          }
+                          @Mock
+                          public String getMsg(String echo) {
+                              return "BAR" + echo;
+                          }
+                      };
+                      assertEquals("FOO", new Foo().getMsg());
+                      assertEquals("FOOecho", new Foo().getMsg("echo"));
+                      assertEquals("BAR", new Bar().getMsg());
+                      assertEquals("BARecho", new Bar().getMsg("echo"));
                   }
               }
               """, """
-              import com.foo.MyClazz;
+              import com.openrewrite.Foo;
+              import com.openrewrite.Bar;
               import org.junit.Test;
               import org.mockito.MockedConstruction;
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
+              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.ArgumentMatchers.*;
               import static org.mockito.Mockito.*;
               
               public class MockUpTest {
                   @Test
                   public void test() {
-                      MyClazz mockObjMyClazz = mock(MyClazz.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+                      Foo mockObjFoo = mock(Foo.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
                       doAnswer(invocation -> {
-                          return "mockMsg";
-                      }).when(mockObjMyClazz).getMsg();
+                          return "FOO";
+                      }).when(mockObjFoo).getMsg();
                       doAnswer(invocation -> {
-                          return "mockEchoMsg";
-                      }).when(mockObjMyClazz).getMsg(nullable(String.class));
-                      try (MockedConstruction mockConsMyClazz = mockConstructionWithAnswer(MyClazz.class, delegatesTo(mockObjMyClazz))) {
-                          assertEquals("mockMsg", new MyClazz().getMsg());
-                          assertEquals("mockEchoMsg", new MyClazz().getMsg("echo"));
+                          String echo = (String) invocation.getArgument(0);
+                          return "FOO" + echo;
+                      }).when(mockObjFoo).getMsg(nullable(String.class));
+                      Bar mockObjBar = mock(Bar.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+                      doAnswer(invocation -> {
+                          return "BAR";
+                      }).when(mockObjBar).getMsg();
+                      doAnswer(invocation -> {
+                          String echo = (String) invocation.getArgument(0);
+                          return "BAR" + echo;
+                      }).when(mockObjBar).getMsg(nullable(String.class));
+                      try (MockedConstruction mockConsFoo = mockConstructionWithAnswer(Foo.class, delegatesTo(mockObjFoo));MockedConstruction mockConsBar = mockConstructionWithAnswer(Bar.class, delegatesTo(mockObjBar))) {
+                          assertEquals("FOO", new Foo().getMsg());
+                          assertEquals("FOOecho", new Foo().getMsg("echo"));
+                          assertEquals("BAR", new Bar().getMsg());
+                          assertEquals("BARecho", new Bar().getMsg("echo"));
                       }
                   }
               }
@@ -228,6 +269,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
+              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.Mockito.*;
               
               public class MockUpTest {
@@ -319,6 +361,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
             """
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
+              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.ArgumentMatchers.*;
               import static org.mockito.Mockito.*;
               
@@ -415,6 +458,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import org.mockito.MockedConstruction;
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
+              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.Mockito.*;
               
               public class MockUpTest {
@@ -507,6 +551,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import org.mockito.MockedStatic;
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
+              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.Mockito.*;
               
               public class MockUpTest {
@@ -589,6 +634,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
+              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.ArgumentMatchers.*;
               import static org.mockito.Mockito.*;
               
