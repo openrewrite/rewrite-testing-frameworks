@@ -21,6 +21,8 @@ import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setParserSettings;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.SourceSpec;
+import org.openrewrite.test.TypeValidation;
 
 class JMockitMockUpToMockitoTest implements RewriteTest {
 
@@ -110,8 +112,25 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     void mockUpInstanceMethodTest() {
         //language=java
         rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
+              package com.foo;
+              public static class MyClazz {
+                  public String getMsg() {
+                      return "msg";
+                  }
+              
+                  public String getMsg(String echo) {
+                      return echo;
+                  }
+              }
+              """,
+            SourceSpec::skip
+          ),
+          java(
+            """
+              import com.foo.MyClazz;
               import org.junit.Test;
               import mockit.Mock;
               import mockit.MockUp;
@@ -133,18 +152,9 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       assertEquals("mockMsg", new MyClazz().getMsg());
                       assertEquals("mockEchoMsg", new MyClazz().getMsg("echo"));
                   }
-              
-                  public static class MyClazz {
-                      public String getMsg() {
-                          return "msg";
-                      }
-              
-                      public String getMsg(String echo) {
-                          return echo;
-                      }
-                  }
               }
               """, """
+              import com.foo.MyClazz;
               import org.junit.Test;
               import org.mockito.MockedConstruction;
               import static org.junit.Assert.assertEquals;
@@ -155,30 +165,21 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               public class MockUpTest {
                   @Test
                   public void test() {
-                      MockUpTest.MyClazz mockObjMockUpTest_MyClazz = mock(MockUpTest.MyClazz.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+                      MyClazz mockObjMyClazz = mock(MyClazz.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
                       doAnswer(invocation -> {
                           return "mockMsg";
-                      }).when(mockObjMockUpTest_MyClazz).getMsg();
+                      }).when(mockObjMyClazz).getMsg();
                       doAnswer(invocation -> {
                           return "mockEchoMsg";
-                      }).when(mockObjMockUpTest_MyClazz).getMsg(nullable(String.class));
-                      try (MockedConstruction mockConsMockUpTest_MyClazz = mockConstructionWithAnswer(MockUpTest.MyClazz.class, delegatesTo(mockObjMockUpTest_MyClazz))) {
+                      }).when(mockObjMyClazz).getMsg(nullable(String.class));
+                      try (MockedConstruction mockConsMyClazz = mockConstructionWithAnswer(MyClazz.class, delegatesTo(mockObjMyClazz))) {
                           assertEquals("mockMsg", new MyClazz().getMsg());
                           assertEquals("mockEchoMsg", new MyClazz().getMsg("echo"));
                       }
                   }
-              
-                  public static class MyClazz {
-                      public String getMsg() {
-                          return "msg";
-                      }
-              
-                      public String getMsg(String echo) {
-                          return echo;
-                      }
-                  }
               }
-              """));
+              """)
+        );
     }
 
     @Test

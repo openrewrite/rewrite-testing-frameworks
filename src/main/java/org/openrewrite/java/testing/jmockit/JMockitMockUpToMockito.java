@@ -475,6 +475,8 @@ public class JMockitMockUpToMockito extends Recipe {
                         varDeclarationInTry.add(getMockStaticDeclarationInTry(className, mockName));
                         mockStaticMethodInTry.add(getMockStaticMethods((JavaType.Class) mockType, className, mockName, mockedPublicStaticMethods));
                     }
+
+                    maybeAddImport(MOCKITO_STATIC_IMPORT);
                 }
 
                 // Add MockConstruction
@@ -503,6 +505,9 @@ public class JMockitMockUpToMockito extends Recipe {
                         varDeclarationInTry.add(getMockConstructionDeclarationInTry(className, mockName));
                         mockConstructionMethodInTry.add(getMockConstructionMethods(className, mockName, mockedPublicMethods));
                     }
+
+                    maybeAddImport(MOCKITO_CONSTRUCTION_IMPORT);
+                    maybeAddImport("org.mockito.AdditionalAnswers", "delegatesTo", false);
                 }
 
                 List<Statement> statements = md.getBody().getStatements();
@@ -538,10 +543,7 @@ public class JMockitMockUpToMockito extends Recipe {
                 md = md.withBody(residualMd.getBody().withStatements(mdStatements));
             }
 
-            maybeAddImport(MOCKITO_CONSTRUCTION_IMPORT);
-            maybeAddImport(MOCKITO_STATIC_IMPORT);
             maybeAddImport("org.mockito.Answers", "CALLS_REAL_METHODS");
-            maybeAddImport("org.mockito.AdditionalAnswers", "delegatesTo");
             maybeAddImport(MOCKITO_ALL_IMPORT.replace(".*", ""), "*", false);
             maybeRemoveImport(JMOCKIT_MOCK_IMPORT);
             maybeRemoveImport(JMOCKIT_MOCKUP_IMPORT);
