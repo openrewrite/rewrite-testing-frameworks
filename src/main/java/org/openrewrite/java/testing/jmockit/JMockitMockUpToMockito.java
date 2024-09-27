@@ -15,8 +15,6 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 import lombok.SneakyThrows;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
@@ -29,10 +27,6 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindMissingTypes;
 import org.openrewrite.java.search.UsesType;
-import static org.openrewrite.java.testing.jmockit.JMockitBlockType.MockUp;
-import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
-import static org.openrewrite.java.tree.Flag.Private;
-import static org.openrewrite.java.tree.Flag.Static;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
@@ -54,6 +48,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.MockUp;
+import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
+import static org.openrewrite.java.tree.Flag.Private;
+import static org.openrewrite.java.tree.Flag.Static;
 
 public class JMockitMockUpToMockito extends Recipe {
     private static final String MOCKITO_CLASSPATH = "mockito-core-5";
@@ -123,6 +124,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
             Set<String> usedVariables = new HashSet<>();
             (new JavaIsoVisitor<Set<String>>() {
+                @Override
                 @SneakyThrows
                 public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> ctx) {
                     Cursor scope = getCursor().dropParentUntil((is) -> is instanceof J.ClassDeclaration || is instanceof J.Block || is instanceof J.MethodDeclaration || is instanceof J.ForLoop || is instanceof J.ForEachLoop || is instanceof J.ForLoop.Control || is instanceof J.ForEachLoop.Control || is instanceof J.Case || is instanceof J.Try || is instanceof J.Try.Resource || is instanceof J.Try.Catch || is instanceof J.MultiCatch || is instanceof J.Lambda || is instanceof JavaSourceFile);
