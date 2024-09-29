@@ -100,22 +100,20 @@ class ArgumentMatchersRewriter {
         if (invocation.getSelect() instanceof J.MethodInvocation) {
             invocation = invocation.withSelect(rewriteMethodInvocation((J.MethodInvocation) invocation.getSelect()));
         }
-        // in mockito, argument matchers must be used for all arguments or none
-        List<Expression> arguments = new ArrayList<>(invocation.getArguments().size());
-        for (Expression methodArgument : invocation.getArguments()) {
-            Expression expression = methodArgument;
 
-            // identifiers following "this." should be also be considered if they are
-            // eligible, if so, convert it to the identifier for refactoring
-            if (methodArgument instanceof J.FieldAccess) {
-                J.FieldAccess fieldAccess = (J.FieldAccess) methodArgument;
+        // in mockito, argument matchers must be used for all arguments or none
+        List<Expression> arguments = invocation.getArguments();
+        // replace this.matcher with matcher, otherwise it's ignored
+        arguments.replaceAll(arg -> {
+            if (arg instanceof J.FieldAccess) {
+                J.FieldAccess fieldAccess = (J.FieldAccess) arg;
                 if (fieldAccess.getTarget() instanceof J.Identifier &&
                         ((J.Identifier) fieldAccess.getTarget()).getSimpleName().equals("this")) {
-                            expression = fieldAccess.getName();
+                    return fieldAccess.getName();
                 }
             }
-            arguments.add(expression);
-        }
+            return arg;
+        });
 
         // if there are no argument matchers, return the invocation as-is
         if (!arguments.stream().anyMatch(arg -> isJmockitArgumentMatcher(arg))) {
@@ -197,23 +195,23 @@ class ArgumentMatchersRewriter {
 
         String argumentMatcher = null;
 
-        if(type instanceof JavaType.FullyQualified) {
-            JavaType.FullyQualified fq = (JavaType.FullyQualified)type;
+        if (type instanceof JavaType.FullyQualified) {
+            JavaType.FullyQualified fq = (JavaType.FullyQualified) type;
             argumentMatcher = FQN_TO_MOCKITO_ARGUMENT_MATCHER.get(fq.getFullyQualifiedName());
             if (argumentMatcher != null) {
                 // mockito has convenience argument matchers
                 template = argumentMatcher + "()";
                 return applyArgumentTemplate(methodArgument, argumentMatcher, template, templateParams);
             }
-        } 
+        }
         // mockito uses any(Class) for all other types
         argumentMatcher = "any";
         template = argumentMatcher + "(#{any(java.lang.Class)})";
 
-        if(type instanceof JavaType.FullyQualified) {
-            templateParams.add(applyClassArgumentTemplate(methodArgument, (JavaType.FullyQualified)type));
-        } else if(type instanceof JavaType.Array){
-            templateParams.add(applyArrayClassArgumentTemplate(methodArgument, ((JavaType.Array)type).getElemType()));
+        if (type instanceof JavaType.FullyQualified) {
+            templateParams.add(applyClassArgumentTemplate(methodArgument, (JavaType.FullyQualified) type));
+        } else if (type instanceof JavaType.Array) {
+            templateParams.add(applyArrayClassArgumentTemplate(methodArgument, ((JavaType.Array) type).getElemType()));
         }
 
         J.MethodInvocation invocationArgument = (J.MethodInvocation) applyArgumentTemplate(methodArgument,
@@ -221,9 +219,9 @@ class ArgumentMatchersRewriter {
 
         // update the Class type parameter and method return type
         Expression classArgument = (Expression) templateParams.get(0);
-        if (classArgument.getType() == null || 
-                invocationArgument.getMethodType() == null || 
-                invocationArgument.getMethodType().getParameterTypes().size() != 1 || 
+        if (classArgument.getType() == null ||
+                invocationArgument.getMethodType() == null ||
+                invocationArgument.getMethodType().getParameterTypes().size() != 1 ||
                 !(invocationArgument.getMethodType().getParameterTypes().get(0) instanceof JavaType.Parameterized)) {
             return invocationArgument;
         }
@@ -239,21 +237,21 @@ class ArgumentMatchersRewriter {
     private Expression applyArrayClassArgumentTemplate(Expression methodArgument, JavaType elementType) {
 
         String newArrayElementClassName = "";
-        if(elementType instanceof JavaType.FullyQualified) {
-            newArrayElementClassName = ((JavaType.FullyQualified)elementType).getClassName();
-        } else if(elementType instanceof JavaType.Primitive){
-            newArrayElementClassName = ((JavaType.Primitive)elementType).getKeyword();
+        if (elementType instanceof JavaType.FullyQualified) {
+            newArrayElementClassName = ((JavaType.FullyQualified) elementType).getClassName();
+        } else if (elementType instanceof JavaType.Primitive) {
+            newArrayElementClassName = ((JavaType.Primitive) elementType).getKeyword();
         } else {
             newArrayElementClassName = elementType.getClass().getName();
         }
 
         return ((Expression) JavaTemplate.builder("#{}[].class")
-        .javaParser(JavaParser.fromJavaVersion())
-        .build()
-        .apply(
-                new Cursor(visitor.getCursor(), methodArgument),
-                methodArgument.getCoordinates().replace(),
-                newArrayElementClassName));
+                .javaParser(JavaParser.fromJavaVersion())
+                .build()
+                .apply(
+                        new Cursor(visitor.getCursor(), methodArgument),
+                        methodArgument.getCoordinates().replace(),
+                        newArrayElementClassName));
     }
 
     private static boolean isJmockitArgumentMatcher(Expression expression) {
