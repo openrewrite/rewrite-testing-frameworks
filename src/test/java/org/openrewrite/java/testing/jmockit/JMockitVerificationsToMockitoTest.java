@@ -795,6 +795,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   void test() {
                       new Verifications() {{
                           myObject.wait(this.anyLong, this.anyInt);
+                          myObject.wait(anyLong, this.anyInt);
                       }};
                   }
               }
@@ -812,6 +813,7 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                   Object myObject;
               
                   void test() {
+                      verify(myObject).wait(anyLong(), anyInt());
                       verify(myObject).wait(anyLong(), anyInt());
                   }
               }
