@@ -682,6 +682,25 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
     }
 
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/611")
+    void existingMockitoMockStaticShouldNotBeTouched() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+            import static org.mockito.Mockito.mockStatic;
+
+            import org.mockito.MockedStatic;
+
+            class TestClass {
+                MockedStatic<String> mocked = mockStatic(String.class);
+            }
+            """
+          )
+        );
+    }
+
+    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/358")
     void doesNotExplodeOnTopLevelMethodDeclaration() {
         rewriteRun(
