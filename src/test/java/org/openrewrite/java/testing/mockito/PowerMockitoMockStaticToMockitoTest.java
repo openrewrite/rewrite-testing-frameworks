@@ -695,7 +695,9 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
             class TestClass {
                 MockedStatic<String> mocked = mockStatic(String.class);
             }
-            """));
+            """
+          )
+        );
     }
 
     @Test
