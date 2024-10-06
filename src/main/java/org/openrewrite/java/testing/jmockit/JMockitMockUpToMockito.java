@@ -241,7 +241,7 @@ public class JMockitMockUpToMockito extends Recipe {
               .append(className)
               .append(" ")
               .append(MOCKITO_MOCK_PREFIX).append(className)
-              .append(" = mock(").append(className).append(".class, withSettings().defaultAnswer(CALLS_REAL_METHODS));");
+              .append(" = mock(").append(className).append(".class, CALLS_REAL_METHODS);");
 
             mockedMethods
               .keySet()

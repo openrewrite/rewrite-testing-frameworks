@@ -196,7 +196,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               public class MockUpTest {
                   @Test
                   public void test() {
-                      Foo mockObjFoo = mock(Foo.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+                      Foo mockObjFoo = mock(Foo.class, CALLS_REAL_METHODS);
                       doAnswer(invocation -> {
                           return "FOO";
                       }).when(mockObjFoo).getMsg();
@@ -204,7 +204,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           String echo = invocation.getArgument(0);
                           return "FOO" + echo;
                       }).when(mockObjFoo).getMsg(nullable(String.class));
-                      Bar mockObjBar = mock(Bar.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+                      Bar mockObjBar = mock(Bar.class, CALLS_REAL_METHODS);
                       doAnswer(invocation -> {
                           return "BAR";
                       }).when(mockObjBar).getMsg();
@@ -277,7 +277,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                   @Test
                   public void test() {
                       final String msg = "newMsg";
-                      MyClazz mockObjMyClazz = mock(MyClazz.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+                      MyClazz mockObjMyClazz = mock(MyClazz.class, CALLS_REAL_METHODS);
                       doAnswer(invocation -> {
                           return msg;
                       }).when(mockObjMyClazz).getMsg();
@@ -373,7 +373,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               public class MockUpTest {
                   @Test
                   public void test() {
-                      MockUpClass mockObjMockUpClass = mock(MockUpClass.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+                      MockUpClass mockObjMockUpClass = mock(MockUpClass.class, CALLS_REAL_METHODS);
                       doAnswer(invocation -> {
                           MockUpClass.Save.msg = "mockMsg";
                           return null;
@@ -467,7 +467,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               
                   @Before
                   public void setUp() {
-                      MyClazz mockObjMyClazz = mock(MyClazz.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+                      MyClazz mockObjMyClazz = mock(MyClazz.class, CALLS_REAL_METHODS);
                       doAnswer(invocation -> {
                           return "mockMsg";
                       }).when(mockObjMyClazz).getMsg();
@@ -561,7 +561,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               
                   @Before
                   public void setUp() {
-                      MyClazz mockObjMyClazz = mock(MyClazz.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+                      MyClazz mockObjMyClazz = mock(MyClazz.class, CALLS_REAL_METHODS);
                       doAnswer(invocation -> {
                           return "mockMsg";
                       }).when(mockObjMyClazz).getMsg();
@@ -642,7 +642,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               public class MockUpTest {
                   @Test
                   public void init() {
-                      MyClazz mockObjMyClazz = mock(MyClazz.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+                      MyClazz mockObjMyClazz = mock(MyClazz.class, CALLS_REAL_METHODS);
                       doAnswer(invocation -> {
                           String foo = invocation.getArgument(0);
                           String bar = invocation.getArgument(1);
