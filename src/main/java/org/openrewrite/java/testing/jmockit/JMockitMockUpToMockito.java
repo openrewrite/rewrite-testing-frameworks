@@ -152,7 +152,7 @@ public class JMockitMockUpToMockito extends Recipe {
                 String varName = vd.getVariables().get(0).getName().getSimpleName();
                 if (usedVariables.contains(varName)) {
                     sb.append(className).append(" ").append(varName)
-                      .append(" = (").append(className).append(") invocation.getArgument(").append(i).append(");");
+                      .append(" = invocation.getArgument(").append(i).append(");");
                 }
             }
 

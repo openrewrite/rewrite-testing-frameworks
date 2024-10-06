@@ -201,7 +201,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           return "FOO";
                       }).when(mockObjFoo).getMsg();
                       doAnswer(invocation -> {
-                          String echo = (String) invocation.getArgument(0);
+                          String echo = invocation.getArgument(0);
                           return "FOO" + echo;
                       }).when(mockObjFoo).getMsg(nullable(String.class));
                       Bar mockObjBar = mock(Bar.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
@@ -209,7 +209,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           return "BAR";
                       }).when(mockObjBar).getMsg();
                       doAnswer(invocation -> {
-                          String echo = (String) invocation.getArgument(0);
+                          String echo = invocation.getArgument(0);
                           return "BAR" + echo;
                       }).when(mockObjBar).getMsg(nullable(String.class));
                       try (MockedConstruction mockConsFoo = mockConstructionWithAnswer(Foo.class, delegatesTo(mockObjFoo));MockedConstruction mockConsBar = mockConstructionWithAnswer(Bar.class, delegatesTo(mockObjBar))) {
@@ -380,7 +380,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       }).when(mockObjMockUpTest_MockUpClass).changeMsg();
                       try (MockedStatic mockStaticMockUpTest_MockUpClass = mockStatic(MockUpTest.MockUpClass.class);MockedConstruction mockConsMockUpTest_MockUpClass = mockConstructionWithAnswer(MockUpTest.MockUpClass.class, delegatesTo(mockObjMockUpTest_MockUpClass))) {
                           mockStaticMockUpTest_MockUpClass.when(() -> MockUpTest.MockUpClass.changeText(nullable(String.class))).thenAnswer(invocation -> {
-                              String text = (String) invocation.getArgument(0);
+                              String text = invocation.getArgument(0);
                               MockUpClass.Save.text = "mockText";
                               return null;
                           });
@@ -644,8 +644,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                   public void init() {
                       MockUpTest.MyClazz mockObjMockUpTest_MyClazz = mock(MockUpTest.MyClazz.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
                       doAnswer(invocation -> {
-                          String foo = (String) invocation.getArgument(0);
-                          String bar = (String) invocation.getArgument(1);
+                          String foo = invocation.getArgument(0);
+                          String bar = invocation.getArgument(1);
                           return foo + bar;
                       }).when(mockObjMockUpTest_MyClazz).getMsg(nullable(String.class), nullable(String.class), nullable(String.class));
                       try (MockedConstruction mockConsMockUpTest_MyClazz = mockConstructionWithAnswer(MockUpTest.MyClazz.class, delegatesTo(mockObjMockUpTest_MyClazz))) {
