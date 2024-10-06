@@ -343,7 +343,7 @@ public class JMockitMockUpToMockito extends Recipe {
               .forEach(newClass -> {
                   JavaType mockType = ((J.ParameterizedType) newClass.getClazz()).getTypeParameters().get(0).getType();
                   String className = TypeUtils.asFullyQualified(mockType).getClassName();
-                  String mockName = className.replace(".", "_");
+                  String mockName = className.replace(".", "");
                   Map<J.MethodDeclaration, JavaType.Method> mockedMethods = getMockUpMethods(newClass);
 
                   // Add mockStatic field
@@ -447,7 +447,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
                 JavaType mockType = ((J.ParameterizedType) newClass.getClazz()).getTypeParameters().get(0).getType();
                 String className = TypeUtils.asFullyQualified(mockType).getClassName();
-                String mockName = className.replace(".", "_");
+                String mockName = className.replace(".", "");
 
                 Map<J.MethodDeclaration, JavaType.Method> mockedMethods = getMockUpMethods(newClass);
 
