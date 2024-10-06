@@ -65,7 +65,7 @@ public class JMockitMockUpToMockito extends Recipe {
     private static final String JMOCKIT_MOCK_IMPORT = "mockit.Mock";
     private static final String MOCKITO_STATIC_PREFIX = "mockStatic";
     private static final String MOCKITO_STATIC_IMPORT = "org.mockito.MockedStatic";
-    private static final String MOCKITO_MOCK_PREFIX = "mockObj";
+    private static final String MOCKITO_MOCK_PREFIX = "mock";
     private static final String MOCKITO_CONSTRUCTION_PREFIX = "mockCons";
     private static final String MOCKITO_CONSTRUCTION_IMPORT = "org.mockito.MockedConstruction";
 
