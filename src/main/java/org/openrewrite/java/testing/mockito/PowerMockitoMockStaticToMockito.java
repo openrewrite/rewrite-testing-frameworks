@@ -192,7 +192,9 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
             if (MOCKED_STATIC_MATCHER.matches(mi)) {
                 determineTestGroups();
-                if (!getCursor().getPath(o -> o instanceof J.Assignment || o instanceof J.Try.Resource).hasNext()) {
+                if (!getCursor().getPath(o -> o instanceof J.VariableDeclarations ||
+                                              o instanceof J.Assignment ||
+                                              o instanceof J.Try.Resource).hasNext()) {
                     //noinspection DataFlowIssue
                     return null;
                 }
