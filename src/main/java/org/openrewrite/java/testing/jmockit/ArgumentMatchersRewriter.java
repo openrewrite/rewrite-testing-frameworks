@@ -85,7 +85,8 @@ class ArgumentMatchersRewriter {
     J.Block rewriteJMockitBlock() {
         List<Statement> newStatements = new ArrayList<>(expectationsBlock.getStatements().size());
         for (Statement expectationStatement : expectationsBlock.getStatements()) {
-            // for each statement, check if it's a method invocation and replace any argument matchers
+            // for each statement, check if it's a method invocation and replace any
+            // argument matchers
             if (!(expectationStatement instanceof J.MethodInvocation)) {
                 newStatements.add(expectationStatement);
                 continue;
@@ -99,17 +100,23 @@ class ArgumentMatchersRewriter {
         if (invocation.getSelect() instanceof J.MethodInvocation) {
             invocation = invocation.withSelect(rewriteMethodInvocation((J.MethodInvocation) invocation.getSelect()));
         }
+
         // in mockito, argument matchers must be used for all arguments or none
-        boolean hasArgumentMatcher = false;
         List<Expression> arguments = invocation.getArguments();
-        for (Expression methodArgument : arguments) {
-            if (isJmockitArgumentMatcher(methodArgument)) {
-                hasArgumentMatcher = true;
-                break;
+        // replace this.matcher with matcher, otherwise it's ignored
+        arguments.replaceAll(arg -> {
+            if (arg instanceof J.FieldAccess) {
+                J.FieldAccess fieldAccess = (J.FieldAccess) arg;
+                if (fieldAccess.getTarget() instanceof J.Identifier &&
+                        ((J.Identifier) fieldAccess.getTarget()).getSimpleName().equals("this")) {
+                    return fieldAccess.getName();
+                }
             }
-        }
+            return arg;
+        });
+
         // if there are no argument matchers, return the invocation as-is
-        if (!hasArgumentMatcher) {
+        if (!arguments.stream().anyMatch(arg -> isJmockitArgumentMatcher(arg))) {
             return invocation;
         }
         // replace each argument with the appropriate argument matcher
@@ -145,9 +152,9 @@ class ArgumentMatchersRewriter {
             // ((int) any) to anyInt(), ((long) any) to anyLong(), etc
             argumentMatcher = PRIMITIVE_TO_MOCKITO_ARGUMENT_MATCHER.get(type);
             template = argumentMatcher + "()";
-        } else if (type instanceof JavaType.FullyQualified) {
-            // ((<type>) any) to any(<type>.class)
-            return rewriteFullyQualifiedToArgumentMatcher(methodArgument, (JavaType.FullyQualified) type);
+        } else if (type instanceof JavaType.FullyQualified || type instanceof JavaType.Array) {
+            // ((<type>) any) to any(<type>.class), type can also be simple array
+            return rewriteAnyWithClassParameterToArgumentMatcher(methodArgument, type);
         }
         if (template == null || argumentMatcher == null) {
             // unhandled type, return argument unchanged
@@ -157,7 +164,7 @@ class ArgumentMatchersRewriter {
     }
 
     private Expression applyArgumentTemplate(Expression methodArgument, String argumentMatcher, String template,
-                                             List<Object> templateParams) {
+            List<Object> templateParams) {
         visitor.maybeAddImport("org.mockito.Mockito", argumentMatcher);
         return JavaTemplate.builder(template)
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
@@ -166,8 +173,7 @@ class ArgumentMatchersRewriter {
                 .apply(
                         new Cursor(visitor.getCursor(), methodArgument),
                         methodArgument.getCoordinates().replace(),
-                        templateParams.toArray()
-                );
+                        templateParams.toArray());
     }
 
     private Expression applyClassArgumentTemplate(Expression methodArgument, JavaType.FullyQualified type) {
@@ -179,24 +185,34 @@ class ArgumentMatchersRewriter {
                 .apply(
                         new Cursor(visitor.getCursor(), methodArgument),
                         methodArgument.getCoordinates().replace(),
-                        type.getClassName()
-                ))
+                        type.getClassName()))
                 .withType(type);
     }
 
-    private Expression rewriteFullyQualifiedToArgumentMatcher(Expression methodArgument, JavaType.FullyQualified type) {
+    private Expression rewriteAnyWithClassParameterToArgumentMatcher(Expression methodArgument, JavaType type) {
         String template;
         List<Object> templateParams = new ArrayList<>();
-        String argumentMatcher = FQN_TO_MOCKITO_ARGUMENT_MATCHER.get(type.getFullyQualifiedName());
-        if (argumentMatcher != null) {
-            // mockito has convenience argument matchers
-            template = argumentMatcher + "()";
-            return applyArgumentTemplate(methodArgument, argumentMatcher, template, templateParams);
+
+        String argumentMatcher = null;
+
+        if (type instanceof JavaType.FullyQualified) {
+            JavaType.FullyQualified fq = (JavaType.FullyQualified) type;
+            argumentMatcher = FQN_TO_MOCKITO_ARGUMENT_MATCHER.get(fq.getFullyQualifiedName());
+            if (argumentMatcher != null) {
+                // mockito has convenience argument matchers
+                template = argumentMatcher + "()";
+                return applyArgumentTemplate(methodArgument, argumentMatcher, template, templateParams);
+            }
         }
         // mockito uses any(Class) for all other types
         argumentMatcher = "any";
         template = argumentMatcher + "(#{any(java.lang.Class)})";
-        templateParams.add(applyClassArgumentTemplate(methodArgument, type));
+
+        if (type instanceof JavaType.FullyQualified) {
+            templateParams.add(applyClassArgumentTemplate(methodArgument, (JavaType.FullyQualified) type));
+        } else if (type instanceof JavaType.Array) {
+            templateParams.add(applyArrayClassArgumentTemplate(methodArgument, ((JavaType.Array) type).getElemType()));
+        }
 
         J.MethodInvocation invocationArgument = (J.MethodInvocation) applyArgumentTemplate(methodArgument,
                 argumentMatcher, template, templateParams);
@@ -209,13 +225,33 @@ class ArgumentMatchersRewriter {
                 !(invocationArgument.getMethodType().getParameterTypes().get(0) instanceof JavaType.Parameterized)) {
             return invocationArgument;
         }
-        JavaType.Parameterized newParameterType =
-                ((JavaType.Parameterized) invocationArgument.getMethodType().getParameterTypes().get(0))
-                        .withTypeParameters(Collections.singletonList(classArgument.getType()));
+        JavaType.Parameterized newParameterType = ((JavaType.Parameterized) invocationArgument.getMethodType()
+                .getParameterTypes().get(0))
+                .withTypeParameters(Collections.singletonList(classArgument.getType()));
         JavaType.Method newMethodType = invocationArgument.getMethodType()
                 .withReturnType(classArgument.getType())
                 .withParameterTypes(Collections.singletonList(newParameterType));
         return invocationArgument.withMethodType(newMethodType);
+    }
+
+    private Expression applyArrayClassArgumentTemplate(Expression methodArgument, JavaType elementType) {
+
+        String newArrayElementClassName = "";
+        if (elementType instanceof JavaType.FullyQualified) {
+            newArrayElementClassName = ((JavaType.FullyQualified) elementType).getClassName();
+        } else if (elementType instanceof JavaType.Primitive) {
+            newArrayElementClassName = ((JavaType.Primitive) elementType).getKeyword();
+        } else {
+            newArrayElementClassName = elementType.getClass().getName();
+        }
+
+        return ((Expression) JavaTemplate.builder("#{}[].class")
+                .javaParser(JavaParser.fromJavaVersion())
+                .build()
+                .apply(
+                        new Cursor(visitor.getCursor(), methodArgument),
+                        methodArgument.getCoordinates().replace(),
+                        newArrayElementClassName));
     }
 
     private static boolean isJmockitArgumentMatcher(Expression expression) {
