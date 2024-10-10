@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 package org.openrewrite.java.testing.mockito;
-import org.jetbrains.annotations.NotNull;
+
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.NlsRewrite;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -30,21 +29,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class SonarS6068Fixer extends Recipe {
-    @NlsRewrite.DisplayName
-    @NotNull
     @Override
     public String getDisplayName() {
         return "java:S6068";
     }
 
-    @NotNull
-    @NlsRewrite.Description
     @Override
     public String getDescription() {
         return "Fixes Sonar Issue [java:S6068: Call to Mockito method \"verify\", \"when\" or \"given\" should be simplified].";
     }
 
-    @NotNull
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new SonarS6068FixerVisitor();
