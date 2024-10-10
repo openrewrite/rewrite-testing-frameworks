@@ -1,5 +1,19 @@
+/*
+ * Copyright 2024 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.openrewrite.java.testing.mockito;
-
 import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.NlsRewrite;
@@ -38,8 +52,8 @@ public class SonarS6068Fixer extends Recipe {
 
     static class SonarS6068FixerVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation originalInvocation, ExecutionContext executionContext) {
-            final J.MethodInvocation methodInvocation = super.visitMethodInvocation(originalInvocation, executionContext);
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation originalInvocation, ExecutionContext ctx) {
+            final J.MethodInvocation methodInvocation = super.visitMethodInvocation(originalInvocation, ctx);
 
             if (isMockitoWhen(methodInvocation) && methodInvocation.getArguments().get(0) instanceof J.MethodInvocation) {
                 final J.MethodInvocation whenArgument = (J.MethodInvocation) methodInvocation.getArguments().get(0);
@@ -57,9 +71,9 @@ public class SonarS6068Fixer extends Recipe {
         }
 
         private boolean isMockitoWhen(J.MethodInvocation methodInvocation) {
-            return methodInvocation.getMethodType() != null
-                   && TypeUtils.isOfType(methodInvocation.getMethodType().getDeclaringType(), JavaType.buildType("org.mockito.Mockito"))
-                   && methodInvocation.getSimpleName().equals("when");
+            return methodInvocation.getMethodType() != null &&
+                   TypeUtils.isOfType(methodInvocation.getMethodType().getDeclaringType(), JavaType.buildType("org.mockito.Mockito")) &&
+                   methodInvocation.getSimpleName().equals("when");
         }
 
         private boolean isInvokedOnVerify(J.MethodInvocation methodInvocation) {
@@ -73,8 +87,8 @@ public class SonarS6068Fixer extends Recipe {
             }
 
             final J.MethodInvocation selectInvocation = (J.MethodInvocation) select;
-            return TypeUtils.isOfType(selectInvocation.getMethodType().getDeclaringType(), JavaType.buildType("org.mockito.Mockito"))
-                   && selectInvocation.getSimpleName().equals("verify");
+            return TypeUtils.isOfType(selectInvocation.getMethodType().getDeclaringType(), JavaType.buildType("org.mockito.Mockito")) &&
+                   selectInvocation.getSimpleName().equals("verify");
         }
 
         private J.MethodInvocation checkAndUpdateEq(J.MethodInvocation methodInvocation) {
