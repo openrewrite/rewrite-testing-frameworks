@@ -50,22 +50,22 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation originalInvocation, ExecutionContext ctx) {
-                 J.MethodInvocation methodInvocation = super.visitMethodInvocation(originalInvocation, ctx);
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
+                 J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
 
-                if (isMockitoWhen(methodInvocation) && methodInvocation.getArguments().get(0) instanceof J.MethodInvocation) {
-                     J.MethodInvocation whenArgument = (J.MethodInvocation) methodInvocation.getArguments().get(0);
-                     List<Expression> originalArguments = methodInvocation.getArguments();
+                if (isMockitoWhen(mi) && mi.getArguments().get(0) instanceof J.MethodInvocation) {
+                     J.MethodInvocation whenArgument = (J.MethodInvocation) mi.getArguments().get(0);
+                     List<Expression> originalArguments = mi.getArguments();
                      J.MethodInvocation updatedInvocation = checkAndUpdateEq(whenArgument);
                      List<Expression> updatedArguments = new ArrayList<>(originalArguments);
                     updatedArguments.set(0, updatedInvocation);
 
-                    return methodInvocation.withArguments(updatedArguments);
-                } else if (isInvokedOnVerify(methodInvocation)) {
-                    return checkAndUpdateEq(methodInvocation);
+                    return mi.withArguments(updatedArguments);
+                } else if (isInvokedOnVerify(mi)) {
+                    return checkAndUpdateEq(mi);
                 }
 
-                return originalInvocation;
+                return mi;
             }
 
             private boolean isMockitoWhen(J.MethodInvocation methodInvocation) {
@@ -98,7 +98,7 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
 
                  List<Expression> updatedArguments = originalArguments.stream()
                         .map(J.MethodInvocation.class::cast)
-                        .map(invocation -> invocation.getArguments().get(0))
+                        .map(invocation -> invocation.getArguments().get(0).<Expression>withPrefix(invocation.getPrefix()))
                         .collect(Collectors.toList());
 
                 return methodInvocation.withArguments(updatedArguments);

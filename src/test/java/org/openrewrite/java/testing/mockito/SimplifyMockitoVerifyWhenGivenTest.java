@@ -17,19 +17,25 @@ package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
 class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
 
+    @Override
+    public void defaults(RecipeSpec spec) {
+        spec.recipe(new SimplifyMockitoVerifyWhenGiven())
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core"));
+    }
+
     @DocumentExample
     @Test
     void verify_Simple_ShouldUpdate() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyMockitoVerifyWhenGiven())
-            .typeValidationOptions(TypeValidation.builder().build()),
           //language=Java
           java(
             """
@@ -38,7 +44,7 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
               import static org.mockito.ArgumentMatchers.eq;
               class Test {
                   public void test() {
-                      final var mockString = mock(String.class);
+                      var mockString = mock(String.class);
                       verify(mockString).replace(eq("foo"), eq("bar"));
                   }
               }
@@ -49,8 +55,8 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
               import static org.mockito.ArgumentMatchers.eq;
               class Test {
                   public void test() {
-                      final var mockString = mock(String.class);
-                      verify(mockString).replace("foo","bar");
+                      var mockString = mock(String.class);
+                      verify(mockString).replace("foo", "bar");
                   }
               }
               """
@@ -61,8 +67,6 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
     @Test
     void when_Simple_ShouldUpdate() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyMockitoVerifyWhenGiven())
-            .typeValidationOptions(TypeValidation.builder().build()),
           //language=Java
           java(
             """
@@ -71,7 +75,7 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
               import static org.mockito.ArgumentMatchers.eq;
               class Test {
                   public void test() {
-                      final var mockString = mock(String.class);
+                      var mockString = mock(String.class);
                       when(mockString.replace(eq("foo"), eq("bar"))).thenReturn("bar");
                   }
               }
@@ -82,7 +86,7 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
               import static org.mockito.ArgumentMatchers.eq;
               class Test {
                   public void test() {
-                      final var mockString = mock(String.class);
+                      var mockString = mock(String.class);
                       when(mockString.replace("foo", "bar")).thenReturn("bar");
                   }
               }
@@ -94,8 +98,6 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
     @Test
     void when_MoreComplexMatchers_ShouldNotUpdate() {
         rewriteRun(
-          spec -> spec.recipe(new SimplifyMockitoVerifyWhenGiven())
-            .typeValidationOptions(TypeValidation.builder().build()),
           //language=Java
           java(
             """
@@ -105,7 +107,7 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
               import static org.mockito.ArgumentMatchers.anyString;
               class Test {
                   public void test() {
-                      final var mockString = mock(String.class);
+                      var mockString = mock(String.class);
                       when(mockString.replace(eq("foo"), anyString())).thenReturn("bar");
                   }
               }
