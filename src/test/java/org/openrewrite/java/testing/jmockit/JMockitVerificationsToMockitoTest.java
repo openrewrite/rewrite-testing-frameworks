@@ -777,4 +777,55 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void whenUnsupportedType() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.VerificationsInOrder;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+                 
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+                 
+                  void test() {
+                      myObject.wait(1L);
+                      myObject.wait(2L, 1);
+                      new VerificationsInOrder() {{
+                          myObject.wait();
+                          myObject.wait(anyLong, anyInt);
+                      }};
+                  }
+              }
+              """,
+            """
+              import mockit.VerificationsInOrder;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+                                                        
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+                            
+                  void test() {
+                      myObject.wait(1L);
+                      myObject.wait(2L, 1);
+                      new VerificationsInOrder() {{
+                          myObject.wait();
+                          myObject.wait(anyLong, anyInt);
+                      }};
+                  }
+              }
+              """
+          )
+        );
+    }
 }
