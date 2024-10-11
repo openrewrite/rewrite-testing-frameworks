@@ -61,6 +61,9 @@ recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: "org.assertj.core.api.AssertionsForInterfaceTypes assertThat(..)"
       fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: "org.assertj.core.api.Fail fail(..)"
+      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
   - org.openrewrite.java.UseStaticImport:
       methodPattern: "org.assertj.core.api.Assertions *(..)"
 
