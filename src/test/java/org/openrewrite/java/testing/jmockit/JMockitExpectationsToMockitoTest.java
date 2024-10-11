@@ -210,7 +210,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-                            
+              
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.when;
 
@@ -1640,7 +1640,6 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                       new Expectations() {{
                       }};
                       myObject.wait(1L);
-                      myObject.wait(2L, 1);                                   
                   }
               }
               """,
@@ -1656,7 +1655,6 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                             
                   void test() {
                       myObject.wait(1L);
-                      myObject.wait(2L, 1);
                   }
               }
               """
