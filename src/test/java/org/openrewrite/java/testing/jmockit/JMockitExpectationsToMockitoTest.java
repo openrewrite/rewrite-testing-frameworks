@@ -210,7 +210,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-              
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.when;
 
@@ -1083,7 +1083,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mocked
                   Object myObject;
-              
+
                   void test() {
                       new Expectations() {{
                           myObject.wait(anyLong, anyInt);
@@ -1104,7 +1104,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mock
                   Object myObject;
-              
+
                   void test() {
                       myObject.wait(10L, 10);
                       verify(myObject, atLeast(2)).wait(anyLong(), anyInt());
@@ -1130,7 +1130,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mocked
                   Object myObject;
-              
+
                   void test() {
                       new Expectations() {{
                           myObject.wait(anyLong, anyInt);
@@ -1151,7 +1151,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mock
                   Object myObject;
-              
+
                   void test() {
                       myObject.wait(10L, 10);
                       verify(myObject, atMost(5)).wait(anyLong(), anyInt());
@@ -1177,7 +1177,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mocked
                   Object myObject;
-              
+
                   void test() {
                       new Expectations() {{
                           myObject.wait(anyLong, anyInt);
@@ -1199,7 +1199,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mock
                   Object myObject;
-              
+
                   void test() {
                       myObject.wait(10L, 10);
                       verify(myObject, atLeast(1)).wait(anyLong(), anyInt());
@@ -1500,7 +1500,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void whenMultipleExpectationsNoResults() { 
+    void whenMultipleExpectationsNoResults() {
         //language=java
         rewriteRun(
           java(
@@ -1558,7 +1558,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void whenWithRedundantThisModifier() { 
+    void whenWithRedundantThisModifier() {
         //language=java
         rewriteRun(
           java(

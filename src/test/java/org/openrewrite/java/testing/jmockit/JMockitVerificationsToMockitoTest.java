@@ -894,5 +894,4 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
           )
         );
     }
-
 }

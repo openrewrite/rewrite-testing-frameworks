@@ -85,8 +85,7 @@ class ArgumentMatchersRewriter {
     J.Block rewriteJMockitBlock() {
         List<Statement> newStatements = new ArrayList<>(expectationsBlock.getStatements().size());
         for (Statement expectationStatement : expectationsBlock.getStatements()) {
-            // for each statement, check if it's a method invocation and replace any
-            // argument matchers
+            // for each statement, check if it's a method invocation and replace any argument matchers
             if (!(expectationStatement instanceof J.MethodInvocation)) {
                 newStatements.add(expectationStatement);
                 continue;
@@ -108,7 +107,7 @@ class ArgumentMatchersRewriter {
             if (arg instanceof J.FieldAccess) {
                 J.FieldAccess fieldAccess = (J.FieldAccess) arg;
                 if (fieldAccess.getTarget() instanceof J.Identifier &&
-                        ((J.Identifier) fieldAccess.getTarget()).getSimpleName().equals("this")) {
+                        "this".equals(((J.Identifier) fieldAccess.getTarget()).getSimpleName())) {
                     return fieldAccess.getName();
                 }
             }
@@ -116,7 +115,7 @@ class ArgumentMatchersRewriter {
         });
 
         // if there are no argument matchers, return the invocation as-is
-        if (!arguments.stream().anyMatch(arg -> isJmockitArgumentMatcher(arg))) {
+        if (arguments.stream().noneMatch(ArgumentMatchersRewriter::isJmockitArgumentMatcher)) {
             return invocation;
         }
         // replace each argument with the appropriate argument matcher
@@ -193,11 +192,9 @@ class ArgumentMatchersRewriter {
         String template;
         List<Object> templateParams = new ArrayList<>();
 
-        String argumentMatcher = null;
-
         if (type instanceof JavaType.FullyQualified) {
             JavaType.FullyQualified fq = (JavaType.FullyQualified) type;
-            argumentMatcher = FQN_TO_MOCKITO_ARGUMENT_MATCHER.get(fq.getFullyQualifiedName());
+            String argumentMatcher = FQN_TO_MOCKITO_ARGUMENT_MATCHER.get(fq.getFullyQualifiedName());
             if (argumentMatcher != null) {
                 // mockito has convenience argument matchers
                 template = argumentMatcher + "()";
@@ -205,7 +202,7 @@ class ArgumentMatchersRewriter {
             }
         }
         // mockito uses any(Class) for all other types
-        argumentMatcher = "any";
+        String argumentMatcher = "any";
         template = argumentMatcher + "(#{any(java.lang.Class)})";
 
         if (type instanceof JavaType.FullyQualified) {
@@ -235,7 +232,6 @@ class ArgumentMatchersRewriter {
     }
 
     private Expression applyArrayClassArgumentTemplate(Expression methodArgument, JavaType elementType) {
-
         String newArrayElementClassName = "";
         if (elementType instanceof JavaType.FullyQualified) {
             newArrayElementClassName = ((JavaType.FullyQualified) elementType).getClassName();
@@ -245,13 +241,13 @@ class ArgumentMatchersRewriter {
             newArrayElementClassName = elementType.getClass().getName();
         }
 
-        return ((Expression) JavaTemplate.builder("#{}[].class")
+        return JavaTemplate.builder("#{}[].class")
                 .javaParser(JavaParser.fromJavaVersion())
                 .build()
                 .apply(
                         new Cursor(visitor.getCursor(), methodArgument),
                         methodArgument.getCoordinates().replace(),
-                        newArrayElementClassName));
+                        newArrayElementClassName);
     }
 
     private static boolean isJmockitArgumentMatcher(Expression expression) {
