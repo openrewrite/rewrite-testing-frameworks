@@ -684,10 +684,8 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
               
                   void test() {
                       myObject.wait();
-                      new Verifications() {{
-              
-                          myObject.wait();
-              
+                      new Verifications() {{              
+                          myObject.wait();              
                           myObject.wait(anyLong, anyInt);
                       }};
                       myObject.wait(1L);
@@ -822,6 +820,125 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
                           myObject.wait();
                           myObject.wait(anyLong, anyInt);
                       }};
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenWithRedundantThisModifier() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Verifications;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+              
+                  void test() {
+                      new Verifications() {{
+                          myObject.wait(this.anyLong, this.anyInt);
+                          myObject.wait(anyLong, this.anyInt);
+                      }};
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              
+              import static org.mockito.Mockito.*;
+              
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+              
+                  void test() {
+                      verify(myObject).wait(anyLong(), anyInt());
+                      verify(myObject).wait(anyLong(), anyInt());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenArrayArgumentMatcher() {
+        //language=java
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
+          java(
+            """
+              import java.util.List;
+              
+              class MyObject {
+                  public String getSomeObject(Object input) {
+                      return "Z";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import java.util.ArrayList;
+              import java.util.List;
+              
+              import mockit.Mocked;
+              import mockit.Verifications;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  MyObject myObject;
+              
+                  void test() {
+                      myObject.getSomeObject(new byte[0]);
+                      myObject.getSomeObject(new int[0]);
+                      myObject.getSomeObject(new Exception[0]);
+                      new Verifications() {{
+                          myObject.getSomeObject((byte[]) any);
+                          myObject.getSomeObject((int[]) any);
+                          myObject.getSomeObject((Exception[]) any);
+                      }};
+                  }
+              }
+              """,
+            """
+              import java.util.ArrayList;
+              import java.util.List;
+              
+              import static org.mockito.Mockito.any;
+              import static org.mockito.Mockito.verify;
+              
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  MyObject myObject;
+              
+                  void test() {
+                      myObject.getSomeObject(new byte[0]);
+                      myObject.getSomeObject(new int[0]);
+                      myObject.getSomeObject(new Exception[0]);
+                      verify(myObject).getSomeObject(any(byte[].class));
+                      verify(myObject).getSomeObject(any(int[].class));
+                      verify(myObject).getSomeObject(any(Exception[].class));
                   }
               }
               """

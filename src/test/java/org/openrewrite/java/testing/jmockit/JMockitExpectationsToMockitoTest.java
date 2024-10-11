@@ -210,7 +210,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-              
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.when;
 
@@ -668,6 +668,9 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   public String getSomeOtherField(Object input) {
                       return "Y";
                   }
+                  public String getSomeArrayField(Object input) {
+                      return "Z";
+                  }
               }
               """
           ),
@@ -694,9 +697,12 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                           result = null;
                           myObject.getSomeOtherField((Object) any);
                           result = null;
+                          myObject.getSomeArrayField((byte[]) any);
+                          result = null;
                       }};
                       assertNull(myObject.getSomeField(new ArrayList<>()));
                       assertNull(myObject.getSomeOtherField(new Object()));
+                      assertNull(myObject.getSomeArrayField(new byte[0]));
                   }
               }
               """,
@@ -719,8 +725,10 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   void test() {
                       when(myObject.getSomeField(anyList())).thenReturn(null);
                       when(myObject.getSomeOtherField(any(Object.class))).thenReturn(null);
+                      when(myObject.getSomeArrayField(any(byte[].class))).thenReturn(null);
                       assertNull(myObject.getSomeField(new ArrayList<>()));
                       assertNull(myObject.getSomeOtherField(new Object()));
+                      assertNull(myObject.getSomeArrayField(new byte[0]));
                   }
               }
               """
@@ -1075,7 +1083,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mocked
                   Object myObject;
-              
+
                   void test() {
                       new Expectations() {{
                           myObject.wait(anyLong, anyInt);
@@ -1096,7 +1104,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mock
                   Object myObject;
-              
+
                   void test() {
                       myObject.wait(10L, 10);
                       verify(myObject, atLeast(2)).wait(anyLong(), anyInt());
@@ -1122,7 +1130,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mocked
                   Object myObject;
-              
+
                   void test() {
                       new Expectations() {{
                           myObject.wait(anyLong, anyInt);
@@ -1143,7 +1151,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mock
                   Object myObject;
-              
+
                   void test() {
                       myObject.wait(10L, 10);
                       verify(myObject, atMost(5)).wait(anyLong(), anyInt());
@@ -1169,7 +1177,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mocked
                   Object myObject;
-              
+
                   void test() {
                       new Expectations() {{
                           myObject.wait(anyLong, anyInt);
@@ -1191,7 +1199,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               class MyTest {
                   @Mock
                   Object myObject;
-              
+
                   void test() {
                       myObject.wait(10L, 10);
                       verify(myObject, atLeast(1)).wait(anyLong(), anyInt());
@@ -1542,6 +1550,57 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                       myObject.wait();
                       verify(myObject).wait(anyLong());
                       verify(myObject).wait();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenWithRedundantThisModifier() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertNull;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test() {
+                      new Expectations() {{
+                          myObject.wait(this.anyLong, anyInt);
+                      }};
+                      myObject.wait();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.*;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test() {
+                      myObject.wait();
+                      verify(myObject).wait(anyLong(), anyInt());
                   }
               }
               """
