@@ -34,7 +34,7 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
 
     @DocumentExample
     @Test
-    void verify_Simple_ShouldUpdate() {
+    void shouldRemoveUnneccesaryEqFromVerify() {
         rewriteRun(
           //language=Java
           java(
@@ -42,8 +42,9 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
               import static org.mockito.Mockito.verify;
               import static org.mockito.Mockito.mock;
               import static org.mockito.ArgumentMatchers.eq;
+              
               class Test {
-                  public void test() {
+                  void test() {
                       var mockString = mock(String.class);
                       verify(mockString).replace(eq("foo"), eq("bar"));
                   }
@@ -52,9 +53,9 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
             """
               import static org.mockito.Mockito.verify;
               import static org.mockito.Mockito.mock;
-              import static org.mockito.ArgumentMatchers.eq;
+
               class Test {
-                  public void test() {
+                  void test() {
                       var mockString = mock(String.class);
                       verify(mockString).replace("foo", "bar");
                   }
@@ -65,7 +66,7 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
     }
 
     @Test
-    void when_Simple_ShouldUpdate() {
+    void shouldRemoveUnneccesaryEqFromWhen() {
         rewriteRun(
           //language=Java
           java(
@@ -73,8 +74,9 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
               import static org.mockito.ArgumentMatchers.eq;
+
               class Test {
-                  public void test() {
+                  void test() {
                       var mockString = mock(String.class);
                       when(mockString.replace(eq("foo"), eq("bar"))).thenReturn("bar");
                   }
@@ -83,9 +85,9 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
             """
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
-              import static org.mockito.ArgumentMatchers.eq;
+
               class Test {
-                  public void test() {
+                  void test() {
                       var mockString = mock(String.class);
                       when(mockString.replace("foo", "bar")).thenReturn("bar");
                   }
@@ -96,7 +98,7 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
     }
 
     @Test
-    void when_MoreComplexMatchers_ShouldNotUpdate() {
+    void shouldNotRemoveEqWhenMatchersAreMixed() {
         rewriteRun(
           //language=Java
           java(
@@ -105,11 +107,167 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
               import static org.mockito.Mockito.when;
               import static org.mockito.ArgumentMatchers.eq;
               import static org.mockito.ArgumentMatchers.anyString;
+
               class Test {
-                  public void test() {
+                  void test() {
                       var mockString = mock(String.class);
                       when(mockString.replace(eq("foo"), anyString())).thenReturn("bar");
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRemoveUnneccesaryEqFromStubber() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import static org.mockito.Mockito.doThrow;
+              import static org.mockito.ArgumentMatchers.eq;
+
+              class Test {
+                  void test() {
+                      doThrow(new RuntimeException()).when("foo").substring(eq(1));
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.doThrow;
+
+              class Test {
+                  void test() {
+                      doThrow(new RuntimeException()).when("foo").substring(1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRemoveUnneccesaryEqFromBDDGiven() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import static org.mockito.BDDMockito.given;
+              import static org.mockito.ArgumentMatchers.eq;
+
+              class Test {
+                  void test() {
+                      given("foo".substring(eq(1)));
+                  }
+              }
+              """,
+            """
+              import static org.mockito.BDDMockito.given;
+
+              class Test {
+                  void test() {
+                      given("foo".substring(1));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldNotRemoveEqImportWhenStillNeeded() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.when;
+              import static org.mockito.ArgumentMatchers.eq;
+              import static org.mockito.ArgumentMatchers.anyString;
+
+              class Test {
+                  void testRemoveEq() {
+                      var mockString = mock(String.class);
+                      when(mockString.replace(eq("foo"), eq("bar"))).thenReturn("bar");
+                  }
+
+                  void testKeepEq() {
+                      var mockString = mock(String.class);
+                      when(mockString.replace(eq("foo"), anyString())).thenReturn("bar");
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.when;
+              import static org.mockito.ArgumentMatchers.eq;
+              import static org.mockito.ArgumentMatchers.anyString;
+
+              class Test {
+                  void testRemoveEq() {
+                      var mockString = mock(String.class);
+                      when(mockString.replace("foo", "bar")).thenReturn("bar");
+                  }
+
+                  void testKeepEq() {
+                      var mockString = mock(String.class);
+                      when(mockString.replace(eq("foo"), anyString())).thenReturn("bar");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldFixSonarExamples() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.verify;
+              import static org.mockito.Mockito.doThrow;
+              import static org.mockito.BDDMockito.given;
+              import static org.mockito.ArgumentMatchers.eq;
+
+              class Test {
+                  void test(Object v1, Object v2, Object v3, Object v4, Object v5, Foo foo) {
+                      given(foo.bar(eq(v1), eq(v2), eq(v3))).willReturn(null);
+                      when(foo.baz(eq(v4), eq(v5))).thenReturn("foo");
+                      doThrow(new RuntimeException()).when(foo).quux(eq(42));
+                      verify(foo).bar(eq(v1), eq(v2), eq(v3));
+                  }
+              }
+              
+              class Foo {
+                  Object bar(Object v1, Object v2, Object v3) { return null; }
+                  String baz(Object v4, Object v5) { return  ""; }
+                  void quux(int x) {}
+              }
+              """,
+            """
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.verify;
+              import static org.mockito.Mockito.doThrow;
+              import static org.mockito.BDDMockito.given;
+
+              class Test {
+                  void test(Object v1, Object v2, Object v3, Object v4, Object v5, Foo foo) {
+                      given(foo.bar(v1, v2, v3)).willReturn(null);
+                      when(foo.baz(v4, v5)).thenReturn("foo");
+                      doThrow(new RuntimeException()).when(foo).quux(42);
+                      verify(foo).bar(v1, v2, v3);
+                  }
+              }
+              
+              class Foo {
+                  Object bar(Object v1, Object v2, Object v3) { return null; }
+                  String baz(Object v4, Object v5) { return  ""; }
+                  void quux(int x) {}
               }
               """
           )
