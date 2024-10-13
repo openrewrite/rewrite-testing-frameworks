@@ -29,13 +29,14 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.FullVerifications;
 import static org.openrewrite.java.testing.jmockit.JMockitBlockType.NonStrictExpectations;
-import static org.openrewrite.java.testing.jmockit.JMockitBlockType.Verifications;
 
 class JMockitBlockRewriter {
 
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
     private static final String VERIFY_TEMPLATE_PREFIX = "verify(#{any()}";
+    private static final String VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX = "verifyNoMoreInteractions(";
     private static final String LENIENT_TEMPLATE_PREFIX = "lenient().";
 
     private static final String RETURN_TEMPLATE_PREFIX = "thenReturn(";
@@ -95,14 +96,21 @@ class JMockitBlockRewriter {
 
         // iterate over the statements and build a list of grouped method invocations and related statements eg times
         List<List<Statement>> methodInvocationsToRewrite = new ArrayList<>();
+        List<J.Identifier> mocks = new ArrayList<>();
         int methodInvocationIdx = -1;
         for (Statement jmockitBlockStatement : jmockitBlock.getStatements()) {
             if (jmockitBlockStatement instanceof J.MethodInvocation) {
-                // ensure it's not a returns statement, we add that later to related statements
                 J.MethodInvocation invocation = (J.MethodInvocation) jmockitBlockStatement;
-                if (invocation.getSelect() != null && !invocation.getName().getSimpleName().equals("returns")) {
-                    methodInvocationIdx++;
-                    methodInvocationsToRewrite.add(new ArrayList<>());
+                J.Identifier object = (J.Identifier) invocation.getSelect();
+                if (object != null) {
+                    // ensure it's not a returns statement, we add that later to related statements
+                    if (!invocation.getName().getSimpleName().equals("returns")) {
+                        methodInvocationIdx++;
+                        methodInvocationsToRewrite.add(new ArrayList<>());
+                    }
+                    if (mocks.stream().noneMatch(mock -> mock.getType().equals(object.getType()) && mock.getSimpleName().equals(object.getSimpleName()))) {
+                        mocks.add(object);
+                    }
                 }
             }
 
@@ -118,6 +126,10 @@ class JMockitBlockRewriter {
 
         // now rewrite
         methodInvocationsToRewrite.forEach(this::rewriteMethodInvocation);
+
+        if (blockType == FullVerifications) {
+            rewriteFullVerifications(new ArrayList<>(mocks));
+        }
         return methodBody;
     }
 
@@ -136,7 +148,7 @@ class JMockitBlockRewriter {
             rewriteResult(invocation, mockInvocationResults.getResults(), hasTimes);
         }
 
-        if (!hasResults && !hasTimes && (this.blockType == JMockitBlockType.Expectations || this.blockType == Verifications)) {
+        if (!hasResults && !hasTimes && (this.blockType == JMockitBlockType.Expectations || this.blockType.isVerifications())) {
             rewriteVerify(invocation, null, "");
             return;
         }
@@ -171,7 +183,7 @@ class JMockitBlockRewriter {
         List<Object> templateParams = new ArrayList<>();
         templateParams.add(invocation);
         templateParams.addAll(results);
-        this.rewriteFailed = !rewriteTemplate(template, templateParams, nextStatementCoordinates);
+        rewriteTemplate(template, templateParams, nextStatementCoordinates);
         if (this.rewriteFailed) {
             return;
         }
@@ -199,19 +211,19 @@ class JMockitBlockRewriter {
         templateParams.add(invocation.getName().getSimpleName());
         String verifyTemplate = getVerifyTemplate(invocation.getArguments(), verificationMode, templateParams);
         JavaCoordinates verifyCoordinates;
-        if (this.blockType == Verifications) {
+        if (this.blockType.isVerifications()) {
             // for Verifications, replace the Verifications block
             verifyCoordinates = nextStatementCoordinates;
         } else {
             // for Expectations put the verify at the end of the method
             verifyCoordinates = methodBody.getCoordinates().lastStatement();
         }
-        this.rewriteFailed = !rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
+        rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
         if (this.rewriteFailed) {
             return;
         }
 
-        if (this.blockType == Verifications) {
+        if (this.blockType.isVerifications()) {
             setNextStatementCoordinates(++numStatementsAdded); // for Expectations, verify statements added to end of method
         }
 
@@ -220,6 +232,20 @@ class JMockitBlockRewriter {
         visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
         if (!verificationMode.isEmpty()) {
             visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
+        }
+    }
+
+    private void rewriteFullVerifications(List<Object> mocks) {
+        StringBuilder sb = new StringBuilder(VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX);
+        for (int i = 0; i < mocks.size(); i++) {
+            sb.append(ANY_TEMPLATE_FIELD).append(","); // verifyNoMoreInteractions(mock1, mock2 ...
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        sb.append(")");
+        rewriteTemplate(sb.toString(), mocks, nextStatementCoordinates);
+        if (!this.rewriteFailed) {
+            setNextStatementCoordinates(++numStatementsAdded);
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verifyNoMoreInteractions", false);
         }
     }
 
@@ -240,7 +266,7 @@ class JMockitBlockRewriter {
         this.nextStatementCoordinates = this.methodBody.getStatements().get(lastStatementIdx).getCoordinates().after();
     }
 
-    private boolean rewriteTemplate(String template, List<Object> templateParams, JavaCoordinates
+    private void rewriteTemplate(String template, List<Object> templateParams, JavaCoordinates
             rewriteCoords) {
         int numStatementsBefore = methodBody.getStatements().size();
         methodBody = JavaTemplate.builder(template)
@@ -252,7 +278,7 @@ class JMockitBlockRewriter {
                         rewriteCoords,
                         templateParams.toArray()
                 );
-        return methodBody.getStatements().size() > numStatementsBefore;
+        this.rewriteFailed = methodBody.getStatements().size() <= numStatementsBefore;
     }
 
     private @Nullable String getWhenTemplate(List<Expression> results, boolean lenient) {
