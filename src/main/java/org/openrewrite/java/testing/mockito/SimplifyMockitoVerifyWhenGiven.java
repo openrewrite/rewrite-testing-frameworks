@@ -44,7 +44,7 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Fixes Sonar Issue [java:S6068: Call to Mockito method \"verify\", \"when\" or \"given\" should be simplified].";
+        return "Fixes Sonar issue `java:S6068`: Call to Mockito method \"verify\", \"when\" or \"given\" should be simplified.";
     }
 
     @Override
