@@ -27,11 +27,7 @@ enum JMockitBlockType {
     Verifications,
     FullVerifications;
 
-    private final String fqn;
-
-    JMockitBlockType() {
-        this.fqn = "mockit." + this.name();
-    }
+    private final String fqn = "mockit." + this.name();
 
     boolean isVerifications() {
         return this == Verifications || this == FullVerifications;
