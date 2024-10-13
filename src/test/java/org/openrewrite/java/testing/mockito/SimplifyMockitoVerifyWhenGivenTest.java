@@ -28,7 +28,8 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new SimplifyMockitoVerifyWhenGiven()).parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core"));
+        spec.recipe(new SimplifyMockitoVerifyWhenGiven())
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core"));
     }
 
     @DocumentExample

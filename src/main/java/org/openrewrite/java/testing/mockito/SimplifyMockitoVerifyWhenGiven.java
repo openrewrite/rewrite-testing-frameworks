@@ -66,9 +66,8 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
                     List<Expression> updatedArguments = new ArrayList<>(mi.getArguments());
                     updatedArguments.set(0, checkAndUpdateEq((J.MethodInvocation) mi.getArguments().get(0)));
                     mi = mi.withArguments(updatedArguments);
-                } else if (VERIFY_MATCHER.matches(mi.getSelect())) {
-                    mi = checkAndUpdateEq(mi);
-                } else if (STUBBER_MATCHER.matches(mi.getSelect())) {
+                } else if (VERIFY_MATCHER.matches(mi.getSelect()) ||
+                           STUBBER_MATCHER.matches(mi.getSelect())) {
                     mi = checkAndUpdateEq(mi);
                 }
 
