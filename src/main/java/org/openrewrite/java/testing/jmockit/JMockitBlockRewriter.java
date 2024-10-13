@@ -101,19 +101,22 @@ class JMockitBlockRewriter {
         for (Statement jmockitBlockStatement : jmockitBlock.getStatements()) {
             if (jmockitBlockStatement instanceof J.MethodInvocation) {
                 J.MethodInvocation invocation = (J.MethodInvocation) jmockitBlockStatement;
-                J.Identifier object = (J.Identifier) invocation.getSelect();
-                if (object != null) {
+                Expression select = invocation.getSelect();
+                if (select instanceof J.Identifier) {
+                    J.Identifier mockObj = (J.Identifier) select;
                     // ensure it's not a returns statement, we add that later to related statements
                     if (!invocation.getName().getSimpleName().equals("returns")) {
                         methodInvocationIdx++;
                         methodInvocationsToRewrite.add(new ArrayList<>());
                     }
-                    if (uniqueMocks.stream().noneMatch(mock -> mock.getType().equals(object.getType()) && mock.getSimpleName().equals(object.getSimpleName()))) {
-                        uniqueMocks.add(object);
+                    if (isFullVerifications() && uniqueMocks.stream().noneMatch(mock -> mock.getType().equals(mockObj.getType())
+                            && mock.getSimpleName().equals(mockObj.getSimpleName()))) {
+                        uniqueMocks.add(mockObj);
                     }
                 }
             }
 
+            // add the statements corresponding to the method invocation
             if (methodInvocationIdx != -1) {
                 methodInvocationsToRewrite.get(methodInvocationIdx).add(jmockitBlockStatement);
             }
@@ -127,10 +130,14 @@ class JMockitBlockRewriter {
         // now rewrite
         methodInvocationsToRewrite.forEach(this::rewriteMethodInvocation);
 
-        if (blockType == FullVerifications) {
-            rewriteFullVerifications(new ArrayList<>(uniqueMocks));
+        if (isFullVerifications()) {
+            rewriteFullVerify(new ArrayList<>(uniqueMocks));
         }
         return methodBody;
+    }
+
+    private boolean isFullVerifications() {
+        return this.blockType == FullVerifications;
     }
 
     private void rewriteMethodInvocation(List<Statement> statementsToRewrite) {
@@ -235,15 +242,17 @@ class JMockitBlockRewriter {
         }
     }
 
-    private void rewriteFullVerifications(List<Object> mocks) {
-        StringBuilder sb = new StringBuilder(VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX);
-        mocks.forEach(mock -> sb.append(ANY_TEMPLATE_FIELD).append(",")); // verifyNoMoreInteractions(mock1, mock2 ...
-        sb.deleteCharAt(sb.length() - 1);
-        sb.append(")");
-        rewriteTemplate(sb.toString(), mocks, nextStatementCoordinates);
-        if (!this.rewriteFailed) {
-            setNextStatementCoordinates(++numStatementsAdded);
-            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verifyNoMoreInteractions", false);
+    private void rewriteFullVerify(List<Object> mocks) {
+        if (!mocks.isEmpty()) {
+            StringBuilder sb = new StringBuilder(VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX);
+            mocks.forEach(mock -> sb.append(ANY_TEMPLATE_FIELD).append(",")); // verifyNoMoreInteractions(mock1, mock2 ...
+            sb.deleteCharAt(sb.length() - 1);
+            sb.append(")");
+            rewriteTemplate(sb.toString(), mocks, nextStatementCoordinates);
+            if (!this.rewriteFailed) {
+                setNextStatementCoordinates(++numStatementsAdded);
+                visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verifyNoMoreInteractions", false);
+            }
         }
     }
 
