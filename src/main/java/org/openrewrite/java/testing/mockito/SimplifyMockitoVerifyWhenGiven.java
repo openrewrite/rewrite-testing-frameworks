@@ -16,10 +16,13 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
@@ -27,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class SimplifyMockitoVerifyWhenGiven extends Recipe {
 
@@ -54,84 +56,35 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(EQ_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
 
                 if ((WHEN_MATCHER.matches(mi) || GIVEN_MATCHER.matches(mi)) && mi.getArguments().get(0) instanceof J.MethodInvocation) {
-                    J.MethodInvocation whenArgument = (J.MethodInvocation) mi.getArguments().get(0);
-                    List<Expression> originalArguments = mi.getArguments();
-                    J.MethodInvocation updatedInvocation = checkAndUpdateEq(whenArgument);
-                    List<Expression> updatedArguments = new ArrayList<>(originalArguments);
-                    updatedArguments.set(0, updatedInvocation);
-
+                    List<Expression> updatedArguments = new ArrayList<>(mi.getArguments());
+                    updatedArguments.set(0, checkAndUpdateEq((J.MethodInvocation) mi.getArguments().get(0)));
                     mi = mi.withArguments(updatedArguments);
-                } else if (isInvokedOnVerify(mi)) {
+                } else if (VERIFY_MATCHER.matches(mi.getSelect())) {
                     mi = checkAndUpdateEq(mi);
-                } else if (isInvokedOnStubber(mi)) {
+                } else if (STUBBER_MATCHER.matches(mi.getSelect())) {
                     mi = checkAndUpdateEq(mi);
                 }
 
                 maybeRemoveImport("org.mockito.ArgumentMatchers.eq");
-
                 return mi;
-            }
-
-            private boolean isInvokedOnVerify(J.MethodInvocation methodInvocation) {
-                if (methodInvocation.getSelect() == null) {
-                    return false;
-                }
-                Expression select = methodInvocation.getSelect();
-
-                if (!(select instanceof J.MethodInvocation) || ((J.MethodInvocation) select).getMethodType() == null) {
-                    return false;
-                }
-
-                J.MethodInvocation selectInvocation = (J.MethodInvocation) select;
-
-                return VERIFY_MATCHER.matches(selectInvocation);
-            }
-
-            private boolean isInvokedOnStubber(J.MethodInvocation methodInvocation) {
-                if (methodInvocation.getSelect() == null) {
-                    return false;
-                }
-                Expression select = methodInvocation.getSelect();
-
-                if (!(select instanceof J.MethodInvocation) || ((J.MethodInvocation) select).getMethodType() == null) {
-                    return false;
-                }
-
-                J.MethodInvocation selectInvocation = (J.MethodInvocation) select;
-
-                return STUBBER_MATCHER.matches(selectInvocation);
             }
 
             private J.MethodInvocation checkAndUpdateEq(J.MethodInvocation methodInvocation) {
                 List<Expression> originalArguments = methodInvocation.getArguments();
-                boolean onlyEqArguments = originalArguments.stream().allMatch(this::isEqExpression);
-                if (!onlyEqArguments) {
+                if (!originalArguments.stream().allMatch(EQ_MATCHER::matches)) {
                     return methodInvocation;
                 }
 
-                List<Expression> updatedArguments = originalArguments.stream()
-                        .map(J.MethodInvocation.class::cast)
-                        .map(invocation -> invocation.getArguments().get(0).<Expression>withPrefix(invocation.getPrefix()))
-                        .collect(Collectors.toList());
-
-                return methodInvocation.withArguments(updatedArguments);
+                return methodInvocation.withArguments(ListUtils.map(originalArguments, invocation ->
+                        ((J.MethodInvocation) invocation).getArguments().get(0).withPrefix(invocation.getPrefix())));
             }
-
-            private boolean isEqExpression(Expression expression) {
-                if (!(expression instanceof J.MethodInvocation)) {
-                    return false;
-                }
-                J.MethodInvocation invocation = (J.MethodInvocation) expression;
-
-                return EQ_MATCHER.matches(invocation);
-            }
-        };
+        });
     }
 
 }
