@@ -34,8 +34,7 @@ enum JMockitBlockType {
     }
 
     boolean isVerifications() {
-        String blockType = this.name();
-        return blockType.equals(Verifications.name()) || blockType.equals(FullVerifications.name());
+        return this == Verifications || this == FullVerifications;
     }
 
     static String getSupportedTypesStr() {
