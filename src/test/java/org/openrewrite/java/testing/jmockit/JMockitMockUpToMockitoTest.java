@@ -24,13 +24,13 @@ import org.openrewrite.test.SourceSpec;
 import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setParserSettings;
+import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.*;
 
 class JMockitMockUpToMockitoTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        setParserSettings(spec, "jmockit-1.22", "junit-4.13.2");
+        setParserSettings(spec, JMOCKIT_DEPENDENCY, JUNIT_4_DEPENDENCY);
     }
 
     @DocumentExample

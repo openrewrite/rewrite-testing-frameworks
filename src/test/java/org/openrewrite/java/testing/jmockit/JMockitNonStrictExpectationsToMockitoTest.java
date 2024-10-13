@@ -21,12 +21,9 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.MOCKITO_CORE_DEPENDENCY;
-import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setParserSettings;
+import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.*;
 
 class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
-
-    private static final String JUNIT_4_DEPENDENCY = "junit-4.13.2";
     private static final String LEGACY_JMOCKIT_DEPENDENCY = "jmockit-1.22";
 
     @Override
