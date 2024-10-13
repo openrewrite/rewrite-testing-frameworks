@@ -25,6 +25,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.MethodCall;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -76,13 +77,11 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
             }
 
             private J.MethodInvocation checkAndUpdateEq(J.MethodInvocation methodInvocation) {
-                List<Expression> originalArguments = methodInvocation.getArguments();
-                if (!originalArguments.stream().allMatch(EQ_MATCHER::matches)) {
-                    return methodInvocation;
+                if (methodInvocation.getArguments().stream().allMatch(EQ_MATCHER::matches)) {
+                    return methodInvocation.withArguments(ListUtils.map(methodInvocation.getArguments(), invocation ->
+                            ((MethodCall) invocation).getArguments().get(0).withPrefix(invocation.getPrefix())));
                 }
-
-                return methodInvocation.withArguments(ListUtils.map(originalArguments, invocation ->
-                        ((J.MethodInvocation) invocation).getArguments().get(0).withPrefix(invocation.getPrefix())));
+                return methodInvocation;
             }
         });
     }
