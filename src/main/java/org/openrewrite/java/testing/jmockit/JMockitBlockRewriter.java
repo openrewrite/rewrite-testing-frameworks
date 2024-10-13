@@ -237,9 +237,7 @@ class JMockitBlockRewriter {
 
     private void rewriteFullVerifications(List<Object> mocks) {
         StringBuilder sb = new StringBuilder(VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX);
-        for (int i = 0; i < mocks.size(); i++) {
-            sb.append(ANY_TEMPLATE_FIELD).append(","); // verifyNoMoreInteractions(mock1, mock2 ...
-        }
+        mocks.forEach(mock -> sb.append(ANY_TEMPLATE_FIELD).append(",")); // verifyNoMoreInteractions(mock1, mock2 ...
         sb.deleteCharAt(sb.length() - 1);
         sb.append(")");
         rewriteTemplate(sb.toString(), mocks, nextStatementCoordinates);
