@@ -18,18 +18,10 @@ package org.openrewrite.java.testing.jmockit;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
-import org.openrewrite.test.RecipeSpec;
-import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
 
-class JMockitExpectationsToMockitoTest implements RewriteTest {
-
-    @Override
-    public void defaults(RecipeSpec spec) {
-        setDefaultParserSettings(spec);
-    }
+class JMockitExpectationsToMockitoTest extends JMockitTestBase {
 
     @DocumentExample
     @Test

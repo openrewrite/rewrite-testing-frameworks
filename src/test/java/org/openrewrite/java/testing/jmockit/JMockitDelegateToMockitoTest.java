@@ -19,11 +19,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
-import org.openrewrite.test.RecipeSpec;
-import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
 
 /**
  * At the moment, JMockit Delegates are not migrated to mockito. What I'm seeing is that they are being trashed
@@ -32,12 +29,7 @@ import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultPa
  */
 @Disabled
 @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/522")
-class JMockitDelegateToMockitoTest implements RewriteTest {
-
-    @Override
-    public void defaults(RecipeSpec spec) {
-        setDefaultParserSettings(spec);
-    }
+class JMockitDelegateToMockitoTest extends JMockitTestBase {
 
     @DocumentExample
     @Test

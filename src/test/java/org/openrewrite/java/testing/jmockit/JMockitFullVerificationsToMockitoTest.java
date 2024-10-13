@@ -17,20 +17,13 @@ package org.openrewrite.java.testing.jmockit;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
-import org.openrewrite.test.RecipeSpec;
-import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
 
 /**
  * Not doing comprehensive testing as it is covered in JMockitVerificationsToMockitoTest and shares same code path
  */
-class JMockitFullVerificationsToMockitoTest implements RewriteTest {
-    @Override
-    public void defaults(RecipeSpec spec) {
-        setDefaultParserSettings(spec);
-    }
+class JMockitFullVerificationsToMockitoTest extends JMockitTestBase {
 
     @DocumentExample
     @Test
@@ -68,7 +61,7 @@ class JMockitFullVerificationsToMockitoTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-              
+                            
               import static org.mockito.Mockito.*;
                             
               @ExtendWith(MockitoExtension.class)
