@@ -5,7 +5,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
 
-public class JMockitTestBase implements RewriteTest {
+class JMockitTestBase implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
