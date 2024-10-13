@@ -34,6 +34,66 @@ class JMockitFullVerificationsToMockitoTest implements RewriteTest {
 
     @DocumentExample
     @Test
+    void whenMultipleMocks() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.FullVerifications;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+                            
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+                  
+                  @Mocked
+                  String str;
+                            
+                  void test() {
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
+                      str.notify();
+                      new FullVerifications() {{
+                          myObject.wait(anyLong, anyInt);
+                          times = 2;
+                          str.notify();
+                      }};
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              
+              import static org.mockito.Mockito.*;
+                            
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+                  
+                  @Mock
+                  String str;
+                            
+                  void test() {
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
+                      str.notify();
+                      verify(myObject, times(2)).wait(anyLong(), anyInt());
+                      verify(str).notify();
+                      verifyNoMoreInteractions(myObject, str);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void whenTimes() {
         //language=java
         rewriteRun(
@@ -126,66 +186,6 @@ class JMockitFullVerificationsToMockitoTest implements RewriteTest {
                       verify(myObject).wait(anyLong(), anyInt());
                       verifyNoMoreInteractions(myObject);
                       System.out.println("bla");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void whenMultipleMocks() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import mockit.FullVerifications;
-              import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
-                            
-              @ExtendWith(JMockitExtension.class)
-              class MyTest {
-                  @Mocked
-                  Object myObject;
-                  
-                  @Mocked
-                  String str;
-                            
-                  void test() {
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
-                      str.notify();
-                      new FullVerifications() {{
-                          myObject.wait(anyLong, anyInt);
-                          times = 2;
-                          str.notify();
-                      }};
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
-                            
-              import static org.mockito.Mockito.*;
-                            
-              @ExtendWith(MockitoExtension.class)
-              class MyTest {
-                  @Mock
-                  Object myObject;
-                  
-                  @Mock
-                  String str;
-                            
-                  void test() {
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
-                      str.notify();
-                      verify(myObject, times(2)).wait(anyLong(), anyInt());
-                      verify(str).notify();
-                      verifyNoMoreInteractions(myObject, str);
                   }
               }
               """

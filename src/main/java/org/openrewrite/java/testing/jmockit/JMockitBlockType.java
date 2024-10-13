@@ -33,12 +33,12 @@ enum JMockitBlockType {
         this.fqn = "mockit." + this.name();
     }
 
-    public boolean isVerifications() {
+    boolean isVerifications() {
         String blockType = this.name();
         return blockType.equals(Verifications.name()) || blockType.equals(FullVerifications.name());
     }
 
-    public static String getSupportedTypesStr() {
+    static String getSupportedTypesStr() {
         StringBuilder sb = new StringBuilder();
         Arrays.stream(values()).forEach(value -> sb.append(value).append(", "));
         return sb.substring(0, sb.length() - 2);

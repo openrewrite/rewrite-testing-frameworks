@@ -96,7 +96,7 @@ class JMockitBlockRewriter {
 
         // iterate over the statements and build a list of grouped method invocations and related statements eg times
         List<List<Statement>> methodInvocationsToRewrite = new ArrayList<>();
-        List<J.Identifier> mocks = new ArrayList<>();
+        List<J.Identifier> uniqueMocks = new ArrayList<>();
         int methodInvocationIdx = -1;
         for (Statement jmockitBlockStatement : jmockitBlock.getStatements()) {
             if (jmockitBlockStatement instanceof J.MethodInvocation) {
@@ -108,8 +108,8 @@ class JMockitBlockRewriter {
                         methodInvocationIdx++;
                         methodInvocationsToRewrite.add(new ArrayList<>());
                     }
-                    if (mocks.stream().noneMatch(mock -> mock.getType().equals(object.getType()) && mock.getSimpleName().equals(object.getSimpleName()))) {
-                        mocks.add(object);
+                    if (uniqueMocks.stream().noneMatch(mock -> mock.getType().equals(object.getType()) && mock.getSimpleName().equals(object.getSimpleName()))) {
+                        uniqueMocks.add(object);
                     }
                 }
             }
@@ -128,7 +128,7 @@ class JMockitBlockRewriter {
         methodInvocationsToRewrite.forEach(this::rewriteMethodInvocation);
 
         if (blockType == FullVerifications) {
-            rewriteFullVerifications(new ArrayList<>(mocks));
+            rewriteFullVerifications(new ArrayList<>(uniqueMocks));
         }
         return methodBody;
     }
