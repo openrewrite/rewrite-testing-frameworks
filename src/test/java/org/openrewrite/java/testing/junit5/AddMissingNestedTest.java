@@ -43,23 +43,25 @@ class AddMissingNestedTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+              
               public class RootTest {
                   public class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
               }
               """,
             """
               import org.junit.jupiter.api.Nested;
               import org.junit.jupiter.api.Test;
-                            
+              
               public class RootTest {
                   @Nested
                   public class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
               }
               """
@@ -74,20 +76,23 @@ class AddMissingNestedTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+              
               public class RootTest {
                   public class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
-                            
+              
                   public class Inner2Test {
                       @Test
-                      public void test() {}
-                            
+                      public void test() {
+                      }
+              
                       public class InnermostTest {
                           @Test
-                          public void test() {}
+                          public void test() {
+                          }
                       }
                   }
               }
@@ -100,18 +105,21 @@ class AddMissingNestedTest implements RewriteTest {
                   @Nested
                   public class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
               
                   @Nested
                   public class Inner2Test {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
               
                       @Nested
                       public class InnermostTest {
                           @Test
-                          public void test() {}
+                          public void test() {
+                          }
                       }
                   }
               }
@@ -131,11 +139,13 @@ class AddMissingNestedTest implements RewriteTest {
               public class RootTest {
                   public class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
-                  
+              
                   public static class Foo {
-                      public void bar() {}
+                      public void bar() {
+                      }
                   }
               }
               """,
@@ -147,11 +157,13 @@ class AddMissingNestedTest implements RewriteTest {
                   @Nested
                   public class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
-                  
+              
                   public static class Foo {
-                      public void bar() {}
+                      public void bar() {
+                      }
                   }
               }
               """
@@ -170,7 +182,8 @@ class AddMissingNestedTest implements RewriteTest {
               public class RootTest {
                   public static class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
               }
               """,
@@ -182,7 +195,8 @@ class AddMissingNestedTest implements RewriteTest {
                   @Nested
                   public class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
               }
               """
