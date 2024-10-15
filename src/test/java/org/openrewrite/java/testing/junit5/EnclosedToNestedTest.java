@@ -49,7 +49,8 @@ class EnclosedToNestedTest implements RewriteTest {
               public class RootTest {
                   public static class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
               }
               """,
@@ -57,13 +58,12 @@ class EnclosedToNestedTest implements RewriteTest {
               import org.junit.Test;
               import org.junit.jupiter.api.Nested;
               
-             \s
-             \s
               public class RootTest {
                   @Nested
                   public class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
               }
               """
@@ -85,16 +85,19 @@ class EnclosedToNestedTest implements RewriteTest {
               public class RootTest {
                   public static class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
-                  
+              
                   public static class Inner2Test {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
               
                       public static class InnermostTest {
                           @Test
-                          public void test() {}
+                          public void test() {
+                          }
                       }
                   }
               }
@@ -103,24 +106,25 @@ class EnclosedToNestedTest implements RewriteTest {
               import org.junit.Test;
               import org.junit.jupiter.api.Nested;
               
-             \s
-             \s
               public class RootTest {
                   @Nested
                   public class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
               
                   @Nested
                   public class Inner2Test {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
               
                       @Nested
                       public class InnermostTest {
                           @Test
-                          public void test() {}
+                          public void test() {
+                          }
                       }
                   }
               }
@@ -143,7 +147,8 @@ class EnclosedToNestedTest implements RewriteTest {
               public class RootTest {
                   public static class InnerTest {
                       @Test(timeout = 10)
-                      public void test() {}
+                      public void test() {
+                      }
                   }
               }
               """,
@@ -151,13 +156,12 @@ class EnclosedToNestedTest implements RewriteTest {
               import org.junit.Test;
               import org.junit.jupiter.api.Nested;
               
-              
-              
               public class RootTest {
                   @Nested
                   public class InnerTest {
                       @Test(timeout = 10)
-                      public void test() {}
+                      public void test() {
+                      }
                   }
               }
               """
@@ -179,11 +183,13 @@ class EnclosedToNestedTest implements RewriteTest {
               public class RootTest {
                   public static class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
-                  
+              
                   public static class Foo {
-                      public void bar() {}
+                      public void bar() {
+                      }
                   }
               }
               """,
@@ -191,17 +197,17 @@ class EnclosedToNestedTest implements RewriteTest {
               import org.junit.Test;
               import org.junit.jupiter.api.Nested;
               
-              
-              
               public class RootTest {
                   @Nested
                   public class InnerTest {
                       @Test
-                      public void test() {}
+                      public void test() {
+                      }
                   }
-                  
+              
                   public static class Foo {
-                      public void bar() {}
+                      public void bar() {
+                      }
                   }
               }
               """

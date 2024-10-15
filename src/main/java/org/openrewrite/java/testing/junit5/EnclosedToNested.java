@@ -21,9 +21,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -57,11 +55,10 @@ public class EnclosedToNested extends Recipe {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-                final Set<J.Annotation> runWithEnclosedAnnotationSet = FindAnnotations.find(cd.withBody(null),
-                        String.format("@%s(%s.class)", RUN_WITH, ENCLOSED));
-                for (J.Annotation runWithEnclosed : runWithEnclosedAnnotationSet) {
-                    cd.getLeadingAnnotations().remove(runWithEnclosed);
-                    cd = cd.withBody((J.Block) new AddNestedAnnotationVisitor().visit(cd.getBody(), ctx, getCursor()));
+                String runwithEnclosed = String.format("@%s(%s.class)", RUN_WITH, ENCLOSED);
+                if (!FindAnnotations.find(cd.withBody(null), runwithEnclosed).isEmpty()) {
+                    cd = (J.ClassDeclaration) new RemoveAnnotationVisitor(new AnnotationMatcher(runwithEnclosed)).visit(cd, ctx);
+                    cd = cd.withBody((J.Block) new AddNestedAnnotationVisitor().visit(cd.getBody(), ctx, updateCursor(cd)));
 
                     maybeRemoveImport(ENCLOSED);
                     maybeRemoveImport(RUN_WITH);
@@ -77,24 +74,20 @@ public class EnclosedToNested extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             if (hasTestMethods(cd)) {
-                cd = getNestedJavaTemplate(ctx).apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(
-                        J.Annotation::getSimpleName)));
-                cd.getModifiers().removeIf(modifier -> modifier.getType().equals(J.Modifier.Type.Static));
+                cd = JavaTemplate.builder("@Nested")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                        .imports(NESTED)
+                        .build()
+                        .apply(getCursor(), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                cd.getModifiers().removeIf(modifier -> modifier.getType() == J.Modifier.Type.Static);
+                return maybeAutoFormat(classDecl, cd, ctx);
             }
             return cd;
         }
 
-        private JavaTemplate getNestedJavaTemplate(ExecutionContext ctx) {
-            return JavaTemplate.builder("@Nested")
-                    .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
-                    .imports(NESTED)
-                    .build();
-        }
-
         private boolean hasTestMethods(final J.ClassDeclaration cd) {
             return !FindAnnotations.find(cd, "@" + TEST_JUNIT4).isEmpty() ||
-                    !FindAnnotations.find(cd, "@" + TEST_JUNIT_JUPITER).isEmpty();
+                   !FindAnnotations.find(cd, "@" + TEST_JUNIT_JUPITER).isEmpty();
         }
     }
 }
