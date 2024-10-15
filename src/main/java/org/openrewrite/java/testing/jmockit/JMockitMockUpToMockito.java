@@ -383,7 +383,7 @@ public class JMockitMockUpToMockito extends Recipe {
             boolean hasReturn = false;
             for (Statement s : md.getBody().getStatements()) {
                 hasReturn = hasReturn || s instanceof J.Return;
-                sb.append(s.print()).append(";");
+                sb.append(s.print(getCursor())).append(";");
             }
             // Avoid syntax error
             if (!hasReturn) {
@@ -416,7 +416,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
             // To generate predictable method order
             List<J.MethodDeclaration> keys = mockedMethods.keySet().stream()
-              .sorted(Comparator.comparing((J.MethodDeclaration::print)))
+              .sorted(Comparator.comparing(o -> o.print(getCursor())))
               .collect(toList());
             for (J.MethodDeclaration m : keys) {
                 tpl.append("mockStatic").append(className)
@@ -470,7 +470,7 @@ public class JMockitMockUpToMockito extends Recipe {
             mockedMethods
               .keySet()
               .stream()
-              .sorted(Comparator.comparing((J.MethodDeclaration::print)))
+              .sorted(Comparator.comparing(o -> o.print(getCursor())))
               .forEach(m -> tpl.append("doAnswer(invocation -> {")
                 .append(getAnswerBody(m))
                 .append("}).when(").append(MOCKITO_MOCK_PREFIX).append(className).append(").").append(m.getSimpleName()).append("(")
