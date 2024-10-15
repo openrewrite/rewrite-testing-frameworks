@@ -86,12 +86,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                   @Test
                   public void test() {
                       try (MockedStatic mockStaticMyClazz = mockStatic(MyClazz.class)) {
-                          mockStaticMyClazz.when(() -> MyClazz.staticMethod()).thenAnswer(invocation -> {
-                              return 1024;
-                          });
-                          mockStaticMyClazz.when(() -> MyClazz.staticMethod(anyInt())).thenAnswer(invocation -> {
-                              return 128;
-                          });
+                          mockStaticMyClazz.when(() -> MyClazz.staticMethod()).thenAnswer(invocation -> 1024);
+                          mockStaticMyClazz.when(() -> MyClazz.staticMethod(anyInt())).thenAnswer(invocation -> 128);
                           assertEquals(1024, MyClazz.staticMethod());
                           assertEquals(128, MyClazz.staticMethod(0));
                       }
@@ -198,17 +194,13 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                   @Test
                   public void test() {
                       Foo mockFoo = mock(Foo.class, CALLS_REAL_METHODS);
-                      doAnswer(invocation -> {
-                          return "FOO";
-                      }).when(mockFoo).getMsg();
+                      doAnswer(invocation -> "FOO").when(mockFoo).getMsg();
                       doAnswer(invocation -> {
                           String echo = invocation.getArgument(0);
                           return "FOO" + echo;
                       }).when(mockFoo).getMsg(nullable(String.class));
                       Bar mockBar = mock(Bar.class, CALLS_REAL_METHODS);
-                      doAnswer(invocation -> {
-                          return "BAR";
-                      }).when(mockBar).getMsg();
+                      doAnswer(invocation -> "BAR").when(mockBar).getMsg();
                       doAnswer(invocation -> {
                           String echo = invocation.getArgument(0);
                           return "BAR" + echo;
@@ -279,9 +271,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                   public void test() {
                       final String msg = "newMsg";
                       MyClazz mockMyClazz = mock(MyClazz.class, CALLS_REAL_METHODS);
-                      doAnswer(invocation -> {
-                          return msg;
-                      }).when(mockMyClazz).getMsg();
+                      doAnswer(invocation -> msg).when(mockMyClazz).getMsg();
                       try (MockedConstruction mockConsMyClazz = mockConstructionWithAnswer(MyClazz.class, delegatesTo(mockMyClazz))) {
               
                           // Should ignore the newClass statement
@@ -469,9 +459,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                   @Before
                   public void setUp() {
                       MyClazz mockMyClazz = mock(MyClazz.class, CALLS_REAL_METHODS);
-                      doAnswer(invocation -> {
-                          return "mockMsg";
-                      }).when(mockMyClazz).getMsg();
+                      doAnswer(invocation -> "mockMsg").when(mockMyClazz).getMsg();
                       mockConsMyClazz = mockConstructionWithAnswer(MyClazz.class, delegatesTo(mockMyClazz));
                   }
               
@@ -563,14 +551,10 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                   @Before
                   public void setUp() {
                       MyClazz mockMyClazz = mock(MyClazz.class, CALLS_REAL_METHODS);
-                      doAnswer(invocation -> {
-                          return "mockMsg";
-                      }).when(mockMyClazz).getMsg();
+                      doAnswer(invocation -> "mockMsg").when(mockMyClazz).getMsg();
                       mockConsMyClazz = mockConstructionWithAnswer(MyClazz.class, delegatesTo(mockMyClazz));
                       mockStaticMyClazz = mockStatic(MyClazz.class);
-                      mockStaticMyClazz.when(() -> MyClazz.getStaticMsg()).thenAnswer(invocation -> {
-                          return "mockStaticMsg";
-                      });
+                      mockStaticMyClazz.when(() -> MyClazz.getStaticMsg()).thenAnswer(invocation -> "mockStaticMsg");
                   }
               
                   @After

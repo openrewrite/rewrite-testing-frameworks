@@ -23,6 +23,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.SearchResult;
+import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 import org.openrewrite.staticanalysis.RemoveUnusedLocalVariables;
 
 import java.lang.reflect.Method;
@@ -308,6 +309,8 @@ public class JMockitMockUpToMockito extends Recipe {
             maybeAddImport(MOCKITO_ALL_IMPORT.replace(".*", ""), "*", false);
             maybeRemoveImport(JMOCKIT_MOCK_IMPORT);
             maybeRemoveImport(JMOCKIT_MOCKUP_IMPORT);
+
+            doAfterVisit(new LambdaBlockToExpression().getVisitor());
             return maybeAutoFormat(methodDecl, md, ctx);
         }
 
