@@ -27,7 +27,6 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
 import java.util.Comparator;
-import java.util.Set;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
