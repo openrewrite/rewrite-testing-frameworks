@@ -26,31 +26,34 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static org.openrewrite.java.testing.jmockit.JMockitBlockType.*;
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.getSupportedTypesStr;
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.values;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class JMockitBlockToMockito extends Recipe {
 
+    private static final String SUPPORTED_TYPES = getSupportedTypesStr();
+
     @Override
     public String getDisplayName() {
-        return "Rewrite JMockit Expectations, Verifications and NonStrictExpectations";
+        return "Rewrite JMockit " + SUPPORTED_TYPES;
     }
 
     @Override
     public String getDescription() {
-        return "Rewrites JMockit `Expectations, Verifications and NonStrictExpectations` blocks to Mockito statements.";
+        return "Rewrites JMockit `" + SUPPORTED_TYPES + "` blocks to Mockito statements.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.or(
-                new UsesType<>(Expectations.getFqn(), false),
-                new UsesType<>(Verifications.getFqn(), false),
-                new UsesType<>(NonStrictExpectations.getFqn(), false)), new RewriteJMockitBlockVisitor());
+        @SuppressWarnings("rawtypes")
+        UsesType[] usesTypes = Arrays.stream(values()).map(blockType -> new UsesType<>(blockType.getFqn(), false)).toArray(UsesType[]::new);
+        return Preconditions.check(Preconditions.or(usesTypes), new RewriteJMockitBlockVisitor());
     }
 
     private static class RewriteJMockitBlockVisitor extends JavaIsoVisitor<ExecutionContext> {

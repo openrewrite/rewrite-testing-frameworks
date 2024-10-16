@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2023 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,27 +15,15 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
-import lombok.Getter;
+import org.openrewrite.test.RecipeSpec;
+import org.openrewrite.test.RewriteTest;
 
-import java.util.Arrays;
+import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
 
-@Getter
-enum JMockitBlockType {
+class JMockitTestBase implements RewriteTest {
 
-    Expectations,
-    NonStrictExpectations,
-    Verifications,
-    FullVerifications;
-
-    private final String fqn = "mockit." + this.name();
-
-    boolean isVerifications() {
-        return this == Verifications || this == FullVerifications;
-    }
-
-    static String getSupportedTypesStr() {
-        StringBuilder sb = new StringBuilder();
-        Arrays.stream(values()).forEach(value -> sb.append(value).append(", "));
-        return sb.substring(0, sb.length() - 2);
+    @Override
+    public void defaults(RecipeSpec spec) {
+        setDefaultParserSettings(spec);
     }
 }
