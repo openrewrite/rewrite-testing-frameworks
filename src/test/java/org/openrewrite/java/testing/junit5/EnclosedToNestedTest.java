@@ -31,7 +31,7 @@ class EnclosedToNestedTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
-          .recipe(new EnclosedToNested());
+          .recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration");
     }
 
     @DocumentExample
@@ -55,8 +55,8 @@ class EnclosedToNestedTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
               import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
               
               public class RootTest {
                   @Nested
@@ -103,8 +103,8 @@ class EnclosedToNestedTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
               import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
               
               public class RootTest {
                   @Nested
@@ -153,13 +153,17 @@ class EnclosedToNestedTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
               import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.Timeout;
+              
+              import java.util.concurrent.TimeUnit;
               
               public class RootTest {
                   @Nested
                   public class InnerTest {
-                      @Test(timeout = 10)
+                      @Test
+                      @Timeout(value = 10, unit = TimeUnit.MILLISECONDS)
                       public void test() {
                       }
                   }
@@ -194,8 +198,8 @@ class EnclosedToNestedTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
               import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
               
               public class RootTest {
                   @Nested
