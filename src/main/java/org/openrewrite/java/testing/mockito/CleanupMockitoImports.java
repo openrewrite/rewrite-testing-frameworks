@@ -153,9 +153,9 @@ public class CleanupMockitoImports extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, List<String> qualifiedMethods) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, qualifiedMethods);
-                if (MOCKITO_METHOD_NAMES.contains(mi.getSimpleName())
-                    && mi.getSelect() != null
-                    && TypeUtils.isAssignableTo("org.mockito.Mockito", mi.getSelect().getType())) {
+                if (MOCKITO_METHOD_NAMES.contains(mi.getSimpleName()) &&
+                    mi.getSelect() != null &&
+                    TypeUtils.isAssignableTo("org.mockito.Mockito", mi.getSelect().getType())) {
                     qualifiedMethods.add(mi.getSimpleName());
                 }
                 return mi;

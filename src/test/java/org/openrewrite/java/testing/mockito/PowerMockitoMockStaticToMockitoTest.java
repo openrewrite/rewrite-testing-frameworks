@@ -22,6 +22,7 @@ import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
@@ -41,7 +42,8 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               "powermock-core-1.6",
               "testng-7.7"
             ))
-          .recipe(new PowerMockitoMockStaticToMockito());
+          .recipe(new PowerMockitoMockStaticToMockito())
+          .typeValidationOptions(TypeValidation.builder().cursorAcyclic(false).build());
     }
 
     @DocumentExample
@@ -677,6 +679,25 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/611")
+    void existingMockitoMockStaticShouldNotBeTouched() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+            import static org.mockito.Mockito.mockStatic;
+
+            import org.mockito.MockedStatic;
+
+            class TestClass {
+                MockedStatic<String> mocked = mockStatic(String.class);
+            }
+            """
           )
         );
     }

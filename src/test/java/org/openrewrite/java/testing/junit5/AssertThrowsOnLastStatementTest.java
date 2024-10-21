@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -246,6 +247,33 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                       assertEquals("Error message", exception.getMessage());
                   }
                   void foo() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/618")
+    void bodyNull() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              
+              import static org.junit.jupiter.api.Assertions.*;
+              
+              class MyTest {
+              
+                  @Test
+                  void test() {
+                      assertThrows(IllegalStateException.class, () -> System.out.println("foo"));
+                  }
+              
+                  interface InnerInterface {
+                      String createParser(String input);
                   }
               }
               """

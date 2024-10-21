@@ -194,9 +194,9 @@ public class GradleUseJunitJupiter extends Recipe {
                     }
                     break;
                 case "withType":
-                    if (m.getSelect() == null
-                        || !TypeUtils.isOfClassType(m.getSelect().getType(), "org.gradle.api.tasks.TaskContainer")
-                        || !(m.getArguments().get(0) instanceof J.Identifier && "Test".equals(((J.Identifier) m.getArguments().get(0)).getSimpleName()))) {
+                    if (m.getSelect() == null ||
+                        !TypeUtils.isOfClassType(m.getSelect().getType(), "org.gradle.api.tasks.TaskContainer") ||
+                        !(m.getArguments().get(0) instanceof J.Identifier && "Test".equals(((J.Identifier) m.getArguments().get(0)).getSimpleName()))) {
                         return m;
                     }
                     break;
@@ -208,10 +208,10 @@ public class GradleUseJunitJupiter extends Recipe {
                         return m;
                     }
                     J.MethodInvocation select = (J.MethodInvocation) m.getSelect();
-                    if(!"withType".equals(select.getSimpleName())
-                       || select.getArguments().size() != 1
-                       || !(select.getArguments().get(0) instanceof J.Identifier)
-                       || !"Test".equals(((J.Identifier) select.getArguments().get(0)).getSimpleName())) {
+                    if(!"withType".equals(select.getSimpleName()) ||
+                       select.getArguments().size() != 1 ||
+                       !(select.getArguments().get(0) instanceof J.Identifier) ||
+                       !"Test".equals(((J.Identifier) select.getArguments().get(0)).getSimpleName())) {
                         return m;
                     }
                     break;

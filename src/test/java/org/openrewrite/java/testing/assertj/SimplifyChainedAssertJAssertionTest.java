@@ -319,7 +319,6 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
         );
     }
 
-
     @Test
     void mapMethodDealsWithTwoArguments() {
         rewriteRun(
@@ -359,6 +358,28 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
 
                   Map<String, String> getMap() {
                       return Collections.emptyMap();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keySetContainsWithMultipleArguments() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("keySet", "contains", "containsKey", "java.util.Map")),
+          //language=java
+          java(
+            """
+              import java.util.Map;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Map<String, String> map) {
+                      // we don't yet support `containsKeys`
+                      assertThat(map.keySet()).contains("a", "b", "c");
                   }
               }
               """

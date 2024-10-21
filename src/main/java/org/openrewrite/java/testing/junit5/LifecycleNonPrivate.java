@@ -67,8 +67,8 @@ public class LifecycleNonPrivate extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
 
-            if (J.Modifier.hasModifier(md.getModifiers(), Type.Private)
-                    && md.getLeadingAnnotations().stream().anyMatch(ann -> lifeCycleAnnotationMatchers.stream()
+            if (J.Modifier.hasModifier(md.getModifiers(), Type.Private) &&
+                    md.getLeadingAnnotations().stream().anyMatch(ann -> lifeCycleAnnotationMatchers.stream()
                     .anyMatch(matcher -> matcher.matches(ann)))) {
                 return maybeAutoFormat(md,
                         md.withModifiers(ListUtils.map(md.getModifiers(),
