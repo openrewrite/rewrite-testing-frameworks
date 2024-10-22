@@ -56,8 +56,11 @@ public class AssertThrowsOnLastStatement extends Recipe {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(methodDecl, ctx);
-
-                m = m.withBody(m.getBody().withStatements(ListUtils.flatMap(m.getBody().getStatements(), methodStatement -> {
+                if (m.getBody() == null) {
+                    return m;
+                }
+                doAfterVisit(new LambdaBlockToExpression().getVisitor());
+                return m.withBody(m.getBody().withStatements(ListUtils.flatMap(m.getBody().getStatements(), methodStatement -> {
                     J statementToCheck = methodStatement;
                     final J.VariableDeclarations assertThrowsWithVarDec;
                     final J.VariableDeclarations.NamedVariable assertThrowsVar;
@@ -132,11 +135,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         J.VariableDeclarations.NamedVariable newAssertThrowsVar = assertThrowsVar.withInitializer(newAssertThrows);
                         return assertThrowsWithVarDec.withVariables(singletonList(newAssertThrowsVar));
                     });
-
                 })));
-
-                doAfterVisit(new LambdaBlockToExpression().getVisitor());
-                return m;
             }
         });
     }
