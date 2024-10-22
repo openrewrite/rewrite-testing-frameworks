@@ -19,6 +19,7 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 
+@SuppressWarnings("SpellCheckingInspection")
 public class JMockitTestUtils {
 
     static final String MOCKITO_CORE_DEPENDENCY = "mockito-core-3.12";
@@ -27,7 +28,8 @@ public class JMockitTestUtils {
     static final String MOCKITO_JUPITER_DEPENDENCY = "mockito-junit-jupiter-3.12";
 
     static void setDefaultParserSettings(RecipeSpec spec) {
-        setParserSettings(spec, JUNIT_5_JUPITER_DEPENDENCY,
+        setParserSettings(spec,
+          JUNIT_5_JUPITER_DEPENDENCY,
           JMOCKIT_DEPENDENCY,
           MOCKITO_CORE_DEPENDENCY,
           MOCKITO_JUPITER_DEPENDENCY);

@@ -17,13 +17,22 @@ package org.openrewrite.java.testing.jmockit;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.test.RecipeSpec;
+import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
 
 /**
  * Not doing comprehensive testing as it is covered in JMockitVerificationsToMockitoTest and shares same code path
  */
-class JMockitFullVerificationsToMockitoTest extends JMockitTestBase {
+@SuppressWarnings("SpellCheckingInspection")
+class JMockitFullVerificationsToMockitoTest implements RewriteTest {
+
+    @Override
+    public void defaults(RecipeSpec spec) {
+        setDefaultParserSettings(spec);
+    }
 
     @DocumentExample
     @Test
@@ -36,15 +45,15 @@ class JMockitFullVerificationsToMockitoTest extends JMockitTestBase {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
+              
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-                  
+              
                   @Mocked
                   String str;
-                            
+              
                   void test() {
                       myObject.wait(10L, 10);
                       myObject.wait(10L, 10);
@@ -61,17 +70,17 @@ class JMockitFullVerificationsToMockitoTest extends JMockitTestBase {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-                            
+              
               import static org.mockito.Mockito.*;
-                            
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   Object myObject;
-                  
+              
                   @Mock
                   String str;
-                            
+              
                   void test() {
                       myObject.wait(10L, 10);
                       myObject.wait(10L, 10);
@@ -96,12 +105,12 @@ class JMockitFullVerificationsToMockitoTest extends JMockitTestBase {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
+              
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-                            
+              
                   void test() {
                       myObject.wait(10L, 10);
                       myObject.wait(10L, 10);
@@ -116,14 +125,14 @@ class JMockitFullVerificationsToMockitoTest extends JMockitTestBase {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-                            
+              
               import static org.mockito.Mockito.*;
-                            
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   Object myObject;
-                            
+              
                   void test() {
                       myObject.wait(10L, 10);
                       myObject.wait(10L, 10);
@@ -147,12 +156,12 @@ class JMockitFullVerificationsToMockitoTest extends JMockitTestBase {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
+              
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-                            
+              
                   void test() {
                       myObject.wait(10L, 10);
                       new FullVerifications() {{
@@ -166,14 +175,14 @@ class JMockitFullVerificationsToMockitoTest extends JMockitTestBase {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-                            
+              
               import static org.mockito.Mockito.*;
-                            
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   Object myObject;
-                            
+              
                   void test() {
                       myObject.wait(10L, 10);
                       verify(myObject).wait(anyLong(), anyInt());
@@ -196,12 +205,12 @@ class JMockitFullVerificationsToMockitoTest extends JMockitTestBase {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-                            
+              
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-                  
+              
                   void test() {
                       myObject.wait(10L, 10);
                       myObject.wait();
@@ -216,14 +225,14 @@ class JMockitFullVerificationsToMockitoTest extends JMockitTestBase {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-                            
+              
               import static org.mockito.Mockito.*;
-                            
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   Object myObject;
-                 
+              
                   void test() {
                       myObject.wait(10L, 10);
                       myObject.wait();
