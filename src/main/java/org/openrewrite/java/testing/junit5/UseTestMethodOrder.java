@@ -45,7 +45,7 @@ public class UseTestMethodOrder extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>("org.junit.FixMethodOrder", false), new JavaIsoVisitor<ExecutionContext>() {
 
-            
+
             private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
