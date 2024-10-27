@@ -30,36 +30,36 @@ import java.util.stream.Collectors;
 
 public class MockitoUtils {
     public static J.ClassDeclaration maybeAddMethodWithAnnotation(
-      JavaVisitor visitor,
-      J.ClassDeclaration classDecl,
-      ExecutionContext ctx,
-      String methodName,
-      String methodAnnotationSignature,
-      String methodAnnotationToAdd,
-      String additionalClasspathResource,
-      String importToAdd,
-      String methodAnnotationParameters
+            JavaVisitor visitor,
+            J.ClassDeclaration classDecl,
+            ExecutionContext ctx,
+            String methodName,
+            String methodAnnotationSignature,
+            String methodAnnotationToAdd,
+            String additionalClasspathResource,
+            String importToAdd,
+            String methodAnnotationParameters
     ) {
         if (hasMethodWithAnnotation(classDecl, new AnnotationMatcher(methodAnnotationSignature))) {
             return classDecl;
         }
 
         J.MethodDeclaration firstTestMethod = getFirstTestMethod(
-          classDecl.getBody().getStatements().stream().filter(J.MethodDeclaration.class::isInstance)
-            .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
+                classDecl.getBody().getStatements().stream().filter(J.MethodDeclaration.class::isInstance)
+                        .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
 
         visitor.maybeAddImport(importToAdd);
         return JavaTemplate.builder(methodAnnotationToAdd + methodAnnotationParameters + " public void " + methodName + "() {}")
-          .contextSensitive()
-          .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, additionalClasspathResource))
-          .imports(importToAdd)
-          .build()
-          .apply(
-            new Cursor(visitor.getCursor().getParentOrThrow(), classDecl),
-            (firstTestMethod != null) ?
-              firstTestMethod.getCoordinates().before() :
-              classDecl.getBody().getCoordinates().lastStatement()
-          );
+                .contextSensitive()
+                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, additionalClasspathResource))
+                .imports(importToAdd)
+                .build()
+                .apply(
+                        new Cursor(visitor.getCursor().getParentOrThrow(), classDecl),
+                        (firstTestMethod != null) ?
+                                firstTestMethod.getCoordinates().before() :
+                                classDecl.getBody().getCoordinates().lastStatement()
+                );
     }
 
     private static boolean hasMethodWithAnnotation(J.ClassDeclaration classDecl, AnnotationMatcher annotationMatcher) {
