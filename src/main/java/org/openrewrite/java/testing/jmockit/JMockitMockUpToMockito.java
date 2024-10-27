@@ -28,6 +28,7 @@ import org.openrewrite.staticanalysis.RemoveUnusedLocalVariables;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
@@ -101,7 +102,7 @@ public class JMockitMockUpToMockito extends Recipe {
                 return super.visitClassDeclaration(classDecl, ctx);
             }
 
-            final J.ClassDeclaration[] cd = {classDecl};
+            AtomicReference<J.ClassDeclaration> cd = new AtomicReference<>(classDecl);
             mds.forEach(md -> md.getBody()
                     .getStatements()
                     .stream()
@@ -114,48 +115,48 @@ public class JMockitMockUpToMockito extends Recipe {
 
                         // Add mockStatic field
                         if (mockedMethods.values().stream().anyMatch(m -> m.getFlags().contains(Static))) {
-                            cd[0] = JavaTemplate.builder("private MockedStatic #{};")
+                            cd.set(JavaTemplate.builder("private MockedStatic #{};")
                                     .contextSensitive()
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
                                     .imports(MOCKITO_STATIC_IMPORT)
                                     .staticImports(MOCKITO_ALL_IMPORT)
                                     .build()
                                     .apply(
-                                            new Cursor(getCursor().getParentOrThrow(), cd[0]),
-                                            cd[0].getBody().getCoordinates().firstStatement(),
+                                            new Cursor(getCursor().getParentOrThrow(), cd.get()),
+                                            cd.get().getBody().getCoordinates().firstStatement(),
                                             MOCKITO_STATIC_PREFIX + className
-                                    );
-                            J.VariableDeclarations mockField = (J.VariableDeclarations) cd[0].getBody().getStatements().get(0);
+                                    ));
+                            J.VariableDeclarations mockField = (J.VariableDeclarations) cd.get().getBody().getStatements().get(0);
                             J.Identifier mockFieldId = mockField.getVariables().get(0).getName();
                             tearDownMocks.put(MOCKITO_STATIC_PREFIX + className, mockFieldId);
                         }
                         // Add mockConstruction field
                         if (mockedMethods.values().stream().anyMatch(m -> !m.getFlags().contains(Static))) {
-                            cd[0] = JavaTemplate.builder("private MockedConstruction #{};")
+                            cd.set(JavaTemplate.builder("private MockedConstruction #{};")
                                     .contextSensitive()
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
                                     .imports(MOCKITO_CONSTRUCTION_IMPORT)
                                     .staticImports(MOCKITO_ALL_IMPORT)
                                     .build()
                                     .apply(
-                                            updateCursor(cd[0]),
-                                            cd[0].getBody().getCoordinates().firstStatement(),
+                                            updateCursor(cd.get()),
+                                            cd.get().getBody().getCoordinates().firstStatement(),
                                             MOCKITO_CONSTRUCTION_PREFIX + className
-                                    );
-                            J.VariableDeclarations mockField = (J.VariableDeclarations) cd[0].getBody().getStatements().get(0);
+                                    ));
+                            J.VariableDeclarations mockField = (J.VariableDeclarations) cd.get().getBody().getStatements().get(0);
                             J.Identifier mockFieldId = mockField.getVariables().get(0).getName();
                             tearDownMocks.put(MOCKITO_CONSTRUCTION_PREFIX + className, mockFieldId);
                         }
                     }));
 
-            cd[0] = maybeAddMethodWithAnnotation(this, cd[0], ctx, "tearDown",
+            cd.set(maybeAddMethodWithAnnotation(this, cd.get(), ctx, "tearDown",
                     TEARDOWN_METHOD_ANNOTATION_SIGNATURE,
                     TEARDOWN_METHOD_ANNOTATION_TO_ADD,
                     TEARDOWN_CLASSPATH_RESOURCE,
                     TEARDOWN_IMPORT_TO_ADD,
-                    "");
+                    ""));
 
-            return super.visitClassDeclaration(cd[0], ctx);
+            return super.visitClassDeclaration(cd.get(), ctx);
         }
 
         @Override
@@ -355,7 +356,7 @@ public class JMockitMockUpToMockito extends Recipe {
             findRefs.setAccessible(true);
 
             Set<String> usedVariables = new HashSet<>();
-            (new JavaIsoVisitor<Set<String>>() {
+            new JavaIsoVisitor<Set<String>>() {
                 @Override
                 @SneakyThrows
                 public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> ctx) {
@@ -366,7 +367,7 @@ public class JMockitMockUpToMockito extends Recipe {
                     }
                     return super.visitVariable(variable, ctx);
                 }
-            }).visit(md, usedVariables);
+            }.visit(md, usedVariables);
 
             StringBuilder sb = new StringBuilder();
             List<Statement> parameters = md.getParameters();
@@ -390,7 +391,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
             boolean hasReturn = false;
             for (Statement s : md.getBody().getStatements()) {
-                hasReturn = hasReturn || s instanceof J.Return;
+                hasReturn |= s instanceof J.Return;
                 sb.append(s.print(getCursor())).append(";");
             }
             // Avoid syntax error
