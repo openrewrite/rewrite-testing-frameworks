@@ -411,6 +411,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     @Test
     void mockUpAtSetUpWithoutTearDownTest() {
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.Before;
@@ -486,6 +487,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     @Test
     void mockUpAtSetUpWithTearDownTest() {
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.Before;
@@ -586,6 +588,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     @Test
     void mockUpWithParamsTest() {
         rewriteRun(
+          //language=java
           java(
             """
               import mockit.Mock;
