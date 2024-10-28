@@ -83,7 +83,7 @@ public class MigrateJUnitTestCase extends Recipe {
 
                     @SuppressWarnings("ConstantConditions")
                     @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                    public  J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if ((mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase")) ||
                             (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"))) {
