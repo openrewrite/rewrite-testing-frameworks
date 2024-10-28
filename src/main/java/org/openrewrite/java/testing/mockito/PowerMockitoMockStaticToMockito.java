@@ -168,7 +168,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         }
 
         @Override
-        public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+        public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
 
             Map<String, J.MethodInvocation> mockStaticInvocationsByClassName = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);

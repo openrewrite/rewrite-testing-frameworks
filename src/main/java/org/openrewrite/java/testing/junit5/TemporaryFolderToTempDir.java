@@ -108,7 +108,7 @@ public class TemporaryFolderToTempDir extends Recipe {
             }
 
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 updateCursor(mi);
                 if (mi.getSelect() != null && mi.getMethodType() != null &&
