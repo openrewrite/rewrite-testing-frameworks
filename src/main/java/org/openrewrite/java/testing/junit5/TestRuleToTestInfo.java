@@ -101,7 +101,7 @@ public class TestRuleToTestInfo extends Recipe {
         }
 
         @Override
-        public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+        public @Nullable J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
             J.NewClass nc = super.visitNewClass(newClass, ctx);
             if (TypeUtils.isOfClassType(nc.getType(), "org.junit.rules.TestName")) {
                 //noinspection ConstantConditions
