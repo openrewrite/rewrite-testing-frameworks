@@ -16,6 +16,8 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -148,8 +150,11 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-
+              import org.mockito.junit.jupiter.MockitoSettings;
+              import org.mockito.quality.Strictness;
+              
               @ExtendWith(MockitoExtension.class)
+              @MockitoSettings(strictness = Strictness.LENIENT)
               class MyTest {
 
                   @Mock
@@ -199,8 +204,11 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-
+              import org.mockito.junit.jupiter.MockitoSettings;
+              import org.mockito.quality.Strictness;
+              
               @ExtendWith(MockitoExtension.class)
+              @MockitoSettings(strictness = Strictness.LENIENT)
               class MyTest {
 
                   @Mock
@@ -473,6 +481,254 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
                   @Test
                   public void exampleTest() {
                       verify(list).add(100);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/623")
+    @Test
+    void silentRuleAddMockitoSettings() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnit;
+              import org.mockito.junit.MockitoRule;
+              
+              import java.util.List;
+              
+              import static org.mockito.Mockito.when;
+              
+              public class MyTest {
+              
+                  @Rule
+                  public MockitoRule rule = MockitoJUnit.rule().silent();
+              
+                  @Mock
+                  private List<String> mockList;
+              
+                  @Test
+                  public void testing() {
+                      when(mockList.add("one")).thenReturn(true); // this won't get called
+                      System.out.println("Hello world!");
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.jupiter.MockitoSettings;
+              import org.mockito.quality.Strictness;
+              
+              import java.util.List;
+              
+              import static org.mockito.Mockito.when;
+              
+              @ExtendWith(MockitoExtension.class)
+              @MockitoSettings(strictness = Strictness.LENIENT)
+              public class MyTest {
+              
+                  @Mock
+                  private List<String> mockList;
+              
+                  @Test
+                  public void testing() {
+                      when(mockList.add("one")).thenReturn(true); // this won't get called
+                      System.out.println("Hello world!");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/623")
+    @Test
+    void warnStrictnessRuleAddMockitoSettings() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnit;
+              import org.mockito.junit.MockitoRule;
+              import org.mockito.quality.Strictness;
+              
+              import java.util.List;
+              
+              import static org.mockito.Mockito.when;
+              
+              public class MyTest {
+              
+                  @Rule
+                  public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.WARN);
+              
+                  @Mock
+                  private List<String> mockList;
+              
+                  @Test
+                  public void testing() {
+                      when(mockList.add("one")).thenReturn(true); // this won't get called
+                      System.out.println("Hello world!");
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.jupiter.MockitoSettings;
+              import org.mockito.quality.Strictness;
+              
+              import java.util.List;
+              
+              import static org.mockito.Mockito.when;
+              
+              @ExtendWith(MockitoExtension.class)
+              @MockitoSettings(strictness = Strictness.WARN)
+              public class MyTest {
+              
+                  @Mock
+                  private List<String> mockList;
+              
+                  @Test
+                  public void testing() {
+                      when(mockList.add("one")).thenReturn(true); // this won't get called
+                      System.out.println("Hello world!");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/623")
+    @Test
+    void lenientStrictnessRuleAddMockitoSettings() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnit;
+              import org.mockito.junit.MockitoRule;
+              import org.mockito.quality.Strictness;
+              
+              import java.util.List;
+              
+              import static org.mockito.Mockito.when;
+              
+              public class MyTest {
+              
+                  @Rule
+                  public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.LENIENT);
+              
+                  @Mock
+                  private List<String> mockList;
+              
+                  @Test
+                  public void testing() {
+                      when(mockList.add("one")).thenReturn(true); // this won't get called
+                      System.out.println("Hello world!");
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.jupiter.MockitoSettings;
+              import org.mockito.quality.Strictness;
+              
+              import java.util.List;
+              
+              import static org.mockito.Mockito.when;
+              
+              @ExtendWith(MockitoExtension.class)
+              @MockitoSettings(strictness = Strictness.LENIENT)
+              public class MyTest {
+              
+                  @Mock
+                  private List<String> mockList;
+              
+                  @Test
+                  public void testing() {
+                      when(mockList.add("one")).thenReturn(true); // this won't get called
+                      System.out.println("Hello world!");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/623")
+    @Test
+    void strictRuleDoNotAddMockitoSettings() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnit;
+              import org.mockito.junit.MockitoRule;
+              import org.mockito.quality.Strictness;
+              
+              import java.util.List;
+              
+              import static org.mockito.Mockito.when;
+              
+              public class MyTest {
+              
+                  @Rule
+                  public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);
+              
+                  @Mock
+                  private List<String> mockList;
+              
+                  @Test
+                  public void testing() {
+                      when(mockList.add("one")).thenReturn(true); // this won't get called
+                      System.out.println("Hello world!");
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              
+              import java.util.List;
+              
+              import static org.mockito.Mockito.when;
+              
+              @ExtendWith(MockitoExtension.class)
+              public class MyTest {
+              
+                  @Mock
+                  private List<String> mockList;
+              
+                  @Test
+                  public void testing() {
+                      when(mockList.add("one")).thenReturn(true); // this won't get called
+                      System.out.println("Hello world!");
                   }
               }
               """

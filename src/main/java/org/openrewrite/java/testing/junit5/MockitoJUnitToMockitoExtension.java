@@ -74,6 +74,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
     public static class MockitoRuleToMockitoExtensionVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final String MOCKITO_RULE_INVOCATION_KEY = "mockitoRuleInvocation";
         private static final String MOCKITO_TEST_RULE_INVOCATION_KEY = "mockitoTestRuleInvocation";
+        private static final String STRICTNESS_KEY = "strictness";
 
         private static final String EXTEND_WITH_MOCKITO_EXTENSION = "@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)";
         private static final String RUN_WITH_MOCKITO_JUNIT_RUNNER = "@org.junit.runner.RunWith(org.mockito.runners.MockitoJUnitRunner.class)";
@@ -101,15 +102,28 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                     (FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty() &&
                      FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty())) {
 
-                    cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
+                    String strictness = getCursor().pollMessage(STRICTNESS_KEY);
+
+                    String[] imports;
+                    if (strictness == null) {
+                        imports = new String[]{"org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension"};
+                    } else {
+                        imports = new String[]{"org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension", "org.mockito.junit.jupiter.MockitoSettings", "org.mockito.quality.Strictness"};
+                    }
+
+                    cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)" + (strictness != null ? "\n@MockitoSettings(strictness = " + strictness + ")" : ""))
                             .javaParser(JavaParser.fromJavaVersion()
                                     .classpathFromResources(ctx, "junit-jupiter-api-5.9", "mockito-junit-jupiter-3.12"))
-                            .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
+                            .imports(imports)
                             .build()
                             .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
 
                     maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                     maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
+                    if (strictness != null) {
+                        maybeAddImport("org.mockito.junit.jupiter.MockitoSettings", false);
+                        maybeAddImport("org.mockito.quality.Strictness", false);
+                    }
                 }
             }
 
@@ -119,10 +133,27 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (method.getMethodType() != null) {
+                String key = null;
                 if (TypeUtils.isOfClassType(method.getMethodType().getDeclaringType(), "org.mockito.junit.MockitoRule")) {
-                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCKITO_RULE_INVOCATION_KEY, method);
+                    key = MOCKITO_RULE_INVOCATION_KEY;
                 } else if (TypeUtils.isOfClassType(method.getMethodType().getDeclaringType(), "org.mockito.junit.MockitoTestRule")) {
-                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCKITO_TEST_RULE_INVOCATION_KEY, method);
+                    key = MOCKITO_TEST_RULE_INVOCATION_KEY;
+                }
+                if (key != null) {
+                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, key, method);
+                    String strictness = null;
+                    switch (method.getSimpleName()) {
+                        case "strictness":
+                            strictness = method.getArguments().get(0).toString();
+                            break;
+                        case "silent":
+                            strictness = "Strictness.LENIENT";
+                            break;
+                    }
+                    if (strictness != null && !strictness.contains("STRICT_STUBS")) {
+                        strictness = strictness.startsWith("Strictness.") ? strictness : "Strictness." + strictness;
+                        getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, STRICTNESS_KEY, strictness);
+                    }
                 }
             }
 
