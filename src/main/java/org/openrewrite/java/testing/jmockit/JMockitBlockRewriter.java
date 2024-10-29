@@ -109,8 +109,9 @@ class JMockitBlockRewriter {
                         methodInvocationIdx++;
                         methodInvocationsToRewrite.add(new ArrayList<>());
                     }
-                    if (isFullVerifications() && uniqueMocks.stream().noneMatch(mock -> mock.getType().equals(mockObj.getType())
-                            && mock.getSimpleName().equals(mockObj.getSimpleName()))) {
+                    if (isFullVerifications() &&
+                        uniqueMocks.stream().noneMatch(mock -> mock.getType().equals(mockObj.getType()) &&
+                                                               mock.getSimpleName().equals(mockObj.getSimpleName()))) {
                         uniqueMocks.add(mockObj);
                     }
                 }
