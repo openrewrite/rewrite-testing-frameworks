@@ -46,7 +46,7 @@ public class RetainStrictnessWarn extends ScanningRecipe<AtomicBoolean> {
 
     @Override
     public String getDescription() {
-        return "Migrating from JUnit 4 to 5 [changes the default strictness](https://stackoverflow.com/a/53234137/53444) of the mocks from `WARN` to `STRICT_STUBS`. " +
+        return "Migrating from Mockito 3 to 4 [changes the default strictness](https://github.com/mockito/mockito/issues/1769) of the mocks from `WARN` to `STRICT_STUBS`. " +
                "To prevent tests from failing we restore the original behavior by adding `@MockitoSettings(strictness = Strictness.WARN)`.";
     }
 
@@ -57,7 +57,7 @@ public class RetainStrictnessWarn extends ScanningRecipe<AtomicBoolean> {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(AtomicBoolean usingOlderMockito) {
-        TreeVisitor<?, ExecutionContext> div = new DependencyInsight("org.mockito", "mockito-*", "[1.1,2.17)", null).getVisitor();
+        TreeVisitor<?, ExecutionContext> div = new DependencyInsight("org.mockito", "mockito-*", "[1,4)", null).getVisitor();
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {

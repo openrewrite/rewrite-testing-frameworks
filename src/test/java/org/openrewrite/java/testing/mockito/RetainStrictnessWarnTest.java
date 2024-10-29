@@ -104,7 +104,7 @@ class RetainStrictnessWarnTest implements RewriteTest {
     }
 
     @Test
-    void shouldRunBeforeMockitoCore2_17() {
+    void shouldRunBeforeMockitoCore4() {
         rewriteRun(
           pomXml(POM_XML_WITH_OLDER_MOCKITO),
           java(JAVA_BEFORE, JAVA_AFTER)
@@ -126,7 +126,7 @@ class RetainStrictnessWarnTest implements RewriteTest {
                   <dependency>
                       <groupId>org.mockito</groupId>
                       <artifactId>mockito-core</artifactId>
-                      <version>2.17.0</version>
+                      <version>4.0.0</version>
                       <scope>test</scope>
                   </dependency>
                 </dependencies>
