@@ -28,7 +28,6 @@ import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
