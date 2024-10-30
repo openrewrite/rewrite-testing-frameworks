@@ -102,25 +102,24 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                     (FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty() &&
                      FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty())) {
 
-                    String strictness = getCursor().pollMessage(STRICTNESS_KEY);
-
-                    String[] imports;
-                    if (strictness == null) {
-                        imports = new String[]{"org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension"};
-                    } else {
-                        imports = new String[]{"org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension", "org.mockito.junit.jupiter.MockitoSettings", "org.mockito.quality.Strictness"};
-                    }
-
-                    cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)" + (strictness != null ? "\n@MockitoSettings(strictness = " + strictness + ")" : ""))
+                    cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
                             .javaParser(JavaParser.fromJavaVersion()
                                     .classpathFromResources(ctx, "junit-jupiter-api-5.9", "mockito-junit-jupiter-3.12"))
-                            .imports(imports)
+                            .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                             .build()
                             .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
 
                     maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                     maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
+
+                    String strictness = getCursor().pollMessage(STRICTNESS_KEY);
                     if (strictness != null) {
+                        cd = JavaTemplate.builder("@MockitoSettings(strictness = " + strictness + ")")
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(ctx, "junit-jupiter-api-5.9", "mockito-junit-jupiter-3.12"))
+                                .imports("org.mockito.junit.jupiter.MockitoSettings", "org.mockito.quality.Strictness")
+                                .build()
+                                .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                         maybeAddImport("org.mockito.junit.jupiter.MockitoSettings", false);
                         maybeAddImport("org.mockito.quality.Strictness", false);
                     }
