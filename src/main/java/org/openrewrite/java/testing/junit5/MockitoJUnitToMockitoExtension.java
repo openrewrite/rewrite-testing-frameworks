@@ -101,6 +101,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                 if (classDecl.getBody().getStatements().size() != cd.getBody().getStatements().size() &&
                     (FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty() &&
                      FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty())) {
+                    String strictness = getCursor().pollMessage(STRICTNESS_KEY);
 
                     cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
                             .javaParser(JavaParser.fromJavaVersion()
@@ -112,7 +113,6 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                     maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                     maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
 
-                    String strictness = getCursor().pollMessage(STRICTNESS_KEY);
                     if (strictness != null) {
                         cd = JavaTemplate.builder("@MockitoSettings(strictness = " + strictness + ")")
                                 .javaParser(JavaParser.fromJavaVersion()

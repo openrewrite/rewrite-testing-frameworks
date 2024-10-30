@@ -655,10 +655,9 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import java.util.List;
               
               import static org.mockito.Mockito.when;
-              import static org.mockito.quality.Strictness.WARN;
               
               @ExtendWith(MockitoExtension.class)
-              @MockitoSettings(strictness = WARN)
+              @MockitoSettings(strictness = Strictness.WARN)
               public class MyTest {
               
                   @Mock
