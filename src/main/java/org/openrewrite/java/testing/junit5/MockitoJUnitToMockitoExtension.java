@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -27,6 +28,7 @@ import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
@@ -115,6 +117,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
 
                     if (strictness != null) {
                         cd = JavaTemplate.builder("@MockitoSettings(strictness = " + strictness + ")")
+                                .doBeforeParseTemplate(System.out::println)
                                 .javaParser(JavaParser.fromJavaVersion()
                                         .classpathFromResources(ctx, "junit-jupiter-api-5.9", "mockito-junit-jupiter-3.12"))
                                 .imports("org.mockito.junit.jupiter.MockitoSettings", "org.mockito.quality.Strictness")
@@ -123,6 +126,11 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                         maybeAddImport("org.mockito.junit.jupiter.MockitoSettings", false);
                         maybeAddImport("org.mockito.quality.Strictness", false);
                     }
+
+                    // Workaround first modifier incorrectly getting a trailing space as part of the prefix
+                    cd = cd.withModifiers(ListUtils.mapFirst(cd.getModifiers(),
+                            modifier -> modifier.withPrefix(modifier.getPrefix().withWhitespace(
+                                    modifier.getPrefix().getLastWhitespace().replaceAll(" $", "")))));
                 }
             }
 
