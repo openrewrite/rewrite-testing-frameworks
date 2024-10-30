@@ -114,7 +114,12 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                     maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                     maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
 
-                    if (strictness != null) {
+                    if (strictness == null) {
+                        // As we are in a Rule, and rules where always warn by default,
+                        // we cannot use junit5 Strictness.STRICT_STUBS during migration
+                        strictness = "Strictness.WARN";
+                    }
+                    if (!strictness.contains("STRICT_STUBS")) {
                         cd = JavaTemplate.builder("@MockitoSettings(strictness = " + strictness + ")")
                                 .doBeforeParseTemplate(System.out::println)
                                 .javaParser(JavaParser.fromJavaVersion()
@@ -156,7 +161,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                             strictness = "Strictness.LENIENT";
                             break;
                     }
-                    if (strictness != null && !strictness.contains("STRICT_STUBS")) {
+                    if (strictness != null) {
                         strictness = strictness.startsWith("Strictness.") ? strictness : "Strictness." + strictness;
                         getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, STRICTNESS_KEY, strictness);
                     }
