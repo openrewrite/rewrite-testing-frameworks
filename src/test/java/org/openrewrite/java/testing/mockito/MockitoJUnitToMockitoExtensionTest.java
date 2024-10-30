@@ -16,8 +16,6 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -50,12 +48,12 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.mockito.Mock;
               import org.mockito.junit.MockitoRule;
               import org.mockito.junit.MockitoJUnit;
-
+              
               class MyTest {
-                            
+              
                   @Rule
                   TemporaryFolder tempDir = new TemporaryFolder();
-
+              
                   @Rule
                   MockitoRule mockitoRule = MockitoJUnit.rule();
               }
@@ -66,10 +64,10 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.junit.rules.TemporaryFolder;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
-
+              
                   @Rule
                   TemporaryFolder tempDir = new TemporaryFolder();
               }
@@ -91,10 +89,10 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.mockito.Mock;
               import org.mockito.junit.MockitoRule;
               import org.mockito.junit.MockitoJUnit;
-
+              
               @FixMethodOrder(MethodSorters.NAME_ASCENDING)
               class MyTest {
-                            
+              
                   @Rule
                   MockitoRule mockitoRule = MockitoJUnit.rule();
               }
@@ -105,7 +103,7 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.junit.runners.MethodSorters;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-
+              
               @ExtendWith(MockitoExtension.class)
               @FixMethodOrder(MethodSorters.NAME_ASCENDING)
               class MyTest {
@@ -123,21 +121,21 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
           java(
             """
               import java.util.List;
-
+              
               import org.junit.Rule;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnit;
               import org.mockito.junit.MockitoRule;
               import org.mockito.quality.Strictness;
-
+              
               class MyTest {
-                            
+              
                   @Rule
                   MockitoRule mockitoRule = MockitoJUnit.rule();
-
+              
                   @Mock
                   private List<Integer> list;
-                            
+              
                   public void exampleTest() {
                       mockitoRule.strictness(Strictness.LENIENT);
                       list.add(100);
@@ -146,7 +144,7 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               """,
             """
               import java.util.List;
-
+              
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
@@ -156,10 +154,10 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               @ExtendWith(MockitoExtension.class)
               @MockitoSettings(strictness = Strictness.LENIENT)
               class MyTest {
-
+              
                   @Mock
                   private List<Integer> list;
-
+              
                   public void exampleTest() {
                       list.add(100);
                   }
@@ -177,21 +175,21 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
           java(
             """
               import java.util.List;
-
+              
               import org.junit.Rule;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnit;
               import org.mockito.junit.MockitoTestRule;
               import org.mockito.quality.Strictness;
-
+              
               class MyTest {
-                                
+              
                   @Rule
                   MockitoTestRule mockitoTestRule = MockitoJUnit.rule();
-
+              
                   @Mock
                   private List<Integer> list;
-                                
+              
                   public void exampleTest() {
                       mockitoTestRule.strictness(Strictness.LENIENT);
                       list.add(100);
@@ -200,7 +198,7 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               """,
             """
               import java.util.List;
-
+              
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
@@ -210,10 +208,10 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               @ExtendWith(MockitoExtension.class)
               @MockitoSettings(strictness = Strictness.LENIENT)
               class MyTest {
-
+              
                   @Mock
                   private List<Integer> list;
-
+              
                   public void exampleTest() {
                       list.add(100);
                   }
@@ -237,22 +235,22 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.mockito.junit.MockitoTestRule;
               import org.mockito.junit.VerificationCollector;
               import org.mockito.quality.Strictness;
-
+              
               import java.util.List;
-
+              
               import static org.mockito.Mockito.verify;
-
+              
               class MyTest {
-                            
+              
                   @Rule
                   VerificationCollector verificationCollectorRule = MockitoJUnit.collector();
-
+              
                   @Rule
                   MockitoTestRule mockitoTestRule = MockitoJUnit.rule();
-
+              
                   @Mock
                   private List<Integer> list;
-                            
+              
                   @Test
                   public void exampleTest() {
                       verify(list).add(100);
@@ -268,20 +266,20 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.mockito.junit.MockitoJUnit;
               import org.mockito.junit.VerificationCollector;
               import org.mockito.junit.jupiter.MockitoExtension;
-
+              
               import java.util.List;
-
+              
               import static org.mockito.Mockito.verify;
-
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
-                            
+              
                   @Rule
                   VerificationCollector verificationCollectorRule = MockitoJUnit.collector();
-
+              
                   @Mock
                   private List<Integer> list;
-                            
+              
                   @Test
                   public void exampleTest() {
                       verify(list).add(100);
@@ -301,20 +299,20 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
           java(
             """
               import java.util.List;
-
+              
               import org.junit.Rule;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnit;
               import org.mockito.junit.VerificationCollector;
-
+              
               class MyTest {
-                            
+              
                   @Rule
                   VerificationCollector verificationCollectorRule = MockitoJUnit.collector();
-
+              
                   @Mock
                   private List<Integer> list;
-                            
+              
                   public void exampleTest() {
                       list.add(100);
                       verificationCollectorRule.collectAndReport();
@@ -333,25 +331,25 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
           java(
             """
               import java.util.List;
-
+              
               import org.mockito.Mock;
               import org.mockito.exceptions.base.MockitoAssertionError;
               import org.mockito.junit.MockitoJUnit;
               import org.mockito.junit.VerificationCollector;
-
+              
               import static org.junit.Assert.assertTrue;
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.verify;
-
+              
               class MyTest {
-                            
+              
                   public void unsupported() {
                       VerificationCollector collector = MockitoJUnit.collector().assertLazily();
-
+              
                       List<Object> mockList = mock(List.class);
                       verify(mockList).add("one");
                       verify(mockList).clear();
-
+              
                       try {
                           collector.collectAndReport();
                       } catch (MockitoAssertionError error) {
@@ -382,20 +380,20 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.mockito.junit.MockitoJUnit;
               import org.mockito.junit.MockitoTestRule;
               import org.mockito.runners.MockitoJUnitRunner;
-
+              
               import java.util.List;
-
+              
               import static org.mockito.Mockito.verify;
-
+              
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
-                            
+              
                   @Rule
                   MockitoTestRule mockitoTestRule = MockitoJUnit.rule();
-
+              
                   @Mock
                   private List<Integer> list;
-                            
+              
                   @Test
                   public void exampleTest() {
                       verify(list).add(100);
@@ -407,17 +405,17 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.junit.Test;
               import org.mockito.Mock;
               import org.mockito.runners.MockitoJUnitRunner;
-
+              
               import java.util.List;
-
+              
               import static org.mockito.Mockito.verify;
-
+              
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
-                            
+              
                   @Mock
                   private List<Integer> list;
-                            
+              
                   @Test
                   public void exampleTest() {
                       verify(list).add(100);
@@ -442,20 +440,20 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.mockito.junit.jupiter.MockitoExtension;
               import org.mockito.junit.MockitoJUnit;
               import org.mockito.junit.MockitoTestRule;
-
+              
               import java.util.List;
-
+              
               import static org.mockito.Mockito.verify;
-
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
-                            
+              
                   @Rule
                   MockitoTestRule mockitoTestRule = MockitoJUnit.rule();
-
+              
                   @Mock
                   private List<Integer> list;
-                            
+              
                   @Test
                   public void exampleTest() {
                       verify(list).add(100);
@@ -467,17 +465,17 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               import org.junit.Test;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-                            
+              
               import java.util.List;
-
+              
               import static org.mockito.Mockito.verify;
-
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
-                            
+              
                   @Mock
                   private List<Integer> list;
-                            
+              
                   @Test
                   public void exampleTest() {
                       verify(list).add(100);
