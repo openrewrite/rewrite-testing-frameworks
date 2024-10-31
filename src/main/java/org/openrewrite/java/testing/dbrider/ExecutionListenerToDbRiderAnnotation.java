@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.dbrider;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -24,9 +25,11 @@ import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
 
 import java.util.Comparator;
 import java.util.List;
@@ -69,7 +72,7 @@ public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<Executi
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(final DbRiderExecutionListenerContext acc) {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>("com.github.database.rider.spring.DBRiderTestExecutionListener", true), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(final J.CompilationUnit cu, final ExecutionContext ctx) {
                 if (acc.shouldMigrate()) {
@@ -92,14 +95,21 @@ public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<Executi
                             .build()
                             .apply(getCursor(), c.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 }
+                Space prefix = c.getLeadingAnnotations().get(c.getLeadingAnnotations().size() - 1).getPrefix();
                 return c.withLeadingAnnotations(ListUtils.map(c.getLeadingAnnotations(), annotation -> {
                     if (annotation != null && executionListenerAnnotationMatcher.matches(annotation)) {
-                        return acc.getExecutionListenerAnnotation();
+                        J.Annotation executionListenerAnnotation = acc.getExecutionListenerAnnotation();
+                        if (executionListenerAnnotation != null) {
+                            return executionListenerAnnotation
+                                    .withArguments(firstItemPrefixWorkaround(executionListenerAnnotation.getArguments()))
+                                    .withPrefix(prefix);
+                        }
+                        return null;
                     }
                     return annotation;
                 }));
             }
-        };
+        });
     }
 
     public static class DbRiderExecutionListenerContext {
@@ -232,7 +242,7 @@ public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<Executi
                 if (newListeners.isEmpty()) {
                     return null;
                 }
-                return listeners.withInitializer(newListeners);
+                return listeners.withInitializer(firstItemPrefixWorkaround(newListeners));
             }
             return listeners;
         }
@@ -254,5 +264,12 @@ public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<Executi
                     ((JavaType.Parameterized) expression.getType()).getTypeParameters().get(0) instanceof JavaType.Class &&
                     ((JavaType.Class) ((JavaType.Parameterized) expression.getType()).getTypeParameters().get(0)).getFullyQualifiedName().equals(type);
         }
+    }
+
+    private static <T extends Expression> @Nullable List<T> firstItemPrefixWorkaround(@Nullable List<T> list) {
+        if (list == null || list.isEmpty()) {
+            return list;
+        }
+        return ListUtils.mapFirst(list, t -> t.withPrefix(t.getPrefix().withWhitespace(t.getPrefix().getLastWhitespace().replaceAll(" $", ""))));
     }
 }
