@@ -165,15 +165,15 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
         }
     }
 
-    private static Expression extractEitherArgument(boolean assertThatArgumentIsEmpty, Expression assertThatArgument, Expression methodToReplaceArgument) {
+    private Expression extractEitherArgument(boolean assertThatArgumentIsEmpty, Expression assertThatArgument, Expression methodToReplaceArgument) {
         if (assertThatArgumentIsEmpty) {
             return methodToReplaceArgument;
         }
         // Only on the assertThat argument do we possibly replace the argument with the select; such as list.size() -> list
         if (assertThatArgument instanceof J.MethodInvocation) {
-            Expression select = ((J.MethodInvocation) assertThatArgument).getSelect();
-            if (select != null) {
-                return select;
+            J.MethodInvocation methodInvocation = (J.MethodInvocation) assertThatArgument;
+            if (chainedAssertion.equals(methodInvocation.getSimpleName()) && methodInvocation.getSelect() != null) {
+                return methodInvocation.getSelect();
             }
         }
         return assertThatArgument;
