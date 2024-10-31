@@ -30,10 +30,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -163,19 +160,16 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
             return "assertThat(#{any()}).%s(#{any()})";
         }
-    }
 
-    private Expression extractEitherArgument(boolean assertThatArgumentIsEmpty, Expression assertThatArgument, Expression methodToReplaceArgument) {
-        if (assertThatArgumentIsEmpty) {
-            return methodToReplaceArgument;
-        }
-        // Only on the assertThat argument do we possibly replace the argument with the select; such as list.size() -> list
-        if (assertThatArgument instanceof J.MethodInvocation) {
-            J.MethodInvocation methodInvocation = (J.MethodInvocation) assertThatArgument;
-            if (chainedAssertion.equals(methodInvocation.getSimpleName()) && methodInvocation.getSelect() != null) {
-                return methodInvocation.getSelect();
+        private Expression extractEitherArgument(boolean assertThatArgumentIsEmpty, Expression assertThatArgument, Expression methodToReplaceArgument) {
+            if (assertThatArgumentIsEmpty) {
+                return methodToReplaceArgument;
             }
+            // Only on the assertThat argument do we possibly replace the argument with the select; such as list.size() -> list
+            if (CHAINED_ASSERT_MATCHER.matches(assertThatArgument)) {
+                return Objects.requireNonNull(((J.MethodInvocation) assertThatArgument).getSelect());
+            }
+            return assertThatArgument;
         }
-        return assertThatArgument;
     }
 }
