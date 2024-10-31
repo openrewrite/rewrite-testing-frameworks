@@ -209,6 +209,7 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
 
                         import com.github.database.rider.junit5.api.DBRider;
                         import org.springframework.test.context.TestExecutionListeners;
+                        import com.github.database.rider.spring.DBRiderTestExecutionListener;
 
                         @DBRider
                         @TestExecutionListeners(listeners = {DBRiderTestExecutionListener.class}, inheritListeners = false)
