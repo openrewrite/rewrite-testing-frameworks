@@ -21,7 +21,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
     void replaceAnnotationIfOnlyDbRiderListenerMergedWithDefaults() {
         rewriteRun(
                 //language=java
-                java("""
+                java(
+                """
                         package sample;
 
                         import org.springframework.test.context.TestExecutionListeners;
@@ -44,7 +45,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
     void addAnnotationIfOnlyDbRiderListenerReplacedDefaults() {
         rewriteRun(
                 //language=java
-                java("""
+                java(
+                """
                         package sample;
 
                         import org.springframework.test.context.TestExecutionListeners;
@@ -69,7 +71,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
     void addAnnotationIfOnlyDbRiderListenerAndNoMergeModeSpecified() {
         rewriteRun(
                 //language=java
-                java("""
+                java(
+                """
                         package sample;
 
                         import org.springframework.test.context.TestExecutionListeners;
@@ -93,7 +96,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
     void addAnnotationIfOnlyDbRiderListenerThroughValue() {
         rewriteRun(
                 //language=java
-                java("""
+                java(
+                """
                         package sample;
 
                         import org.springframework.test.context.TestExecutionListeners;
@@ -117,7 +121,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
     void addAnnotationIfOnlyDbRiderListenerThroughValueArray() {
         rewriteRun(
                 //language=java
-                java("""
+                java(
+                """
                         package sample;
 
                         import org.springframework.test.context.TestExecutionListeners;
@@ -142,7 +147,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
         rewriteRun(
                 //TODO: how to get rid of the blank before the listeners attribute?
                 //language=java
-                java("""
+                java(
+                """
                         package sample;
 
                         import org.springframework.test.context.TestExecutionListeners;
@@ -166,7 +172,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
     void removeListenerFromOtherListeners() {
         rewriteRun(
                 //language=java
-                java("""
+                java(
+                """
                         package sample;
 
                         import org.springframework.test.context.TestExecutionListeners;
@@ -192,7 +199,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
     void doNotTouchIfNoListenerPresent() {
         rewriteRun(
                 //language=java
-                java("""
+                java(
+                """
                         package sample;
 
                         @Deprecated
@@ -204,7 +212,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
     void doNotTouchIfDbRiderAlreadyPresent() {
         rewriteRun(
                 //language=java
-                java("""
+                java(
+                """
                         package sample;
 
                         import com.github.database.rider.junit5.api.DBRider;
