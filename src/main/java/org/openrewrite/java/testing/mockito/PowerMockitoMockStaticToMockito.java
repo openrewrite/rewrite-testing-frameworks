@@ -441,7 +441,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         private J.ClassDeclaration maybeAddSetUpMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             String testGroupsAsString = getTestGroupsAsString();
-            return maybeAddMethodWithAnnotation(this, classDecl, ctx, "setUpStaticMocks",
+            return maybeAddMethodWithAnnotation(this, classDecl, ctx, false, "setUpStaticMocks",
                     setUpMethodAnnotationSignature, setUpMethodAnnotation,
                     additionalClasspathResource, setUpImportToAdd, testGroupsAsString);
         }
@@ -459,7 +459,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             String testGroupsAsString = (getTestGroupsAsString().isEmpty()) ? tearDownMethodAnnotationParameters : getTestGroupsAsString();
-            return maybeAddMethodWithAnnotation(this, classDecl, ctx, "tearDownStaticMocks",
+            return maybeAddMethodWithAnnotation(this, classDecl, ctx, false, "tearDownStaticMocks",
                     tearDownMethodAnnotationSignature,
                     tearDownMethodAnnotation,
                     additionalClasspathResource, tearDownImportToAdd, testGroupsAsString);

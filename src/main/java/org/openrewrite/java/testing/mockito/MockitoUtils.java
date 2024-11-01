@@ -33,6 +33,7 @@ public class MockitoUtils {
             JavaVisitor visitor,
             J.ClassDeclaration classDecl,
             ExecutionContext ctx,
+            boolean isPublic,
             String methodName,
             String methodAnnotationSignature,
             String methodAnnotationToAdd,
@@ -49,7 +50,9 @@ public class MockitoUtils {
                         .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
 
         visitor.maybeAddImport(importToAdd);
-        return JavaTemplate.builder(methodAnnotationToAdd + methodAnnotationParameters + " public void " + methodName + "() {}")
+        String tplStr = methodAnnotationToAdd + methodAnnotationParameters
+          + (isPublic ? " public" : "") + " void " + methodName + "() {}";
+        return JavaTemplate.builder(tplStr)
                 .contextSensitive()
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, additionalClasspathResource))
                 .imports(importToAdd)

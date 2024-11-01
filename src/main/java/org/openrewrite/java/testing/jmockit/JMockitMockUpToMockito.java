@@ -33,17 +33,18 @@ import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static org.openrewrite.java.testing.jmockit.JMockitBlockType.MockUp;
 import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
 import static org.openrewrite.java.tree.Flag.Private;
 import static org.openrewrite.java.tree.Flag.Static;
 
 public class JMockitMockUpToMockito extends Recipe {
+    private static final String USES_TYPE = "mockit.MockUp";
+
     private static final String MOCKITO_CLASSPATH = "mockito-core-5";
     private static final String MOCKITO_ALL_IMPORT = "org.mockito.Mockito.*";
     private static final String MOCKITO_MATCHER_IMPORT = "org.mockito.ArgumentMatchers.*";
     private static final String MOCKITO_DELEGATEANSWER_IMPORT = "org.mockito.AdditionalAnswers.delegatesTo";
-    private static final String JMOCKIT_MOCKUP_IMPORT = MockUp.getFqn();
+    private static final String JMOCKIT_MOCKUP_IMPORT = "mockit.MockUp";
     private static final String JMOCKIT_MOCK_IMPORT = "mockit.Mock";
     private static final String MOCKITO_STATIC_PREFIX = "mockStatic";
     private static final String MOCKITO_STATIC_IMPORT = "org.mockito.MockedStatic";
@@ -68,7 +69,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(MockUp.getFqn(), false), new JMockitMockUpToMockitoVisitor());
+        return Preconditions.check(new UsesType<>(USES_TYPE, false), new JMockitMockUpToMockitoVisitor());
     }
 
     private static class JMockitMockUpToMockitoVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -149,7 +150,7 @@ public class JMockitMockUpToMockito extends Recipe {
                         }
                     }));
 
-            cd.set(maybeAddMethodWithAnnotation(this, cd.get(), ctx, "tearDown",
+            cd.set(maybeAddMethodWithAnnotation(this, cd.get(), ctx, true, "tearDown",
                     TEARDOWN_METHOD_ANNOTATION_SIGNATURE,
                     TEARDOWN_METHOD_ANNOTATION_TO_ADD,
                     TEARDOWN_CLASSPATH_RESOURCE,
