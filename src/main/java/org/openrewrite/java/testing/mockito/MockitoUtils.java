@@ -50,8 +50,8 @@ public class MockitoUtils {
                         .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
 
         visitor.maybeAddImport(importToAdd);
-        String tplStr = methodAnnotationToAdd + methodAnnotationParameters
-          + (isPublic ? " public" : "") + " void " + methodName + "() {}";
+        String tplStr = methodAnnotationToAdd + methodAnnotationParameters +
+          (isPublic ? " public" : "") + " void " + methodName + "() {}";
         return JavaTemplate.builder(tplStr)
                 .contextSensitive()
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, additionalClasspathResource))
