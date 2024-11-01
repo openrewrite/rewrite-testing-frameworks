@@ -36,8 +36,8 @@ import java.util.List;
 
 public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<ExecutionListenerToDbRiderAnnotation.DbRiderExecutionListenerContext> {
 
-    private static final AnnotationMatcher executionListenerAnnotationMatcher = new AnnotationMatcher("@org.springframework.test.context.TestExecutionListeners");
-    private static final AnnotationMatcher dbriderAnnotationMatcher = new AnnotationMatcher("@com.github.database.rider.junit5.api.DBRider");
+    private static final AnnotationMatcher EXECUTION_LISTENER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.springframework.test.context.TestExecutionListeners");
+    private static final AnnotationMatcher DBRIDER_ANNOTATION_MATCHER = new AnnotationMatcher("@com.github.database.rider.junit5.api.DBRider");
 
     @Override
     public String getDisplayName() {
@@ -46,8 +46,8 @@ public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<Executi
 
     @Override
     public String getDescription() {
-        return "Migrate the `DBRiderTestExecutionListener` to the `@DBRider` annotation.\n" +
-                "This recipe is useful when migrating from junit4 dbrider-spring to junit5 dbrider-junit5.";
+        return "Migrate the `DBRiderTestExecutionListener` to the `@DBRider` annotation. " +
+               "This recipe is useful when migrating from JUnit 4 `dbrider-spring` to JUnit 5 `dbrider-junit5`.";
     }
 
     @Override
@@ -60,9 +60,9 @@ public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<Executi
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.Annotation visitAnnotation(final J.Annotation annotation, final ExecutionContext ctx) {
-                if (executionListenerAnnotationMatcher.matches(annotation)) {
+                if (EXECUTION_LISTENER_ANNOTATION_MATCHER.matches(annotation)) {
                     acc.testExecutionListenersFound(annotation);
-                } else if (dbriderAnnotationMatcher.matches(annotation)) {
+                } else if (DBRIDER_ANNOTATION_MATCHER.matches(annotation)) {
                     acc.dbriderFound = true;
                 }
                 return super.visitAnnotation(annotation, ctx);
@@ -97,7 +97,7 @@ public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<Executi
                 }
                 Space prefix = c.getLeadingAnnotations().get(c.getLeadingAnnotations().size() - 1).getPrefix();
                 return c.withLeadingAnnotations(ListUtils.map(c.getLeadingAnnotations(), annotation -> {
-                    if (annotation != null && executionListenerAnnotationMatcher.matches(annotation)) {
+                    if (annotation != null && EXECUTION_LISTENER_ANNOTATION_MATCHER.matches(annotation)) {
                         J.Annotation executionListenerAnnotation = acc.getExecutionListenerAnnotation();
                         if (executionListenerAnnotation != null) {
                             return executionListenerAnnotation
@@ -259,10 +259,10 @@ public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<Executi
 
         private static boolean isTypeReference(Expression expression, String type) {
             return expression.getType() instanceof JavaType.Parameterized &&
-                    ((JavaType.Parameterized) expression.getType()).getFullyQualifiedName().equals("java.lang.Class") &&
-                    ((JavaType.Parameterized) expression.getType()).getTypeParameters().size() == 1 &&
-                    ((JavaType.Parameterized) expression.getType()).getTypeParameters().get(0) instanceof JavaType.Class &&
-                    ((JavaType.Class) ((JavaType.Parameterized) expression.getType()).getTypeParameters().get(0)).getFullyQualifiedName().equals(type);
+                   ((JavaType.Parameterized) expression.getType()).getFullyQualifiedName().equals("java.lang.Class") &&
+                   ((JavaType.Parameterized) expression.getType()).getTypeParameters().size() == 1 &&
+                   ((JavaType.Parameterized) expression.getType()).getTypeParameters().get(0) instanceof JavaType.Class &&
+                   ((JavaType.Class) ((JavaType.Parameterized) expression.getType()).getTypeParameters().get(0)).getFullyQualifiedName().equals(type);
         }
     }
 

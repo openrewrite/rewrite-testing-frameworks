@@ -153,7 +153,6 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
     @Test
     void keepAnnotationIfOnlyDbRiderListenerSetAndNonDefaultSetting() {
         rewriteRun(
-          //TODO: how to get rid of the blank before the listeners attribute?
           //language=java
           java(
             """
