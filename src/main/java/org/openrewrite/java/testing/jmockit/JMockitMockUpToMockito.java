@@ -40,7 +40,7 @@ import static org.openrewrite.java.tree.Flag.Static;
 public class JMockitMockUpToMockito extends Recipe {
     private static final String USES_TYPE = "mockit.MockUp";
 
-    private static final String MOCKITO_CLASSPATH = "mockito-core-5";
+    private static final String MOCKITO_CLASSPATH = "mockito-core-3";
     private static final String MOCKITO_ALL_IMPORT = "org.mockito.Mockito.*";
     private static final String MOCKITO_MATCHER_IMPORT = "org.mockito.ArgumentMatchers.*";
     private static final String MOCKITO_DELEGATEANSWER_IMPORT = "org.mockito.AdditionalAnswers.delegatesTo";
