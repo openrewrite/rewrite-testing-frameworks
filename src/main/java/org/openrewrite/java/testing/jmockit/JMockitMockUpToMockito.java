@@ -38,24 +38,19 @@ import static org.openrewrite.java.tree.Flag.Private;
 import static org.openrewrite.java.tree.Flag.Static;
 
 public class JMockitMockUpToMockito extends Recipe {
-    private static final String USES_TYPE = "mockit.MockUp";
+
+    private static final String JMOCKIT_MOCKUP_IMPORT = "mockit.MockUp";
+    private static final String JMOCKIT_MOCK_IMPORT = "mockit.Mock";
 
     private static final String MOCKITO_CLASSPATH = "mockito-core-3";
     private static final String MOCKITO_ALL_IMPORT = "org.mockito.Mockito.*";
     private static final String MOCKITO_MATCHER_IMPORT = "org.mockito.ArgumentMatchers.*";
     private static final String MOCKITO_DELEGATEANSWER_IMPORT = "org.mockito.AdditionalAnswers.delegatesTo";
-    private static final String JMOCKIT_MOCKUP_IMPORT = "mockit.MockUp";
-    private static final String JMOCKIT_MOCK_IMPORT = "mockit.Mock";
     private static final String MOCKITO_STATIC_PREFIX = "mockStatic";
     private static final String MOCKITO_STATIC_IMPORT = "org.mockito.MockedStatic";
     private static final String MOCKITO_MOCK_PREFIX = "mock";
     private static final String MOCKITO_CONSTRUCTION_PREFIX = "mockCons";
     private static final String MOCKITO_CONSTRUCTION_IMPORT = "org.mockito.MockedConstruction";
-
-    private static final String TEARDOWN_METHOD_ANNOTATION_SIGNATURE = "@org.junit.After";
-    private static final String TEARDOWN_METHOD_ANNOTATION_TO_ADD = "@After";
-    private static final String TEARDOWN_CLASSPATH_RESOURCE = "junit-4.13";
-    private static final String TEARDOWN_IMPORT_TO_ADD = "org.junit.After";
 
     @Override
     public String getDisplayName() {
@@ -69,7 +64,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(USES_TYPE, false), new JMockitMockUpToMockitoVisitor());
+        return Preconditions.check(new UsesType<>(JMOCKIT_MOCKUP_IMPORT, false), new JMockitMockUpToMockitoVisitor());
     }
 
     private static class JMockitMockUpToMockitoVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -103,7 +98,7 @@ public class JMockitMockUpToMockito extends Recipe {
                 return super.visitClassDeclaration(classDecl, ctx);
             }
 
-            AtomicReference<J.ClassDeclaration> cd = new AtomicReference<>(classDecl);
+            AtomicReference<J.ClassDeclaration> cdRef = new AtomicReference<>(classDecl);
             mds.forEach(md -> md.getBody()
                     .getStatements()
                     .stream()
@@ -116,48 +111,48 @@ public class JMockitMockUpToMockito extends Recipe {
 
                         // Add mockStatic field
                         if (mockedMethods.values().stream().anyMatch(m -> m.getFlags().contains(Static))) {
-                            cd.set(JavaTemplate.builder("private MockedStatic #{};")
+                            cdRef.set(JavaTemplate.builder("private MockedStatic #{};")
                                     .contextSensitive()
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
                                     .imports(MOCKITO_STATIC_IMPORT)
                                     .staticImports(MOCKITO_ALL_IMPORT)
                                     .build()
                                     .apply(
-                                            new Cursor(getCursor().getParentOrThrow(), cd.get()),
-                                            cd.get().getBody().getCoordinates().firstStatement(),
+                                            new Cursor(getCursor().getParentOrThrow(), cdRef.get()),
+                                            cdRef.get().getBody().getCoordinates().firstStatement(),
                                             MOCKITO_STATIC_PREFIX + className
                                     ));
-                            J.VariableDeclarations mockField = (J.VariableDeclarations) cd.get().getBody().getStatements().get(0);
+                            J.VariableDeclarations mockField = (J.VariableDeclarations) cdRef.get().getBody().getStatements().get(0);
                             J.Identifier mockFieldId = mockField.getVariables().get(0).getName();
                             tearDownMocks.put(MOCKITO_STATIC_PREFIX + className, mockFieldId);
                         }
                         // Add mockConstruction field
                         if (mockedMethods.values().stream().anyMatch(m -> !m.getFlags().contains(Static))) {
-                            cd.set(JavaTemplate.builder("private MockedConstruction #{};")
+                            cdRef.set(JavaTemplate.builder("private MockedConstruction #{};")
                                     .contextSensitive()
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
                                     .imports(MOCKITO_CONSTRUCTION_IMPORT)
                                     .staticImports(MOCKITO_ALL_IMPORT)
                                     .build()
                                     .apply(
-                                            updateCursor(cd.get()),
-                                            cd.get().getBody().getCoordinates().firstStatement(),
+                                            updateCursor(cdRef.get()),
+                                            cdRef.get().getBody().getCoordinates().firstStatement(),
                                             MOCKITO_CONSTRUCTION_PREFIX + className
                                     ));
-                            J.VariableDeclarations mockField = (J.VariableDeclarations) cd.get().getBody().getStatements().get(0);
+                            J.VariableDeclarations mockField = (J.VariableDeclarations) cdRef.get().getBody().getStatements().get(0);
                             J.Identifier mockFieldId = mockField.getVariables().get(0).getName();
                             tearDownMocks.put(MOCKITO_CONSTRUCTION_PREFIX + className, mockFieldId);
                         }
                     }));
 
-            cd.set(maybeAddMethodWithAnnotation(this, cd.get(), ctx, true, "tearDown",
-                    TEARDOWN_METHOD_ANNOTATION_SIGNATURE,
-                    TEARDOWN_METHOD_ANNOTATION_TO_ADD,
-                    TEARDOWN_CLASSPATH_RESOURCE,
-                    TEARDOWN_IMPORT_TO_ADD,
-                    ""));
+            J.ClassDeclaration cd = maybeAddMethodWithAnnotation(this, cdRef.get(), ctx, true, "tearDown",
+                    "@org.junit.After",
+                    "@After",
+                    "junit-4.13",
+                    "org.junit.After",
+                    "");
 
-            return super.visitClassDeclaration(cd.get(), ctx);
+            return super.visitClassDeclaration(cd, ctx);
         }
 
         @Override
