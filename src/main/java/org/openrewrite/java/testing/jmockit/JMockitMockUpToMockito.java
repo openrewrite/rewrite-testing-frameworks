@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
-import lombok.SneakyThrows;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -24,9 +23,8 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.SearchResult;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
-import org.openrewrite.staticanalysis.RemoveUnusedLocalVariables;
+import org.openrewrite.staticanalysis.VariableReferences;
 
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -344,21 +342,13 @@ public class JMockitMockUpToMockito extends Recipe {
             return "nullable(" + TypeUtils.asFullyQualified(s).getClassName() + ".class)";
         }
 
-        @SneakyThrows
         private String getAnswerBody(J.MethodDeclaration md) {
-            Method findRefs = RemoveUnusedLocalVariables.class
-                    .getDeclaredClasses()[0]
-                    .getDeclaredMethod("findRhsReferences", J.class, J.Identifier.class);
-            findRefs.setAccessible(true);
-
             Set<String> usedVariables = new HashSet<>();
             new JavaIsoVisitor<Set<String>>() {
                 @Override
-                @SneakyThrows
                 public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> ctx) {
                     Cursor scope = getCursor().dropParentUntil((is) -> is instanceof J.ClassDeclaration || is instanceof J.Block || is instanceof J.MethodDeclaration || is instanceof J.ForLoop || is instanceof J.ForEachLoop || is instanceof J.ForLoop.Control || is instanceof J.ForEachLoop.Control || is instanceof J.Case || is instanceof J.Try || is instanceof J.Try.Resource || is instanceof J.Try.Catch || is instanceof J.MultiCatch || is instanceof J.Lambda || is instanceof JavaSourceFile);
-                    List<J> refs = (List<J>) findRefs.invoke(null, scope.getValue(), variable.getName());
-                    if (!refs.isEmpty()) {
+                    if (!VariableReferences.findRhsReferences(scope.getValue(), variable.getName()).isEmpty()) {
                         ctx.add(variable.getSimpleName());
                     }
                     return super.visitVariable(variable, ctx);
