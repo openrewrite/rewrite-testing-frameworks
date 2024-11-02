@@ -121,7 +121,6 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                     }
                     if (!strictness.contains("STRICT_STUBS")) {
                         cd = JavaTemplate.builder("@MockitoSettings(strictness = " + strictness + ")")
-                                .doBeforeParseTemplate(System.out::println)
                                 .javaParser(JavaParser.fromJavaVersion()
                                         .classpathFromResources(ctx, "junit-jupiter-api-5.9", "mockito-junit-jupiter-3.12"))
                                 .imports("org.mockito.junit.jupiter.MockitoSettings", "org.mockito.quality.Strictness")
