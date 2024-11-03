@@ -22,7 +22,7 @@ import org.openrewrite.test.RecipeSpec;
 @SuppressWarnings("SpellCheckingInspection")
 public class JMockitTestUtils {
 
-    static final String MOCKITO_CORE_DEPENDENCY = "mockito-core-5.12.0";
+    static final String MOCKITO_CORE_DEPENDENCY = "mockito-core-3.12";
     static final String JUNIT_5_JUPITER_DEPENDENCY = "junit-jupiter-api-5.9";
     static final String JUNIT_4_DEPENDENCY = "junit-4.13.2";
     static final String JMOCKIT_DEPENDENCY = "jmockit-1.49";
