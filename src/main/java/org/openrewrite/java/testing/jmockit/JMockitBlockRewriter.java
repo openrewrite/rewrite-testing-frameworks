@@ -37,7 +37,7 @@ class JMockitBlockRewriter {
     private static final String VERIFY_TEMPLATE_PREFIX = "verify(#{any()}";
     private static final String VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX = "verifyNoMoreInteractions(";
     private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX = "inOrder(";
-    // private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX = "InOrder inOrder = inOrder(";
+    //private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX = "InOrder inOrder = inOrder(";
     private static final String LENIENT_TEMPLATE_PREFIX = "lenient().";
     private static final String RETURN_TEMPLATE_PREFIX = "thenReturn(";
     private static final String THROW_TEMPLATE_PREFIX = "thenThrow(";

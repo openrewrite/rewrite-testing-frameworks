@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
@@ -108,16 +109,16 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
-                  Object myObject;
+                  Object obj;
 
                   void test() {
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
-                      myObject.wait();
+                      obj.wait(10L, 10);
+                      obj.wait(10L, 10);
+                      obj.wait();
                       new VerificationsInOrder() {{
-                          myObject.wait(anyLong, anyInt);
+                          obj.wait(anyLong, anyInt);
                           times = 2;
-                          myObject.wait();
+                          obj.wait();
                       }};
                   }
               }
@@ -132,15 +133,88 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
-                  Object myObject;
+                  Object obj;
 
                   void test() {
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
-                      myObject.wait();
-                      inOrder(myObject);
-                      inOrder.verify(myObject, times(2)).wait(anyLong(), anyInt());
-                      inOrder.verify(myObject).wait();
+                      obj.wait(10L, 10);
+                      obj.wait(10L, 10);
+                      obj.wait();
+                      inOrder(obj);
+                      inOrder.verify(obj, times(2)).wait(anyLong(), anyInt());
+                      inOrder.verify(obj).wait();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Disabled // TODO
+    @Test
+    void whenMultipleBlocks() {
+        //language=java
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          java(
+            """
+              import mockit.VerificationsInOrder;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object obj;
+
+                  @Mocked
+                  String str;
+
+                  void test() {
+                      obj.wait(10L, 10);
+                      obj.wait();
+                      new VerificationsInOrder() {{
+                          obj.wait(anyLong, anyInt);
+                          obj.wait();
+                      }};
+
+                      obj.wait();
+                      str.toString();
+                      new VerificationsInOrder() {{
+                          obj.wait();
+                          str.toString();
+                      }};
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.InOrder;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.*;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object obj;
+
+                  @Mock
+                  String str;
+
+                  void test() {
+                      obj.wait(10L, 10);
+                      obj.wait();
+                      InOrder inOrder1 = new InOrder(obj);
+                      inOrder1.verify(obj).wait(anyLong(), anyInt());
+                      inOrder1.verify(obj).wait();
+
+                      obj.wait();
+                      str.toString();
+                      InOrder inOrder2 = new InOrder(obj, string);
+                      inOrder2.verify(obj).wait();
+                      inOrder2.verify(str).toString();
                   }
               }
               """
