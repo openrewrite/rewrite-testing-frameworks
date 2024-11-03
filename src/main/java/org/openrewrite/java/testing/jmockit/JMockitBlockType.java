@@ -25,12 +25,13 @@ enum JMockitBlockType {
     Expectations,
     NonStrictExpectations,
     Verifications,
+    VerificationsInOrder,
     FullVerifications;
 
     private final String fqn = "mockit." + this.name();
 
     boolean isVerifications() {
-        return this == Verifications || this == FullVerifications;
+        return this == Verifications || this == FullVerifications || this == VerificationsInOrder;
     }
 
     static String getSupportedTypesStr() {

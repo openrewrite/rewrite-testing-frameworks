@@ -26,6 +26,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -68,15 +69,18 @@ public class JMockitBlockToMockito extends Recipe {
             SetupStatementsRewriter ssr = new SetupStatementsRewriter(this, md.getBody());
             J.Block methodBody = ssr.rewriteMethodBody();
             List<Statement> statements = methodBody.getStatements();
+            List<JMockitBlockType> blockTypes = new ArrayList<>();
 
             int bodyStatementIndex = 0;
             // iterate over each statement in the method body, find Expectations blocks and rewrite them
             while (bodyStatementIndex < statements.size()) {
                 Statement s = statements.get(bodyStatementIndex);
-                Optional<JMockitBlockType> blockType = JMockitUtils.getJMockitBlock(s);
-                if (blockType.isPresent()) {
+                Optional<JMockitBlockType> blockTypeOpt = JMockitUtils.getJMockitBlock(s);
+                if (blockTypeOpt.isPresent()) {
+                    JMockitBlockType blockType = blockTypeOpt.get();
+                    blockTypes.add(blockType);
                     JMockitBlockRewriter blockRewriter = new JMockitBlockRewriter(this, ctx, methodBody,
-                            ((J.NewClass) s), bodyStatementIndex, blockType.get());
+                            ((J.NewClass) s), bodyStatementIndex, blockType, blockTypes);
                     methodBody = blockRewriter.rewriteMethodBody();
                     statements = methodBody.getStatements();
                     // if the expectations rewrite failed, skip the next statement
