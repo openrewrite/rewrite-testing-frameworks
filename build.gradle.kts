@@ -26,7 +26,6 @@ recipeDependencies {
     parserClasspath("org.powermock:powermock-core:1.7.+")
     parserClasspath("com.squareup.okhttp3:mockwebserver:4.10.0")
     parserClasspath("org.springframework:spring-test:6.1.12")
-    parserClasspath("com.github.database-rider:rider-spring:1.44.0")
     parserClasspath("com.github.database-rider:rider-junit5:1.44.0")
 }
 
