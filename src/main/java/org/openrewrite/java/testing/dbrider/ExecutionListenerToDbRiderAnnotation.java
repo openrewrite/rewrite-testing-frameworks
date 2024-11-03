@@ -15,8 +15,6 @@
  */
 package org.openrewrite.java.testing.dbrider;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -40,6 +38,7 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
 
     private static final AnnotationMatcher EXECUTION_LISTENER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.springframework.test.context.TestExecutionListeners");
     private static final AnnotationMatcher DBRIDER_ANNOTATION_MATCHER = new AnnotationMatcher("@com.github.database.rider.junit5.api.DBRider");
+    private static final String DBRIDER_TEST_EXECUTION_LISTENER = "com.github.database.rider.spring.DBRiderTestExecutionListener";
 
     @Override
     public String getDisplayName() {
@@ -54,28 +53,28 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("com.github.database.rider.spring.DBRiderTestExecutionListener", true), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(DBRIDER_TEST_EXECUTION_LISTENER, true), new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
-            public J.ClassDeclaration visitClassDeclaration(final J.ClassDeclaration classDeclaration, final ExecutionContext ctx) {
-                J.ClassDeclaration c = classDeclaration;
-                DbRiderExecutionListenerContext context = new DbRiderExecutionListenerContext().ofClass(c);
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
+                J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, ctx);
+                DbRiderExecutionListenerContext context = DbRiderExecutionListenerContext.ofClass(cd);
                 if (!context.shouldMigrate()) {
-                    return classDeclaration;
+                    return cd;
                 }
                 if (context.shouldAddDbRiderAnnotation()) {
-                    c = JavaTemplate.builder("@DBRider")
+                    cd = JavaTemplate.builder("@DBRider")
                             .imports("com.github.database.rider.junit5.api.DBRider")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "rider-junit5-1.44"))
                             .build()
-                            .apply(getCursor(), c.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                            .apply(getCursor(), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                     maybeAddImport("com.github.database.rider.junit5.api.DBRider");
                 }
-                Space prefix = c.getLeadingAnnotations().get(c.getLeadingAnnotations().size() - 1).getPrefix();
-                return c.withLeadingAnnotations(ListUtils.map(c.getLeadingAnnotations(), annotation -> {
+                Space prefix = cd.getLeadingAnnotations().get(cd.getLeadingAnnotations().size() - 1).getPrefix();
+                return cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
                     if (annotation != null && EXECUTION_LISTENER_ANNOTATION_MATCHER.matches(annotation)) {
                         J.Annotation executionListenerAnnotation = context.getExecutionListenerAnnotation();
-                        maybeRemoveImport("com.github.database.rider.spring.DBRiderTestExecutionListener");
+                        maybeRemoveImport(DBRIDER_TEST_EXECUTION_LISTENER);
                         maybeRemoveImport("org.springframework.test.context.TestExecutionListeners.MergeMode");
                         maybeRemoveImport("org.springframework.test.context.TestExecutionListeners");
                         if (executionListenerAnnotation != null) {
@@ -91,8 +90,7 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
         });
     }
 
-    @NoArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class DbRiderExecutionListenerContext {
+    private static class DbRiderExecutionListenerContext {
         private J.@Nullable Annotation testExecutionListenerAnnotation;
         private boolean dbriderFound = false;
         private J.@Nullable NewArray listeners;
@@ -100,7 +98,7 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
         private @Nullable Expression inheritListeners;
         private @Nullable Expression mergeMode;
 
-        DbRiderExecutionListenerContext ofClass(J.ClassDeclaration clazz) {
+        static DbRiderExecutionListenerContext ofClass(J.ClassDeclaration clazz) {
             DbRiderExecutionListenerContext context = new DbRiderExecutionListenerContext();
             clazz.getLeadingAnnotations().forEach(annotation -> {
                 if (EXECUTION_LISTENER_ANNOTATION_MATCHER.matches(annotation)) {
@@ -112,7 +110,7 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
             return context;
         }
 
-        public void testExecutionListenersFound(final J.Annotation annotation) {
+        private void testExecutionListenersFound(final J.Annotation annotation) {
             testExecutionListenerAnnotation = annotation;
             if (annotation.getArguments() != null) {
                 annotation.getArguments().forEach(arg -> {
@@ -184,7 +182,7 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
                         } else if (arg instanceof J.NewArray) {
                             return getMigratedListeners();
                         }
-                        if (arg instanceof J.FieldAccess && isTypeReference(arg, "com.github.database.rider.spring.DBRiderTestExecutionListener")) {
+                        if (arg instanceof J.FieldAccess && isTypeReference(arg, DBRIDER_TEST_EXECUTION_LISTENER)) {
                             return null;
                         }
                         return arg;
@@ -200,7 +198,8 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
         // - MergeMode was TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS
         // By default, the TestExecutionListeners.MergeMode is REPLACE_DEFAULTS so if we remove the annotation, other defaults would kick in.
         private boolean canTestExecutionListenerBeRemoved() {
-            if (listener == null && listeners != null && listeners.getInitializer() != null && listeners.getInitializer().stream().allMatch(listener -> isTypeReference(listener, "com.github.database.rider.spring.DBRiderTestExecutionListener"))) {
+            if (listener == null && listeners != null && listeners.getInitializer() != null &&
+                listeners.getInitializer().stream().allMatch(listener -> isTypeReference(listener, DBRIDER_TEST_EXECUTION_LISTENER))) {
                 return (getMigratedInheritListeners() == null && getMigratedMergeMode() != null);
             }
             return false;
@@ -225,7 +224,7 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
         private J.@Nullable NewArray getMigratedListeners() {
             if (listeners != null && listeners.getInitializer() != null) {
                 List<Expression> newListeners = ListUtils.map(listeners.getInitializer(), listener -> {
-                    if (listener instanceof J.FieldAccess && isTypeReference(listener, "com.github.database.rider.spring.DBRiderTestExecutionListener")) {
+                    if (listener instanceof J.FieldAccess && isTypeReference(listener, DBRIDER_TEST_EXECUTION_LISTENER)) {
                         return null;
                     }
                     return listener;
@@ -240,10 +239,10 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
 
         private boolean isTestExecutionListenerForDbRider() {
             if (listener != null) {
-                return isTypeReference(listener, "com.github.database.rider.spring.DBRiderTestExecutionListener");
+                return isTypeReference(listener, DBRIDER_TEST_EXECUTION_LISTENER);
             }
             if (listeners != null && listeners.getInitializer() != null) {
-                return listeners.getInitializer().stream().anyMatch(listener -> isTypeReference(listener, "com.github.database.rider.spring.DBRiderTestExecutionListener"));
+                return listeners.getInitializer().stream().anyMatch(listener -> isTypeReference(listener, DBRIDER_TEST_EXECUTION_LISTENER));
             }
             return false;
         }
