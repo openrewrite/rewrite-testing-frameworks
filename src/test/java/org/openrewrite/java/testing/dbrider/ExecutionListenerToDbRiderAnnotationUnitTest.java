@@ -67,8 +67,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
               public class Sample {}
               """,
             """
-              import com.github.database.rider.junit5.api.DBRider;
               import org.springframework.test.context.TestExecutionListeners;
+              import com.github.database.rider.junit5.api.DBRider;
               
               @DBRider
               @TestExecutionListeners
@@ -91,8 +91,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
               public class Sample {}
               """,
             """
-              import com.github.database.rider.junit5.api.DBRider;
               import org.springframework.test.context.TestExecutionListeners;
+              import com.github.database.rider.junit5.api.DBRider;
               
               @DBRider
               @TestExecutionListeners
@@ -115,8 +115,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
               public class Sample {}
               """,
             """
-              import com.github.database.rider.junit5.api.DBRider;
               import org.springframework.test.context.TestExecutionListeners;
+              import com.github.database.rider.junit5.api.DBRider;
               
               @DBRider
               @TestExecutionListeners
@@ -139,8 +139,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
               public class Sample {}
               """,
             """
-              import com.github.database.rider.junit5.api.DBRider;
               import org.springframework.test.context.TestExecutionListeners;
+              import com.github.database.rider.junit5.api.DBRider;
               
               @DBRider
               @TestExecutionListeners
@@ -163,8 +163,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
               public class Sample {}
               """,
             """
-              import com.github.database.rider.junit5.api.DBRider;
               import org.springframework.test.context.TestExecutionListeners;
+              import com.github.database.rider.junit5.api.DBRider;
               
               @DBRider
               @TestExecutionListeners(inheritListeners = false)
@@ -188,9 +188,9 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
               public class Sample {}
               """,
             """
-              import com.github.database.rider.junit5.api.DBRider;
               import org.springframework.test.context.TestExecutionListeners;
               import org.springframework.test.context.support.DirtiesContextTestExecutionListener;
+              import com.github.database.rider.junit5.api.DBRider;
               
               @DBRider
               @TestExecutionListeners(listeners = {DirtiesContextTestExecutionListener.class})

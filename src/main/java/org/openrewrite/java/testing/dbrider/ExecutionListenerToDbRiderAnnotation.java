@@ -15,10 +15,12 @@
  */
 package org.openrewrite.java.testing.dbrider;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
-import org.openrewrite.ScanningRecipe;
+import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
@@ -34,7 +36,7 @@ import org.openrewrite.java.tree.Space;
 import java.util.Comparator;
 import java.util.List;
 
-public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<ExecutionListenerToDbRiderAnnotation.DbRiderExecutionListenerContext> {
+public class ExecutionListenerToDbRiderAnnotation extends Recipe {
 
     private static final AnnotationMatcher EXECUTION_LISTENER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.springframework.test.context.TestExecutionListeners");
     private static final AnnotationMatcher DBRIDER_ANNOTATION_MATCHER = new AnnotationMatcher("@com.github.database.rider.junit5.api.DBRider");
@@ -51,54 +53,31 @@ public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<Executi
     }
 
     @Override
-    public DbRiderExecutionListenerContext getInitialValue(final ExecutionContext ctx) {
-        return new DbRiderExecutionListenerContext();
-    }
-
-    @Override
-    public TreeVisitor<?, ExecutionContext> getScanner(final DbRiderExecutionListenerContext acc) {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.Annotation visitAnnotation(final J.Annotation annotation, final ExecutionContext ctx) {
-                if (EXECUTION_LISTENER_ANNOTATION_MATCHER.matches(annotation)) {
-                    acc.testExecutionListenersFound(annotation);
-                } else if (DBRIDER_ANNOTATION_MATCHER.matches(annotation)) {
-                    acc.dbriderFound = true;
-                }
-                return super.visitAnnotation(annotation, ctx);
-            }
-        };
-    }
-
-    @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor(final DbRiderExecutionListenerContext acc) {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>("com.github.database.rider.spring.DBRiderTestExecutionListener", true), new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.CompilationUnit visitCompilationUnit(final J.CompilationUnit cu, final ExecutionContext ctx) {
-                if (acc.shouldMigrate()) {
-                    maybeRemoveImport("org.springframework.test.context.TestExecutionListeners");
-                    maybeRemoveImport("org.springframework.test.context.TestExecutionListeners.MergeMode");
-                    maybeRemoveImport("com.github.database.rider.spring.DBRiderTestExecutionListener");
-                    maybeAddImport("com.github.database.rider.junit5.api.DBRider");
-                    return super.visitCompilationUnit(cu, ctx);
-                }
-                return cu;
-            }
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(final J.ClassDeclaration classDeclaration, final ExecutionContext ctx) {
                 J.ClassDeclaration c = classDeclaration;
-                if (acc.shouldAddDbRiderAnnotation()) {
+                DbRiderExecutionListenerContext context = new DbRiderExecutionListenerContext().ofClass(c);
+                if (!context.shouldMigrate()) {
+                    return classDeclaration;
+                }
+                if (context.shouldAddDbRiderAnnotation()) {
                     c = JavaTemplate.builder("@DBRider")
                             .imports("com.github.database.rider.junit5.api.DBRider")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "rider-junit5-1.44"))
                             .build()
                             .apply(getCursor(), c.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                    maybeAddImport("com.github.database.rider.junit5.api.DBRider");
                 }
                 Space prefix = c.getLeadingAnnotations().get(c.getLeadingAnnotations().size() - 1).getPrefix();
                 return c.withLeadingAnnotations(ListUtils.map(c.getLeadingAnnotations(), annotation -> {
                     if (annotation != null && EXECUTION_LISTENER_ANNOTATION_MATCHER.matches(annotation)) {
-                        J.Annotation executionListenerAnnotation = acc.getExecutionListenerAnnotation();
+                        J.Annotation executionListenerAnnotation = context.getExecutionListenerAnnotation();
+                        maybeRemoveImport("com.github.database.rider.spring.DBRiderTestExecutionListener");
+                        maybeRemoveImport("org.springframework.test.context.TestExecutionListeners.MergeMode");
+                        maybeRemoveImport("org.springframework.test.context.TestExecutionListeners");
                         if (executionListenerAnnotation != null) {
                             return executionListenerAnnotation
                                     .withArguments(firstItemPrefixWorkaround(executionListenerAnnotation.getArguments()))
@@ -112,6 +91,7 @@ public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<Executi
         });
     }
 
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class DbRiderExecutionListenerContext {
         private J.@Nullable Annotation testExecutionListenerAnnotation;
         private boolean dbriderFound = false;
@@ -120,6 +100,17 @@ public class ExecutionListenerToDbRiderAnnotation extends ScanningRecipe<Executi
         private @Nullable Expression inheritListeners;
         private @Nullable Expression mergeMode;
 
+        DbRiderExecutionListenerContext ofClass(J.ClassDeclaration clazz) {
+            DbRiderExecutionListenerContext context = new DbRiderExecutionListenerContext();
+            clazz.getLeadingAnnotations().forEach(annotation -> {
+                if (EXECUTION_LISTENER_ANNOTATION_MATCHER.matches(annotation)) {
+                    context.testExecutionListenersFound(annotation);
+                } else if (DBRIDER_ANNOTATION_MATCHER.matches(annotation)) {
+                    context.dbriderFound = true;
+                }
+            });
+            return context;
+        }
 
         public void testExecutionListenersFound(final J.Annotation annotation) {
             testExecutionListenerAnnotation = annotation;
