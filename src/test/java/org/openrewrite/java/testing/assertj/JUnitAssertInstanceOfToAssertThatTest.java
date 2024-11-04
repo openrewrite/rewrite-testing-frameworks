@@ -126,7 +126,7 @@ class JUnitAssertInstanceOfToAssertThatTest implements RewriteTest {
 
               class Test {
                   void test() {
-                      assertInstanceOf(Integer.class, 4, Test::getErrorMessage);
+                      assertInstanceOf(Integer.class, 4, this::getErrorMessage);
                   }
 
                   String getErrorMessage() {
@@ -139,7 +139,7 @@ class JUnitAssertInstanceOfToAssertThatTest implements RewriteTest {
 
               class Test {
                   void test() {
-                      assertThat(4).as(Test::getErrorMessage).isInstanceOf(Integer.class);
+                      assertThat(4).as(this::getErrorMessage).isInstanceOf(Integer.class);
                   }
 
                   String getErrorMessage() {
