@@ -38,34 +38,8 @@ class AssertJBestPracticesTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.parser(
             JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24", "junit-jupiter-api-5.9"))
+              .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
           .recipeFromResources("org.openrewrite.java.testing.assertj.Assertj");
-    }
-
-    @Test
-    @SuppressWarnings("DataFlowIssue")
-    void convertsIsInstanceOf() {//todo migrate this test to the specific sub recipe
-        rewriteRun(
-          // language=java
-          java(
-            """
-              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-              class Test {
-                  void test() {
-                      assertInstanceOf(Integer.class, 4);
-                  }
-              }
-              """,
-            """
-              import static org.assertj.core.api.Assertions.assertThat;
-              class Test {
-                  void test() {
-                      assertThat(4).isInstanceOf(Integer.class);
-                  }
-              }
-              """
-          )
-        );
     }
 
     @DocumentExample
