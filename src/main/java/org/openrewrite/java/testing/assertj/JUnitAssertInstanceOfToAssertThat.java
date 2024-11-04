@@ -27,6 +27,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
@@ -81,6 +82,26 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                                 getCursor(),
                                 method.getCoordinates().replace(),
                                 actualValue,
+                                expectedType
+                        );
+            } else if (args.size() == 3) {
+                Expression expectedType = args.get(0);
+                Expression actualValue = args.get(1);
+                Expression messageOrSupplier = args.get(2);
+
+                JavaTemplate.Builder template = TypeUtils.isString(messageOrSupplier.getType()) ?
+                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isInstanceOf(#{any()});") :
+                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isInstanceOf(#{any()});");
+
+                method = template
+                        .staticImports("org.assertj.core.api.Assertions.assertThat")
+                        .javaParser(assertionsParser(ctx))
+                        .build()
+                        .apply(
+                                getCursor(),
+                                method.getCoordinates().replace(),
+                                actualValue,
+                                messageOrSupplier,
                                 expectedType
                         );
             }

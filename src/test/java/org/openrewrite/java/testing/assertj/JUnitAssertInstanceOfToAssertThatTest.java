@@ -59,4 +59,114 @@ class JUnitAssertInstanceOfToAssertThatTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void convertsIsInstanceOfWithMessage() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+              class Test {
+                  void test() {
+                      assertInstanceOf(Integer.class, 4, "error message");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      assertThat(4).as("error message").isInstanceOf(Integer.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void convertsIsInstanceOfWithMessageLambda() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+              class Test {
+                  void test() {
+                      assertInstanceOf(Integer.class, 4, () -> "error message");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      assertThat(4).as(() -> "error message").isInstanceOf(Integer.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void convertsIsInstanceOfWithMessageMethodReference() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+              class Test {
+                  void test() {
+                      assertInstanceOf(Integer.class, 4, Test::getErrorMessage);
+                  }
+
+                  String getErrorMessage() {
+                      return "error message";
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      assertThat(4).as(Test::getErrorMessage).isInstanceOf(Integer.class);
+                  }
+
+                  String getErrorMessage() {
+                      return "error message";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+
+
+    @Test
+    void canBeRerun() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),"assertj-core-3-*")),
+          // language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      assertThat(4).isInstanceOf(Integer.class);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
