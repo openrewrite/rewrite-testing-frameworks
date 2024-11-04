@@ -49,7 +49,7 @@ public class TemporaryFolderToTempDir extends Recipe {
             final AnnotationMatcher classRule = new AnnotationMatcher("@org.junit.ClassRule");
             final AnnotationMatcher rule = new AnnotationMatcher("@org.junit.Rule");
 
-            
+
             private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
@@ -108,7 +108,7 @@ public class TemporaryFolderToTempDir extends Recipe {
             }
 
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 updateCursor(mi);
                 if (mi.getSelect() != null && mi.getMethodType() != null &&
@@ -157,7 +157,7 @@ public class TemporaryFolderToTempDir extends Recipe {
     private static class AddNewFolderMethod extends JavaIsoVisitor<ExecutionContext> {
         private final J.MethodInvocation methodInvocation;
 
-        
+
         private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
@@ -236,7 +236,7 @@ public class TemporaryFolderToTempDir extends Recipe {
             J.MethodInvocation methodScope;
             JavaType.Method newMethodType;
 
-            
+
             private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {

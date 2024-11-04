@@ -26,6 +26,8 @@ import org.openrewrite.java.tree.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
+
 public class PowerMockitoMockStaticToMockito extends Recipe {
 
     @Override
@@ -168,7 +170,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         }
 
         @Override
-        public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+        public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
 
             Map<String, J.MethodInvocation> mockStaticInvocationsByClassName = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
@@ -205,32 +207,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 if (statement instanceof J.VariableDeclarations) {
                     for (J.VariableDeclarations.NamedVariable namedVariable : ((J.VariableDeclarations) statement).getVariables()) {
                         if (namedVariable.getSimpleName().equals(fieldName)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
-        private static J.@Nullable MethodDeclaration getFirstTestMethod(List<J.MethodDeclaration> methods) {
-            for (J.MethodDeclaration methodDeclaration : methods) {
-                for (J.Annotation annotation : methodDeclaration.getLeadingAnnotations()) {
-                    if ("Test".equals(annotation.getSimpleName())) {
-                        return methodDeclaration;
-                    }
-                }
-            }
-            return null;
-        }
-
-        private static boolean hasMethodWithAnnotation(J.ClassDeclaration classDecl, AnnotationMatcher annotationMatcher) {
-            for (Statement statement : classDecl.getBody().getStatements()) {
-                if (statement instanceof J.MethodDeclaration) {
-                    J.MethodDeclaration methodDeclaration = (J.MethodDeclaration) statement;
-                    List<J.Annotation> allAnnotations = methodDeclaration.getAllAnnotations();
-                    for (J.Annotation annotation : allAnnotations) {
-                        if (annotationMatcher.matches(annotation)) {
                             return true;
                         }
                     }
@@ -465,7 +441,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         private J.ClassDeclaration maybeAddSetUpMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             String testGroupsAsString = getTestGroupsAsString();
-            return maybeAddMethodWithAnnotation(classDecl, ctx, "setUpStaticMocks",
+            return maybeAddMethodWithAnnotation(this, classDecl, ctx, false, "setUpStaticMocks",
                     setUpMethodAnnotationSignature, setUpMethodAnnotation,
                     additionalClasspathResource, setUpImportToAdd, testGroupsAsString);
         }
@@ -483,38 +459,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             String testGroupsAsString = (getTestGroupsAsString().isEmpty()) ? tearDownMethodAnnotationParameters : getTestGroupsAsString();
-            return maybeAddMethodWithAnnotation(classDecl, ctx, "tearDownStaticMocks",
+            return maybeAddMethodWithAnnotation(this, classDecl, ctx, false, "tearDownStaticMocks",
                     tearDownMethodAnnotationSignature,
                     tearDownMethodAnnotation,
                     additionalClasspathResource, tearDownImportToAdd, testGroupsAsString);
         }
 
-        private J.ClassDeclaration maybeAddMethodWithAnnotation(J.ClassDeclaration classDecl, ExecutionContext ctx,
-                                                                String methodName, String methodAnnotationSignature,
-                                                                String methodAnnotationToAdd,
-                                                                String additionalClasspathResource, String importToAdd,
-                                                                String methodAnnotationParameters) {
-            if (hasMethodWithAnnotation(classDecl, new AnnotationMatcher(methodAnnotationSignature))) {
-                return classDecl;
-            }
-
-            J.MethodDeclaration firstTestMethod = getFirstTestMethod(
-                    classDecl.getBody().getStatements().stream().filter(J.MethodDeclaration.class::isInstance)
-                            .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
-
-            maybeAddImport(importToAdd);
-            return JavaTemplate.builder(methodAnnotationToAdd + methodAnnotationParameters + " void " + methodName + "() {}")
-                    .contextSensitive()
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, additionalClasspathResource))
-                    .imports(importToAdd)
-                    .build()
-                    .apply(
-                            new Cursor(getCursor().getParentOrThrow(), classDecl),
-                            (firstTestMethod != null) ?
-                                    firstTestMethod.getCoordinates().before() :
-                                    classDecl.getBody().getCoordinates().lastStatement()
-                    );
-        }
 
         private J.MethodInvocation modifyWhenMethodInvocation(J.MethodInvocation whenMethod) {
             List<Expression> methodArguments = whenMethod.getArguments();

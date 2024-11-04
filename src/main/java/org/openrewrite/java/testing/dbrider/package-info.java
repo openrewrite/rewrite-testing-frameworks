@@ -13,29 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.jmockit;
+@NullMarked
+@NonNullFields
+package org.openrewrite.java.testing.dbrider;
 
-import lombok.Getter;
-
-import java.util.Arrays;
-
-@Getter
-enum JMockitBlockType {
-
-    Expectations,
-    NonStrictExpectations,
-    Verifications,
-    FullVerifications;
-
-    private final String fqn = "mockit." + this.name();
-
-    boolean isVerifications() {
-        return this == Verifications || this == FullVerifications;
-    }
-
-    static String getSupportedTypesStr() {
-        StringBuilder sb = new StringBuilder();
-        Arrays.stream(values()).forEach(value -> sb.append(value).append(", "));
-        return sb.substring(0, sb.length() - 2);
-    }
-}
+import org.jspecify.annotations.NullMarked;
+import org.openrewrite.internal.lang.NonNullFields;
