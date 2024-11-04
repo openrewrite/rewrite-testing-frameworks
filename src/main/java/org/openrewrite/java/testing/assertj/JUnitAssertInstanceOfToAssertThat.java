@@ -49,7 +49,7 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                 new AssertInstanceOfToToAssertThatVisitor());
     }
 
-    public static class AssertInstanceOfToToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
+    private static class AssertInstanceOfToToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final MethodMatcher JUNIT_ASSERT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertInstanceOf(..)");
 
         @Override
@@ -85,7 +85,7 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
 
                 method = template
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(assertionsParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
                         .apply(
                                 getCursor(),
