@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,17 +50,7 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
     }
 
     public static class AssertInstanceOfToToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private JavaParser.@Nullable Builder<?, ?> assertionsParser;
-
-        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
-            if (assertionsParser == null) {
-                assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24");
-            }
-            return assertionsParser;
-        }
-
-        private static final MethodMatcher JUNIT_ASSERT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertInstanceOf(..)");
+        private static final MethodMatcher JUNIT_ASSERT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertInstanceOf(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -76,7 +66,7 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
 
                 method = JavaTemplate.builder("assertThat(#{any()}).isInstanceOf(#{any()});")
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(assertionsParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
                         .apply(
                                 getCursor(),
