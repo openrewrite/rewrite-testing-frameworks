@@ -69,7 +69,7 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
                             updatedArguments.set(0, checkAndUpdateEq((J.MethodInvocation) mi.getArguments().get(0)));
                             mi = mi.withArguments(updatedArguments);
                         } else if (VERIFY_MATCHER.matches(mi.getSelect()) ||
-                                STUBBER_MATCHER.matches(mi.getSelect())) {
+                                   STUBBER_MATCHER.matches(mi.getSelect())) {
                             mi = checkAndUpdateEq(mi);
                         }
 
@@ -80,7 +80,7 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
 
                     private J.MethodInvocation checkAndUpdateEq(J.MethodInvocation methodInvocation) {
                         if (methodInvocation.getArguments().stream().allMatch(arg -> EQ_MATCHER.matches(arg) ||
-                                MOCKITO_EQ_MATCHER.matches(arg))) {
+                                                                                     MOCKITO_EQ_MATCHER.matches(arg))) {
                             return methodInvocation.withArguments(ListUtils.map(methodInvocation.getArguments(), invocation ->
                                     ((MethodCall) invocation).getArguments().get(0).withPrefix(invocation.getPrefix())));
                         }

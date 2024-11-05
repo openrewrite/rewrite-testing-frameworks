@@ -64,12 +64,12 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
         );
     }
 
-	@Test
-	void shouldRemoveUnneccesaryEqFromVerify_withMockitoStarImport() {
-		rewriteRun(
-		  //language=Java
-		  java(
-			"""
+    @Test
+    void shouldRemoveUnneccesaryEqFromVerify_withMockitoStarImport() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
               import static org.mockito.Mockito.eq;
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.verify;
@@ -91,9 +91,9 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
                   }
               }
               """
-		  )
-		);
-	}
+          )
+        );
+    }
 
 
     @Test
