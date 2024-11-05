@@ -29,6 +29,8 @@ import org.openrewrite.java.tree.J;
 
 public class JUnitAssertInstanceOfToAssertThat extends Recipe {
 
+    private static final MethodMatcher ASSERT_INSTANCE_OF_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertInstanceOf(..)", true);
+
     @Override
     public String getDisplayName() {
         return "JUnit `assertInstanceOf` to AssertJ";
@@ -41,12 +43,11 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        MethodMatcher methodMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertInstanceOf(..)", true);
-        return Preconditions.check(new UsesMethod<>(methodMatcher), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(ASSERT_INSTANCE_OF_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation md = super.visitMethodInvocation(method, ctx);
-                if (!methodMatcher.matches(md)) {
+                if (!ASSERT_INSTANCE_OF_MATCHER.matches(md)) {
                     return md;
                 }
 
