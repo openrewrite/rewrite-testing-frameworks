@@ -151,12 +151,10 @@ class JUnitAssertInstanceOfToAssertThatTest implements RewriteTest {
         );
     }
 
-
-
     @Test
     void canBeRerun() {
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),"assertj-core-3-*")),
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3-*")),
           // language=java
           java(
             """
@@ -171,4 +169,36 @@ class JUnitAssertInstanceOfToAssertThatTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void doesNotConvertAnyOtherMethods() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              class Test {
+                  void test() {
+                      assertInstanceOf(Integer.class, 4);
+                      assertTrue(1 == 1, "Message");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              class Test {
+                  void test() {
+                      assertThat(4).isInstanceOf(Integer.class);
+                      assertTrue(1 == 1, "Message");
+                  }
+              }
+              """
+          )
+        );
+    }
+
 }
