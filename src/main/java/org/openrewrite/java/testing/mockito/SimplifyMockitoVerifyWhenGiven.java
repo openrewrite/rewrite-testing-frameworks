@@ -39,6 +39,7 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
     private static final MethodMatcher VERIFY_MATCHER = new MethodMatcher("org.mockito.Mockito verify(..)");
     private static final MethodMatcher STUBBER_MATCHER = new MethodMatcher("org.mockito.stubbing.Stubber when(..)");
     private static final MethodMatcher EQ_MATCHER = new MethodMatcher("org.mockito.ArgumentMatchers eq(..)");
+    private static final MethodMatcher MOCKITO_EQ_MATCHER = new MethodMatcher("org.mockito.Mockito eq(..)");
 
     @Override
     public String getDisplayName() {
@@ -57,32 +58,35 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(EQ_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
-                J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
+        return Preconditions.check(Preconditions.or(new UsesMethod<>(EQ_MATCHER), new UsesMethod<>(MOCKITO_EQ_MATCHER)),
+                new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
+                        J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
 
-                if ((WHEN_MATCHER.matches(mi) || GIVEN_MATCHER.matches(mi)) && mi.getArguments().get(0) instanceof J.MethodInvocation) {
-                    List<Expression> updatedArguments = new ArrayList<>(mi.getArguments());
-                    updatedArguments.set(0, checkAndUpdateEq((J.MethodInvocation) mi.getArguments().get(0)));
-                    mi = mi.withArguments(updatedArguments);
-                } else if (VERIFY_MATCHER.matches(mi.getSelect()) ||
-                           STUBBER_MATCHER.matches(mi.getSelect())) {
-                    mi = checkAndUpdateEq(mi);
-                }
+                        if ((WHEN_MATCHER.matches(mi) || GIVEN_MATCHER.matches(mi)) && mi.getArguments().get(0) instanceof J.MethodInvocation) {
+                            List<Expression> updatedArguments = new ArrayList<>(mi.getArguments());
+                            updatedArguments.set(0, checkAndUpdateEq((J.MethodInvocation) mi.getArguments().get(0)));
+                            mi = mi.withArguments(updatedArguments);
+                        } else if (VERIFY_MATCHER.matches(mi.getSelect()) ||
+                                STUBBER_MATCHER.matches(mi.getSelect())) {
+                            mi = checkAndUpdateEq(mi);
+                        }
 
-                maybeRemoveImport("org.mockito.ArgumentMatchers.eq");
-                return mi;
-            }
+                        maybeRemoveImport("org.mockito.ArgumentMatchers.eq");
+                        maybeRemoveImport("org.mockito.Mockito.eq");
+                        return mi;
+                    }
 
-            private J.MethodInvocation checkAndUpdateEq(J.MethodInvocation methodInvocation) {
-                if (methodInvocation.getArguments().stream().allMatch(EQ_MATCHER::matches)) {
-                    return methodInvocation.withArguments(ListUtils.map(methodInvocation.getArguments(), invocation ->
-                            ((MethodCall) invocation).getArguments().get(0).withPrefix(invocation.getPrefix())));
-                }
-                return methodInvocation;
-            }
-        });
+                    private J.MethodInvocation checkAndUpdateEq(J.MethodInvocation methodInvocation) {
+                        if (methodInvocation.getArguments().stream().allMatch(arg -> EQ_MATCHER.matches(arg) ||
+                                MOCKITO_EQ_MATCHER.matches(arg))) {
+                            return methodInvocation.withArguments(ListUtils.map(methodInvocation.getArguments(), invocation ->
+                                    ((MethodCall) invocation).getArguments().get(0).withPrefix(invocation.getPrefix())));
+                        }
+                        return methodInvocation;
+                    }
+                });
     }
 
 }
