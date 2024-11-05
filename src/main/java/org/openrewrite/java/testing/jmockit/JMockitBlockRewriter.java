@@ -267,7 +267,7 @@ class JMockitBlockRewriter {
         }
     }
 
-    private void rewriteInOrderVerify(ArrayList<Object> mocks) {
+    private void rewriteInOrderVerify(List<Object> mocks) {
         if (!mocks.isEmpty()) {
             StringBuilder sb = new StringBuilder(VERIFY_IN_ORDER_TEMPLATE_PREFIX);
             mocks.forEach(mock -> sb.append(ANY_TEMPLATE_FIELD).append(", ")); // InOrder inOrder = inOrder(mock1, mock2 ...
