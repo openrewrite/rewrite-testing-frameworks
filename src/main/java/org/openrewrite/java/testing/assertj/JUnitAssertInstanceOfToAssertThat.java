@@ -22,10 +22,10 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
@@ -43,51 +43,37 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>("org.junit.jupiter.api.Assertions assertInstanceOf(..)", true),
-                new JavaIsoVisitor<ExecutionContext>() {
+        MethodMatcher methodMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertInstanceOf(..)", true);
+        return Preconditions.check(new UsesMethod<>(methodMatcher), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation md = super.visitMethodInvocation(method, ctx);
+                if (!methodMatcher.matches(md)) {
+                    return md;
+                }
 
-                    @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                        J.MethodInvocation md = super.visitMethodInvocation(method, ctx);
+                Expression expectedType = md.getArguments().get(0);
+                Expression actualValue = md.getArguments().get(1);
 
-                        List<Expression> args = md.getArguments();
-                        if (args.size() < 2 || args.size() > 3) {
-                            return md;
-                        }
+                if (md.getArguments().size() == 2) {
+                    md = JavaTemplate.builder("assertThat(#{any()}).isInstanceOf(#{any()});")
+                            .staticImports("org.assertj.core.api.Assertions.assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replace(), actualValue, expectedType);
+                } else {
+                    Expression messageOrSupplier = md.getArguments().get(2);
+                    md = JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isInstanceOf(#{any()});")
+                            .staticImports("org.assertj.core.api.Assertions.assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replace(), actualValue, messageOrSupplier, expectedType);
+                }
 
-                        Expression expectedType = args.get(0);
-                        Expression actualValue = args.get(1);
-
-                        if (args.size() == 2) {
-                            JavaTemplate.Builder template = JavaTemplate.builder("assertThat(#{any()}).isInstanceOf(#{any()});");
-                            md = rewriteAssertToInstance(template, method, ctx, actualValue, expectedType);
-                        } else {
-                            Expression messageOrSupplier = args.get(2);
-
-                            JavaTemplate.Builder template = TypeUtils.isString(messageOrSupplier.getType()) ?
-                                    JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isInstanceOf(#{any()});") :
-                                    JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isInstanceOf(#{any()});");
-
-                            md = rewriteAssertToInstance(template, method, ctx, actualValue, messageOrSupplier, expectedType);
-                        }
-
-                        maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
-                        maybeRemoveImport("org.junit.jupiter.api.Assertions");
-
-                        return md;
-                    }
-
-                    private J.MethodInvocation rewriteAssertToInstance(JavaTemplate.Builder template, J.MethodInvocation method, ExecutionContext ctx, Object... parameters) {
-                        return template
-                                .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
-                                .build()
-                                .apply(
-                                        getCursor(),
-                                        method.getCoordinates().replace(),
-                                        parameters
-                                );
-                    }
-                });
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeRemoveImport("org.junit.jupiter.api.Assertions");
+                return md;
+            }
+        });
     }
 }
