@@ -51,17 +51,17 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                     return mi;
                 }
 
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
                 maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
-                Expression expectedType = mi.getArguments().get(0);
-                Expression actualValue = mi.getArguments().get(1);
+                Expression expected = mi.getArguments().get(0);
+                Expression actual = mi.getArguments().get(1);
                 if (mi.getArguments().size() == 2) {
                     return JavaTemplate.builder("assertThat(#{any()}).isInstanceOf(#{any()});")
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                             .build()
-                            .apply(getCursor(), method.getCoordinates().replace(), actualValue, expectedType);
+                            .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
                 }
 
                 Expression messageOrSupplier = mi.getArguments().get(2);
@@ -69,7 +69,7 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
-                        .apply(getCursor(), method.getCoordinates().replace(), actualValue, messageOrSupplier, expectedType);
+                        .apply(getCursor(), method.getCoordinates().replace(), actual, messageOrSupplier, expected);
             }
         });
     }

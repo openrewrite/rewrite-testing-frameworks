@@ -26,13 +26,12 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
 public class JUnitAssertTrueToAssertThat extends Recipe {
 
-    private static final MethodMatcher ASSERT_TRUE_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertTrue(boolean, ..)");
+    private static final MethodMatcher ASSERT_TRUE_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(boolean, ..)");
 
     @Override
     public String getDisplayName() {
@@ -68,10 +67,7 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
                 }
 
                 Expression message = args.get(1);
-                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(String)}).isTrue();") :
-                        JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(java.util.function.Supplier)}).isTrue();");
-                return template
+                return JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isTrue();")
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()

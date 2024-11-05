@@ -26,7 +26,6 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
@@ -69,10 +68,7 @@ public class JUnitAssertSameToAssertThat extends Recipe {
                 }
 
                 Expression message = args.get(2);
-                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isSameAs(#{any()});") :
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isSameAs(#{any()});");
-                return template
+                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isSameAs(#{any()});")
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()

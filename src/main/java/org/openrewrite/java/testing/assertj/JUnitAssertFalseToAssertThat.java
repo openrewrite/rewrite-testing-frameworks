@@ -26,7 +26,6 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
@@ -54,7 +53,7 @@ public class JUnitAssertFalseToAssertThat extends Recipe {
                     return mi;
                 }
 
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
                 maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
                 List<Expression> args = mi.getArguments();
@@ -68,10 +67,7 @@ public class JUnitAssertFalseToAssertThat extends Recipe {
                 }
 
                 Expression message = args.get(1);
-                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(String)}).isFalse();") :
-                        JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(java.util.function.Supplier)}).isFalse();");
-                return template
+                return JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any()}).isFalse();")
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()

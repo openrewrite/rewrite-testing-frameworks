@@ -25,6 +25,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.Collections;
 import java.util.List;
 
 public class JUnitFailToAssertJFail extends Recipe {
@@ -75,16 +76,8 @@ public class JUnitFailToAssertJFail extends Recipe {
                     }
                 } else {
                     // fail(String, Throwable)
-                    StringBuilder templateBuilder = new StringBuilder(ASSERTJ + ".fail(");
-                    for (int i = 0; i < args.size(); i++) {
-                        templateBuilder.append("#{any()}");
-                        if (i < args.size() - 1) {
-                            templateBuilder.append(", ");
-                        }
-                    }
-                    templateBuilder.append(");");
-
-                    mi = JavaTemplate.builder(templateBuilder.toString())
+                    String anyArgs = String.join(",", Collections.nCopies(args.size(), "#{any()}"));
+                    mi = JavaTemplate.builder(ASSERTJ + ".fail(" + anyArgs + ");")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), args.toArray());
@@ -106,19 +99,11 @@ public class JUnitFailToAssertJFail extends Recipe {
                     }
 
                     maybeAddImport(ASSERTJ, "fail", false);
-                    maybeRemoveImport("org.junit.jupiter.api.Assertions.fail");
+                    maybeRemoveImport(JUNIT + ".fail");
 
-                    StringBuilder templateBuilder = new StringBuilder("fail(");
                     List<Expression> arguments = mi.getArguments();
-                    for (int i = 0; i < arguments.size(); i++) {
-                        templateBuilder.append("#{any()}");
-                        if (i < arguments.size() - 1) {
-                            templateBuilder.append(", ");
-                        }
-                    }
-                    templateBuilder.append(");");
-
-                    return JavaTemplate.builder(templateBuilder.toString())
+                    String anyArgs = String.join(",", Collections.nCopies(arguments.size(), "#{any()}"));
+                    return JavaTemplate.builder("fail(" + anyArgs + ");")
                             .staticImports(ASSERTJ + ".fail")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                             .build()

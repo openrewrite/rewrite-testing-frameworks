@@ -69,17 +69,8 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
-                } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
-                    Expression message = args.get(2);
-                    JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                            JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotEqualTo(#{any()});") :
-                            JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotEqualTo(#{any()});");
-                    return template
-                            .staticImports(ASSERTJ + ".assertThat")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
-                            .build()
-                            .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
-                } else if (args.size() == 3) {
+                }
+                if (args.size() == 3 && isFloatingPointType(args.get(2))) {
                     maybeAddImport(ASSERTJ, "within", false);
                     return JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
                             .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
@@ -87,14 +78,19 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, expected, args.get(2));
                 }
+                if (args.size() == 3) {
+                    Expression message = args.get(2);
+                    return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isNotEqualTo(#{any()});")
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .build()
+                            .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
+                }
 
-                maybeAddImport(ASSERTJ, "within");
+                maybeAddImport(ASSERTJ, "within", false);
 
                 Expression message = args.get(3);
-                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));") :
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotCloseTo(#{any()}, within(#{any()}));");
-                return template
+                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
                         .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
