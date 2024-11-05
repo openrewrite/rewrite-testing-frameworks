@@ -1,3 +1,18 @@
+/*
+ * Copyright 2024 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.openrewrite.java.testing.mockito;
 
 import org.intellij.lang.annotations.Language;
@@ -45,7 +60,8 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
         //language=java
         rewriteRun(
           pomXml(POM_XML_WITH_MOCKITO_2),
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.extension.ExtendWith;
             import org.mockito.junit.jupiter.MockitoExtension;
             import org.junit.jupiter.api.Test;
@@ -81,7 +97,8 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
         //language=java
         rewriteRun(
           pomXml(POM_XML_WITH_MOCKITO_2),
-          java("""
+          java(
+                """
             import static org.mockito.Mockito.verifyZeroInteractions;
 
             class MyTest {}
@@ -93,7 +110,8 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
         rewriteRun(
           pomXml(POM_XML_WITH_MOCKITO_2),
           // language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.extension.ExtendWith;
             import org.mockito.junit.jupiter.MockitoExtension;
             import org.mockito.Mock;
@@ -139,7 +157,8 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
         rewriteRun(
           pomXml(POM_XML_WITH_MOCKITO_2),
           // language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.extension.ExtendWith;
             import org.mockito.junit.jupiter.MockitoExtension;
             import org.junit.jupiter.api.Test;
@@ -178,7 +197,8 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
     void shouldNotRunOnNewerMockito3OrHigher() {
         rewriteRun(
           //language=xml
-          pomXml("""
+          pomXml(
+                """
             <project>
               <modelVersion>4.0.0</modelVersion>
               <groupId>bla.bla</groupId>
@@ -195,7 +215,8 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
             </project>
             """),
           //language=java
-          java("""
+          java(
+                """
             import org.junit.jupiter.api.extension.ExtendWith;
             import org.mockito.junit.jupiter.MockitoExtension;
             import org.junit.jupiter.api.Test;
