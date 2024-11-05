@@ -51,27 +51,25 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                     return md;
                 }
 
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeRemoveImport("org.junit.jupiter.api.Assertions");
+
                 Expression expectedType = md.getArguments().get(0);
                 Expression actualValue = md.getArguments().get(1);
-
                 if (md.getArguments().size() == 2) {
-                    md = JavaTemplate.builder("assertThat(#{any()}).isInstanceOf(#{any()});")
+                    return JavaTemplate.builder("assertThat(#{any()}).isInstanceOf(#{any()});")
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                             .build()
                             .apply(getCursor(), method.getCoordinates().replace(), actualValue, expectedType);
-                } else {
-                    Expression messageOrSupplier = md.getArguments().get(2);
-                    md = JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isInstanceOf(#{any()});")
-                            .staticImports("org.assertj.core.api.Assertions.assertThat")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
-                            .build()
-                            .apply(getCursor(), method.getCoordinates().replace(), actualValue, messageOrSupplier, expectedType);
                 }
 
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
-                maybeRemoveImport("org.junit.jupiter.api.Assertions");
-                return md;
+                Expression messageOrSupplier = md.getArguments().get(2);
+                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isInstanceOf(#{any()});")
+                        .staticImports("org.assertj.core.api.Assertions.assertThat")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .build()
+                        .apply(getCursor(), method.getCoordinates().replace(), actualValue, messageOrSupplier, expectedType);
             }
         });
     }
