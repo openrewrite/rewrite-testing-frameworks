@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.mockito;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -65,6 +66,7 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
     }
 
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/634")
     void shouldRemoveUnneccesaryEqFromVerify_withMockitoStarImport() {
         rewriteRun(
           //language=Java
@@ -94,7 +96,6 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
           )
         );
     }
-
 
     @Test
     void shouldRemoveUnneccesaryEqFromWhen() {
