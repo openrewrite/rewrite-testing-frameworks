@@ -44,12 +44,10 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+
               public class SimpleExpectedExceptionTest {
                   public void throwsExceptionWithSpecificType() {
-                      assertThrows(NullPointerException.class, () -> {
-                          foo();
-                      });
+                      assertThrows(NullPointerException.class, () -> foo());
                   }
                   void foo() {
                       throw new NullPointerException();
@@ -58,11 +56,10 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
               """,
             """
               import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
-              
+
               public class SimpleExpectedExceptionTest {
                   public void throwsExceptionWithSpecificType() {
-                      assertThatExceptionOfType(NullPointerException.class).isThrownBy(() ->
-                          foo());
+                      assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> foo());
                   }
                   void foo() {
                       throw new NullPointerException();

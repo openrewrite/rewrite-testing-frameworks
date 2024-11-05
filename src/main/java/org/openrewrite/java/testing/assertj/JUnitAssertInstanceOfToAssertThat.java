@@ -46,17 +46,17 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
         return Preconditions.check(new UsesMethod<>(ASSERT_INSTANCE_OF_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation md = super.visitMethodInvocation(method, ctx);
-                if (!ASSERT_INSTANCE_OF_MATCHER.matches(md)) {
-                    return md;
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (!ASSERT_INSTANCE_OF_MATCHER.matches(mi)) {
+                    return mi;
                 }
 
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
                 maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
-                Expression expectedType = md.getArguments().get(0);
-                Expression actualValue = md.getArguments().get(1);
-                if (md.getArguments().size() == 2) {
+                Expression expectedType = mi.getArguments().get(0);
+                Expression actualValue = mi.getArguments().get(1);
+                if (mi.getArguments().size() == 2) {
                     return JavaTemplate.builder("assertThat(#{any()}).isInstanceOf(#{any()});")
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
@@ -64,7 +64,7 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                             .apply(getCursor(), method.getCoordinates().replace(), actualValue, expectedType);
                 }
 
-                Expression messageOrSupplier = md.getArguments().get(2);
+                Expression messageOrSupplier = mi.getArguments().get(2);
                 return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isInstanceOf(#{any()});")
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))

@@ -23,6 +23,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -31,6 +32,8 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.List;
 
 public class JUnitAssertSameToAssertThat extends Recipe {
+
+    private static final MethodMatcher ASSERT_SAME_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertSame(..)", true);
 
     @Override
     public String getDisplayName() {
@@ -44,70 +47,38 @@ public class JUnitAssertSameToAssertThat extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Assertions", false), new AssertSameToAssertThatVisitor());
-    }
+        return Preconditions.check(new UsesMethod<>(ASSERT_SAME_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (!ASSERT_SAME_MATCHER.matches(mi)) {
+                    return mi;
+                }
 
-    public static class AssertSameToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private JavaParser.Builder<?, ?> assertionsParser;
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
-        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
-            if (assertionsParser == null) {
-                assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24");
-            }
-            return assertionsParser;
-        }
+                List<Expression> args = mi.getArguments();
+                Expression expected = args.get(0);
+                Expression actual = args.get(1);
+                if (args.size() == 2) {
+                    return JavaTemplate.builder("assertThat(#{any()}).isSameAs(#{any()});")
+                            .staticImports("org.assertj.core.api.Assertions.assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .build()
+                            .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
+                }
 
-        private static final MethodMatcher JUNIT_ASSERT_SAME_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertSame(..)");
-
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (!JUNIT_ASSERT_SAME_MATCHER.matches(method)) {
-                return method;
-            }
-
-            List<Expression> args = method.getArguments();
-            Expression expected = args.get(0);
-            Expression actual = args.get(1);
-
-            if (args.size() == 2) {
-                method = JavaTemplate.builder("assertThat(#{any()}).isSameAs(#{any()});")
-                        .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(assertionsParser(ctx))
-                        .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replace(),
-                                actual,
-                                expected
-                        );
-            } else {
                 Expression message = args.get(2);
-
                 JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isSameAs(#{any()});") :
                         JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isSameAs(#{any()});");
-
-                method = template
+                return template
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(assertionsParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replace(),
-                                actual,
-                                message,
-                                expected
-                        );
+                        .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
             }
-
-            // Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
-
-            // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
-            maybeRemoveImport("org.junit.jupiter.api.Assertions");
-
-            return method;
-        }
+        });
     }
 }

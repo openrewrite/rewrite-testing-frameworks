@@ -33,6 +33,8 @@ import org.openrewrite.java.tree.TypeUtils;
 @NoArgsConstructor
 public class SimplifyAssertJAssertion extends Recipe {
 
+    private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
+
     @Option(displayName = "AssertJ assertion",
             description = "The assertion method that should be replaced.",
             example = "hasSize",
@@ -67,38 +69,34 @@ public class SimplifyAssertJAssertion extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new ShorthenChainedAssertJAssertionsVisitor();
-    }
+        final MethodMatcher assertToReplace = new MethodMatcher("org.assertj.core.api.* " + this.assertToReplace + "(..)");
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
 
-    private class ShorthenChainedAssertJAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
-        private final MethodMatcher ASSERT_TO_REPLACE = new MethodMatcher("org.assertj.core.api.* " + assertToReplace + "(..)");
+                // Match the end of the chain first, then the select to avoid matching the wrong method chain
+                if (!assertToReplace.matches(mi) || !ASSERT_THAT_MATCHER.matches(mi.getSelect())) {
+                    return mi;
+                }
 
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
-            J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
+                // Compare argument with passed in literal
+                if (!(mi.getArguments().get(0) instanceof J.Literal) ||
+                        !literalArgument.equals(((J.Literal) mi.getArguments().get(0)).getValueSource())) { // Implies "null" is `null`
+                    return mi;
+                }
 
-            // Match the end of the chain first, then the select to avoid matching the wrong method chain
-            if (!ASSERT_TO_REPLACE.matches(mi) || !ASSERT_THAT_MATCHER.matches(mi.getSelect())) {
-                return mi;
+                // Check argument type of assertThat
+                if (!TypeUtils.isAssignableTo(requiredType, ((J.MethodInvocation) mi.getSelect()).getArguments().get(0).getType())) {
+                    return mi;
+                }
+
+                // Assume zero argument replacement method
+                return JavaTemplate.builder("#{any()}." + dedicatedAssertion + "()")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .build()
+                        .apply(getCursor(), mi.getCoordinates().replace(), mi.getSelect());
             }
-
-            // Compare argument with passed in literal
-            if (!(mi.getArguments().get(0) instanceof J.Literal) ||
-                !literalArgument.equals(((J.Literal) mi.getArguments().get(0)).getValueSource())) { // Implies "null" is `null`
-                return mi;
-            }
-
-            // Check argument type of assertThat
-            if (!TypeUtils.isAssignableTo(requiredType, ((J.MethodInvocation) mi.getSelect()).getArguments().get(0).getType())) {
-                return mi;
-            }
-
-            // Assume zero argument replacement method
-            return JavaTemplate.builder("#{any()}." + dedicatedAssertion + "()")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
-                    .build()
-                    .apply(getCursor(), mi.getCoordinates().replace(), mi.getSelect());
-        }
+        };
     }
 }
