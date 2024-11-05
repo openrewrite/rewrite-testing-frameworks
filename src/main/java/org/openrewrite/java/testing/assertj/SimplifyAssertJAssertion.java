@@ -82,7 +82,7 @@ public class SimplifyAssertJAssertion extends Recipe {
 
                 // Compare argument with passed in literal
                 if (!(mi.getArguments().get(0) instanceof J.Literal) ||
-                        !literalArgument.equals(((J.Literal) mi.getArguments().get(0)).getValueSource())) { // Implies "null" is `null`
+                    !literalArgument.equals(((J.Literal) mi.getArguments().get(0)).getValueSource())) { // Implies "null" is `null`
                     return mi;
                 }
 

@@ -24,7 +24,6 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
@@ -33,7 +32,7 @@ import java.util.List;
 
 public class JUnitAssertNotNullToAssertThat extends Recipe {
 
-    private static final MethodMatcher ASSERT_NOT_NULL_MATCHER = new MethodMatcher( "org.junit.jupiter.api.Assertions assertNotNull(..)", true);
+    private static final MethodMatcher ASSERT_NOT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertNotNull(..)", true);
 
     @Override
     public String getDisplayName() {

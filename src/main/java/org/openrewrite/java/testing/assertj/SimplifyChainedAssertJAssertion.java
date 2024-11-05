@@ -147,7 +147,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
                 // Special case for Path.of() assertions
                 if ("java.nio.file.Path".equals(requiredType) && dedicatedAssertion.contains("Raw") &&
-                        TypeUtils.isAssignableTo("java.lang.String", assertThatArgument.getType())) {
+                    TypeUtils.isAssignableTo("java.lang.String", assertThatArgument.getType())) {
                     maybeAddImport("java.nio.file.Path");
                     return "assertThat(#{any()}).%s(Path.of(#{any()}))";
                 }

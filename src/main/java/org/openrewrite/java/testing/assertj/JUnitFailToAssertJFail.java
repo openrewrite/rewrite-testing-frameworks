@@ -62,7 +62,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                                 .build()
                                 .apply(getCursor(), mi.getCoordinates().replace());
                     } else if (args.get(0) instanceof J.Literal ||
-                            TypeUtils.isAssignableTo("java.lang.String", args.get(0).getType())) {
+                               TypeUtils.isAssignableTo("java.lang.String", args.get(0).getType())) {
                         mi = JavaTemplate.builder(ASSERTJ + ".fail(#{any()});")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                                 .build()
