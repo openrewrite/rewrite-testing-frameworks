@@ -132,7 +132,7 @@ recipeList:
       oldParameterNames:
         - mode
         - verification
-  - org.openrewrite.java.testing.mockito.verifyZeroToNoMoreInteractions
+  - org.openrewrite.java.testing.mockito.VerifyZeroToNoMoreInteractions
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.Mockito verifyZeroInteractions(..)
       newMethodName: verifyNoInteractions
