@@ -22,8 +22,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
@@ -44,24 +43,24 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Assertions", false),
+        return Preconditions.check(new UsesMethod<>("org.junit.jupiter.api.Assertions assertInstanceOf(..)", true),
                 new JavaIsoVisitor<ExecutionContext>() {
-                    private final MethodMatcher JUNIT_ASSERT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertInstanceOf(..)");
 
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         List<Expression> args = method.getArguments();
 
-                        if (!JUNIT_ASSERT_NULL_MATCHER.matches(method) || args.size() < 2 || args.size() > 3) {
-                            return method;
+                        if (args.size() < 2 || args.size() > 3) {
+                            return super.visitMethodInvocation(method, ctx);
                         }
 
+                        J.MethodInvocation md;
                         Expression expectedType = args.get(0);
                         Expression actualValue = args.get(1);
 
                         if (args.size() == 2) {
                             JavaTemplate.Builder template = JavaTemplate.builder("assertThat(#{any()}).isInstanceOf(#{any()});");
-                            method = rewriteAssertToInstance(template, method, ctx, actualValue, expectedType);
+                            md = rewriteAssertToInstance(template, method, ctx, actualValue, expectedType);
                         } else {
                             Expression messageOrSupplier = args.get(2);
 
@@ -69,13 +68,13 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                                     JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isInstanceOf(#{any()});") :
                                     JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isInstanceOf(#{any()});");
 
-                            method = rewriteAssertToInstance(template, method, ctx, actualValue, messageOrSupplier, expectedType);
+                            md = rewriteAssertToInstance(template, method, ctx, actualValue, messageOrSupplier, expectedType);
                         }
 
                         maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
-                        return method;
+                        return super.visitMethodInvocation(md, ctx);
                     }
 
                     private J.MethodInvocation rewriteAssertToInstance(JavaTemplate.Builder template, J.MethodInvocation method, ExecutionContext ctx, Object... parameters) {
