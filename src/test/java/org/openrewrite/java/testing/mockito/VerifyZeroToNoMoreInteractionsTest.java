@@ -50,7 +50,7 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockito-core", "mockito-junit-jupiter", "junit-jupiter-api"))
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3", "mockito-junit-jupiter-3"))
           .recipe(new VerifyZeroToNoMoreInteractions());
     }
 
@@ -61,30 +61,19 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
         rewriteRun(
           pomXml(POM_XML_WITH_MOCKITO_2),
           java(
-                """
-            import org.junit.jupiter.api.extension.ExtendWith;
-            import org.mockito.junit.jupiter.MockitoExtension;
-            import org.junit.jupiter.api.Test;
-
+            """
             import static org.mockito.Mockito.verifyZeroInteractions;
 
-            @ExtendWith(MockitoExtension.class)
             class MyTest {
-                @Test
                 void test() {
                     verifyZeroInteractions(System.out);
                 }
             }
-            """, """
-            import org.junit.jupiter.api.extension.ExtendWith;
-            import org.mockito.junit.jupiter.MockitoExtension;
-            import org.junit.jupiter.api.Test;
-
+            """,
+            """
             import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-            @ExtendWith(MockitoExtension.class)
             class MyTest {
-                @Test
                 void test() {
                     verifyNoMoreInteractions(System.out);
                 }
@@ -98,7 +87,7 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
         rewriteRun(
           pomXml(POM_XML_WITH_MOCKITO_2),
           java(
-                """
+            """
             import static org.mockito.Mockito.verifyZeroInteractions;
 
             class MyTest {}
@@ -111,39 +100,32 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
           pomXml(POM_XML_WITH_MOCKITO_2),
           // language=java
           java(
-                """
-            import org.junit.jupiter.api.extension.ExtendWith;
+            """
             import org.mockito.junit.jupiter.MockitoExtension;
             import org.mockito.Mock;
-            import org.junit.jupiter.api.Test;
             import static org.mockito.Mockito.verifyZeroInteractions;
             import static org.mockito.Mockito.verify;
 
-            @ExtendWith(MockitoExtension.class)
             class MyTest {
                 @Mock
                 Object myObject;
 
-                @Test
                 void test() {
                     verifyZeroInteractions(System.out);
                     verify(myObject);
                 }
             }
-            """, """
-            import org.junit.jupiter.api.extension.ExtendWith;
+            """,
+            """
             import org.mockito.junit.jupiter.MockitoExtension;
             import org.mockito.Mock;
-            import org.junit.jupiter.api.Test;
             import static org.mockito.Mockito.verifyNoMoreInteractions;
             import static org.mockito.Mockito.verify;
 
-            @ExtendWith(MockitoExtension.class)
             class MyTest {
                 @Mock
                 Object myObject;
 
-                @Test
                 void test() {
                     verifyNoMoreInteractions(System.out);
                     verify(myObject);
@@ -158,34 +140,27 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
           pomXml(POM_XML_WITH_MOCKITO_2),
           // language=java
           java(
-                """
-            import org.junit.jupiter.api.extension.ExtendWith;
-            import org.mockito.junit.jupiter.MockitoExtension;
-            import org.junit.jupiter.api.Test;
+            """
+            import java.util.function.Consumer;
 
-            import static org.junit.jupiter.api.Assertions.assertAll;
             import static org.mockito.Mockito.verifyZeroInteractions;
 
-            @ExtendWith(MockitoExtension.class)
             class MyTest {
-                @Test
                 void test() {
-                    assertAll(() -> verifyZeroInteractions(System.out));
+                    Runnable f = () -> verifyZeroInteractions(System.out);
+                    f.run();
                 }
             }
-            """, """
-            import org.junit.jupiter.api.extension.ExtendWith;
-            import org.mockito.junit.jupiter.MockitoExtension;
-            import org.junit.jupiter.api.Test;
+            """,
+            """
+            import java.util.function.Consumer;
 
-            import static org.junit.jupiter.api.Assertions.assertAll;
             import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-            @ExtendWith(MockitoExtension.class)
             class MyTest {
-                @Test
                 void test() {
-                    assertAll(() -> verifyNoMoreInteractions(System.out));
+                    Runnable f = () -> verifyNoMoreInteractions(System.out);
+                    f.run();
                 }
             }
             """
@@ -198,7 +173,7 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
         rewriteRun(
           //language=xml
           pomXml(
-                """
+            """
             <project>
               <modelVersion>4.0.0</modelVersion>
               <groupId>bla.bla</groupId>
@@ -216,16 +191,12 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
             """),
           //language=java
           java(
-                """
-            import org.junit.jupiter.api.extension.ExtendWith;
+            """
             import org.mockito.junit.jupiter.MockitoExtension;
-            import org.junit.jupiter.api.Test;
 
             import static org.mockito.Mockito.verifyZeroInteractions;
 
-            @ExtendWith(MockitoExtension.class)
             class MyTest {
-                @Test
                 void test() {
                     verifyZeroInteractions(System.out);
                 }
