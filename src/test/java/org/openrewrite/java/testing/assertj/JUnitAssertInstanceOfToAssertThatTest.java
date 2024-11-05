@@ -201,4 +201,32 @@ class JUnitAssertInstanceOfToAssertThatTest implements RewriteTest {
         );
     }
 
+    @Test
+    void doesConvertNestedMethodInvocations() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+              import static org.junit.jupiter.api.Assertions.assertAll;
+
+              class Test {
+                  void test() {
+                      assertAll(() -> assertInstanceOf(Integer.class, 4));
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertAll;
+
+              class Test {
+                  void test() {
+                      assertAll(() -> assertThat(4).isInstanceOf(Integer.class));
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -48,13 +48,13 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
 
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                        List<Expression> args = method.getArguments();
+                        J.MethodInvocation md = super.visitMethodInvocation(method, ctx);
 
+                        List<Expression> args = md.getArguments();
                         if (args.size() < 2 || args.size() > 3) {
-                            return super.visitMethodInvocation(method, ctx);
+                            return md;
                         }
 
-                        J.MethodInvocation md;
                         Expression expectedType = args.get(0);
                         Expression actualValue = args.get(1);
 
@@ -74,7 +74,7 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                         maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
-                        return super.visitMethodInvocation(md, ctx);
+                        return md;
                     }
 
                     private J.MethodInvocation rewriteAssertToInstance(JavaTemplate.Builder template, J.MethodInvocation method, ExecutionContext ctx, Object... parameters) {
