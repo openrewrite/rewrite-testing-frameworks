@@ -62,23 +62,25 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
           pomXml(POM_XML_WITH_MOCKITO_2),
           java(
             """
-            import static org.mockito.Mockito.verifyZeroInteractions;
+              import static org.mockito.Mockito.verifyZeroInteractions;
 
-            class MyTest {
-                void test() {
-                    verifyZeroInteractions(System.out);
-                }
-            }
-            """,
+              class MyTest {
+                  void test() {
+                      verifyZeroInteractions(System.out);
+                  }
+              }
+              """,
             """
-            import static org.mockito.Mockito.verifyNoMoreInteractions;
+              import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-            class MyTest {
-                void test() {
-                    verifyNoMoreInteractions(System.out);
-                }
-            }
-            """));
+              class MyTest {
+                  void test() {
+                      verifyNoMoreInteractions(System.out);
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -88,10 +90,12 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
           pomXml(POM_XML_WITH_MOCKITO_2),
           java(
             """
-            import static org.mockito.Mockito.verifyZeroInteractions;
+              import static org.mockito.Mockito.verifyZeroInteractions;
 
-            class MyTest {}
-            """));
+              class MyTest {}
+              """
+          )
+        );
     }
 
     @Test
@@ -101,37 +105,39 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
           // language=java
           java(
             """
-            import org.mockito.junit.jupiter.MockitoExtension;
-            import org.mockito.Mock;
-            import static org.mockito.Mockito.verifyZeroInteractions;
-            import static org.mockito.Mockito.verify;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.Mock;
+              import static org.mockito.Mockito.verifyZeroInteractions;
+              import static org.mockito.Mockito.verify;
 
-            class MyTest {
-                @Mock
-                Object myObject;
+              class MyTest {
+                  @Mock
+                  Object myObject;
 
-                void test() {
-                    verifyZeroInteractions(System.out);
-                    verify(myObject);
-                }
-            }
-            """,
+                  void test() {
+                      verifyZeroInteractions(System.out);
+                      verify(myObject);
+                  }
+              }
+              """,
             """
-            import org.mockito.junit.jupiter.MockitoExtension;
-            import org.mockito.Mock;
-            import static org.mockito.Mockito.verifyNoMoreInteractions;
-            import static org.mockito.Mockito.verify;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.Mock;
+              import static org.mockito.Mockito.verifyNoMoreInteractions;
+              import static org.mockito.Mockito.verify;
 
-            class MyTest {
-                @Mock
-                Object myObject;
+              class MyTest {
+                  @Mock
+                  Object myObject;
 
-                void test() {
-                    verifyNoMoreInteractions(System.out);
-                    verify(myObject);
-                }
-            }
-            """));
+                  void test() {
+                      verifyNoMoreInteractions(System.out);
+                      verify(myObject);
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -141,29 +147,29 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
           // language=java
           java(
             """
-            import java.util.function.Consumer;
+              import java.util.function.Consumer;
 
-            import static org.mockito.Mockito.verifyZeroInteractions;
+              import static org.mockito.Mockito.verifyZeroInteractions;
 
-            class MyTest {
-                void test() {
-                    Runnable f = () -> verifyZeroInteractions(System.out);
-                    f.run();
-                }
-            }
-            """,
+              class MyTest {
+                  void test() {
+                      Runnable f = () -> verifyZeroInteractions(System.out);
+                      f.run();
+                  }
+              }
+              """,
             """
-            import java.util.function.Consumer;
+              import java.util.function.Consumer;
 
-            import static org.mockito.Mockito.verifyNoMoreInteractions;
+              import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-            class MyTest {
-                void test() {
-                    Runnable f = () -> verifyNoMoreInteractions(System.out);
-                    f.run();
-                }
-            }
-            """
+              class MyTest {
+                  void test() {
+                      Runnable f = () -> verifyNoMoreInteractions(System.out);
+                      f.run();
+                  }
+              }
+              """
           )
         );
     }
@@ -174,33 +180,35 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
           //language=xml
           pomXml(
             """
-            <project>
-              <modelVersion>4.0.0</modelVersion>
-              <groupId>bla.bla</groupId>
-              <artifactId>bla-bla</artifactId>
-              <version>1.0.0</version>
-              <dependencies>
-                <dependency>
-                    <groupId>org.mockito</groupId>
-                    <artifactId>mockito-core</artifactId>
-                    <version>3.0.0</version>
-                    <scope>test</scope>
-                </dependency>
-              </dependencies>
-            </project>
-            """),
+              <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>bla.bla</groupId>
+                <artifactId>bla-bla</artifactId>
+                <version>1.0.0</version>
+                <dependencies>
+                  <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <version>3.0.0</version>
+                      <scope>test</scope>
+                  </dependency>
+                </dependencies>
+              </project>
+              """),
           //language=java
           java(
             """
-            import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.jupiter.MockitoExtension;
 
-            import static org.mockito.Mockito.verifyZeroInteractions;
+              import static org.mockito.Mockito.verifyZeroInteractions;
 
-            class MyTest {
-                void test() {
-                    verifyZeroInteractions(System.out);
-                }
-            }
-            """));
+              class MyTest {
+                  void test() {
+                      verifyZeroInteractions(System.out);
+                  }
+              }
+              """
+          )
+        );
     }
 }
