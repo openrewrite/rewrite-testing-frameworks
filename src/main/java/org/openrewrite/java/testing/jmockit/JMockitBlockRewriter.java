@@ -253,7 +253,7 @@ class JMockitBlockRewriter {
         }
     }
 
-    private void rewriteFullVerify(ArrayList<Object> mocks) {
+    private void rewriteFullVerify(List<Object> mocks) {
         if (!mocks.isEmpty()) {
             StringBuilder sb = new StringBuilder(VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX);
             mocks.forEach(mock -> sb.append(ANY_TEMPLATE_FIELD).append(",")); // verifyNoMoreInteractions(mock1, mock2 ...
