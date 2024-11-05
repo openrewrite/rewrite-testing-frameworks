@@ -129,7 +129,7 @@ class JMockitBlockRewriter {
             removeBlock();
         }
 
-        ArrayList<Object> mocks = new ArrayList<>(uniqueMocks);
+        List<Object> mocks = new ArrayList<>(uniqueMocks);
         if (isVerificationsInOrder()) {
             rewriteInOrderVerify(mocks);
         }
