@@ -1,0 +1,132 @@
+#
+# Copyright 2024 the original author or authors.
+# <p>
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://www.apache.org/licenses/LICENSE-2.0
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.easymock.EasyMockToMockito
+displayName: Migrate from EasyMock to Mockito
+description: This recipe will apply changes commonly needed when migrating from EasyMock to Mockito.
+tags:
+  - testing
+  - easymock
+recipeList:
+  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+      methodPattern: org.easymock.IExpectationSetters times(..)
+  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+      methodPattern: org.easymock.IExpectationSetters once()
+  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+      methodPattern: org.easymock.IExpectationSetters atLeastOnce()
+  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+      methodPattern: org.easymock.IExpectationSetters anyTimes()
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.IExpectationSetters andReturn(..)
+      newMethodName: thenReturn
+      ignoreDefinition: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.IExpectationSetters andThrow(java.lang.Throwable)
+      newMethodName: thenThrow
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.IExpectationSetters andAnswer(..)
+      newMethodName: thenAnswer
+      ignoreDefinition: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.IExpectationSetters andStubReturn(..)
+      newMethodName: thenReturn
+      ignoreDefinition: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.IExpectationSetters andStubThrow(java.lang.Throwable)
+      newMethodName: thenThrow
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.IExpectationSetters andStubAnswer(..)
+      newMethodName: thenAnswer
+      ignoreDefinition: true
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.easymock.IMocksControl mock(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.easymock.IMocksControl createMock(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+      methodPattern: org.easymock.IMocksControl replay(..)
+  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+      methodPattern: org.easymock.IMocksControl verify(..)
+  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+      methodPattern: org.easymock.IMocksControl verifyRecording(..)
+  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+      methodPattern: org.easymock.IMocksControl verifyUnexpectedCalls(..)
+  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+      methodPattern: org.easymock.EasyMockSupport replayAll()
+  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+      methodPattern: org.easymock.EasyMockSupport verifyAll()
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.easymock.IArgumentMatcher
+      newFullyQualifiedTypeName: org.mockito.ArgumentMatcher
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock anyObject()
+      newMethodName: any
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock eq(..)
+      newMethodName: eq
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock capture(..)
+      newMethodName: argThat
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock reportMatcher(..)
+      newMethodName: argThat
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock expect(..)
+      newMethodName: when
+  #- org.openrewrite.java.migrate.ChangeMethodName:
+  #    methodPattern: org.easymock.EasyMock verify(..)
+  #    newMethodName: verify <-- don't think we need this, as the name stays the same
+  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+      methodPattern: org.easymock.EasyMock replay(..)
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock createNiceMock(..)
+      newMethodName: mock
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock createStrictMock(..)
+      newMethodName: mock
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock createMock(..)
+      newMethodName: mock
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock niceMock(..)
+      newMethodName: mock
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock strictMock(..)
+      newMethodName: mock
+  - org.openrewrite.java.ReorderMethodArguments:
+      methodPattern: org.easymock.EasyMock mock(String, Class)
+      newParameterNames:
+        - classToMock
+        - name
+      oldParameterNames:
+        - name
+        - classToMock
+  - org.openrewrite.java.testing.easymock.RemoveExtendsEasyMockSupport
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.easymock.EasyMock
+      newFullyQualifiedTypeName: org.mockito.Mockito
+  #  - com.todo.openrewrite.java.easymock.RefactorEasyMockIArgumentMatcherIntoMockitoArgumentMatcher
+  #  - com.todo.openrewrite.java.easymock.RewriteEasyMockExpectationsIntoMockitoVerify
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.mockito
+      artifactId: mockito-core
+      version: 5.x
+      onlyIfUsing: org.mockito.*
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.easymock
+      artifactId: easymock
