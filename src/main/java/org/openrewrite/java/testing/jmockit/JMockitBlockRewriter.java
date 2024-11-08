@@ -112,7 +112,8 @@ class JMockitBlockRewriter {
                         methodInvocationIdx++;
                         methodInvocationsToRewrite.add(new ArrayList<>());
                     }
-                    if ((isFullVerifications() || isVerificationsInOrder()) && uniqueMocks.stream().noneMatch(mock -> mock.getSimpleName().equals(mockObj.getSimpleName()))) {
+                    if ((isFullVerifications() || isVerificationsInOrder()) &&
+                            uniqueMocks.stream().noneMatch(mock -> mock.getSimpleName().equals(mockObj.getSimpleName()))) {
                         uniqueMocks.add(mockObj);
                     }
                 }
@@ -311,11 +312,7 @@ class JMockitBlockRewriter {
                 .staticImports("org.mockito.Mockito.*")
                 .imports(IN_ORDER_IMPORT_FQN)
                 .build()
-                .apply(
-                        new Cursor(visitor.getCursor(), methodBody),
-                        rewriteCoords,
-                        templateParams.toArray()
-                );
+                .apply(new Cursor(visitor.getCursor(), methodBody), rewriteCoords, templateParams.toArray());
         this.rewriteFailed = methodBody.getStatements().size() <= numStatementsBefore;
     }
 
@@ -370,7 +367,11 @@ class JMockitBlockRewriter {
             verificationMode, List<Object> templateParams) {
         StringBuilder templateBuilder = new StringBuilder();
         if (isVerificationsInOrder()) {
-            templateBuilder.append("inOrder.");
+            templateBuilder.append("inOrder");
+            if (this.verificationsInOrderIdx > 0) {
+                templateBuilder.append(this.verificationsInOrderIdx);
+            }
+            templateBuilder.append(".");
         }
         templateBuilder.append(VERIFY_TEMPLATE_PREFIX); // eg verify(object
         if (!verificationMode.isEmpty()) {
