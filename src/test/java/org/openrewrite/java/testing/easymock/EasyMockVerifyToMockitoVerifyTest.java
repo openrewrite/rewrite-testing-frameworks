@@ -21,6 +21,7 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -35,53 +36,187 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
 
     @Test
     @DocumentExample
-    void replaceEasyMockByMockito() {
+    void replaceEasyMockVerifyByMockitoVerify() {
         //language=java
         rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java("""
               import static org.easymock.EasyMock.*;
-              import static org.easymock.EasyMock.verify;
 
               public class ExampleTest {
                   public void testServiceMethod() {
-                      Dependency dependency = createMock(Dependency.class);
-                      expect(dependency.performAction());
-                      expect(dependency.performAction2()).andReturn(3);
-                      replay(dependency);
+                      Dependency dependency = createNiceMock(Dependency.class);
+                      expect(dependency.action("", 2)).andReturn("result");
+                      expect(dependency.action2());
                       verify(dependency);
-                      expect(dependency.performAction3()).andReturn("Mocked Result");
-                      verify(dependency);
+
+                      Dependency dependency2 = createNiceMock(Dependency.class);
+                      expect(dependency2.action("A", 1)).andReturn("result");
+                      expect(dependency2.action2()).andReturn("result");
+                      expect(dependency2.action3(3.3)).andReturn("result");
+                      verify(dependency2);
                   }
 
                   interface Dependency {
-                      String performAction();
-                      int performAction2();
-                      String performAction3();
+                      String action(String s, int i);
+                      String action2();
+                      String action3(double d);
                   }
               }
               """,
             """
-              import static org.easymock.EasyMock.*;
+              import static org.easymock.EasyMock.expect;
+              import static org.easymock.EasyMock.createNiceMock;
               import static org.mockito.Mockito.verify;
 
               public class ExampleTest {
                   public void testServiceMethod() {
-                      Dependency dependency = createMock(Dependency.class);
-                      expect(dependency.performAction());
-                      expect(dependency.performAction2()).andReturn(3);
-                      replay(dependency);
-                      verify(dependency).performAction();
-                      verify(dependency).performAction2();
-                      expect(dependency.performAction3()).andReturn("Mocked Result");
-                      verify(dependency).performAction3();
+                      Dependency dependency = createNiceMock(Dependency.class);
+                      expect(dependency.action("", 2)).andReturn("result");
+                      expect(dependency.action2());
+                      verify(dependency).action("", 2);
+                      verify(dependency).action2();
+
+                      Dependency dependency2 = createNiceMock(Dependency.class);
+                      expect(dependency2.action("A", 1)).andReturn("result");
+                      expect(dependency2.action2()).andReturn("result");
+                      expect(dependency2.action3(3.3)).andReturn("result");
+                      verify(dependency2).action("A", 1);
+                      verify(dependency2).action2();
+                      verify(dependency2).action3(3.3);
                   }
 
                   interface Dependency {
-                      String performAction();
-                      int performAction2();
-                      String performAction3();
+                      String action(String s, int i);
+                      String action2();
+                      String action3(double d);
                   }
-              }""")
+              }
+              """)
+        );
+    }
+
+    @Test
+    void simpleReplacement() {
+        //language=java
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
+          java("""
+              import static org.easymock.EasyMock.*;
+
+              public class ExampleTest {
+                  public void testServiceMethod() {
+                      Dependency dependency = createNiceMock(Dependency.class);
+                      expect(dependency.action()).andReturn("result");
+                      verify(dependency);
+                  }
+
+                  interface Dependency {
+                      String action();
+                  }
+              }
+              """,
+            """
+              import static org.easymock.EasyMock.expect;
+              import static org.easymock.EasyMock.createNiceMock;
+              import static org.mockito.Mockito.verify;
+
+              public class ExampleTest {
+                  public void testServiceMethod() {
+                      Dependency dependency = createNiceMock(Dependency.class);
+                      expect(dependency.action()).andReturn("result");
+                      verify(dependency).action();
+                  }
+
+                  interface Dependency {
+                      String action();
+                  }
+              }
+              """)
+        );
+    }
+
+    @Test
+    void simpleReplacementWithArguments() {
+        //language=java
+        rewriteRun(
+          java("""
+              import static org.easymock.EasyMock.*;
+
+              public class ExampleTest {
+                  public void testServiceMethod() {
+                      Dependency dependency = createNiceMock(Dependency.class);
+                      expect(dependency.action("", 2)).andReturn("result");
+                      verify(dependency);
+                  }
+
+                  interface Dependency {
+                      String action(String s, int i);
+                  }
+              }
+              """,
+            """
+              import static org.easymock.EasyMock.expect;
+              import static org.easymock.EasyMock.createNiceMock;
+              import static org.mockito.Mockito.verify;
+
+              public class ExampleTest {
+                  public void testServiceMethod() {
+                      Dependency dependency = createNiceMock(Dependency.class);
+                      expect(dependency.action("", 2)).andReturn("result");
+                      verify(dependency).action("", 2);
+                  }
+
+                  interface Dependency {
+                      String action(String s, int i);
+                  }
+              }
+              """)
+        );
+    }
+
+    @Test
+    void replacementWithMultipleMethods() {
+        //language=java
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
+          java("""
+              import static org.easymock.EasyMock.*;
+
+              public class ExampleTest {
+                  public void testServiceMethod() {
+                      Dependency dependency = createNiceMock(Dependency.class);
+                      expect(dependency.action("", 2)).andReturn("result");
+                      expect(dependency.action2()).andReturn("result");
+                      verify(dependency);
+                  }
+
+                  interface Dependency {
+                      String action(String s, int i);
+                      String action2();
+                  }
+              }
+              """,
+            """
+              import static org.easymock.EasyMock.expect;
+              import static org.easymock.EasyMock.createNiceMock;
+              import static org.mockito.Mockito.verify;
+
+              public class ExampleTest {
+                  public void testServiceMethod() {
+                      Dependency dependency = createNiceMock(Dependency.class);
+                      expect(dependency.action("", 2)).andReturn("result");
+                      expect(dependency.action2()).andReturn("result");
+                      verify(dependency).action("", 2);
+                      verify(dependency).action2();
+                  }
+
+                  interface Dependency {
+                      String action(String s, int i);
+                      String action2();
+                  }
+              }
+              """)
         );
     }
 }

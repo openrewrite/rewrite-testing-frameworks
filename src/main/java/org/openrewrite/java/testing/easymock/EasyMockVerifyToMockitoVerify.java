@@ -19,8 +19,6 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -29,8 +27,10 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+
+import static java.lang.String.*;
+import static java.util.Collections.*;
 
 public class EasyMockVerifyToMockitoVerify extends Recipe {
 
@@ -47,24 +47,6 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
         return "Replace EasyMock.verify(dependency) with individual Mockito.verify(dependency).method() calls based on expected methods.";
     }
 
-    /*
-    public void testServiceMethod() {
-                      Dependency dependency = createMock(Dependency.class);
-                      expect(dependency.performAction());
-                      expect(dependency.performAction2()).andReturn("Mocked Result");
-                      replay(dependency);
-                      verify(dependency);
-                      //1
-                      //2
-                      expect(dependency.performAction3()).andReturn("Mocked Result");
-                      verify(dependency);
-                      //1
-                  }
-
-                  // dependency.performAction()
-                  // dependency.performAction2()
-     */
-
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesMethod<>(VERIFY_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
@@ -72,11 +54,14 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration md = method;
 
-                // if-statement
+                maybeAddImport("org.mockito.Mockito", "verify");
+                maybeRemoveImport("org.easymock.EasyMock.verify");
 
                 List<J.MethodInvocation> expectedCalls = new ArrayList<>();
                 if (md.getBody() != null) {
-                    for (Statement statement : md.getBody().getStatements()) {
+                    List<Statement> statements = md.getBody().getStatements();
+                    int idx = 0;
+                    for (Statement statement : statements) {
                         if (statement instanceof J.MethodInvocation) {
                             J.MethodInvocation m = (J.MethodInvocation) statement;
                             if (isExpectInvocation(m)) {
@@ -84,82 +69,30 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                             } else if (isExpectAndReturnInvocation(m)) {
                                 expectedCalls.add((J.MethodInvocation) ((J.MethodInvocation) m.getSelect()).getArguments().get(0));
                             } else if (VERIFY_MATCHER.matches(m)) {
-                                StringBuilder verifyCode = new StringBuilder();
-                                for (J.MethodInvocation expectedMethod : expectedCalls) {
-                                    //Statement s = JavaTemplate.builder("verify(#{any()}).#{any()}")
-                                    md = JavaTemplate.builder("verify(#{any()})")
+                                for (int i = 0, expectedCallsSize = expectedCalls.size(); i < expectedCallsSize; i++) {
+                                    if (i != 0) idx++;
+                                    J.MethodInvocation expectedMethod = expectedCalls.get(i);
+                                    List<Expression> parameters = expectedMethod.getArguments();
+                                    String anyArgs = join(",", nCopies(parameters.size(), "#{any()}"));
+                                    parameters.add(0, expectedMethod.getSelect());
+                                    Statement currStatement = md.getBody().getStatements().get(idx);
+                                    JavaCoordinates coordinates = i == 0 ? currStatement.getCoordinates().replace() : currStatement.getCoordinates().after();
+                                    md = JavaTemplate.builder("verify(#{any()})." + expectedMethod.getSimpleName() + "(" + anyArgs + ")")
                                             .contextSensitive()
-                                            //.doBeforeParseTemplate(System.out::println)
                                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
                                             .staticImports("org.mockito.Mockito.verify")
                                             .build()
-                                            .apply(getCursor(), statement.getCoordinates().after(), expectedMethod.getSelect());
+                                            .apply(updateCursor(md), coordinates, parameters.toArray());
                                 }
                                 expectedCalls.clear();
                             }
                         }
-
-
+                        idx++;
                     }
                 }
 
                 return super.visitMethodDeclaration(md, ctx);
             }
-
-            /*@Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (!VERIFY_MATCHER.matches(mi)) {
-                    return super.visitMethodInvocation(mi, ctx);
-                }
-
-                maybeAddImport("org.mockito.Mockito", "verify");
-                // maybeRemoveImport("org.junit.jupiter.api.Assertions");
-
-                System.out.println("Verify: " + mi);
-                List<J.MethodInvocation> expectedCalls = new ArrayList<>();
-                for (Statement statement : getCursor().firstEnclosingOrThrow(J.Block.class).getStatements()) {
-                    if (statement instanceof J.MethodInvocation) {
-                        J.MethodInvocation m = (J.MethodInvocation) statement;
-                        if (m.equals(mi)) {
-                            break;
-                        } else if (isExpectInvocation(m)) {
-                            expectedCalls.add((J.MethodInvocation) m.getArguments().get(0));
-                        } else if (isExpectAndReturnInvocation(m)) {
-                            expectedCalls.add((J.MethodInvocation) ((J.MethodInvocation) m.getSelect()).getArguments().get(0));
-                        } else if (VERIFY_MATCHER.matches(m)) { // another verify, clear list
-                            expectedCalls.clear();
-                        }
-                    }
-                }
-                System.out.println("- EXPECTED REPLACEMENT - ");
-                System.out.println(expectedCalls);
-
-
-
-                // Retrieve the dependency object being verified
-                Expression dependency = method.getArguments().get(0);
-
-                StringBuilder verifyCode = new StringBuilder();
-                for (J.MethodInvocation expectedMethod : expectedCalls) {
-                    String methodName = expectedMethod.getSimpleName();
-                    List<Expression> args = expectedMethod.getTypeParameters();
-                    verifyCode.append("verify(").append(dependency).append(").").append(methodName).append("(");
-                    if (args != null) {
-                        for (int i = 0; i < args.size(); i++) {
-                            verifyCode.append(i == 0 ? "" : ", ").append(args.get(i));
-                        }
-                    }
-                    verifyCode.append(");\n");
-                }
-                String template = verifyCode.toString();
-
-                return JavaTemplate.builder(template)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                        .staticImports("org.mockito.Mockito.verify")
-                        .build()
-                        .apply(getCursor(), mi.getCoordinates().replace());
-            }*/
 
             // match: expect(<dep>.someMethod());
             private boolean isExpectInvocation(J.MethodInvocation mi) {

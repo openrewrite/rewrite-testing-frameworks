@@ -22,6 +22,7 @@ tags:
   - testing
   - easymock
 recipeList:
+  - org.openrewrite.java.testing.easymock.EasyMockVerifyToMockitoVerify
   - org.openrewrite.java.migrate.RemoveMethodInvocation:
       methodPattern: org.easymock.IExpectationSetters times(..)
   - org.openrewrite.java.migrate.RemoveMethodInvocation:
@@ -88,9 +89,6 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.easymock.EasyMock expect(..)
       newMethodName: when
-  #- org.openrewrite.java.migrate.ChangeMethodName:
-  #    methodPattern: org.easymock.EasyMock verify(..)
-  #    newMethodName: verify <-- don't think we need this, as the name stays the same
   - org.openrewrite.java.migrate.RemoveMethodInvocation:
       methodPattern: org.easymock.EasyMock replay(..)
   - org.openrewrite.java.ChangeMethodName:
@@ -121,7 +119,6 @@ recipeList:
       oldFullyQualifiedTypeName: org.easymock.EasyMock
       newFullyQualifiedTypeName: org.mockito.Mockito
   #  - com.todo.openrewrite.java.easymock.RefactorEasyMockIArgumentMatcherIntoMockitoArgumentMatcher
-  #  - com.todo.openrewrite.java.easymock.RewriteEasyMockExpectationsIntoMockitoVerify
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
       artifactId: mockito-core
