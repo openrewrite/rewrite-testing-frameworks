@@ -129,7 +129,6 @@ recipeList:
       onlyIfUsing: org.junit.jupiter.params.ParameterizedTest
       acceptTransitive: true
       scope: test
-  - org.openrewrite.java.testing.mockito.Mockito1to4Migration
   - org.openrewrite.maven.UpgradePluginVersion:
       groupId: org.apache.maven.plugins
       artifactId: maven-surefire-plugin
