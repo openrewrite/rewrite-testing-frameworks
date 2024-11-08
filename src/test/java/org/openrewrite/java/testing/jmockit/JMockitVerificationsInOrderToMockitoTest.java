@@ -57,10 +57,10 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
 
                   void test() {
                       obj.wait(10L, 10);
-                      str.toString();
+                      str.notify();
                       new VerificationsInOrder() {{
                           obj.wait(anyLong, anyInt);
-                          str.toString();
+                          str.notify();
                       }};
                   }
               }
@@ -83,7 +83,7 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
 
                   void test() {
                       obj.wait(10L, 10);
-                      str.toString();
+                      str.notify();
                       InOrder inOrder = inOrder(obj, str);
                       inOrder.verify(obj).wait(anyLong(), anyInt());
                       inOrder.verify(str).toString();
