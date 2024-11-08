@@ -247,8 +247,10 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
                       }};
 
                       obj.wait();
+                      obj.notify();
                       new VerificationsInOrder() {{
                           obj.wait();
+                          obj.notify();
                       }};
                   }
               }
@@ -274,8 +276,10 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
                       inOrder.verify(obj).wait();
 
                       obj.wait();
+                      obj.notify();
                       InOrder inOrder1 = inOrder(obj);
                       inOrder1.verify(obj).wait();
+                      inOrder1.verify(obj).notify();
                   }
               }
               """
