@@ -19,6 +19,7 @@ recipeDependencies {
     parserClasspath("com.github.tomakehurst:wiremock-jre8:2.35.0")
     parserClasspath("org.mockito:mockito-all:1.10.19")
     parserClasspath("org.mockito:mockito-core:3.+")
+    parserClasspath("org.mockito:mockito-core:5.+")
     parserClasspath("org.jmockit:jmockit:1.49")
     parserClasspath("org.jmockit:jmockit:1.22") // last version with NonStrictExpectations
     parserClasspath("org.mockito:mockito-junit-jupiter:3.+")
@@ -35,6 +36,7 @@ dependencies {
     implementation("org.openrewrite:rewrite-java")
     implementation("org.openrewrite:rewrite-gradle")
     implementation("org.openrewrite:rewrite-maven")
+    implementation("org.openrewrite.recipe:rewrite-migrate-java:$rewriteVersion")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:$rewriteVersion")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:$rewriteVersion")
     runtimeOnly("org.openrewrite:rewrite-java-17")
