@@ -124,6 +124,9 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.easymock.Mock
       newFullyQualifiedTypeName: org.mockito.Mock
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.easymock.TestSubject
+      newFullyQualifiedTypeName: org.mockito.InjectMocks
   #  - com.todo.openrewrite.java.easymock.RefactorEasyMockIArgumentMatcherIntoMockitoArgumentMatcher
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito

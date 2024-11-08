@@ -42,6 +42,7 @@ public class EasyMockToMockitoTest implements RewriteTest {
           java("""
               import org.easymock.EasyMockRunner;
               import org.easymock.Mock;
+              import org.easymock.TestSubject;
               import org.junit.Before;
               import org.junit.Test;
               import org.junit.runner.RunWith;
@@ -61,6 +62,9 @@ public class EasyMockToMockitoTest implements RewriteTest {
                   @Mock
                   private Dependency dependency2;
 
+                  @TestSubject
+                  Service service2 = new Service();
+
                   @Before
                   public void setUp() {
                       dependency = createNiceMock(Dependency.class);
@@ -76,7 +80,9 @@ public class EasyMockToMockitoTest implements RewriteTest {
                   }
 
                   class Service {
-                      private final Dependency dependency;
+                      private Dependency dependency;
+
+                      Service() {}
 
                       Service(Dependency dependency) {
                           this.dependency = dependency;
@@ -96,6 +102,7 @@ public class EasyMockToMockitoTest implements RewriteTest {
               import org.junit.Before;
               import org.junit.Test;
               import org.junit.runner.RunWith;
+              import org.mockito.InjectMocks;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
 
@@ -113,6 +120,9 @@ public class EasyMockToMockitoTest implements RewriteTest {
                   @Mock
                   private Dependency dependency2;
 
+                  @InjectMocks
+                  Service service2;
+
                   @Before
                   public void setUp() {
                       dependency = mock(Dependency.class);
@@ -127,7 +137,9 @@ public class EasyMockToMockitoTest implements RewriteTest {
                   }
 
                   class Service {
-                      private final Dependency dependency;
+                      private Dependency dependency;
+
+                      Service() {}
 
                       Service(Dependency dependency) {
                           this.dependency = dependency;
