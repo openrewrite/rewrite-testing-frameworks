@@ -1,3 +1,18 @@
+/*
+ * Copyright 2024 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.openrewrite.java.testing.easymock;
 
 import org.junit.jupiter.api.Test;
@@ -15,7 +30,7 @@ public class EasyMockToMockitoTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.parser(
             JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "easymock-5.4.0", "mockito-core-3.12"))
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.2", "junit-jupiter-api-5.9", "easymock-5.4.0", "mockito-core-3.12"))
           .recipeFromResources("org.openrewrite.java.testing.easymock.EasyMockToMockito");
     }
 
@@ -25,13 +40,16 @@ public class EasyMockToMockitoTest implements RewriteTest {
         //language=java
         rewriteRun(
           java("""
-              import org.easymock.EasyMock;
               import org.easymock.EasyMockRunner;
               import org.junit.Before;
               import org.junit.Test;
               import org.junit.runner.RunWith;
 
               import static org.junit.Assert.assertEquals;
+              import static org.easymock.EasyMock.createNiceMock;
+              import static org.easymock.EasyMock.expect;
+              import static org.easymock.EasyMock.replay;
+              import static org.easymock.EasyMock.verify;
 
               @RunWith(EasyMockRunner.class)
               public class ExampleTest {
@@ -41,16 +59,16 @@ public class EasyMockToMockitoTest implements RewriteTest {
 
                   @Before
                   public void setUp() {
-                      dependency = EasyMock.createNiceMock(Dependency.class);
+                      dependency = createNiceMock(Dependency.class);
                       service = new Service(dependency);
                   }
 
                   @Test
                   public void testServiceMethod() {
-                      EasyMock.expect(dependency.performAction()).andReturn("Mocked Result");
-                      EasyMock.replay(dependency);
+                      expect(dependency.performAction()).andReturn("Mocked Result");
+                      replay(dependency);
                       assertEquals("Mocked Result", service.useDependency());
-                      EasyMock.verify(dependency);
+                      verify(dependency);
                   }
 
                   class Service {
@@ -74,8 +92,6 @@ public class EasyMockToMockitoTest implements RewriteTest {
               import org.junit.Before;
               import org.junit.Test;
               import org.junit.runner.RunWith;
-              import org.mockito.InjectMocks;
-              import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
 
               import static org.junit.Assert.assertEquals;
