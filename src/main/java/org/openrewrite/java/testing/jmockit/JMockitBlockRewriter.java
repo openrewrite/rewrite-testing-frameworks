@@ -36,8 +36,8 @@ class JMockitBlockRewriter {
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
     private static final String VERIFY_TEMPLATE_PREFIX = "verify(#{any()}";
     private static final String VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX = "verifyNoMoreInteractions(";
-    // private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX = "inOrder(";
-    private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX = "InOrder inOrder = inOrder(";
+    private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX_1 = "InOrder inOrder";
+    private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX_2 = " = inOrder(";
     private static final String LENIENT_TEMPLATE_PREFIX = "lenient().";
     private static final String RETURN_TEMPLATE_PREFIX = "thenReturn(";
     private static final String THROW_TEMPLATE_PREFIX = "thenThrow(";
@@ -54,7 +54,7 @@ class JMockitBlockRewriter {
     private final ExecutionContext ctx;
     private final J.NewClass newExpectations;
     private final JMockitBlockType blockType;
-    private final List<JMockitBlockType> blockTypes;
+    private final int verificationsInOrderIdx;
     // index of the Expectations block in the method body
     private final int bodyStatementIndex;
     private J.Block methodBody;
@@ -71,14 +71,14 @@ class JMockitBlockRewriter {
     private int numStatementsAdded = 0;
 
     JMockitBlockRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block methodBody,
-                         J.NewClass newExpectations, int bodyStatementIndex, JMockitBlockType blockType, List<JMockitBlockType> blockTypes) {
+                         J.NewClass newExpectations, int bodyStatementIndex, JMockitBlockType blockType, int verificationsInOrderIdx) {
         this.visitor = visitor;
         this.ctx = ctx;
         this.methodBody = methodBody;
         this.newExpectations = newExpectations;
         this.bodyStatementIndex = bodyStatementIndex;
         this.blockType = blockType;
-        this.blockTypes = blockTypes;
+        this.verificationsInOrderIdx = verificationsInOrderIdx;
         this.nextStatementCoordinates = newExpectations.getCoordinates().replace();
     }
 
@@ -260,7 +260,12 @@ class JMockitBlockRewriter {
     }
 
     private void rewriteInOrderVerify(List<Object> mocks) {
-        if (rewriteMultipleMocks(mocks, VERIFY_IN_ORDER_TEMPLATE_PREFIX)) { // InOrder inOrder = inOrder(mock1, mock2 ..)
+        StringBuilder sb = new StringBuilder(VERIFY_IN_ORDER_TEMPLATE_PREFIX_1); // InOrder inOrder
+        if (verificationsInOrderIdx > 0) {
+            sb.append(verificationsInOrderIdx); // InOrder inOrder1
+        }
+        sb.append(VERIFY_IN_ORDER_TEMPLATE_PREFIX_2); // InOrder inOrder1 = inOrder(
+        if (rewriteMultipleMocks(mocks, sb.toString())) { // InOrder inOrder = inOrder(mock1, mock2 ..)
             visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "inOrder", false);
             visitor.maybeAddImport(IN_ORDER_IMPORT_FQN);
         }
@@ -271,8 +276,8 @@ class JMockitBlockRewriter {
             return false;
         }
         StringBuilder sb = new StringBuilder(template);
-        mocks.forEach(mock -> sb.append(ANY_TEMPLATE_FIELD).append(","));
-        sb.deleteCharAt(sb.length() - 1);
+        mocks.forEach(mock -> sb.append(ANY_TEMPLATE_FIELD).append(", "));
+        sb.delete(sb.length() - 2, sb.length());
         sb.append(")");
         rewriteTemplate(sb.toString(), mocks, nextStatementCoordinates);
         if (!this.rewriteFailed) {

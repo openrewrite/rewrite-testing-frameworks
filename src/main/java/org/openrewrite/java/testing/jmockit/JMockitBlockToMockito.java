@@ -26,7 +26,6 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -69,23 +68,26 @@ public class JMockitBlockToMockito extends Recipe {
             SetupStatementsRewriter ssr = new SetupStatementsRewriter(this, md.getBody());
             J.Block methodBody = ssr.rewriteMethodBody();
             List<Statement> statements = methodBody.getStatements();
-            List<JMockitBlockType> blockTypes = new ArrayList<>();
 
+            int verificationsInOrderIdx = 0;
             int bodyStatementIndex = 0;
-            // iterate over each statement in the method body, find Expectations blocks and rewrite them
+            // iterate over each statement in the method body, find JMockit blocks and rewrite them
             while (bodyStatementIndex < statements.size()) {
                 Statement s = statements.get(bodyStatementIndex);
                 Optional<JMockitBlockType> blockTypeOpt = JMockitUtils.getJMockitBlock(s);
                 if (blockTypeOpt.isPresent()) {
                     JMockitBlockType blockType = blockTypeOpt.get();
-                    blockTypes.add(blockType);
                     JMockitBlockRewriter blockRewriter = new JMockitBlockRewriter(this, ctx, methodBody,
-                            ((J.NewClass) s), bodyStatementIndex, blockType, blockTypes);
+                            ((J.NewClass) s), bodyStatementIndex, blockType, verificationsInOrderIdx);
                     methodBody = blockRewriter.rewriteMethodBody();
                     statements = methodBody.getStatements();
-                    // if the expectations rewrite failed, skip the next statement
+                    // if the block rewrite failed, skip the next statement
                     if (blockRewriter.isRewriteFailed()) {
                         bodyStatementIndex++;
+                    } else {
+                        if (blockType == JMockitBlockType.VerificationsInOrder) {
+                            verificationsInOrderIdx++;
+                        }
                     }
                 } else {
                     bodyStatementIndex++;
