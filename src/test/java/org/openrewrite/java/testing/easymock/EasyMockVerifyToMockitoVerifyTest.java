@@ -39,7 +39,6 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
     void replaceEasyMockVerifyByMockitoVerify() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java("""
               import static org.easymock.EasyMock.*;
 
@@ -100,7 +99,6 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
     void simpleReplacement() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java("""
               import static org.easymock.EasyMock.*;
 
@@ -179,7 +177,6 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
     void replacementWithMultipleMethods() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java("""
               import static org.easymock.EasyMock.*;
 

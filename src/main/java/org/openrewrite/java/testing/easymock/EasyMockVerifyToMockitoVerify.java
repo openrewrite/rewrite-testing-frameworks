@@ -70,9 +70,11 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                                 expectedCalls.add((J.MethodInvocation) ((J.MethodInvocation) m.getSelect()).getArguments().get(0));
                             } else if (VERIFY_MATCHER.matches(m)) {
                                 for (int i = 0, expectedCallsSize = expectedCalls.size(); i < expectedCallsSize; i++) {
-                                    if (i != 0) idx++;
                                     J.MethodInvocation expectedMethod = expectedCalls.get(i);
                                     List<Expression> parameters = expectedMethod.getArguments();
+                                    if (parameters.size() == 1 && parameters.get(0) instanceof J.Empty) {
+                                        parameters = new ArrayList<>();
+                                    }
                                     String anyArgs = join(",", nCopies(parameters.size(), "#{any()}"));
                                     parameters.add(0, expectedMethod.getSelect());
                                     Statement currStatement = md.getBody().getStatements().get(idx);
@@ -83,6 +85,7 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                                             .staticImports("org.mockito.Mockito.verify")
                                             .build()
                                             .apply(updateCursor(md), coordinates, parameters.toArray());
+                                    if (i != 0) idx++;
                                 }
                                 expectedCalls.clear();
                             }
