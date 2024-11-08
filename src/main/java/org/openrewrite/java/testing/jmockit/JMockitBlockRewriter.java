@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.openrewrite.java.testing.jmockit.JMockitBlockType.*;
+import static org.openrewrite.java.testing.jmockit.JMockitUtils.MOCKITO_ALL_IMPORT;
+import static org.openrewrite.java.testing.jmockit.JMockitUtils.getJavaParser;
 
 class JMockitBlockRewriter {
 
@@ -308,8 +310,8 @@ class JMockitBlockRewriter {
             rewriteCoords) {
         int numStatementsBefore = methodBody.getStatements().size();
         methodBody = JavaTemplate.builder(template)
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                .staticImports("org.mockito.Mockito.*")
+                .javaParser(getJavaParser(ctx))
+                .staticImports(MOCKITO_ALL_IMPORT)
                 .imports(IN_ORDER_IMPORT_FQN)
                 .build()
                 .apply(new Cursor(visitor.getCursor(), methodBody), rewriteCoords, templateParams.toArray());

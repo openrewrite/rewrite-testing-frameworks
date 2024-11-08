@@ -22,7 +22,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
@@ -31,6 +30,8 @@ import org.openrewrite.java.tree.Statement;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.openrewrite.java.testing.jmockit.JMockitUtils.getJavaParser;
 
 @EqualsAndHashCode(callSuper = false)
 public class JMockitAnnotatedArgumentToMockito extends Recipe {
@@ -82,7 +83,7 @@ public class JMockitAnnotatedArgumentToMockito extends Recipe {
                             // Add mocked parameters as statements to the method declaration
                             if (!mockedParameter.isEmpty()) {
                                 JavaTemplate addStatementsTemplate = JavaTemplate.builder("#{} #{} = Mockito.mock(#{}.class);\n")
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                                        .javaParser(getJavaParser(ctx))
                                         .imports("org.mockito.Mockito")
                                         .contextSensitive()
                                         .build();

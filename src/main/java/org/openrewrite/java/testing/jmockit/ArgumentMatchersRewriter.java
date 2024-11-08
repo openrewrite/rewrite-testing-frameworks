@@ -166,7 +166,7 @@ class ArgumentMatchersRewriter {
             List<Object> templateParams) {
         visitor.maybeAddImport("org.mockito.Mockito", argumentMatcher);
         return JavaTemplate.builder(template)
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                .javaParser(JMockitUtils.getJavaParser(ctx))
                 .staticImports("org.mockito.Mockito." + argumentMatcher)
                 .build()
                 .apply(
@@ -232,7 +232,7 @@ class ArgumentMatchersRewriter {
     }
 
     private Expression applyArrayClassArgumentTemplate(Expression methodArgument, JavaType elementType) {
-        String newArrayElementClassName = "";
+        String newArrayElementClassName;
         if (elementType instanceof JavaType.FullyQualified) {
             newArrayElementClassName = ((JavaType.FullyQualified) elementType).getClassName();
         } else if (elementType instanceof JavaType.Primitive) {
