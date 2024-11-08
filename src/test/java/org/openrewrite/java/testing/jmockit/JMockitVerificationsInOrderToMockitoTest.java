@@ -68,6 +68,7 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.InOrder;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -84,7 +85,7 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
                   void test() {
                       obj.wait(10L, 10);
                       str.toString();
-                      inOrder(obj, str);
+                      InOrder inOrder = inOrder(obj, str);
                       inOrder.verify(obj).wait(anyLong(), anyInt());
                       inOrder.verify(str).toString();
                   }
@@ -125,6 +126,7 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.InOrder;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -139,7 +141,7 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
                       obj.wait(10L, 10);
                       obj.wait(10L, 10);
                       obj.wait();
-                      inOrder(obj);
+                      InOrder inOrder = inOrder(obj);
                       inOrder.verify(obj, times(2)).wait(anyLong(), anyInt());
                       inOrder.verify(obj).wait();
                   }

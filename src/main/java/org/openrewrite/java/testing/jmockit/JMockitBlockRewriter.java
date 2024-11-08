@@ -36,8 +36,8 @@ class JMockitBlockRewriter {
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
     private static final String VERIFY_TEMPLATE_PREFIX = "verify(#{any()}";
     private static final String VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX = "verifyNoMoreInteractions(";
-    private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX = "inOrder(";
-    //private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX = "InOrder inOrder = inOrder(";
+    // private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX = "inOrder(";
+    private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX = "InOrder inOrder = inOrder(";
     private static final String LENIENT_TEMPLATE_PREFIX = "lenient().";
     private static final String RETURN_TEMPLATE_PREFIX = "thenReturn(";
     private static final String THROW_TEMPLATE_PREFIX = "thenThrow(";
@@ -254,32 +254,31 @@ class JMockitBlockRewriter {
     }
 
     private void rewriteFullVerify(List<Object> mocks) {
-        if (!mocks.isEmpty()) {
-            StringBuilder sb = new StringBuilder(VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX);
-            mocks.forEach(mock -> sb.append(ANY_TEMPLATE_FIELD).append(",")); // verifyNoMoreInteractions(mock1, mock2 ...
-            sb.deleteCharAt(sb.length() - 1);
-            sb.append(")");
-            rewriteTemplate(sb.toString(), mocks, nextStatementCoordinates);
-            if (!this.rewriteFailed) {
-                setNextStatementCoordinates(++numStatementsAdded);
-                visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verifyNoMoreInteractions", false);
-            }
+        if (rewriteMultipleMocks(mocks, VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX)) { // verifyNoMoreInteractions(mock1, mock2 ...
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verifyNoMoreInteractions", false);
         }
     }
 
     private void rewriteInOrderVerify(List<Object> mocks) {
-        if (!mocks.isEmpty()) {
-            StringBuilder sb = new StringBuilder(VERIFY_IN_ORDER_TEMPLATE_PREFIX);
-            mocks.forEach(mock -> sb.append(ANY_TEMPLATE_FIELD).append(", ")); // InOrder inOrder = inOrder(mock1, mock2 ...
-            sb.delete(sb.length() - 2, sb.length());
-            sb.append(");");
-            rewriteTemplate(sb.toString(), mocks, nextStatementCoordinates);
-            if (!this.rewriteFailed) {
-                setNextStatementCoordinates(++numStatementsAdded);
-                visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "inOrder", false);
-                visitor.maybeAddImport(IN_ORDER_IMPORT_FQN);
-            }
+        if (rewriteMultipleMocks(mocks, VERIFY_IN_ORDER_TEMPLATE_PREFIX)) { // InOrder inOrder = inOrder(mock1, mock2 ..)
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "inOrder", false);
+            visitor.maybeAddImport(IN_ORDER_IMPORT_FQN);
         }
+    }
+
+    private boolean rewriteMultipleMocks(List<Object> mocks, String template) {
+        if (mocks.isEmpty()) {
+            return false;
+        }
+        StringBuilder sb = new StringBuilder(template);
+        mocks.forEach(mock -> sb.append(ANY_TEMPLATE_FIELD).append(","));
+        sb.deleteCharAt(sb.length() - 1);
+        sb.append(")");
+        rewriteTemplate(sb.toString(), mocks, nextStatementCoordinates);
+        if (!this.rewriteFailed) {
+            setNextStatementCoordinates(++numStatementsAdded);
+        }
+        return !this.rewriteFailed;
     }
 
     private void setNextStatementCoordinates(int numStatementsAdded) {
@@ -351,7 +350,8 @@ class JMockitBlockRewriter {
         return templateBuilder.toString();
     }
 
-    private static void appendToTemplate(StringBuilder templateBuilder, boolean buildingResults, String templatePrefix,
+    private static void appendToTemplate(StringBuilder templateBuilder, boolean buildingResults, String
+            templatePrefix,
                                          String templateField) {
         if (!buildingResults) {
             templateBuilder.append(templatePrefix);
@@ -361,7 +361,8 @@ class JMockitBlockRewriter {
         templateBuilder.append(templateField);
     }
 
-    private String getVerifyTemplate(List<Expression> arguments, String verificationMode, List<Object> templateParams) {
+    private String getVerifyTemplate(List<Expression> arguments, String
+            verificationMode, List<Object> templateParams) {
         StringBuilder templateBuilder = new StringBuilder();
         if (isVerificationsInOrder()) {
             templateBuilder.append("inOrder.");
@@ -397,7 +398,8 @@ class JMockitBlockRewriter {
         return templateBuilder.toString();
     }
 
-    private static @Nullable MockInvocationResults buildMockInvocationResults(List<Statement> expectationStatements) {
+    private static @Nullable MockInvocationResults buildMockInvocationResults
+            (List<Statement> expectationStatements) {
         final MockInvocationResults resultWrapper = new MockInvocationResults();
         for (int i = 1; i < expectationStatements.size(); i++) {
             Statement expectationStatement = expectationStatements.get(i);
