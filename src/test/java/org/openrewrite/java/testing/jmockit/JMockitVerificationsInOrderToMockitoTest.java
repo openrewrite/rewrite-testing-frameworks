@@ -86,7 +86,7 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
                       str.notify();
                       InOrder inOrder = inOrder(obj, str);
                       inOrder.verify(obj).wait(anyLong(), anyInt());
-                      inOrder.verify(str).toString();
+                      inOrder.verify(str).notify();
                   }
               }
               """
