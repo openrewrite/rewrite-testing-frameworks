@@ -54,7 +54,7 @@ class RemoveExtendsEasyMockSupportTest implements RewriteTest {
     }
 
     @Test
-    public void shouldRemoveForInnerClassesEasyMockSupportParentClass() {
+    void shouldRemoveForInnerClassesEasyMockSupportParentClass() {
         rewriteRun(
           //language=java
           java(
@@ -78,7 +78,7 @@ class RemoveExtendsEasyMockSupportTest implements RewriteTest {
     }
 
     @Test
-    public void shouldLeaveClassesWithoutEasyMockSupportAlone() {
+    void shouldLeaveClassesWithoutEasyMockSupportAlone() {
         rewriteRun(
           //language=java
           java(
@@ -91,7 +91,7 @@ class RemoveExtendsEasyMockSupportTest implements RewriteTest {
     }
 
     @Test
-    public void shouldLeaveClassesWithDifferentExtendsAlone() {
+    void shouldLeaveClassesWithDifferentExtendsAlone() {
         rewriteRun(
           //language=java
           java(

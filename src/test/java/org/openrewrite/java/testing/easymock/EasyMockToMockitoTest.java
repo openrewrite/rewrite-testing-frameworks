@@ -24,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-public class EasyMockToMockitoTest implements RewriteTest {
+class EasyMockToMockitoTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
@@ -39,7 +39,8 @@ public class EasyMockToMockitoTest implements RewriteTest {
     void replaceEasyMockByMockito() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
               import org.easymock.EasyMockRunner;
               import org.easymock.Mock;
               import org.easymock.TestSubject;

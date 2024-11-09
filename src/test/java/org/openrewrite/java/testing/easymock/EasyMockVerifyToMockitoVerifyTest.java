@@ -38,7 +38,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
     void replaceEasyMockVerifyByMockitoVerify() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
               import static org.easymock.EasyMock.*;
 
               public class ExampleTest {
@@ -98,7 +99,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
     void simpleReplacement() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
               import static org.easymock.EasyMock.*;
 
               public class ExampleTest {
@@ -137,7 +139,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
     void simpleReplacementWithArguments() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
               import static org.easymock.EasyMock.*;
 
               public class ExampleTest {
@@ -176,7 +179,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
     void replacementWithMultipleMethods() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+                """
               import static org.easymock.EasyMock.*;
 
               public class ExampleTest {

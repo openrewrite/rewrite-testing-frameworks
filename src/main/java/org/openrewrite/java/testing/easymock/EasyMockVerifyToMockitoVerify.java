@@ -24,9 +24,12 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.*;
-
-import java.util.ArrayList;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaCoordinates;
+import org.openrewrite.java.tree.Statement;
+import static java.lang.String.join;
+import static java.util.Collections.nCopies;
 import java.util.List;
 
 import static java.lang.String.*;
@@ -85,7 +88,9 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                                             .staticImports("org.mockito.Mockito.verify")
                                             .build()
                                             .apply(updateCursor(md), coordinates, parameters.toArray());
-                                    if (i != 0) idx++;
+                                    if (i != 0) {
+                                        idx++;
+                                    }
                                 }
                                 expectedCalls.clear();
                             }
