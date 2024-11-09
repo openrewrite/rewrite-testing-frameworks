@@ -47,12 +47,13 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
                       Dependency dependency = createNiceMock(Dependency.class);
                       expect(dependency.action("", 2)).andReturn("result");
                       expect(dependency.action2());
-                      verify(dependency);
 
                       Dependency dependency2 = createNiceMock(Dependency.class);
                       expect(dependency2.action("A", 1)).andReturn("result");
                       expect(dependency2.action2()).andReturn("result");
                       expect(dependency2.action3(3.3)).andReturn("result");
+
+                      verify(dependency);
                       verify(dependency2);
                   }
 
@@ -73,13 +74,14 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
                       Dependency dependency = createNiceMock(Dependency.class);
                       expect(dependency.action("", 2)).andReturn("result");
                       expect(dependency.action2());
-                      verify(dependency).action("", 2);
-                      verify(dependency).action2();
 
                       Dependency dependency2 = createNiceMock(Dependency.class);
                       expect(dependency2.action("A", 1)).andReturn("result");
                       expect(dependency2.action2()).andReturn("result");
                       expect(dependency2.action3(3.3)).andReturn("result");
+
+                      verify(dependency).action("", 2);
+                      verify(dependency).action2();
                       verify(dependency2).action("A", 1);
                       verify(dependency2).action2();
                       verify(dependency2).action3(3.3);

@@ -30,10 +30,9 @@ import org.openrewrite.java.tree.JavaCoordinates;
 import org.openrewrite.java.tree.Statement;
 import static java.lang.String.join;
 import static java.util.Collections.nCopies;
-import java.util.List;
 
-import static java.lang.String.*;
-import static java.util.Collections.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class EasyMockVerifyToMockitoVerify extends Recipe {
 
