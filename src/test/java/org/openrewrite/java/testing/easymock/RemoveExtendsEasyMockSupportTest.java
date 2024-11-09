@@ -35,7 +35,7 @@ class RemoveExtendsEasyMockSupportTest implements RewriteTest {
 
     @Test
     @DocumentExample
-    public void shouldRemoveEasyMockSupportParentClass() {
+    void shouldRemoveEasyMockSupportParentClass() {
         rewriteRun(
           //language=java
           java(

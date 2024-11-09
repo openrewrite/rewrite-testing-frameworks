@@ -159,5 +159,3 @@ class EasyMockToMockitoTest implements RewriteTest {
         );
     }
 }
-
-
