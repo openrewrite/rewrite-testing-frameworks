@@ -40,7 +40,7 @@ class EasyMockToMockitoTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-                """
+              """
               import org.easymock.EasyMockRunner;
               import org.easymock.Mock;
               import org.easymock.TestSubject;
@@ -153,6 +153,76 @@ class EasyMockToMockitoTest implements RewriteTest {
 
                   interface Dependency {
                       String performAction();
+                  }
+              }
+              """)
+        );
+    }
+
+    @Test
+    void testMatchers() {
+        // From: https://www.baeldung.com/easymock-argument-matchers
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.ArrayList;
+              import java.util.List;
+
+              class User {
+                  private long id;
+                  private String firstName;
+                  private String lastName;
+                  private double age;
+                  private String email;
+              }
+
+              // The `Object ignore` makes it possible to ignore the removal-matcher-optimization code
+              class UserService {
+                  boolean addUser(User user, Object ignore) { return true; }
+                  List<User> findByEmail(String email, Object ignore) { return new ArrayList<>(); }
+                  List<User> findByAge(double age, Object ignore) { return new ArrayList<>(); }
+              }"""
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import static org.easymock.EasyMock.*;
+
+              public class ExampleTest {
+                  @Test
+                  public void testServiceMethod() {
+                      User user = new User();
+                      UserService service = createNiceMock(UserService.class);
+
+                      expect(service.addUser(eq(new User()), anyObject()));
+                      expect(service.addUser(isNull(), anyObject()));
+                      expect(service.addUser(same(user), anyObject()));
+                      expect(service.findByEmail(anyString(), anyObject()));
+                      expect(service.findByAge(lt(100.0), anyObject()));
+                      expect(service.findByAge(and(gt(10.0),leq(100.0)), anyObject()));
+                      expect(service.findByEmail(not(endsWith(".com")), anyObject()));
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import static org.mockito.Mockito.*;
+              import static org.mockito.AdditionalMatchers.*;
+
+              public class ExampleTest {
+                  @Test
+                  public void testServiceMethod() {
+                      User user = new User();
+                      UserService service = mock(UserService.class);
+
+                      when(service.addUser(eq(new User()), any()));
+                      when(service.addUser(isNull(), any()));
+                      when(service.addUser(same(user), any()));
+                      when(service.findByEmail(anyString(), any()));
+                      when(service.findByAge(lt(100.0), any()));
+                      when(service.findByAge(and(gt(10.0),leq(100.0)), any()));
+                      when(service.findByEmail(not(endsWith(".com")), any()));
                   }
               }
               """)
