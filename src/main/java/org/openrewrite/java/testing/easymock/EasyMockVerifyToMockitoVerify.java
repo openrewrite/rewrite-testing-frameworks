@@ -28,6 +28,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaCoordinates;
 import org.openrewrite.java.tree.Statement;
+
 import static java.lang.String.join;
 import static java.util.Collections.nCopies;
 
@@ -59,18 +60,17 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                 maybeAddImport("org.mockito.Mockito", "verify");
                 maybeRemoveImport("org.easymock.EasyMock.verify");
 
-                List<J.MethodInvocation> expectedCalls = new ArrayList<>();
                 if (md.getBody() != null) {
                     List<Statement> statements = md.getBody().getStatements();
                     int idx = 0;
                     for (Statement statement : statements) {
                         if (statement instanceof J.MethodInvocation) {
                             J.MethodInvocation m = (J.MethodInvocation) statement;
-                            if (isExpectInvocation(m)) {
-                                expectedCalls.add((J.MethodInvocation) m.getArguments().get(0));
-                            } else if (isExpectAndReturnInvocation(m)) {
-                                expectedCalls.add((J.MethodInvocation) ((J.MethodInvocation) m.getSelect()).getArguments().get(0));
-                            } else if (VERIFY_MATCHER.matches(m)) {
+                            if (VERIFY_MATCHER.matches(m) && m.getArguments().size() == 1 && m.getArguments().get(0) instanceof J.Identifier) {
+                                J.Identifier dependency =  (J.Identifier) m.getArguments().get(0);
+                                List<Statement> statementsAboveVerify = md.getBody().getStatements().subList(0, idx);
+                                List<J.MethodInvocation> expectedCalls = getExpectedCalls(dependency, statementsAboveVerify);
+
                                 for (int i = 0, expectedCallsSize = expectedCalls.size(); i < expectedCallsSize; i++) {
                                     J.MethodInvocation expectedMethod = expectedCalls.get(i);
                                     List<Expression> parameters = expectedMethod.getArguments();
@@ -78,7 +78,7 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                                         parameters = new ArrayList<>();
                                     }
                                     String anyArgs = join(",", nCopies(parameters.size(), "#{any()}"));
-                                    parameters.add(0, expectedMethod.getSelect());
+                                    parameters.add(0, dependency);
                                     Statement currStatement = md.getBody().getStatements().get(idx);
                                     JavaCoordinates coordinates = i == 0 ? currStatement.getCoordinates().replace() : currStatement.getCoordinates().after();
                                     md = JavaTemplate.builder("verify(#{any()})." + expectedMethod.getSimpleName() + "(" + anyArgs + ")")
@@ -91,7 +91,6 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                                         idx++;
                                     }
                                 }
-                                expectedCalls.clear();
                             }
                         }
                         idx++;
@@ -101,18 +100,35 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                 return super.visitMethodDeclaration(md, ctx);
             }
 
+            private List<J.MethodInvocation> getExpectedCalls(J.Identifier dependency, List<Statement> statementsAboveVerify) {
+                List<J.MethodInvocation> expectedCalls = new ArrayList<>();
+                for (Statement statement : statementsAboveVerify) {
+                    if (statement instanceof J.MethodInvocation) {
+                        J.MethodInvocation mi = (J.MethodInvocation) statement;
+                        if (isExpectInvocation(mi, dependency)) {
+                            expectedCalls.add((J.MethodInvocation) mi.getArguments().get(0));
+                        } else if (isExpectAndReturnInvocation(mi, dependency)) {
+                            expectedCalls.add((J.MethodInvocation) ((J.MethodInvocation) mi.getSelect()).getArguments().get(0));
+                        }
+                    }
+                }
+                return expectedCalls;
+            }
+
             // match: expect(<dep>.someMethod());
-            private boolean isExpectInvocation(J.MethodInvocation mi) {
+            private boolean isExpectInvocation(J.MethodInvocation mi, J.Identifier dependency) {
                 return EASY_MATCHER.matches(mi) &&
                         mi.getArguments().size() == 1 &&
-                        mi.getArguments().get(0) instanceof J.MethodInvocation;
+                        mi.getArguments().get(0) instanceof J.MethodInvocation &&
+                        ((J.MethodInvocation) mi.getArguments().get(0)).getSelect() instanceof J.Identifier &&
+                        dependency.getSimpleName().equals(((J.Identifier) ((J.MethodInvocation) mi.getArguments().get(0)).getSelect()).getSimpleName());
             }
 
             // match: expect(<dep>.someMethod()).andReturn();
-            private boolean isExpectAndReturnInvocation(J.MethodInvocation m) {
+            private boolean isExpectAndReturnInvocation(J.MethodInvocation m, J.Identifier dependency) {
                 return EASY_MATCHER.matches(m.getSelect()) &&
                         m.getSelect() instanceof J.MethodInvocation &&
-                        isExpectInvocation((J.MethodInvocation) m.getSelect());
+                        isExpectInvocation((J.MethodInvocation) m.getSelect(), dependency);
             }
         });
     }
