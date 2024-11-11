@@ -14,7 +14,7 @@ class NoInitializationForInjectMockTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "mockito-junit-jupiter-3.12", "mockito-core-3.12"))
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12"))
           .recipe(new NoInitializationForInjectMock());
     }
 
@@ -36,22 +36,16 @@ class NoInitializationForInjectMockTest implements RewriteTest {
           ),
           java(
             """
-              import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.InjectMocks;
-              import org.mockito.junit.jupiter.MockitoExtension;
 
-              @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @InjectMocks
                   MyObject myObject = new MyObject("someField");
               }
               """,
               """
-              import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.InjectMocks;
-              import org.mockito.junit.jupiter.MockitoExtension;
 
-              @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @InjectMocks
                   MyObject myObject;
