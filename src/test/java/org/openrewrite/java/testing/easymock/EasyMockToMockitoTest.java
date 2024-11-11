@@ -160,7 +160,7 @@ class EasyMockToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void testMatchers() {
+    void matchers() {
         // From: https://www.baeldung.com/easymock-argument-matchers
         //language=java
         rewriteRun(
