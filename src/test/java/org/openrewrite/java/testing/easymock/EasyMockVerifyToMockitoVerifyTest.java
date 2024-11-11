@@ -46,15 +46,19 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
                   public void testServiceMethod() {
                       Dependency dependency = createNiceMock(Dependency.class);
                       expect(dependency.action("", 2)).andReturn("result");
-                      expect(dependency.action2());
 
                       Dependency dependency2 = createNiceMock(Dependency.class);
-                      expect(dependency2.action("A", 1)).andReturn("result");
-                      expect(dependency2.action2()).andReturn("result");
-                      expect(dependency2.action3(3.3)).andReturn("result");
+                      expect(dependency2.action("", 2)).andReturn("result");
+                      expect(dependency2.action2());
+
+                      Dependency dependency3 = createNiceMock(Dependency.class);
+                      expect(dependency3.action("A", 1)).andReturn("result");
+                      expect(dependency3.action2()).andReturn("result");
+                      expect(dependency3.action3(3.3)).andReturn("result");
 
                       verify(dependency);
                       verify(dependency2);
+                      verify(dependency3);
                   }
 
                   interface Dependency {
@@ -73,18 +77,22 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
                   public void testServiceMethod() {
                       Dependency dependency = createNiceMock(Dependency.class);
                       expect(dependency.action("", 2)).andReturn("result");
-                      expect(dependency.action2());
 
                       Dependency dependency2 = createNiceMock(Dependency.class);
-                      expect(dependency2.action("A", 1)).andReturn("result");
-                      expect(dependency2.action2()).andReturn("result");
-                      expect(dependency2.action3(3.3)).andReturn("result");
+                      expect(dependency2.action("", 2)).andReturn("result");
+                      expect(dependency2.action2());
+
+                      Dependency dependency3 = createNiceMock(Dependency.class);
+                      expect(dependency3.action("A", 1)).andReturn("result");
+                      expect(dependency3.action2()).andReturn("result");
+                      expect(dependency3.action3(3.3)).andReturn("result");
 
                       verify(dependency).action("", 2);
-                      verify(dependency).action2();
-                      verify(dependency2).action("A", 1);
+                      verify(dependency2).action("", 2);
                       verify(dependency2).action2();
-                      verify(dependency2).action3(3.3);
+                      verify(dependency3).action("A", 1);
+                      verify(dependency3).action2();
+                      verify(dependency3).action3(3.3);
                   }
 
                   interface Dependency {
