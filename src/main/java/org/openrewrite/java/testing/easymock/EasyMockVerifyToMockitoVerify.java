@@ -61,9 +61,8 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                 maybeRemoveImport("org.easymock.EasyMock.verify");
 
                 if (md.getBody() != null) {
-                    List<Statement> statements = md.getBody().getStatements();
                     int idx = 0;
-                    for (Statement statement : statements) {
+                    for (Statement statement : md.getBody().getStatements()) {
                         if (statement instanceof J.MethodInvocation) {
                             J.MethodInvocation m = (J.MethodInvocation) statement;
                             if (VERIFY_MATCHER.matches(m) && m.getArguments().size() == 1 && m.getArguments().get(0) instanceof J.Identifier) {
@@ -75,7 +74,7 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                                     J.MethodInvocation expectedMethod = expectedCalls.get(i);
                                     List<Expression> parameters = expectedMethod.getArguments();
                                     if (parameters.size() == 1 && parameters.get(0) instanceof J.Empty) {
-                                        parameters = new ArrayList<>();
+                                        parameters.clear();
                                     }
                                     String anyArgs = join(",", nCopies(parameters.size(), "#{any()}"));
                                     parameters.add(0, dependency);
