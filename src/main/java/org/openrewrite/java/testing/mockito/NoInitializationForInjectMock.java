@@ -15,17 +15,15 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.J;
 
-import java.util.stream.Collectors;
+import java.util.Iterator;
 
 public class NoInitializationForInjectMock extends Recipe {
 
@@ -48,11 +46,26 @@ public class NoInitializationForInjectMock extends Recipe {
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations variableDeclarations, ExecutionContext ctx) {
                 J.VariableDeclarations vd = super.visitVariableDeclarations(variableDeclarations, ctx);
 
-                if (new AnnotationService().matches(getCursor(), INJECT_MOCKS)) {
-                    return vd.withVariables(vd.getVariables().stream().map(var -> var.withInitializer(null)).collect(Collectors.toList()));
+                if (isField(getCursor()) && new AnnotationService().matches(getCursor(), INJECT_MOCKS)) {
+                    return vd.withVariables(ListUtils.map(vd.getVariables(), it -> it.withInitializer(null)));
                 }
 
                 return vd;
+            }
+
+            // copied from org.openrewrite.java.search.FindFieldsOfType.isField(Cursor), should probably become part of the API
+            private boolean isField(Cursor cursor) {
+                Iterator<Object> path = cursor.getPath();
+                while (path.hasNext()) {
+                    Object o = path.next();
+                    if (o instanceof J.MethodDeclaration) {
+                        return false;
+                    }
+                    if (o instanceof J.ClassDeclaration) {
+                        return true;
+                    }
+                }
+                return true;
             }
         });
     }
