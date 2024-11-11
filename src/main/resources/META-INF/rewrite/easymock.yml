@@ -128,6 +128,7 @@ recipeList:
       oldFullyQualifiedTypeName: org.easymock.TestSubject
       newFullyQualifiedTypeName: org.mockito.InjectMocks
   #  - com.todo.openrewrite.java.easymock.RefactorEasyMockIArgumentMatcherIntoMockitoArgumentMatcher
+  - org.openrewrite.java.testing.mockito.MockitoBestPractices
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
       artifactId: mockito-core
