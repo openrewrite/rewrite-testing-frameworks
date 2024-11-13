@@ -129,11 +129,6 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                         maybeAddImport("org.mockito.junit.jupiter.MockitoSettings", false);
                         maybeAddImport("org.mockito.quality.Strictness", false);
                     }
-
-                    // Workaround first modifier incorrectly getting a trailing space as part of the prefix
-                    cd = cd.withModifiers(ListUtils.mapFirst(cd.getModifiers(),
-                            modifier -> modifier.withPrefix(modifier.getPrefix().withWhitespace(
-                                    modifier.getPrefix().getLastWhitespace().replaceAll(" $", "")))));
                 }
             }
 
