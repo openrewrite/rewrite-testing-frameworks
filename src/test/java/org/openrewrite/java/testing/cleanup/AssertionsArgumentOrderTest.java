@@ -73,7 +73,7 @@ class AssertionsArgumentOrderTest implements RewriteTest {
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/636")
-    void junit4AssertEqualsHavingPrimitiveArg() {
+    void junit4AssertEqualsHavingStringArg() {
         rewriteRun(
           //language=java
           java(
@@ -83,8 +83,9 @@ class AssertionsArgumentOrderTest implements RewriteTest {
               class MyTest {
                   void someMethod() {
                       assertEquals(result(), "result");
-                      assertEquals(result(), "result", "message");
-                      assertEquals(0L, 1L);
+                      assertEquals("result", result());
+                      assertEquals("message", result(), "result");
+                      assertEquals("message", "result", result());
                   }
                   String result() {
                       return "result";
@@ -97,8 +98,9 @@ class AssertionsArgumentOrderTest implements RewriteTest {
               class MyTest {
                   void someMethod() {
                       assertEquals("result", result());
-                      assertEquals("result", result(), "message");
-                      assertEquals(0L, 1L);
+                      assertEquals("result", result());
+                      assertEquals("message", "result", result());
+                      assertEquals("message", "result", result());
                   }
                   String result() {
                       return "result";
@@ -109,9 +111,53 @@ class AssertionsArgumentOrderTest implements RewriteTest {
         );
     }
 
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/636")
+    void junit4AssertEqualsHavingPrimitiveArg() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.junit.Assert.assertEquals;
+
+              class MyTest {
+                  void someMethod() {
+                      assertEquals(0L, 1L);
+                      assertEquals(1L, 0L);
+                      assertEquals(longResult(), 0L);
+                      assertEquals(0L, longResult());
+                      assertEquals("message", 0L, longResult());
+                      assertEquals("message", longResult(), 0L);
+                  }
+                  long longResult() {
+                      return 0L;
+                  }
+              }
+              """,
+            """
+              import static org.junit.Assert.assertEquals;
+
+              class MyTest {
+                  void someMethod() {
+                      assertEquals(0L, 1L);
+                      assertEquals(1L, 0L);
+                      assertEquals(0L, longResult());
+                      assertEquals(0L, longResult());
+                      assertEquals("message", 0L, longResult());
+                      assertEquals("message", 0L, longResult());
+                  }
+                  long longResult() {
+                      return 0L;
+                  }
+              }
+              """
+          )
+        );
+    }
+
 
     @Test
-    void junitAssertNullAndAssertNotNull() {
+    void jupiterAssertNullAndAssertNotNull() {
         rewriteRun(
           //language=java
           java(
@@ -141,6 +187,48 @@ class AssertionsArgumentOrderTest implements RewriteTest {
                       assertNull(result(), "message");
                       assertNotNull(result(), "message");
                       assertNotNull(result(), "message");
+                  }
+                  String result() {
+                      return "result";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/636")
+    void junitAssertNullAndAssertNotNull() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.junit.Assert.assertNotNull;
+              import static org.junit.Assert.assertNull;
+
+              class MyTest {
+                  void someMethod() {
+                      assertNull(result(), "message");
+                      assertNull("message", result());
+                      assertNotNull(result(), "message");
+                      assertNotNull("message", result());
+                  }
+                  String result() {
+                      return "result";
+                  }
+              }
+              """,
+            """
+              import static org.junit.Assert.assertNotNull;
+              import static org.junit.Assert.assertNull;
+
+              class MyTest {
+                  void someMethod() {
+                      assertNull("message", result());
+                      assertNull("message", result());
+                      assertNotNull("message", result());
+                      assertNotNull("message", result());
                   }
                   String result() {
                       return "result";
@@ -283,6 +371,46 @@ class AssertionsArgumentOrderTest implements RewriteTest {
                   void someMethod() {
                       assertArrayEquals(new String[]{""}, result());
                       assertArrayEquals(new String[]{""}, result(), "message");
+                  }
+                  String[] result() {
+                      return null;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/636")
+    void junitAssertArrayEquals() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.junit.Assert.assertArrayEquals;
+
+              class MyTest {
+                  void someMethod() {
+                      assertArrayEquals(result(), new String[]{""});
+                      assertArrayEquals(new String[]{""}, result());
+                      assertArrayEquals("message", new String[]{""}, result());
+                      assertArrayEquals("message", result(), new String[]{""});
+                  }
+                  String[] result() {
+                      return null;
+                  }
+              }
+              """,
+            """
+              import static org.junit.Assert.assertArrayEquals;
+
+              class MyTest {
+                  void someMethod() {
+                      assertArrayEquals(new String[]{""}, result());
+                      assertArrayEquals(new String[]{""}, result());
+                      assertArrayEquals("message", new String[]{""}, result());
+                      assertArrayEquals("message", new String[]{""}, result());
                   }
                   String[] result() {
                       return null;
