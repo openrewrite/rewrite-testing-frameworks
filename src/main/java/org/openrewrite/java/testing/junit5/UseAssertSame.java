@@ -41,16 +41,16 @@ public class UseAssertSame extends Recipe {
                "or assertFalse with a boolean comparison.";
     }
 
+    private static final MethodMatcher ASSERT_TRUE_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(..)");
+    private static final MethodMatcher ASSERT_FALSE_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertFalse(..)");
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        MethodMatcher assertTrueMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(..)");
-        MethodMatcher assertFalseMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertFalse(..)");
-        TreeVisitor<?, ExecutionContext> orMatcher = Preconditions.or(new UsesMethod<>(assertTrueMatcher), new UsesMethod<>(assertFalseMatcher));
-        return Preconditions.check(orMatcher, new JavaIsoVisitor<ExecutionContext>() {
+        JavaIsoVisitor<ExecutionContext> visitor = new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
-                if (!assertTrueMatcher.matches(mi) && !assertFalseMatcher.matches(mi)) {
+                if (!ASSERT_TRUE_MATCHER.matches(mi) && !ASSERT_FALSE_MATCHER.matches(mi)) {
                     return mi;
                 }
 
@@ -62,13 +62,13 @@ public class UseAssertSame extends Recipe {
                 if (binary.getOperator() != J.Binary.Type.Equal && binary.getOperator() != J.Binary.Type.NotEqual) {
                     return mi;
                 }
-                boolean positive = binary.getOperator() == J.Binary.Type.Equal == assertTrueMatcher.matches(mi);
                 List<Expression> newArguments = new ArrayList<>();
                 newArguments.add(binary.getLeft());
                 newArguments.add(binary.getRight());
                 newArguments.addAll(mi.getArguments().subList(1, mi.getArguments().size()));
 
-                String newMethodName = positive ? "assertSame" : "assertNotSame";
+                String newMethodName = binary.getOperator() == J.Binary.Type.Equal == ASSERT_TRUE_MATCHER.matches(mi) ?
+                        "assertSame" : "assertNotSame";
 
                 maybeRemoveImport("org.junit.jupiter.api.Assertions");
                 maybeAddImport("org.junit.jupiter.api.Assertions", newMethodName);
@@ -78,7 +78,12 @@ public class UseAssertSame extends Recipe {
                         .withMethodType(newType)
                         .withArguments(newArguments);
             }
-        });
+        };
+        return Preconditions.check(
+                Preconditions.or(
+                        new UsesMethod<>(ASSERT_TRUE_MATCHER),
+                        new UsesMethod<>(ASSERT_FALSE_MATCHER)),
+                visitor);
     }
 
 }
