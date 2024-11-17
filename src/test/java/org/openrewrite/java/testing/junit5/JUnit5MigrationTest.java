@@ -55,7 +55,7 @@ class JUnit5MigrationTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-              
+
               public class Sample {
                   void method() {
                       Class<Test> c = Test.class;
@@ -64,7 +64,7 @@ class JUnit5MigrationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               public class Sample {
                   void method() {
                       Class<Test> c = Test.class;
@@ -85,10 +85,10 @@ class JUnit5MigrationTest implements RewriteTest {
             """
               import org.junit.Assert;
               import org.junit.Test;
-              
+
               import static java.util.Arrays.asList;
               import static org.hamcrest.Matchers.containsInAnyOrder;
-              
+
               public class SampleTest {
                   @SuppressWarnings("ALL")
                   @Test
@@ -100,11 +100,11 @@ class JUnit5MigrationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static java.util.Arrays.asList;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.containsInAnyOrder;
-              
+
               public class SampleTest {
                   @SuppressWarnings("ALL")
                   @Test
@@ -179,6 +179,30 @@ class JUnit5MigrationTest implements RewriteTest {
     }
 
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
+    void dontExcludeJunit4DependencyfromTestcontainersJupiter() {
+        //language=xml
+        String before = """
+          <project>
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>com.example.jackson</groupId>
+              <artifactId>test-plugins</artifactId>
+              <version>1.0.0</version>
+              <dependencies>
+                  <dependency>
+                      <groupId>org.testcontainers</groupId>
+                      <artifactId>junit-jupiter</artifactId>
+                      <version>1.18.3</version>
+                      <scope>test</scope>
+                  </dependency>
+              </dependencies>
+          </project>
+          """;
+        // Output identical, but we want to make sure we don't exclude junit4 from testcontainers
+        rewriteRun(pomXml(before, before));
+    }
+
+    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/477")
     void dontExcludeJunit4DependencyfromSpringBootTestcontainers() {
         //language=xml
@@ -231,7 +255,7 @@ class JUnit5MigrationTest implements RewriteTest {
           java(
             """
               import org.junit.Assert;
-              
+
               class MyTest {
                   void test() {
                        Assert.assertEquals(new Object[1], new Object[1]);
@@ -240,7 +264,7 @@ class JUnit5MigrationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               class MyTest {
                   void test() {
                        Assertions.assertArrayEquals(new Object[1], new Object[1]);
@@ -261,16 +285,16 @@ class JUnit5MigrationTest implements RewriteTest {
               import org.junit.After;
               import org.junit.Before;
               import org.junit.Test;
-              
+
               public class AbstractTest {
                   @Before
                   public void before() {
                   }
-              
+
                   @After
                   public void after() {
                   }
-              
+
                   @Test
                   public void test() {
                   }
@@ -280,16 +304,16 @@ class JUnit5MigrationTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-              
+
               public class AbstractTest {
                   @BeforeEach
                   public void before() {
                   }
-              
+
                   @AfterEach
                   public void after() {
                   }
-              
+
                   @Test
                   public void test() {
                   }
@@ -301,10 +325,10 @@ class JUnit5MigrationTest implements RewriteTest {
               public class A extends AbstractTest {
                   public void before() {
                   }
-              
+
                   public void after() {
                   }
-              
+
                   public void test() {
                   }
               }
@@ -313,16 +337,16 @@ class JUnit5MigrationTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-              
+
               public class A extends AbstractTest {
                   @BeforeEach
                   public void before() {
                   }
-              
+
                   @AfterEach
                   public void after() {
                   }
-              
+
                   @Test
                   public void test() {
                   }

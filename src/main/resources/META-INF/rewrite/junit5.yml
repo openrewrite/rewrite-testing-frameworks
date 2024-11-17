@@ -109,6 +109,12 @@ recipeList:
       artifactId: testcontainers
       exclusionGroupId: junit
       exclusionArtifactId: junit
+  # Workaround for https://github.com/testcontainers/testcontainers-java/issues/970:
+  - org.openrewrite.maven.RemoveExclusion:
+      groupId: org.testcontainers
+      artifactId: junit-jupiter
+      exclusionGroupId: junit
+      exclusionArtifactId: junit
   # Similar for https://github.com/openrewrite/rewrite-testing-frameworks/issues/477
   - org.openrewrite.maven.RemoveExclusion:
       groupId: org.springframework.boot
