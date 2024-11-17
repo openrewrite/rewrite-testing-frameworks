@@ -17,7 +17,7 @@ import java.util.List;
 public class UseAssertSame extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Uses JUnit5's `assertSame` or `assertNotSame` instead of assertTrue(... == ...)";
+        return "Use JUnit5's `assertSame` or `assertNotSame` instead of assertTrue(... == ...)";
     }
 
     @Override
