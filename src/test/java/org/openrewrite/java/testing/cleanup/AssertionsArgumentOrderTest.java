@@ -155,7 +155,6 @@ class AssertionsArgumentOrderTest implements RewriteTest {
         );
     }
 
-
     @Test
     void jupiterAssertNullAndAssertNotNull() {
         rewriteRun(
