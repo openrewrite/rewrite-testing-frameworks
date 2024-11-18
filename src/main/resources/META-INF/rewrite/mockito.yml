@@ -36,6 +36,17 @@ tags:
   - mockito
 recipeList:
   - org.openrewrite.java.testing.mockito.Mockito1to4Migration
+  - org.openrewrite.java.testing.mockito.Mockito4to5Only
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.Mockito4to5Only
+displayName: Mockito 4 to 5.x upgrade only
+description: Upgrade Mockito from 4.x to 5.x. Does not include 1.x to 4.x migration.
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.testing.mockito.Mockito1to4Migration
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.mockito
       oldArtifactId: mockito-inline
@@ -49,7 +60,6 @@ recipeList:
       artifactId: byte-buddy*
       newVersion: 1.15.x
   - org.openrewrite.maven.RemoveDuplicateDependencies
-
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to4Migration

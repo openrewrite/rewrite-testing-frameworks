@@ -19,7 +19,6 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -129,11 +128,6 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                         maybeAddImport("org.mockito.junit.jupiter.MockitoSettings", false);
                         maybeAddImport("org.mockito.quality.Strictness", false);
                     }
-
-                    // Workaround first modifier incorrectly getting a trailing space as part of the prefix
-                    cd = cd.withModifiers(ListUtils.mapFirst(cd.getModifiers(),
-                            modifier -> modifier.withPrefix(modifier.getPrefix().withWhitespace(
-                                    modifier.getPrefix().getLastWhitespace().replaceAll(" $", "")))));
                 }
             }
 

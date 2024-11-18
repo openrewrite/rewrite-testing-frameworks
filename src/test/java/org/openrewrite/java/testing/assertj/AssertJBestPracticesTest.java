@@ -319,5 +319,5 @@ class AssertJBestPracticesTest implements RewriteTest {
                 template.formatted(imprt, argumentsType, dedicatedAssertion)));
         }
     }
-    
+
 }
