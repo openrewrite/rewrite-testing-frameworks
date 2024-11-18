@@ -23,13 +23,13 @@ tags:
   - easymock
 recipeList:
   - org.openrewrite.java.testing.easymock.EasyMockVerifyToMockitoVerify
-  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IExpectationSetters times(..)
-  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IExpectationSetters once()
-  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IExpectationSetters atLeastOnce()
-  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IExpectationSetters anyTimes()
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.easymock.IExpectationSetters andReturn(..)
@@ -59,17 +59,17 @@ recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.easymock.IMocksControl createMock(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
-  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IMocksControl replay(..)
-  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IMocksControl verify(..)
-  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IMocksControl verifyRecording(..)
-  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IMocksControl verifyUnexpectedCalls(..)
-  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.EasyMockSupport replayAll()
-  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.EasyMockSupport verifyAll()
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.easymock.IArgumentMatcher
@@ -86,7 +86,7 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.easymock.EasyMock expect(..)
       newMethodName: when
-  - org.openrewrite.java.migrate.RemoveMethodInvocation:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.EasyMock replay(..)
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.easymock.EasyMock createNiceMock(..)
