@@ -22,7 +22,6 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 public class RemoveExtendsEasyMockSupport extends Recipe {
@@ -46,13 +45,9 @@ public class RemoveExtendsEasyMockSupport extends Recipe {
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-                maybeRemoveImport(EASYMOCK);
-
-                if (cd.getExtends() != null) {
-                    JavaType.FullyQualified fqn = TypeUtils.asFullyQualified(cd.getExtends().getType());
-                    if (fqn != null && fqn.isAssignableTo(EASYMOCK)) {
-                        cd = cd.withExtends(null);
-                    }
+                if (cd.getExtends() != null && TypeUtils.isAssignableTo(EASYMOCK, cd.getExtends().getType())) {
+                    maybeRemoveImport(EASYMOCK);
+                    cd = cd.withExtends(null);
                 }
                 return cd;
             }
