@@ -24,11 +24,13 @@ recipeList:
       oldGroupId: net.sourceforge.htmlunit
       oldArtifactId: '*'
       newGroupId: org.htmlunit
+      newVersion: 3.x
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: com.gargoylesoftware
       oldArtifactId: HTMLUnit
       newGroupId: org.htmlunit
       newArtifactId: htmlunit
+      newVersion: 3.x
   - org.openrewrite.java.ChangePackage:
       oldPackageName: com.gargoylesoftware.htmlunit
       newPackageName: org.htmlunit
