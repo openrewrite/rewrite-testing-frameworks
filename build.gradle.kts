@@ -67,7 +67,6 @@ dependencies {
     testRuntimeOnly("net.datafaker:datafaker:latest.release") {
         exclude(group = "org.yaml", module = "snakeyaml")
     }
-    testRuntimeOnly("net.sourceforge.htmlunit:htmlunit:2.+")
     testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:latest.release")
     testRuntimeOnly("org.testcontainers:testcontainers:latest.release")
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
