@@ -182,7 +182,9 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 m = m.withBody(m.getBody().withPrefix(thrown.get(0).getPrefix())).withThrows(Collections.emptyList());
             }
 
-            maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
+            // Unconditionally add the import for assertThrows, got a report where the above template adds the method successfully
+            // but with missing type attribution for assertThrows so the import was missing
+            maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows", false);
 
             if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
                 m = JavaTemplate.builder("assertTrue(exception.getMessage().contains(#{any(java.lang.String)}));")

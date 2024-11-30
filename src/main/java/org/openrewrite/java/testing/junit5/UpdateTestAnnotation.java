@@ -150,7 +150,9 @@ public class UpdateTestAnnotation extends Recipe {
                                 .build()
                                 .apply(updateCursor(m), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
                         m = m.withThrows(Collections.emptyList());
-                        maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
+                        // Unconditionally add the import for assertThrows, got a report where the above template adds the method successfully
+                        // but with missing type attribution for assertThrows so the import was missing
+                        maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows", false);
                     }
                 }
                 if (cta.timeout != null) {

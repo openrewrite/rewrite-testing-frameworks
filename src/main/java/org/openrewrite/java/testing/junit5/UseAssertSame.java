@@ -37,8 +37,8 @@ public class UseAssertSame extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Prefers the usage of `assertSame` or `assertNotSame` methods instead of using of vanilla assertTrue " +
-               "or assertFalse with a boolean comparison.";
+        return "Prefers the usage of `assertSame` or `assertNotSame` methods instead of using of vanilla `assertTrue` " +
+               "or `assertFalse` with a boolean comparison.";
     }
 
     private static final MethodMatcher ASSERT_TRUE_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(..)");
@@ -51,6 +51,8 @@ public class UseAssertSame extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
                 if (!ASSERT_TRUE_MATCHER.matches(mi) && !ASSERT_FALSE_MATCHER.matches(mi)) {
+                    return mi;
+                } else if (mi.getMethodType() == null) {
                     return mi;
                 }
 
@@ -73,10 +75,25 @@ public class UseAssertSame extends Recipe {
                 maybeRemoveImport("org.junit.jupiter.api.Assertions");
                 maybeAddImport("org.junit.jupiter.api.Assertions", newMethodName);
 
-                JavaType.Method newType = ((JavaType.Method) mi.getName().getType()).withName(newMethodName);
+                JavaType.Method newType = assertSameMethodType(mi, newMethodName);
                 return mi.withName(mi.getName().withSimpleName(newMethodName).withType(newType))
                         .withMethodType(newType)
                         .withArguments(newArguments);
+            }
+
+            private JavaType.Method assertSameMethodType(J.MethodInvocation mi, String newMethodName) {
+                JavaType.Method assertTrue = mi.getMethodType();
+                assert assertTrue != null;
+                int parameterCount = assertTrue.getParameterTypes().size();
+                JavaType.FullyQualified assertions = assertTrue.getDeclaringType();
+                for (JavaType.Method method : assertions.getMethods()) {
+                    if (method.getName().equals("assertSame") && method.getParameterNames().size() == parameterCount + 1 &&
+                        assertTrue.getParameterTypes().get(parameterCount - 1).equals(method.getParameterTypes().get(parameterCount))) {
+                        return method;
+                    }
+                }
+                // fallback when type attribution was stubbed
+                return assertTrue.withName(newMethodName);
             }
         };
         return Preconditions.check(
