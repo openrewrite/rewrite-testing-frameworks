@@ -17,8 +17,8 @@ package org.openrewrite.java.testing.hamcrest;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -37,21 +37,21 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class HamcrestMatcherToAssertJ extends Recipe {
 
-    @Option(displayName = "Hamcrest Matcher",
+    @Option(displayName = "Hamcrest matcher",
             description = "The Hamcrest `Matcher` to migrate to JUnit5.",
             example = "equalTo",
             required = false)
     @Nullable
     String matcher;
 
-    @Option(displayName = "AssertJ Assertion",
+    @Option(displayName = "AssertJ assertion",
             description = "The AssertJ method to migrate to.",
             example = "isEqualTo",
             required = false)
     @Nullable
     String assertion;
 
-    @Option(displayName = "Argument Type",
+    @Option(displayName = "Argument type",
             description = "The type of the argument to the Hamcrest `Matcher`.",
             example = "java.math.BigDecimal",
             required = false)

@@ -15,18 +15,20 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -60,8 +62,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
     public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        @Nullable
-        private JavaParser.Builder<?, ?> javaParser;
+        private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
@@ -153,15 +154,14 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 }
             }
 
-            String exceptionDeclParam = ((isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher)
-                                         || expectMessageMethodInvocation != null) ?
+            String exceptionDeclParam = ((isExpectArgAMatcher || isExpectMessageArgAMatcher || isExpectedCauseArgAMatcher) ||
+                                         expectMessageMethodInvocation != null) ?
                     "Throwable exception = " : "";
 
             Object expectedExceptionParam = (expectMethodInvocation == null || isExpectArgAMatcher) ?
                     "Exception.class" : expectMethodInvocation.getArguments().get(0);
 
-            String templateString = expectedExceptionParam instanceof String ? "#{}assertThrows(#{}, () -> #{});" : "#{}assertThrows(#{any()}, () -> #{});";
-
+            String templateString = expectedExceptionParam instanceof String ? "#{}assertThrows(#{}, () -> #{any()});" : "#{}assertThrows(#{any()}, () -> #{any()});";
             m = JavaTemplate.builder(templateString)
                     .contextSensitive()
                     .javaParser(javaParser(ctx))
@@ -175,7 +175,16 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                             bodyWithoutExpectedExceptionCalls
                     );
 
-            maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
+            // Clear out any declared thrown exceptions
+            List<NameTree> thrown = m.getThrows();
+            if (thrown != null && !thrown.isEmpty()) {
+                assert m.getBody() != null;
+                m = m.withBody(m.getBody().withPrefix(thrown.get(0).getPrefix())).withThrows(Collections.emptyList());
+            }
+
+            // Unconditionally add the import for assertThrows, got a report where the above template adds the method successfully
+            // but with missing type attribution for assertThrows so the import was missing
+            maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows", false);
 
             if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
                 m = JavaTemplate.builder("assertTrue(exception.getMessage().contains(#{any(java.lang.String)}));")
@@ -217,6 +226,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                         "exception.getCause()", expectCauseMethodInvocation.getArguments().get(0));
                 maybeAddImport("org.hamcrest.MatcherAssert", "assertThat");
             }
+
+            doAfterVisit(new LambdaBlockToExpression().getVisitor());
 
             return m;
         }

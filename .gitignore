@@ -8,3 +8,4 @@ out/
 bin/
 *.log
 .vscode/
+src/main/generated/

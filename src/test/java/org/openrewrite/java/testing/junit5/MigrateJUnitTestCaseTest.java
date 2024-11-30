@@ -42,25 +42,25 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
           java(
             """
               import junit.framework.TestCase;
-                            
+
               public class MathTest extends TestCase {
                   protected long value1;
                   protected long value2;
-                            
+
                   @Override
                   protected void setUp() {
                       super.setUp();
                       value1 = 2;
                       value2 = 3;
                   }
-                            
+
                   public void testAdd() {
                       setName("primitive test");
                       long result = value1 + value2;
                       assertEquals(5, result);
                       fail("some Failure message");
                   }
-                            
+
                   @Override
                   protected void tearDown() {
                       super.tearDown();
@@ -73,19 +73,19 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.junit.jupiter.api.Assertions.*;
 
               public class MathTest {
                   protected long value1;
                   protected long value2;
-                            
+
                   @BeforeEach
                   public void setUp() {
                       value1 = 2;
                       value2 = 3;
                   }
-                            
+
                   @Test
                   public void testAdd() {
                       //setName("primitive test");
@@ -93,7 +93,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                       assertEquals(5, result);
                       fail("some Failure message");
                   }
-                            
+
                   @AfterEach
                   public void tearDown() {
                       value1 = 0;
@@ -116,7 +116,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               public abstract class CTest extends TestCase {
                   @Override
                   public void setUp() {}
-                  
+
                   @Override
                   public void tearDown() {}
               }
@@ -125,11 +125,11 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               package com.abc;
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
-                            
+
               public abstract class CTest {
                   @BeforeEach
                   public void setUp() {}
-                            
+
                   @AfterEach
                   public void tearDown() {}
               }
@@ -143,18 +143,18 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               public class MathTest extends CTest {
                   protected long value1;
                   protected long value2;
-                            
+
                   @Override
                   protected void setUp() {
                       value1 = 2;
                       value2 = 3;
                   }
-                            
+
                   public void testAdd() {
                       long result = value1 + value2;
                       assertEquals(5, result);
                   }
-                            
+
                   @Override
                   protected void tearDown() {
                       value1 = 0;
@@ -168,25 +168,25 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               public class MathTest extends CTest {
                   protected long value1;
                   protected long value2;
-                            
+
                   @BeforeEach
                   public void setUp() {
                       value1 = 2;
                       value2 = 3;
                   }
-                            
+
                   @Test
                   public void testAdd() {
                       long result = value1 + value2;
                       assertEquals(5, result);
                   }
-                            
+
                   @AfterEach
                   public void tearDown() {
                       value1 = 0;
@@ -205,9 +205,9 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-                            
+
               import static junit.framework.TestCase.assertTrue;
-                            
+
               class AaTest {
                   @Test
                   public void someTest() {
@@ -220,9 +220,9 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               """,
             """
               import org.junit.Test;
-                            
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                            
+
               class AaTest {
                   @Test
                   public void someTest() {
@@ -244,9 +244,9 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-                            
+
               import static junit.framework.Assert.assertTrue;
-                            
+
               class AaTest {
                   @Test
                   public void someTest() {
@@ -259,9 +259,9 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               """,
             """
               import org.junit.Test;
-                            
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                            
+
               class AaTest {
                   @Test
                   public void someTest() {
@@ -287,6 +287,50 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   @Test(expected = NumberFormatException.class)
                   public void testSomeNumberStuff() {
                       Double n = Double.valueOf("a");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void avoidDuplicateAnnotations(){
+        rewriteRun(
+          spec -> spec.recipes(
+            new MigrateJUnitTestCase(),
+            new UpdateBeforeAfterAnnotations()
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+              import org.junit.After;
+              import org.junit.Before;
+
+              public class MathTest extends TestCase {
+
+                  @Before
+                  public void setUp() {
+                  }
+
+                  @After
+                  public void tearDown() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class MathTest {
+
+                  @BeforeEach
+                  public void setUp() {
+                  }
+
+                  @AfterEach
+                  public void tearDown() {
                   }
               }
               """

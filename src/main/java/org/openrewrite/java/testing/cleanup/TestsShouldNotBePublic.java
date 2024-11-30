@@ -18,13 +18,12 @@ package org.openrewrite.java.testing.cleanup;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeMethodAccessLevelVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
@@ -98,10 +97,10 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration c = super.visitClassDeclaration(classDecl, ctx);
 
-            if (c.getKind() != J.ClassDeclaration.Kind.Type.Interface
-                    && c.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public)
-                    && c.getModifiers().stream().noneMatch(mod -> mod.getType() == J.Modifier.Type.Abstract)
-                    && !acc.extendedClasses.contains(String.valueOf(c.getType()))) {
+            if (c.getKind() != J.ClassDeclaration.Kind.Type.Interface &&
+                    c.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public) &&
+                    c.getModifiers().stream().noneMatch(mod -> mod.getType() == J.Modifier.Type.Abstract) &&
+                    !acc.extendedClasses.contains(String.valueOf(c.getType()))) {
                 boolean hasTestMethods = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
                         .map(J.MethodDeclaration.class::cast)
@@ -154,9 +153,12 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
                 return m;
             }
 
-            if (m.getModifiers().stream().anyMatch(mod -> (mod.getType() == J.Modifier.Type.Public || (orProtected && mod.getType() == J.Modifier.Type.Protected)))
-                    && Boolean.FALSE.equals(TypeUtils.isOverride(method.getMethodType()))
-                    && hasJUnit5MethodAnnotation(m)) {
+            if (m.hasModifier(J.Modifier.Type.Abstract) || TypeUtils.isOverride(method.getMethodType())) {
+                return m;
+            }
+
+            if ((m.hasModifier(J.Modifier.Type.Public) || (orProtected && m.hasModifier(J.Modifier.Type.Protected))) &&
+                hasJUnit5MethodAnnotation(m)) {
                 // remove public modifier
                 doAfterVisit(new ChangeMethodAccessLevelVisitor<>(new MethodMatcher(method), null));
             }
@@ -166,14 +168,14 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
 
         private boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
             for (J.Annotation a : method.getLeadingAnnotations()) {
-                if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterEach")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeEach")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterAll")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeAll")) {
+                if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterEach") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeEach") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterAll") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeAll")) {
                     return true;
                 }
             }

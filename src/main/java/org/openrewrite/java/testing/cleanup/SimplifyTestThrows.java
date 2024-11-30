@@ -15,8 +15,8 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
@@ -63,9 +63,9 @@ public class SimplifyTestThrows extends Recipe {
                         J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
                         // reject invalid methods
-                        if (TypeUtils.isOverride(m.getMethodType())
-                            || !hasJUnit5MethodAnnotation(method)
-                            || throwsNothingOrException(method)) {
+                        if (TypeUtils.isOverride(m.getMethodType()) ||
+                            !hasJUnit5MethodAnnotation(method) ||
+                            throwsNothingOrException(method)) {
                             return m;
                         }
 
@@ -101,11 +101,11 @@ public class SimplifyTestThrows extends Recipe {
 
                     private boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
                         for (J.Annotation a : method.getLeadingAnnotations()) {
-                            if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test")
-                                || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")
-                                || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest")
-                                || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest")
-                                || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")) {
+                            if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
+                                TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate") ||
+                                TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
+                                TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
+                                TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")) {
                                 return true;
                             }
                         }

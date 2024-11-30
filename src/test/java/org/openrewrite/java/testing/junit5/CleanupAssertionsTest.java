@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -44,7 +43,7 @@ class CleanupAssertionsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
-                          
+
               class ExampleTest {
                   @Test
                   void test() {
@@ -105,7 +104,7 @@ class CleanupAssertionsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
-                          
+
               class ExampleTest {
                   @Test
                   void test() {
@@ -136,7 +135,7 @@ class CleanupAssertionsTest implements RewriteTest {
             """
                     import org.junit.jupiter.api.Assertions;
                     import org.junit.jupiter.api.Test;
-                                              
+
                     class A {
                         class B {}
 
@@ -151,7 +150,7 @@ class CleanupAssertionsTest implements RewriteTest {
             """
                     import org.junit.jupiter.api.Assertions;
                     import org.junit.jupiter.api.Test;
-                                              
+
                     class A {
                         class B {}
 

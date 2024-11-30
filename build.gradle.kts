@@ -20,10 +20,13 @@ recipeDependencies {
     parserClasspath("org.mockito:mockito-all:1.10.19")
     parserClasspath("org.mockito:mockito-core:3.+")
     parserClasspath("org.jmockit:jmockit:1.49")
+    parserClasspath("org.jmockit:jmockit:1.22") // last version with NonStrictExpectations
     parserClasspath("org.mockito:mockito-junit-jupiter:3.+")
     parserClasspath("org.powermock:powermock-api-mockito:1.7.+")
     parserClasspath("org.powermock:powermock-core:1.7.+")
     parserClasspath("com.squareup.okhttp3:mockwebserver:4.10.0")
+    parserClasspath("org.springframework:spring-test:6.1.12")
+    parserClasspath("com.github.database-rider:rider-junit5:1.44.0")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
@@ -36,6 +39,9 @@ dependencies {
     implementation("org.openrewrite.recipe:rewrite-static-analysis:$rewriteVersion")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
+    runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:latest.release:recipes")
+    compileOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
@@ -43,7 +49,15 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
+    testImplementation("org.openrewrite:rewrite-test")
+    testImplementation("org.openrewrite:rewrite-kotlin:$rewriteVersion")
     testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
+
+    annotationProcessor("org.openrewrite:rewrite-templating:${rewriteVersion}")
+    implementation("org.openrewrite:rewrite-templating:${rewriteVersion}")
+    compileOnly("com.google.errorprone:error_prone_core:2.+:with-dependencies") {
+        exclude("com.google.auto.service", "auto-service-annotations")
+    }
 
     testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
 
@@ -54,9 +68,7 @@ dependencies {
     testRuntimeOnly("net.datafaker:datafaker:latest.release") {
         exclude(group = "org.yaml", module = "snakeyaml")
     }
+    testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:latest.release")
     testRuntimeOnly("org.testcontainers:testcontainers:latest.release")
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
-
-//    testImplementation("org.hamcrest:hamcrest:latest.release")
-//    testImplementation("org.assertj:assertj-core:latest.release")
 }

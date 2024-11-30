@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit5;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -25,7 +26,6 @@ import org.openrewrite.gradle.marker.GradleProject;
 import org.openrewrite.groovy.GroovyIsoVisitor;
 import org.openrewrite.groovy.tree.G;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -194,9 +194,9 @@ public class GradleUseJunitJupiter extends Recipe {
                     }
                     break;
                 case "withType":
-                    if (m.getSelect() == null
-                        || !TypeUtils.isOfClassType(m.getSelect().getType(), "org.gradle.api.tasks.TaskContainer")
-                        || !(m.getArguments().get(0) instanceof J.Identifier && "Test".equals(((J.Identifier) m.getArguments().get(0)).getSimpleName()))) {
+                    if (m.getSelect() == null ||
+                        !TypeUtils.isOfClassType(m.getSelect().getType(), "org.gradle.api.tasks.TaskContainer") ||
+                        !(m.getArguments().get(0) instanceof J.Identifier && "Test".equals(((J.Identifier) m.getArguments().get(0)).getSimpleName()))) {
                         return m;
                     }
                     break;
@@ -208,10 +208,10 @@ public class GradleUseJunitJupiter extends Recipe {
                         return m;
                     }
                     J.MethodInvocation select = (J.MethodInvocation) m.getSelect();
-                    if(!"withType".equals(select.getSimpleName())
-                       || select.getArguments().size() != 1
-                       || !(select.getArguments().get(0) instanceof J.Identifier)
-                       || !"Test".equals(((J.Identifier) select.getArguments().get(0)).getSimpleName())) {
+                    if(!"withType".equals(select.getSimpleName()) ||
+                       select.getArguments().size() != 1 ||
+                       !(select.getArguments().get(0) instanceof J.Identifier) ||
+                       !"Test".equals(((J.Identifier) select.getArguments().get(0)).getSimpleName())) {
                         return m;
                     }
                     break;

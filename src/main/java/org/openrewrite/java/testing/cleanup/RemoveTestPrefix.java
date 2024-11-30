@@ -31,6 +31,7 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RemoveTestPrefix extends Recipe {
 
@@ -83,26 +84,26 @@ public class RemoveTestPrefix extends Recipe {
             // Quickly reject invalid methods
             String simpleName = method.getSimpleName();
             int nameLength = simpleName.length();
-            if (nameLength < 5
-                    || !simpleName.startsWith("test")
-                    || !(simpleName.charAt(4) == '_' || Character.isUpperCase(simpleName.charAt(4)))
-                    || TypeUtils.isOverride(method.getMethodType())
-                    || !hasJUnit5MethodAnnotation(method)) {
+            if (nameLength < 5 ||
+                    !simpleName.startsWith("test") ||
+                    !(simpleName.charAt(4) == '_' || Character.isUpperCase(simpleName.charAt(4))) ||
+                    TypeUtils.isOverride(method.getMethodType()) ||
+                    !hasJUnit5MethodAnnotation(method)) {
                 return m;
             }
 
             // Reject invalid start character
-            boolean snakecase = simpleName.charAt(4) == '_'
-                    && 5 < nameLength
-                    && Character.isAlphabetic(simpleName.charAt(5));
+            boolean snakecase = simpleName.charAt(4) == '_' &&
+                    5 < nameLength &&
+                    Character.isAlphabetic(simpleName.charAt(5));
             if (!snakecase && !Character.isAlphabetic(simpleName.charAt(4))) {
                 return m;
             }
 
             // Avoid reserved keywords
-            String newMethodName = snakecase
-                    ? NameCaseConvention.format(NameCaseConvention.LOWER_UNDERSCORE, simpleName.substring(5))
-                    : NameCaseConvention.format(NameCaseConvention.LOWER_CAMEL, simpleName.substring(4));
+            String newMethodName = snakecase ?
+                    NameCaseConvention.format(NameCaseConvention.LOWER_UNDERSCORE, simpleName.substring(5)) :
+                    NameCaseConvention.format(NameCaseConvention.LOWER_CAMEL, simpleName.substring(4));
             if (RESERVED_KEYWORDS.contains(newMethodName)) {
                 return m;
             }
@@ -121,6 +122,21 @@ public class RemoveTestPrefix extends Recipe {
                 }
             }
 
+            // Skip when calling a similarly named method
+            AtomicBoolean skip = new AtomicBoolean(false);
+            new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
+                    if (method.getName().getSimpleName().equals(newMethodName) && method.getSelect() == null) {
+                        skip.set(true);
+                    }
+                    return super.visitMethodInvocation(method, atomicBoolean);
+                }
+            }.visitMethodDeclaration(m, skip);
+            if (skip.get()) {
+                return m;
+            }
+
             // Rename method and return
             type = type.withName(newMethodName);
             return m.withName(m.getName().withSimpleName(newMethodName).withType(type))
@@ -133,11 +149,11 @@ public class RemoveTestPrefix extends Recipe {
 
         private static boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {
             for (J.Annotation a : method.getLeadingAnnotations()) {
-                if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest")
-                        || TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")) {
+                if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")) {
                     return true;
                 }
             }

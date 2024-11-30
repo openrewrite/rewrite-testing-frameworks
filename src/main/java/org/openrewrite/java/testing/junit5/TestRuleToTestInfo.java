@@ -15,12 +15,12 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -54,8 +54,7 @@ public class TestRuleToTestInfo extends Recipe {
         private static final AnnotationMatcher JUNIT_BEFORE_MATCHER = new AnnotationMatcher("@org.junit.Before");
         private static final AnnotationMatcher JUPITER_BEFORE_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
 
-        @Nullable
-        private JavaParser.Builder<?, ?> javaParser;
+        private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
@@ -102,7 +101,7 @@ public class TestRuleToTestInfo extends Recipe {
         }
 
         @Override
-        public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+        public  J.@Nullable NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
             J.NewClass nc = super.visitNewClass(newClass, ctx);
             if (TypeUtils.isOfClassType(nc.getType(), "org.junit.rules.TestName")) {
                 //noinspection ConstantConditions
@@ -162,8 +161,7 @@ public class TestRuleToTestInfo extends Recipe {
         private final J.VariableDeclarations varDecls;
         private final String testMethodStatement;
 
-        @Nullable
-        private JavaParser.Builder<?, ?> javaParser;
+        private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {

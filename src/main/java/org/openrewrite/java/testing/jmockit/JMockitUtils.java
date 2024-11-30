@@ -16,23 +16,34 @@
 package org.openrewrite.java.testing.jmockit;
 
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.Arrays;
+import java.util.Optional;
+
+import static java.util.Optional.empty;
+
 class JMockitUtils {
-    static boolean isValidExpectationsNewClassStatement(Statement s) {
+
+    static Optional<JMockitBlockType> getJMockitBlock(Statement s) {
         if (!(s instanceof J.NewClass)) {
-            return false;
+            return empty();
         }
+
         J.NewClass nc = (J.NewClass) s;
-        if (!(nc.getClazz() instanceof J.Identifier)) {
-            return false;
+        if (nc.getBody() == null || nc.getClazz() == null) {
+            return empty();
         }
-        J.Identifier clazz = (J.Identifier) nc.getClazz();
-        if (!TypeUtils.isAssignableTo("mockit.Expectations", clazz.getType())) {
-            return false;
+
+        JavaType type = nc.getClazz().getType();
+        if (type == null) {
+            return empty();
         }
-        // Expectations block should be composed of a block within another block
-        return nc.getBody() != null && nc.getBody().getStatements().size() == 1;
+
+        return Arrays.stream(JMockitBlockType.values())
+                .filter(supportedType -> TypeUtils.isOfClassType(type, supportedType.getFqn()))
+                .findFirst();
     }
 }

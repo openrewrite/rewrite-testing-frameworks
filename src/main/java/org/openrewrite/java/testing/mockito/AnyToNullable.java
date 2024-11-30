@@ -15,8 +15,8 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeMethodName;
 import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.tree.J;

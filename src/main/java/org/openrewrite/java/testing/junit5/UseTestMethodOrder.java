@@ -15,11 +15,11 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -45,8 +45,8 @@ public class UseTestMethodOrder extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>("org.junit.FixMethodOrder", false), new JavaIsoVisitor<ExecutionContext>() {
 
-            @Nullable
-            private JavaParser.Builder<?, ?> javaParser;
+
+            private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {

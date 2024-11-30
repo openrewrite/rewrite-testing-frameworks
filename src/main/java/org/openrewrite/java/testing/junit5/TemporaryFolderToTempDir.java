@@ -15,11 +15,11 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
@@ -49,8 +49,8 @@ public class TemporaryFolderToTempDir extends Recipe {
             final AnnotationMatcher classRule = new AnnotationMatcher("@org.junit.ClassRule");
             final AnnotationMatcher rule = new AnnotationMatcher("@org.junit.Rule");
 
-            @Nullable
-            private JavaParser.Builder<?, ?> javaParser;
+
+            private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {
@@ -103,16 +103,16 @@ public class TemporaryFolderToTempDir extends Recipe {
             }
 
             private boolean isRuleAnnotatedTemporaryFolder(J.VariableDeclarations vd) {
-                return TypeUtils.isOfClassType(vd.getTypeAsFullyQualified(), "org.junit.rules.TemporaryFolder")
-                       && vd.getLeadingAnnotations().stream().anyMatch(anno -> classRule.matches(anno) || rule.matches(anno));
+                return TypeUtils.isOfClassType(vd.getTypeAsFullyQualified(), "org.junit.rules.TemporaryFolder") &&
+                       vd.getLeadingAnnotations().stream().anyMatch(anno -> classRule.matches(anno) || rule.matches(anno));
             }
 
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 updateCursor(mi);
-                if (mi.getSelect() != null && mi.getMethodType() != null
-                    && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "org.junit.rules.TemporaryFolder")) {
+                if (mi.getSelect() != null && mi.getMethodType() != null &&
+                    TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "org.junit.rules.TemporaryFolder")) {
                     switch (mi.getSimpleName()) {
                         case "newFile":
                             return convertToNewFile(mi, ctx);
@@ -157,8 +157,8 @@ public class TemporaryFolderToTempDir extends Recipe {
     private static class AddNewFolderMethod extends JavaIsoVisitor<ExecutionContext> {
         private final J.MethodInvocation methodInvocation;
 
-        @Nullable
-        private JavaParser.Builder<?, ?> javaParser;
+
+        private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
@@ -236,8 +236,8 @@ public class TemporaryFolderToTempDir extends Recipe {
             J.MethodInvocation methodScope;
             JavaType.Method newMethodType;
 
-            @Nullable
-            private JavaParser.Builder<?, ?> javaParser;
+
+            private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {

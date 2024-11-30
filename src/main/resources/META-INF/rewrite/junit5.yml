@@ -25,12 +25,14 @@ recipeList:
   - org.openrewrite.java.testing.junit5.JUnit4to5Migration
   - org.openrewrite.java.testing.junit5.StaticImports
   - org.openrewrite.java.testing.junit5.CleanupAssertions
+  - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipe
   - org.openrewrite.java.testing.cleanup.RemoveTestPrefix
   - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
   - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
   - org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
   - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
   - org.openrewrite.java.testing.junit5.LifecycleNonPrivate
+  - org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.StaticImports
@@ -50,6 +52,10 @@ description: Migrates JUnit 4.x tests to JUnit Jupiter.
 tags:
   - testing
   - junit
+preconditions:
+  - org.openrewrite.java.search.DoesNotUseType:
+      fullyQualifiedTypeName: org.testng..*
+      includeImplicit: true
 recipeList:
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
@@ -64,6 +70,7 @@ recipeList:
       groupId: org.apache.maven.surefire
       artifactId: surefire-junit*
   - org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin
+  - org.openrewrite.java.testing.junit5.AddHamcrestJUnitDependency
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.MigrateAssumptions
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
@@ -99,7 +106,7 @@ recipeList:
   # Workaround for https://github.com/testcontainers/testcontainers-java/issues/970:
   - org.openrewrite.maven.RemoveExclusion:
       groupId: org.testcontainers
-      artifactId: testcontainers
+      artifactId: '*'
       exclusionGroupId: junit
       exclusionArtifactId: junit
   # Similar for https://github.com/openrewrite/rewrite-testing-frameworks/issues/477
@@ -122,18 +129,6 @@ recipeList:
       onlyIfUsing: org.junit.jupiter.params.ParameterizedTest
       acceptTransitive: true
       scope: test
-  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
-      groupId: org.mockito
-      artifactId: "*"
-      newVersion: 3.x
-      overrideManagedVersion: false
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.mockito
-      artifactId: mockito-junit-jupiter
-      version: 3.x
-      onlyIfUsing: org.mockito..*
-      acceptTransitive: true
-      scope: test
   - org.openrewrite.maven.UpgradePluginVersion:
       groupId: org.apache.maven.plugins
       artifactId: maven-surefire-plugin
@@ -143,6 +138,10 @@ recipeList:
       artifactId: maven-failsafe-plugin
       newVersion: 3.1.x
   - org.openrewrite.java.testing.junit5.GradleUseJunitJupiter
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.jbehave.core.junit.JUnitStories
+      newFullyQualifiedTypeName: org.jbehave.core.junit.JupiterStories
+  - org.openrewrite.java.testing.dbrider.MigrateDbRiderSpringToDbRiderJUnit5
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -170,13 +169,6 @@ tags:
   - junit
   - hamcrest
 recipeList:
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.hamcrest
-      artifactId: hamcrest-junit
-      version: 2.x
-      scope: test
-      onlyIfUsing: org.junit.Assume
-      acceptTransitive: true
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.junit.Assume assumeThat(..)
       fullyQualifiedTargetTypeName: org.hamcrest.junit.MatcherAssume
@@ -258,7 +250,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
 displayName: Use OkHttp 3 MockWebServer for JUnit 5
-description: Migrates OkHttp 3 `MockWebServer` to enable JUnit Jupiter Extension support
+description: Migrates OkHttp 3 `MockWebServer` to enable JUnit Jupiter Extension support.
 tags:
   - testing
   - junit
@@ -277,7 +269,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.CleanupAssertions
 displayName: Clean Up Assertions
-description: Simplifies JUnit Jupiter assertions to their most-direct equivalents
+description: Simplifies JUnit Jupiter assertions to their most-direct equivalents.
 tags:
   - testing
   - junit
@@ -289,6 +281,7 @@ recipeList:
   - org.openrewrite.java.testing.cleanup.AssertFalseEqualsToAssertNotEquals
   - org.openrewrite.java.testing.cleanup.AssertEqualsNullToAssertNull
   - org.openrewrite.java.testing.cleanup.AssertFalseNullToAssertNotNull
+  - org.openrewrite.java.testing.cleanup.AssertTrueNullToAssertNull
   - org.openrewrite.java.testing.cleanup.AssertEqualsBooleanToAssertBoolean
   - org.openrewrite.java.testing.cleanup.AssertNotEqualsBooleanToAssertBoolean
   - org.openrewrite.java.testing.cleanup.AssertionsArgumentOrder
@@ -296,7 +289,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseXMLUnitLegacy
 displayName: Use XMLUnit Legacy for JUnit 5
-description: Migrates XMLUnit 1.x to XMLUnit legacy 2.x
+description: Migrates XMLUnit 1.x to XMLUnit legacy 2.x.
 tags:
   - testing
   - junit

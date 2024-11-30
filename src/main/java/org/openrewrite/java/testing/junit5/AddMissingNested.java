@@ -21,7 +21,6 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.NonNull;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -74,7 +73,7 @@ public class AddMissingNested extends Recipe {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-                cd = cd.withBody((J.Block) new AddNestedAnnotationVisitor().visitNonNull(cd.getBody(), ctx, getCursor()));
+                cd = cd.withBody((J.Block) new AddNestedAnnotationVisitor().visitNonNull(cd.getBody(), ctx, updateCursor(cd)));
                 maybeAddImport(NESTED);
                 return cd;
             }
@@ -88,20 +87,16 @@ public class AddMissingNested extends Recipe {
             boolean alreadyNested = classDecl.getLeadingAnnotations().stream()
                     .anyMatch(a -> TypeUtils.isOfClassType(a.getType(), NESTED));
             if (!alreadyNested && hasTestMethods(cd)) {
-                cd = getNestedJavaTemplate(ctx).apply(updateCursor(cd),
-                        cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                cd = JavaTemplate.builder("@Nested")
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                        .imports(NESTED)
+                        .build()
+                        .apply(getCursor(), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 cd.getModifiers().removeIf(modifier -> modifier.getType().equals(J.Modifier.Type.Static));
+                return maybeAutoFormat(classDecl, cd, ctx);
             }
             return cd;
-        }
-
-        @NonNull
-        private JavaTemplate getNestedJavaTemplate(ExecutionContext ctx) {
-            return JavaTemplate.builder("@Nested")
-                    .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
-                    .imports(NESTED)
-                    .build();
         }
 
         private static boolean hasTestMethods(final J.ClassDeclaration cd) {

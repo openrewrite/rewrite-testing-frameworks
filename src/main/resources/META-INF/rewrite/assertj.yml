@@ -26,7 +26,25 @@ recipeList:
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
   - org.openrewrite.java.testing.assertj.StaticImports
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
-  - org.openrewrite.java.testing.assertj.IsEqualToEmptyString
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
+
+  - tech.picnic.errorprone.refasterrules.AssertJBigDecimalRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJBigIntegerRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJBooleanRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJByteRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJCharSequenceRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJDoubleRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJFloatRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJIntegerRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJLongRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJNumberRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJPrimitiveRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJShortRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJStringRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJThrowingCallableRulesRecipes
+
+  - org.openrewrite.java.testing.assertj.CollapseConsecutiveAssertThatStatements
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -43,6 +61,9 @@ recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: "org.assertj.core.api.AssertionsForInterfaceTypes assertThat(..)"
       fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: "org.assertj.core.api.Fail fail(..)"
+      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
   - org.openrewrite.java.UseStaticImport:
       methodPattern: "org.assertj.core.api.Assertions *(..)"
 
@@ -50,7 +71,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
 displayName: Simplify AssertJ chained assertions
-description: Replace AssertJ chained assertions with dedicated assertions that function the same.
+description: Replace AssertJ assertions where a method is called on the actual value with a dedicated assertion.
 tags:
   - testing
   - assertj
@@ -93,14 +114,29 @@ recipeList:
       dedicatedAssertion: startsWith
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: startsWith
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotStartWith
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: endsWith
       assertToReplace: isTrue
       dedicatedAssertion: endsWith
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: endsWith
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotEndWith
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: matches
       assertToReplace: isTrue
       dedicatedAssertion: matches
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: matches
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotMatch
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: trim
@@ -337,18 +373,92 @@ recipeList:
       assertToReplace: isSameAs
       dedicatedAssertion: containsSame
       requiredType: java.util.Optional
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: hasNext
+      assertToReplace: isTrue
+      dedicatedAssertion: hasNext
+      requiredType: java.util.Iterator
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: hasNext
+      assertToReplace: isFalse
+      dedicatedAssertion: isExhausted
+      requiredType: java.util.Iterator
+  # Object assertions
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: toString
+      assertToReplace: isEqualTo
+      dedicatedAssertion: hasToString
+      requiredType: java.lang.Object
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: equals
+      assertToReplace: isTrue
+      dedicatedAssertion: isEqualTo
+      requiredType: java.lang.Object
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
+displayName: Shorten AssertJ assertions
+description: Replace AssertJ assertions where a dedicated assertion is available for the same actual value.
+tags:
+  - testing
+  - assertj
+recipeList:
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
+      assertToReplace: isEqualTo
+      literalArgument: "null"
+      dedicatedAssertion: isNull
+      requiredType: java.lang.Object
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
+      assertToReplace: isEqualTo
+      literalArgument: true
+      dedicatedAssertion: isTrue
+      requiredType: java.lang.Boolean
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
+      assertToReplace: isEqualTo
+      literalArgument: '""'
+      dedicatedAssertion: isEmpty
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
+      assertToReplace: isEqualTo
+      literalArgument: false
+      dedicatedAssertion: isFalse
+      requiredType: java.lang.Boolean
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
+      assertToReplace: hasSize
+      literalArgument: 0
+      dedicatedAssertion: isEmpty
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
+      assertToReplace: hasSize
+      literalArgument: 0
+      dedicatedAssertion: isEmpty
+      requiredType: java.io.File
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
+      assertToReplace: hasSize
+      literalArgument: 0
+      dedicatedAssertion: isEmpty
+      requiredType: java.util.Collection
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
+      assertToReplace: hasSize
+      literalArgument: 0
+      dedicatedAssertion: isEmpty
+      requiredType: java.util.Map
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.JUnitToAssertj
 displayName: Migrate JUnit asserts to AssertJ
-description: AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability. Converts assertions from `org.junit.jupiter.api.Assertions` to `org.assertj.core.api.Assertions`.
+description: >-
+  AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability.
+  Converts assertions from `org.junit.jupiter.api.Assertions` to `org.assertj.core.api.Assertions`.
+  Will convert JUnit 4 to JUnit Jupiter if necessary to match and modify assertions.
 tags:
   - testing
   - assertj
 recipeList:
   # First improve the assertions for JUnit, to fix inverted expected/actual values
-  - org.openrewrite.java.testing.junit5.CleanupAssertions
+  - org.openrewrite.java.testing.junit5.JUnit5BestPractices
   - org.openrewrite.java.testing.assertj.JUnitAssertArrayEqualsToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitAssertEqualsToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitAssertFalseToAssertThat
@@ -359,9 +469,11 @@ recipeList:
   - org.openrewrite.java.testing.assertj.JUnitAssertTrueToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitFailToAssertJFail
   - org.openrewrite.java.testing.assertj.JUnitAssertThrowsToAssertExceptionType
+  - org.openrewrite.java.testing.assertj.JUnitAssertInstanceOfToAssertThat
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj
       artifactId: assertj-core
       version: 3.x
       onlyIfUsing: org.assertj.core.api.Assertions
       acceptTransitive: true
+  - tech.picnic.errorprone.refasterrules.JUnitToAssertJRulesRecipes

@@ -15,9 +15,9 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
@@ -137,8 +137,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             return anno;
         }
 
-        @Nullable
-        private String getLiteralAnnotationArgumentValue(J.Annotation anno) {
+        private @Nullable String getLiteralAnnotationArgumentValue(J.Annotation anno) {
             String annotationArgumentValue = null;
             if (anno.getArguments() != null && anno.getArguments().size() == 1 && anno.getArguments().get(0) instanceof J.Literal) {
                 J.Literal literal = (J.Literal) anno.getArguments().get(0);
@@ -147,13 +146,12 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             return annotationArgumentValue;
         }
 
-        @Nullable
-        private String getAnnotationArgumentForInitMethod(J.Annotation anno, String... variableNames) {
+        private @Nullable String getAnnotationArgumentForInitMethod(J.Annotation anno, String... variableNames) {
             String value = null;
-            if (anno.getArguments() != null && anno.getArguments().size() == 1
-                && anno.getArguments().get(0) instanceof J.Assignment
-                && ((J.Assignment) anno.getArguments().get(0)).getVariable() instanceof J.Identifier
-                && ((J.Assignment) anno.getArguments().get(0)).getAssignment() instanceof J.Literal) {
+            if (anno.getArguments() != null && anno.getArguments().size() == 1 &&
+                anno.getArguments().get(0) instanceof J.Assignment &&
+                ((J.Assignment) anno.getArguments().get(0)).getVariable() instanceof J.Identifier &&
+                ((J.Assignment) anno.getArguments().get(0)).getAssignment() instanceof J.Literal) {
                 J.Assignment annoArg = (J.Assignment) anno.getArguments().get(0);
                 J.Literal assignment = (J.Literal) annoArg.getAssignment();
                 String identifier = ((J.Identifier) annoArg.getVariable()).getSimpleName();
@@ -178,8 +176,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
      */
     private static class ParametersNoArgsImplicitMethodSource extends JavaIsoVisitor<ExecutionContext> {
 
-        @Nullable
-        private JavaParser.Builder<?, ?> javaParser;
+        private JavaParser.@Nullable Builder<?, ?> javaParser;
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
@@ -292,8 +289,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             return anno.getValue();
         }
 
-        @Nullable
-        private String getAnnotationArgumentValueForMethodTemplate(J.Annotation anno) {
+        private @Nullable String getAnnotationArgumentValueForMethodTemplate(J.Annotation anno) {
             String annotationArgumentValue = null;
             if (anno.getArguments() != null && anno.getArguments().size() == 1) {
                 Expression annoArg = anno.getArguments().get(0);

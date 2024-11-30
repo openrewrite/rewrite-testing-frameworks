@@ -20,16 +20,20 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AddParameterizedTestAnnotationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
+          .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
           .recipe(new AddParameterizedTestAnnotation());
     }
@@ -45,7 +49,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-                            
+              
               class NumbersTest {
                   @Test
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
@@ -58,12 +62,41 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-                            
+              
               class NumbersTest {
                   @ParameterizedTest
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
                   void testIsOdd(int number) {
                       assertTrue(number % 2 != 0);
+                  }
+              }
+              """
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.junit.jupiter.params.provider.ValueSource
+              import org.junit.jupiter.api.Assertions.assertTrue
+
+              class NumbersTest {
+                  @Test
+                  @ValueSource(ints = [1, 3, 5, -3, 15, Int.MAX_VALUE])
+                  fun testIsOdd(number: Int) {
+                      assertTrue(number % 2 != 0)
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest
+              import org.junit.jupiter.params.provider.ValueSource
+              import org.junit.jupiter.api.Assertions.assertTrue
+
+              class NumbersTest {
+                  @ParameterizedTest
+                  @ValueSource(ints = [1, 3, 5, -3, 15, Int.MAX_VALUE])
+                  fun testIsOdd(number: Int) {
+                      assertTrue(number % 2 != 0)
                   }
               }
               """

@@ -17,29 +17,17 @@ package org.openrewrite.java.testing.jmockit;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
-import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
 
-class JMockitMockedVariableToMockitoTest implements RewriteTest {
+class JMockitAnnotatedArgumentToMockitoTest implements RewriteTest {
+
     @Override
     public void defaults(RecipeSpec spec) {
-        spec
-          .parser(JavaParser.fromJavaVersion()
-            .logCompilationWarningsAndErrors(true)
-            .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-jupiter-api-5.9",
-              "jmockit-1.49",
-              "mockito-core-3.12",
-              "mockito-junit-jupiter-3.12"
-            ))
-          .recipeFromResource(
-            "/META-INF/rewrite/jmockit.yml",
-            "org.openrewrite.java.testing.jmockit.JMockitToMockito"
-          );
+        setDefaultParserSettings(spec);
     }
 
     @DocumentExample
@@ -52,7 +40,7 @@ class JMockitMockedVariableToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               
               import static org.junit.jupiter.api.Assertions.assertNotNull;
-                          
+              
               class A {
                   @Mocked
                   Object mockedObject;
@@ -68,7 +56,7 @@ class JMockitMockedVariableToMockitoTest implements RewriteTest {
               import org.mockito.Mockito;
               
               import static org.junit.jupiter.api.Assertions.assertNotNull;
-                          
+              
               class A {
                   @Mock
                   Object mockedObject;
@@ -86,7 +74,7 @@ class JMockitMockedVariableToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void noVariableTest() {
+    void mockedNoVariableTest() {
         rewriteRun(
           //language=java
           java(
@@ -94,7 +82,7 @@ class JMockitMockedVariableToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               
               import static org.junit.jupiter.api.Assertions.assertNotNull;
-                          
+              
               class A {
                   @Mocked
                   Object mockedObject;
@@ -108,7 +96,86 @@ class JMockitMockedVariableToMockitoTest implements RewriteTest {
               import org.mockito.Mock;
               
               import static org.junit.jupiter.api.Assertions.assertNotNull;
-                          
+              
+              class A {
+                  @Mock
+                  Object mockedObject;
+              
+                  void test() {
+                      assertNotNull(mockedObject);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void injectableVariableTest() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Injectable;
+              
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              
+              class A {
+                  @Injectable
+                  Object mockedObject;
+              
+                  void test(@Injectable Object o, @Injectable Object o2) {
+                      assertNotNull(o);
+                      assertNotNull(o2);
+                  }
+              }
+              """,
+            """
+              import org.mockito.Mock;
+              import org.mockito.Mockito;
+              
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              
+              class A {
+                  @Mock
+                  Object mockedObject;
+              
+                  void test() {
+                      Object o = Mockito.mock(Object.class);
+                      Object o2 = Mockito.mock(Object.class);
+                      assertNotNull(o);
+                      assertNotNull(o2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void injectableNoVariableTest() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import mockit.Injectable;
+              
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              
+              class A {
+                  @Injectable
+                  Object mockedObject;
+              
+                  void test() {
+                      assertNotNull(mockedObject);
+                  }
+              }
+              """,
+            """
+              import org.mockito.Mock;
+              
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              
               class A {
                   @Mock
                   Object mockedObject;
