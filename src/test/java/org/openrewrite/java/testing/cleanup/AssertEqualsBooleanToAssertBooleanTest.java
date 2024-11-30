@@ -105,4 +105,23 @@ class AssertEqualsBooleanToAssertBooleanTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/587")
+    void assertTrueWithNonBoolean() {
+        rewriteRun(
+          spec -> spec.recipe(new AssertEqualsBooleanToAssertBoolean()),
+          // language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              class Main {
+                void foo() {
+                  assertEquals(true, new Object());
+                }
+              }
+              """
+          )
+        );
+    }
 }

@@ -189,7 +189,7 @@ class JUnit5BestPracticesTest implements RewriteTest {
           )
         );
     }
-    
+
     @Test
     void changeThrowingRunnableToExecutable() {
         //language=java

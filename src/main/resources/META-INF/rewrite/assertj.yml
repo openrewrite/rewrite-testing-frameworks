@@ -62,6 +62,9 @@ recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: "org.assertj.core.api.AssertionsForInterfaceTypes assertThat(..)"
       fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: "org.assertj.core.api.Fail fail(..)"
+      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
   - org.openrewrite.java.UseStaticImport:
       methodPattern: "org.assertj.core.api.Assertions *(..)"
 
@@ -112,14 +115,29 @@ recipeList:
       dedicatedAssertion: startsWith
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: startsWith
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotStartWith
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: endsWith
       assertToReplace: isTrue
       dedicatedAssertion: endsWith
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: endsWith
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotEndWith
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: matches
       assertToReplace: isTrue
       dedicatedAssertion: matches
+      requiredType: java.lang.String
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: matches
+      assertToReplace: isFalse
+      dedicatedAssertion: doesNotMatch
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: trim
@@ -432,13 +450,16 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.JUnitToAssertj
 displayName: Migrate JUnit asserts to AssertJ
-description: AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability. Converts assertions from `org.junit.jupiter.api.Assertions` to `org.assertj.core.api.Assertions`.
+description: >-
+  AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability.
+  Converts assertions from `org.junit.jupiter.api.Assertions` to `org.assertj.core.api.Assertions`.
+  Will convert JUnit 4 to JUnit Jupiter if necessary to match and modify assertions.
 tags:
   - testing
   - assertj
 recipeList:
   # First improve the assertions for JUnit, to fix inverted expected/actual values
-  - org.openrewrite.java.testing.junit5.CleanupAssertions
+  - org.openrewrite.java.testing.junit5.JUnit5BestPractices
   - org.openrewrite.java.testing.assertj.JUnitAssertArrayEqualsToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitAssertEqualsToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitAssertFalseToAssertThat
@@ -449,6 +470,7 @@ recipeList:
   - org.openrewrite.java.testing.assertj.JUnitAssertTrueToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitFailToAssertJFail
   - org.openrewrite.java.testing.assertj.JUnitAssertThrowsToAssertExceptionType
+  - org.openrewrite.java.testing.assertj.JUnitAssertInstanceOfToAssertThat
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj
       artifactId: assertj-core

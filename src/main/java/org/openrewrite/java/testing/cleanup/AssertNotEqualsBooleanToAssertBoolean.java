@@ -59,8 +59,8 @@ public class AssertNotEqualsBooleanToAssertBoolean extends Recipe {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 if (ASSERT_NOT_EQUALS.matches(mi) && isBooleanLiteral(mi)) {
                     StringBuilder sb = new StringBuilder();
-                    String assertMethod = Boolean.parseBoolean(((J.Literal) mi.getArguments().get(0)).getValueSource())
-                            ? "assertFalse" : "assertTrue";
+                    String assertMethod = Boolean.parseBoolean(((J.Literal) mi.getArguments().get(0)).getValueSource()) ?
+                            "assertFalse" : "assertTrue";
                     Expression assertion = mi.getArguments().get(1);
                     if (mi.getSelect() == null) {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");

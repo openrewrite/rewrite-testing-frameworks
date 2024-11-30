@@ -51,6 +51,7 @@ class StaticImportsTest implements RewriteTest {
               import org.assertj.core.api.AssertionsForInterfaceTypes;
               import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
               import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+              import static org.assertj.core.api.Fail.fail;
 
               public class Test {
                   List<String> exampleList;
@@ -59,6 +60,7 @@ class StaticImportsTest implements RewriteTest {
                       AssertionsForClassTypes.assertThat(true).isTrue();
                       assertThat(true).isTrue();
                       assertThat(exampleList).hasSize(0);
+                      fail("This is a failure");
                   }
               }
               """,
@@ -66,6 +68,7 @@ class StaticImportsTest implements RewriteTest {
               import java.util.List;
               
               import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.fail;
 
               public class Test {
                   List<String> exampleList;
@@ -74,6 +77,7 @@ class StaticImportsTest implements RewriteTest {
                       assertThat(true).isTrue();
                       assertThat(true).isTrue();
                       assertThat(exampleList).hasSize(0);
+                      fail("This is a failure");
                   }
               }
               """

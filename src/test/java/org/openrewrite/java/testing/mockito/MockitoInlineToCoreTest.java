@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -29,6 +30,7 @@ class MockitoInlineToCoreTest implements RewriteTest {
         spec.recipeFromResources("org.openrewrite.java.testing.mockito.Mockito1to5Migration");
     }
 
+    @DocumentExample
     @Test
     void inlineToCore() {
         rewriteRun(
@@ -50,25 +52,22 @@ class MockitoInlineToCoreTest implements RewriteTest {
                 </dependencies>
               </project>
               """,
-            sourceSpecs -> sourceSpecs.after(after -> {
-                String version = Pattern.compile("<version>(5.+)</version>").matcher(after).results().reduce((a, b) -> b).orElseThrow().group(1);
-                return """
-                  <project>
-                    <modelVersion>4.0.0</modelVersion>
-                    <groupId>com.example</groupId>
-                    <artifactId>demo</artifactId>
-                    <version>0.0.1-SNAPSHOT</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.mockito</groupId>
-                            <artifactId>mockito-core</artifactId>
-                            <version>%s</version>
-                            <scope>test</scope>
-                        </dependency>
-                    </dependencies>
-                  </project>
-                  """.formatted(version);
-            })
+            spec -> spec.after(after -> """
+              <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example</groupId>
+                <artifactId>demo</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>%s</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+              </project>
+              """.formatted(Pattern.compile("<version>(5.+)</version>").matcher(after).results().findFirst().orElseThrow().group(1)))
           )
         );
     }
@@ -100,25 +99,77 @@ class MockitoInlineToCoreTest implements RewriteTest {
                 </dependencies>
               </project>
               """,
-            sourceSpecs -> sourceSpecs.after(after -> {
-                String version = Pattern.compile("<version>(5.+)</version>").matcher(after).results().reduce((a, b) -> b).orElseThrow().group(1);
-                return """
-                  <project>
-                    <modelVersion>4.0.0</modelVersion>
-                    <groupId>com.example</groupId>
-                    <artifactId>demo</artifactId>
-                    <version>0.0.1-SNAPSHOT</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.mockito</groupId>
-                            <artifactId>mockito-core</artifactId>
-                            <version>%s</version>
-                            <scope>test</scope>
-                        </dependency>
-                    </dependencies>
-                  </project>
-                  """.formatted(version);
-            })
+            spec -> spec.after(after -> """
+              <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example</groupId>
+                <artifactId>demo</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>%s</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+              </project>
+              """.formatted(Pattern.compile("<version>(5.+)</version>").matcher(after).results().findFirst().orElseThrow().group(1)))
+          )
+        );
+    }
+
+    @Test
+    void shouldUpdateByteBuddy() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example</groupId>
+                <artifactId>demo</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>5.13.0</version>
+                        <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                        <groupId>net.bytebuddy</groupId>
+                        <artifactId>byte-buddy</artifactId>
+                        <version>1.12.19</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+              </project>
+              """,
+            spec -> spec.after(after -> """
+              <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example</groupId>
+                <artifactId>demo</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>%s</version>
+                        <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                        <groupId>net.bytebuddy</groupId>
+                        <artifactId>byte-buddy</artifactId>
+                        <version>%s</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+              </project>
+              """.formatted(
+              Pattern.compile("<version>(5.+)</version>").matcher(after).results().findFirst().orElseThrow().group(1),
+              Pattern.compile("<version>(1.15.+)</version>").matcher(after).results().findFirst().orElseThrow().group(1)))
           )
         );
     }

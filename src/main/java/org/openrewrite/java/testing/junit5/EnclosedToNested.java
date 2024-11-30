@@ -21,24 +21,18 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.search.FindAnnotations;
+import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-
-import java.util.Comparator;
-import java.util.Set;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class EnclosedToNested extends Recipe {
     private static final String ENCLOSED = "org.junit.experimental.runners.Enclosed";
     private static final String RUN_WITH = "org.junit.runner.RunWith";
-    private static final String NESTED = "org.junit.jupiter.api.Nested";
-    private static final String TEST_JUNIT4 = "org.junit.Test";
-    private static final String TEST_JUNIT_JUPITER = "org.junit.jupiter.api.Test";
+    private static final String RUN_WITH_ENCLOSED = String.format("@%s(%s.class)", RUN_WITH, ENCLOSED);
 
     @Override
     public String getDisplayName() {
@@ -47,54 +41,19 @@ public class EnclosedToNested extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Removes the `Enclosed` specification from a class, and adds `Nested` to its inner classes.";
+        return "Removes the `Enclosed` specification from a class, with `Nested` added to its inner classes by `AddMissingNested`.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(ENCLOSED, false), new JavaIsoVisitor<ExecutionContext>() {
-            @SuppressWarnings("ConstantConditions")
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-                final Set<J.Annotation> runWithEnclosedAnnotationSet = FindAnnotations.find(cd.withBody(null),
-                        String.format("@%s(%s.class)", RUN_WITH, ENCLOSED));
-                for (J.Annotation runWithEnclosed : runWithEnclosedAnnotationSet) {
-                    cd.getLeadingAnnotations().remove(runWithEnclosed);
-                    cd = cd.withBody((J.Block) new AddNestedAnnotationVisitor().visit(cd.getBody(), ctx, getCursor()));
-
-                    maybeRemoveImport(ENCLOSED);
-                    maybeRemoveImport(RUN_WITH);
-                    maybeAddImport(NESTED);
-                }
-                return cd;
+                maybeRemoveImport(ENCLOSED);
+                maybeRemoveImport(RUN_WITH);
+                return (J.ClassDeclaration) new RemoveAnnotationVisitor(new AnnotationMatcher(RUN_WITH_ENCLOSED)).visitNonNull(cd, ctx);
             }
         });
-    }
-
-    public static class AddNestedAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
-        @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-            if (hasTestMethods(cd)) {
-                cd = getNestedJavaTemplate(ctx).apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(
-                        J.Annotation::getSimpleName)));
-                cd.getModifiers().removeIf(modifier -> modifier.getType().equals(J.Modifier.Type.Static));
-            }
-            return cd;
-        }
-
-        private JavaTemplate getNestedJavaTemplate(ExecutionContext ctx) {
-            return JavaTemplate.builder("@Nested")
-                    .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
-                    .imports(NESTED)
-                    .build();
-        }
-
-        private boolean hasTestMethods(final J.ClassDeclaration cd) {
-            return !FindAnnotations.find(cd, "@" + TEST_JUNIT4).isEmpty()
-                    || !FindAnnotations.find(cd, "@" + TEST_JUNIT_JUPITER).isEmpty();
-        }
     }
 }

@@ -50,8 +50,8 @@ public class TempDirNonFinal extends Recipe {
         @Override
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
             J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, ctx);
-            if (varDecls.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches)
-                && varDecls.hasModifier(Type.Final) && isField(getCursor())) {
+            if (varDecls.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches) &&
+                varDecls.hasModifier(Type.Final) && isField(getCursor())) {
                 return maybeAutoFormat(varDecls, varDecls.withModifiers(ListUtils
                                 .map(varDecls.getModifiers(), modifier -> modifier.getType() == Type.Final ? null : modifier)),
                         ctx, getCursor().getParentOrThrow());

@@ -38,20 +38,22 @@ public class TestsShouldIncludeAssertions extends Recipe {
     private static final List<String> TEST_ANNOTATIONS = Collections.singletonList("org.junit.jupiter.api.Test");
 
     private static final List<String> DEFAULT_ASSERTIONS = Arrays.asList(
+            "com.github.tomakehurst.wiremock.client.WireMock",
+            "io.restassured",
+            "mockit",
             "org.assertj.core.api",
-            "org.junit.jupiter.api.Assertions",
+            "org.easymock",
             "org.hamcrest.MatcherAssert",
+            "org.jmock",
+            "org.junit.Assert", // rarely, the test annotation is junit 5 but the assert is junit 4
+            "org.junit.jupiter.api.Assertions",
             "org.mockito.Mockito.verify",
             "org.mockito.Mockito.verifyNoInteractions",
             "org.mockito.Mockito.verifyNoMoreInteractions",
             "org.mockito.Mockito.verifyZeroInteractions",
-            "org.easymock",
-            "org.jmock",
-            "mockit",
-            "io.restassured",
+            "org.springframework.test.web.client.MockRestServiceServer.verify",
             "org.springframework.test.web.servlet.ResultActions",
-            "com.github.tomakehurst.wiremock.client.WireMock",
-            "org.junit.Assert"// rarely, the test annotation is junit 5 but the assert is junit 4
+            "reactor.test.StepVerifier"
     );
 
     @Option(displayName = "Additional assertions",
@@ -97,16 +99,6 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     private static class TestShouldIncludeAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        JavaParser.Builder<?, ?> javaParser;
-
-        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            if (javaParser == null) {
-                javaParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9");
-            }
-            return javaParser;
-        }
-
         private final Map<String, Set<J.Block>> matcherPatternToClassInvocation = new HashMap<>();
         private final List<String> additionalAsserts;
 
@@ -121,7 +113,8 @@ public class TestsShouldIncludeAssertions extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext
                 ctx) {
-            if ((!methodIsTest(method) || method.getBody() == null) ||
+            if ((!methodIsTest(method) || method.getBody() == null || method.getBody().getStatements().isEmpty()) ||
+                methodIsDisabled(method) ||
                 methodHasAssertion(method.getBody()) ||
                 methodInvocationInBodyContainsAssertion()) {
                 return method;
@@ -133,7 +126,8 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
                 md = JavaTemplate.builder("assertDoesNotThrow(() -> #{any()});")
                         .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
-                        .javaParser(javaParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
                         .build()
                         .apply(updateCursor(md), md.getCoordinates().replaceBody(), body);
             }
@@ -146,6 +140,15 @@ public class TestsShouldIncludeAssertions extends Recipe {
                     if (TypeUtils.isOfClassType(leadingAnnotation.getType(), testAnnotation)) {
                         return true;
                     }
+                }
+            }
+            return false;
+        }
+
+        private boolean methodIsDisabled(J.MethodDeclaration methodDeclaration) {
+            for (J.Annotation leadingAnnotation : methodDeclaration.getLeadingAnnotations()) {
+                if (TypeUtils.isOfClassType(leadingAnnotation.getType(), "org.junit.jupiter.api.Disabled")) {
+                    return true;
                 }
             }
             return false;

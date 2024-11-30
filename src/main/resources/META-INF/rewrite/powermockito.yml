@@ -18,41 +18,33 @@
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplacePowerMockito
 displayName: Replace PowerMock with raw Mockito
-description: Upgrade to Mockito 5 and replace PowerMockito with raw Mockito.
+description: PowerMockito with raw Mockito; best executed as part of a Mockito upgrade.
 tags:
   - testing
   - mockito
 recipeList:
-  - org.openrewrite.java.testing.mockito.Mockito1to5Migration
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.powermock.core.classloader.annotations.PowerMockIgnore"
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
       returnType: org.mockito.MockedStatic
-      matchOverrides: null
-      matchUnknownTypes:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito do*(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
-      matchOverrides: null
-      matchUnknownTypes: null
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mock(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
-      matchOverrides: null
-      matchUnknownTypes: null
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito spy(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
-      matchOverrides: null
-      matchUnknownTypes: null
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito when(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
-      matchOverrides: null
-      matchUnknownTypes: null
   - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
       artifactId: powermock-api-mockito*
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-core

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -53,8 +54,9 @@ public class RemoveEmptyTests extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new FindEmptyMethods(false), new JavaVisitor<ExecutionContext>() {
+
             @Override
-            public J visitMethodDeclaration(MethodDeclaration method, ExecutionContext ctx) {
+            public @Nullable J visitMethodDeclaration(MethodDeclaration method, ExecutionContext ctx) {
                 if (hasTestAnnotation(method) && isEmptyMethod(method)) {
                     //noinspection ConstantConditions
                     return null;

@@ -23,14 +23,15 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
 public class JUnitAssertNotNullToAssertThat extends Recipe {
+
+    private static final MethodMatcher ASSERT_NOT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertNotNull(..)", true);
 
     @Override
     public String getDisplayName() {
@@ -44,68 +45,35 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Assertions", false), new AssertNotNullToAssertThatVisitor());
-    }
+        return Preconditions.check(new UsesMethod<>(ASSERT_NOT_NULL_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (!ASSERT_NOT_NULL_MATCHER.matches(mi)) {
+                    return mi;
+                }
 
-    public static class AssertNotNullToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private JavaParser.Builder<?, ?> assertionsParser;
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeRemoveImport("org.junit.jupiter.api.Assertions");
 
-        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
-            if (assertionsParser == null) {
-                assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24");
-            }
-            return assertionsParser;
-        }
+                List<Expression> args = mi.getArguments();
+                Expression actual = args.get(0);
+                if (args.size() == 1) {
+                    return JavaTemplate.builder("assertThat(#{any()}).isNotNull();")
+                            .staticImports("org.assertj.core.api.Assertions.assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .build()
+                            .apply(getCursor(), mi.getCoordinates().replace(), actual);
 
-        private static final MethodMatcher JUNIT_ASSERT_NOT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertNotNull(..)");
+                }
 
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (!JUNIT_ASSERT_NOT_NULL_MATCHER.matches(method)) {
-                return method;
-            }
-
-            List<Expression> args = method.getArguments();
-            Expression actual = args.get(0);
-
-            if (args.size() == 1) {
-                method = JavaTemplate.builder("assertThat(#{any()}).isNotNull();")
-                        .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(assertionsParser(ctx))
-                        .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replace(),
-                                actual
-                        );
-
-            } else {
                 Expression message = args.get(1);
-
-                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotNull();") :
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotNull();");
-
-                method = template
+                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isNotNull();")
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(assertionsParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replace(),
-                                actual,
-                                message
-                        );
+                        .apply(getCursor(), mi.getCoordinates().replace(), actual, message);
             }
-
-            //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
-
-            //And if there are no longer references to the JUnit assertions class, we can remove the import.
-            maybeRemoveImport("org.junit.jupiter.api.Assertions");
-
-            return method;
-        }
+        });
     }
 }
