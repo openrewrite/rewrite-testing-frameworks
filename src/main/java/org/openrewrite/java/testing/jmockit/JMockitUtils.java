@@ -15,6 +15,8 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
@@ -26,6 +28,12 @@ import java.util.Optional;
 import static java.util.Optional.empty;
 
 class JMockitUtils {
+
+    static final String MOCKITO_ALL_IMPORT = "org.mockito.Mockito.*";
+
+    public static JavaParser.Builder<?, ?> getJavaParser(ExecutionContext ctx) {
+        return JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12");
+    }
 
     static Optional<JMockitBlockType> getJMockitBlock(Statement s) {
         if (!(s instanceof J.NewClass)) {

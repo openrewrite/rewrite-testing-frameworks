@@ -69,19 +69,25 @@ public class JMockitBlockToMockito extends Recipe {
             J.Block methodBody = ssr.rewriteMethodBody();
             List<Statement> statements = methodBody.getStatements();
 
+            int verificationsInOrderIdx = 0;
             int bodyStatementIndex = 0;
-            // iterate over each statement in the method body, find Expectations blocks and rewrite them
+            // iterate over each statement in the method body, find JMockit blocks and rewrite them
             while (bodyStatementIndex < statements.size()) {
                 Statement s = statements.get(bodyStatementIndex);
-                Optional<JMockitBlockType> blockType = JMockitUtils.getJMockitBlock(s);
-                if (blockType.isPresent()) {
+                Optional<JMockitBlockType> blockTypeOpt = JMockitUtils.getJMockitBlock(s);
+                if (blockTypeOpt.isPresent()) {
+                    JMockitBlockType blockType = blockTypeOpt.get();
                     JMockitBlockRewriter blockRewriter = new JMockitBlockRewriter(this, ctx, methodBody,
-                            ((J.NewClass) s), bodyStatementIndex, blockType.get());
+                            ((J.NewClass) s), bodyStatementIndex, blockType, verificationsInOrderIdx);
                     methodBody = blockRewriter.rewriteMethodBody();
                     statements = methodBody.getStatements();
-                    // if the expectations rewrite failed, skip the next statement
+                    // if the block rewrite failed, skip the next statement
                     if (blockRewriter.isRewriteFailed()) {
                         bodyStatementIndex++;
+                    } else {
+                        if (blockType == JMockitBlockType.VerificationsInOrder) {
+                            verificationsInOrderIdx++;
+                        }
                     }
                 } else {
                     bodyStatementIndex++;
