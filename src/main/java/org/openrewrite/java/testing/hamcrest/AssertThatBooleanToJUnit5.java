@@ -28,12 +28,12 @@ import org.openrewrite.java.tree.J;
 public class AssertThatBooleanToJUnit5 extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Migrate Hamcrest `assertThat(boolean, Matcher)` to AssertJ";
+        return "Migrate Hamcrest `assertThat(boolean, Matcher)` to JUnit 5";
     }
 
     @Override
     public String getDescription() {
-        return "Replace Hamcrest `assertThat(String, boolean)` with AssertJ `assertThat(boolean).as(String).isTrue()`.";
+        return "Replace Hamcrest `assertThat(String, boolean)` with JUnit 5 `assertTrue(boolean, String)`.";
     }
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(String, boolean)");
