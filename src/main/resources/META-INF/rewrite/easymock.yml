@@ -33,7 +33,7 @@ recipeList:
       methodPattern: org.easymock.IExpectationSetters anyTimes()
   - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IMocksControl replay(..)
-  - org.openrewrite.java.testing.RemoveMethodInvocations:
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.EasyMock replay(..)
   - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IMocksControl verify(..)
