@@ -179,9 +179,10 @@ class EasyMockToMockitoTest implements RewriteTest {
                   private String email;
               }
 
-              // The `Object ignore` makes it possible to ignore the removal-matcher-optimization code
+              // The second `Object ignore` argument disables the removal-matcher-optimization code like:
+              // expect(service.addUser(eq(new User()))) to expect(service.addUser(new User()));
               class UserService {
-                  boolean addUser(User user, Object ignore) { return true; }
+                  boolean addUser(User user) { return true; }
                   List<User> findByEmail(String email, Object ignore) { return new ArrayList<>(); }
                   List<User> findByAge(double age, Object ignore) { return new ArrayList<>(); }
               }"""
