@@ -22,6 +22,14 @@ tags:
   - testing
   - easymock
 recipeList:
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.mockito
+      artifactId: mockito-core
+      version: 5.x
+      onlyIfUsing: org.easymock.*
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.easymock
+      artifactId: easymock
   - org.openrewrite.java.testing.easymock.EasyMockVerifyToMockitoVerify
   - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IExpectationSetters times(..)
@@ -146,11 +154,3 @@ recipeList:
       oldFullyQualifiedTypeName: org.easymock.TestSubject
       newFullyQualifiedTypeName: org.mockito.InjectMocks
   - org.openrewrite.java.testing.mockito.MockitoBestPractices
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.mockito
-      artifactId: mockito-core
-      version: 5.x
-      onlyIfUsing: org.mockito.*
-  - org.openrewrite.java.dependencies.RemoveDependency:
-      groupId: org.easymock
-      artifactId: easymock
