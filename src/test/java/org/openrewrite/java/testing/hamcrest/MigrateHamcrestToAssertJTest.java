@@ -68,7 +68,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                   Biscuit(String name) {
                       this.name = name;
                   }
-              
+
                   int getChocolateChipCount() {
                       return 10;
                   }
@@ -120,40 +120,40 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         rewriteRun(
           //language=java
           java(
-                """
-            import org.junit.jupiter.api.Test;
-            
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.allOf;
-            import static org.hamcrest.Matchers.equalTo;
-            import static org.hamcrest.Matchers.hasLength;
-            
-            class ATest {
-                @Test
-                void test() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1, allOf(equalTo(str2), hasLength(12)));
-                }
-            }
-            """, """
-            import org.junit.jupiter.api.Test;
+            """
+              import org.junit.jupiter.api.Test;
 
-            import static org.assertj.core.api.Assertions.assertThat;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.allOf;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.hasLength;
 
-            class ATest {
-                @Test
-                void test() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1)
-                            .satisfies(
-                                    arg -> assertThat(arg).isEqualTo(str2),
-                                    arg -> assertThat(arg).hasSize(12)
-                            );
-                }
-            }
-            """));
+              class ATest {
+                  @Test
+                  void test() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, allOf(equalTo(str2), hasLength(12)));
+                  }
+              }
+              """, """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class ATest {
+                  @Test
+                  void test() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1)
+                              .satisfies(
+                                      arg -> assertThat(arg).isEqualTo(str2),
+                                      arg -> assertThat(arg).hasSize(12)
+                              );
+                  }
+              }
+              """));
     }
 
     @Test
@@ -162,40 +162,40 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         rewriteRun(
           //language=java
           java(
-                """
-            import org.junit.jupiter.api.Test;
-            
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.anyOf;
-            import static org.hamcrest.Matchers.equalTo;
-            import static org.hamcrest.Matchers.hasLength;
-            
-            class ATest {
-                @Test
-                void test() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1, anyOf(equalTo(str2), hasLength(12)));
-                }
-            }
-            """, """
-            import org.junit.jupiter.api.Test;
+            """
+              import org.junit.jupiter.api.Test;
 
-            import static org.assertj.core.api.Assertions.assertThat;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.anyOf;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.hasLength;
 
-            class ATest {
-                @Test
-                void test() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1)
-                            .satisfiesAnyOf(
-                                    arg -> assertThat(arg).isEqualTo(str2),
-                                    arg -> assertThat(arg).hasSize(12)
-                            );
-                }
-            }
-            """));
+              class ATest {
+                  @Test
+                  void test() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, anyOf(equalTo(str2), hasLength(12)));
+                  }
+              }
+              """, """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class ATest {
+                  @Test
+                  void test() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1)
+                              .satisfiesAnyOf(
+                                      arg -> assertThat(arg).isEqualTo(str2),
+                                      arg -> assertThat(arg).hasSize(12)
+                              );
+                  }
+              }
+              """));
     }
 
     private static Stream<Arguments> arrayReplacements() {
@@ -218,9 +218,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         //language=java
         String template = """
           import org.junit.jupiter.api.Test;
-          
+
           %s
-          
+
           class ATest {
               @Test
               void test() {
@@ -276,9 +276,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         //language=java
         String template = """
           import org.junit.jupiter.api.Test;
-          
+
           %s
-          
+
           class ATest {
               @Test
               void test() {
@@ -315,9 +315,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         //language=java
         String template = """
           import org.junit.jupiter.api.Test;
-          
+
           %s
-          
+
           class ATest {
               @Test
               void test() {
@@ -331,14 +331,14 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
         rewriteRun(
           java(
-                """
-            class Biscuit {
-                String name;
-                Biscuit(String name) {
-                    this.name = name;
-                }
-            }
-            """),
+            """
+              class Biscuit {
+                  String name;
+                  Biscuit(String name) {
+                      this.name = name;
+                  }
+              }
+              """),
           java(before, after));
     }
 
@@ -362,9 +362,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         //language=java
         String template = """
           import org.junit.jupiter.api.Test;
-          
+
           %s
-          
+
           class ATest {
               @Test
               void test() {
@@ -404,9 +404,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String template = """
           import java.util.List;
           import org.junit.jupiter.api.Test;
-          
+
           %s
-          
+
           class ATest {
               @Test
               void test(String item) {
@@ -441,9 +441,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String template = """
           import java.util.Map;
           import org.junit.jupiter.api.Test;
-          
+
           %s
-          
+
           class ATest {
               @Test
               void test(String key, String value) {
@@ -490,9 +490,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         //language=java
         String template = """
           import org.junit.jupiter.api.Test;
-          
+
           %s
-          
+
           class ATest {
               @Test
               void test() {
@@ -512,10 +512,10 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         @Language("java")
         private static final String JAVA_BEFORE = """
           import org.junit.jupiter.api.Test;
-          
+
           import static org.hamcrest.MatcherAssert.assertThat;
           import static org.hamcrest.Matchers.equalTo;
-          
+
           class ATest {
               @Test
               void test() {
@@ -527,9 +527,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         @Language("java")
         private static final String JAVA_AFTER = """
           import org.junit.jupiter.api.Test;
-          
+
           import static org.assertj.core.api.Assertions.assertThat;
-          
+
           class ATest {
               @Test
               void test() {
@@ -541,90 +541,91 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         @Test
         void assertjMavenDependencyAddedWithTestScope() {
             rewriteRun(
-              spec -> spec.expectedCyclesThatMakeChanges(2),
               mavenProject("project",
                 srcTestJava(java(JAVA_BEFORE, JAVA_AFTER)),
                 //language=xml
                 pomXml("""
-                  <project>
-                      <modelVersion>4.0.0</modelVersion>
-                      <groupId>com.example</groupId>
-                      <artifactId>demo</artifactId>
-                      <version>0.0.1-SNAPSHOT</version>
-                      <dependencies>
-                          <dependency>
-                              <groupId>org.hamcrest</groupId>
-                              <artifactId>hamcrest</artifactId>
-                              <version>2.2</version>
-                              <scope>test</scope>
-                          </dependency>
-                      </dependencies>
-                  </project>
-                  """,
-                sourceSpecs -> sourceSpecs.after(after -> """
-                  <project>
-                      <modelVersion>4.0.0</modelVersion>
-                      <groupId>com.example</groupId>
-                      <artifactId>demo</artifactId>
-                      <version>0.0.1-SNAPSHOT</version>
-                      <dependencies>
-                          <dependency>
-                              <groupId>org.assertj</groupId>
-                              <artifactId>assertj-core</artifactId>
-                              <version>%s</version>
-                              <scope>test</scope>
-                          </dependency>
-                          <dependency>
-                              <groupId>org.hamcrest</groupId>
-                              <artifactId>hamcrest</artifactId>
-                              <version>2.2</version>
-                              <scope>test</scope>
-                          </dependency>
-                      </dependencies>
-                  </project>
-                  """.formatted(Pattern.compile("<version>(3\\.2.*)</version>").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1))))
-            )
-          );
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>demo</artifactId>
+                        <version>0.0.1-SNAPSHOT</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.hamcrest</groupId>
+                                <artifactId>hamcrest</artifactId>
+                                <version>2.2</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """,
+                  sourceSpecs -> sourceSpecs.after(after -> """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>demo</artifactId>
+                        <version>0.0.1-SNAPSHOT</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.assertj</groupId>
+                                <artifactId>assertj-core</artifactId>
+                                <version>%s</version>
+                                <scope>test</scope>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.hamcrest</groupId>
+                                <artifactId>hamcrest</artifactId>
+                                <version>2.2</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """.formatted(Pattern.compile("<version>(3\\.2.*)</version>").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1))))
+              )
+            );
         }
 
         @Test
         void assertjGradleDependencyAddedWithTestScope() {
             rewriteRun(
-              spec -> spec.beforeRecipe(withToolingApi()).expectedCyclesThatMakeChanges(2),
+              spec -> spec.beforeRecipe(withToolingApi()),
               mavenProject("project",
                 srcTestJava(java(JAVA_BEFORE, JAVA_AFTER)),
-                buildGradle("""
-                  plugins {
-                      id "java-library"
-                  }
-                  
-                  repositories {
-                      mavenCentral()
-                  }
-                  
-                  dependencies {
-                      testImplementation "org.hamcrest:hamcrest:2.2"
-                  }
-                  """,
-                sourceSpecs -> sourceSpecs.after(after -> """
-                  plugins {
-                      id "java-library"
-                  }
-                  
-                  repositories {
-                      mavenCentral()
-                  }
-                  
-                  dependencies {
-                      testImplementation "org.assertj:%s"
-                      testImplementation "org.hamcrest:hamcrest:2.2"
-                  }
+                //language=groovy
+                buildGradle(
                   """
-                  .formatted(Pattern.compile("(assertj-core:[^\"]*)").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1))
+                    plugins {
+                        id "java-library"
+                    }
+
+                    repositories {
+                        mavenCentral()
+                    }
+
+                    dependencies {
+                        testImplementation "org.hamcrest:hamcrest:2.2"
+                    }
+                    """,
+                  sourceSpecs -> sourceSpecs.after(after -> """
+                    plugins {
+                        id "java-library"
+                    }
+
+                    repositories {
+                        mavenCentral()
+                    }
+
+                    dependencies {
+                        testImplementation "org.assertj:%s"
+                        testImplementation "org.hamcrest:hamcrest:2.2"
+                    }
+                    """
+                    .formatted(Pattern.compile("(assertj-core:[^\"]*)").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1))
+                  )
                 )
               )
-            )
-          );
+            );
         }
     }
 
@@ -685,14 +686,14 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
             """
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.core.Is.is;
-              
+
               import org.junit.jupiter.api.Test;
-              
+
               class DebugTest {
                   class Foo {
                       int i = 8;
                   }
-              
+
                   @Test
                   void ba() {
                       assertThat(System.out, is(System.out));
@@ -702,14 +703,14 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               """,
             """
               import static org.assertj.core.api.Assertions.assertThat;
-              
+
               import org.junit.jupiter.api.Test;
-              
+
               class DebugTest {
                   class Foo {
                       int i = 8;
                   }
-              
+
                   @Test
                   void ba() {
                       assertThat(System.out).isEqualTo(System.out);
@@ -732,9 +733,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               import static org.hamcrest.core.IsEqual.equalTo;
               import static org.hamcrest.core.IsNot.not;
               import static org.hamcrest.core.IsSame.sameInstance;
-              
+
               import org.junit.jupiter.api.Test;
-              
+
               class DebugTest {
                   @Test
                   void ba() {
@@ -746,9 +747,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               """,
             """
               import static org.assertj.core.api.Assertions.assertThat;
-              
+
               import org.junit.jupiter.api.Test;
-              
+
               class DebugTest {
                   @Test
                   void ba() {
@@ -803,7 +804,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
       }
     )
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/526")
-    void greaterThanOrEqualToDate(String type){
+    void greaterThanOrEqualToDate(String type) {
         rewriteRun(
           java(
             """
