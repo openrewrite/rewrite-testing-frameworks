@@ -30,10 +30,5 @@ recipeList:
       onlyIfUsing: org.testng.*
       acceptTransitive: true
   - tech.picnic.errorprone.refasterrules.TestNGToAssertJRulesRecipes
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertEqualsToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertFalseToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNotEqualsToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNotNullToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNullToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertTrueToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgFailToAssertJFail
+  - org.openrewrite.java.testing.testng.TestNgAssertEqualsToAssertThat
+  - org.openrewrite.java.testing.testng.TestNgAssertNotEqualsToAssertThat

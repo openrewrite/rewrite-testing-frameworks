@@ -102,4 +102,76 @@ class TestNgToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void assertNullAndNotNull() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.testng.Assert.assertNotNull;
+              import static org.testng.Assert.assertNull;
+
+              class Test {
+                  void aaa(Object obj) {
+                      assertNull(obj);
+                      assertNull(obj, "foo");
+                  }
+                  void bbb(Object obj) {
+                      assertNotNull(obj);
+                      assertNotNull(obj, "foo");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void aaa(Object obj) {
+                      assertThat(obj).isNull();
+                      assertThat(obj).withFailMessage("foo").isNull();
+                  }
+                  void bbb(Object obj) {
+                      assertThat(obj).isNotNull();
+                      assertThat(obj).withFailMessage("foo").isNotNull();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertEqualsAndNotEquals() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.testng.Assert.assertEquals;
+              import static org.testng.Assert.assertNotEquals;
+
+              class Test {
+                  void aaa(Object obj) {
+                      assertEquals(1, 1);
+                      assertEquals(1, 1, "foo");
+                      assertNotEquals(1, 2);
+                      assertNotEquals(1, 2, "foo");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void aaa(Object obj) {
+                      assertThat(1).isEqualTo(1);
+                      assertThat(1).as("foo").isEqualTo(1);
+                      assertThat(1).isNotEqualTo(2);
+                      assertThat(1).as("foo").isNotEqualTo(2);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
