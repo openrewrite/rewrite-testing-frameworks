@@ -24,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-public class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
+class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec

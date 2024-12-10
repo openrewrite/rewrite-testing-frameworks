@@ -63,7 +63,9 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
                         reason = mi.getArguments().get(0);
                         examinedObject = mi.getArguments().get(1);
                         hamcrestMatcher = mi.getArguments().get(2);
-                    } else return mi;
+                    } else {
+                        return mi;
+                    }
 
                     J.MethodInvocation matcherInvocation = (J.MethodInvocation) hamcrestMatcher;
                     while (matcherInvocation.getSimpleName().equals("not")) {
@@ -75,10 +77,10 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
                     if (INSTANCE_OF_MATCHER.matches(matcherInvocation) || IS_A_MATCHER.matches(matcherInvocation)) {
                         boolean logicalContext = REMOVE_NOT_MATCHER_RECIPE.getLogicalContext(matcherInvocation, ctx);
 
-                        String templateString = (logicalContext
-                            ? "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}"
-                            : "assertFalse(#{any(java.lang.Class)}.isAssignableFrom(#{any(java.lang.Object)}.getClass())")
-                                + (reason == null ? ")" : ", #{any(java.lang.String)})");
+                        String templateString = (logicalContext ?
+                            "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}" :
+                            "assertFalse(#{any(java.lang.Class)}.isAssignableFrom(#{any(java.lang.Object)}.getClass())") +
+                                (reason == null ? ")" : ", #{any(java.lang.String)})");
 
                         JavaTemplate template = JavaTemplate.builder(templateString)
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))

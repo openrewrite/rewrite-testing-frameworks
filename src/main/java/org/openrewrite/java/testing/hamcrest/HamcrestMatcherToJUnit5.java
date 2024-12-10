@@ -25,12 +25,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.BiFunction;
 
 public class HamcrestMatcherToJUnit5 extends Recipe {
@@ -113,7 +108,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
         }
     }
 
-    private static RemoveNotMatcher removeNotRecipe = new RemoveNotMatcher();
+    private static final RemoveNotMatcher removeNotRecipe = new RemoveNotMatcher();
 
     private static class MigrationFromHamcrestVisitor extends JavaIsoVisitor<ExecutionContext> {
 
@@ -135,7 +130,9 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                     reason = mi.getArguments().get(0);
                     examinedObject = mi.getArguments().get(1);
                     hamcrestMatcher = mi.getArguments().get(2);
-                } else return mi;
+                } else {
+                    return mi;
+                }
 
                 if (hamcrestMatcher instanceof J.MethodInvocation) {
                     J.MethodInvocation matcherInvocation = (J.MethodInvocation) hamcrestMatcher;
@@ -165,10 +162,10 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                     String assertion = logicalContext ? replacement.junitPositive : replacement.junitNegative;
 
                     String templateString =
-                        assertion
-                            + "("
-                            + replacement.template
-                            + (reason == null ? ")" : ", #{any(java.lang.String)})");
+                        assertion +
+                            "(" +
+                            replacement.template +
+                            (reason == null ? ")" : ", #{any(java.lang.String)})");
 
                     JavaTemplate template = JavaTemplate.builder(templateString)
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
