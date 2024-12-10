@@ -108,8 +108,6 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
         }
     }
 
-    private static final RemoveNotMatcher removeNotRecipe = new RemoveNotMatcher();
-
     private static class MigrationFromHamcrestVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
@@ -141,7 +139,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                     while (matcherInvocation.getSimpleName().equals("not")) {
                         maybeRemoveImport("org.hamcrest.Matchers.not");
                         maybeRemoveImport("org.hamcrest.CoreMatchers.not");
-                        matcherInvocation = (J.MethodInvocation) removeNotRecipe.getVisitor().visit(matcherInvocation, ctx);
+                        matcherInvocation = (J.MethodInvocation) new RemoveNotMatcherVisitor().visit(matcherInvocation, ctx);
                     }
 
                     //we do not handle nested matchers
@@ -151,7 +149,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                         }
                     }
 
-                    boolean logicalContext = removeNotRecipe.getLogicalContext(matcherInvocation, ctx);
+                    boolean logicalContext = RemoveNotMatcherVisitor.getLogicalContext(matcherInvocation, ctx);
 
                     Replacement replacement;
                     try {

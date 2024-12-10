@@ -43,7 +43,6 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
     static final MethodMatcher INSTANCE_OF_MATCHER = new MethodMatcher("org.hamcrest.Matchers instanceOf(..)");
     static final MethodMatcher IS_A_MATCHER = new MethodMatcher("org.hamcrest.Matchers isA(..)");
     static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(.., org.hamcrest.Matcher)");
-    static final RemoveNotMatcher REMOVE_NOT_MATCHER_RECIPE= new RemoveNotMatcher();
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -71,11 +70,11 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
                     while (matcherInvocation.getSimpleName().equals("not")) {
                         maybeRemoveImport("org.hamcrest.Matchers.not");
                         maybeRemoveImport("org.hamcrest.CoreMatchers.not");
-                        matcherInvocation = (J.MethodInvocation) REMOVE_NOT_MATCHER_RECIPE.getVisitor().visit(matcherInvocation, ctx);
+                        matcherInvocation = (J.MethodInvocation) new RemoveNotMatcherVisitor().visit(matcherInvocation, ctx);
                     }
 
                     if (INSTANCE_OF_MATCHER.matches(matcherInvocation) || IS_A_MATCHER.matches(matcherInvocation)) {
-                        boolean logicalContext = REMOVE_NOT_MATCHER_RECIPE.getLogicalContext(matcherInvocation, ctx);
+                        boolean logicalContext = RemoveNotMatcherVisitor.getLogicalContext(matcherInvocation, ctx);
 
                         String templateString = (logicalContext ?
                             "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}" :

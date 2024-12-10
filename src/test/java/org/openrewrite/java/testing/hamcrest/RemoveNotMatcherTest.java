@@ -23,6 +23,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.test.RewriteTest.toRecipe;
 
 class RemoveNotMatcherTest implements RewriteTest {
     @Override
@@ -30,7 +31,7 @@ class RemoveNotMatcherTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "hamcrest-2.2"))
-          .recipe(new RemoveNotMatcher());
+          .recipe(toRecipe(RemoveNotMatcherVisitor::new));
     }
 
     @DocumentExample
