@@ -23,7 +23,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -43,14 +43,14 @@ public class TestNgAssertEqualsToAssertThat extends Recipe {
         return "Convert TestNG-style `assertEquals()` to AssertJ's `assertThat().isEqualTo()`.";
     }
 
+    private final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertEquals(..)");
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.testng.Assert", false), new JavaIsoVisitor<ExecutionContext>() {
-            private final MethodMatcher TESTNG_ASSERT_EQUALS = new MethodMatcher("org.testng.Assert" + " assertEquals(..)");
-
+        return Preconditions.check(new UsesMethod<>(TESTNG_ASSERT_METHOD), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (!TESTNG_ASSERT_EQUALS.matches(method)) {
+                if (!TESTNG_ASSERT_METHOD.matches(method)) {
                     return method;
                 }
 

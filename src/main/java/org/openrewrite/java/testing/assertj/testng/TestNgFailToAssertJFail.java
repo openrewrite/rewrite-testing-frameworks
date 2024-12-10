@@ -20,7 +20,7 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
@@ -38,16 +38,16 @@ public class TestNgFailToAssertJFail extends Recipe {
         return "Convert TestNG-style `fail()` to AssertJ's `fail()`.";
     }
 
+    private final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert fail(..)");
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.testng.Assert", false), new JavaIsoVisitor<ExecutionContext>() {
-            private final MethodMatcher TESTNG_FAIL_MATCHER = new MethodMatcher("org.testng.Assert" + " fail(..)");
-
+        return Preconditions.check(new UsesMethod<>(TESTNG_ASSERT_METHOD), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = method;
 
-                if (!TESTNG_FAIL_MATCHER.matches(m)) {
+                if (!TESTNG_ASSERT_METHOD.matches(m)) {
                     return m;
                 }
 
@@ -101,7 +101,7 @@ public class TestNgFailToAssertJFail extends Recipe {
     }
 
     private static class UnqualifiedMethodInvocations extends JavaIsoVisitor<ExecutionContext> {
-        private static final MethodMatcher ASSERTJ_FAIL_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions" + " fail(..)");
+        private static final MethodMatcher ASSERTJ_FAIL_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions fail(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {

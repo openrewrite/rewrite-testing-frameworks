@@ -23,7 +23,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
@@ -42,14 +42,14 @@ public class TestNgAssertNullToAssertThat extends Recipe {
         return "Convert TestNG-style `assertNull()` to AssertJ's `assertThat().isNull()`.";
     }
 
+    private final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertNull(..)");
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.testng.Assert", false), new JavaIsoVisitor<ExecutionContext>() {
-            private final MethodMatcher TESTNG_ASSERT_NULL_MATCHER = new MethodMatcher("org.testng.Assert" + " assertNull(..)");
-
+        return Preconditions.check(new UsesMethod<>(TESTNG_ASSERT_METHOD), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (!TESTNG_ASSERT_NULL_MATCHER.matches(method)) {
+                if (!TESTNG_ASSERT_METHOD.matches(method)) {
                     return method;
                 }
 
