@@ -22,17 +22,17 @@ tags:
   - testing
   - assertj
 recipeList:
-  - tech.picnic.errorprone.refasterrules.TestNGToAssertJRulesRecipes
-#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertEqualsToAssertThat
-#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertFalseToAssertThat
-#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNotEqualsToAssertThat
-#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNotNullToAssertThat
-#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNullToAssertThat
-#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertTrueToAssertThat
-#  - org.openrewrite.java.testing.assertj.testng.TestNgFailToAssertJFail
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj
       artifactId: assertj-core
       version: 3.x
-      onlyIfUsing: org.assertj.core.api.Assertions
+      onlyIfUsing: org.testng.*
       acceptTransitive: true
+  - tech.picnic.errorprone.refasterrules.TestNGToAssertJRulesRecipes
+  - org.openrewrite.java.testing.assertj.testng.TestNgAssertEqualsToAssertThat
+  - org.openrewrite.java.testing.assertj.testng.TestNgAssertFalseToAssertThat
+  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNotEqualsToAssertThat
+  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNotNullToAssertThat
+  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNullToAssertThat
+  - org.openrewrite.java.testing.assertj.testng.TestNgAssertTrueToAssertThat
+  - org.openrewrite.java.testing.assertj.testng.TestNgFailToAssertJFail

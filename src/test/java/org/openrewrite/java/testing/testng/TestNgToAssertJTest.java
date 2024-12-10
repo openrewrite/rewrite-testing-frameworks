@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.assertj;
+package org.openrewrite.java.testing.testng;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
@@ -59,7 +59,7 @@ class TestNgToAssertJTest implements RewriteTest {
                   void test() {
                       fail("foo");
                       fail("foo", new IllegalStateException());
-                      throw new AssertionError();
+                      fail("");
                   }
               }
               """
@@ -94,9 +94,9 @@ class TestNgToAssertJTest implements RewriteTest {
               class Test {
                   void test() {
                       assertThat(true).isTrue();
-                      assertThat(true).withFailMessage("foo").isTrue();
+                      assertThat(true).as("foo").isTrue();
                       assertThat(false).isFalse();
-                      assertThat(false).withFailMessage("foo").isFalse();
+                      assertThat(false).as("foo").isFalse();
                   }
               }
               """
