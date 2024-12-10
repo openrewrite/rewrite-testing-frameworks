@@ -28,7 +28,7 @@ class TestNgToAssertJTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "testng"))
+          .parser(JavaParser.fromJavaVersion().classpath("testng"))
           .recipeFromResources("org.openrewrite.java.testing.assertj.Assertj");
     }
 
@@ -59,7 +59,7 @@ class TestNgToAssertJTest implements RewriteTest {
                   void test() {
                       fail("foo");
                       fail("foo", new IllegalStateException());
-                      fail("");
+                      fail();
                   }
               }
               """
@@ -94,9 +94,9 @@ class TestNgToAssertJTest implements RewriteTest {
               class Test {
                   void test() {
                       assertThat(true).isTrue();
-                      assertThat(true).as("foo").isTrue();
+                      assertThat(true).withFailMessage("foo").isTrue();
                       assertThat(false).isFalse();
-                      assertThat(false).as("foo").isFalse();
+                      assertThat(false).withFailMessage("foo").isFalse();
                   }
               }
               """

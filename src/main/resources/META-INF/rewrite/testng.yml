@@ -16,11 +16,12 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testng.TestNgToAssertj
-displayName: Migrate TestNG asserts to AssertJ
-description: AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability. Converts assertions from `org.testng.Assert` to `org.assertj.core.api.Assertions`.
+displayName: Migrate TestNG assertions to AssertJ
+description: Convert assertions from `org.testng.Assert` to `org.assertj.core.api.Assertions`.
 tags:
-  - testing
   - assertj
+  - testing
+  - testng
 recipeList:
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj
@@ -29,10 +30,10 @@ recipeList:
       onlyIfUsing: org.testng.*
       acceptTransitive: true
   - tech.picnic.errorprone.refasterrules.TestNGToAssertJRulesRecipes
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertEqualsToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertFalseToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNotEqualsToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNotNullToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNullToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgAssertTrueToAssertThat
-  - org.openrewrite.java.testing.assertj.testng.TestNgFailToAssertJFail
+#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertEqualsToAssertThat
+#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertFalseToAssertThat
+#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNotEqualsToAssertThat
+#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNotNullToAssertThat
+#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertNullToAssertThat
+#  - org.openrewrite.java.testing.assertj.testng.TestNgAssertTrueToAssertThat
+#  - org.openrewrite.java.testing.assertj.testng.TestNgFailToAssertJFail
