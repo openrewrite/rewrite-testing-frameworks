@@ -73,13 +73,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                             );
                 } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
                     Expression message = args.get(2);
-
-                    JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                            JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotEqualTo(#{any()});") :
-                            JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotEqualTo(#{any()});");
-
-
-                    method = template
+                    method = JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotEqualTo(#{any()});")
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
                             .javaParser(JavaParser.fromJavaVersion()
                                     .classpathFromResources(ctx, "assertj-core-3.24"))
@@ -107,12 +101,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                     maybeAddImport("org.assertj.core.api.Assertions", "within", false);
                 } else {
                     Expression message = args.get(3);
-
-                    JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                            JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));") :
-                            JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotCloseTo(#{any()}, within(#{any()}));");
-
-                    method = template
+                    method = JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));")
                             .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                             .javaParser(JavaParser.fromJavaVersion()
                                     .classpathFromResources(ctx, "assertj-core-3.24"))

@@ -73,10 +73,7 @@ public class TestNgAssertEqualsToAssertThat extends Recipe {
                             .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
                 } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
                     Expression message = args.get(2);
-                    JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                            JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isEqualTo(#{any()});") :
-                            JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isEqualTo(#{any()});");
-                    return template
+                    return JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isEqualTo(#{any()});")
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
                             .imports("java.util.function.Supplier")
                             .javaParser(JavaParser.fromJavaVersion()
@@ -106,10 +103,7 @@ public class TestNgAssertEqualsToAssertThat extends Recipe {
 
                 //always add the import (even if not referenced)
                 maybeAddImport("org.assertj.core.api.Assertions", "within", false);
-                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isCloseTo(#{any()}, within(#{any()}));") :
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isCloseTo(#{any()}, within(#{any()}));");
-                return template
+                return JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isCloseTo(#{any()}, within(#{any()}));")
                         .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                         .imports("java.util.function.Supplier")
                         .javaParser(JavaParser.fromJavaVersion()
