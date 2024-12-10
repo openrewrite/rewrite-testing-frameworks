@@ -33,7 +33,6 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
           .recipe(new HamcrestInstanceOfToJUnit5());
     }
 
-
     @DocumentExample
     @Test
     void instanceOf() {
@@ -43,12 +42,12 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import java.util.List;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.instanceOf;
               import static org.hamcrest.Matchers.isA;
               import static org.hamcrest.Matchers.not;
-              
+
               class ATest {
                   private static final List<Integer> list = List.of();
                   @Test
@@ -62,10 +61,10 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import java.util.List;
-              
+
               import static org.junit.jupiter.api.Assertions.assertFalse;
               import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-              
+
               class ATest {
                   private static final List<Integer> list = List.of();
                   @Test
@@ -76,7 +75,8 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -87,15 +87,15 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
             """
               import java.util.List;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.instanceOf;
               import static org.hamcrest.Matchers.isA;
               import static org.hamcrest.Matchers.not;
-              
+
               class ATest {
                   private static final List<Integer> list = List.of();
-                  
+
                   @Test
                   void testInstance() {
                       assertThat("Examined object is not instance of Iterable", list, instanceOf(Iterable.class));
@@ -107,13 +107,13 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
             """
               import java.util.List;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertFalse;
               import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-              
+
               class ATest {
                   private static final List<Integer> list = List.of();
-                  
+
                   @Test
                   void testInstance() {
                       assertInstanceOf(Iterable.class, list, "Examined object is not instance of Iterable");
@@ -122,6 +122,7 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 }

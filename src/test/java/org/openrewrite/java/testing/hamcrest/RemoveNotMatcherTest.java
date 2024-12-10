@@ -38,35 +38,37 @@ class RemoveNotMatcherTest implements RewriteTest {
         rewriteRun(
           //language=java
           java(
-                """
-            import org.junit.jupiter.api.Test;
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.equalTo;
-            import static org.hamcrest.Matchers.not;
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.not;
 
-            class ATest {
-                @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1, not(equalTo(str2)));
-                }
-            }
-            """,
-                """
-            import org.junit.jupiter.api.Test;
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.equalTo;
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, not(equalTo(str2)));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
 
-            class ATest {
-                @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1, equalTo(str2));
-                }
-            }
-            """));
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, equalTo(str2));
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -74,34 +76,36 @@ class RemoveNotMatcherTest implements RewriteTest {
         rewriteRun(
           //language=java
           java(
-                """
-            import org.junit.jupiter.api.Test;
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.not;
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.not;
 
-            class ATest {
-                @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1, not(str2));
-                }
-            }
-            """,
-                """
-            import org.junit.jupiter.api.Test;
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.equalTo;
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, not(str2));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
 
-            class ATest {
-                @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1, equalTo(str2));
-                }
-            }
-            """));
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, equalTo(str2));
+                  }
+              }
+              """
+          )
+        );
     }
 
 }

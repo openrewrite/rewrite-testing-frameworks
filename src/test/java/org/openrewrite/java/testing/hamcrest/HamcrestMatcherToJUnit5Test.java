@@ -38,20 +38,21 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-                """
-            class Biscuit {
-                String name;
-                Biscuit(String name) {
-                    this.name = name;
-                }
-            }
-            """),
+            """
+              class Biscuit {
+                  String name;
+                  Biscuit(String name) {
+                      this.name = name;
+                  }
+              }
+              """
+          ),
           java(
             """
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalTo;
-              
+
               class BiscuitTest {
                   @Test
                   void testEquals() {
@@ -63,9 +64,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
-              
+
               class BiscuitTest {
                   @Test
                   void testEquals() {
@@ -75,7 +76,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @DocumentExample
@@ -84,35 +86,36 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-          """
-            import org.junit.jupiter.api.Test;
-            import static org.hamcrest.MatcherAssert.assertThat;
-            import static org.hamcrest.Matchers.equalTo;
-            
-            class ATest {
-                @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertThat(str1, equalTo(str2));
-                }
-            }
-            """,
-          """
-            import org.junit.jupiter.api.Test;
-            
-            import static org.junit.jupiter.api.Assertions.assertEquals;
-            
-            class ATest {
-                @Test
-                void testEquals() {
-                    String str1 = "Hello world!";
-                    String str2 = "Hello world!";
-                    assertEquals(str1, str2);
-                }
-            }
             """
-        ));
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, equalTo(str2));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertEquals(str1, str2);
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -125,7 +128,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.not;
-              
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -137,9 +140,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertNotEquals;
-              
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -149,7 +152,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -161,7 +165,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.greaterThan;
-              
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -172,9 +176,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -183,7 +187,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -195,7 +200,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-              
+
               class ATest {
                   @Test
                   void testGreaterThanOrEqualTo() {
@@ -206,9 +211,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testGreaterThanOrEqualTo() {
@@ -217,8 +222,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
+
     @Test
     void closeTo() {
         //language=java
@@ -228,7 +235,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.closeTo;
-              
+
               class ATest {
                   @Test
                   void testCloseTo() {
@@ -239,9 +246,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testCloseTo() {
@@ -250,7 +257,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -262,11 +270,11 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.ArrayList;
               import java.util.Collection;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.empty;
               import static org.hamcrest.Matchers.hasSize;
-              
+
               class ATest {
                   private static final Collection<String> collection = new ArrayList<>();
                   @Test
@@ -280,10 +288,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.ArrayList;
               import java.util.Collection;
-              
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   private static final Collection<String> collection = new ArrayList<>();
                   @Test
@@ -293,7 +301,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -304,11 +313,11 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import java.util.Arrays;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.emptyArray;
               import static org.hamcrest.Matchers.emptyIterable;
-              
+
               class ATest {
                   private static final Integer[] ints = new Integer[]{};
                   @Test
@@ -322,10 +331,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import java.util.Arrays;
-              
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertFalse;
-              
+
               class ATest {
                   private static final Integer[] ints = new Integer[]{};
                   @Test
@@ -336,7 +345,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -348,7 +358,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.lessThan;
-              
+
               class ATest {
                   @Test
                   void testLessThan() {
@@ -359,9 +369,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testLessThan() {
@@ -370,7 +380,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -382,7 +393,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.lessThanOrEqualTo;
-              
+
               class ATest {
                   @Test
                   void testLessThanOrEqualTo() {
@@ -393,9 +404,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testLessThanOrEqualTo() {
@@ -404,7 +415,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -417,7 +429,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.nullValue;
               import static org.hamcrest.Matchers.notNullValue;
-              
+
               class ATest {
                   @Test
                   void testNullValue() {
@@ -430,10 +442,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertNotNull;
               import static org.junit.jupiter.api.Assertions.assertNull;
-              
+
               class ATest {
                   @Test
                   void testNullValue() {
@@ -444,7 +456,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -458,7 +471,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.Matchers.not;
               import static org.hamcrest.Matchers.sameInstance;
               import static org.hamcrest.Matchers.theInstance;
-              
+
               class ATest {
                   private final String string = "Hello world.";
                   @Test
@@ -472,10 +485,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertNotSame;
               import static org.junit.jupiter.api.Assertions.assertSame;
-              
+
               class ATest {
                   private final String string = "Hello world.";
                   @Test
@@ -487,7 +500,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -499,10 +513,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import java.util.HashMap;
               import java.util.Map;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.hasEntry;
-              
+
               class ATest {
                   @Test
                   void testHasEntry() {
@@ -515,9 +529,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import java.util.HashMap;
               import java.util.Map;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
-              
+
               class ATest {
                   @Test
                   void testHasEntry() {
@@ -526,7 +540,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -538,10 +553,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import java.util.HashMap;
               import java.util.Map;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.hasKey;
-              
+
               class ATest {
                   @Test
                   void testHasKey() {
@@ -554,9 +569,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import java.util.HashMap;
               import java.util.Map;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testHasKey() {
@@ -565,7 +580,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -577,10 +593,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import java.util.HashMap;
               import java.util.Map;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.hasValue;
-              
+
               class ATest {
                   @Test
                   void testHasValue() {
@@ -593,9 +609,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import java.util.HashMap;
               import java.util.Map;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testHasValue() {
@@ -604,7 +620,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -615,10 +632,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
             """
               import java.util.List;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.typeCompatibleWith;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -629,9 +646,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
             """
               import java.util.List;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -639,7 +656,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -649,10 +667,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.containsString;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -664,9 +682,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -676,7 +694,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -686,10 +705,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.endsWith;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -701,9 +720,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -713,7 +732,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -723,10 +743,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalToIgnoringCase;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -738,9 +758,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -750,7 +770,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -760,10 +781,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.hasToString;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -775,9 +796,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -787,7 +808,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -797,10 +819,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.startsWith;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -812,9 +834,9 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -824,7 +846,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -835,13 +858,13 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
             """
               import java.util.List;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.startsWith;
-              
+
               class ATest {
                   private static final List<Integer> list = List.of();
-                  
+
                   @Test
                   void testAssertionsWithReason() {
                       String string = "hello world";
@@ -853,12 +876,12 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
             """
               import java.util.List;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   private static final List<Integer> list = List.of();
-                  
+
                   @Test
                   void testAssertionsWithReason() {
                       String string = "hello world";
@@ -867,7 +890,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -877,10 +901,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.containsString;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -893,10 +917,10 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testTypeCompatibleWith() {
@@ -907,6 +931,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 }

@@ -41,9 +41,9 @@ class AssertThatBooleanToJUnit5Test implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
-                            
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -55,9 +55,9 @@ class AssertThatBooleanToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                            
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -67,7 +67,8 @@ class AssertThatBooleanToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -77,9 +78,9 @@ class AssertThatBooleanToJUnit5Test implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.hamcrest.MatcherAssert.assertThat;
-                            
+
               class ATest {
                   @Test
                   void testContains() {
@@ -90,9 +91,9 @@ class AssertThatBooleanToJUnit5Test implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                            
+
               class ATest {
                   @Test
                   void testContains() {
@@ -101,6 +102,7 @@ class AssertThatBooleanToJUnit5Test implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 }
