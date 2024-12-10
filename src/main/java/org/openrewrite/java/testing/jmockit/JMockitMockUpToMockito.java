@@ -17,7 +17,6 @@ package org.openrewrite.java.testing.jmockit;
 
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
@@ -31,6 +30,8 @@ import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static org.openrewrite.java.testing.jmockit.JMockitUtils.MOCKITO_ALL_IMPORT;
+import static org.openrewrite.java.testing.jmockit.JMockitUtils.getJavaParser;
 import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
 import static org.openrewrite.java.tree.Flag.Private;
 import static org.openrewrite.java.tree.Flag.Static;
@@ -39,9 +40,6 @@ public class JMockitMockUpToMockito extends Recipe {
 
     private static final String JMOCKIT_MOCKUP_IMPORT = "mockit.MockUp";
     private static final String JMOCKIT_MOCK_IMPORT = "mockit.Mock";
-
-    private static final String MOCKITO_CLASSPATH = "mockito-core-3";
-    private static final String MOCKITO_ALL_IMPORT = "org.mockito.Mockito.*";
     private static final String MOCKITO_MATCHER_IMPORT = "org.mockito.ArgumentMatchers.*";
     private static final String MOCKITO_DELEGATEANSWER_IMPORT = "org.mockito.AdditionalAnswers.delegatesTo";
     private static final String MOCKITO_STATIC_PREFIX = "mockStatic";
@@ -111,7 +109,7 @@ public class JMockitMockUpToMockito extends Recipe {
                         if (mockedMethods.values().stream().anyMatch(m -> m.getFlags().contains(Static))) {
                             cdRef.set(JavaTemplate.builder("private MockedStatic #{};")
                                     .contextSensitive()
-                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                                    .javaParser(getJavaParser(ctx))
                                     .imports(MOCKITO_STATIC_IMPORT)
                                     .staticImports(MOCKITO_ALL_IMPORT)
                                     .build()
@@ -128,7 +126,7 @@ public class JMockitMockUpToMockito extends Recipe {
                         if (mockedMethods.values().stream().anyMatch(m -> !m.getFlags().contains(Static))) {
                             cdRef.set(JavaTemplate.builder("private MockedConstruction #{};")
                                     .contextSensitive()
-                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                                    .javaParser(getJavaParser(ctx))
                                     .imports(MOCKITO_CONSTRUCTION_IMPORT)
                                     .staticImports(MOCKITO_ALL_IMPORT)
                                     .build()
@@ -164,7 +162,7 @@ public class JMockitMockUpToMockito extends Recipe {
                     String type = TypeUtils.asFullyQualified(id.getFieldType().getType()).getFullyQualifiedName();
                     md = JavaTemplate.builder("#{any(" + type + ")}.closeOnDemand();")
                             .contextSensitive()
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                            .javaParser(getJavaParser(ctx))
                             .imports(MOCKITO_STATIC_IMPORT, MOCKITO_CONSTRUCTION_IMPORT)
                             .staticImports(MOCKITO_ALL_IMPORT)
                             .build()
@@ -224,7 +222,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
                         md = JavaTemplate.builder(tpl)
                                 .contextSensitive()
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                                .javaParser(getJavaParser(ctx))
                                 .imports(MOCKITO_STATIC_IMPORT)
                                 .staticImports(MOCKITO_ALL_IMPORT)
                                 .build()
@@ -254,7 +252,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
                         md = JavaTemplate.builder(tpl)
                                 .contextSensitive()
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                                .javaParser(getJavaParser(ctx))
                                 .imports(MOCKITO_STATIC_IMPORT)
                                 .staticImports(MOCKITO_ALL_IMPORT, MOCKITO_DELEGATEANSWER_IMPORT)
                                 .build()
@@ -289,7 +287,7 @@ public class JMockitMockUpToMockito extends Recipe {
                 J.MethodDeclaration residualMd = md.withBody(md.getBody().withStatements(residualStatements));
                 residualMd = JavaTemplate.builder(tpl)
                         .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, MOCKITO_CLASSPATH))
+                        .javaParser(getJavaParser(ctx))
                         .imports(MOCKITO_STATIC_IMPORT, MOCKITO_CONSTRUCTION_IMPORT)
                         .staticImports(MOCKITO_ALL_IMPORT, MOCKITO_MATCHER_IMPORT, MOCKITO_MATCHER_IMPORT, MOCKITO_DELEGATEANSWER_IMPORT)
                         .build()
