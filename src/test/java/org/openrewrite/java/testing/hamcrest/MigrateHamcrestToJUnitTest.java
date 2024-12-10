@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class AssertThatBooleanToJUnit5Test implements RewriteTest {
+class MigrateHamcrestToJUnitTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -33,8 +33,49 @@ class AssertThatBooleanToJUnit5Test implements RewriteTest {
           .recipeFromResource("/META-INF/rewrite/hamcrest.yml", "org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5");
     }
 
-    @Test
     @DocumentExample
+    @Test
+    void equalToString() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.is;
+              import static org.hamcrest.Matchers.not;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, is(equalTo(str2)));
+                      assertThat(str1, is(not(equalTo(str2 + "!"))));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertEquals(str1, str2);
+                      assertNotEquals(str1, str2 + "!");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void assertWithLogicOp() {
         rewriteRun(
           //language=java
