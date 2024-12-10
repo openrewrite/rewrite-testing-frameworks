@@ -17,7 +17,6 @@ package org.openrewrite.java.testing.easymock;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
-import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -28,9 +27,8 @@ class EasyMockToMockitoTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.parser(
-            JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.2", "easymock-5.4.0"))
+        spec
+          .parser(JavaParser.fromJavaVersion().classpath("junit", "easymock"))
           .recipeFromResources("org.openrewrite.java.testing.easymock.EasyMockToMockito");
     }
 

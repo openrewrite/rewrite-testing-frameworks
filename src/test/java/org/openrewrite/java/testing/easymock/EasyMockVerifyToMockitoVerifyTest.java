@@ -17,7 +17,6 @@ package org.openrewrite.java.testing.easymock;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
-import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -27,9 +26,8 @@ import static org.openrewrite.java.Assertions.java;
 class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.parser(
-            JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "easymock-5.4.0"))
+        spec
+          .parser(JavaParser.fromJavaVersion().classpath("easymock"))
           .recipe(new EasyMockVerifyToMockitoVerify());
     }
 
@@ -39,7 +37,7 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-                """
+            """
               import static org.easymock.EasyMock.*;
 
               public class ExampleTest {
@@ -110,7 +108,7 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-                """
+            """
               import static org.easymock.EasyMock.*;
 
               public class ExampleTest {
@@ -150,7 +148,7 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-                """
+            """
               import static org.easymock.EasyMock.*;
 
               public class ExampleTest {
@@ -190,7 +188,7 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-                """
+            """
               import static org.easymock.EasyMock.*;
 
               public class ExampleTest {
@@ -236,17 +234,17 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
         rewriteRun(
           java(
             """
-          import static org.easymock.EasyMock.*;
+              import static org.easymock.EasyMock.*;
 
-          public class ExampleTest {
-              public void testServiceMethod() {
-                  Dependency dependency = createNiceMock(Dependency.class);
-                  verify(dependency);
+              public class ExampleTest {
+                  public void testServiceMethod() {
+                      Dependency dependency = createNiceMock(Dependency.class);
+                      verify(dependency);
+                  }
+
+                  interface Dependency {}
               }
-
-              interface Dependency {}
-          }
-          """,
+              """,
             """
               import static org.easymock.EasyMock.createNiceMock;
               import static org.easymock.EasyMock.verify;
@@ -268,7 +266,7 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-                """
+            """
               import static org.easymock.EasyMock.*;
 
               public class ExampleTest {

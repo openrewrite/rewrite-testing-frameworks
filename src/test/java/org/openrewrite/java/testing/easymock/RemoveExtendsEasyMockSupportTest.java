@@ -29,7 +29,7 @@ class RemoveExtendsEasyMockSupportTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "easymock-5.4.0"))
+          .parser(JavaParser.fromJavaVersion().classpath("easymock"))
           .recipe(new RemoveExtendsEasyMockSupport());
     }
 
