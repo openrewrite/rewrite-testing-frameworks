@@ -33,12 +33,12 @@ import java.util.List;
 public class HamcrestInstanceOfToJUnit5 extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Migrate from Hamcrest instanceOf matcher to JUnit5";
+        return "Migrate from Hamcrest `instanceOf` matcher to JUnit 5";
     }
 
     @Override
     public String getDescription() {
-        return "Migrate from Hamcrest instanceOf and isA matcher to JUnit5 assertInstanceOf assertion.";
+        return "Migrate from Hamcrest `instanceOf` and `isA` matcher to JUnit5 `assertInstanceOf` assertion.";
     }
 
     private static final MethodMatcher INSTANCE_OF_MATCHER = new MethodMatcher("org.hamcrest.Matchers instanceOf(..)");

@@ -39,12 +39,12 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Migrate from Hamcrest `Matcher` to JUnit5";
+        return "Migrate from Hamcrest `Matcher` to JUnit 5";
     }
 
     @Override
     public String getDescription() {
-        return "Migrate from Hamcrest `Matcher` to JUnit5 assertions.";
+        return "Migrate from Hamcrest `Matcher` to JUnit 5 assertions.";
     }
 
     @Override
