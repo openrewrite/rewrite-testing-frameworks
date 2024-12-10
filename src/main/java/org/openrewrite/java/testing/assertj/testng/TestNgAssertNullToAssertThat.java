@@ -42,7 +42,7 @@ public class TestNgAssertNullToAssertThat extends Recipe {
         return "Convert TestNG-style `assertNull()` to AssertJ's `assertThat().isNull()`.";
     }
 
-    private final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertNull(..)");
+    private static final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertNull(..)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

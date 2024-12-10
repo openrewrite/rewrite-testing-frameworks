@@ -38,7 +38,7 @@ public class TestNgFailToAssertJFail extends Recipe {
         return "Convert TestNG-style `fail()` to AssertJ's `fail()`.";
     }
 
-    private final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert fail(..)");
+    private static final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert fail(..)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

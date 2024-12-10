@@ -42,7 +42,7 @@ public class TestNgAssertFalseToAssertThat extends Recipe {
         return "Convert TestNG-style `assertFalse()` to AssertJ's `assertThat().isFalse()`.";
     }
 
-    private final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertFalse(boolean, ..)");
+    private static final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertFalse(boolean, ..)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

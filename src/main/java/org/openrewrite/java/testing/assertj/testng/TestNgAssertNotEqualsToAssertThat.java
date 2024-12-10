@@ -43,7 +43,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
         return "Convert TestNG-style `assertNotEquals()` to AssertJ's `assertThat().isNotEqualTo()`.";
     }
 
-    private final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertNotEquals(..)");
+    private static final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertNotEquals(..)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
