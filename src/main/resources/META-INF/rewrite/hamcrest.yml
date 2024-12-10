@@ -31,8 +31,30 @@ recipeList:
       acceptTransitive: true
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5
+displayName: Migrate Hamcrest assertions to JUnit Jupiter
+description: Migrate Hamcrest `assertThat(..)` to JUnit Jupiter `Assertions`.
+tags:
+  - testing
+  - hamcrest
+  - assertj
+recipeList:
+  - org.openrewrite.java.ReorderMethodArguments:
+      methodPattern: org.hamcrest.MatcherAssert assertThat(java.lang.String, boolean)
+      oldParameterNames: [reason, assertion]
+      newParameterNames: [assertion, reason]
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.hamcrest.MatcherAssert assertThat(boolean, String)
+      newMethodName: assertTrue
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.hamcrest.MatcherAssert assertTrue(boolean, String)
+      fullyQualifiedTargetTypeName: org.junit.jupiter.api.Assertions
+  - org.openrewrite.java.testing.hamcrest.HamcrestInstanceOfToJUnit5
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToJUnit5
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
-displayName: Migrate to AssertJ assertions
+displayName: Migrate Hamcrest assertions to AssertJ
 description: Migrate Hamcrest `assertThat(..)` to AssertJ `Assertions`.
 tags:
   - testing

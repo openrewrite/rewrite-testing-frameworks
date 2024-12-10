@@ -30,7 +30,7 @@ class AssertThatBooleanToJUnit5Test implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "hamcrest-2.2"))
-          .recipe(new AssertThatBooleanToJUnit5());
+          .recipeFromResource("/META-INF/rewrite/hamcrest.yml", "org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5");
     }
 
     @Test

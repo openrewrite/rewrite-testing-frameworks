@@ -10,7 +10,7 @@ import org.openrewrite.java.tree.J;
 import java.security.InvalidParameterException;
 import java.util.Objects;
 
-public class RemoveNotMatcherVisitor extends JavaIsoVisitor<ExecutionContext> {
+class RemoveNotMatcherVisitor extends JavaIsoVisitor<ExecutionContext> {
     static final MethodMatcher NOT_MATCHER = new MethodMatcher("org.hamcrest.Matchers not(..)");
 
     public static boolean getLogicalContext(J.MethodInvocation mi, ExecutionContext ctx) throws InvalidParameterException {

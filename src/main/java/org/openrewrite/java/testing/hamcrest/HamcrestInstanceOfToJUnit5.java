@@ -39,10 +39,9 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
         return "Migrate from Hamcrest instanceOf and isA matcher to JUnit5 assertInstanceOf assertion.";
     }
 
-
-    static final MethodMatcher INSTANCE_OF_MATCHER = new MethodMatcher("org.hamcrest.Matchers instanceOf(..)");
-    static final MethodMatcher IS_A_MATCHER = new MethodMatcher("org.hamcrest.Matchers isA(..)");
-    static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(.., org.hamcrest.Matcher)");
+    private static final MethodMatcher INSTANCE_OF_MATCHER = new MethodMatcher("org.hamcrest.Matchers instanceOf(..)");
+    private static final MethodMatcher IS_A_MATCHER = new MethodMatcher("org.hamcrest.Matchers isA(..)");
+    private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(.., org.hamcrest.Matcher)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
