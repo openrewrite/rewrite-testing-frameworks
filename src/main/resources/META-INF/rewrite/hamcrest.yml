@@ -31,8 +31,53 @@ recipeList:
       acceptTransitive: true
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.hamcrest.ConsistentHamcrestMatcherImports
+displayName: Use consistent Hamcrest matcher imports
+description: Use consistent imports for Hamcrest matchers, and remove wrapping `is(Matcher)` calls ahead of further changes.
+tags:
+  - testing
+  - hamcrest
+  - assertj
+recipeList:
+  # First change `is(..)` to `Matchers.is(..)` for consistent matching
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.hamcrest.core.* *(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.Matchers
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.hamcrest.collection.* *(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.Matchers
+
+  # Then remove wrapping `is(Matcher)` calls such that further recipes will match
+  - org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5
+displayName: Migrate Hamcrest assertions to JUnit Jupiter
+description: Migrate Hamcrest `assertThat(..)` to JUnit Jupiter `Assertions`.
+tags:
+  - testing
+  - hamcrest
+  - assertj
+recipeList:
+  # First change `is(..)` to `Matchers.is(..)` for consistent matching
+  - org.openrewrite.java.testing.hamcrest.ConsistentHamcrestMatcherImports
+  # Then replace `assertThat(String, boolean)` with `assertTrue(boolean, String)`
+  - org.openrewrite.java.ReorderMethodArguments:
+      methodPattern: org.hamcrest.MatcherAssert assertThat(java.lang.String, boolean)
+      oldParameterNames: [reason, assertion]
+      newParameterNames: [assertion, reason]
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.hamcrest.MatcherAssert assertThat(boolean, String)
+      newMethodName: assertTrue
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.hamcrest.MatcherAssert assertTrue(boolean, String)
+      fullyQualifiedTargetTypeName: org.junit.jupiter.api.Assertions
+  - org.openrewrite.java.testing.hamcrest.HamcrestInstanceOfToJUnit5
+  - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToJUnit5
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
-displayName: Migrate to AssertJ assertions
+displayName: Migrate Hamcrest assertions to AssertJ
 description: Migrate Hamcrest `assertThat(..)` to AssertJ `Assertions`.
 tags:
   - testing
@@ -48,15 +93,7 @@ recipeList:
       acceptTransitive: true
 
   # First change `is(..)` to `Matchers.is(..)` for consistent matching
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.hamcrest.core.* *(..)
-      fullyQualifiedTargetTypeName: org.hamcrest.Matchers
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.hamcrest.collection.* *(..)
-      fullyQualifiedTargetTypeName: org.hamcrest.Matchers
-
-  # Then remove wrapping `is(Matcher)` calls such that further recipes will match
-  - org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
+  - org.openrewrite.java.testing.hamcrest.ConsistentHamcrestMatcherImports
 
   # Then remove calls to `MatcherAssert.assertThat(String, is(Matcher))`
   - org.openrewrite.java.testing.hamcrest.HamcrestIsMatcherToAssertJ
