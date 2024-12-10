@@ -42,12 +42,12 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Replace EasyMock verify calls with Mockito verify calls";
+        return "Replace EasyMock `verify` calls with Mockito `verify` calls";
     }
 
     @Override
     public String getDescription() {
-        return "Replace EasyMock.verify(dependency) with individual Mockito.verify(dependency).method() calls based on expected methods.";
+        return "Replace `EasyMock.verify(dependency)` with individual `Mockito.verify(dependency).method()` calls based on expected methods.";
     }
 
     @Override
