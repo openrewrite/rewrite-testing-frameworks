@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,7 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
-public class TestNgAssertTrueToAssertThat
-        extends Recipe {
+public class TestNgAssertTrueToAssertThat extends Recipe {
     @Override
     public String getDisplayName() {
         return "TestNG `assertTrue` to AssertJ";
@@ -44,67 +43,46 @@ public class TestNgAssertTrueToAssertThat
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.testng.Assert", false), new AssertTrueToAssertThatVisitor());
-    }
+        return Preconditions.check(new UsesType<>("org.testng.Assert", false), new JavaIsoVisitor<ExecutionContext>() {
+            private final MethodMatcher TESTNG_ASSERT_TRUE = new MethodMatcher("org.testng.Assert" + " assertTrue(boolean, ..)");
 
-    public static class AssertTrueToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private JavaParser.Builder<?, ?> assertionsParser;
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                if (!TESTNG_ASSERT_TRUE.matches(method)) {
+                    return method;
+                }
 
-        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
-            if (assertionsParser == null) {
-                assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24");
-            }
-            return assertionsParser;
-        }
+                List<Expression> args = method.getArguments();
+                Expression actual = args.get(0);
 
-        private static final MethodMatcher TESTNG_ASSERT_TRUE = new MethodMatcher("org.testng.Assert" + " assertTrue(boolean, ..)");
+                if (args.size() == 1) {
+                    method = JavaTemplate.builder("assertThat(#{any(boolean)}).isTrue();")
+                            .staticImports("org.assertj.core.api.Assertions.assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replace(), actual);
+                } else {
+                    Expression message = args.get(1);
 
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (!TESTNG_ASSERT_TRUE.matches(method)) {
+                    JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
+                            JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(String)}).isTrue();") :
+                            JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(java.util.function.Supplier)}).isTrue();");
+
+                    method = template
+                            .staticImports("org.assertj.core.api.Assertions.assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replace(), actual, message);
+                }
+
+                //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+
+                // Remove import for "org.testng.Assert" if no longer used.
+                maybeRemoveImport("org.testng.Assert");
+
                 return method;
             }
-
-            List<Expression> args = method.getArguments();
-            Expression actual = args.get(0);
-
-            if (args.size() == 1) {
-                method = JavaTemplate.builder("assertThat(#{any(boolean)}).isTrue();")
-                        .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(assertionsParser(ctx))
-                        .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replace(),
-                                actual
-                        );
-            } else {
-                Expression message = args.get(1);
-
-                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(String)}).isTrue();") :
-                        JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(java.util.function.Supplier)}).isTrue();");
-
-                method = template
-                        .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(assertionsParser(ctx))
-                        .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replace(),
-                                actual,
-                                message
-                        );
-            }
-
-            //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
-
-            // Remove import for "org.testng.Assert" if no longer used.
-            maybeRemoveImport("org.testng.Assert");
-
-            return method;
-        }
+        });
     }
 }
