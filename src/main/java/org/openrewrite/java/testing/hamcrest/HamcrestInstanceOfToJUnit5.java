@@ -16,12 +16,14 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
@@ -45,7 +47,12 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>(){
+        TreeVisitor<?, ExecutionContext> preconditions = Preconditions.and(
+                new UsesMethod<>(ASSERT_THAT_MATCHER),
+                Preconditions.or(
+                        new UsesMethod<>(INSTANCE_OF_MATCHER),
+                        new UsesMethod<>(IS_A_MATCHER)));
+        return Preconditions.check(preconditions, new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
                 if (ASSERT_THAT_MATCHER.matches(mi)) {
@@ -76,14 +83,14 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
                         boolean logicalContext = RemoveNotMatcherVisitor.getLogicalContext(matcherInvocation, ctx);
 
                         String templateString = (logicalContext ?
-                            "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}" :
-                            "assertFalse(#{any(java.lang.Class)}.isAssignableFrom(#{any(java.lang.Object)}.getClass())") +
+                                "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}" :
+                                "assertFalse(#{any(java.lang.Class)}.isAssignableFrom(#{any(java.lang.Object)}.getClass())") +
                                 (reason == null ? ")" : ", #{any(java.lang.String)})");
 
                         JavaTemplate template = JavaTemplate.builder(templateString)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
-                            .staticImports("org.junit.jupiter.api.Assertions." + (logicalContext ? "assertInstanceOf" : "assertFalse"))
-                            .build();
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                                .staticImports("org.junit.jupiter.api.Assertions." + (logicalContext ? "assertInstanceOf" : "assertFalse"))
+                                .build();
 
                         maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
                         maybeRemoveImport("org.hamcrest.Matchers.instanceOf");
@@ -104,6 +111,6 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
                 }
                 return super.visitMethodInvocation(mi, ctx);
             }
-        };
+        });
     }
 }
