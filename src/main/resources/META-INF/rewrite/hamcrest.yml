@@ -39,6 +39,14 @@ tags:
   - hamcrest
   - assertj
 recipeList:
+  # Add dependency if not already present
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.assertj
+      artifactId: assertj-core
+      version: 3.x
+      onlyIfUsing: org.hamcrest.*
+      acceptTransitive: true
+
   # First change `is(..)` to `Matchers.is(..)` for consistent matching
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.hamcrest.core.* *(..)
@@ -319,10 +327,3 @@ recipeList:
       notMatcher: empty
       assertion: isNotEmpty
 
-  # Add dependency if not already present
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.assertj
-      artifactId: assertj-core
-      version: 3.x
-      onlyIfUsing: org.assertj.core.api.Assertions
-      acceptTransitive: true

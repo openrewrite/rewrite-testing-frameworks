@@ -19,6 +19,7 @@ recipeDependencies {
     parserClasspath("com.github.tomakehurst:wiremock-jre8:2.35.0")
     parserClasspath("org.mockito:mockito-all:1.10.19")
     parserClasspath("org.mockito:mockito-core:3.+")
+    parserClasspath("org.mockito:mockito-core:5.+")
     parserClasspath("org.jmockit:jmockit:1.49")
     parserClasspath("org.jmockit:jmockit:1.22") // last version with NonStrictExpectations
     parserClasspath("org.mockito:mockito-junit-jupiter:3.+")
@@ -68,6 +69,7 @@ dependencies {
     testRuntimeOnly("net.datafaker:datafaker:latest.release") {
         exclude(group = "org.yaml", module = "snakeyaml")
     }
+    testRuntimeOnly("org.easymock:easymock:latest.release")
     testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:latest.release")
     testRuntimeOnly("org.testcontainers:testcontainers:latest.release")
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
