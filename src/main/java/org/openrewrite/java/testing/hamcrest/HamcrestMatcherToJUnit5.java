@@ -16,19 +16,27 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 
 public class HamcrestMatcherToJUnit5 extends Recipe {
+
+    private static final MethodMatcher MATCHER_ASSERT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(.., org.hamcrest.Matcher)");
+
     @Override
     public String getDisplayName() {
         return "Migrate from Hamcrest `Matcher` to JUnit5";
@@ -41,7 +49,9 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new MigrationFromHamcrestVisitor();
+        return Preconditions.check(
+                new UsesMethod<>(MATCHER_ASSERT_MATCHER),
+                new MigrationFromHamcrestVisitor());
     }
 
     enum Replacement {
@@ -67,13 +77,13 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
         NULLVALUE("nullValue", "assertNull", "assertNotNull", "#{any(java.lang.Object)}", "examinedObjOnly"),
         SAMEINSTANCE("sameInstance", "assertSame", "assertNotSame", "#{any(java.lang.Object)}, #{any(java.lang.Object)}", "examinedObjThenMatcherArgs"),
         THEINSTANCE("theInstance", "assertSame", "assertNotSame", "#{any(java.lang.Object)}, #{any(java.lang.Object)}", "examinedObjThenMatcherArgs"),
-        EMPTYITERABLE("emptyIterable", "assertFalse", "assertTrue", "#{any(java.lang.Iterable)}.iterator().hasNext()", "examinedObjOnly")
-        ;
+        EMPTYITERABLE("emptyIterable", "assertFalse", "assertTrue", "#{any(java.lang.Iterable)}.iterator().hasNext()", "examinedObjOnly");
 
         final String hamcrest, junitPositive, junitNegative, template;
         final String argumentsMethod;
 
         private static final Map<String, BiFunction<Expression, J.MethodInvocation, List<Expression>>> methods = new HashMap<>();
+
         static {
             methods.put("examinedObjThenMatcherArgs", (ex, matcher) -> {
                 List<Expression> arguments = matcher.getArguments();
@@ -85,7 +95,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                 arguments.add(ex);
                 return arguments;
             });
-            methods.put("examinedObjOnly",(ex, matcher) -> {
+            methods.put("examinedObjOnly", (ex, matcher) -> {
                 List<Expression> arguments = new ArrayList<>();
                 arguments.add(ex);
                 return arguments;
@@ -113,9 +123,8 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-            MethodMatcher matcherAssertMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(.., org.hamcrest.Matcher)");
 
-            if (matcherAssertMatcher.matches(mi)) {
+            if (MATCHER_ASSERT_MATCHER.matches(mi)) {
                 Expression reason;
                 Expression examinedObject;
                 Expression hamcrestMatcher;
@@ -160,15 +169,15 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                     String assertion = logicalContext ? replacement.junitPositive : replacement.junitNegative;
 
                     String templateString =
-                        assertion +
-                            "(" +
-                            replacement.template +
-                            (reason == null ? ")" : ", #{any(java.lang.String)})");
+                            assertion +
+                                    "(" +
+                                    replacement.template +
+                                    (reason == null ? ")" : ", #{any(java.lang.String)})");
 
                     JavaTemplate template = JavaTemplate.builder(templateString)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
-                        .staticImports("org.junit.jupiter.api.Assertions." + assertion)
-                        .build();
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                            .staticImports("org.junit.jupiter.api.Assertions." + assertion)
+                            .build();
 
                     maybeRemoveImport("org.hamcrest.Matchers." + replacement.hamcrest);
                     maybeRemoveImport("org.hamcrest.CoreMatchers." + replacement.hamcrest);
