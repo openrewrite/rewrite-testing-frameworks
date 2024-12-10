@@ -43,6 +43,7 @@ class EasyMockToMockitoTest implements RewriteTest {
               """
               import org.easymock.EasyMockRunner;
               import org.easymock.Mock;
+              import org.easymock.EasyMock;
               import org.easymock.TestSubject;
               import org.junit.Before;
               import org.junit.Test;
@@ -75,6 +76,7 @@ class EasyMockToMockitoTest implements RewriteTest {
                   @Test
                   public void testServiceMethod() {
                       expect(dependency.performAction()).andReturn("Mocked Result");
+                      EasyMock.replay(dependency);
                       replay(dependency);
                       assertEquals("Mocked Result", service.useDependency());
                       verify(dependency);
