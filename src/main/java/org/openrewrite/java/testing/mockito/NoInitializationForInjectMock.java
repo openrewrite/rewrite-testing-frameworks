@@ -31,12 +31,12 @@ public class NoInitializationForInjectMock extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Remove initialization when using @InjectMocks";
+        return "Remove initialization when using `@InjectMocks`";
     }
 
     @Override
     public String getDescription() {
-        return "Removes unnecessary initialization for fields annotated with @InjectMocks in Mockito tests.";
+        return "Removes unnecessary initialization for fields annotated with `@InjectMocks` in Mockito tests.";
     }
 
     @Override
