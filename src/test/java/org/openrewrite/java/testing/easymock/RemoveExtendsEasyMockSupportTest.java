@@ -65,7 +65,8 @@ class RemoveExtendsEasyMockSupportTest implements RewriteTest {
                 class InnerTest extends EasyMockSupport {
                     class InnerInnerTest extends EasyMockSupport {}
                 }
-            }""",
+            }
+            """,
             """
             public class Test {
                 class InnerTest {

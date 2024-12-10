@@ -30,7 +30,7 @@ class EasyMockToMockitoTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.parser(
             JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.2", "junit-jupiter-api-5.9", "easymock-5.4.0", "mockito-core-3.12"))
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.2", "easymock-5.4.0"))
           .recipeFromResources("org.openrewrite.java.testing.easymock.EasyMockToMockito");
     }
 
@@ -40,7 +40,7 @@ class EasyMockToMockitoTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-              """
+            """
               import org.easymock.EasyMockRunner;
               import org.easymock.Mock;
               import org.easymock.EasyMock;
@@ -157,7 +157,8 @@ class EasyMockToMockitoTest implements RewriteTest {
                       String performAction();
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -185,7 +186,8 @@ class EasyMockToMockitoTest implements RewriteTest {
                   boolean addUser(User user, Object ignore) { return true; }
                   List<User> findByEmail(String email, Object ignore) { return new ArrayList<>(); }
                   List<User> findByAge(double age, Object ignore) { return new ArrayList<>(); }
-              }"""
+              }
+              """
           ),
           java(
             """
@@ -228,7 +230,8 @@ class EasyMockToMockitoTest implements RewriteTest {
                       when(service.findByEmail(not(endsWith(".com")), any()));
                   }
               }
-              """)
+              """
+          )
         );
     }
 }

@@ -29,7 +29,7 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.parser(
             JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.2", "junit-jupiter-api-5.9", "easymock-5.4.0", "mockito-core-5.*"))
+              .classpathFromResources(new InMemoryExecutionContext(), "easymock-5.4.0"))
           .recipe(new EasyMockVerifyToMockitoVerify());
     }
 
