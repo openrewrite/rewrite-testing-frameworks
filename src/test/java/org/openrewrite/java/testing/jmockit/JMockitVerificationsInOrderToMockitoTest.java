@@ -208,11 +208,15 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
                       inOrder.verify(obj).wait();
 
                       obj.wait();
+
                       InOrder inOrder1 = inOrder(obj);
+
                       inOrder1.verify(obj).wait();
 
                       obj.wait(10L, 10);
+
                       InOrder inOrder2 = inOrder(obj);
+
                       inOrder2.verify(obj).wait(anyLong(), anyInt());
                   }
               }

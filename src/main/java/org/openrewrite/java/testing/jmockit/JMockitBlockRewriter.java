@@ -281,7 +281,7 @@ class JMockitBlockRewriter {
         StringBuilder sb = new StringBuilder(template);
         mocks.forEach(mock -> sb.append(ANY_TEMPLATE_FIELD).append(", "));
         sb.delete(sb.length() - 2, sb.length());
-        sb.append(")");
+        sb.append(");");
         rewriteTemplate(sb.toString(), mocks, nextStatementCoordinates);
         if (!this.rewriteFailed) {
             setNextStatementCoordinates(++numStatementsAdded);
