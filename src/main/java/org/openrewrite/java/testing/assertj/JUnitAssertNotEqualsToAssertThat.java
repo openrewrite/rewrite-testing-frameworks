@@ -23,7 +23,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -32,6 +32,10 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.List;
 
 public class JUnitAssertNotEqualsToAssertThat extends Recipe {
+
+    private static final String JUNIT = "org.junit.jupiter.api.Assertions";
+    private static final String ASSERTJ = "org.assertj.core.api.Assertions";
+    private static final MethodMatcher ASSERT_NOT_EQUALS_MATCHER = new MethodMatcher(JUNIT + " assertNotEquals(..)", true);
 
     @Override
     public String getDisplayName() {
@@ -45,117 +49,64 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Assertions", false), new AssertNotEqualsToAssertThatVisitor());
-    }
+        return Preconditions.check(new UsesMethod<>(ASSERT_NOT_EQUALS_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (!ASSERT_NOT_EQUALS_MATCHER.matches(mi)) {
+                    return mi;
+                }
 
-    public static class AssertNotEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private JavaParser.Builder<?, ?> assertionsParser;
+                maybeAddImport(ASSERTJ, "assertThat", false);
+                maybeRemoveImport(JUNIT);
 
-        private JavaParser.Builder<?, ?> assertionsParser(ExecutionContext ctx) {
-            if (assertionsParser == null) {
-                assertionsParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "assertj-core-3.24");
-            }
-            return assertionsParser;
-        }
+                List<Expression> args = mi.getArguments();
+                Expression expected = args.get(0);
+                Expression actual = args.get(1);
+                if (args.size() == 2) {
+                    return JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .build()
+                            .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
+                }
+                if (args.size() == 3 && isFloatingPointType(args.get(2))) {
+                    maybeAddImport(ASSERTJ, "within", false);
+                    return JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
+                            .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .build()
+                            .apply(getCursor(), mi.getCoordinates().replace(), actual, expected, args.get(2));
+                }
+                if (args.size() == 3) {
+                    Expression message = args.get(2);
+                    return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isNotEqualTo(#{any()});")
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .build()
+                            .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
+                }
 
-        private static final MethodMatcher JUNIT_ASSERT_EQUALS = new MethodMatcher("org.junit.jupiter.api.Assertions" + " assertNotEquals(..)");
+                maybeAddImport(ASSERTJ, "within", false);
 
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (!JUNIT_ASSERT_EQUALS.matches(method)) {
-                return method;
-            }
-
-            List<Expression> args = method.getArguments();
-
-            Expression expected = args.get(0);
-            Expression actual = args.get(1);
-
-            if (args.size() == 2) {
-                method = JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
-                        .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(assertionsParser(ctx))
-                        .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replace(),
-                                actual,
-                                expected
-                        );
-            } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
-                Expression message = args.get(2);
-
-                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotEqualTo(#{any()});") :
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotEqualTo(#{any()});");
-
-
-                method = template
-                        .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(assertionsParser(ctx))
-                        .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replace(),
-                                actual,
-                                message,
-                                expected
-                        );
-            } else if (args.size() == 3) {
-                method = JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
-                        .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                        .javaParser(assertionsParser(ctx))
-                        .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replace(),
-                                actual,
-                                expected,
-                                args.get(2)
-                        );
-                maybeAddImport("org.assertj.core.api.Assertions", "within", false);
-            } else {
                 Expression message = args.get(3);
-
-                JavaTemplate.Builder template = TypeUtils.isString(message.getType()) ?
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));") :
-                        JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.util.function.Supplier)}).isNotCloseTo(#{any()}, within(#{any()}));");
-
-                method = template
-                        .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                        .javaParser(assertionsParser(ctx))
+                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
+                        .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
                         .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replace(),
-                                actual,
-                                message,
-                                expected,
-                                args.get(2)
-                        );
-
-                maybeAddImport("org.assertj.core.api.Assertions", "within", false);
+                        .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected, args.get(2));
             }
 
-            //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+            private boolean isFloatingPointType(Expression expression) {
+                JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
+                if (fullyQualified != null) {
+                    String typeName = fullyQualified.getFullyQualifiedName();
+                    return "java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName);
+                }
 
-            // Remove import for "org.junit.jupiter.api.Assertions" if no longer used.
-            maybeRemoveImport("org.junit.jupiter.api.Assertions");
-
-            return method;
-        }
-
-        private static boolean isFloatingPointType(Expression expression) {
-            JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
-            if (fullyQualified != null) {
-                String typeName = fullyQualified.getFullyQualifiedName();
-                return "java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName);
+                JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
+                return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
             }
-
-            JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
-            return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
-        }
+        });
     }
 }

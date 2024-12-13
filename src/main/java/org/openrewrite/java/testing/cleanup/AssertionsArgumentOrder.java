@@ -37,8 +37,21 @@ public class AssertionsArgumentOrder extends Recipe {
             new MethodMatcher("org.junit.jupiter.api.Assertions assertEquals(..)"),
             new MethodMatcher("org.junit.jupiter.api.Assertions assertNotEquals(..)"),
             new MethodMatcher("org.junit.jupiter.api.Assertions assertSame(..)"),
-            new MethodMatcher("org.junit.jupiter.api.Assertions assertNotSame(..)"),
-            new MethodMatcher("org.junit.jupiter.api.Assertions assertArrayEquals(..)")
+            new MethodMatcher("org.junit.jupiter.api.Assertions assertNotSame(..)")
+    };
+
+    private static final MethodMatcher[] junitAssertMatchers = new MethodMatcher[]{
+            new MethodMatcher("org.junit.Assert assertEquals(..)"),
+            new MethodMatcher("org.junit.Assert assertEquals(..)"),
+            new MethodMatcher("org.junit.Assert assertArrayEquals(..)"),
+            new MethodMatcher("org.junit.Assert assertSame(..)"),
+            new MethodMatcher("org.junit.Assert assertNotSame(..)"),
+            new MethodMatcher("org.junit.Assert assert*Null(String, Object)")
+    };
+
+    private static final MethodMatcher[] junitAssertWithMessageMatchers = new MethodMatcher[]{
+            new MethodMatcher("org.junit.Assert assertEquals(String, ..)"),
+            new MethodMatcher("org.junit.Assert assertArrayEquals(String, ..)")
     };
     private static final MethodMatcher jupiterAssertIterableEqualsMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertIterableEquals(..)");
 
@@ -56,6 +69,8 @@ public class AssertionsArgumentOrder extends Recipe {
 
     static {
         List<MethodMatcher> matchers = new ArrayList<>(Arrays.asList(jupiterAssertionMatchers));
+        matchers.addAll(Arrays.asList(junitAssertMatchers));
+        matchers.addAll(Arrays.asList(junitAssertWithMessageMatchers));
         matchers.add(jupiterAssertIterableEqualsMatcher);
         matchers.add(jupiterAssertNullMatcher);
         matchers.addAll(Arrays.asList(testNgMatcher));
@@ -97,7 +112,10 @@ public class AssertionsArgumentOrder extends Recipe {
 
             final Expression expected;
             final Expression actual;
-            if (isJupiterAssertion(mi)) {
+            if (isJunitAssertEqualsWithMessage(mi)) {
+                expected = mi.getArguments().get(1);
+                actual = mi.getArguments().get(2);
+            } else if (isJunitAssertion(mi) || isJupiterAssertion(mi)) {
                 expected = mi.getArguments().get(0);
                 actual = mi.getArguments().get(1);
             } else if (isTestNgAssertion(mi)) {
@@ -168,6 +186,24 @@ public class AssertionsArgumentOrder extends Recipe {
 
         private boolean isTestNgAssertion(J.MethodInvocation mi) {
             for (MethodMatcher actExpMatcher : testNgMatcher) {
+                if (actExpMatcher.matches(mi)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean isJunitAssertion(J.MethodInvocation mi) {
+            for (MethodMatcher assertionMethodMatcher : junitAssertMatchers) {
+                if (assertionMethodMatcher.matches(mi)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean isJunitAssertEqualsWithMessage(J.MethodInvocation mi) {
+            for (MethodMatcher actExpMatcher : junitAssertWithMessageMatchers) {
                 if (actExpMatcher.matches(mi)) {
                     return true;
                 }

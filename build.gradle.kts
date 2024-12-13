@@ -19,6 +19,7 @@ recipeDependencies {
     parserClasspath("com.github.tomakehurst:wiremock-jre8:2.35.0")
     parserClasspath("org.mockito:mockito-all:1.10.19")
     parserClasspath("org.mockito:mockito-core:3.+")
+    parserClasspath("org.mockito:mockito-core:5.+")
     parserClasspath("org.jmockit:jmockit:1.49")
     parserClasspath("org.jmockit:jmockit:1.22") // last version with NonStrictExpectations
     parserClasspath("org.mockito:mockito-junit-jupiter:3.+")
@@ -26,6 +27,7 @@ recipeDependencies {
     parserClasspath("org.powermock:powermock-core:1.7.+")
     parserClasspath("com.squareup.okhttp3:mockwebserver:4.10.0")
     parserClasspath("org.springframework:spring-test:6.1.12")
+    parserClasspath("com.github.database-rider:rider-junit5:1.44.0")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
@@ -48,12 +50,13 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
+    testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-kotlin:$rewriteVersion")
     testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
 
     annotationProcessor("org.openrewrite:rewrite-templating:${rewriteVersion}")
     implementation("org.openrewrite:rewrite-templating:${rewriteVersion}")
-    compileOnly("com.google.errorprone:error_prone_core:2.19.1:with-dependencies") {
+    compileOnly("com.google.errorprone:error_prone_core:2.+:with-dependencies") {
         exclude("com.google.auto.service", "auto-service-annotations")
     }
 
@@ -66,10 +69,9 @@ dependencies {
     testRuntimeOnly("net.datafaker:datafaker:latest.release") {
         exclude(group = "org.yaml", module = "snakeyaml")
     }
+    testRuntimeOnly("org.easymock:easymock:latest.release")
+    testRuntimeOnly("org.testng:testng:latest.release")
     testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:latest.release")
     testRuntimeOnly("org.testcontainers:testcontainers:latest.release")
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
-
-//    testImplementation("org.hamcrest:hamcrest:latest.release")
-//    testImplementation("org.assertj:assertj-core:latest.release")
 }

@@ -15,34 +15,43 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 import static java.util.Optional.empty;
 
 class JMockitUtils {
 
+    static final String MOCKITO_ALL_IMPORT = "org.mockito.Mockito.*";
+
+    public static JavaParser.Builder<?, ?> getJavaParser(ExecutionContext ctx) {
+        return JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12");
+    }
+
     static Optional<JMockitBlockType> getJMockitBlock(Statement s) {
         if (!(s instanceof J.NewClass)) {
             return empty();
         }
+
         J.NewClass nc = (J.NewClass) s;
-        if (!(nc.getClazz() instanceof J.Identifier)) {
-            return empty();
-        }
-        J.Identifier clazz = (J.Identifier) nc.getClazz();
-
-        // JMockit block should be composed of a block within another block
-        if (nc.getBody() == null ||
-            (nc.getBody().getStatements().size() != 1 &&
-             !TypeUtils.isAssignableTo("mockit.Expectations", clazz.getType()) &&
-             !TypeUtils.isAssignableTo("mockit.Verifications", clazz.getType()))) {
+        if (nc.getBody() == null || nc.getClazz() == null) {
             return empty();
         }
 
-        return Optional.of(JMockitBlockType.valueOf(clazz.getSimpleName()));
+        JavaType type = nc.getClazz().getType();
+        if (type == null) {
+            return empty();
+        }
+
+        return Arrays.stream(JMockitBlockType.values())
+                .filter(supportedType -> TypeUtils.isOfClassType(type, supportedType.getFqn()))
+                .findFirst();
     }
 }

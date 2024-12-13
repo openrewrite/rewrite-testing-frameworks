@@ -99,9 +99,9 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                     .staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf")
                     .build();
 
-                J.MethodInvocation methodd = reason != null
-                    ? template.apply(getCursor(), mi.getCoordinates().replace(), clazz.toString(), expression, reason)
-                    : template.apply(getCursor(), mi.getCoordinates().replace(), clazz.toString(), expression);
+                J.MethodInvocation methodd = reason != null ?
+                    template.apply(getCursor(), mi.getCoordinates().replace(), clazz.toString(), expression, reason) :
+                    template.apply(getCursor(), mi.getCoordinates().replace(), clazz.toString(), expression);
                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
                 return methodd;
             }

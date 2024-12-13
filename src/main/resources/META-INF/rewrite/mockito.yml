@@ -25,11 +25,23 @@ recipeList:
   - org.openrewrite.java.testing.mockito.Mockito1to5Migration
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.mockito.junit.jupiter.MockitoSettings(strictness=org.mockito.quality.Strictness.WARN)"
+  - org.openrewrite.java.testing.mockito.SimplifyMockitoVerifyWhenGiven
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to5Migration
 displayName: Mockito 5.x upgrade
 description: Upgrade Mockito from 1.x to 5.x.
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.testing.mockito.Mockito1to4Migration
+  - org.openrewrite.java.testing.mockito.Mockito4to5Only
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.Mockito4to5Only
+displayName: Mockito 4 to 5.x upgrade only
+description: Upgrade Mockito from 4.x to 5.x. Does not include 1.x to 4.x migration.
 tags:
   - testing
   - mockito
@@ -48,7 +60,6 @@ recipeList:
       artifactId: byte-buddy*
       newVersion: 1.15.x
   - org.openrewrite.maven.RemoveDuplicateDependencies
-
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to4Migration
@@ -59,6 +70,7 @@ tags:
   - mockito
 recipeList:
   - org.openrewrite.java.testing.mockito.Mockito1to3Migration
+  - org.openrewrite.java.testing.mockito.MockitoWhenOnStaticToMockStatic
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.mockito
       artifactId: "*"
@@ -130,6 +142,7 @@ recipeList:
       oldParameterNames:
         - mode
         - verification
+  - org.openrewrite.java.testing.mockito.VerifyZeroToNoMoreInteractions
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.Mockito verifyZeroInteractions(..)
       newMethodName: verifyNoInteractions
@@ -148,11 +161,11 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.mockito.runners.MockitoJUnitRunner
       newFullyQualifiedTypeName: org.mockito.junit.MockitoJUnitRunner
+  - org.openrewrite.java.testing.mockito.NoInitializationForInjectMock
   - org.openrewrite.java.testing.mockito.CleanupMockitoImports
   - org.openrewrite.java.testing.mockito.MockUtilsToStatic
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
   - org.openrewrite.java.testing.mockito.ReplacePowerMockito
-  - org.openrewrite.java.testing.mockito.RetainStrictnessWarn
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
       artifactId: mockito-junit-jupiter

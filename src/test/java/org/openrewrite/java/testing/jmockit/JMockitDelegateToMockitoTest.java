@@ -30,6 +30,7 @@ import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultPa
  * with the template being printed out. These tests were written to try to replicate this issue, however I was unable to.
  * They may help anyone who wants to add Delegate migration.
  */
+@SuppressWarnings("ResultOfMethodCallIgnored")
 @Disabled
 @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/522")
 class JMockitDelegateToMockitoTest implements RewriteTest {
@@ -51,12 +52,12 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-
+              
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-
+              
                   void test() {
                       new Expectations() {{
                           myObject.wait();
@@ -75,14 +76,14 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-
+              
               import static org.mockito.Mockito.when;
-
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   Object myObject;
-
+              
                   void test() {
                       doAnswer(invocation -> {
                           System.out.println("foo");
@@ -107,12 +108,12 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-
+              
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-
+              
                   void test() {
                       new Expectations() {{
                           myObject.wait(anyLong);
@@ -132,15 +133,15 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-
+              
               import static org.mockito.Mockito.anyLong;
               import static org.mockito.Mockito.when;
-
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   Object myObject;
-
+              
                   void test() {
                       doAnswer(invocation -> {
                           System.out.println("foo");
@@ -166,14 +167,14 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-
+              
               import static org.junit.jupiter.api.Assertions.assertEquals;
-
+              
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-
+              
                   void test() {
                       new Expectations() {{
                           myObject.toString();
@@ -193,15 +194,15 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-
+              
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.when;
-
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   Object myObject;
-
+              
                   void test() {
                       when(myObject.toString()).thenAnswer(invocation -> {
                           String a = "foo";
@@ -226,14 +227,14 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-
+              
               import static org.junit.jupiter.api.Assertions.assertEquals;
-
+              
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-
+              
                   void test() {
                       new Expectations() {{
                           myObject.hashCode();
@@ -257,15 +258,15 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-
+              
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.when;
-
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   Object myObject;
-
+              
                   void test() {
                       when(myObject.hashCode()).thenReturn(100);
                       when(myObject.toString()).thenAnswer(invocation -> {
@@ -288,7 +289,7 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
           java(
             """
               import java.util.List;
-
+              
               class MyObject {
                   public String getSomeField(List<String> input) {
                       return "X";
@@ -303,18 +304,18 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
             """
               import java.util.ArrayList;
               import java.util.List;
-
+              
               import mockit.Delegate;
               import mockit.Mocked;
               import mockit.Expectations;
               import mockit.integration.junit5.JMockitExtension;
               import org.junit.jupiter.api.extension.ExtendWith;
-
+              
               @ExtendWith(JMockitExtension.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-
+              
                   void test() {
                       new Expectations() {{
                           myObject.getSomeField((List<String>) any);
@@ -333,21 +334,21 @@ class JMockitDelegateToMockitoTest implements RewriteTest {
             """
               import java.util.ArrayList;
               import java.util.List;
-
+              
               import mockit.Delegate;
-
+              
               import static org.mockito.Mockito.anyList;
               import static org.mockito.Mockito.when;
-
+              
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
-
+              
               @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-
+              
                   void test() {
                       when(myObject.getSomeField(anyList())).thenAnswer(invocation -> {
                           List<String> input = invocation.getArgument(0);

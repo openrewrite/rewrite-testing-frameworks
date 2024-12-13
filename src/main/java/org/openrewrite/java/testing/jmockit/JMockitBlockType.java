@@ -17,16 +17,26 @@ package org.openrewrite.java.testing.jmockit;
 
 import lombok.Getter;
 
+import java.util.Arrays;
+
 @Getter
 enum JMockitBlockType {
 
     Expectations,
+    NonStrictExpectations,
     Verifications,
-    NonStrictExpectations;
+    VerificationsInOrder,
+    FullVerifications;
 
-    private final String fqn;
+    private final String fqn = "mockit." + this.name();
 
-    JMockitBlockType() {
-        this.fqn = "mockit." + this.name();
+    boolean isVerifications() {
+        return this == Verifications || this == FullVerifications || this == VerificationsInOrder;
+    }
+
+    static String getSupportedTypesStr() {
+        StringBuilder sb = new StringBuilder();
+        Arrays.stream(values()).forEach(value -> sb.append(value).append(", "));
+        return sb.substring(0, sb.length() - 2);
     }
 }

@@ -26,31 +26,34 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static org.openrewrite.java.testing.jmockit.JMockitBlockType.*;
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.getSupportedTypesStr;
+import static org.openrewrite.java.testing.jmockit.JMockitBlockType.values;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class JMockitBlockToMockito extends Recipe {
 
+    private static final String SUPPORTED_TYPES = getSupportedTypesStr();
+
     @Override
     public String getDisplayName() {
-        return "Rewrite JMockit Expectations, Verifications and NonStrictExpectations";
+        return "Rewrite JMockit " + SUPPORTED_TYPES;
     }
 
     @Override
     public String getDescription() {
-        return "Rewrites JMockit `Expectations, Verifications and NonStrictExpectations` blocks to Mockito statements.";
+        return "Rewrites JMockit `" + SUPPORTED_TYPES + "` blocks to Mockito statements.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.or(
-                new UsesType<>(Expectations.getFqn(), false),
-                new UsesType<>(Verifications.getFqn(), false),
-                new UsesType<>(NonStrictExpectations.getFqn(), false)), new RewriteJMockitBlockVisitor());
+        @SuppressWarnings("rawtypes")
+        UsesType[] usesTypes = Arrays.stream(values()).map(blockType -> new UsesType<>(blockType.getFqn(), false)).toArray(UsesType[]::new);
+        return Preconditions.check(Preconditions.or(usesTypes), new RewriteJMockitBlockVisitor());
     }
 
     private static class RewriteJMockitBlockVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -66,19 +69,25 @@ public class JMockitBlockToMockito extends Recipe {
             J.Block methodBody = ssr.rewriteMethodBody();
             List<Statement> statements = methodBody.getStatements();
 
+            int verificationsInOrderIdx = 0;
             int bodyStatementIndex = 0;
-            // iterate over each statement in the method body, find Expectations blocks and rewrite them
+            // iterate over each statement in the method body, find JMockit blocks and rewrite them
             while (bodyStatementIndex < statements.size()) {
                 Statement s = statements.get(bodyStatementIndex);
-                Optional<JMockitBlockType> blockType = JMockitUtils.getJMockitBlock(s);
-                if (blockType.isPresent()) {
+                Optional<JMockitBlockType> blockTypeOpt = JMockitUtils.getJMockitBlock(s);
+                if (blockTypeOpt.isPresent()) {
+                    JMockitBlockType blockType = blockTypeOpt.get();
                     JMockitBlockRewriter blockRewriter = new JMockitBlockRewriter(this, ctx, methodBody,
-                            ((J.NewClass) s), bodyStatementIndex, blockType.get());
+                            ((J.NewClass) s), bodyStatementIndex, blockType, verificationsInOrderIdx);
                     methodBody = blockRewriter.rewriteMethodBody();
                     statements = methodBody.getStatements();
-                    // if the expectations rewrite failed, skip the next statement
+                    // if the block rewrite failed, skip the next statement
                     if (blockRewriter.isRewriteFailed()) {
                         bodyStatementIndex++;
+                    } else {
+                        if (blockType == JMockitBlockType.VerificationsInOrder) {
+                            verificationsInOrderIdx++;
+                        }
                     }
                 } else {
                     bodyStatementIndex++;

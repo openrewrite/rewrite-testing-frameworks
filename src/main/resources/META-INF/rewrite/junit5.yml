@@ -106,7 +106,7 @@ recipeList:
   # Workaround for https://github.com/testcontainers/testcontainers-java/issues/970:
   - org.openrewrite.maven.RemoveExclusion:
       groupId: org.testcontainers
-      artifactId: testcontainers
+      artifactId: '*'
       exclusionGroupId: junit
       exclusionArtifactId: junit
   # Similar for https://github.com/openrewrite/rewrite-testing-frameworks/issues/477
@@ -129,7 +129,6 @@ recipeList:
       onlyIfUsing: org.junit.jupiter.params.ParameterizedTest
       acceptTransitive: true
       scope: test
-  - org.openrewrite.java.testing.mockito.Mockito1to4Migration
   - org.openrewrite.maven.UpgradePluginVersion:
       groupId: org.apache.maven.plugins
       artifactId: maven-surefire-plugin
@@ -142,6 +141,7 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.jbehave.core.junit.JUnitStories
       newFullyQualifiedTypeName: org.jbehave.core.junit.JupiterStories
+  - org.openrewrite.java.testing.dbrider.MigrateDbRiderSpringToDbRiderJUnit5
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
