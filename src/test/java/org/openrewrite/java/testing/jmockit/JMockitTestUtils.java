@@ -42,9 +42,6 @@ public class JMockitTestUtils {
             .classpathFromResources(new InMemoryExecutionContext(),
               javaParserTestDependencies
             ))
-          .recipeFromResource(
-            "/META-INF/rewrite/jmockit.yml",
-            "org.openrewrite.java.testing.jmockit.JMockitToMockito"
-          );
+          .recipeFromResources("org.openrewrite.java.testing.jmockit.JMockitToMockito");
     }
 }
