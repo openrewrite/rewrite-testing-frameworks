@@ -25,6 +25,7 @@ recipeList:
   - org.openrewrite.java.testing.mockito.Mockito1to5Migration
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.mockito.junit.jupiter.MockitoSettings(strictness=org.mockito.quality.Strictness.WARN)"
+  - org.openrewrite.java.testing.mockito.RemoveTimesZeroAndOne
   - org.openrewrite.java.testing.mockito.SimplifyMockitoVerifyWhenGiven
 ---
 type: specs.openrewrite.org/v1beta/recipe
