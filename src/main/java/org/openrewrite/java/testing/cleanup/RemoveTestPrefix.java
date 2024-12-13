@@ -21,7 +21,9 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.NameCaseConvention;
 import org.openrewrite.java.AnnotationMatcher;
+import org.openrewrite.java.ChangeMethodName;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodDeclaration;
@@ -138,9 +140,8 @@ public class RemoveTestPrefix extends Recipe {
             }
 
             // Rename method and return
-            type = type.withName(newMethodName);
-            return m.withName(m.getName().withSimpleName(newMethodName).withType(type))
-                    .withMethodType(type);
+            doAfterVisit(new ChangeMethodName(MethodMatcher.methodPattern(m), newMethodName, false, false).getVisitor());
+            return m;
         }
 
         private boolean methodExists(JavaType.Method method, String newName) {
