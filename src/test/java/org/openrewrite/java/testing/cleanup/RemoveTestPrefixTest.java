@@ -377,4 +377,40 @@ class RemoveTestPrefixTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/258")
+    @Test
+    void removeTestPrefixWhenCalled() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+            import org.junit.jupiter.api.Test;
+
+            public class FooTest {
+              @Test
+              void bar() {
+                  testFoo();
+              }
+
+              @Test
+              void testFoo() {}
+            }
+            """,
+            """
+            import org.junit.jupiter.api.Test;
+
+            public class FooTest {
+              @Test
+              void bar() {
+                  foo();
+              }
+
+              @Test
+              void foo() {}
+            }
+            """
+          )
+        );
+    }
 }

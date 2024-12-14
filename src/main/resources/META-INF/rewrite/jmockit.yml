@@ -53,3 +53,4 @@ recipeList:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: org.jmockit
       artifactId: jmockit
+  - org.openrewrite.java.testing.mockito.MockitoBestPractices
