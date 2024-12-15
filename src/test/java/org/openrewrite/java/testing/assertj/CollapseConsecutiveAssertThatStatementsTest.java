@@ -21,6 +21,7 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.SourceSpec;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -311,6 +312,48 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                   void b(Node node) {
                       assertThat(node).extracting(Node::getParent);
                       assertThat(node).isNotNull();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ignoreDifferentFieldAccess() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class ABC {
+                  Object a, b, c;
+              }
+              """,
+            SourceSpec::skip
+          ),
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void test(ABC abc) {
+                      assertThat(abc.a).isNotNull();
+                      assertThat(abc.b).isNotNull();
+                      assertThat(abc.c).isNotNull();
+                      assertThat(abc.c).isNotNull();
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void test(ABC abc) {
+                      assertThat(abc.a).isNotNull();
+                      assertThat(abc.b).isNotNull();
+                      assertThat(abc.c)
+                              .isNotNull()
+                              .isNotNull();
                   }
               }
               """
