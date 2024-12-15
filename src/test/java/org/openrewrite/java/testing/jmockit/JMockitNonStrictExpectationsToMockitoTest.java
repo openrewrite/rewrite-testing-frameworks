@@ -1,11 +1,11 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  * <p>
- * https://www.apache.org/licenses/LICENSE-2.0
+ * https://docs.moderne.io/licensing/moderne-source-available-license
  * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -50,14 +50,14 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertNull;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.getSomeField();
@@ -71,16 +71,15 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertNull;
               import static org.mockito.Mockito.lenient;
-              import static org.mockito.Mockito.when;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() {
                       lenient().when(myObject.getSomeField()).thenReturn(null);
                       assertNull(myObject.getSomeField());
@@ -110,14 +109,14 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertEquals;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.getSomeField();
@@ -136,16 +135,15 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.Mockito.lenient;
-              import static org.mockito.Mockito.when;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() {
                       lenient().when(myObject.getSomeField()).thenReturn(10);
                       assertEquals(10, myObject.getSomeField());
@@ -177,14 +175,14 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertEquals;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.getSomeField(anyString);
@@ -198,15 +196,16 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertEquals;
-              import static org.mockito.Mockito.*;
-              
+              import static org.mockito.Mockito.anyString;
+              import static org.mockito.Mockito.lenient;
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() {
                       lenient().when(myObject.getSomeField(anyString())).thenReturn("foo");
                       assertEquals("foo", myObject.getSomeField("bar"));
@@ -236,16 +235,16 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertEquals;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   String expected = "expected";
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.getSomeField();
@@ -259,18 +258,17 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.Mockito.lenient;
-              import static org.mockito.Mockito.when;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   String expected = "expected";
-              
+
                   void test() {
                       lenient().when(myObject.getSomeField()).thenReturn(expected);
                       assertEquals(expected, myObject.getSomeField());
@@ -300,14 +298,14 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertNotNull;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.getSomeField();
@@ -321,16 +319,15 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertNotNull;
               import static org.mockito.Mockito.lenient;
-              import static org.mockito.Mockito.when;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() {
                       lenient().when(myObject.getSomeField()).thenReturn(new Object());
                       assertNotNull(myObject.getSomeField());
@@ -360,12 +357,12 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() throws RuntimeException {
                       new NonStrictExpectations() {{
                           myObject.getSomeField();
@@ -379,15 +376,14 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.mockito.Mockito.lenient;
-              import static org.mockito.Mockito.when;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() throws RuntimeException {
                       lenient().when(myObject.getSomeField()).thenThrow(new RuntimeException());
                       myObject.getSomeField();
@@ -417,14 +413,14 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertEquals;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() throws RuntimeException {
                       new NonStrictExpectations() {{
                           myObject.getSomeField();
@@ -439,16 +435,15 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.Mockito.lenient;
-              import static org.mockito.Mockito.when;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() throws RuntimeException {
                       lenient().when(myObject.getSomeField()).thenReturn("foo", "bar");
                       assertEquals("foo", myObject.getSomeField());
@@ -467,7 +462,7 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
           java(
             """
               import java.util.List;
-              
+
               class MyObject {
                   public String getSomeField(List<String> input) {
                       return "X";
@@ -482,19 +477,19 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
             """
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import mockit.NonStrictExpectations;
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertNull;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.getSomeField((List<String>) any);
@@ -510,19 +505,19 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
             """
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertNull;
               import static org.mockito.Mockito.*;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() {
                       lenient().when(myObject.getSomeField(anyList())).thenReturn(null);
                       lenient().when(myObject.getSomeOtherField(any(Object.class))).thenReturn(null);
@@ -542,7 +537,7 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
           java(
             """
               import java.util.List;
-              
+
               class MyObject {
                   public String getSomeField() {
                       return "X";
@@ -554,19 +549,19 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
             """
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import mockit.NonStrictExpectations;
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertNull;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.getSomeField();
@@ -579,20 +574,19 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
             """
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertNull;
               import static org.mockito.Mockito.lenient;
-              import static org.mockito.Mockito.when;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() {
                       lenient().when(myObject.getSomeField()).thenReturn(null);
                       assertNull(myObject.getSomeField());
@@ -611,7 +605,7 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
           java(
             """
               import java.util.List;
-              
+
               class MyObject {
                   public String getSomeField(String s, String s2, String s3, long l1) {
                       return "X";
@@ -623,19 +617,19 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
             """
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import mockit.NonStrictExpectations;
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertNull;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() {
                       String bazz = "bazz";
                       new NonStrictExpectations() {{
@@ -649,19 +643,19 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
             """
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertNull;
               import static org.mockito.Mockito.*;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() {
                       String bazz = "bazz";
                       lenient().when(myObject.getSomeField(eq("foo"), anyString(), eq(bazz), eq(10L))).thenReturn(null);
@@ -680,7 +674,7 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
           java(
             """
               class MyObject {
-              
+
                   public String getSomeField(String s) {
                       return "X";
                   }
@@ -696,26 +690,26 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertEquals;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() {
                       String a = "a";
                       String s = "s";
-              
+
                       new NonStrictExpectations() {{
                           myObject.getSomeField(anyString);
                           result = s;
-              
+
                           myObject.getString();
                           result = a;
                       }};
-              
+
                       assertEquals("s", myObject.getSomeField("foo"));
                       assertEquals("a", myObject.getString());
                   }
@@ -725,21 +719,22 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertEquals;
-              import static org.mockito.Mockito.*;
-              
+              import static org.mockito.Mockito.anyString;
+              import static org.mockito.Mockito.lenient;
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() {
                       String a = "a";
                       String s = "s";
                       lenient().when(myObject.getSomeField(anyString())).thenReturn(s);
                       lenient().when(myObject.getString()).thenReturn(a);
-              
+
                       assertEquals("s", myObject.getSomeField("foo"));
                       assertEquals("a", myObject.getString());
                   }
@@ -768,14 +763,14 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertEquals;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() {
                       String a = "a";
                       new NonStrictExpectations() {{
@@ -784,7 +779,7 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
                           String b = "b";
                           result = s;
                       }};
-              
+
                       assertEquals("s", myObject.getSomeField("foo"));
                   }
               }
@@ -793,21 +788,22 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertEquals;
-              import static org.mockito.Mockito.*;
-              
+              import static org.mockito.Mockito.anyString;
+              import static org.mockito.Mockito.lenient;
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() {
                       String a = "a";
                       String s = "s";
                       String b = "b";
                       lenient().when(myObject.getSomeField(anyString())).thenReturn(s);
-              
+
                       assertEquals("s", myObject.getSomeField("foo"));
                   }
               }
@@ -835,14 +831,14 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Tested;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertEquals;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Tested
                   MyObject myObject;
-              
+
                   void test() {
                       new NonStrictExpectations(myObject) {{
                           myObject.getSomeField();
@@ -856,16 +852,15 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.InjectMocks;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.Mockito.lenient;
-              import static org.mockito.Mockito.when;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @InjectMocks
                   MyObject myObject;
-              
+
                   void test() {
                       lenient().when(myObject.getSomeField()).thenReturn("foo");
                       assertEquals("foo", myObject.getSomeField());
@@ -902,18 +897,18 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.junit.Assert.assertNull;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-              
+
                   @Mocked
                   MyObject myOtherObject;
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.hashCode();
@@ -935,19 +930,19 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.junit.Assert.assertNull;
               import static org.mockito.Mockito.*;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   Object myObject;
-              
+
                   @Mock
                   MyObject myOtherObject;
-              
+
                   void test() {
                       lenient().when(myObject.hashCode()).thenReturn(10);
                       lenient().when(myOtherObject.getSomeObjectField()).thenReturn(null);
@@ -982,15 +977,15 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.junit.Assert.assertNull;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   MyObject myObject;
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.getSomeStringField();
@@ -1009,17 +1004,16 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.junit.Assert.assertNull;
               import static org.mockito.Mockito.lenient;
-              import static org.mockito.Mockito.when;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   MyObject myObject;
-              
+
                   void test() {
                       lenient().when(myObject.getSomeStringField()).thenReturn("a");
                       assertEquals("a", myObject.getSomeStringField());
@@ -1042,15 +1036,15 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.junit.Assert.assertNull;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.wait(anyLong);
@@ -1063,15 +1057,15 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.junit.Assert.assertNull;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   Object myObject;
-              
+
                   void test() {
                       myObject.wait(1L);
                   }
@@ -1091,12 +1085,12 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.wait(anyLong, anyInt);
@@ -1112,14 +1106,14 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.mockito.Mockito.*;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   Object myObject;
-              
+
                   void test() {
                       myObject.wait(10L, 10);
                       myObject.wait(10L, 10);
@@ -1142,12 +1136,12 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import mockit.Mocked;
               import mockit.integration.junit4.JMockit;
               import org.junit.runner.RunWith;
-              
+
               @RunWith(JMockit.class)
               class MyTest {
                   @Mocked
                   Object myObject;
-              
+
                   void test() {
                       new NonStrictExpectations() {{
                           myObject.toString();
@@ -1163,14 +1157,14 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               import static org.mockito.Mockito.*;
-              
+
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
                   Object myObject;
-              
+
                   void test() {
                       when(myObject.toString()).thenReturn("foo");
                       myObject.toString();

@@ -1,11 +1,11 @@
 /*
  * Copyright 2024 the original author or authors.
  * <p>
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  * <p>
- * https://www.apache.org/licenses/LICENSE-2.0
+ * https://docs.moderne.io/licensing/moderne-source-available-license
  * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -43,17 +43,17 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import mockit.MockUp;
               import static org.junit.Assert.assertEquals;
               import org.junit.Test;
-              
+
               public class MockUpTest {
                   @Test
                   public void test() {
                       new MockUp<MyClazz>() {
-              
+
                           @Mock
                           public int staticMethod() {
                               return 1024;
                           }
-              
+
                           @Mock
                           public int staticMethod(int v) {
                               return 128;
@@ -62,12 +62,12 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       assertEquals(1024, MyClazz.staticMethod());
                       assertEquals(128, MyClazz.staticMethod(0));
                   }
-              
+
                   public static class MyClazz {
                       public static int staticMethod() {
                           return 0;
                       }
-              
+
                       public static int staticMethod(int v) {
                           return 1;
                       }
@@ -75,12 +75,12 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               }
               """, """
               import static org.junit.Assert.assertEquals;
-              import static org.mockito.ArgumentMatchers.*;
-              import static org.mockito.Mockito.*;
-              
+              import static org.mockito.ArgumentMatchers.anyInt;
+              import static org.mockito.Mockito.mockStatic;
+
               import org.junit.Test;
               import org.mockito.MockedStatic;
-              
+
               public class MockUpTest {
                   @Test
                   public void test() {
@@ -91,12 +91,12 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           assertEquals(128, MyClazz.staticMethod(0));
                       }
                   }
-              
+
                   public static class MyClazz {
                       public static int staticMethod() {
                           return 0;
                       }
-              
+
                       public static int staticMethod(int v) {
                           return 1;
                       }
@@ -117,7 +117,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                   public String getMsg() {
                       return "foo";
                   }
-              
+
                   public String getMsg(String echo) {
                       return "foo" + echo;
                   }
@@ -132,7 +132,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                   public String getMsg() {
                       return "bar";
                   }
-              
+
                   public String getMsg(String echo) {
                       return "bar" + echo;
                   }
@@ -148,7 +148,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import mockit.Mock;
               import mockit.MockUp;
               import static org.junit.Assert.assertEquals;
-              
+
               public class MockUpTest {
                   @Test
                   public void test() {
@@ -188,7 +188,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.ArgumentMatchers.*;
               import static org.mockito.Mockito.*;
-              
+
               public class MockUpTest {
                   @Test
                   public void test() {
@@ -224,22 +224,22 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
             """
               import mockit.Mock;
               import mockit.MockUp;
-              
+
               import org.junit.Test;
               import static org.junit.Assert.assertEquals;
-              
+
               public class MockUpTest {
                   @Test
                   public void test() {
                       new MockUp<MyClazz>() {
                           final String msg = "newMsg";
-              
+
                           @Mock
                           public String getMsg() {
                               return msg;
                           }
                       };
-              
+
                       // Should ignore the newClass statement
                       new Runnable() {
                           @Override
@@ -249,7 +249,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       };
                       assertEquals("newMsg", new MyClazz().getMsg());
                   }
-              
+
                   public static class MyClazz {
                       public String getMsg() {
                           return "msg";
@@ -259,12 +259,12 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               """, """
               import org.junit.Test;
               import org.mockito.MockedConstruction;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
               import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.Mockito.*;
-              
+
               public class MockUpTest {
                   @Test
                   public void test() {
@@ -272,7 +272,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       MyClazz mockMyClazz = mock(MyClazz.class, CALLS_REAL_METHODS);
                       doAnswer(invocation -> msg).when(mockMyClazz).getMsg();
                       try (MockedConstruction mockConsMyClazz = mockConstructionWithAnswer(MyClazz.class, delegatesTo(mockMyClazz))) {
-              
+
                           // Should ignore the newClass statement
                           new Runnable() {
                               @Override
@@ -283,7 +283,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           assertEquals("newMsg", new MyClazz().getMsg());
                       }
                   }
-              
+
                   public static class MyClazz {
                       public String getMsg() {
                           return "msg";
@@ -303,7 +303,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import mockit.MockUp;
               import static org.junit.Assert.assertEquals;
               import org.junit.Test;
-              
+
               public class MockUpTest {
                   @Test
                   public void test() {
@@ -312,37 +312,37 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           public void changeMsg() {
                               MockUpClass.Save.msg = "mockMsg";
                           }
-              
+
                           @Mock
                           public void changeText(String text) {
                               MockUpClass.Save.text = "mockText";
                           }
                       };
-              
+
                       assertEquals("mockMsg", new MockUpClass().getMsg());
                       assertEquals("mockText", new MockUpClass().getText());
                   }
-              
+
                   public static class MockUpClass {
                       public static class Save {
                           public static String msg = "msg";
                           public static String text = "text";
                       }
-              
+
                       public final String getMsg() {
                           changeMsg();
                           return Save.msg;
                       }
-              
+
                       public void changeMsg() {
                           Save.msg = "newMsg";
                       }
-              
+
                       public String getText() {
                           changeText("newText");
                           return Save.text;
                       }
-              
+
                       public static void changeText(String text) {
                           Save.text = text;
                       }
@@ -353,13 +353,13 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
               import static org.mockito.Answers.CALLS_REAL_METHODS;
-              import static org.mockito.ArgumentMatchers.*;
+              import static org.mockito.ArgumentMatchers.nullable;
               import static org.mockito.Mockito.*;
-              
+
               import org.junit.Test;
               import org.mockito.MockedConstruction;
               import org.mockito.MockedStatic;
-              
+
               public class MockUpTest {
                   @Test
                   public void test() {
@@ -374,32 +374,32 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                               MockUpClass.Save.text = "mockText";
                               return null;
                           });
-              
+
                           assertEquals("mockMsg", new MockUpClass().getMsg());
                           assertEquals("mockText", new MockUpClass().getText());
                       }
                   }
-              
+
                   public static class MockUpClass {
                       public static class Save {
                           public static String msg = "msg";
                           public static String text = "text";
                       }
-              
+
                       public final String getMsg() {
                           changeMsg();
                           return Save.msg;
                       }
-              
+
                       public void changeMsg() {
                           Save.msg = "newMsg";
                       }
-              
+
                       public String getText() {
                           changeText("newText");
                           return Save.text;
                       }
-              
+
                       public static void changeText(String text) {
                           Save.text = text;
                       }
@@ -419,7 +419,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import mockit.Mock;
               import mockit.MockUp;
               import static org.junit.Assert.assertEquals;
-              
+
               public class MockUpTest {
                   @Before
                   public void setUp() {
@@ -430,12 +430,12 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           }
                       };
                   }
-              
+
                   @Test
                   public void test() {
                       assertEquals("mockMsg", new MyClazz().getMsg());
                   }
-              
+
                   public static class MyClazz {
                       public String getMsg() {
                           return "msg";
@@ -452,27 +452,27 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import static org.mockito.AdditionalAnswers.delegatesTo;
               import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.Mockito.*;
-              
+
               public class MockUpTest {
                   private MockedConstruction mockConsMyClazz;
-              
+
                   @Before
                   public void setUp() {
                       MyClazz mockMyClazz = mock(MyClazz.class, CALLS_REAL_METHODS);
                       doAnswer(invocation -> "mockMsg").when(mockMyClazz).getMsg();
                       mockConsMyClazz = mockConstructionWithAnswer(MyClazz.class, delegatesTo(mockMyClazz));
                   }
-              
+
                   @After
                   public void tearDown() {
                       mockConsMyClazz.closeOnDemand();
                   }
-              
+
                   @Test
                   public void test() {
                       assertEquals("mockMsg", new MyClazz().getMsg());
                   }
-              
+
                   public static class MyClazz {
                       public String getMsg() {
                           return "msg";
@@ -496,7 +496,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import mockit.Mock;
               import mockit.MockUp;
               import static org.junit.Assert.assertEquals;
-              
+
               public class MockUpTest {
                   @Before
                   public void setUp() {
@@ -505,29 +505,29 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           public String getMsg() {
                               return "mockMsg";
                           }
-              
+
                           @Mock
                           public String getStaticMsg() {
                               return "mockStaticMsg";
                           }
                       };
                   }
-              
+
                   @After
                   public void tearDown() {
                   }
-              
+
                   @Test
                   public void test() {
                       assertEquals("mockMsg", new MyClazz().getMsg());
                       assertEquals("mockStaticMsg", MyClazz.getStaticMsg());
                   }
-              
+
                   public static class MyClazz {
                       public String getMsg() {
                           return "msg";
                       }
-              
+
                       public static String getStaticMsg() {
                           return "staticMsg";
                       }
@@ -544,11 +544,11 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import static org.mockito.AdditionalAnswers.delegatesTo;
               import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.Mockito.*;
-              
+
               public class MockUpTest {
                   private MockedConstruction mockConsMyClazz;
                   private MockedStatic mockStaticMyClazz;
-              
+
                   @Before
                   public void setUp() {
                       MyClazz mockMyClazz = mock(MyClazz.class, CALLS_REAL_METHODS);
@@ -557,24 +557,24 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       mockStaticMyClazz = mockStatic(MyClazz.class);
                       mockStaticMyClazz.when(() -> MyClazz.getStaticMsg()).thenAnswer(invocation -> "mockStaticMsg");
                   }
-              
+
                   @After
                   public void tearDown() {
                       mockConsMyClazz.closeOnDemand();
                       mockStaticMyClazz.closeOnDemand();
                   }
-              
+
                   @Test
                   public void test() {
                       assertEquals("mockMsg", new MyClazz().getMsg());
                       assertEquals("mockStaticMsg", MyClazz.getStaticMsg());
                   }
-              
+
                   public static class MyClazz {
                       public String getMsg() {
                           return "msg";
                       }
-              
+
                       public static String getStaticMsg() {
                           return "staticMsg";
                       }
@@ -594,9 +594,9 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import mockit.Mock;
               import mockit.MockUp;
               import org.junit.Test;
-              
+
               import static org.junit.Assert.assertEquals;
-              
+
               public class MockUpTest {
                   @Test
                   public void init() {
@@ -608,7 +608,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       };
                       assertEquals("foobar", new MyClazz().getMsg("foo", "bar", "unused"));
                   }
-              
+
                   public static class MyClazz {
                       public String getMsg(String foo, String bar, String unused) {
                           return "msg";
@@ -619,13 +619,13 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
             """
               import org.junit.Test;
               import org.mockito.MockedConstruction;
-              
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
               import static org.mockito.Answers.CALLS_REAL_METHODS;
-              import static org.mockito.ArgumentMatchers.*;
+              import static org.mockito.ArgumentMatchers.nullable;
               import static org.mockito.Mockito.*;
-              
+
               public class MockUpTest {
                   @Test
                   public void init() {
@@ -639,7 +639,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           assertEquals("foobar", new MyClazz().getMsg("foo", "bar", "unused"));
                       }
                   }
-              
+
                   public static class MyClazz {
                       public String getMsg(String foo, String bar, String unused) {
                           return "msg";
