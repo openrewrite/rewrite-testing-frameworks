@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -185,6 +186,37 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
 
                   private int[] notification() {
                       return new int[]{1, 2, 3};
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Disabled("Not yet implemented")
+    @Test
+    void collapseAssertThatsOnInteger() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void test(Integer i) {
+                      assertThat(i).isNotNull();
+                      assertThat(i).isEqualTo(2);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void test(Integer i) {
+                      assertThat(i)
+                              .isNotNull()
+                              .isEqualTo(2);
                   }
               }
               """
