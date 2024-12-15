@@ -100,8 +100,13 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                 // Only match method invocations where the select is an assertThat, containing a non-method call argument
                 if (ASSERT_THAT.matches(assertion.getSelect())) {
                     J.MethodInvocation assertThat = (J.MethodInvocation) assertion.getSelect();
-                    if (assertThat != null && !(assertThat.getArguments().get(0) instanceof MethodCall)) {
-                        return TypeUtils.isOfType(assertThat.getType(), assertion.getType());
+                    if (assertThat != null) {
+                        Expression assertThatArgument = assertThat.getArguments().get(0);
+                        if (!(assertThatArgument instanceof MethodCall)) {
+                            JavaType assertThatType = assertThat.getType();
+                            JavaType assertionType = assertion.getType();
+                            return TypeUtils.isOfType(assertThatType, assertionType);
+                        }
                     }
                 }
                 return false;
