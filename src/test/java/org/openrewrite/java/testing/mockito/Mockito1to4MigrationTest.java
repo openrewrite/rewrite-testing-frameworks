@@ -41,6 +41,7 @@ class Mockito1to4MigrationTest implements RewriteTest {
             .activateRecipes("org.openrewrite.java.testing.mockito.Mockito1to4Migration"));
     }
 
+    @DocumentExample
     @Test
     void modifyMockitoDependencies() {
         //language=java
