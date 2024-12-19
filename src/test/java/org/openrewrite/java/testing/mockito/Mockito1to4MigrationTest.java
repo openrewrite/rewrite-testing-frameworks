@@ -35,17 +35,14 @@ class Mockito1to4MigrationTest implements RewriteTest {
           .beforeRecipe(withToolingApi())
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-core", "mockito-junit-jupiter"))
-          .recipe(Environment.builder()
-            .scanRuntimeClasspath("org.openrewrite.java.testing")
-            .build()
-            .activateRecipes("org.openrewrite.java.testing.mockito.Mockito1to4Migration"));
+          .recipeFromResources("org.openrewrite.java.testing.mockito.Mockito1to4Migration");
     }
 
     @DocumentExample
     @Test
     void modifyMockitoDependencies() {
-        //language=java
         rewriteRun(
+          //language=groovy
           buildGradle(
             """
                plugins {
@@ -82,6 +79,7 @@ class Mockito1to4MigrationTest implements RewriteTest {
                }
                """
           ),
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
