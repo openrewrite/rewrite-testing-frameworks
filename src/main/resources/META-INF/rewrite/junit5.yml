@@ -322,4 +322,48 @@ recipeList:
       groupId: org.junit.platform
       artifactId: junit-platform-surefire-provider
       version: 1.1.0
-
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.ArquillianJUnit4ToArquillianJunit5
+displayName: Use Arquillian JUnit 5 Extension
+description: Migrates Arquillian JUnit 4 to JUnit 5
+tags:
+  - testing
+  - junit
+  - arquillian
+recipeList:
+  - org.openrewrite.java.testing.junit5.RunnerToExtension:
+      runners:
+        - org.jboss.arquillian.junit.Arquillian
+      extension: org.jboss.arquillian.junit5.ArquillianExtension
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.jboss.arquillian.junit
+      oldArtifactId: arquillian-junit-container
+      newGroupId: org.jboss.arquillian.junit5
+      newArtifactId: arquillian-junit5-container
+  - org.openrewrite.java.testing.junit5.ReplaceArquillianInSequenceAnnotation
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.jboss.arquillian.junit
+      newPackageName: org.jboss.arquillian.junit5
+      recursive: true
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.ArquillianJUnit4ToArquillianJunit5BestPractices
+displayName: Use Arquillian JUnit 5 Extension with best practices
+description: Migrates Arquillian `@RunWith` `Arquillian` to the JUnit Jupiter `@ExtendWith` `ArquillianExtension` with best practices.
+tags:
+  - testing
+  - junit
+  - arquillian
+recipeList:
+  - org.openrewrite.java.testing.junit5.JUnit4to5Migration
+  - org.openrewrite.java.testing.junit5.ArquillianJUnit4ToArquillianJunit5
+  - org.openrewrite.java.testing.junit5.StaticImports
+  - org.openrewrite.java.testing.junit5.CleanupAssertions
+  - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipe
+  - org.openrewrite.java.testing.cleanup.RemoveTestPrefix
+  - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
+  - org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
+  - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
+  - org.openrewrite.java.testing.junit5.LifecycleNonPrivate
+  - org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
