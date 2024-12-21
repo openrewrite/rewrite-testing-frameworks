@@ -42,6 +42,7 @@ dependencies {
 
     runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:latest.release:recipes")
     compileOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    compileOnly("org.assertj:assertj-core:3.+")
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
