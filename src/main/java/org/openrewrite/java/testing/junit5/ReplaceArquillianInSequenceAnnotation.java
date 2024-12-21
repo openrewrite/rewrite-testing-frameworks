@@ -106,7 +106,7 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
                                 ));
                                 cd = cd.withLeadingAnnotations(annotations);
                                 maybeAddImport(testMethodOrderType);
-                                maybeAddImport(methodOrderType);
+                                maybeAddImport(methodOrderType.getFullyQualifiedName(), null, false);
                             }
                         }
                         cd = maybeAutoFormat(classDecl, cd, cd.getName(), ctx, getCursor().getParentTreeCursor());
