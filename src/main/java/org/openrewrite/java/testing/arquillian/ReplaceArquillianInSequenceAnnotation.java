@@ -44,7 +44,7 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Transforms the Arquillian JUnit 4 `@InSequence` to the JUnit Jupiter `@Order`";
+        return "Transforms the Arquillian JUnit 4 `@InSequence` to the JUnit Jupiter `@Order`.";
     }
 
     @Override
@@ -58,9 +58,9 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
         private static final JavaType.Class orderType = JavaType.ShallowClass.build("org.junit.jupiter.api.Order");
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(final J.MethodDeclaration method, final ExecutionContext ctx) {
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-            final Set<J.Annotation> inSequenceAnnotations = FindAnnotations.find(m, "@org.jboss.arquillian.junit.InSequence");
+            Set<J.Annotation> inSequenceAnnotations = FindAnnotations.find(m, "@org.jboss.arquillian.junit.InSequence");
             if (!inSequenceAnnotations.isEmpty()) {
                 m = m.withLeadingAnnotations(m.getLeadingAnnotations().stream()
                         .flatMap(this::inSequenceAnnotationToOrderAnnotation)
@@ -68,16 +68,15 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
 
                 maybeRemoveImport("org.jboss.arquillian.junit.InSequence");
                 maybeAddImport(orderType);
-                final J.ClassDeclaration classDeclaration = getCursor().dropParentUntil(org.openrewrite.java.tree.J.ClassDeclaration.class::isInstance)
+                J.ClassDeclaration classDeclaration = getCursor().dropParentUntil(org.openrewrite.java.tree.J.ClassDeclaration.class::isInstance)
                         .getValue();
-                super.doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
-
+                doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                         if (cd.getName().equals(classDeclaration.getName())) {
                             if (FindAnnotations.find(cd, "@" + testMethodOrderType.getFullyQualifiedName()).isEmpty()) {
-                                final List<J.Annotation> annotations = new ArrayList<>(cd.getLeadingAnnotations());
+                                List<J.Annotation> annotations = new ArrayList<>(cd.getLeadingAnnotations());
                                 annotations.add(new J.Annotation(randomId(), Space.EMPTY, Markers.EMPTY,
                                         new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), testMethodOrderType.getClassName(), testMethodOrderType, null),
                                         JContainer.build(Space.EMPTY,
@@ -106,17 +105,15 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
                         cd = maybeAutoFormat(classDecl, cd, cd.getName(), ctx, getCursor().getParentTreeCursor());
                         return cd;
                     }
-
                 });
             }
-            m = maybeAutoFormat(method, m, m.getName(), ctx, getCursor().getParentTreeCursor());
-            return m;
+            return maybeAutoFormat(method, m, m.getName(), ctx, getCursor().getParentTreeCursor());
         }
 
-        private Stream<J.Annotation> inSequenceAnnotationToOrderAnnotation(final J.Annotation maybeInSequence) {
+        private Stream<J.Annotation> inSequenceAnnotationToOrderAnnotation(J.Annotation maybeInSequence) {
             if (maybeInSequence.getArguments() != null && TypeUtils.isOfClassType(maybeInSequence.getAnnotationType()
                     .getType(), "org.jboss.arquillian.junit.InSequence")) {
-                final Expression annotationArgument = maybeInSequence.getArguments().iterator().next();
+                Expression annotationArgument = maybeInSequence.getArguments().iterator().next();
                 Stream<J.Literal> value = Stream.empty();
                 if (annotationArgument instanceof J.Literal) {
                     value = Stream.of((J.Literal) annotationArgument);
