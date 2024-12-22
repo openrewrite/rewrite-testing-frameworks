@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
@@ -29,8 +30,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
@@ -49,7 +48,8 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.jboss.arquillian.junit.InSequence", false), new InSequenceToOrderVisitor());
+        return Preconditions.check(new UsesType<>("org.jboss.arquillian.junit.InSequence", false),
+                new InSequenceToOrderVisitor());
     }
 
     public static class InSequenceToOrderVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -58,16 +58,24 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
         private static final JavaType.Class orderType = JavaType.ShallowClass.build("org.junit.jupiter.api.Order");
 
         @Override
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+
+
+
+            return cd;
+        }
+
+        @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             Set<J.Annotation> inSequenceAnnotations = FindAnnotations.find(m, "@org.jboss.arquillian.junit.InSequence");
             if (!inSequenceAnnotations.isEmpty()) {
-                m = m.withLeadingAnnotations(m.getLeadingAnnotations().stream()
-                        .flatMap(this::inSequenceAnnotationToOrderAnnotation)
-                        .collect(Collectors.toList()));
+                doAfterVisit(new ChangeType(
+                        "org.jboss.arquillian.junit.InSequence",
+                        "org.junit.jupiter.api.Order",
+                        true).getVisitor());
 
-                maybeRemoveImport("org.jboss.arquillian.junit.InSequence");
-                maybeAddImport(orderType);
                 J.ClassDeclaration classDeclaration = getCursor().dropParentUntil(org.openrewrite.java.tree.J.ClassDeclaration.class::isInstance)
                         .getValue();
                 doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
@@ -108,43 +116,6 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
                 });
             }
             return maybeAutoFormat(method, m, m.getName(), ctx, getCursor().getParentTreeCursor());
-        }
-
-        private Stream<J.Annotation> inSequenceAnnotationToOrderAnnotation(J.Annotation maybeInSequence) {
-            if (maybeInSequence.getArguments() != null && TypeUtils.isOfClassType(maybeInSequence.getAnnotationType()
-                    .getType(), "org.jboss.arquillian.junit.InSequence")) {
-                Expression annotationArgument = maybeInSequence.getArguments().iterator().next();
-                Stream<J.Literal> value = Stream.empty();
-                if (annotationArgument instanceof J.Literal) {
-                    value = Stream.of((J.Literal) annotationArgument);
-                }
-                return value.map(orderValue -> new J.Annotation(
-                        randomId(),
-                        Space.EMPTY,
-                        Markers.EMPTY,
-                        new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), orderType.getClassName(), orderType, null),
-                        JContainer.build(Space.EMPTY,
-                                Collections.singletonList(
-                                        new JRightPadded<>(
-                                                new J.Literal(
-                                                        randomId(),
-                                                        Space.EMPTY,
-                                                        Markers.EMPTY,
-                                                        "" + orderValue,
-                                                        orderValue.getValueSource(),
-                                                        null,
-                                                        JavaType.Primitive.Int
-                                                ),
-                                                Space.EMPTY,
-                                                Markers.EMPTY
-                                        )
-                                ),
-                                Markers.EMPTY
-                        )
-                ));
-            } else {
-                return Stream.of(maybeInSequence);
-            }
         }
     }
 }
