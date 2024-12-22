@@ -51,9 +51,8 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
 
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                        J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                         doAfterVisit(new ChangeType(IN_SEQUENCE, "org.junit.jupiter.api.Order", true).getVisitor());
-                        return cd;
+                        return super.visitClassDeclaration(classDecl, ctx);
                     }
 
                     @Override

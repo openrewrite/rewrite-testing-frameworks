@@ -27,7 +27,9 @@ class ArquillianJUnit4ToArquillianJunit5Test implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipeFromResource("/META-INF/rewrite/arquillian.yml", "org.openrewrite.java.testing.junit5.ArquillianJUnit4ToArquillianJunit5");
+        spec.recipeFromResource(
+          "/META-INF/rewrite/arquillian.yml",
+          "org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5");
     }
 
     @DocumentExample

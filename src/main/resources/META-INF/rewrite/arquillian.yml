@@ -16,7 +16,7 @@
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.junit5.ArquillianJUnit4ToArquillianJunit5
+name: org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5
 displayName: Use Arquillian JUnit 5 Extension
 description: Migrates Arquillian JUnit 4 to JUnit 5.
 tags:
@@ -39,24 +39,3 @@ recipeList:
       oldPackageName: org.jboss.arquillian.junit
       newPackageName: org.jboss.arquillian.junit5
       recursive: true
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.junit5.ArquillianJUnit4ToArquillianJunit5BestPractices
-displayName: Use Arquillian JUnit 5 Extension with best practices
-description: Migrates Arquillian `@RunWith` `Arquillian` to the JUnit Jupiter `@ExtendWith` `ArquillianExtension` with best practices.
-tags:
-  - testing
-  - junit
-  - arquillian
-recipeList:
-  - org.openrewrite.java.testing.junit5.JUnit4to5Migration
-  - org.openrewrite.java.testing.junit5.ArquillianJUnit4ToArquillianJunit5
-  - org.openrewrite.java.testing.junit5.StaticImports
-  - org.openrewrite.java.testing.junit5.CleanupAssertions
-  - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipe
-  - org.openrewrite.java.testing.cleanup.RemoveTestPrefix
-  - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
-  - org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
-  - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
-  - org.openrewrite.java.testing.junit5.LifecycleNonPrivate
-  - org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
