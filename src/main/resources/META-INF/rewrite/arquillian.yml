@@ -1,0 +1,41 @@
+#
+# Copyright 2024 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5
+displayName: Use Arquillian JUnit 5 Extension
+description: Migrates Arquillian JUnit 4 to JUnit 5.
+tags:
+  - testing
+  - junit
+  - arquillian
+recipeList:
+  - org.openrewrite.java.testing.junit5.RunnerToExtension:
+      runners:
+        - org.jboss.arquillian.junit.Arquillian
+      extension: org.jboss.arquillian.junit5.ArquillianExtension
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.jboss.arquillian.junit
+      oldArtifactId: arquillian-junit-container
+      newGroupId: org.jboss.arquillian.junit5
+      newArtifactId: arquillian-junit5-container
+      newVersion: x
+  - org.openrewrite.java.testing.arquillian.ReplaceArquillianInSequenceAnnotation
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.jboss.arquillian.junit
+      newPackageName: org.jboss.arquillian.junit5
+      recursive: true

@@ -42,6 +42,7 @@ dependencies {
 
     runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:latest.release:recipes")
     compileOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    compileOnly("org.assertj:assertj-core:3.+")
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
@@ -70,8 +71,9 @@ dependencies {
         exclude(group = "org.yaml", module = "snakeyaml")
     }
     testRuntimeOnly("org.easymock:easymock:latest.release")
-    testRuntimeOnly("org.testng:testng:latest.release")
+    testRuntimeOnly("org.jboss.arquillian.junit:arquillian-junit-core:latest.release")
     testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:latest.release")
     testRuntimeOnly("org.testcontainers:testcontainers:latest.release")
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
+    testRuntimeOnly("org.testng:testng:latest.release")
 }
