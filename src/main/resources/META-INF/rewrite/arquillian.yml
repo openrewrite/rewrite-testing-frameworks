@@ -34,7 +34,7 @@ recipeList:
       newGroupId: org.jboss.arquillian.junit5
       newArtifactId: arquillian-junit5-container
       newVersion: x
-  - org.openrewrite.java.testing.junit5.ReplaceArquillianInSequenceAnnotation
+  - org.openrewrite.java.testing.arquillian.ReplaceArquillianInSequenceAnnotation
   - org.openrewrite.java.ChangePackage:
       oldPackageName: org.jboss.arquillian.junit
       newPackageName: org.jboss.arquillian.junit5

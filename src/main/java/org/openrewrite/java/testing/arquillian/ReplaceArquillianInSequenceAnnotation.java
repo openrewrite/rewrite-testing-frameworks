@@ -13,17 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.testing.junit5;
-
-import static java.util.Collections.emptyList;
-import static org.openrewrite.Tree.randomId;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+package org.openrewrite.java.testing.arquillian;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -32,14 +22,18 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JContainer;
-import org.openrewrite.java.tree.JRightPadded;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Space;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.Collections.emptyList;
+import static org.openrewrite.Tree.randomId;
 
 public class ReplaceArquillianInSequenceAnnotation extends Recipe {
 
@@ -127,33 +121,30 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
                 if (annotationArgument instanceof J.Literal) {
                     value = Stream.of((J.Literal) annotationArgument);
                 }
-                return value.map(orderValue -> {
-                    J.Annotation orderAnnotation = new J.Annotation(
-                            randomId(),
-                            Space.EMPTY,
-                            Markers.EMPTY,
-                            new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), orderType.getClassName(), orderType, null),
-                            JContainer.build(Space.EMPTY,
-                                    Collections.singletonList(
-                                            new JRightPadded<>(
-                                                    new J.Literal(
-                                                            randomId(),
-                                                            Space.EMPTY,
-                                                            Markers.EMPTY,
-                                                            "" + orderValue,
-                                                            orderValue.getValueSource(),
-                                                            null,
-                                                            JavaType.Primitive.Int
-                                                    ),
-                                                    Space.EMPTY,
-                                                    Markers.EMPTY
-                                            )
-                                    ),
-                                    Markers.EMPTY
-                            )
-                    );
-                    return orderAnnotation;
-                });
+                return value.map(orderValue -> new J.Annotation(
+                        randomId(),
+                        Space.EMPTY,
+                        Markers.EMPTY,
+                        new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), orderType.getClassName(), orderType, null),
+                        JContainer.build(Space.EMPTY,
+                                Collections.singletonList(
+                                        new JRightPadded<>(
+                                                new J.Literal(
+                                                        randomId(),
+                                                        Space.EMPTY,
+                                                        Markers.EMPTY,
+                                                        "" + orderValue,
+                                                        orderValue.getValueSource(),
+                                                        null,
+                                                        JavaType.Primitive.Int
+                                                ),
+                                                Space.EMPTY,
+                                                Markers.EMPTY
+                                        )
+                                ),
+                                Markers.EMPTY
+                        )
+                ));
             } else {
                 return Stream.of(maybeInSequence);
             }
