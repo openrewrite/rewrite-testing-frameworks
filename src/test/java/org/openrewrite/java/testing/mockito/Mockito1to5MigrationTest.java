@@ -15,8 +15,6 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
