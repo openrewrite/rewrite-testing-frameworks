@@ -28,27 +28,29 @@ class IsEqualToIgnoringMillisToIsCloseToTest implements RewriteTest {
     void replaceDeprecation() {
         rewriteRun(spec -> spec.recipe(new IsEqualToIgnoringMillisToIsCloseToRecipe()),
           //language=java
-          java("""
-            import java.util.Date;
-
-            import static org.assertj.core.api.Assertions.assertThat;
-
-            class A {
-              public void foo(Date date1, Date date2) {
-                assertThat(date1).isEqualToIgnoringMillis(date2);
-              }
-            }
-            """, """
-            import java.util.Date;
-
-            import static org.assertj.core.api.Assertions.assertThat;
-
-            class A {
-              public void foo(Date date1, Date date2) {
-                assertThat(date1).isCloseTo(date2, 1000L);
-              }
-            }
+          java(
             """
+              import org.assertj.core.api.Assertions;
+
+              import java.util.Date;
+
+              class A {
+                  public void foo(Date date1, Date date2) {
+                      Assertions.assertThat(date1).isEqualToIgnoringMillis(date2);
+                  }
+              }
+              """,
+            """
+              import org.assertj.core.api.Assertions;
+
+              import java.util.Date;
+
+              class A {
+                  public void foo(Date date1, Date date2) {
+                      Assertions.assertThat(date1).isCloseTo(date2, 1000L);
+                  }
+              }
+              """
           )
         );
     }

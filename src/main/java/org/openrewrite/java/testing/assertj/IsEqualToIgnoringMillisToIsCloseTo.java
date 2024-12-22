@@ -15,14 +15,12 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import java.util.Date;
-
 import com.google.errorprone.refaster.annotation.AfterTemplate;
 import com.google.errorprone.refaster.annotation.BeforeTemplate;
-import com.google.errorprone.refaster.annotation.UseImportPolicy;
 import org.openrewrite.java.template.RecipeDescriptor;
 
-import static com.google.errorprone.refaster.ImportPolicy.STATIC_IMPORT_ALWAYS;
+import java.util.Date;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RecipeDescriptor(
@@ -38,7 +36,6 @@ public class IsEqualToIgnoringMillisToIsCloseTo {
     }
 
     @AfterTemplate
-    @UseImportPolicy(value = STATIC_IMPORT_ALWAYS)
     void isCloseToAfter(Date date1, Date date2) {
         assertThat(date1).isCloseTo(date2, 1000L);
     }
