@@ -62,9 +62,9 @@ class Mockito1to5MigrationTest implements RewriteTest {
               }
               """,
             spec -> spec.after(buildGradleAfter -> assertThat(buildGradleAfter)
-              .containsPattern("org.apache.commons:commons-lang3:3.17.0")
-              .containsPattern("org.junit.jupiter:junit-jupiter-api:5.11.4")
-              .containsPattern("org\\.mockito:[\\D]+:(?<version>5\\.\\d+\\.\\d+)")
+              .containsPattern("implementation\\(\"org.apache.commons:commons-lang3:3.17.0\"")
+              .containsPattern("testImplementation\\(\"org.junit.jupiter:junit-jupiter-api:5.11.4\"")
+              .containsPattern("testImplementation\\(\"org\\.mockito:[\\D]+:(?<version>5\\.\\d+\\.\\d+)\"")
               .actual())),
           //language=java
           java(
