@@ -108,7 +108,7 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
                 J.Binary binary = (J.Binary) firstArgument;
                 J.Binary.Type operator = binary.getOperator();
 
-                if (!operator.equals(J.Binary.Type.Equal)) {
+                if (operator != J.Binary.Type.Equal) {
                     return false;
                 }
 
