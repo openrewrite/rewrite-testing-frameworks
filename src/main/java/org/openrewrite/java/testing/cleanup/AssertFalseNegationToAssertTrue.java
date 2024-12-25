@@ -97,7 +97,7 @@ public class AssertFalseNegationToAssertTrue extends Recipe {
             private boolean isUnaryOperatorNot(J.MethodInvocation method) {
                 if (!method.getArguments().isEmpty() && method.getArguments().get(0) instanceof J.Unary) {
                     J.Unary unary = (J.Unary) method.getArguments().get(0);
-                    return unary.getOperator().equals(J.Unary.Type.Not);
+                    return unary.getOperator() == J.Unary.Type.Not;
                 }
 
                 return false;

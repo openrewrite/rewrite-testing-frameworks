@@ -97,7 +97,7 @@ public class AssertNotEqualsBooleanToAssertBoolean extends Recipe {
             private boolean isBooleanLiteral(J.MethodInvocation method) {
                 if (!method.getArguments().isEmpty() && method.getArguments().get(0) instanceof J.Literal) {
                     J.Literal literal = (J.Literal) method.getArguments().get(0);
-                    return JavaType.Primitive.Boolean.equals(literal.getType());
+                    return JavaType.Primitive.Boolean == literal.getType();
                 }
 
                 return false;
