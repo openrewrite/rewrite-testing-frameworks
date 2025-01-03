@@ -1,11 +1,3 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <suppress until="2024-11-25Z">
-        <notes><![CDATA[
-                file name: rewrite-testing-frameworks-2.20.0-SNAPSHOT.jar: wiremock-jre8-2.35.0.jar: swagger-ui-bundle.js
-                false positive: js library that is shipped as part of this jar
-            ]]></notes>
-        <packageUrl regex="true">^pkg:javascript/DOMPurify@.*$</packageUrl>
-        <vulnerabilityName>CVE-2024-45801</vulnerabilityName>
-    </suppress>
 </suppressions>
