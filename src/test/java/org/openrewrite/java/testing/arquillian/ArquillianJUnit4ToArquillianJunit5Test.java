@@ -65,7 +65,7 @@ class ArquillianJUnit4ToArquillianJunit5Test implements RewriteTest {
                         <dependency>
                             <groupId>org.jboss.arquillian.junit5</groupId>
                             <artifactId>arquillian-junit5-container</artifactId>
-                            <version>1.9.1.Final</version>
+                            <version>1.9.2.Final</version>
                             <scope>test</scope>
                         </dependency>
                     </dependencies>
