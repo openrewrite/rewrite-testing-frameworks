@@ -54,7 +54,7 @@ class ReplaceArquillianInSequenceAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Order;
               import org.junit.jupiter.api.TestMethodOrder;
 
-              @TestMethodOrder(MethodOrderer.class)
+              @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
               class A {
                   @Order(2)
                   void second() {}

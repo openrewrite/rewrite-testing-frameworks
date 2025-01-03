@@ -69,7 +69,7 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
                                                 !service(AnnotationService.class).matches(updateCursor(cd), TEST_METHOD_ORDER_MATCHER)) {
                                             maybeAddImport(METHOD_ORDERER);
                                             maybeAddImport(TEST_METHOD_ORDER);
-                                            return JavaTemplate.builder("@TestMethodOrder(MethodOrderer.class)")
+                                            return JavaTemplate.builder("@TestMethodOrder(MethodOrderer.OrderAnnotation.class)")
                                                     .imports(METHOD_ORDERER, TEST_METHOD_ORDER)
                                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                                     .build()
