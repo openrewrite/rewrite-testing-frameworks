@@ -29,14 +29,14 @@ recipeDependencies {
     parserClasspath("com.github.database-rider:rider-junit5:1.44.0")
 }
 
-val rewriteVersion = rewriteRecipe.rewriteVersion.get()
+val rewriteVersion = "latest.release"
 dependencies {
-    implementation(platform("org.openrewrite:rewrite-bom:$rewriteVersion"))
+    implementation(platform("org.openrewrite:rewrite-bom:8.41.1"))
     implementation("org.openrewrite:rewrite-java")
     implementation("org.openrewrite:rewrite-gradle")
     implementation("org.openrewrite:rewrite-maven")
-    implementation("org.openrewrite.recipe:rewrite-java-dependencies:$rewriteVersion")
-    implementation("org.openrewrite.recipe:rewrite-static-analysis:$rewriteVersion")
+    implementation("org.openrewrite.recipe:rewrite-java-dependencies:1.24.1")
+    implementation("org.openrewrite.recipe:rewrite-static-analysis:1.21.1")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
     runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:latest.release:recipes")
@@ -50,12 +50,12 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
     testImplementation("org.openrewrite:rewrite-test")
-    testImplementation("org.openrewrite:rewrite-kotlin:$rewriteVersion")
-    testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
+    testImplementation("org.openrewrite:rewrite-kotlin:1.23.1")
+    testImplementation("org.openrewrite.gradle.tooling:model:latest.release")
 
-    annotationProcessor("org.openrewrite:rewrite-templating:${rewriteVersion}")
-    implementation("org.openrewrite:rewrite-templating:${rewriteVersion}")
-    compileOnly("com.google.errorprone:error_prone_core:2.+:with-dependencies") {
+    annotationProcessor("org.openrewrite:rewrite-templating:1.19.1")
+    implementation("org.openrewrite:rewrite-templating:1.19.1")
+    compileOnly("com.google.errorprone:error_prone_core:2.+") {
         exclude("com.google.auto.service", "auto-service-annotations")
     }
 
