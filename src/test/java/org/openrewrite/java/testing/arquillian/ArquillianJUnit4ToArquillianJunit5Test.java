@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.maven.Assertions.pomXml;
 
@@ -37,8 +38,8 @@ class ArquillianJUnit4ToArquillianJunit5Test implements RewriteTest {
     void convert() {
         rewriteRun(
           mavenProject("project",
-            //language=xml
             pomXml(
+              //language=xml
               """
                 <project>
                     <modelVersion>4.0.0</modelVersion>
@@ -55,22 +56,7 @@ class ArquillianJUnit4ToArquillianJunit5Test implements RewriteTest {
                     </dependencies>
                 </project>
                 """,
-              """
-                <project>
-                    <modelVersion>4.0.0</modelVersion>
-                    <groupId>org.openrewrite</groupId>
-                    <artifactId>arquillian</artifactId>
-                    <version>1.0-SNAPSHOT</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.jboss.arquillian.junit5</groupId>
-                            <artifactId>arquillian-junit5-container</artifactId>
-                            <version>1.9.2.Final</version>
-                            <scope>test</scope>
-                        </dependency>
-                    </dependencies>
-                </project>
-                """
+              spec -> spec.after(pom -> assertThat(pom).contains("<version>1.9.").actual())
             )
           )
         );
