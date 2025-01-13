@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -62,6 +63,37 @@ class AssertJBestPracticesTest implements RewriteTest {
               class Test {
                   void test() {
                       assertThat("test").isEmpty();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Disabled("to be fixed")
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/664")
+    void assertionsForClassTypesIsNotRemovedByAssertionsImport() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.Map;
+              import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
+              class Test {
+                  void test() {
+                      assertThat(Map.of("a", 1).entrySet()).hasNoNullFieldsOrProperties();
+                  }
+              }
+              """,
+            """
+              import java.util.Map;
+              import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
+              class Test {
+                  void test() {
+                      assertThat(Map.of("a", 1).entrySet()).hasNoNullFieldsOrProperties();
                   }
               }
               """
