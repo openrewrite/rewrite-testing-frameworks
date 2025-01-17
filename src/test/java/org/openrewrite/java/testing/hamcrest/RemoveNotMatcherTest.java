@@ -24,6 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.test.RewriteTest.toRecipe;
+import static org.openrewrite.test.TypeValidation.all;
 
 class RemoveNotMatcherTest implements RewriteTest {
     @Override
@@ -31,10 +32,12 @@ class RemoveNotMatcherTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "hamcrest-2.2"))
-          .recipe(toRecipe(RemoveNotMatcherVisitor::new));
+          .recipe(toRecipe(RemoveNotMatcherVisitor::new))
+          .typeValidationOptions(all().immutableExecutionContext(false));
     }
 
     @DocumentExample
+    @Test
     void nestedNotMatcher() {
         rewriteRun(
           //language=java
