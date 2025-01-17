@@ -23,6 +23,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.test.TypeValidation.all;
 
 class MigrateHamcrestToJUnitTest implements RewriteTest {
     @Override
@@ -38,6 +39,7 @@ class MigrateHamcrestToJUnitTest implements RewriteTest {
     void equalToString() {
         //language=java
         rewriteRun(
+          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false)),
           java(
             """
               import org.junit.jupiter.api.Test;
