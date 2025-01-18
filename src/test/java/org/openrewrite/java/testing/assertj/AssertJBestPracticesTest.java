@@ -71,22 +71,11 @@ class AssertJBestPracticesTest implements RewriteTest {
     }
 
     @Test
-    @Disabled("to be fixed")
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/664")
     void assertionsForClassTypesIsNotRemovedByAssertionsImport() {
         rewriteRun(
           // language=java
           java(
-            """
-              import java.util.Map;
-              import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-
-              class Test {
-                  void test() {
-                      assertThat(Map.of("a", 1).entrySet()).hasNoNullFieldsOrProperties();
-                  }
-              }
-              """,
             """
               import java.util.Map;
               import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
