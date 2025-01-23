@@ -17,7 +17,7 @@ class FindUnitTestsTest implements RewriteTest {
     }
 
     @Test
-    void findUnitTests() {
+    void junit4() {
         //language=java
         rewriteRun(
           java(
@@ -45,11 +45,66 @@ class FindUnitTestsTest implements RewriteTest {
     }
 
     @Test
+    void junit5() {
+        //language=java
+        rewriteRun(
+                spec -> spec.recipe(new FindUnitTests())
+                        .dataTable(FindUnitTestTable.Row.class, rows -> {
+                            assertThat(rows).hasSize(1);
+                        }),
+                java(
+                        """
+                          import org.junit.jupiter.api.Test;
+
+                          class MyTest {
+                              @Test
+                              public void method() {
+                                  // comment
+                                  method2();
+                              }
+
+                              public void method2() {
+                                  // comment
+                              }
+                          }
+                          """
+                )
+        );
+    }
+
+    @Test
+    void testng() {
+        //language=java
+        rewriteRun(
+                spec -> spec.recipe(new FindUnitTests())
+                        .dataTable(FindUnitTestTable.Row.class, rows -> {
+                            assertThat(rows).hasSize(1);
+                        }),
+          java(
+              """
+              import org.testng.annotations.Test;
+
+              class MyTest {
+                  @Test
+                  public void method() {
+                      // comment
+                      method2();
+                  }
+
+                  public void method2() {
+                      // comment
+                  }
+              }
+          """));
+
+    }
+
+    @Test
     void dataTable() {
         rewriteRun(
     spec -> spec.recipe(new FindUnitTests())
             .dataTable(FindUnitTestTable.Row.class, rows -> {
-                assertThat(rows).hasSize(1);
+                assertThat(rows).hasSize(2);
             }),
             java("""
             package org.openrewrite.test;
@@ -64,13 +119,25 @@ class FindUnitTestsTest implements RewriteTest {
                    String a = "Hello";
                    String b = "World";
                    String c = append(a, b);
+                   String d = MyClass.anotherAppend(a, b);
+
                }
 
                public String append(String a, String b) {
                    return a + b;
                }
 
-            }"""));
+            }"""),
+            java("""
+            package org.openrewrite.test;
+
+            public static class MyClass {
+                public String anotherAppend(String a, String b) {
+                    return a + b;
+                }
+            }
+    """)
+    );
     }
 
     @Test
@@ -86,7 +153,8 @@ class FindUnitTestsTest implements RewriteTest {
 
               public class SomeClass {
 
-                 void notAT_es_t(){
+
+                 void notATest(){
                      List<String> list = new ArrayList<>();
                      list.add("Good");
                      list.add("Bye");
@@ -95,22 +163,6 @@ class FindUnitTestsTest implements RewriteTest {
               """));
     }
 
-//    @Test
-//    void emptyTestWithComments() {
-//        //language=java
-//        rewriteRun(
-//          java(
-//            """
-//              import org.junit.Test;
-//              class MyTest {
-//                  @Test
-//                  public void method() {
-//                      // comment
-//                  }
-//              }
-//              """
-//          )
-//        );
-//    }
+
 
 }

@@ -30,17 +30,25 @@ import org.openrewrite.Recipe;
 
      @Value
      public static class Row {
-         @Column(displayName = "Source file",
-                 description = "The source file that the method call occurred in.")
-         String sourceFile;
+         @Column(displayName = "Full method name",
+                 description = "The fully qualified name of the method declaration")
+         String FullyQualifiedMethodName;
 
-         @Column(displayName = "Source",
-                 description = "The source code of the method declaration use.")
-         String code;
+         @Column(displayName = "Method name",
+                 description = "The name of the method declaration")
+         String methodName;
 
-         @Column(displayName = "Concrete type",
-                 description = "The concrete type in use, which may be a subtype of a searched type.")
-         String concreteType;
+         @Column(displayName = "Method invocation",
+                 description = "How the method declaration is used as method invocation in a unit test.")
+         String methodInvocationExample;
+
+         @Column(displayName = "Name of test",
+                 description = "The name of the unit test where the method declaration is used.")
+         String nameOfTest;
+
+         @Column(displayName = "Location of test",
+                 description = "The location of the unit test where the method declaration is used.")
+         String locationOfTest;
      }
  }
 
