@@ -1,6 +1,11 @@
 package org.openrewrite.java.testing.search;
 
+import org.intellij.lang.annotations.Language;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -9,161 +14,117 @@ import static org.openrewrite.java.Assertions.java;
 
 class FindUnitTestsTest implements RewriteTest {
 
+    @Language("java")
+    private static final String CLASS_FOO = """
+      package foo;
+
+      public class Foo {
+          public void bar() {
+          }
+          public void baz() {
+          }
+      }
+      """;
+
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new FindUnitTests());
+        spec.recipe(new FindUnitTests())
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "junit-jupiter-api-5.9"));
     }
 
-    @Test
-    void junit4() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              package org.openrewrite.test;
-
-              import org.junit.Test;
-              import java.util.ArrayList;
-              import java.util.List;
-
-              public class MyTest {
-                 @Test
-                 public void test() {
-                     List<String> list = new ArrayList<>();
-                     list.add("Hello");
-                     list.add("World");
-                 }
-
-                 void notAT_es_t(){
-                     List<String> list = new ArrayList<>();
-                     list.add("Good");
-                     list.add("Bye");
-                 }
-              }
-              """
-          )
-        );
-    }
-
+    @DocumentExample
     @Test
     void junit5() {
         //language=java
         rewriteRun(
-          spec -> spec.recipe(new FindUnitTests())
-            .dataTable(FindUnitTestTable.Row.class, rows -> assertThat(rows).hasSize(1)),
+          spec -> spec.dataTable(FindUnitTestTable.Row.class, rows -> assertThat(rows).hasSize(1)),
+          java(CLASS_FOO),
           java(
             """
+              import foo.Foo;
               import org.junit.jupiter.api.Test;
 
-              class MyTest {
-                  @Test
-                  void method() {
-                      // comment
-                      method2();
-                  }
-
-                  public void method2() {
-                      // comment
-                  }
+              public class FooTest {
+                 @Test
+                 public void test() {
+                     new Foo().bar();
+                 }
               }
               """
           )
         );
-    }
-
-    @Test
-    void testng() {
-        //language=java
-        rewriteRun(
-          spec -> spec.recipe(new FindUnitTests())
-            .dataTable(FindUnitTestTable.Row.class, rows -> assertThat(rows).hasSize(1)),
-          java(
-            """
-              import org.testng.annotations.Test;
-
-              class MyTest {
-                  @Test
-                  public void method() {
-                      // comment
-                      method2();
-                  }
-
-                  public void method2() {
-                      // comment
-                  }
-              }
-              """));
-
     }
 
     @Test
     void dataTable() {
         rewriteRun(
-          spec -> spec.recipe(new FindUnitTests())
-            .dataTable(FindUnitTestTable.Row.class, rows -> assertThat(rows).hasSize(2)),
+          spec -> spec.dataTable(FindUnitTestTable.Row.class, rows -> assertThat(rows).hasSize(2)),
+          java(CLASS_FOO),
           //language=java
           java(
             """
-              package org.openrewrite.test;
-              import org.junit.Test;
-              import java.util.ArrayList;
-              import java.util.List;
+              import foo.Foo;
+              import org.junit.jupiter.api.Test;
 
-              public class MyTest {
-
+              public class FooTest {
                  @Test
                  public void test() {
-                     String a = "Hello";
-                     String b = "World";
-                     String c = append(a, b);
-                     String d = MyClass.anotherAppend(a, b);
-
+                     Foo foo = new Foo();
+                     foo.bar();
+                     foo.baz();
                  }
-
-                 public String append(String a, String b) {
-                     return a + b;
-                 }
-
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              package org.openrewrite.test;
-
-              public static class MyClass {
-                  public String anotherAppend(String a, String b) {
-                      return a + b;
-                  }
               }
               """
           )
         );
     }
 
-    @Test
-    void noTest() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              package org.openrewrite.a;
+    @Nested
+    class NotFound {
 
-              import java.util.ArrayList;
-              import java.util.List;
+        @Test
+        void notATest() {
+            //language=java
+            rewriteRun(
+              spec -> spec.afterRecipe(run -> assertThat(run.getDataTables()).hasSize(1)), // stats table
+              java(CLASS_FOO),
+              java(
+                """
+                  import foo.Foo;
 
-              public class SomeClass {
+                  public class FooTest {
+                     public void test() {
+                         new Foo().bar();
+                     }
+                  }
+                  """
+              )
+            );
+        }
 
+        @Test
+        void methodFromTest() {
+            //language=java
+            rewriteRun(
+              spec -> spec.afterRecipe(run -> assertThat(run.getDataTables()).hasSize(1)), // stats table
+              java(CLASS_FOO),
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
 
-                 void notATest(){
-                     List<String> list = new ArrayList<>();
-                     list.add("Good");
-                     list.add("Bye");
-                 }
-              }
-              """
-          )
-        );
+                  public class FooTest {
+                     @Test
+                     public void test() {
+                         beep();
+                     }
+
+                     public void beep() {
+                     }
+                  }
+                  """
+              )
+            );
+        }
     }
 }
