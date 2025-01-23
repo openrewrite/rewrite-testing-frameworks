@@ -88,19 +88,18 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
         JavaVisitor<ExecutionContext> tableRowVisitor = new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
-                for (UnitTest unitTest : acc.unitTestAndTheirMethods.keySet()) {
-                    for (J.MethodInvocation method : acc.unitTestAndTheirMethods.get(unitTest)) {
+                for (Map.Entry<UnitTest, Set<J.MethodInvocation>> entry : acc.unitTestAndTheirMethods.entrySet()) {
+                    for (J.MethodInvocation method : entry.getValue()) {
                         if (method.getSimpleName().equals(methodDeclaration.getSimpleName())) {
                             unitTestTable.insertRow(ctx, new FindUnitTestTable.Row(
                                     methodDeclaration.getName().toString(),
                                     methodDeclaration.getSimpleName(),
                                     method.printTrimmed(getCursor()),
-                                    unitTest.getClazz(),
-                                    unitTest.getUnitTestName()
+                                    entry.getKey().getClazz(),
+                                    entry.getKey().getUnitTestName()
                             ));
                         }
                     }
-                    return super.visitMethodDeclaration(methodDeclaration, ctx);
                 }
                 return super.visitMethodDeclaration(methodDeclaration, ctx);
             }
