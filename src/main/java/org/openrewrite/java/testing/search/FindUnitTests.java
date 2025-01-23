@@ -1,3 +1,19 @@
+ /*
+  * Copyright 2024 the original author or authors.
+  * <p>
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  * <p>
+  * https://www.apache.org/licenses/LICENSE-2.0
+  * <p>
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
+
 package org.openrewrite.java.testing.search;
 
 import lombok.Data;
@@ -12,7 +28,7 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
     @Override
     public String getDisplayName() {
-        return "Find Unit Tests";
+        return "Find unit tests";
     }
 
     @Override
@@ -37,36 +53,36 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
         return new JavaVisitor<ExecutionContext>() {
-                    @Override
-                    public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                        // get the method declaration the method invocation is in
-                        J.MethodDeclaration methodDeclaration = getCursor().firstEnclosing(J.MethodDeclaration.class);
-                        if (methodDeclaration != null
-                                && methodDeclaration.getLeadingAnnotations().stream()
-                                .filter(o -> o.getAnnotationType() instanceof J.Identifier)
-                                .anyMatch(o -> "Test".equals(o.getSimpleName())))  {
-                            UnitTest unitTest = new UnitTest();
-                            unitTest.clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class).getType().getFullyQualifiedName();
-                            unitTest.unitTestName = methodDeclaration.getSimpleName();
-                            unitTest.unitTest = methodDeclaration.printTrimmed(getCursor());
-                            if (acc.unitTestAndTheirMethods.containsKey(unitTest)) {
-                                acc.unitTestAndTheirMethods.get(unitTest).add(method);
-                            }else {
-                                List<J.MethodInvocation> methodList = new ArrayList<>();
-                                methodList.add(method);
-                                acc.unitTestAndTheirMethods.put(unitTest, methodList);
-                            }
-                        }
-                        return super.visitMethodInvocation(method, ctx);
+            @Override
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                // get the method declaration the method invocation is in
+                J.MethodDeclaration methodDeclaration = getCursor().firstEnclosing(J.MethodDeclaration.class);
+                if (methodDeclaration != null
+                        && methodDeclaration.getLeadingAnnotations().stream()
+                        .filter(o -> o.getAnnotationType() instanceof J.Identifier)
+                        .anyMatch(o -> "Test".equals(o.getSimpleName())))  {
+                    UnitTest unitTest = new UnitTest();
+                    unitTest.clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class).getType().getFullyQualifiedName();
+                    unitTest.unitTestName = methodDeclaration.getSimpleName();
+                    unitTest.unitTest = methodDeclaration.printTrimmed(getCursor());
+                    if (acc.unitTestAndTheirMethods.containsKey(unitTest)) {
+                        acc.unitTestAndTheirMethods.get(unitTest).add(method);
+                    }else {
+                        List<J.MethodInvocation> methodList = new ArrayList<>();
+                        methodList.add(method);
+                        acc.unitTestAndTheirMethods.put(unitTest, methodList);
                     }
-                };
+                }
+                return super.visitMethodInvocation(method, ctx);
+            }
+        };
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
         return new JavaVisitor<ExecutionContext>() {
             @Override
-            public J visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
+            public J visitMethodDeclaration(J. MethodDeclaration methodDeclaration, ExecutionContext ctx) {
                 for (UnitTest unitTest : acc.unitTestAndTheirMethods.keySet()) {
                     for (J.MethodInvocation method : acc.unitTestAndTheirMethods.get(unitTest)) {
                         if (method.getSimpleName().equals(methodDeclaration.getSimpleName())) {

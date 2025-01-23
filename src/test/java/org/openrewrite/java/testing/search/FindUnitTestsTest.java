@@ -1,7 +1,6 @@
 package org.openrewrite.java.testing.search;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.testing.table.FindUnitTestTable;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -77,9 +76,7 @@ class FindUnitTestsTest implements RewriteTest {
         //language=java
         rewriteRun(
                 spec -> spec.recipe(new FindUnitTests())
-                        .dataTable(FindUnitTestTable.Row.class, rows -> {
-                            assertThat(rows).hasSize(1);
-                        }),
+                        .dataTable(FindUnitTestTable.Row.class, rows -> assertThat(rows).hasSize(1)),
           java(
               """
               import org.testng.annotations.Test;
