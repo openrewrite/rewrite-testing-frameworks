@@ -62,6 +62,27 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
                 });
     }
 
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
+                for (UnitTest unitTest : acc.unitTestAndTheirMethods) {
+                    for (J.MethodDeclaration method : unitTest.methods) {
+                        if (method.getSimpleName().equals(methodDeclaration.getSimpleName())) {
+                            unitTestTable.insertRow(ctx, new FindUnitTestTable.Row(
+                                    unitTest.unitTestName,
+                                    unitTest.unitTest,
+                                    method.printTrimmed(getCursor())
+                            ));
+                        }
+                    }
+                    return super.visitMethodDeclaration(methodDeclaration, ctx);
+                }
+                return super.visitMethodDeclaration(methodDeclaration, ctx);
+            }
+        };
+    }
 
 }
 
