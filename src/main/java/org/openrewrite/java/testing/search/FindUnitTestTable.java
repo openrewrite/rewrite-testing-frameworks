@@ -14,7 +14,7 @@
   * limitations under the License.
   */
 
-package org.openrewrite.java.testing.table;
+package org.openrewrite.java.testing.search;
 
 import lombok.Value;
 import org.openrewrite.Column;

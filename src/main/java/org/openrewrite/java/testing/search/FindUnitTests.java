@@ -19,7 +19,6 @@ package org.openrewrite.java.testing.search;
 import lombok.Data;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.testing.table.FindUnitTestTable;
 import org.openrewrite.java.tree.J;
 
 import java.util.*;
@@ -39,15 +38,12 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
     transient FindUnitTestTable unitTestTable = new FindUnitTestTable(this);
 
     public static class Accumulator {
-        HashMap<UnitTest, List<J.MethodInvocation>> unitTestAndTheirMethods;
+        Map<UnitTest, List<J.MethodInvocation>> unitTestAndTheirMethods = new HashMap<>();
     }
-
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
-        Accumulator acc = new Accumulator();
-        acc.unitTestAndTheirMethods = new HashMap<UnitTest, List<J.MethodInvocation>>();
-        return acc;
+        return new Accumulator();
     }
 
     @Override

@@ -1,7 +1,6 @@
 package org.openrewrite.java.testing.search;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.java.testing.table.FindUnitTestTable;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -22,6 +21,7 @@ class FindUnitTestsTest implements RewriteTest {
           java(
             """
               package org.openrewrite.test;
+
               import org.junit.Test;
               import java.util.ArrayList;
               import java.util.List;
@@ -50,16 +50,14 @@ class FindUnitTestsTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.recipe(new FindUnitTests())
-            .dataTable(FindUnitTestTable.Row.class, rows -> {
-                assertThat(rows).hasSize(1);
-            }),
+            .dataTable(FindUnitTestTable.Row.class, rows -> assertThat(rows).hasSize(1)),
           java(
             """
               import org.junit.jupiter.api.Test;
 
               class MyTest {
                   @Test
-                  public void method() {
+                  void method() {
                       // comment
                       method2();
                   }
@@ -102,9 +100,7 @@ class FindUnitTestsTest implements RewriteTest {
     void dataTable() {
         rewriteRun(
           spec -> spec.recipe(new FindUnitTests())
-            .dataTable(FindUnitTestTable.Row.class, rows -> {
-                assertThat(rows).hasSize(2);
-            }),
+            .dataTable(FindUnitTestTable.Row.class, rows -> assertThat(rows).hasSize(2)),
           //language=java
           java(
             """
@@ -116,7 +112,7 @@ class FindUnitTestsTest implements RewriteTest {
               public class MyTest {
 
                  @Test
-                 void test() {
+                 public void test() {
                      String a = "Hello";
                      String b = "World";
                      String c = append(a, b);
