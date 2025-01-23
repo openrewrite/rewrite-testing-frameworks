@@ -15,14 +15,22 @@
  */
 package org.openrewrite.java.testing.search;
 
-import lombok.Data;
-import org.openrewrite.*;
+import lombok.Value;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.ScanningRecipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.IsLikelyNotTest;
 import org.openrewrite.java.search.IsLikelyTest;
 import org.openrewrite.java.tree.J;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import static java.util.Collections.singletonList;
 
 public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
@@ -39,7 +47,7 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
     transient FindUnitTestTable unitTestTable = new FindUnitTestTable(this);
 
     public static class Accumulator {
-        Map<UnitTest, List<J.MethodInvocation>> unitTestAndTheirMethods = new HashMap<>();
+        Map<UnitTest, Set<J.MethodInvocation>> unitTestAndTheirMethods = new HashMap<>();
     }
 
     @Override
@@ -58,17 +66,16 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
                         && methodDeclaration.getLeadingAnnotations().stream()
                         .filter(o -> o.getAnnotationType() instanceof J.Identifier)
                         .anyMatch(o -> "Test".equals(o.getSimpleName()))) {
-                    UnitTest unitTest = new UnitTest();
-                    unitTest.clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class).getType().getFullyQualifiedName();
-                    unitTest.unitTestName = methodDeclaration.getSimpleName();
-                    unitTest.unitTest = methodDeclaration.printTrimmed(getCursor());
-                    if (acc.unitTestAndTheirMethods.containsKey(unitTest)) {
-                        acc.unitTestAndTheirMethods.get(unitTest).add(method);
-                    } else {
-                        List<J.MethodInvocation> methodList = new ArrayList<>();
-                        methodList.add(method);
-                        acc.unitTestAndTheirMethods.put(unitTest, methodList);
-                    }
+                    UnitTest unitTest = new UnitTest(
+                            getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class).getType().getFullyQualifiedName(),
+                            methodDeclaration.getSimpleName(),
+                            methodDeclaration.printTrimmed(getCursor()));
+                    acc.unitTestAndTheirMethods.merge(unitTest,
+                            new HashSet<>(singletonList(method)),
+                            (a, b) -> {
+                                a.addAll(b);
+                                return a;
+                            });
                 }
                 return super.visitMethodInvocation(method, ctx);
             }
@@ -88,8 +95,8 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
                                     methodDeclaration.getName().toString(),
                                     methodDeclaration.getSimpleName(),
                                     method.printTrimmed(getCursor()),
-                                    unitTest.clazz,
-                                    unitTest.unitTestName
+                                    unitTest.getClazz(),
+                                    unitTest.getUnitTestName()
                             ));
                         }
                     }
@@ -103,8 +110,8 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
 }
 
-@Data
-class UnitTest{
+@Value
+class UnitTest {
     String clazz;
     String unitTestName;
     String unitTest;

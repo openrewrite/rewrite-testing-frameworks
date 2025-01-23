@@ -50,31 +50,11 @@ class FindUnitTestsTest implements RewriteTest {
 
     @DocumentExample
     @Test
-    void junit5() {
-        //language=java
-        rewriteRun(
-          spec -> spec.dataTable(FindUnitTestTable.Row.class, rows -> assertThat(rows).hasSize(1)),
-          java(CLASS_FOO),
-          java(
-            """
-              import foo.Foo;
-              import org.junit.jupiter.api.Test;
-
-              public class FooTest {
-                 @Test
-                 public void test() {
-                     new Foo().bar();
-                 }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void dataTable() {
         rewriteRun(
-          spec -> spec.dataTable(FindUnitTestTable.Row.class, rows -> assertThat(rows).hasSize(2)),
+          spec -> spec.dataTable(FindUnitTestTable.Row.class, rows -> assertThat(rows)
+            .extracting(FindUnitTestTable.Row::getFullyQualifiedMethodName)
+            .containsExactly("bar", "baz")),
           java(CLASS_FOO),
           //language=java
           java(

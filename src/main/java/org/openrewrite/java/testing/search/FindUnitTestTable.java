@@ -31,7 +31,7 @@ import org.openrewrite.Recipe;
      public static class Row {
          @Column(displayName = "Full method name",
                  description = "The fully qualified name of the method declaration")
-         String FullyQualifiedMethodName;
+         String fullyQualifiedMethodName;
 
          @Column(displayName = "Method name",
                  description = "The name of the method declaration")
