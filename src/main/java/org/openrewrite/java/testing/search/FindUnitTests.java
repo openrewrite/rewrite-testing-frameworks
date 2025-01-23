@@ -27,14 +27,14 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
     transient FindUnitTestTable unitTestTable = new FindUnitTestTable(this);
 
     public static class Accumulator {
-        List<UnitTest> unitTestAndTheirMethods;
+        HashMap<UnitTest, List<J.MethodDeclaration>> unitTestAndTheirMethods;
     }
 
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
         Accumulator acc = new Accumulator();
-        acc.unitTestAndTheirMethods = new ArrayList<UnitTest>();
+        acc.unitTestAndTheirMethods = new HashMap<UnitTest, List<J.MethodDeclaration>>();
         return acc;
     }
 
@@ -55,7 +55,7 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
                             unitTest.ctx = ctx;
                             unitTest.unitTestName = methodDeclaration.getSimpleName();
                             unitTest.unitTest = methodDeclaration.printTrimmed(getCursor());
-                            acc.unitTestAndTheirMethods.add(unitTest);
+                            acc.unitTestAndTheirMethods.put(unitTest, Collections.singletonList(methodDeclaration));
                         }
                         return super.visitMethodInvocation(method, ctx);
                     }
@@ -67,8 +67,8 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
-                for (UnitTest unitTest : acc.unitTestAndTheirMethods) {
-                    for (J.MethodDeclaration method : unitTest.methods) {
+                for (UnitTest unitTest : acc.unitTestAndTheirMethods.keySet()) {
+                    for (J.MethodDeclaration method : acc.unitTestAndTheirMethods.get(unitTest)) {
                         if (method.getSimpleName().equals(methodDeclaration.getSimpleName())) {
                             unitTestTable.insertRow(ctx, new FindUnitTestTable.Row(
                                     unitTest.unitTestName,
@@ -107,5 +107,4 @@ class UnitTest{
     ExecutionContext ctx;
     String unitTestName;
     String unitTest;
-    List<J.MethodDeclaration> methods = new ArrayList<>();
 }
