@@ -12,12 +12,12 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
     @Override
     public String getDisplayName() {
-        return "Find LST provenance";
+        return "Find Unit Tests";
     }
 
     @Override
     public String getDescription() {
-        return "Produces a data table showing what versions of OpenRewrite/Moderne tooling was used to produce a given LST.";
+        return "Produces a data table showing examples of how methods declared get used in unit tests.";
     }
 
     transient FindUnitTestTable unitTestTable = new FindUnitTestTable(this);
