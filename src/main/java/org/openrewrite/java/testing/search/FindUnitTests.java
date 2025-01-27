@@ -62,8 +62,8 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 // get the method declaration the method invocation is in
                 J.MethodDeclaration methodDeclaration = getCursor().firstEnclosing(J.MethodDeclaration.class);
-                if (methodDeclaration != null
-                        && methodDeclaration.getLeadingAnnotations().stream()
+                if (methodDeclaration != null &&
+                        methodDeclaration.getLeadingAnnotations().stream()
                         .filter(o -> o.getAnnotationType() instanceof J.Identifier)
                         .anyMatch(o -> "Test".equals(o.getSimpleName()))) {
                     UnitTest unitTest = new UnitTest(
