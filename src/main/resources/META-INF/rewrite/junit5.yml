@@ -196,6 +196,13 @@ tags:
   - junit
   - mockito
 recipeList:
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.mockito
+      artifactId: mockito-junit-jupiter
+      version: 4.x
+      onlyIfUsing: org.mockito..MockitoJUnit*Runner
+      acceptTransitive: true
+      scope: test
   - org.openrewrite.java.testing.mockito.Mockito1to4Migration
   - org.openrewrite.java.testing.mockito.MockitoJUnitRunnerSilentToExtension
   - org.openrewrite.java.testing.junit5.RunnerToExtension:
