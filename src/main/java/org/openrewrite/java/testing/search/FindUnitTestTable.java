@@ -23,8 +23,8 @@ import org.openrewrite.Recipe;
  public class FindUnitTestTable extends DataTable<FindUnitTestTable.Row> {
      public FindUnitTestTable(Recipe recipe) {
          super(recipe,
-                 recipe.getName(),
-                 recipe.getDescription());
+                 "Methods in unit tests",
+                 "Method declarations used in unit tests");
      }
 
      @Value
