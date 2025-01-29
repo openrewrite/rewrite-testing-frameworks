@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.search;
 
-import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.ScanningRecipe;
@@ -24,6 +23,7 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.IsLikelyNotTest;
 import org.openrewrite.java.search.IsLikelyTest;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.marker.SearchResult;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +33,15 @@ import java.util.Set;
 import static java.util.Collections.singletonList;
 
 public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
+
+    Accumulator acc;
+
+    public FindUnitTests() {
+    }
+
+    public FindUnitTests(Accumulator acc) {
+        this.acc = acc;
+    }
 
     @Override
     public String getDisplayName() {
@@ -48,10 +57,17 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
     public static class Accumulator {
         Map<UnitTest, Set<J.MethodInvocation>> unitTestAndTheirMethods = new HashMap<>();
+
+        public Map<UnitTest, Set<J.MethodInvocation>> getUnitTestAndTheirMethods() {
+            return unitTestAndTheirMethods;
+        }
     }
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
+        if (acc != null) {
+            return acc;
+        }
         return new Accumulator();
     }
 
@@ -101,6 +117,7 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
                         }
                     }
                 }
+                SearchResult.found(methodDeclaration);
                 return super.visitMethodDeclaration(methodDeclaration, ctx);
             }
         };
@@ -109,9 +126,3 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
 }
 
-@Value
-class UnitTest {
-    String clazz;
-    String unitTestName;
-    String unitTest;
-}
