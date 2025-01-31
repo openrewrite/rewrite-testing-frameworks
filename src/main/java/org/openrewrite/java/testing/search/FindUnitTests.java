@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.search;
 
+import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.ScanningRecipe;
@@ -30,11 +31,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static java.util.Collections.singletonList;
 
 public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
-    Accumulator acc;
+
+    private transient Accumulator acc = new Accumulator();
+
+    transient FindUnitTestTable unitTestTable = new FindUnitTestTable(this);
 
     public FindUnitTests() {
     }
@@ -50,24 +53,42 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
     @Override
     public String getDescription() {
-        return "Produces a data table showing examples of how methods declared get used in unit tests.";
+        return "Produces a data table showing how methods are used in unit tests.";
     }
 
-    transient FindUnitTestTable unitTestTable = new FindUnitTestTable(this);
-
     public static class Accumulator {
-        Map<UnitTest, Set<J.MethodInvocation>> unitTestAndTheirMethods = new HashMap<>();
+        private final Map<String, AccumulatorValue> unitTestsByKey = new HashMap<>();
 
-        public Map<UnitTest, Set<J.MethodInvocation>> getUnitTestAndTheirMethods() {
-            return unitTestAndTheirMethods;
+        public Map<String, AccumulatorValue> getUnitTestAndTheirMethods(){
+            return this.unitTestsByKey;
         }
+
+        public void addMethodInvocation(String clazz, String testName, String testBody, J.MethodInvocation invocation) {
+            String key = clazz + "#" + testName;
+            AccumulatorValue value = unitTestsByKey.get(key);
+            if (value == null) {
+                UnitTest unitTest = new UnitTest(clazz, testName, testBody);
+                value = new AccumulatorValue(unitTest, new HashSet<>());
+                unitTestsByKey.put(key, value);
+            }
+            value.getMethodInvocations().add(invocation);
+        }
+
+        public Map<String, AccumulatorValue> getUnitTestsByKey() {
+            return unitTestsByKey;
+        }
+    }
+
+
+    @Value
+    public static class AccumulatorValue {
+        UnitTest unitTest;
+        Set<J.MethodInvocation> methodInvocations;
     }
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
-        if (acc != null) {
-            return acc;
-        }
+        if (acc != null) return acc;
         return new Accumulator();
     }
 
@@ -76,26 +97,25 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
         JavaVisitor<ExecutionContext> scanningVisitor = new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                // get the method declaration the method invocation is in
+                // Identify the method declaration that encloses this invocation
                 J.MethodDeclaration methodDeclaration = getCursor().firstEnclosing(J.MethodDeclaration.class);
                 if (methodDeclaration != null &&
                         methodDeclaration.getLeadingAnnotations().stream()
-                        .filter(o -> o.getAnnotationType() instanceof J.Identifier)
-                        .anyMatch(o -> "Test".equals(o.getSimpleName()))) {
-                    UnitTest unitTest = new UnitTest(
-                            getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class).getType().getFullyQualifiedName(),
-                            methodDeclaration.getSimpleName(),
-                            methodDeclaration.printTrimmed(getCursor()));
-                    acc.unitTestAndTheirMethods.merge(unitTest,
-                            new HashSet<>(singletonList(method)),
-                            (a, b) -> {
-                                a.addAll(b);
-                                return a;
-                            });
+                                .filter(o -> o.getAnnotationType() instanceof J.Identifier)
+                                .anyMatch(o -> "Test".equals(o.getSimpleName()))) {
+                    String clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class)
+                            .getType().getFullyQualifiedName();
+
+                    String testName = methodDeclaration.getSimpleName();
+
+                    String testBody = methodDeclaration.printTrimmed(getCursor());
+
+                    acc.addMethodInvocation(clazz, testName, testBody, method);
                 }
                 return super.visitMethodInvocation(method, ctx);
             }
         };
+
         return Preconditions.check(new IsLikelyTest().getVisitor(), scanningVisitor);
     }
 
@@ -104,15 +124,19 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
         JavaVisitor<ExecutionContext> tableRowVisitor = new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
-                for (Map.Entry<UnitTest, Set<J.MethodInvocation>> entry : acc.unitTestAndTheirMethods.entrySet()) {
-                    for (J.MethodInvocation method : entry.getValue()) {
-                        if (method.getSimpleName().equals(methodDeclaration.getSimpleName())) {
+                // Iterate over each stored AccumulatorValue
+                for (AccumulatorValue value : acc.getUnitTestsByKey().values()) {
+                    UnitTest unitTest = value.getUnitTest();
+                    for (J.MethodInvocation invocation : value.getMethodInvocations()) {
+                        // If the invoked method name matches the current methodDeclaration's name,
+                        // we assume we've found "usage" of that method inside the test
+                        if (invocation.getSimpleName().equals(methodDeclaration.getSimpleName())) {
                             unitTestTable.insertRow(ctx, new FindUnitTestTable.Row(
                                     methodDeclaration.getName().toString(),
                                     methodDeclaration.getSimpleName(),
-                                    method.printTrimmed(getCursor()),
-                                    entry.getKey().getClazz(),
-                                    entry.getKey().getUnitTestName()
+                                    invocation.printTrimmed(getCursor()),
+                                    unitTest.getClazz(),
+                                    unitTest.getUnitTestName()
                             ));
                         }
                     }
@@ -121,8 +145,7 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
                 return super.visitMethodDeclaration(methodDeclaration, ctx);
             }
         };
+
         return Preconditions.check(new IsLikelyNotTest().getVisitor(), tableRowVisitor);
     }
-
 }
-
