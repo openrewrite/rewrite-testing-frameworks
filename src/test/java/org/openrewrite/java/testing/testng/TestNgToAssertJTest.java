@@ -165,9 +165,9 @@ class TestNgToAssertJTest implements RewriteTest {
               class Test {
                   void aaa(Object obj) {
                       assertThat(1).isEqualTo(1);
-                      assertThat(1).as("foo").isEqualTo(1);
+                      assertThat(1).withFailMessage("foo").isEqualTo(1);
                       assertThat(1).isNotEqualTo(2);
-                      assertThat(1).as("foo").isNotEqualTo(2);
+                      assertThat(1).withFailMessage("foo").isNotEqualTo(2);
                   }
               }
               """
