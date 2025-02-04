@@ -20,34 +20,33 @@ import org.openrewrite.Column;
 import org.openrewrite.DataTable;
 import org.openrewrite.Recipe;
 
- public class FindUnitTestTable extends DataTable<FindUnitTestTable.Row> {
-     public FindUnitTestTable(Recipe recipe) {
-         super(recipe,
-                 "Methods in unit tests",
-                 "Method declarations used in unit tests");
-     }
+public class FindUnitTestTable extends DataTable<FindUnitTestTable.Row> {
+    public FindUnitTestTable(Recipe recipe) {
+        super(recipe,
+                "Methods in unit tests",
+                "Method declarations used in unit tests");
+    }
 
-     @Value
-     public static class Row {
-         @Column(displayName = "Full method name",
-                 description = "The fully qualified name of the method declaration")
-         String fullyQualifiedMethodName;
+    @Value
+    public static class Row {
+        @Column(displayName = "Full method name",
+                description = "The fully qualified name of the method declaration")
+        String fullyQualifiedMethodName;
 
-         @Column(displayName = "Method name",
-                 description = "The name of the method declaration")
-         String methodName;
+        @Column(displayName = "Method name",
+                description = "The name of the method declaration")
+        String methodName;
 
-         @Column(displayName = "Method invocation",
-                 description = "How the method declaration is used as method invocation in a unit test.")
-         String methodInvocationExample;
+        @Column(displayName = "Method invocation",
+                description = "How the method declaration is used as method invocation in a unit test.")
+        String methodInvocationExample;
 
-         @Column(displayName = "Name of test",
-                 description = "The name of the unit test where the method declaration is used.")
-         String nameOfTest;
+        @Column(displayName = "Name of test",
+                description = "The name of the unit test where the method declaration is used.")
+        String nameOfTest;
 
-         @Column(displayName = "Location of test",
-                 description = "The location of the unit test where the method declaration is used.")
-         String locationOfTest;
-     }
- }
-
+        @Column(displayName = "Location of test",
+                description = "The location of the unit test where the method declaration is used.")
+        String locationOfTest;
+    }
+}

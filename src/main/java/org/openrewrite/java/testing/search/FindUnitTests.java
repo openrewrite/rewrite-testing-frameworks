@@ -34,16 +34,9 @@ import java.util.Set;
 
 public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
-
-    private transient Accumulator acc = new Accumulator();
-
     transient FindUnitTestTable unitTestTable = new FindUnitTestTable(this);
 
     public FindUnitTests() {
-    }
-
-    public FindUnitTests(Accumulator acc) {
-        this.acc = acc;
     }
 
     @Override
@@ -58,10 +51,6 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
     public static class Accumulator {
         private final Map<String, AccumulatorValue> unitTestsByKey = new HashMap<>();
-
-        public Map<String, AccumulatorValue> getUnitTestAndTheirMethods(){
-            return this.unitTestsByKey;
-        }
 
         public void addMethodInvocation(String clazz, String testName, String testBody, J.MethodInvocation invocation) {
             String key = clazz + "#" + testName;
@@ -88,7 +77,6 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
-        if (acc != null) return acc;
         return new Accumulator();
     }
 
