@@ -40,7 +40,7 @@ class JUnit5MigrationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-2.2", "mockito-all-1.10"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()
@@ -81,6 +81,9 @@ class JUnit5MigrationTest implements RewriteTest {
     void assertThatReceiver() {
         //language=java
         rewriteRun(
+          spec -> spec
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-2.2")),
           java(
             """
               import org.junit.Assert;
@@ -444,6 +447,13 @@ class JUnit5MigrationTest implements RewriteTest {
     @Test
     void addMockitoJupiterDependencyIfExtendWithPresent() {
         rewriteRun(
+          spec -> spec
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "mockito-all-1.10"))
+            .recipe(Environment.builder()
+              .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
+              .build()
+              .activateRecipes("org.openrewrite.java.testing.junit5.UseMockitoExtension")),
           mavenProject("sample",
             //language=java
             srcMainJava(
@@ -495,6 +505,12 @@ class JUnit5MigrationTest implements RewriteTest {
                     <artifactId>project</artifactId>
                     <version>0.0.1</version>
                     <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.12</version>
+                            <scope>test</scope>
+                        </dependency>
                         <dependency>
                             <groupId>org.mockito</groupId>
                             <artifactId>mockito-core</artifactId>
