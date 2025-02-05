@@ -247,13 +247,13 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.junit5.RunnerToExtension:
       runners:
-        - org.vertx.testtools.VertxUnitRunner
-      extension: org.vertx.testtools.VertxExtension
+        - io.vertx.ext.unit.junit.VertxUnitRunner
+      extension: io.vertx.junit5.VertxExtension
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: io.vertx
       artifactId: vertx-junit5
       version: 4.x
-      onlyIfUsing: org.vertx.testtools.VertxUnitRunner
+      onlyIfUsing: io.vertx.ext.unit.junit.VertxUnitRunner
       acceptTransitive: true
 ---
 type: specs.openrewrite.org/v1beta/recipe
