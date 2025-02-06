@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.search;
 
 import lombok.Value;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.ScanningRecipe;
@@ -34,9 +35,14 @@ import java.util.Set;
 
 public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
+    private transient @Nullable Accumulator acc = new Accumulator();
     transient FindUnitTestTable unitTestTable = new FindUnitTestTable(this);
 
     public FindUnitTests() {
+    }
+
+    public FindUnitTests(Accumulator acc) {
+        this.acc = acc;
     }
 
     @Override
@@ -77,6 +83,7 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
+        if (acc != null) return acc;
         return new Accumulator();
     }
 
