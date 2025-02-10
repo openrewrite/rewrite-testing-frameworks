@@ -25,15 +25,15 @@ import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings({"ExcessiveLambdaUsage", "RedundantArrayCreation", "java:S2699" })
-class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
+@SuppressWarnings({"UnnecessaryBoxing", "ExcessiveLambdaUsage", "java:S2699" })
+class JUnit4AssertNotEqualsToAssertThatTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.2"))
-          .recipe(new JUnitAssertArrayEqualsToAssertThat());
+          .recipe(new JUnitAssertNotEqualsToAssertThat());
     }
 
     @DocumentExample
@@ -45,59 +45,15 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
             """
               import org.junit.Test;
 
-              import static org.junit.Assert.assertArrayEquals;
-
-              public class MyTest {
-
-                  @Test
-                  public void test() {
-                      Integer[] expected = new Integer[] {1, 2, 3};
-                      assertArrayEquals(expected, notification());
-                  }
-                  private Integer[] notification() {
-                      return new Integer[] {1, 2, 3};
-                  }
-              }
-              """,
-            """
-              import org.junit.Test;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              public class MyTest {
-
-                  @Test
-                  public void test() {
-                      Integer[] expected = new Integer[] {1, 2, 3};
-                      assertThat(notification()).containsExactly(expected);
-                  }
-                  private Integer[] notification() {
-                      return new Integer[] {1, 2, 3};
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void singleStaticMethodWithMessageLambda() {
-        //language=java
-        rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
-          java(
-            """
-              import org.junit.Test;
-
-              import static org.junit.Assert.assertArrayEquals;
+              import static org.junit.Assert.assertNotEquals;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertArrayEquals(new int[]{1, 2, 3}, notification(), () -> "These arrays should be equal");
+                      assertNotEquals(1L, notification());
                   }
-                  private int[] notification() {
-                      return new int[]{1, 2, 3};
+                  private long notification() {
+                      return 2L;
                   }
               }
               """,
@@ -109,10 +65,10 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).as(() -> "These arrays should be equal").containsExactly(new int[]{1, 2, 3});
+                      assertThat(notification()).isNotEqualTo(1L);
                   }
-                  private int[] notification() {
-                      return new int[]{1, 2, 3};
+                  private long notification() {
+                      return 2L;
                   }
               }
               """
@@ -121,23 +77,61 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
     }
 
     @Test
-    void doublesWithinNoMessage() {
+    void singleStaticMethodWithMessage() {
         //language=java
         rewriteRun(
           java(
             """
               import org.junit.Test;
 
-              import static org.junit.Assert.assertArrayEquals;
+              import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      double eps = .2d;
-                      assertArrayEquals(new double[]{1.0d, 2.0d, 3.0d}, notification(), eps);
+                      assertNotEquals("These should not be equal", "fred", notification());
                   }
-                  private double[] notification() {
-                      return new double[]{1.1d, 2.1d, 3.1d};
+                  private String notification() {
+                      return "joe";
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertThat(notification()).as(() -> "These should not be equal").isNotEqualTo("fred");
+                  }
+                  private String notification() {
+                      return "joe";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doubleCloseToWithNoMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+
+              import static org.junit.Assert.assertNotEquals;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertNotEquals(0.0d, notification(), 0.2d);
+                  }
+                  private Double notification() {
+                      return 1.1d;
                   }
               }
               """,
@@ -150,11 +144,10 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      double eps = .2d;
-                      assertThat(notification()).containsExactly(new double[]{1.0d, 2.0d, 3.0d}, within(eps));
+                      assertThat(notification()).isNotCloseTo(0.0d, within(0.2d));
                   }
-                  private double[] notification() {
-                      return new double[]{1.1d, 2.1d, 3.1d};
+                  private Double notification() {
+                      return 1.1d;
                   }
               }
               """
@@ -163,7 +156,7 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
     }
 
     @Test
-    void doublesWithinAndWithMessage() {
+    void doubleCloseToWithMessage() {
         //language=java
         rewriteRun(
           spec -> spec.typeValidationOptions(TypeValidation.none()),
@@ -171,15 +164,15 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
             """
               import org.junit.Test;
 
-              import static org.junit.Assert.assertArrayEquals;
+              import static org.junit.Assert.assertNotEquals;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertArrayEquals(new double[]{1.0d, 2.0d, 3.0d}, notification(), .2d, "These should be close");
+                      assertNotEquals("These should not be close.", 2.0d, notification(), 0.2d);
                   }
-                  private double[] notification() {
-                      return new double[]{1.1d, 2.1d, 3.1d};
+                  private double notification() {
+                      return 0.1d;
                   }
               }
               """,
@@ -192,10 +185,10 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).as("These should be close").containsExactly(new double[]{1.0d, 2.0d, 3.0d}, within(.2d));
+                      assertThat(notification()).as("These should not be close.").isNotCloseTo(2.0d, within(0.2d));
                   }
-                  private double[] notification() {
-                      return new double[]{1.1d, 2.1d, 3.1d};
+                  private double notification() {
+                      return 0.1d;
                   }
               }
               """
@@ -203,8 +196,9 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
         );
     }
 
+
     @Test
-    void doublesObjectsWithMessage() {
+    void doubleObjectsCloseToWithMessage() {
         //language=java
         rewriteRun(
           spec -> spec.typeValidationOptions(TypeValidation.none()),
@@ -212,15 +206,15 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
             """
               import org.junit.Test;
 
-              import static org.junit.Assert.assertArrayEquals;
+              import static org.junit.Assert.assertNotEquals;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertArrayEquals(new Double[]{1.0d, 2.0d, 3.0d}, notification(), "These arrays should be equal");
+                      assertNotEquals("These should not be close.", Double.valueOf(0.0d), notification(), Double.valueOf(0.2d));
                   }
-                  private Double[] notification() {
-                      return new Double[]{1.0d, 2.0d, 3.0d};
+                  private double notification() {
+                      return Double.valueOf(1.1d);
                   }
               }
               """,
@@ -228,14 +222,15 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.within;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).as("These arrays should be equal").containsExactly(new Double[]{1.0d, 2.0d, 3.0d});
+                      assertThat(notification()).as(() -> "These should not be close.").isNotCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
                   }
-                  private Double[] notification() {
-                      return new Double[]{1.0d, 2.0d, 3.0d};
+                  private double notification() {
+                      return Double.valueOf(1.1d);
                   }
               }
               """
@@ -251,15 +246,15 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
             """
               import org.junit.Test;
 
-              import static org.junit.Assert.assertArrayEquals;
+              import static org.junit.Assert.assertNotEquals;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertArrayEquals(new float[]{1.0f, 2.0f, 3.0f}, notification(), .2f);
+                      assertNotEquals(2.0f, notification(), 0.2f);
                   }
-                  private float[] notification() {
-                      return new float[]{1.1f, 2.1f, 3.1f};
+                  private Float notification() {
+                      return 0.1f;
                   }
               }
               """,
@@ -272,10 +267,10 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).containsExactly(new float[]{1.0f, 2.0f, 3.0f}, within(.2f));
+                      assertThat(notification()).isNotCloseTo(2.0f, within(0.2f));
                   }
-                  private float[] notification() {
-                      return new float[]{1.1f, 2.1f, 3.1f};
+                  private Float notification() {
+                      return 0.1f;
                   }
               }
               """
@@ -292,15 +287,15 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
             """
               import org.junit.Test;
 
-              import static org.junit.Assert.assertArrayEquals;
+              import static org.junit.Assert.assertNotEquals;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertArrayEquals(new float[]{1.0f, 2.0f, 3.0f}, notification(), .2f, () -> "These should be close");
+                      assertNotEquals("These should not be close.", 2.0f, notification(), 0.2f);
                   }
-                  private float[] notification() {
-                      return new float[]{1.1f, 2.1f, 3.1f};
+                  private float notification() {
+                      return 0.1f;
                   }
               }
               """,
@@ -313,10 +308,10 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).as(() -> "These should be close").containsExactly(new float[]{1.0f, 2.0f, 3.0f}, within(.2f));
+                      assertThat(notification()).as("These should not be close.").isNotCloseTo(2.0f, within(0.2f));
                   }
-                  private float[] notification() {
-                      return new float[]{1.1f, 2.1f, 3.1f};
+                  private float notification() {
+                      return 0.1f;
                   }
               }
               """
@@ -332,31 +327,31 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
+              import java.io.File;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      String[] expected = new String[] {"Fred", "Alice", "Mary"};
-                      org.junit.Assert.assertArrayEquals(expected, notification(), () -> "These should be close");
+                      org.junit.Assert.assertNotEquals("These should not be equal", new File("otherFile"), notification());
                   }
-                  private String[] notification() {
-                      return new String[] {"Fred", "Alice", "Mary"};
+                  private File notification() {
+                      return new File("someFile");
                   }
               }
               """,
             """
               import org.junit.Test;
+              import java.io.File;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      String[] expected = new String[] {"Fred", "Alice", "Mary"};
-                      assertThat(notification()).as(() -> "These should be close").containsExactly(expected);
+                      assertThat(notification()).as("These should not be equal").isNotEqualTo(new File("otherFile"));
                   }
-                  private String[] notification() {
-                      return new String[] {"Fred", "Alice", "Mary"};
+                  private File notification() {
+                      return new File("someFile");
                   }
               }
               """

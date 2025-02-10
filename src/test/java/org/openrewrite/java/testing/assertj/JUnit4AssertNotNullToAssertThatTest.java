@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.assertj;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -25,15 +26,15 @@ import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings({"NewClassNamingConvention", "ExcessiveLambdaUsage"})
-class JUnitAssertNullToAssertThatTest implements RewriteTest {
+@SuppressWarnings({"ExcessiveLambdaUsage", "java:S2699"})
+class JUnit4AssertNotNullToAssertThatTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
-          .recipe(new JUnitAssertNullToAssertThat());
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.2"))
+          .recipe(new JUnitAssertNotNullToAssertThat());
     }
 
     @DocumentExample
@@ -43,32 +44,32 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertNotNull;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertNull(notification());
+                      assertNotNull(notification());
                   }
                   private String notification() {
-                      return null;
+                      return "";
                   }
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).isNull();
+                      assertThat(notification()).isNotNull();
                   }
                   private String notification() {
-                      return null;
+                      return "";
                   }
               }
               """
@@ -83,71 +84,32 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertNotNull;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertNull(notification(), "Should be null");
+                      assertNotNull("Should not be null", notification());
                   }
                   private String notification() {
-                      return null;
+                      return "";
                   }
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).as("Should be null").isNull();
+                      assertThat(notification()).as("Should not be null").isNotNull();
                   }
                   private String notification() {
-                      return null;
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void singleStaticMethodWithMessageSupplier() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertNull;
-
-              public class MyTest {
-                  @Test
-                  public void test() {
-                      assertNull(notification(), () -> "Should be null");
-                  }
-                  private String notification() {
-                      return null;
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              public class MyTest {
-                  @Test
-                  public void test() {
-                      assertThat(notification()).as(() -> "Should be null").isNull();
-                  }
-                  private String notification() {
-                      return null;
+                      return "";
                   }
               }
               """
@@ -162,34 +124,32 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      org.junit.jupiter.api.Assertions.assertNull(notification());
-                      org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
-                      org.junit.jupiter.api.Assertions.assertNull(notification(), () -> "Should be null");
+                      org.junit.Assert.assertNotNull(notification());
+                      org.junit.Assert.assertNotNull("Should not be null", notification());
                   }
                   private String notification() {
-                      return null;
+                      return "";
                   }
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).isNull();
-                      assertThat(notification()).as("Should be null").isNull();
-                      assertThat(notification()).as(() -> "Should be null").isNull();
+                      assertThat(notification()).isNotNull();
+                      assertThat(notification()).as("Should not be null").isNotNull();
                   }
                   private String notification() {
-                      return null;
+                      return "";
                   }
               }
               """
@@ -204,37 +164,76 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.*;
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.assertNotNull;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertNull(notification());
-                      org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
-                      assertNull(notification(), () -> "Should be null");
+                      assertNotNull(notification());
+                      org.junit.jupiter.api.Assertions.assertNotNull(notification(), "Should not be null");
                   }
                   private String notification() {
-                      return null;
+                      return "";
                   }
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.*;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).isNull();
-                      assertThat(notification()).as("Should be null").isNull();
-                      assertThat(notification()).as(() -> "Should be null").isNull();
+                      assertThat(notification()).isNotNull();
+                      assertThat(notification()).as("Should not be null").isNotNull();
                   }
                   private String notification() {
-                      return null;
+                      return "";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/491")
+    void importAddedForCustomArguments() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              public class MyTest {
+
+                  class A {}
+
+                  @Test
+                  public void testClass() {
+                      assertNotNull(new A());
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              public class MyTest {
+
+                  class A {}
+
+                  @Test
+                  public void testClass() {
+                      assertThat(new A()).isNotNull();
                   }
               }
               """

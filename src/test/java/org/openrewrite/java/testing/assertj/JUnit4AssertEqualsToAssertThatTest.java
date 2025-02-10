@@ -26,7 +26,7 @@ import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings({"UnnecessaryBoxing" })
+@SuppressWarnings({"UnnecessaryBoxing", "java:S2699" })
 class JUnit4AssertEqualsToAssertThatTest implements RewriteTest {
 
     @Override
