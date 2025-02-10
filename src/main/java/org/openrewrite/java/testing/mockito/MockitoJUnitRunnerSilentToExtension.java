@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -31,6 +32,7 @@ import java.util.Collections;
 import java.util.Comparator;
 
 public class MockitoJUnitRunnerSilentToExtension extends Recipe {
+
     @Override
     public String getDisplayName() {
         return "JUnit 4 MockitoJUnitRunner.Silent to JUnit Jupiter MockitoExtension with LENIENT settings";
@@ -45,12 +47,11 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>("org.mockito.junit.MockitoJUnitRunner$Silent", false), new JavaIsoVisitor<ExecutionContext>() {
 
-            private JavaParser.Builder<?, ?> javaParser = null;
+            private JavaParser.@Nullable Builder<?, ?> javaParser;
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 if (javaParser == null) {
                     javaParser = JavaParser.fromJavaVersion()
-                            .logCompilationWarningsAndErrors(true)
                             .classpathFromResources(ctx, "mockito-junit-jupiter-3.12", "mockito-core-3.12");
                 }
                 return javaParser;
