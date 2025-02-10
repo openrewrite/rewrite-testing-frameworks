@@ -15,22 +15,15 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.jspecify.annotations.Nullable;
-import org.openrewrite.*;
-import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
-
-import static org.openrewrite.java.testing.assertj.JUnitAssertionConfig.JUNIT4_ASSERT;
-import static org.openrewrite.java.testing.assertj.JUnitAssertionConfig.JUNIT5_ASSERT;
 
 public class JUnitAssertEqualsToAssertThat extends AbstractJUnitAssertToAssertThatRecipe {
 
@@ -44,14 +37,8 @@ public class JUnitAssertEqualsToAssertThat extends AbstractJUnitAssertToAssertTh
         return "Convert JUnit-style `assertEquals()` to AssertJ's `assertThat().isEqualTo()`.";
     }
 
-    @Override
-    protected JUnitAssertionConfig getJunit4Config() {
-        return new JUnitAssertionConfig.JUnit4(new MethodMatcher(JUNIT4_ASSERT + " assertEquals(..)"));
-    }
-
-    @Override
-    protected JUnitAssertionConfig getJunit5Config() {
-        return new JUnitAssertionConfig.JUnit5(new MethodMatcher(JUNIT5_ASSERT + " assertEquals(..)"));
+    public JUnitAssertEqualsToAssertThat () {
+        super("assertEquals(..)");
     }
 
     @Override
@@ -81,7 +68,7 @@ public class JUnitAssertEqualsToAssertThat extends AbstractJUnitAssertToAssertTh
                 Expression actual = args.get(1);
                 return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")
                     .staticImports(ASSERTJ + ".assertThat")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
             }
@@ -92,7 +79,7 @@ public class JUnitAssertEqualsToAssertThat extends AbstractJUnitAssertToAssertTh
                 return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isEqualTo(#{any()});")
                     .staticImports(ASSERTJ + ".assertThat")
                     .imports("java.util.function.Supplier")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
             }
@@ -102,7 +89,7 @@ public class JUnitAssertEqualsToAssertThat extends AbstractJUnitAssertToAssertTh
                 maybeAddImport(ASSERTJ, "within", false);
                 return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
                     .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), actual, expected, args.get(2));
             }
@@ -117,7 +104,7 @@ public class JUnitAssertEqualsToAssertThat extends AbstractJUnitAssertToAssertTh
             return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
                 .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                 .imports("java.util.function.Supplier")
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                 .build()
                 .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected, delta);
         }

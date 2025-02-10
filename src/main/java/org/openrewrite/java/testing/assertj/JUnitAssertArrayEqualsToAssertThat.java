@@ -35,27 +35,7 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
-public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
-
-    private static final String ASSERTJ = "org.assertj.core.api.Assertions";
-
-    public enum AssertionConfig {
-        JUNIT4("org.junit.Assert", true),
-        JUNIT5("org.junit.jupiter.api.Assertions", false);
-
-        private final String assertionClass;
-        private final MethodMatcher methodMatcher;
-        private final boolean messageIsFirstArg;
-        private final TreeVisitor<?, ExecutionContext> visitor;
-
-        AssertionConfig(String assertionClass, boolean messageIsFirstArg) {
-            this.assertionClass = assertionClass;
-            this.methodMatcher = new MethodMatcher(assertionClass + " assertArrayEquals(..)", true);
-            this.messageIsFirstArg = messageIsFirstArg;
-            this.visitor = Preconditions.check(new UsesMethod<>(methodMatcher), new JUnitAssertArrayEqualsToAssertThatVisitor(this));
-        }
-    }
-
+public class JUnitAssertArrayEqualsToAssertThat extends AbstractJUnitAssertToAssertThatRecipe {
     @Override
     public String getDisplayName() {
         return "JUnit `assertArrayEquals` to assertJ";
@@ -66,54 +46,29 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
         return "Convert JUnit-style `assertArrayEquals()` to AssertJ's `assertThat().contains()` equivalents.";
     }
 
-    @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new TreeVisitor<Tree, ExecutionContext> () {
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                for (AssertionConfig assertion : AssertionConfig.values()) {
-                    if (new UsesMethod<>(assertion.methodMatcher).isAcceptable(sourceFile, ctx)) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            @Override
-            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                for (AssertionConfig assertion : AssertionConfig.values()) {
-                    tree = assertion.visitor.visit(tree, ctx);
-                }
-                return tree;
-            }
-
-            @Override
-            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx, Cursor parent) {
-                for (AssertionConfig assertion : AssertionConfig.values()) {
-                    tree = assertion.visitor.visit(tree, ctx, parent);
-                }
-                return tree;
-            }
-
-        };
+    public JUnitAssertArrayEqualsToAssertThat () {
+        super("assertArrayEquals(..)");
     }
 
-    private static class JUnitAssertArrayEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final AssertionConfig junitAssertionConfig;
+    @Override
+    protected JUnitAssertionVisitor getJUnitAssertionVisitor(JUnitAssertionConfig config) {
+        return new JUnitAssertArrayEqualsToAssertThatVisitor(config);
+    }
 
-        private JUnitAssertArrayEqualsToAssertThatVisitor(AssertionConfig junitAssertionConfig) {
-            this.junitAssertionConfig = junitAssertionConfig;
+    private static class JUnitAssertArrayEqualsToAssertThatVisitor extends JUnitAssertionVisitor {
+        private JUnitAssertArrayEqualsToAssertThatVisitor(JUnitAssertionConfig junitAssertionConfig) {
+            super(junitAssertionConfig);
         }
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation md = super.visitMethodInvocation(method, ctx);
-            if (!junitAssertionConfig.methodMatcher.matches(md)) {
+            if (!config.getMethodMatcher().matches(md)) {
                 return md;
             }
 
             maybeAddImport(ASSERTJ, "assertThat", false);
-            maybeRemoveImport(junitAssertionConfig.assertionClass);
+            maybeRemoveImport(config.getAssertionClass());
 
             List<Expression> args = md.getArguments();
             if (args.size() == 2) {
@@ -121,29 +76,29 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 Expression actual = args.get(1);
                 return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()});")
                         .staticImports(ASSERTJ + ".assertThat")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                         .build()
                         .apply(getCursor(), md.getCoordinates().replace(), actual, expected);
             }
             if (args.size() == 3 && isFloatingPointType(args.get(2))) {
-                Expression expected = junitAssertionConfig.messageIsFirstArg ? args.get(1) : args.get(0);
-                Expression actual = junitAssertionConfig.messageIsFirstArg ? args.get(2) : args.get(1);
-                Expression delta = junitAssertionConfig.messageIsFirstArg ? args.get(3) : args.get(2);
+                Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
+                Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
+                Expression delta = config.isMessageIsFirstArg() ? args.get(3) : args.get(2);
                 maybeAddImport(ASSERTJ, "within", false);
                 // assert is using floating points with a delta and no message.
                 return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
                         .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                         .build()
                         .apply(getCursor(), md.getCoordinates().replace(), actual, expected, delta);
             }
             if (args.size() == 3) {
-                Expression message = junitAssertionConfig.messageIsFirstArg ? args.get(0) : args.get(2);
-                Expression expected = junitAssertionConfig.messageIsFirstArg ? args.get(1) : args.get(0);
-                Expression actual = junitAssertionConfig.messageIsFirstArg ? args.get(2) : args.get(1);
+                Expression message = config.isMessageIsFirstArg() ? args.get(0) : args.get(2);
+                Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
+                Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
                 return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()});")
                         .staticImports(ASSERTJ + ".assertThat")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                         .build()
                         .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected);
             }
@@ -151,13 +106,13 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
             maybeAddImport(ASSERTJ, "within", false);
 
             // The assertEquals is using a floating point with a delta argument and a message.
-            Expression message = junitAssertionConfig.messageIsFirstArg ? args.get(0) : args.get(3);
-            Expression expected = junitAssertionConfig.messageIsFirstArg ? args.get(1) : args.get(0);
-            Expression actual = junitAssertionConfig.messageIsFirstArg ? args.get(2) : args.get(1);
-            Expression delta = junitAssertionConfig.messageIsFirstArg ? args.get(3) : args.get(2);
+            Expression message = config.isMessageIsFirstArg() ? args.get(0) : args.get(3);
+            Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
+            Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
+            Expression delta = config.isMessageIsFirstArg() ? args.get(3) : args.get(2);
             return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()}, within(#{}));")
                     .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                     .build()
                     .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected, args.get(2));
         }
