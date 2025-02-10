@@ -29,25 +29,10 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
-public class JUnitAssertEqualsToAssertThat extends Recipe {
-    private static final String ASSERTJ = "org.assertj.core.api.Assertions";
+import static org.openrewrite.java.testing.assertj.JUnitAssertionConfig.JUNIT4_ASSERT;
+import static org.openrewrite.java.testing.assertj.JUnitAssertionConfig.JUNIT5_ASSERT;
 
-    public enum AssertionConfig {
-        JUNIT4("org.junit.Assert", true),
-        JUNIT5("org.junit.jupiter.api.Assertions", false);
-
-        private final String assertionClass;
-        private final MethodMatcher methodMatcher;
-        private final boolean messageIsFirstArg;
-        private final TreeVisitor<?, ExecutionContext> visitor;
-
-        AssertionConfig(String assertionClass, boolean messageIsFirstArg) {
-            this.assertionClass = assertionClass;
-            this.methodMatcher = new MethodMatcher(assertionClass + " assertEquals(..)", true);
-            this.messageIsFirstArg = messageIsFirstArg;
-            this.visitor = Preconditions.check(new UsesMethod<>(methodMatcher), new JUnitAssertEqualsToAssertThatVisitor(this));
-        }
-    }
+public class JUnitAssertEqualsToAssertThat extends AbstractJUnitAssertToAssertThatRecipe {
 
     @Override
     public String getDisplayName() {
@@ -60,53 +45,35 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new TreeVisitor<Tree, ExecutionContext> () {
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                for (AssertionConfig assertion : AssertionConfig.values()) {
-                    if (new UsesMethod<>(assertion.methodMatcher).isAcceptable(sourceFile, ctx)) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            @Override
-            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                for (AssertionConfig assertion : AssertionConfig.values()) {
-                    tree = assertion.visitor.visit(tree, ctx);
-                }
-                return tree;
-            }
-
-            @Override
-            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx, Cursor parent) {
-                for (AssertionConfig assertion : AssertionConfig.values()) {
-                    tree = assertion.visitor.visit(tree, ctx, parent);
-                }
-                return tree;
-            }
-
-        };
+    protected JUnitAssertionConfig getJunit4Config() {
+        return new JUnitAssertionConfig.JUnit4(new MethodMatcher(JUNIT4_ASSERT + " assertEquals(..)"));
     }
 
-    private static class JUnitAssertEqualsToAssertThatVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final AssertionConfig junitAssertionConfig;
+    @Override
+    protected JUnitAssertionConfig getJunit5Config() {
+        return new JUnitAssertionConfig.JUnit5(new MethodMatcher(JUNIT5_ASSERT + " assertEquals(..)"));
+    }
 
-        private JUnitAssertEqualsToAssertThatVisitor(AssertionConfig junitAssertionConfig) {
-            this.junitAssertionConfig = junitAssertionConfig;
+    @Override
+    protected JUnitAssertionVisitor getJUnitAssertionVisitor(JUnitAssertionConfig config) {
+        return new JUnitAssertEqualsToAssertThatVisitor(config);
+    }
+
+    private static class JUnitAssertEqualsToAssertThatVisitor extends JUnitAssertionVisitor {
+
+        private JUnitAssertEqualsToAssertThatVisitor(JUnitAssertionConfig junitAssertionConfig) {
+            super(junitAssertionConfig);
         }
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-            if (!junitAssertionConfig.methodMatcher.matches(mi)) {
+            if (!config.getMethodMatcher().matches(mi)) {
                 return mi;
             }
 
             maybeAddImport(ASSERTJ, "assertThat", false);
-            maybeRemoveImport(junitAssertionConfig.assertionClass);
+            maybeRemoveImport(config.getAssertionClass());
 
             List<Expression> args = mi.getArguments();
             if (args.size() == 2) {
@@ -118,10 +85,10 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
             }
-            if (args.size() == 3 && !isFloatingPointType(junitAssertionConfig.messageIsFirstArg ? args.get(0) : args.get(2))) {
-                Expression message = junitAssertionConfig.messageIsFirstArg ? args.get(0) : args.get(2);
-                Expression expected = junitAssertionConfig.messageIsFirstArg ? args.get(1) : args.get(0);
-                Expression actual = junitAssertionConfig.messageIsFirstArg ? args.get(2) : args.get(1);
+            if (args.size() == 3 && !isFloatingPointType(config.isMessageIsFirstArg() ? args.get(0) : args.get(2))) {
+                Expression message = config.isMessageIsFirstArg() ? args.get(0) : args.get(2);
+                Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
+                Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
                 return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isEqualTo(#{any()});")
                     .staticImports(ASSERTJ + ".assertThat")
                     .imports("java.util.function.Supplier")
@@ -143,10 +110,10 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
             maybeAddImport(ASSERTJ, "within", false);
 
             // The assertEquals is using a floating point with a delta argument and a message.
-            Expression message = junitAssertionConfig.messageIsFirstArg ? args.get(0) : args.get(3);
-            Expression expected = junitAssertionConfig.messageIsFirstArg ? args.get(1) : args.get(0);
-            Expression actual = junitAssertionConfig.messageIsFirstArg ? args.get(2) : args.get(1);
-            Expression delta = junitAssertionConfig.messageIsFirstArg ? args.get(3) : args.get(2);
+            Expression message = config.isMessageIsFirstArg() ? args.get(0) : args.get(3);
+            Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
+            Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
+            Expression delta = config.isMessageIsFirstArg() ? args.get(3) : args.get(2);
             return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
                 .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                 .imports("java.util.function.Supplier")
