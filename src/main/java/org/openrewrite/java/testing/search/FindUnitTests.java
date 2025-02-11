@@ -83,7 +83,9 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
-        if (acc != null) return acc;
+        if (acc != null) {
+            return acc;
+        }
         return new Accumulator();
     }
 
