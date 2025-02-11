@@ -86,7 +86,7 @@ class JUnit4AssertTrueToAssertThatTest implements RewriteTest {
             """
               import org.junit.Test;
 
-              import static org.junit.jupiter.api.Assertions.*;
+              import static org.junit.Assert.*;
 
               public class MyTest {
                   @Test
@@ -227,7 +227,6 @@ class JUnit4AssertTrueToAssertThatTest implements RewriteTest {
               import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
-              import static org.junit.Assert.assertTrue;
 
               public class MyTest {
                   @Test

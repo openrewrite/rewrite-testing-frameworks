@@ -58,7 +58,7 @@ class JUnit4AssertNullToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
@@ -98,7 +98,7 @@ class JUnit4AssertNullToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
@@ -137,7 +137,7 @@ class JUnit4AssertNullToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
@@ -180,7 +180,7 @@ class JUnit4AssertNullToAssertThatTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.*;
 

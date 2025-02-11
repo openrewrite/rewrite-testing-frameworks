@@ -84,7 +84,7 @@ class JUnit4AssertNotEqualsToAssertThatTest implements RewriteTest {
             """
               import org.junit.Test;
 
-              import static org.junit.jupiter.api.Assertions.assertNotEquals;
+              import static org.junit.Assert.assertNotEquals;
 
               public class MyTest {
                   @Test
@@ -104,7 +104,7 @@ class JUnit4AssertNotEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).as(() -> "These should not be equal").isNotEqualTo("fred");
+                      assertThat(notification()).as("These should not be equal").isNotEqualTo("fred");
                   }
                   private String notification() {
                       return "joe";
@@ -227,7 +227,7 @@ class JUnit4AssertNotEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).as(() -> "These should not be close.").isNotCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
+                      assertThat(notification()).as("These should not be close.").isNotCloseTo(Double.valueOf(0.0d), within(Double.valueOf(0.2d)));
                   }
                   private double notification() {
                       return Double.valueOf(1.1d);

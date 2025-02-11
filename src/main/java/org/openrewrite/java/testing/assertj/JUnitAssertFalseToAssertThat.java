@@ -36,7 +36,7 @@ public class JUnitAssertFalseToAssertThat extends AbstractJUnitAssertToAssertTha
     }
 
     public JUnitAssertFalseToAssertThat () {
-        super("assertFalse(boolean, ..)");
+        super("assertFalse(boolean, ..)", "assertFalse(.., boolean)");
     }
 
     @Override
@@ -45,7 +45,7 @@ public class JUnitAssertFalseToAssertThat extends AbstractJUnitAssertToAssertTha
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (!config.getMethodMatcher().matches(mi)) {
+                if (!config.matches(mi)) {
                     return mi;
                 }
 

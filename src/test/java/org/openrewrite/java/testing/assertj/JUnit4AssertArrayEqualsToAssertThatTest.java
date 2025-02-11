@@ -94,7 +94,7 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertArrayEquals(new int[]{1, 2, 3}, notification(), () -> "These arrays should be equal");
+                      assertArrayEquals("These arrays should be equal", new int[]{1, 2, 3}, notification());
                   }
                   private int[] notification() {
                       return new int[]{1, 2, 3};
@@ -109,7 +109,7 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).as(() -> "These arrays should be equal").containsExactly(new int[]{1, 2, 3});
+                      assertThat(notification()).as("These arrays should be equal").containsExactly(new int[]{1, 2, 3});
                   }
                   private int[] notification() {
                       return new int[]{1, 2, 3};
@@ -176,7 +176,7 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertArrayEquals(new double[]{1.0d, 2.0d, 3.0d}, notification(), .2d, "These should be close");
+                      assertArrayEquals("These should be close", new double[]{1.0d, 2.0d, 3.0d}, notification(), .2d);
                   }
                   private double[] notification() {
                       return new double[]{1.1d, 2.1d, 3.1d};
@@ -217,7 +217,7 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertArrayEquals(new Double[]{1.0d, 2.0d, 3.0d}, notification(), "These arrays should be equal");
+                      assertArrayEquals("These arrays should be equal", new Double[]{1.0d, 2.0d, 3.0d}, notification());
                   }
                   private Double[] notification() {
                       return new Double[]{1.0d, 2.0d, 3.0d};
@@ -297,7 +297,7 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertArrayEquals(new float[]{1.0f, 2.0f, 3.0f}, notification(), .2f, () -> "These should be close");
+                      assertArrayEquals("These should be close", new float[]{1.0f, 2.0f, 3.0f}, notification(), .2f);
                   }
                   private float[] notification() {
                       return new float[]{1.1f, 2.1f, 3.1f};
@@ -313,7 +313,7 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).as(() -> "These should be close").containsExactly(new float[]{1.0f, 2.0f, 3.0f}, within(.2f));
+                      assertThat(notification()).as("These should be close").containsExactly(new float[]{1.0f, 2.0f, 3.0f}, within(.2f));
                   }
                   private float[] notification() {
                       return new float[]{1.1f, 2.1f, 3.1f};
@@ -337,7 +337,7 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
                   @Test
                   public void test() {
                       String[] expected = new String[] {"Fred", "Alice", "Mary"};
-                      org.junit.Assert.assertArrayEquals(expected, notification(), () -> "These should be close");
+                      org.junit.Assert.assertArrayEquals("These should be close", expected, notification());
                   }
                   private String[] notification() {
                       return new String[] {"Fred", "Alice", "Mary"};
@@ -353,7 +353,7 @@ class JUnit4AssertArrayEqualsToAssertThatTest implements RewriteTest {
                   @Test
                   public void test() {
                       String[] expected = new String[] {"Fred", "Alice", "Mary"};
-                      assertThat(notification()).as(() -> "These should be close").containsExactly(expected);
+                      assertThat(notification()).as("These should be close").containsExactly(expected);
                   }
                   private String[] notification() {
                       return new String[] {"Fred", "Alice", "Mary"};

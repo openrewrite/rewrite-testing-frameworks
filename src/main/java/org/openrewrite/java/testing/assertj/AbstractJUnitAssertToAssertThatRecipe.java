@@ -11,8 +11,12 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.tree.J;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class AbstractJUnitAssertToAssertThatRecipe extends Recipe {
     protected static final String ASSERTJ = "org.assertj.core.api.Assertions";
@@ -21,10 +25,20 @@ public abstract class AbstractJUnitAssertToAssertThatRecipe extends Recipe {
     protected static final String JUNIT4_ASSERT = "org.junit.Assert";
     protected static final String JUNIT5_ASSERT = "org.junit.jupiter.api.Assertions";
     protected static final String ASSERTJ_CORE = "assertj-core-3.24";
-    private final String methodMatcherSuffix;
+    private final String[] methodMatcherSuffix;
 
-    protected AbstractJUnitAssertToAssertThatRecipe (String methodMatcherSuffix) {
+    protected AbstractJUnitAssertToAssertThatRecipe (String... methodMatcherSuffix) {
         this.methodMatcherSuffix = methodMatcherSuffix;
+    }
+
+    protected abstract JUnitAssertionVisitor getJUnitAssertionVisitor(JUnitAssertionConfig config);
+
+    protected JUnitAssertionConfig getJunit4Config() {
+        return new JUnitAssertionConfig(JUNIT4_ASSERT, true, methodMatcherSuffix);
+    }
+
+    protected JUnitAssertionConfig getJunit5Config() {
+        return new JUnitAssertionConfig(JUNIT5_ASSERT, false, methodMatcherSuffix);
     }
 
     @Override
@@ -32,12 +46,13 @@ public abstract class AbstractJUnitAssertToAssertThatRecipe extends Recipe {
         return new TreeVisitor<Tree, ExecutionContext> () {
             @Override
             public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                for (JUnitAssertionConfig assertion : Arrays.asList(getJunit5Config(), getJunit4Config())) {
-                    if (new UsesMethod<>(assertion.getMethodMatcher()).isAcceptable(sourceFile, ctx)) {
-                        return true;
-                    }
-                }
-                return false;
+                List<UsesMethod<Object>> usesMethods = Stream.of(getJunit5Config(), getJunit4Config())
+                        .map(JUnitAssertionConfig::getMethodMatcher)
+                        .flatMap(Arrays::stream)
+                        .map(UsesMethod::new)
+                        .collect(Collectors.toList());
+
+                return usesMethods.stream().anyMatch(usesMethod -> usesMethod.isAcceptable(sourceFile, ctx));
             }
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
@@ -61,13 +76,19 @@ public abstract class AbstractJUnitAssertToAssertThatRecipe extends Recipe {
     public static class JUnitAssertionConfig {
 
         private final String assertionClass;
-        private final MethodMatcher methodMatcher;
+        private final MethodMatcher[] methodMatcher;
         private final boolean messageIsFirstArg;
 
-        private JUnitAssertionConfig(String assertionClass, boolean messageIsFirstArg, String methodMatcherSuffix) {
+        private JUnitAssertionConfig(String assertionClass, boolean messageIsFirstArg, String... methodMatcherSuffix) {
             this.assertionClass = assertionClass;
             this.messageIsFirstArg = messageIsFirstArg;
-            this.methodMatcher = new MethodMatcher(String.format("%s %s", assertionClass, methodMatcherSuffix));
+            this.methodMatcher = Stream.of(methodMatcherSuffix)
+                    .map(pattern -> new MethodMatcher(String.format("%s %s", assertionClass, pattern)))
+                    .toArray(MethodMatcher[]::new);
+        }
+
+        public boolean matches (J.MethodInvocation method) {
+            return Arrays.stream(methodMatcher).anyMatch(matcher -> matcher.matches(method));
         }
 
     }
@@ -79,15 +100,5 @@ public abstract class AbstractJUnitAssertToAssertThatRecipe extends Recipe {
             this.config = config;
         }
     }
-
-    protected JUnitAssertionConfig getJunit4Config() {
-        return new JUnitAssertionConfig(JUNIT4_ASSERT, true, methodMatcherSuffix);
-    }
-
-    protected JUnitAssertionConfig getJunit5Config() {
-        return new JUnitAssertionConfig(JUNIT5_ASSERT, false, methodMatcherSuffix);
-    }
-
-    protected abstract JUnitAssertionVisitor getJUnitAssertionVisitor(JUnitAssertionConfig config);
 
 }

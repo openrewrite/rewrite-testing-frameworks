@@ -16,14 +16,8 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
@@ -52,7 +46,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends AbstractJUnitAssertT
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (config.getMethodMatcher().matches(mi) &&
+                if (config.matches(mi) &&
                     mi.getArguments().size() == 2 &&
                     getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
                     J executable = mi.getArguments().get(1);

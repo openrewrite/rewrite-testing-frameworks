@@ -173,7 +173,7 @@ class JUnit4AssertNotNullToAssertThatTest implements RewriteTest {
                   @Test
                   public void test() {
                       assertNotNull(notification());
-                      org.junit.jupiter.api.Assertions.assertNotNull(notification(), "Should not be null");
+                      org.junit.Assert.assertNotNull("Should not be null", notification());
                   }
                   private String notification() {
                       return "";
@@ -210,7 +210,7 @@ class JUnit4AssertNotNullToAssertThatTest implements RewriteTest {
             """
               import org.junit.Test;
 
-              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              import static org.junit.Assert.assertNotNull;
 
               public class MyTest {
 

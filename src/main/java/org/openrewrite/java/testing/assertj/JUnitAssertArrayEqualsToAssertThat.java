@@ -47,7 +47,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends AbstractJUnitAssertToAss
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation md = super.visitMethodInvocation(method, ctx);
-                if (!config.getMethodMatcher().matches(md)) {
+                if (!config.matches(md)) {
                     return md;
                 }
 
@@ -65,13 +65,13 @@ public class JUnitAssertArrayEqualsToAssertThat extends AbstractJUnitAssertToAss
                             .apply(getCursor(), md.getCoordinates().replace(), actual, expected);
                 }
                 if (args.size() == 3 && isFloatingPointType(args.get(2))) {
-                    Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
-                    Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
-                    Expression delta = config.isMessageIsFirstArg() ? args.get(3) : args.get(2);
+                    Expression expected = args.get(0);
+                    Expression actual = args.get(1);
+                    Expression delta = args.get(2);
                     maybeAddImport(ASSERTJ, "within", false);
                     // assert is using floating points with a delta and no message.
                     return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
-                            .staticImports(ASSERT_THAT, ASSERTJ + ".within")
+                            .staticImports(ASSERT_THAT, ASSERT_WITHIN)
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                             .build()
                             .apply(getCursor(), md.getCoordinates().replace(), actual, expected, delta);
@@ -95,7 +95,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends AbstractJUnitAssertToAss
                 Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
                 Expression delta = config.isMessageIsFirstArg() ? args.get(3) : args.get(2);
                 return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()}, within(#{}));")
-                        .staticImports(ASSERT_THAT, ASSERTJ + ".within")
+                        .staticImports(ASSERT_THAT, ASSERT_WITHIN)
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                         .build()
                         .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected, delta);
