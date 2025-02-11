@@ -15,19 +15,9 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.jspecify.annotations.Nullable;
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.SourceFile;
-import org.openrewrite.Tree;
-import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -52,86 +42,81 @@ public class JUnitAssertArrayEqualsToAssertThat extends AbstractJUnitAssertToAss
 
     @Override
     protected JUnitAssertionVisitor getJUnitAssertionVisitor(JUnitAssertionConfig config) {
-        return new JUnitAssertArrayEqualsToAssertThatVisitor(config);
-    }
-
-    private static class JUnitAssertArrayEqualsToAssertThatVisitor extends JUnitAssertionVisitor {
-        private JUnitAssertArrayEqualsToAssertThatVisitor(JUnitAssertionConfig junitAssertionConfig) {
-            super(junitAssertionConfig);
-        }
+        return new JUnitAssertionVisitor(config) {
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation md = super.visitMethodInvocation(method, ctx);
-            if (!config.getMethodMatcher().matches(md)) {
-                return md;
-            }
+                if (!config.getMethodMatcher().matches(md)) {
+                    return md;
+                }
 
-            maybeAddImport(ASSERTJ, "assertThat", false);
-            maybeRemoveImport(config.getAssertionClass());
+                maybeAddImport(ASSERTJ, "assertThat", false);
+                maybeRemoveImport(config.getAssertionClass());
 
-            List<Expression> args = md.getArguments();
-            if (args.size() == 2) {
-                Expression expected = args.get(0);
-                Expression actual = args.get(1);
-                return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()});")
-                        .staticImports(ASSERTJ + ".assertThat")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
-                        .build()
-                        .apply(getCursor(), md.getCoordinates().replace(), actual, expected);
-            }
-            if (args.size() == 3 && isFloatingPointType(args.get(2))) {
+                List<Expression> args = md.getArguments();
+                if (args.size() == 2) {
+                    Expression expected = args.get(0);
+                    Expression actual = args.get(1);
+                    return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()});")
+                            .staticImports(ASSERT_THAT)
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
+                            .build()
+                            .apply(getCursor(), md.getCoordinates().replace(), actual, expected);
+                }
+                if (args.size() == 3 && isFloatingPointType(args.get(2))) {
+                    Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
+                    Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
+                    Expression delta = config.isMessageIsFirstArg() ? args.get(3) : args.get(2);
+                    maybeAddImport(ASSERTJ, "within", false);
+                    // assert is using floating points with a delta and no message.
+                    return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
+                            .staticImports(ASSERT_THAT, ASSERTJ + ".within")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
+                            .build()
+                            .apply(getCursor(), md.getCoordinates().replace(), actual, expected, delta);
+                }
+                if (args.size() == 3) {
+                    Expression message = config.isMessageIsFirstArg() ? args.get(0) : args.get(2);
+                    Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
+                    Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
+                    return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()});")
+                            .staticImports(ASSERT_THAT)
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
+                            .build()
+                            .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected);
+                }
+
+                maybeAddImport(ASSERTJ, "within", false);
+
+                // The assertEquals is using a floating point with a delta argument and a message.
+                Expression message = config.isMessageIsFirstArg() ? args.get(0) : args.get(3);
                 Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
                 Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
                 Expression delta = config.isMessageIsFirstArg() ? args.get(3) : args.get(2);
-                maybeAddImport(ASSERTJ, "within", false);
-                // assert is using floating points with a delta and no message.
-                return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
-                        .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
+                return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()}, within(#{}));")
+                        .staticImports(ASSERT_THAT, ASSERTJ + ".within")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                         .build()
-                        .apply(getCursor(), md.getCoordinates().replace(), actual, expected, delta);
-            }
-            if (args.size() == 3) {
-                Expression message = config.isMessageIsFirstArg() ? args.get(0) : args.get(2);
-                Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
-                Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
-                return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()});")
-                        .staticImports(ASSERTJ + ".assertThat")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
-                        .build()
-                        .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected);
+                        .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected, delta);
             }
 
-            maybeAddImport(ASSERTJ, "within", false);
+            /**
+             * Returns true if the expression's type is either a primitive float/double or their object forms Float/Double
+             *
+             * @param expression The expression parsed from the original AST.
+             * @return true if the type is a floating point number.
+             */
+            private boolean isFloatingPointType(Expression expression) {
+                JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
+                if (fullyQualified != null) {
+                    String typeName = fullyQualified.getFullyQualifiedName();
+                    return "java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName);
+                }
 
-            // The assertEquals is using a floating point with a delta argument and a message.
-            Expression message = config.isMessageIsFirstArg() ? args.get(0) : args.get(3);
-            Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
-            Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
-            Expression delta = config.isMessageIsFirstArg() ? args.get(3) : args.get(2);
-            return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()}, within(#{}));")
-                    .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
-                    .build()
-                    .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected, args.get(2));
-        }
-
-        /**
-         * Returns true if the expression's type is either a primitive float/double or their object forms Float/Double
-         *
-         * @param expression The expression parsed from the original AST.
-         * @return true if the type is a floating point number.
-         */
-        private boolean isFloatingPointType(Expression expression) {
-            JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
-            if (fullyQualified != null) {
-                String typeName = fullyQualified.getFullyQualifiedName();
-                return "java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName);
+                JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
+                return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
             }
-
-            JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
-            return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
-        }
+        };
     }
 }

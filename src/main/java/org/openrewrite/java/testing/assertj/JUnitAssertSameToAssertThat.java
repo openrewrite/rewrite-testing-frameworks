@@ -29,9 +29,7 @@ import org.openrewrite.java.tree.J;
 
 import java.util.List;
 
-public class JUnitAssertSameToAssertThat extends Recipe {
-
-    private static final MethodMatcher ASSERT_SAME_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertSame(..)", true);
+public class JUnitAssertSameToAssertThat extends AbstractJUnitAssertToAssertThatRecipe {
 
     @Override
     public String getDisplayName() {
@@ -43,37 +41,43 @@ public class JUnitAssertSameToAssertThat extends Recipe {
         return "Convert JUnit-style `assertSame()` to AssertJ's `assertThat().isSameAs()`.";
     }
 
+    public JUnitAssertSameToAssertThat() {
+        super("assertSame(..)");
+    }
+
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(ASSERT_SAME_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
+    protected JUnitAssertionVisitor getJUnitAssertionVisitor(JUnitAssertionConfig config) {
+        return new JUnitAssertionVisitor(config) {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (!ASSERT_SAME_MATCHER.matches(mi)) {
+                if (!config.getMethodMatcher().matches(mi)) {
                     return mi;
                 }
 
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
-                maybeRemoveImport("org.junit.jupiter.api.Assertions");
+                maybeAddImport(ASSERTJ, "assertThat", false);
+                maybeRemoveImport(config.getAssertionClass());
 
                 List<Expression> args = mi.getArguments();
-                Expression expected = args.get(0);
-                Expression actual = args.get(1);
                 if (args.size() == 2) {
+                    Expression expected = args.get(0);
+                    Expression actual = args.get(1);
                     return JavaTemplate.builder("assertThat(#{any()}).isSameAs(#{any()});")
-                            .staticImports("org.assertj.core.api.Assertions.assertThat")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .staticImports(ASSERT_THAT)
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
                 }
 
-                Expression message = args.get(2);
+                Expression message = config.isMessageIsFirstArg() ? args.get(0) : args.get(2);
+                Expression expected = config.isMessageIsFirstArg() ? args.get(1) : args.get(0);
+                Expression actual = config.isMessageIsFirstArg() ? args.get(2) : args.get(1);
                 return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isSameAs(#{any()});")
-                        .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .staticImports(ASSERT_THAT)
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                         .build()
                         .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
             }
-        });
+        };
     }
 }

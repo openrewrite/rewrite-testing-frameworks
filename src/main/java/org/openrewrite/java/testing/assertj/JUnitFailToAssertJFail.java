@@ -28,11 +28,10 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.Collections;
 import java.util.List;
 
-public class JUnitFailToAssertJFail extends Recipe {
+public class JUnitFailToAssertJFail extends AbstractJUnitAssertToAssertThatRecipe {
 
     private static final String JUNIT = "org.junit.jupiter.api.Assertions";
     private static final String ASSERTJ = "org.assertj.core.api.Assertions";
-    private static final MethodMatcher FAIL_MATCHER = new MethodMatcher(JUNIT + " fail(..)");
 
     @Override
     public String getDisplayName() {
@@ -44,13 +43,17 @@ public class JUnitFailToAssertJFail extends Recipe {
         return "Convert JUnit-style `fail()` to AssertJ's `fail()`.";
     }
 
+    public JUnitFailToAssertJFail() {
+        super("fail(..)");
+    }
+
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(FAIL_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
+    protected JUnitAssertionVisitor getJUnitAssertionVisitor(JUnitAssertionConfig config) {
+        return new JUnitAssertionVisitor(config) {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = method;
-                if (!FAIL_MATCHER.matches(mi)) {
+                if (!config.getMethodMatcher().matches(mi)) {
                     return mi;
                 }
 
@@ -59,18 +62,18 @@ public class JUnitFailToAssertJFail extends Recipe {
                     // fail(), fail(String), fail(Supplier<String>), fail(Throwable)
                     if (args.get(0) instanceof J.Empty) {
                         mi = JavaTemplate.builder(ASSERTJ + ".fail(\"\");")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                                 .build()
                                 .apply(getCursor(), mi.getCoordinates().replace());
                     } else if (args.get(0) instanceof J.Literal ||
                                TypeUtils.isAssignableTo("java.lang.String", args.get(0).getType())) {
                         mi = JavaTemplate.builder(ASSERTJ + ".fail(#{any()});")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                                 .build()
                                 .apply(getCursor(), mi.getCoordinates().replace(), args.get(0));
                     } else {
                         mi = JavaTemplate.builder(ASSERTJ + ".fail(\"\", #{any()});")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                                 .build()
                                 .apply(getCursor(), mi.getCoordinates().replace(), args.get(0));
                     }
@@ -78,7 +81,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                     // fail(String, Throwable)
                     String anyArgs = String.join(",", Collections.nCopies(args.size(), "#{any()}"));
                     mi = JavaTemplate.builder(ASSERTJ + ".fail(" + anyArgs + ");")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), args.toArray());
                 }
@@ -105,11 +108,11 @@ public class JUnitFailToAssertJFail extends Recipe {
                     String anyArgs = String.join(",", Collections.nCopies(arguments.size(), "#{any()}"));
                     return JavaTemplate.builder("fail(" + anyArgs + ");")
                             .staticImports(ASSERTJ + ".fail")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
                 }
             }
-        });
+        };
     }
 }

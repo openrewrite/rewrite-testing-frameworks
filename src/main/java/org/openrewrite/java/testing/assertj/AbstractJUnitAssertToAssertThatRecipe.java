@@ -16,6 +16,8 @@ import java.util.Arrays;
 
 public abstract class AbstractJUnitAssertToAssertThatRecipe extends Recipe {
     protected static final String ASSERTJ = "org.assertj.core.api.Assertions";
+    protected static final String ASSERT_THAT = "org.assertj.core.api.Assertions.assertThat";
+    protected static final String ASSERT_WITHIN = "org.assertj.core.api.Assertions.within";
     protected static final String JUNIT4_ASSERT = "org.junit.Assert";
     protected static final String JUNIT5_ASSERT = "org.junit.jupiter.api.Assertions";
     protected static final String ASSERTJ_CORE = "assertj-core-3.24";
