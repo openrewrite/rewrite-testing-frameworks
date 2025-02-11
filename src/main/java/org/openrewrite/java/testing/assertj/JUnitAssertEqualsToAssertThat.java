@@ -37,7 +37,7 @@ public class JUnitAssertEqualsToAssertThat extends AbstractJUnitAssertToAssertTh
         return "Convert JUnit-style `assertEquals()` to AssertJ's `assertThat().isEqualTo()`.";
     }
 
-    public JUnitAssertEqualsToAssertThat () {
+    public JUnitAssertEqualsToAssertThat() {
         super("assertEquals(..)");
     }
 

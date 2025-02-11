@@ -35,7 +35,7 @@ public class JUnitAssertNullToAssertThat extends AbstractJUnitAssertToAssertThat
         return "Convert JUnit-style `assertNull()` to AssertJ's `assertThat().isNull()`.";
     }
 
-    public JUnitAssertNullToAssertThat () {
+    public JUnitAssertNullToAssertThat() {
         super("assertNull(..)");
     }
 

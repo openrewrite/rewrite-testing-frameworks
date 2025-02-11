@@ -24,7 +24,8 @@ import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 public class JUnitAssertThrowsToAssertExceptionType extends AbstractJUnitAssertToAssertThatRecipe {
 
-    private static final JavaType THROWING_CALLABLE_TYPE = JavaType.buildType("org.assertj.core.api.ThrowableAssert.ThrowingCallable");
+    private static final JavaType THROWING_CALLABLE_TYPE = JavaType.buildType(
+            "org.assertj.core.api.ThrowableAssert.ThrowingCallable");
 
     @Override
     public String getDisplayName() {
@@ -47,8 +48,8 @@ public class JUnitAssertThrowsToAssertExceptionType extends AbstractJUnitAssertT
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if (config.matches(mi) &&
-                    mi.getArguments().size() == 2 &&
-                    getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
+                        mi.getArguments().size() == 2 &&
+                        getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
                     J executable = mi.getArguments().get(1);
                     if (executable instanceof J.Lambda) {
                         executable = ((J.Lambda) executable).withType(THROWING_CALLABLE_TYPE);
@@ -60,7 +61,8 @@ public class JUnitAssertThrowsToAssertExceptionType extends AbstractJUnitAssertT
 
                     if (executable != null) {
                         mi = JavaTemplate
-                                .builder("assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
+                                .builder(
+                                        "assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, ASSERTJ_CORE))
                                 .staticImports("org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType")
                                 .build()

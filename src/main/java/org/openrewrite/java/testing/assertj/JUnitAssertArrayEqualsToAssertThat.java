@@ -36,7 +36,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends AbstractJUnitAssertToAss
         return "Convert JUnit-style `assertArrayEquals()` to AssertJ's `assertThat().contains()` equivalents.";
     }
 
-    public JUnitAssertArrayEqualsToAssertThat () {
+    public JUnitAssertArrayEqualsToAssertThat() {
         super("assertArrayEquals(..)");
     }
 
@@ -44,9 +44,9 @@ public class JUnitAssertArrayEqualsToAssertThat extends AbstractJUnitAssertToAss
     protected JUnitAssertionVisitor getJUnitAssertionVisitor(JUnitAssertionConfig config) {
         return new JUnitAssertionVisitor(config) {
 
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            J.MethodInvocation md = super.visitMethodInvocation(method, ctx);
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation md = super.visitMethodInvocation(method, ctx);
                 if (!config.matches(md)) {
                     return md;
                 }

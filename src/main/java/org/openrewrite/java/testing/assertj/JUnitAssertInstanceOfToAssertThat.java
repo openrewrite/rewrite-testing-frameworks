@@ -29,7 +29,8 @@ import org.openrewrite.java.tree.J;
 
 public class JUnitAssertInstanceOfToAssertThat extends Recipe {
 
-    private static final MethodMatcher ASSERT_INSTANCE_OF_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertInstanceOf(..)", true);
+    private static final MethodMatcher ASSERT_INSTANCE_OF_MATCHER = new MethodMatcher(
+            "org.junit.jupiter.api.Assertions assertInstanceOf(..)", true);
 
     @Override
     public String getDisplayName() {

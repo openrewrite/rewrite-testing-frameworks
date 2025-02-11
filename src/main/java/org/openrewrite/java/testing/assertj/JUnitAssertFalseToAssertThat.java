@@ -35,7 +35,7 @@ public class JUnitAssertFalseToAssertThat extends AbstractJUnitAssertToAssertTha
         return "Convert JUnit-style `assertFalse()` to AssertJ's `assertThat().isFalse()`.";
     }
 
-    public JUnitAssertFalseToAssertThat () {
+    public JUnitAssertFalseToAssertThat() {
         super("assertFalse(boolean, ..)", "assertFalse(.., boolean)");
     }
 
