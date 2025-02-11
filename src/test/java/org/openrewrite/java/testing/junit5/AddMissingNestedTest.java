@@ -203,4 +203,29 @@ class AddMissingNestedTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void doesNotNestAnnotationType() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+            import static java.lang.annotation.RetentionPolicy.RUNTIME;
+            
+            import java.lang.annotation.Retention;
+            import org.junit.jupiter.api.Test;
+            
+            public class SingleTest {
+                @CustomTest
+                public void test() {
+                }
+            
+                @Retention(RUNTIME)
+                @Test
+                @interface CustomTest {
+                }
+            }
+            """)
+        );
+    }
 }

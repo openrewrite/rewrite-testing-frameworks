@@ -86,7 +86,8 @@ public class AddMissingNested extends Recipe {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             boolean alreadyNested = classDecl.getLeadingAnnotations().stream()
                     .anyMatch(a -> TypeUtils.isOfClassType(a.getType(), NESTED));
-            if (!alreadyNested && hasTestMethods(cd)) {
+            boolean isAnnotationType = cd.getKind() == J.ClassDeclaration.Kind.Type.Annotation;
+            if (!isAnnotationType && !alreadyNested && hasTestMethods(cd)) {
                 cd = JavaTemplate.builder("@Nested")
                         .javaParser(JavaParser.fromJavaVersion()
                                 .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
