@@ -84,6 +84,7 @@ public class CleanupMockitoImports extends Recipe {
                 "verifyNoMoreInteractions",
                 "verifyZeroInteractions",
                 "when",
+                "whenever", // org.mockito.kotlin
                 "will",
                 "willAnswer",
                 "willCallRealMethod",
