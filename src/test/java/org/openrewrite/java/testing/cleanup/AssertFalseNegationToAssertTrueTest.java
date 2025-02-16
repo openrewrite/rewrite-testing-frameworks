@@ -29,7 +29,7 @@ class AssertFalseNegationToAssertTrueTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertFalseNegationToAssertTrue());
     }
 
@@ -42,7 +42,7 @@ class AssertFalseNegationToAssertTrueTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertFalse;
-              
+
               public class Test {
                   void test() {
                       boolean a = true;
@@ -53,7 +53,7 @@ class AssertFalseNegationToAssertTrueTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               public class Test {
                   void test() {
                       boolean a = true;
@@ -75,7 +75,7 @@ class AssertFalseNegationToAssertTrueTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       boolean a = true;
@@ -86,7 +86,7 @@ class AssertFalseNegationToAssertTrueTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       boolean a = true;

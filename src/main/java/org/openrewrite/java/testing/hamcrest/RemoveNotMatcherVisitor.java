@@ -57,7 +57,7 @@ class RemoveNotMatcherVisitor extends JavaIsoVisitor<ExecutionContext> {
                 result = mi.getArguments().get(0).withPrefix(mi.getPrefix());
             } else {
                 JavaTemplate template = JavaTemplate.builder("equalTo(#{any(java.lang.Object)})")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "hamcrest-2.2"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "hamcrest-3"))
                         .staticImports("org.hamcrest.Matchers.equalTo")
                         .build();
                 maybeAddImport("org.hamcrest.Matchers", "equalTo");

@@ -30,7 +30,7 @@ class CategoryToTagTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(new CategoryToTag());
     }
 
@@ -46,11 +46,11 @@ class CategoryToTagTest implements RewriteTest {
 
               @Category(value = SlowTests.class)
               public class B {
-                            
+
               }
               @Category(value = {SlowTests.class, FastTests.class})
               public class C {
-                            
+
               }
               """,
             """
@@ -58,13 +58,13 @@ class CategoryToTagTest implements RewriteTest {
 
               @Tag("SlowTests")
               public class B {
-                            
+
               }
-                            
+
               @Tag("SlowTests")
               @Tag("FastTests")
               public class C {
-                            
+
               }
               """
           )
@@ -143,7 +143,7 @@ class CategoryToTagTest implements RewriteTest {
                   @Test
                   public void b() {
                   }
-                            
+
                   @Test
                   public void d() {
                   }
@@ -160,7 +160,7 @@ class CategoryToTagTest implements RewriteTest {
                   @Test
                   public void b() {
                   }
-                            
+
                   @Test
                   public void d() {
                   }
@@ -181,9 +181,9 @@ class CategoryToTagTest implements RewriteTest {
             """
               import lombok.Data;
               import org.junit.experimental.categories.Category;
-                            
+
               import java.lang.annotation.Documented;
-                            
+
               @Documented
               @Category({FastTests.class, SlowTests.class})
               @Data
@@ -194,15 +194,15 @@ class CategoryToTagTest implements RewriteTest {
             """
               import lombok.Data;
               import org.junit.jupiter.api.Tag;
-                            
+
               import java.lang.annotation.Documented;
-                            
+
               @Documented
               @Tag("FastTests")
               @Tag("SlowTests")
               @Data
               public class B {
-                            
+
               }
               """
           )
@@ -217,26 +217,26 @@ class CategoryToTagTest implements RewriteTest {
           java(
             """
               package a;
-                          
+
               public interface FastTests {}
               """
           ),
           java(
             """
               package b;
-              
+
               import a.FastTests;
               import org.junit.experimental.categories.Category;
-              
+
               @Category({FastTests.class})
               public class B {
               }
               """,
             """
               package b;
-              
+
               import org.junit.jupiter.api.Tag;
-              
+
               @Tag("FastTests")
               public class B {
               }

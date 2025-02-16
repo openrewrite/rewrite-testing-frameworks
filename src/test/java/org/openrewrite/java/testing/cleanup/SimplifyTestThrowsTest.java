@@ -29,7 +29,7 @@ class SimplifyTestThrowsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
+            "junit-jupiter-api-5", "junit-jupiter-params-5"))
           .recipe(new SimplifyTestThrows());
     }
 
@@ -87,7 +87,7 @@ class SimplifyTestThrowsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-    
+
               class ATest {
                   @Test
                   void noThrows() {
@@ -105,7 +105,7 @@ class SimplifyTestThrowsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-    
+
               class ATest {
                   @Test
                   void throwsEx() throws Exception {

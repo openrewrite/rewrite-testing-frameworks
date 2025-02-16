@@ -32,7 +32,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new JUnitFailToAssertJFail());
     }
 
@@ -197,7 +197,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.fail;
-              
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -219,9 +219,9 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.fail;
-              
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -236,7 +236,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.fail;
-              
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -260,7 +260,7 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
-              
+
               public class OpenrewriteTest {
                   @Test
                   public void smokeTest() {
@@ -271,9 +271,9 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.fail;
-              
+
               public class OpenrewriteTest {
                   @Test
                   public void smokeTest() {

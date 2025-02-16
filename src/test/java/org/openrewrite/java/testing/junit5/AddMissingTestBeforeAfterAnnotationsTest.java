@@ -28,7 +28,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5"))
           .recipe(new AddMissingTestBeforeAfterAnnotations());
     }
 
@@ -41,7 +41,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
               import org.junit.After;
               import org.junit.Before;
               import org.junit.Test;
-              
+
               public class AbstractTest {
                   @Before
                   public void before() {
@@ -59,7 +59,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
           ),
           java(
             """
-              public class A extends AbstractTest {              
+              public class A extends AbstractTest {
                   public void before() {
                   }
 
@@ -74,7 +74,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-              
+
               public class A extends AbstractTest {
                   @BeforeEach
                   public void before() {
@@ -102,7 +102,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-              
+
               public class AbstractTest {
                   @BeforeEach
                   public void before() {
@@ -120,7 +120,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
           ),
           java(
             """
-              public class A extends AbstractTest {              
+              public class A extends AbstractTest {
                   public void before() {
                   }
 
@@ -135,7 +135,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-              
+
               public class A extends AbstractTest {
                   @BeforeEach
                   public void before() {
@@ -163,7 +163,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-              
+
               public class AbstractTest {
                   @BeforeEach
                   public void before() {
@@ -196,7 +196,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-              
+
               public class A extends AbstractTest {
                   @BeforeEach
                   public void before() {
@@ -229,7 +229,7 @@ class AddMissingTestBeforeAfterAnnotationsTest implements RewriteTest {
                   import org.junit.jupiter.api.AfterEach;
                   import org.junit.jupiter.api.BeforeEach;
                   import org.junit.jupiter.api.Test;
-                  
+
                   public class B extends A {
                       @BeforeEach
                       public void before() {

@@ -29,7 +29,7 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "junit-4.13"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-4"))
           .recipe(new AssertTrueInstanceofToAssertInstanceOf());
     }
 
@@ -43,9 +43,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testJUnit5() {
@@ -58,9 +58,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-              
+
               class ATest {
                   @Test
                   void testJUnit5() {
@@ -81,9 +81,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testJUnit5() {
@@ -96,9 +96,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-              
+
               class ATest {
                   @Test
                   void testJUnit5() {
@@ -119,9 +119,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import static org.junit.Assert.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testJUnit5() {
@@ -134,9 +134,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-              
+
               class ATest {
                   @Test
                   void testJUnit5() {
@@ -157,9 +157,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import static org.junit.Assert.assertTrue;
-              
+
               class ATest {
                   @Test
                   void testJUnit5() {
@@ -172,9 +172,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.ArrayList;
               import java.util.List;
-              
+
               import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-              
+
               class ATest {
                   @Test
                   void testJUnit5() {

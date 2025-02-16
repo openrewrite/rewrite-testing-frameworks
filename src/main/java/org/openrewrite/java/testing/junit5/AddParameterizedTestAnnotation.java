@@ -74,7 +74,7 @@ public class AddParameterizedTestAnnotation extends Recipe {
             // Add parameterized test annotation at the start
             JavaCoordinates coordinates = m.getCoordinates().addAnnotation((o1, o2) -> -1);
             m = JavaTemplate.builder("@ParameterizedTest")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5.9"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5"))
                     .imports("org.junit.jupiter.params.ParameterizedTest")
                     .build()
                     .apply(getCursor(), coordinates);

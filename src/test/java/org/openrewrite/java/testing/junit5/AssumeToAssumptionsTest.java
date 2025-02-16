@@ -31,7 +31,7 @@ class AssumeToAssumptionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-2.2"));
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3"));
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/54")
@@ -46,7 +46,7 @@ class AssumeToAssumptionsTest implements RewriteTest {
           java(
             """
               import org.junit.Assume;
-                              
+
               class Test {
                   void test() {
                       Assume.assumeTrue("One is one", true);
@@ -55,7 +55,7 @@ class AssumeToAssumptionsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assumptions;
-                              
+
               class Test {
                   void test() {
                       Assumptions.assumeTrue(true, "One is one");

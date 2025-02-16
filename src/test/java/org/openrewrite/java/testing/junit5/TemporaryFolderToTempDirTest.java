@@ -35,9 +35,9 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .parser(GroovyParser.builder()
-            .classpathFromResource(new InMemoryExecutionContext(), "junit-4.13"))
+            .classpathFromResource(new InMemoryExecutionContext(), "junit-4"))
           .recipe(new TemporaryFolderToTempDir());
     }
 
@@ -50,11 +50,11 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
               import org.junit.Rule
               import org.junit.rules.TemporaryFolder
-                          
+
               class AbstractIntegrationTest {
                   @Rule
                   TemporaryFolder temporaryFolder = new TemporaryFolder()
-                          
+
                   def setup() {
                       projectDir = temporaryFolder.root
                       buildFile = temporaryFolder.newFile('build.gradle')
@@ -65,11 +65,11 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
             import org.junit.Rule
             import org.junit.rules.TemporaryFolder
-                        
+
             class AbstractIntegrationTest {
                 @TempDir
                 File temporaryFolder
-                        
+
                 def setup() {
                     projectDir = temporaryFolder.root
                     buildFile = File.createTempFile('build.gradle', null, temporaryFolder)
@@ -104,7 +104,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
 
               public class MyTest {
@@ -129,9 +129,9 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
               import org.junit.Rule;
               import org.junit.rules.TemporaryFolder;
-                            
+
               import java.io.File;
-                            
+
               class MyTest {
                   File parentDir = new File("foo");
                   @Rule
@@ -140,9 +140,9 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
-                            
+
               class MyTest {
                   File parentDir = new File("foo");
                   @TempDir
@@ -161,20 +161,20 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
               import org.junit.ClassRule;
               import org.junit.rules.TemporaryFolder;
-                            
+
               class MyTest {
-                            
+
                   @ClassRule
                   public static TemporaryFolder tempDir = new TemporaryFolder();
               }
               """,
             """
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
-                            
+
               class MyTest {
-                            
+
                   @TempDir
                   public static File tempDir;
               }
@@ -191,20 +191,20 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
               import org.junit.ClassRule;
               import org.junit.rules.TemporaryFolder;
-                            
+
               class MyTest {
-                            
+
                   @ClassRule
                   static TemporaryFolder tempDir1 = new TemporaryFolder(), tempDir2 = new TemporaryFolder();
               }
               """,
             """
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
-                            
+
               class MyTest {
-                            
+
                   @TempDir
                   static File tempDir1, tempDir2;
               }
@@ -221,7 +221,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
               import org.junit.Rule;
               import org.junit.rules.TemporaryFolder;
-                            
+
               import java.io.File;
 
               class MyTest {
@@ -236,7 +236,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
 
               class MyTest {
@@ -261,12 +261,12 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
               import org.junit.Rule;
               import org.junit.rules.TemporaryFolder;
-                            
+
               import java.io.File;
               import java.io.IOException;
-                            
+
               class MyTest {
-                            
+
                   @Rule
                   TemporaryFolder tempDir1 = new TemporaryFolder();
 
@@ -280,16 +280,16 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
 
               import java.io.File;
               import java.io.IOException;
-                            
+
               class MyTest {
-                            
+
                   @TempDir
                   File tempDir1;
-                            
+
                   void foo() throws IOException {
                       File file1 = newFolder(tempDir1, "junit");
                   }
-                            
+
                   private static File newFolder(File root, String... subDirs) throws IOException {
                       String subFolder = String.join("/", subDirs);
                       File result = new File(root, subFolder);
@@ -313,7 +313,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               import org.junit.Test;
               import org.junit.rules.TemporaryFolder;
               import org.junit.Rule;
-                            
+
               import java.io.File;
               import java.io.IOException;
 
@@ -384,18 +384,18 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               import org.junit.Rule;
               import org.junit.Test;
               import org.junit.rules.TemporaryFolder;
-                            
+
               import java.io.File;
               import java.io.IOException;
-                            
+
               class MyTest {
-                            
+
                   @Rule
                   TemporaryFolder tempDir1 = new TemporaryFolder();
                   String s1 = "foo";
                   String s2 = "bar";
                   String s3 = "baz";
-                            
+
                   @Test
                   public void someTest() {
                       File subDir = tempDir1.newFolder("sub");
@@ -406,24 +406,24 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
               import org.junit.Test;
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
               import java.io.IOException;
-                            
+
               class MyTest {
-                            
+
                   @TempDir
                   File tempDir1;
                   String s1 = "foo";
                   String s2 = "bar";
                   String s3 = "baz";
-                            
+
                   @Test
                   public void someTest() {
                       File subDir = newFolder(tempDir1, "sub");
                       File subDirs = newFolder(tempDir1, s1, s2, s3);
                   }
-                            
+
                   private static File newFolder(File root, String... subDirs) throws IOException {
                       String subFolder = String.join("/", subDirs);
                       File result = new File(root, subFolder);
@@ -446,14 +446,14 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
               import org.junit.Rule;import org.junit.Test;
               import org.junit.rules.TemporaryFolder;
-                            
+
               import java.io.File;
               import java.io.IOException;
-                            
+
               public class MyTest {
                   @Rule
                   TemporaryFolder tempFolder = new TemporaryFolder();
-                            
+
                   @Test
                   public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
                       final String fileName = "SampleFile.txt";
@@ -465,14 +465,14 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
               import org.junit.Test;
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
               import java.io.IOException;
-                            
+
               public class MyTest {
                   @TempDir
                   File tempFolder;
-                            
+
                   @Test
                   public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
                       final String fileName = "SampleFile.txt";
@@ -494,7 +494,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               import org.junit.Rule;
               import org.junit.Test;
               import org.junit.rules.TemporaryFolder;
-                            
+
               import java.io.File;
               import java.io.IOException;
               public class MyTest {
@@ -517,7 +517,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
               import org.junit.Test;
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
               import java.io.IOException;
 
@@ -562,7 +562,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
 
               public class MyTest {
@@ -590,7 +590,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
                       doSomething(new TemporaryFolder());
                   }
                   void doSomething(TemporaryFolder tempFolder) {
-                  
+
                   }
               }
               """
@@ -611,7 +611,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
                       doSomething(t);
                   }
                   void doSomething(TemporaryFolder tempFolder) {
-                  
+
                   }
               }
               """
@@ -637,7 +637,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               {
                   @Rule
                   public TemporaryFolder folder = new TemporaryFolder();
-              
+
                   @Test
                   public void testPath() throws IOException {
                       Path newFolder = folder.newFolder().toPath();
@@ -655,7 +655,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               {
                   @TempDir
                   public File folder;
-              
+
                   @Test
                   public void testPath() throws IOException {
                       Path newFolder = newFolder(folder, "junit").toPath();

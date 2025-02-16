@@ -32,7 +32,7 @@ class RemoveObsoleteRunnersTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(new RemoveObsoleteRunners(
             List.of(
               "org.junit.runners.JUnit4",
@@ -50,7 +50,7 @@ class RemoveObsoleteRunnersTest implements RewriteTest {
             """
               import org.junit.runner.RunWith;
               import org.junit.runners.JUnit4;
-              
+
               @RunWith(JUnit4.class)
               public class Foo {
               }
@@ -71,7 +71,7 @@ class RemoveObsoleteRunnersTest implements RewriteTest {
             """
               import org.junit.runner.RunWith;
               import org.junit.runners.BlockJUnit4ClassRunner;
-              
+
               @RunWith(BlockJUnit4ClassRunner.class)
               public class Foo {
               }

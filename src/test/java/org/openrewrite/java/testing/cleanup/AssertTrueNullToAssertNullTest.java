@@ -29,7 +29,7 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertTrueNullToAssertNull());
     }
 
@@ -42,13 +42,13 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                            
+
               public class Test {
                   void test() {
                       String a = null;
                       assertTrue(a == null);
                       assertTrue(a == null, "message");
-                      
+
                       String b = null;
                       assertTrue(null == b);
                       assertTrue(null == b, "message");
@@ -57,13 +57,13 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertNull;
-                            
+
               public class Test {
                   void test() {
                       String a = null;
                       assertNull(a);
                       assertNull(a, "message");
-                      
+
                       String b = null;
                       assertNull(b);
                       assertNull(b, "message");
@@ -83,13 +83,13 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Assertions;
-                            
+
               public class Test {
                   void test() {
                       String a = null;
                       Assertions.assertTrue(a == null);
                       Assertions.assertTrue(a == null, "message");
-                      
+
                       String b = null;
                       Assertions.assertTrue(null == b);
                       Assertions.assertTrue(null == b, "message");
@@ -98,13 +98,13 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-                            
+
               public class Test {
                   void test() {
                       String a = null;
                       Assertions.assertNull(a);
                       Assertions.assertNull(a, "message");
-                      
+
                       String b = null;
                       Assertions.assertNull(b);
                       Assertions.assertNull(b, "message");
@@ -122,7 +122,7 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                
+
               public class Test {
                   void test() {
                       Integer a = 0;

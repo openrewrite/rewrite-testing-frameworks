@@ -38,7 +38,7 @@ class AssertJBestPracticesTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.parser(
             JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
+              .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"))
           .recipeFromResources("org.openrewrite.java.testing.assertj.Assertj");
     }
 

@@ -33,7 +33,7 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new JUnitAssertEqualsToAssertThat());
     }
 
@@ -245,9 +245,9 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
-              
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -260,10 +260,10 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
-              
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -286,9 +286,9 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
-              
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -301,10 +301,10 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
-              
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -328,7 +328,7 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import java.io.File;
-              
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -342,9 +342,9 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import java.io.File;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
-              
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -370,13 +370,13 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
-              
+
               class ATest {
                 @Test
                 void testEquals() {
                   Assertions.assertEquals(new OwnClass(), new OwnClass());
                 }
-              
+
                 public record OwnClass(String a) {
                   public OwnClass() {this("1");}
                 }
@@ -384,15 +384,15 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
               """,
               """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
-                
+
               class ATest {
                 @Test
                 void testEquals() {
                     assertThat(new OwnClass()).isEqualTo(new OwnClass());
                 }
-               
+
                 public record OwnClass(String a) {
                   public OwnClass() {this("1");}
                 }

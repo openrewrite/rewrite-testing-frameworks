@@ -30,7 +30,7 @@ class MockitoJunitRunnerSilentToExtensionTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "mockito-core-3.12"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "mockito-core-3.12"))
           .recipe(new MockitoJUnitRunnerSilentToExtension());
     }
 
@@ -43,7 +43,7 @@ class MockitoJunitRunnerSilentToExtensionTest implements RewriteTest {
             """
               import org.junit.runner.RunWith;
               import org.mockito.junit.MockitoJUnitRunner;
-              
+
               @RunWith(MockitoJUnitRunner.Silent.class)
               public class ExternalAPIServiceTest {
               }
@@ -53,7 +53,7 @@ class MockitoJunitRunnerSilentToExtensionTest implements RewriteTest {
               import org.mockito.junit.jupiter.MockitoExtension;
               import org.mockito.junit.jupiter.MockitoSettings;
               import org.mockito.quality.Strictness;
-              
+
               @MockitoSettings(strictness = Strictness.LENIENT)
               @ExtendWith(MockitoExtension.class)
               public class ExternalAPIServiceTest {

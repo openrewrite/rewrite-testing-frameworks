@@ -118,7 +118,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 String template = getStringTemplateAndAppendArguments(assertThatArg, mi, arguments);
                 return JavaTemplate.builder(String.format(template, dedicatedAssertion))
                         .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9", "assertj-core-3.24"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"))
                         .build()
                         .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
             }

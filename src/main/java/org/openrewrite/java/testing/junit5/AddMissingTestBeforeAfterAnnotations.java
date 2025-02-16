@@ -83,7 +83,7 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
             if (la.needsAnnotation(method, superMethod)) {
                 maybeAddImport(la.newAnnotation);
                 return JavaTemplate.builder(la.newAnnotationSimple)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                         .imports(la.newAnnotation)
                         .build()
                         .apply(getCursor(), method.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));

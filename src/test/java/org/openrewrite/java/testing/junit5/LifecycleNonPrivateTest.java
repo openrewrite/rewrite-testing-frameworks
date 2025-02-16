@@ -31,7 +31,7 @@ class LifecycleNonPrivateTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new LifecycleNonPrivate());
     }
 
@@ -43,7 +43,7 @@ class LifecycleNonPrivateTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.BeforeEach;
-                            
+
               class MyTest {
                   @BeforeEach
                   private void beforeEach() {
@@ -54,7 +54,7 @@ class LifecycleNonPrivateTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.BeforeEach;
-                            
+
               class MyTest {
                   @BeforeEach
                   void beforeEach() {
@@ -74,7 +74,7 @@ class LifecycleNonPrivateTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.AfterAll;
-                            
+
               class MyTest {
                   @AfterAll
                   private static void afterAll() {
@@ -85,7 +85,7 @@ class LifecycleNonPrivateTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.AfterAll;
-                            
+
               class MyTest {
                   @AfterAll
                   static void afterAll() {
@@ -107,7 +107,7 @@ class LifecycleNonPrivateTest implements RewriteTest {
             """
               import org.junit.jupiter.api.AfterAll;
               import org.junit.jupiter.api.BeforeEach;
-                          
+
               class MyTest {
                   @BeforeEach
                   void beforeEach() {

@@ -66,7 +66,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 if (args.size() == 2) {
                     return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()});")
                             .staticImports(ASSERTJ + ".assertThat")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), md.getCoordinates().replace(), actual, expected);
                 }
@@ -75,7 +75,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                     // assert is using floating points with a delta and no message.
                     return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
                             .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), md.getCoordinates().replace(), actual, expected, args.get(2));
                 }
@@ -83,7 +83,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                     Expression message = args.get(2);
                     return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()});")
                             .staticImports(ASSERTJ + ".assertThat")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected);
                 }
@@ -94,7 +94,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 Expression message = args.get(3);
                 return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()}, within(#{}));")
                         .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
                         .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected, args.get(2));
             }

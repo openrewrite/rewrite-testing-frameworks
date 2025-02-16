@@ -32,7 +32,7 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new JUnitAssertNullToAssertThat());
     }
 
@@ -84,9 +84,9 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.junit.jupiter.api.Assertions.assertNull;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -99,9 +99,9 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -178,9 +178,9 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -205,10 +205,10 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.*;
               import static org.junit.jupiter.api.Assertions.assertNull;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -223,9 +223,9 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.*;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {

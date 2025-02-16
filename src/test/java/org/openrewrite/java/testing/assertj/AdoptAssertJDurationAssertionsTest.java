@@ -33,7 +33,7 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
           .recipe(new AdoptAssertJDurationAssertions())
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
-            .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"));
+            .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"));
     }
 
     @Test
@@ -45,9 +45,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).isEqualTo(1);
@@ -57,9 +57,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB)).hasSeconds(1);
@@ -78,9 +78,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getNano()).isEqualTo(1);
@@ -90,9 +90,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB)).hasNanos(1);
@@ -111,9 +111,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getNano()).isEqualTo(0);
@@ -123,9 +123,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getNano()).isZero();
@@ -144,9 +144,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       int zero = 0;
@@ -157,9 +157,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       int zero = 0;
@@ -179,9 +179,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).isGreaterThan(0);
@@ -191,9 +191,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).isPositive();
@@ -212,9 +212,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).isLessThan(0);
@@ -224,9 +224,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).isNegative();
@@ -253,9 +253,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
         //language=java
         String template = """
           import java.time.Duration;
-                        
+
           import static org.assertj.core.api.Assertions.assertThat;
-                        
+
           class Foo {
               void testMethod(Duration time) {
                   assertThat(time).%s;
@@ -272,9 +272,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
           java(
             """
               import java.time.Duration;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Duration time, int variable) {
                       assertThat(time).hasHours(19 + 5);
@@ -298,9 +298,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds()).as("description").isEqualTo(1);
@@ -310,9 +310,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB)).as("description").hasSeconds(1);
@@ -331,9 +331,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB).getSeconds())
@@ -344,9 +344,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             """
               import java.time.Duration;
               import java.time.temporal.Temporal;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB))
@@ -365,7 +365,7 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
           java(
             """
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class Foo {
                   void testMethod() {
                       assertThat(bar()).isEqualTo(0);

@@ -32,7 +32,7 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new JUnitAssertNotEqualsToAssertThat());
     }
 
@@ -245,9 +245,9 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertNotEquals;
-              
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -260,10 +260,10 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
-              
+
               public class MyTest {
                   @Test
                   public void test() {

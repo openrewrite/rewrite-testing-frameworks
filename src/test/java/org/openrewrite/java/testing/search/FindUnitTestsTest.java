@@ -45,7 +45,7 @@ class FindUnitTestsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new FindUnitTests())
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "junit-jupiter-api-5.9"));
+            "junit-jupiter-api-5"));
     }
 
     @DocumentExample

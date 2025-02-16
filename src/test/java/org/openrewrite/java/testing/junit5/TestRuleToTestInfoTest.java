@@ -31,7 +31,7 @@ class TestRuleToTestInfoTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(new TestRuleToTestInfo());
     }
 
@@ -59,7 +59,7 @@ class TestRuleToTestInfoTest implements RewriteTest {
             """
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.TestInfo;
-              
+
               import java.lang.reflect.Method;
               import java.util.Optional;
 
@@ -116,7 +116,7 @@ class TestRuleToTestInfoTest implements RewriteTest {
             """
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.TestInfo;
-              
+
               import java.lang.reflect.Method;
               import java.util.Optional;
 

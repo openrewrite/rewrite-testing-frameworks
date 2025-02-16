@@ -32,9 +32,9 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-jupiter-params-5"))
           .parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-jupiter-params-5"))
           .recipe(new AddParameterizedTestAnnotation());
     }
 
@@ -49,7 +49,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-              
+
               class NumbersTest {
                   @Test
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
@@ -62,7 +62,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-              
+
               class NumbersTest {
                   @ParameterizedTest
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
@@ -113,7 +113,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-                            
+
               class NumbersTest {
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
                   @Test
@@ -126,7 +126,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-                            
+
               class NumbersTest {
                   @ParameterizedTest
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
@@ -150,7 +150,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               class NumbersTest {
                   @Test
                   void printMessage() {
@@ -170,7 +170,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.provider.CsvSource;
               import org.junit.jupiter.api.Test;
-                            
+
               class TestClass {
                   @Test
                   @CsvSource({"test@test.com"})
@@ -182,7 +182,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.CsvSource;
-                            
+
               class TestClass {
                   @ParameterizedTest
                   @CsvSource({"test@test.com"})
@@ -203,7 +203,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.params.provider.MethodSource;
-                            
+
               class TestClass {
                   @Test
                   @MethodSource()
@@ -215,7 +215,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
-                            
+
               class TestClass {
                   @ParameterizedTest
                   @MethodSource()
@@ -237,7 +237,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-                           
+
               class TestClass {
                   @Test
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
@@ -250,7 +250,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.ValueSource;
               import static org.junit.jupiter.api.Assertions.*;
-                            
+
               class TestClass {
                   @ParameterizedTest
                   @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
@@ -271,7 +271,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.provider.NullSource;
               import org.junit.jupiter.api.Test;
-                           
+
               class TestClass {
                   @Test
                   @NullSource
@@ -283,7 +283,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.NullSource;
-                            
+
               class TestClass {
                   @ParameterizedTest
                   @NullSource
@@ -304,7 +304,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.provider.EmptySource;
               import org.junit.jupiter.api.Test;
-                           
+
               class TestClass {
                   @Test
                   @EmptySource
@@ -316,7 +316,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.EmptySource;
-                            
+
               class TestClass {
                   @ParameterizedTest
                   @EmptySource
@@ -337,7 +337,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.provider.NullAndEmptySource;
               import org.junit.jupiter.api.Test;
-                           
+
               class TestClass {
                   @Test
                   @NullAndEmptySource
@@ -349,7 +349,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.NullAndEmptySource;
-                            
+
               class TestClass {
                   @ParameterizedTest
                   @NullAndEmptySource
@@ -370,7 +370,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.provider.EnumSource;
               import org.junit.jupiter.api.Test;
-                           
+
               class TestClass {
                   enum time {
                       MORNING,
@@ -378,7 +378,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
                       AFTERNOON,
                       MIDNIGHT
                   }
-                  
+
                   @Test
                   @EnumSource
                   void processTime(time timeOfDay) {
@@ -389,7 +389,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.EnumSource;
-                            
+
               class TestClass {
                   enum time {
                       MORNING,
@@ -397,7 +397,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
                       AFTERNOON,
                       MIDNIGHT
                   }
-                  
+
                   @ParameterizedTest
                   @EnumSource
                   void processTime(time timeOfDay) {
@@ -418,7 +418,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.params.provider.CsvFileSource;
               import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.*;
-                           
+
               class TestClass {
                   @Test
                   @CsvFileSource(files = "src/test/resources/two-column.csv", numLinesToSkip = 1)
@@ -432,7 +432,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.CsvFileSource;
               import static org.junit.jupiter.api.Assertions.*;
-                            
+
               class TestClass {
                   @ParameterizedTest
                   @CsvFileSource(files = "src/test/resources/two-column.csv", numLinesToSkip = 1)
@@ -459,7 +459,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.util.stream.Stream;
               import static org.junit.jupiter.api.Assertions.*;
-              
+
               class TestClass {
                   @Test
                   @ArgumentsSource(MyArgumentsProvider.class)
@@ -482,7 +482,7 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.params.provider.ArgumentsSource;
               import java.util.stream.Stream;
               import static org.junit.jupiter.api.Assertions.*;
-              
+
               class TestClass {
                   @ParameterizedTest
                   @ArgumentsSource(MyArgumentsProvider.class)

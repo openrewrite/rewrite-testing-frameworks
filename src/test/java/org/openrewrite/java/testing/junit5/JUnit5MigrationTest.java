@@ -40,7 +40,7 @@ class JUnit5MigrationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()
@@ -83,7 +83,7 @@ class JUnit5MigrationTest implements RewriteTest {
         rewriteRun(
           spec -> spec
             .parser(JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-2.2")),
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3")),
           java(
             """
               import org.junit.Assert;
@@ -449,7 +449,7 @@ class JUnit5MigrationTest implements RewriteTest {
         rewriteRun(
           spec -> spec
             .parser(JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "mockito-all-1.10"))
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "mockito-all-1.10"))
             .recipe(Environment.builder()
               .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
               .build()

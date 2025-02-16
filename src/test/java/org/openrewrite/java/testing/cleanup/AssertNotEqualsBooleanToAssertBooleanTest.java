@@ -30,7 +30,7 @@ class AssertNotEqualsBooleanToAssertBooleanTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertNotEqualsBooleanToAssertBoolean());
     }
 
@@ -43,7 +43,7 @@ class AssertNotEqualsBooleanToAssertBooleanTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertNotEquals;
-              
+
               public class Test {
                   void test() {
                       String a = "a";
@@ -57,7 +57,7 @@ class AssertNotEqualsBooleanToAssertBooleanTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               public class Test {
                   void test() {
                       String a = "a";
@@ -82,7 +82,7 @@ class AssertNotEqualsBooleanToAssertBooleanTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       String a = "a";
@@ -93,7 +93,7 @@ class AssertNotEqualsBooleanToAssertBooleanTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       String a = "a";

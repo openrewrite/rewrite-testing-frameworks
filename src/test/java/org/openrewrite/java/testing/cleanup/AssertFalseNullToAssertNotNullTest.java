@@ -29,7 +29,7 @@ class AssertFalseNullToAssertNotNullTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertFalseNullToAssertNotNull());
     }
 
@@ -42,13 +42,13 @@ class AssertFalseNullToAssertNotNullTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertFalse;
-              
+
               public class Test {
                   void test() {
                       String a = null;
                       assertFalse(a == null);
                       assertFalse(a == null, "message");
-                      
+
                       String b = null;
                       assertFalse(null == b);
                       assertFalse(null == b, "message");
@@ -57,13 +57,13 @@ class AssertFalseNullToAssertNotNullTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertNotNull;
-              
+
               public class Test {
                   void test() {
                       String a = null;
                       assertNotNull(a);
                       assertNotNull(a, "message");
-                      
+
                       String b = null;
                       assertNotNull(b);
                       assertNotNull(b, "message");
@@ -83,13 +83,13 @@ class AssertFalseNullToAssertNotNullTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       String a = null;
                       Assertions.assertFalse(a == null);
                       Assertions.assertFalse(a == null, "message");
-                      
+
                       String b = null;
                       Assertions.assertFalse(null == b);
                       Assertions.assertFalse(null == b, "message");
@@ -98,13 +98,13 @@ class AssertFalseNullToAssertNotNullTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       String a = null;
                       Assertions.assertNotNull(a);
                       Assertions.assertNotNull(a, "message");
-                      
+
                       String b = null;
                       Assertions.assertNotNull(b);
                       Assertions.assertNotNull(b, "message");
@@ -122,7 +122,7 @@ class AssertFalseNullToAssertNotNullTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertFalse;
-                
+
               public class Test {
                   void test() {
                       Integer a = 0;
