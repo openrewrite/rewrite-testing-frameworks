@@ -25,15 +25,15 @@ import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings({"NewClassNamingConvention", "ExcessiveLambdaUsage"})
-class JUnitAssertNullToAssertThatTest implements RewriteTest {
+@SuppressWarnings({"ConstantConditions", "ExcessiveLambdaUsage", "java:S2699"})
+class JUnit4AssertFalseToAssertThatTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
-          .recipe(new JUnitAssertNullToAssertThat());
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13.2"))
+          .recipe(new JUnitAssertFalseToAssertThat());
     }
 
     @DocumentExample
@@ -43,32 +43,32 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import org.junit.jupiter.api.Test;
+             import org.junit.Test;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+             import static org.junit.Assert.assertFalse;
 
-              public class MyTest {
-                  @Test
-                  public void test() {
-                      assertNull(notification());
-                  }
-                  private String notification() {
-                      return null;
-                  }
-              }
-              """,
+             public class MyTest {
+                 @Test
+                 public void test() {
+                     assertFalse(notification() != null && notification() > 0);
+                 }
+                 private Integer notification() {
+                     return 1;
+                 }
+             }
+             """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).isNull();
+                      assertThat(notification() != null && notification() > 0).isFalse();
                   }
-                  private String notification() {
-                      return null;
+                  private Integer notification() {
+                      return 1;
                   }
               }
               """
@@ -83,71 +83,32 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.*;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertNull(notification(), "Should be null");
+                      assertFalse("The notification should be negative", notification() != null && notification() > 0);
                   }
-                  private String notification() {
-                      return null;
+                  private Integer notification() {
+                      return 1;
                   }
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).as("Should be null").isNull();
+                      assertThat(notification() != null && notification() > 0).as("The notification should be negative").isFalse();
                   }
-                  private String notification() {
-                      return null;
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void singleStaticMethodWithMessageSupplier() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertNull;
-
-              public class MyTest {
-                  @Test
-                  public void test() {
-                      assertNull(notification(), () -> "Should be null");
-                  }
-                  private String notification() {
-                      return null;
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              public class MyTest {
-                  @Test
-                  public void test() {
-                      assertThat(notification()).as(() -> "Should be null").isNull();
-                  }
-                  private String notification() {
-                      return null;
+                  private Integer notification() {
+                      return 1;
                   }
               }
               """
@@ -162,34 +123,32 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      org.junit.jupiter.api.Assertions.assertNull(notification());
-                      org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
-                      org.junit.jupiter.api.Assertions.assertNull(notification(), () -> "Should be null");
+                      org.junit.Assert.assertFalse(notification() != null && notification() > 0);
+                      org.junit.Assert.assertFalse("The notification should be negative", notification() != null && notification() > 0);
                   }
-                  private String notification() {
-                      return null;
+                  private Integer notification() {
+                      return 1;
                   }
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).isNull();
-                      assertThat(notification()).as("Should be null").isNull();
-                      assertThat(notification()).as(() -> "Should be null").isNull();
+                      assertThat(notification() != null && notification() > 0).isFalse();
+                      assertThat(notification() != null && notification() > 0).as("The notification should be negative").isFalse();
                   }
-                  private String notification() {
-                      return null;
+                  private Integer notification() {
+                      return 1;
                   }
               }
               """
@@ -204,37 +163,77 @@ class JUnitAssertNullToAssertThatTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
-              import static org.assertj.core.api.Assertions.*;
-              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.junit.Assert.*;
+              import static org.junit.Assert.assertFalse;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertNull(notification());
-                      org.junit.jupiter.api.Assertions.assertNull(notification(), "Should be null");
-                      assertNull(notification(), () -> "Should be null");
+                      assertFalse(notification() != null && notification() > 0);
+                      org.junit.Assert.assertFalse("The notification should be negative", notification() != null && notification() > 0);
                   }
-                  private String notification() {
-                      return null;
+                  private Integer notification() {
+                      return 1;
                   }
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.Test;
 
-              import static org.assertj.core.api.Assertions.*;
+              import static org.assertj.core.api.Assertions.assertThat;
 
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat(notification()).isNull();
-                      assertThat(notification()).as("Should be null").isNull();
-                      assertThat(notification()).as(() -> "Should be null").isNull();
+                      assertThat(notification() != null && notification() > 0).isFalse();
+                      assertThat(notification() != null && notification() > 0).as("The notification should be negative").isFalse();
                   }
-                  private String notification() {
-                      return null;
+                  private Integer notification() {
+                      return 1;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveBooleanSuppliersAlone() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.Test;
+
+              import static org.junit.Assert.assertFalse;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertFalse(notification() != null && notification() > 0);
+                      assertFalse("The notification should be negative", notification() != null && notification() > 0);
+                  }
+                  private Integer notification() {
+                      return 1;
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertThat(notification() != null && notification() > 0).isFalse();
+                      assertThat(notification() != null && notification() > 0).as("The notification should be negative").isFalse();
+                  }
+                  private Integer notification() {
+                      return 1;
                   }
               }
               """

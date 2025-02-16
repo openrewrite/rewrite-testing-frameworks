@@ -179,9 +179,9 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -206,10 +206,10 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.*;
               import static org.junit.jupiter.api.Assertions.assertNotNull;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -224,9 +224,9 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.*;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -252,10 +252,10 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-              class TTest {
+              public class MyTest {
 
                   class A {}
 
@@ -267,10 +267,10 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
 
-              class TTest {
+              public class MyTest {
 
                   class A {}
 
