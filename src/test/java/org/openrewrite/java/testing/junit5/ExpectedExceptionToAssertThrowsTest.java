@@ -33,7 +33,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-2.2"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-3"))
           .recipe(new ExpectedExceptionToAssertThrows());
     }
 
@@ -48,7 +48,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               import org.junit.rules.ExpectedException;
 
               class MyTest {
-              
+
                   @Rule
                   TemporaryFolder tempDir = new TemporaryFolder();
 
@@ -82,7 +82,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               import org.junit.rules.ExpectedException;
 
               class MyTest {
-              
+
                   @Rule
                   ExpectedException thrown = ExpectedException.none();
 
@@ -98,12 +98,12 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               """,
             """
               import org.junit.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertThrows;
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               class MyTest {
-              
+
                   @Test
                   public void testEmptyPath() {
                       Throwable exception = assertThrows(IllegalArgumentException.class, () ->
@@ -129,11 +129,11 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
 
               import org.junit.Rule;
               import org.junit.rules.ExpectedException;
-              
+
               public class SimpleExpectedExceptionTest {
                   @Rule
                   public ExpectedException thrown = ExpectedException.none();
-              
+
                   public void doNotChange() {
                       final String noChanges = "atAll";
                   }
@@ -143,7 +143,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               package org.openrewrite.java.testing.junit5;
 
               public class SimpleExpectedExceptionTest {
-              
+
                   public void doNotChange() {
                       final String noChanges = "atAll";
                   }
@@ -163,11 +163,11 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
 
               import org.junit.Rule;
               import org.junit.rules.ExpectedException;
-              
+
               public class SimpleExpectedExceptionTest {
                   @Rule
                   public ExpectedException thrown = ExpectedException.none();
-              
+
                   public void throwsExceptionWithSpecificType() {
                       thrown.expect(NullPointerException.class);
                       throw new NullPointerException();
@@ -176,11 +176,11 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               """,
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+
               public class SimpleExpectedExceptionTest {
-              
+
                   public void throwsExceptionWithSpecificType() {
                       assertThrows(NullPointerException.class, () -> {
                           throw new NullPointerException();
@@ -203,13 +203,13 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
 
               import org.junit.Rule;
               import org.junit.rules.ExpectedException;
-              
+
               import static org.hamcrest.Matchers.isA;
 
               public class SimpleExpectedExceptionTest {
                   @Rule
                   public ExpectedException thrown = ExpectedException.none();
-              
+
                   public void throwsExceptionWithSpecificType() {
                       thrown.expect(isA(NullPointerException.class));
                       throw new NullPointerException();
@@ -218,13 +218,13 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               """,
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.isA;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+
               public class SimpleExpectedExceptionTest {
-              
+
                   public void throwsExceptionWithSpecificType() {
                       Throwable exception = assertThrows(Exception.class, () -> {
                           throw new NullPointerException();
@@ -246,14 +246,14 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
           java(
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import org.junit.Rule;
               import org.junit.rules.ExpectedException;
-              
+
               public class SimpleExpectedExceptionTest {
                   @Rule
                   public ExpectedException thrown = ExpectedException.none();
-              
+
                   public void statementsBeforeExpected() {
                       int[] a = new int[] { 1 };
                       thrown.expect(IndexOutOfBoundsException.class);
@@ -264,12 +264,12 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               """,
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import static org.junit.jupiter.api.Assertions.assertThrows;
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               public class SimpleExpectedExceptionTest {
-              
+
                   public void statementsBeforeExpected() {
                       Throwable exception = assertThrows(IndexOutOfBoundsException.class, () -> {
                           int[] a = new int[]{1};
@@ -291,16 +291,16 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
           java(
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import org.junit.Rule;
               import org.junit.rules.ExpectedException;
 
               import static org.hamcrest.Matchers.containsString;
-              
+
               public class ExampleTests {
                   @Rule
                   public ExpectedException thrown = ExpectedException.none();
-              
+
                   public void expectMessageWithMatcher() {
                       this.thrown.expectMessage(containsString("rewrite expectMessage"));
                       throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
@@ -309,13 +309,13 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               """,
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.containsString;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+
               public class ExampleTests {
-              
+
                   public void expectMessageWithMatcher() {
                       Throwable exception = assertThrows(Exception.class, () -> {
                           throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
@@ -336,16 +336,16 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
           java(
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import org.junit.Rule;
               import org.junit.rules.ExpectedException;
 
               import static org.hamcrest.Matchers.nullValue;
-              
+
               public class ExampleTests {
                   @Rule
                   public ExpectedException thrown = ExpectedException.none();
-              
+
                   public void expectCause() {
                       this.thrown.expectCause(nullValue());
                       throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
@@ -354,13 +354,13 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               """,
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.nullValue;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+
               public class ExampleTests {
-              
+
                   public void expectCause() {
                       Throwable exception = assertThrows(Exception.class, () -> {
                           throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
@@ -381,16 +381,16 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
           java(
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import org.junit.Rule;
               import org.junit.rules.ExpectedException;
 
               import static org.hamcrest.Matchers.*;
-              
+
               public class ExampleTests {
                   @Rule
                   public ExpectedException thrown = ExpectedException.none();
-              
+
                   public void expectExceptionUseCases() {
                       this.thrown.expect(isA(NullPointerException.class));
                       this.thrown.expectMessage(containsString("rewrite expectMessage"));
@@ -401,13 +401,13 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               """,
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.*;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              
+
               public class ExampleTests {
-              
+
                   public void expectExceptionUseCases() {
                       Throwable exception = assertThrows(Exception.class, () -> {
                           throw new NullPointerException("rewrite expectMessage with hamcrest matcher.");
@@ -436,7 +436,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               import org.junit.rules.ExpectedException;
 
               class MyTest {
-              
+
                   @Rule
                   ExpectedException thrown = ExpectedException.none();
 
@@ -455,9 +455,9 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
 
               import static org.junit.jupiter.api.Assertions.assertThrows;
               import org.junit.Test;
-              
+
               class MyTest {
-              
+
                   @Test
                   public void testEmptyPath() {
                       assertThrows(IOException.class, () ->

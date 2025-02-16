@@ -29,7 +29,7 @@ class AssertEqualsNullToAssertNullTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertEqualsNullToAssertNull());
     }
 
@@ -42,7 +42,7 @@ class AssertEqualsNullToAssertNullTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertEquals;
-              
+
               public class Test {
                   void test() {
                       String s = null;
@@ -55,7 +55,7 @@ class AssertEqualsNullToAssertNullTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertNull;
-              
+
               public class Test {
                   void test() {
                       String s = null;
@@ -79,7 +79,7 @@ class AssertEqualsNullToAssertNullTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       String s = null;
@@ -92,7 +92,7 @@ class AssertEqualsNullToAssertNullTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       String s = null;

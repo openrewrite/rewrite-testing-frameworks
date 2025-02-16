@@ -29,9 +29,9 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-jupiter-api-5.9",
-              "hamcrest-2.2",
-              "assertj-core-3.24"))
+              "junit-jupiter-api-5",
+              "hamcrest-3",
+              "assertj-core-3"))
           .recipe(new HamcrestIsMatcherToAssertJ());
     }
 
@@ -45,7 +45,7 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.is;
-              
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -57,9 +57,9 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
               """,
               """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
-              
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -82,7 +82,7 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.is;
-              
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -95,9 +95,9 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
               """,
               """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
-              
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -123,7 +123,7 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.is;
               import static org.hamcrest.Matchers.equalTo;
-              
+
               class ATest {
                   @Test
                   void test() {
@@ -146,7 +146,7 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.is;
-              
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -158,9 +158,9 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
               """,
               """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
-              
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -183,7 +183,7 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.is;
-              
+
               class ATest {
                   @Test
                   void testEquals() {
@@ -195,9 +195,9 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
               """,
               """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
-              
+
               class ATest {
                   @Test
                   void testEquals() {

@@ -88,7 +88,7 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
                                 (reason == null ? ")" : ", #{any(java.lang.String)})");
 
                         JavaTemplate template = JavaTemplate.builder(templateString)
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .staticImports("org.junit.jupiter.api.Assertions." + (logicalContext ? "assertInstanceOf" : "assertFalse"))
                                 .build();
 

@@ -127,7 +127,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 md = JavaTemplate.builder("assertDoesNotThrow(() -> #{any()});")
                         .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
                         .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                                .classpathFromResources(ctx, "junit-jupiter-api-5"))
                         .build()
                         .apply(updateCursor(md), md.getCoordinates().replaceBody(), body);
             }

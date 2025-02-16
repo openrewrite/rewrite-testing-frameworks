@@ -27,7 +27,7 @@ import static org.openrewrite.java.Assertions.java;
 class SimplifyAssertJAssertionTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"));
+        spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"));
     }
 
     @Test

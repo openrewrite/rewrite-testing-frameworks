@@ -66,7 +66,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 if (args.size() == 2) {
                     return JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
                 }
@@ -74,7 +74,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                     maybeAddImport(ASSERTJ, "within", false);
                     return JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
                             .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, expected, args.get(2));
                 }
@@ -82,7 +82,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                     Expression message = args.get(2);
                     return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isNotEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
                 }
@@ -92,7 +92,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 Expression message = args.get(3);
                 return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
                         .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
                         .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected, args.get(2));
             }

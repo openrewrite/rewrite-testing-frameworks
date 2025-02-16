@@ -31,9 +31,9 @@ class AssertThatBooleanToAssertJTest implements RewriteTest {
           .recipe(new AssertThatBooleanToAssertJ())
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-jupiter-api-5.9",
-              "hamcrest-2.2",
-              "assertj-core-3.24"));
+              "junit-jupiter-api-5",
+              "hamcrest-3",
+              "assertj-core-3"));
     }
 
     @Test
@@ -44,9 +44,9 @@ class AssertThatBooleanToAssertJTest implements RewriteTest {
           java(
                 """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.hamcrest.MatcherAssert.assertThat;
-                          
+
               class ATest {
                   @Test
                   void test() {
@@ -56,9 +56,9 @@ class AssertThatBooleanToAssertJTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               class ATest {
                   @Test
                   void test() {

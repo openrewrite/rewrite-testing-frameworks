@@ -32,7 +32,7 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-2.2"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-3"))
           .recipe(new ParameterizedRunnerToParameterized());
     }
 
@@ -63,28 +63,28 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
           java(
             """
               package abc;
-                            
+
               import org.junit.Test;
               import org.junit.runner.RunWith;
               import org.junit.runners.*;
               import org.junit.runners.Parameterized.Parameters;
-                  
+
               import java.util.Arrays;
               import java.util.List;
-                            
+
               @RunWith(Parameterized.class)
               public class VetTests {
-                            
+
                   private String firstName;
                   private String lastName;
                   private Integer id;
-                            
+
                   public VetTests(String firstName, String lastName, Integer id) {
                       this.firstName = firstName;
                       this.lastName = lastName;
                       this.id = id;
                   }
-                            
+
                   @Test
                   public void testSerialization() {
                       Vet vet = new Vet();
@@ -92,7 +92,7 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       vet.setLastName(lastName);
                       vet.setId(id);
                   }
-                            
+
                   @Parameters(name="{index}: {0} {1} - {2}")
                   public static List<Object[]> parameters() {
                       return Arrays.asList(
@@ -103,25 +103,25 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
               """,
             """
               package abc;
-                            
+
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
-                            
+
               import java.util.Arrays;
               import java.util.List;
-                            
+
               public class VetTests {
-                            
+
                   private String firstName;
                   private String lastName;
                   private Integer id;
-                            
+
                   public void initVetTests(String firstName, String lastName, Integer id) {
                       this.firstName = firstName;
                       this.lastName = lastName;
                       this.id = id;
                   }
-                            
+
                   @MethodSource("parameters")
                   @ParameterizedTest(name = "{index}: {0} {1} - {2}")
                   public void testSerialization(String firstName, String lastName, Integer id) {
@@ -131,7 +131,7 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       vet.setLastName(lastName);
                       vet.setId(id);
                   }
-                            
+
                   public static List<Object[]> parameters() {
                       return Arrays.asList(
                           new Object[] { "Otis", "TheDog", 124 },
@@ -155,23 +155,23 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.junit.runners.Parameterized;
               import org.junit.runners.Parameterized.Parameters;
-                            
+
               import java.util.Arrays;
               import java.util.List;
-                  
+
               @RunWith(Parameterized.class)
               public class VetTests {
-                            
+
                   private String firstName;
                   private String lastName;
                   private Integer id;
-                            
+
                   public VetTests(String firstName, String lastName, Integer id) {
                       this.firstName = firstName;
                       this.lastName = lastName;
                       this.id = id;
                   }
-                            
+
                   @Test
                   public void testSerialization() {
                       Vet vet = new Vet();
@@ -179,7 +179,7 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       vet.setLastName(lastName);
                       vet.setId(id);
                   }
-                            
+
                   @Parameters
                   public static List<Object[]> parameters() {
                       return Arrays.asList(
@@ -191,22 +191,22 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
-                            
+
               import java.util.Arrays;
               import java.util.List;
-                            
+
               public class VetTests {
-                            
+
                   private String firstName;
                   private String lastName;
                   private Integer id;
-                            
+
                   public void initVetTests(String firstName, String lastName, Integer id) {
                       this.firstName = firstName;
                       this.lastName = lastName;
                       this.id = id;
                   }
-                            
+
                   @MethodSource("parameters")
                   @ParameterizedTest
                   public void testSerialization(String firstName, String lastName, Integer id) {
@@ -216,7 +216,7 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       vet.setLastName(lastName);
                       vet.setId(id);
                   }
-                            
+
                   public static List<Object[]> parameters() {
                       return Arrays.asList(
                           new Object[] { "Otis", "TheDog", 124 },
@@ -269,27 +269,27 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
-                            
+
               import java.util.Arrays;
               import java.util.List;
               import java.util.Map;
-                            
+
               public class RewriteTests {
                   public String name;
                   public String nickName;
                   public Integer id;
                   public Map<String, String> stuff;
-                            
+
                   public static List<Object[]> parameters() {
                       return Arrays.asList(new Object[]{124, "Otis", "TheDog", Map.of("toys", "ball", "treats", "bacon")}, new Object[]{126, "Garfield", "TheBoss", Map.of("toys", "yarn", "treats", "fish")});
                   }
-                            
+
                   @MethodSource("parameters")
                   @ParameterizedTest(name = "{index}: {0} {1} - {2}")
                   public void checkName(Integer id, String name, String nickName, Map<String, String> stuff) {
                       initRewriteTests(id, name, nickName, stuff);
                   }
-                            
+
                   public void initRewriteTests(Integer id, String name, String nickName, Map<String, String> stuff) {
                       this.id = id;
                       this.name = name;
@@ -311,29 +311,29 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
             """
               import java.util.ArrayList;
               import java.util.List;
-                            
+
               import org.junit.Test;
               import org.junit.runner.RunWith;
               import org.junit.runners.Parameterized;
               import org.junit.runners.Parameterized.Parameters;
-                            
+
               @RunWith(Parameterized.class)
               public class DateFormatTests {
                   private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.S z";
                   private final String input;
                   private final String output;
                   private final int hour;
-                            
+
                   public DateFormatTests(String pattern, String input, String output, int hourForTest) {
                       this.output = output;
                       this.input = input;
                       hour = hourForTest;
                   }
-                            
+
                   @Test
                   public void testDateFormat() {
                   }
-                            
+
                   @Parameters
                   public static List<Object[]> data() {
                       List<Object[]> params = new ArrayList<>();
@@ -345,28 +345,28 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
-                            
+
               import java.util.ArrayList;
               import java.util.List;
-                            
+
               public class DateFormatTests {
                   private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.S z";
                   private String input;
                   private String output;
                   private int hour;
-                            
+
                   public void initDateFormatTests(String pattern, String input, String output, int hourForTest) {
                       this.output = output;
                       this.input = input;
                       hour = hourForTest;
                   }
-                            
+
                   @MethodSource("data")
                   @ParameterizedTest
                   public void testDateFormat(String pattern, String input, String output, int hourForTest) {
                       initDateFormatTests(pattern, input, output, hourForTest);
                   }
-                            
+
                   public static List<Object[]> data() {
                       List<Object[]> params = new ArrayList<>();
                       params.add(new Object[]{DATE_FORMAT, "1970-01-01 11:20:34.0 GMT", "1970-01-01 11:20:34.0 GMT", 11});
@@ -532,7 +532,7 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
               import java.util.Arrays;
               import java.util.Collection;
               import org.junit.runners.Parameterized;
-              
+
               class SampleTestClass {
                   @Parameterized.Parameter(value = 0)
                   public int num1;
@@ -540,10 +540,10 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                   public int num2;
                   @Parameterized.Parameter(value = 2)
                   public int num3;
-                  
+
                   public SampleTestClass() {
                   }
-              
+
                   @Parameterized.Parameters
                   public static Collection<Object[]> data() {
                       return Arrays.asList(new Object[][]{
@@ -556,22 +556,22 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
             """
               import java.util.Arrays;
               import java.util.Collection;
-              
+
               class SampleTestClass {
                   public int num1;
                   public int num2;
                   public int num3;
-              
+
                   public SampleTestClass() {
                   }
-              
+
                   public static Collection<Object[]> data() {
                       return Arrays.asList(new Object[][]{
                               {1, 2, 3},
                               {4, 5, 6}
                       });
                   }
-              
+
                   public void initSampleTestClass(int num1, int num2, int num3) {
                       this.num1 = num1;
                       this.num2 = num2;

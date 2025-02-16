@@ -36,7 +36,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockito-all-1.10", "junit-4.13", "hamcrest-2.2", "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-all-1.10", "junit-4.13", "hamcrest-3", "junit-jupiter-api-5"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()
@@ -55,31 +55,31 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
           java(
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import org.junit.Before;
               import org.junit.Test;
               import org.mockito.Mock;
               import org.mockito.MockitoAnnotations;
-              
+
               import java.util.List;
-              
+
               import static org.mockito.Mockito.verify;
-              
+
               public class MockitoTests {
                   @Mock
                   List<String> mockedList;
-              
+
                   @Before
                   public void initMocks() {
                       MockitoAnnotations.initMocks(this);
                   }
-              
+
                   @Test
                   public void usingAnnotationBasedMock() {
-              
+
                       mockedList.add("one");
                       mockedList.clear();
-              
+
                       verify(mockedList).add("one");
                       verify(mockedList).clear();
                   }
@@ -87,31 +87,31 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
               """,
             """
               package org.openrewrite.java.testing.junit5;
-              
+
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.Mock;
               import org.mockito.MockitoAnnotations;
-              
+
               import java.util.List;
-              
+
               import static org.mockito.Mockito.verify;
-              
+
               public class MockitoTests {
                   @Mock
                   List<String> mockedList;
-              
+
                   @BeforeEach
                   public void initMocks() {
                       MockitoAnnotations.initMocks(this);
                   }
-              
+
                   @Test
                   public void usingAnnotationBasedMock() {
-              
+
                       mockedList.add("one");
                       mockedList.clear();
-              
+
                       verify(mockedList).add("one");
                       verify(mockedList).clear();
                   }
@@ -136,7 +136,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
               import static org.mockito.Matchers.anyVararg;
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
-              
+
               public class MockitoVarargMatcherTest {
                   public static class Foo {
                       public boolean acceptsVarargs(String ... strings) { return true; }
@@ -153,7 +153,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
               import static org.mockito.ArgumentMatchers.any;
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
-              
+
               public class MockitoVarargMatcherTest {
                   public static class Foo {
                       public boolean acceptsVarargs(String ... strings) { return true; }
@@ -182,11 +182,11 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
               package mockito.example;
 
               import org.junit.jupiter.api.Test;
-              
+
               import static org.mockito.Matchers.any;
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
-              
+
               public class MockitoDoAnswer {
                   @Test
                   public void aTest() {
@@ -199,11 +199,11 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
               package mockito.example;
 
               import org.junit.jupiter.api.Test;
-              
+
               import static org.mockito.ArgumentMatchers.any;
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
-              
+
               public class MockitoDoAnswer {
                   @Test
                   public void aTest() {
@@ -224,7 +224,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
             """
               import org.junit.runner.RunWith;
               import org.junit.runners.JUnit4;
-              
+
               @RunWith(JUnit4.class)
               public class Foo {
               }

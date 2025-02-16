@@ -30,7 +30,7 @@ class RemoveDuplicateTestTemplatesTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new RemoveDuplicateTestTemplates());
     }
 
@@ -45,7 +45,7 @@ class RemoveDuplicateTestTemplatesTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.RepeatedTest;
               import org.junit.jupiter.api.DisplayName;
-              
+
               class MyTest {
                   @Test
                   @RepeatedTest(3)
@@ -58,7 +58,7 @@ class RemoveDuplicateTestTemplatesTest implements RewriteTest {
             """
               import org.junit.jupiter.api.RepeatedTest;
               import org.junit.jupiter.api.DisplayName;
-              
+
               class MyTest {
                   @RepeatedTest(3)
                   @DisplayName("When an entry does not exist, it should be created and initialized to 0")
@@ -80,7 +80,7 @@ class RemoveDuplicateTestTemplatesTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.RepeatedTest;
               import org.junit.jupiter.api.DisplayName;
-              
+
               class MyTest {
                   @Test
                   @RepeatedTest(3)
@@ -104,7 +104,7 @@ class RemoveDuplicateTestTemplatesTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.RepeatedTest;
               import org.junit.jupiter.api.DisplayName;
-              
+
               class MyTest {
                   @RepeatedTest(3)
                   @DisplayName("When an entry does not exist, it should be created and initialized to 0")
@@ -136,7 +136,7 @@ class RemoveDuplicateTestTemplatesTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.RepeatedTest;
               import org.junit.jupiter.api.DisplayName;
-              
+
               class MyTest {
                   @DisplayName("When an entry does not exist, it should be created and initialized to 0")
                   @RepeatedTest(3)
@@ -149,7 +149,7 @@ class RemoveDuplicateTestTemplatesTest implements RewriteTest {
             """
               import org.junit.jupiter.api.RepeatedTest;
               import org.junit.jupiter.api.DisplayName;
-              
+
               class MyTest {
                   @DisplayName("When an entry does not exist, it should be created and initialized to 0")
                   @RepeatedTest(3)
@@ -169,7 +169,7 @@ class RemoveDuplicateTestTemplatesTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               class MyTest {
                   @Test
                   void testMethod() {
@@ -188,7 +188,7 @@ class RemoveDuplicateTestTemplatesTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.RepeatedTest;
-              
+
               class MyTest {
                   @RepeatedTest(3)
                   void testMethod() {

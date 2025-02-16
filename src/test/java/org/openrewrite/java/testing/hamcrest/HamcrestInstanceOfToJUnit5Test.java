@@ -30,7 +30,7 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "hamcrest-2.2"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3"))
           .recipe(new HamcrestInstanceOfToJUnit5())
           .typeValidationOptions(all().immutableExecutionContext(false));
     }

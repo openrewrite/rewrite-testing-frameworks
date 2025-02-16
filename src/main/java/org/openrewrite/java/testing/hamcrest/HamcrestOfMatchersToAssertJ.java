@@ -102,9 +102,9 @@ public class HamcrestOfMatchersToAssertJ extends Recipe {
                     .contextSensitive()
                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx,
-                            "assertj-core-3.24",
-                            "hamcrest-2.2",
-                            "junit-jupiter-api-5.9"))
+                            "assertj-core-3",
+                            "hamcrest-3",
+                            "junit-jupiter-api-5"))
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), parameters.toArray());
         }

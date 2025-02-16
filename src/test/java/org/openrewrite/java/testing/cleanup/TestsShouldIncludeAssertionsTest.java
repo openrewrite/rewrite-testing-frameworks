@@ -34,7 +34,7 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "junit-jupiter-api-5.9", "mockito-all-1.10", "hamcrest-2.2", "assertj-core-3.24", "spring-test-6.1.12")
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "junit-jupiter-api-5", "mockito-all-1.10", "hamcrest-3", "assertj-core-3", "spring-test-6.1.12")
             .dependsOn(
               List.of(
                 //language=java
@@ -70,9 +70,9 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-              
+
               public class AaTest {
                   @Test
                   public void methodTest() {
@@ -94,11 +94,11 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-              
+
               public class AaTest {
-              
+
                   @Test
                   public void methodTest() {
                       assertDoesNotThrow(() -> {
@@ -119,11 +119,11 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
-              
+
               public class MyTest {
-              
+
                   @Test
                   public void test() {
                       assertThat(notification()).isEqualTo(1);
@@ -144,10 +144,10 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.*;
-              
+
               public  class ATest {
                   @Test
                   public void methodTest() {
@@ -189,16 +189,16 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
             """
               import java.util.Set;
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.Assert.assertTrue;
-              
+
               public class TestClass {
                   @Test
                   public void methodTest() {
                       Set<String> s = Set.of("hello");
                       testContains(s, "hello");
                   }
-              
+
                   private static void testContains(Set<String> set, String word) {
                       assertTrue(set.contains(word));
                   }
@@ -218,9 +218,9 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
           java(
             """
               package org.foo;
-              
+
               import java.util.Set;
-              
+
               public class TestUtil {
                   public static void testContains(Set<String> set, String word) {
                   }
@@ -233,7 +233,7 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
               import java.util.Set;
               import org.foo.TestUtil;
               import org.junit.jupiter.api.Test;
-              
+
               public class TestClass {
                   @Test
                   public void doesNotChange() {
@@ -249,10 +249,10 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
             """
               import java.util.Set;
               import org.foo.TestUtil;
-              
+
               import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
               import org.junit.jupiter.api.Test;
-              
+
               public class TestClass {
                   @Test
                   public void doesNotChange() {
@@ -283,11 +283,11 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.times;
               import static org.mockito.Mockito.verify;
-              
+
               class AaTest {
                   @Mock
                   MyMathService myMathService;
-              
+
                   @Test
                   public void verifyTest() {
                       when(myMathService.addIntegers("1", "2")).thenReturn(3);
@@ -309,16 +309,16 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.mockito.Mock;
               import static org.mockito.Mockito.*;
-              
+
               class AaTest {
                   @Mock
                   org.learning.math.MyMathService myMathService;
-              
+
                   @Test
                   public void noMore() {
                       verifyNoMoreInteractions(myMathService);
                   }
-              
+
                   @Test
                   public void zero() {
                       verifyZeroInteractions(myMathService);
@@ -340,11 +340,11 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
               import org.learning.math.MyMathService;
               import static org.mockito.Mockito.when;
               import org.learning.math.Stuff;
-              
+
               class AaTest {
                   @Mock
                   MyMathService myMathService;
-              
+
                   @Test
                   public void methodTest() {
                       when(myMathService.addIntegers("1", "2")).thenReturn(3);
@@ -356,15 +356,15 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.mockito.Mock;
               import org.learning.math.MyMathService;
-              
+
               import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
               import static org.mockito.Mockito.when;
               import org.learning.math.Stuff;
-              
+
               class AaTest {
                   @Mock
                   MyMathService myMathService;
-              
+
                   @Test
                   public void methodTest() {
                       assertDoesNotThrow(() -> {
@@ -386,10 +386,10 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.springframework.test.web.client.MockRestServiceServer;
-              
+
               class AaTest {
                   private MockRestServiceServer mockServer;
-              
+
                   @Test
                   public void verifyTest() {
                       mockServer.verify();

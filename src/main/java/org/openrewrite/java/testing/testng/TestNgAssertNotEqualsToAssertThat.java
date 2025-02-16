@@ -63,7 +63,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                     method = JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
                             .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3.24"))
+                                    .classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(
                                     getCursor(),
@@ -76,7 +76,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                     method = JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotEqualTo(#{any()});")
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
                             .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3.24"))
+                                    .classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(
                                     getCursor(),
@@ -89,7 +89,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                     method = JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
                             .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                             .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3.24"))
+                                    .classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(
                                     getCursor(),
@@ -104,7 +104,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                     method = JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));")
                             .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                             .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3.24"))
+                                    .classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(
                                     getCursor(),

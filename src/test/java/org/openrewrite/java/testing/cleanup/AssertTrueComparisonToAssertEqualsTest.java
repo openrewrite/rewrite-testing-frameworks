@@ -30,7 +30,7 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertTrueComparisonToAssertEquals());
     }
 
@@ -43,7 +43,7 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertTrue;
-              
+
               public class Test {
                   void test() {
                       int a = 1;
@@ -54,7 +54,7 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertEquals;
-              
+
               public class Test {
                   void test() {
                       int a = 1;
@@ -76,7 +76,7 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       int a = 1;
@@ -87,7 +87,7 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       int a = 1;
@@ -109,7 +109,7 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       int a = 1;
@@ -120,7 +120,7 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       int a = 1;
@@ -142,7 +142,7 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       String a = "a";
@@ -164,7 +164,7 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       Object a = new Object();

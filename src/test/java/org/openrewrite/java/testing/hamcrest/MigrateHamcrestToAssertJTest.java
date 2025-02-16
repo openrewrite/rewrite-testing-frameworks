@@ -47,9 +47,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-jupiter-api-5.9",
-              "hamcrest-2.2",
-              "assertj-core-3.24"))
+              "junit-jupiter-api-5",
+              "hamcrest-3",
+              "assertj-core-3"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.hamcrest")
             .build()

@@ -29,7 +29,7 @@ class AssertFalseEqualToAssertNotEqualsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertFalseEqualsToAssertNotEquals());
     }
 
@@ -42,7 +42,7 @@ class AssertFalseEqualToAssertNotEqualsTest implements RewriteTest {
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertFalse;
-              
+
               public class Test {
                   void test() {
                       String a = "a";
@@ -54,7 +54,7 @@ class AssertFalseEqualToAssertNotEqualsTest implements RewriteTest {
               """,
             """
               import static org.junit.jupiter.api.Assertions.assertNotEquals;
-              
+
               public class Test {
                   void test() {
                       String a = "a";
@@ -77,7 +77,7 @@ class AssertFalseEqualToAssertNotEqualsTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       String a = "a";
@@ -88,7 +88,7 @@ class AssertFalseEqualToAssertNotEqualsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       String a = "a";
@@ -110,7 +110,7 @@ class AssertFalseEqualToAssertNotEqualsTest implements RewriteTest {
             """
               import java.util.Arrays;
               import org.junit.jupiter.api.Assertions;
-              
+
               public class Test {
                   void test() {
                       String a = "a";

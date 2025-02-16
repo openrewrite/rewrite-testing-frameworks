@@ -32,7 +32,7 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new JUnitAssertTrueToAssertThat());
     }
 
@@ -45,9 +45,9 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -60,9 +60,9 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -85,9 +85,9 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.junit.jupiter.api.Assertions.*;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -100,9 +100,9 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -125,9 +125,9 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.junit.jupiter.api.Assertions.*;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -140,9 +140,9 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -180,9 +180,9 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -207,10 +207,10 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.*;
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -225,9 +225,9 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.*;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -252,9 +252,9 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -273,10 +273,10 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.junit.jupiter.api.Assertions.assertTrue;
-                            
+
               public class MyTest {
                   @Test
                   public void test() {

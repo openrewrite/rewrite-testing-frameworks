@@ -83,7 +83,7 @@ class JUnit5MigrationTest implements RewriteTest {
         rewriteRun(
           spec -> spec
             .parser(JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-2.2")),
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-3")),
           java(
             """
               import org.junit.Assert;

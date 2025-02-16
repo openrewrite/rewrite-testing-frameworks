@@ -169,7 +169,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                     String assertion = logicalContext ? replacement.junitPositive : replacement.junitNegative;
                     String templateString = assertion + "(" + replacement.template + (reason == null ? ")" : ", #{any(java.lang.String)})");
                     JavaTemplate template = JavaTemplate.builder(templateString)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                             .staticImports("org.junit.jupiter.api.Assertions." + assertion)
                             .build();
 
