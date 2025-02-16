@@ -34,7 +34,7 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "junit-jupiter-api-5", "mockito-all-1.10", "hamcrest-3", "assertj-core-3", "spring-test-6.1.12")
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "junit-jupiter-api-5", "mockito-all-1.10", "hamcrest-3", "assertj-core-3", "spring-test-6.1")
             .dependsOn(
               List.of(
                 //language=java
