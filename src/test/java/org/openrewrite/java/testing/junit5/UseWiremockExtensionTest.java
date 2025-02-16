@@ -33,7 +33,7 @@ class UseWiremockExtensionTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "wiremock-jre8-2.35"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "wiremock-jre8-2.35"))
           .recipe(new UseWiremockExtension());
     }
 
@@ -46,9 +46,9 @@ class UseWiremockExtensionTest implements RewriteTest {
             """
               import com.github.tomakehurst.wiremock.junit.WireMockRule;
               import org.junit.Rule;
-              
+
               import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-              
+
               class Test {
                   @Rule
                   public WireMockRule wm = new WireMockRule(options().dynamicHttpsPort());
@@ -57,9 +57,9 @@ class UseWiremockExtensionTest implements RewriteTest {
             """
               import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
               import org.junit.jupiter.api.extension.RegisterExtension;
-              
+
               import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-              
+
               class Test {
                   @RegisterExtension
                   public WireMockExtension wm = WireMockExtension.newInstance().options(options().dynamicHttpsPort()).build();
@@ -77,9 +77,9 @@ class UseWiremockExtensionTest implements RewriteTest {
             """
               import com.github.tomakehurst.wiremock.junit.WireMockRule;
               import org.junit.Rule;
-              
+
               import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-              
+
               class Test {
                   @Rule
                   public WireMockRule wm = new WireMockRule(options().dynamicHttpsPort(), false);
@@ -88,9 +88,9 @@ class UseWiremockExtensionTest implements RewriteTest {
             """
               import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
               import org.junit.jupiter.api.extension.RegisterExtension;
-              
+
               import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-              
+
               class Test {
                   @RegisterExtension
                   public WireMockExtension wm = WireMockExtension.newInstance().options(options().dynamicHttpsPort()).failOnUnmatchedRequests(false).build();
@@ -108,7 +108,7 @@ class UseWiremockExtensionTest implements RewriteTest {
             """
               import com.github.tomakehurst.wiremock.junit.WireMockRule;
               import org.junit.Rule;
-              
+
               class Test {
                   @Rule
                   public WireMockRule wm = new WireMockRule(7001);
@@ -118,7 +118,7 @@ class UseWiremockExtensionTest implements RewriteTest {
               import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
               import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
               import org.junit.jupiter.api.extension.RegisterExtension;
-              
+
               class Test {
                   @RegisterExtension
                   public WireMockExtension wm = WireMockExtension.newInstance().options(WireMockConfiguration.options().port(7001)).build();
@@ -136,7 +136,7 @@ class UseWiremockExtensionTest implements RewriteTest {
             """
               import com.github.tomakehurst.wiremock.junit.WireMockRule;
               import org.junit.Rule;
-              
+
               class Test {
                   @Rule
                   public WireMockRule wm = new WireMockRule(7001, 7002);
@@ -146,7 +146,7 @@ class UseWiremockExtensionTest implements RewriteTest {
               import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
               import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
               import org.junit.jupiter.api.extension.RegisterExtension;
-              
+
               class Test {
                   @RegisterExtension
                   public WireMockExtension wm = WireMockExtension.newInstance().options(WireMockConfiguration.options().port(7001).httpsPort(7002)).build();

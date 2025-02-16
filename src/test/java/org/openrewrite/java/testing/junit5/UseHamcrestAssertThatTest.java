@@ -31,7 +31,7 @@ class UseHamcrestAssertThatTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "mockito-all-1.10", "hamcrest-3"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "mockito-all-1.10", "hamcrest-3"))
           .recipe(Environment.builder()
         .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
         .build()

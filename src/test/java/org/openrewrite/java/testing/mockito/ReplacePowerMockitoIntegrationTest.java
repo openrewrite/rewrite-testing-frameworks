@@ -34,7 +34,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "mockito-core-3.12",
               "junit-jupiter-api-5",
-              "junit-4.13",
+              "junit-4",
               "powermock-core-1",
               "powermock-api-mockito-1",
               "powermock-api-support-1.6",

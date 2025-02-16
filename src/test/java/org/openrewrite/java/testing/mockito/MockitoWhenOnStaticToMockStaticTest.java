@@ -33,7 +33,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         spec.recipe(new MockitoWhenOnStaticToMockStatic())
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-4.13",
+              "junit-4",
               "mockito-core-3.12",
               "mockito-junit-jupiter-3.12"
             ));

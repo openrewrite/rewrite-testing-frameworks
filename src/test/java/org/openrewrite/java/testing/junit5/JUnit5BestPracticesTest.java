@@ -32,7 +32,7 @@ class JUnit5BestPracticesTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing")
             .build()
@@ -163,7 +163,7 @@ class JUnit5BestPracticesTest implements RewriteTest {
                   @Test
                   public void something() {
                   }
-                            
+
                   @Ignore("not ready yet")
                   @Test
                   public void somethingElse() {
@@ -179,7 +179,7 @@ class JUnit5BestPracticesTest implements RewriteTest {
                   @Test
                   void something() {
                   }
-                            
+
                   @Disabled("not ready yet")
                   @Test
                   void somethingElse() {

@@ -32,9 +32,9 @@ class CleanupJUnitImportsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(new CleanupJUnitImports());
     }
 
@@ -46,7 +46,7 @@ class CleanupJUnitImportsTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-              
+
               public class MyTest {}
               """,
             """
@@ -76,7 +76,7 @@ class CleanupJUnitImportsTest implements RewriteTest {
               import java.util.Arrays;
               import java.util.Collections;
               import java.util.HashSet;
-              
+
               public class MyTest {
               }
               """
@@ -102,7 +102,7 @@ class CleanupJUnitImportsTest implements RewriteTest {
           java(
             """
               import org.junit.Test;
-              
+
               public class MyTest {
                   @Test
                   public void foo() {}

@@ -144,7 +144,7 @@ public class JMockitMockUpToMockito extends Recipe {
             J.ClassDeclaration cd = maybeAddMethodWithAnnotation(this, cdRef.get(), ctx, true, "tearDown",
                     "@org.junit.After",
                     "@After",
-                    "junit-4.13",
+                    "junit-4",
                     "org.junit.After",
                     "");
 

@@ -31,7 +31,7 @@ class AssumeToAssumptionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-3"));
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3"));
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/54")

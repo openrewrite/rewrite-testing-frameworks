@@ -95,7 +95,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
 
                 JavaTemplate template = JavaTemplate
                     .builder("assertInstanceOf(#{}.class, #{any(java.lang.Object)}" + (reason != null ? ", #{any(java.lang.String)})" : ")"))
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-4.13"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-4"))
                     .staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf")
                     .build();
 
