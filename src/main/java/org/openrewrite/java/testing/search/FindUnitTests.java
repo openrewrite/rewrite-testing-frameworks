@@ -15,6 +15,8 @@
  */
 package org.openrewrite.java.testing.search;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
@@ -41,6 +43,8 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
     public FindUnitTests() {
     }
 
+    @JsonIgnore
+    @SuppressWarnings("unused") // used by downstream modules
     public FindUnitTests(Accumulator acc) {
         this.acc = acc;
     }
@@ -55,6 +59,7 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
         return "Produces a data table showing how methods are used in unit tests.";
     }
 
+    @Getter
     public static class Accumulator {
         private final Map<String, AccumulatorValue> unitTestsByKey = new HashMap<>();
 
@@ -67,10 +72,6 @@ public class FindUnitTests extends ScanningRecipe<FindUnitTests.Accumulator> {
                 unitTestsByKey.put(key, value);
             }
             value.getMethodInvocations().add(invocation);
-        }
-
-        public Map<String, AccumulatorValue> getUnitTestsByKey() {
-            return unitTestsByKey;
         }
     }
 
