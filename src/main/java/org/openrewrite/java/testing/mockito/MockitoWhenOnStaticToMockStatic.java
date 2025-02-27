@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.jetbrains.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -23,15 +24,17 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.VariableNameUtils;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Flag;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
+import static org.openrewrite.java.VariableNameUtils.generateVariableName;
+import static org.openrewrite.java.tree.Flag.Static;
 
 public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
@@ -61,33 +64,23 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 return maybeAutoFormat(m, m.withBody(m.getBody().withStatements(newStatements)), ctx);
             }
 
-            private List<Statement> maybeWrapStatementsInTryWithResourcesMockedStatic(J.MethodDeclaration m, List<Statement> remainingStatements) {
+            private List<Statement> maybeWrapStatementsInTryWithResourcesMockedStatic(J.MethodDeclaration m, List<Statement> statements) {
                 AtomicBoolean restInTry = new AtomicBoolean(false);
-                return ListUtils.flatMap(remainingStatements, (index, statement) -> {
+                return ListUtils.map(statements, (index, statement) -> {
                     if (restInTry.get()) {
                         // Rest of the statements have ended up in the try block
-                        return Collections.emptyList();
+                        return null;
                     }
 
-                    if (statement instanceof J.MethodInvocation &&
-                        MOCKITO_WHEN.matches(((J.MethodInvocation) statement).getSelect())) {
+                    if (statement instanceof J.MethodInvocation && MOCKITO_WHEN.matches(((J.MethodInvocation) statement).getSelect())) {
                         J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) statement).getSelect();
                         if (when != null && when.getArguments().get(0) instanceof J.MethodInvocation) {
                             J.MethodInvocation whenArg = (J.MethodInvocation) when.getArguments().get(0);
-                            if (whenArg.getMethodType() != null && whenArg.getMethodType().hasFlags(Flag.Static)) {
-                                if (whenArg.getSelect() instanceof J.Identifier) {
-                                    J.Identifier clazz = (J.Identifier) whenArg.getSelect();
-                                    if (clazz.getType() != null) {
-                                        return tryWithMockedStatic(m, remainingStatements, index, statement, clazz.getSimpleName(), whenArg, restInTry);
-                                    }
-                                } else if (whenArg.getSelect() instanceof J.FieldAccess) {
-                                    J.FieldAccess fieldAccess = (J.FieldAccess) whenArg.getSelect();
-                                    if (fieldAccess.getTarget() instanceof J.Identifier) {
-                                        J.Identifier clazz = (J.Identifier) fieldAccess.getTarget();
-                                        if (clazz.getType() != null) {
-                                            return tryWithMockedStatic(m, remainingStatements, index, statement, clazz.getSimpleName(), whenArg, restInTry);
-                                        }
-                                    }
+                            if (whenArg.getMethodType() != null && whenArg.getMethodType().hasFlags(Static)) {
+                                String className = getClassName(whenArg);
+                                if (className != null) {
+                                    restInTry.set(true);
+                                    return tryWithMockedStatic(m, statements, index, (J.MethodInvocation) statement, className, whenArg);
                                 }
                             }
                         }
@@ -96,39 +89,48 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 });
             }
 
+            private @Nullable String getClassName(J.MethodInvocation whenArg) {
+                J.Identifier clazz = null;
+                if (whenArg.getSelect() instanceof J.Identifier) {
+                    clazz = (J.Identifier) whenArg.getSelect();
+                } else if (whenArg.getSelect() instanceof J.FieldAccess && ((J.FieldAccess) whenArg.getSelect()).getTarget() instanceof J.Identifier) {
+                    clazz = (J.Identifier) ((J.FieldAccess) whenArg.getSelect()).getTarget();
+                }
+                return clazz != null && clazz.getType() != null ? clazz.getSimpleName() : null;
+            }
+
             private J.Try tryWithMockedStatic(
                     J.MethodDeclaration m,
-                    List<Statement> remainingStatements,
+                    List<Statement> statements,
                     Integer index,
-                    Statement statement,
-                    String simpleName,
-                    J.MethodInvocation whenArg,
-                    AtomicBoolean restInTry) {
-                String mockName = VariableNameUtils.generateVariableName("mock" + simpleName, updateCursor(m), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                    J.MethodInvocation statement,
+                    String className,
+                    J.MethodInvocation whenArg) {
+                Expression thenReturnArg = statement.getArguments().get(0);
+
                 maybeAddImport("org.mockito.MockedStatic", false);
                 maybeAddImport("org.mockito.Mockito", "mockStatic");
-                String template = String.format(
+
+                J.MethodDeclaration md = JavaTemplate.builder(String.format(
                         "try(MockedStatic<%1$s> %2$s = mockStatic(%1$s.class)) {\n" +
-                        "    %2$s.when(#{any()}).thenReturn(#{any()});\n" +
-                        "}", simpleName, mockName);
-                J.Try try_ = (J.Try) ((J.MethodDeclaration) JavaTemplate.builder(template)
+                        "    %2$s.when(() -> #{any()}).thenReturn(#{any()});\n" +
+                        "}", className, generateVariableName("mock" + className, updateCursor(m), INCREMENT_NUMBER)))
                         .contextSensitive()
                         .imports("org.mockito.MockedStatic")
                         .staticImports("org.mockito.Mockito.mockStatic")
                         .build()
-                        .apply(getCursor(), m.getCoordinates().replaceBody(),
-                                whenArg, ((J.MethodInvocation) statement).getArguments().get(0)))
-                        .getBody().getStatements().get(0);
+                        .apply(getCursor(), m.getCoordinates().replaceBody(), whenArg, thenReturnArg);
+                J.Try try_ = (J.Try) md.getBody().getStatements().get(0);
 
-                restInTry.set(true);
+                List<Statement> precedingStatements = statements.subList(0, index);
+                List<Statement> handledStatements = ListUtils.concat(precedingStatements, try_);
+                List<Statement> remainingStatements = statements.subList(index + 1, statements.size());
 
-                List<Statement> precedingStatements = remainingStatements.subList(0, index);
-                return try_.withBody(try_.getBody().withStatements(ListUtils.concatAll(
-                                try_.getBody().getStatements(),
-                                maybeWrapStatementsInTryWithResourcesMockedStatic(
-                                        m.withBody(m.getBody().withStatements(ListUtils.concat(precedingStatements, try_))),
-                                        remainingStatements.subList(index + 1, remainingStatements.size())
-                                ))))
+                List<Statement> newStatements = ListUtils.concatAll(
+                        try_.getBody().getStatements(),
+                        maybeWrapStatementsInTryWithResourcesMockedStatic(m.withBody(m.getBody().withStatements(handledStatements)), remainingStatements));
+
+                return try_.withBody(try_.getBody().withStatements(newStatements))
                         .withPrefix(statement.getPrefix());
             }
         });
