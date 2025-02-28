@@ -23,6 +23,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.SourceSpecs;
 import org.openrewrite.test.TypeValidation;
+
 import static org.openrewrite.java.Assertions.java;
 
 class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
