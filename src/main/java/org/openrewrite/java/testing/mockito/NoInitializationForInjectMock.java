@@ -36,7 +36,8 @@ public class NoInitializationForInjectMock extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Removes unnecessary initialization for fields annotated with `@InjectMocks` in Mockito tests.";
+        return "Removes unnecessary initialization for fields annotated with `@InjectMocks` in Mockito tests. If the" +
+               " field was final, the final modifier is removed.";
     }
 
     @Override
@@ -47,7 +48,10 @@ public class NoInitializationForInjectMock extends Recipe {
                 J.VariableDeclarations vd = super.visitVariableDeclarations(variableDeclarations, ctx);
 
                 if (isField(getCursor()) && new AnnotationService().matches(getCursor(), INJECT_MOCKS)) {
-                    return vd.withVariables(ListUtils.map(vd.getVariables(), it -> it.withInitializer(null)));
+                    return maybeAutoFormat(vd, vd
+                                    .withModifiers(ListUtils.map(vd.getModifiers(), modifier -> modifier.getType() == J.Modifier.Type.Final ? null : modifier))
+                                    .withVariables(ListUtils.map(vd.getVariables(), it -> it.withInitializer(null))),
+                            ctx, getCursor().getParentOrThrow());
                 }
 
                 return vd;

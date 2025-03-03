@@ -69,4 +69,40 @@ class NoInitializationForInjectMockTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void removeInitializationOfInjectMocksWithFinal() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyObject {
+                  private String someField;
+
+                  public MyObject(String someField) {
+                      this.someField = someField;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.mockito.InjectMocks;
+
+              class MyTest {
+                  @InjectMocks
+                  final MyObject myObject = new MyObject("someField");
+              }
+              """,
+            """
+              import org.mockito.InjectMocks;
+
+              class MyTest {
+                  @InjectMocks
+                  MyObject myObject;
+              }
+              """
+          )
+        );
+    }
 }
