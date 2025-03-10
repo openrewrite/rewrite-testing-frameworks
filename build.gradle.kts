@@ -63,7 +63,7 @@ dependencies {
         exclude("com.google.auto.service", "auto-service-annotations")
     }
 
-    testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
+    testRuntimeOnly(gradleApi())
 
     testRuntimeOnly("com.tngtech.archunit:archunit:0.23.1")
     testRuntimeOnly("com.github.javafaker:javafaker:latest.release") {
