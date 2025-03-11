@@ -149,7 +149,8 @@ public class GradleUseJunitJupiter extends Recipe {
         public G.CompilationUnit visitCompilationUnit(G.CompilationUnit cu, ExecutionContext ctx) {
             G.CompilationUnit template = GradleParser.builder()
                     .build()
-                    .parse("plugins {\n" +
+                    .parse(ctx,
+                           "plugins {\n" +
                            "    id 'java'\n" +
                            "}\n" +
                            "tasks.withType(Test).configureEach {\n" +
@@ -235,7 +236,8 @@ public class GradleUseJunitJupiter extends Recipe {
             }
             G.CompilationUnit cu = GradleParser.builder()
                     .build()
-                    .parse("plugins {\n" +
+                    .parse(ctx,
+                           "plugins {\n" +
                            "    id 'java'\n" +
                            "}\n" +
                            "tasks.withType(Test) {\n" +
