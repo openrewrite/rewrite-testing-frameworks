@@ -91,9 +91,14 @@ public class GradleUseJunitJupiter extends Recipe {
                 if (cu != compilationUnit) {
                     return cu;
                 }
+
                 // No existing test task configuration seems to exist, add a whole new one
-                return (G.CompilationUnit) new AddUseJUnitPlatform()
-                        .visitNonNull(cu, ctx, getCursor().getParent());
+                // Avoid adding a new test configuration to script plugins as it may be added too broadly to all scripts
+                if (cu.getSourcePath().toString().endsWith("build.gradle")) {
+                    return (G.CompilationUnit) new AddUseJUnitPlatform()
+                            .visitNonNull(cu, ctx, getCursor().getParent());
+                }
+                return cu;
             }
         };
         return Preconditions.check(new IsBuildGradle<>(), visitor);
