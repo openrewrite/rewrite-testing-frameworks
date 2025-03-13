@@ -186,7 +186,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
               import static org.mockito.Answers.CALLS_REAL_METHODS;
-              import static org.mockito.ArgumentMatchers.*;
+              import static org.mockito.ArgumentMatchers.nullable;
               import static org.mockito.Mockito.*;
 
               public class MockUpTest {
