@@ -308,4 +308,27 @@ class CleanupMockitoImportsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void handleKotlinWhenever() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.mockito.Mock
+              import org.mockito.kotlin.whenever
+              class Foo {
+                @Mock
+                private lateinit var foo: Foo;
+                fun foo() : String {
+                    return "foo"
+                }
+                fun baz() {
+                  whenever(foo.foo()).thenReturn("bar")
+                }
+              }
+              """
+          )
+        );
+    }
 }
