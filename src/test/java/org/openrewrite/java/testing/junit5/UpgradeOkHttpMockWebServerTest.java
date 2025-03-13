@@ -33,10 +33,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "mockwebserver-4.10"))
-          .recipe(Environment.builder()
-            .scanRuntimeClasspath()
-            .build()
-            .activateRecipes("org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer"));
+          .recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer");
     }
 
     @Test
@@ -47,7 +44,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
             java(
               """
                 import okhttp3.mockwebserver.MockWebServer;
-                
+
                 class Test {
                     void test() {
                         MockWebServer server = new MockWebServer();
@@ -56,7 +53,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                 """,
               """
                 import mockwebserver3.MockWebServer;
-                
+
                 class Test {
                     void test() {
                         MockWebServer server = new MockWebServer();
