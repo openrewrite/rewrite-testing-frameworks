@@ -98,21 +98,24 @@ public class CleanupMockitoImports extends Recipe {
             if (tree instanceof JavaSourceFile) {
                 JavaSourceFile sf = (JavaSourceFile) tree;
 
-                // Prevent removing mockito imports when an associated mockito method type is not well formed
-                final List<String> unknownTypeMethodInvocationNames = new ArrayList<>();
-                new WellFormedMockitoMethodTypeVisitor().visit(sf, unknownTypeMethodInvocationNames);
+                // Determine Mockito methods that are present with valid type information
+                List<String> mockitoMethodsUsed = new MockitoMethodTypeVisitor().reduce(sf, new ArrayList<>());
 
-                final List<String> qualifiedMethodInvocationNames = new ArrayList<>();
-                new QualifiedMockitoMethodTypeVisitor().visit(sf, qualifiedMethodInvocationNames);
+                // Prevent removing mockito imports when an associated mockito method type is not well formed
+                List<String> unknownTypeMethodInvocationNames = new WellFormedMockitoMethodTypeVisitor().reduce(sf, new ArrayList<>());
+                List<String> qualifiedMethodInvocationNames = new QualifiedMockitoMethodTypeVisitor().reduce(sf, new ArrayList<>());
 
                 for (J.Import _import : sf.getImports()) {
                     if (_import.getPackageName().startsWith("org.mockito")) {
                         boolean isMockitoKotlinImport = _import.getPackageName().startsWith("org.mockito.kotlin");
                         if (_import.isStatic() || isMockitoKotlinImport) {
                             String staticName = _import.getQualid().getSimpleName();
-                            if ("*".equals(staticName) && !possibleMockitoMethod(unknownTypeMethodInvocationNames)) {
+                            if (mockitoMethodsUsed.contains(staticName)) {
+                                continue;
+                            }
+                            if ("*".equals(staticName)) {
                                 maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
-                            } else if (!"*".equals(staticName) && !unknownTypeMethodInvocationNames.contains(staticName)) {
+                            } else if (!unknownTypeMethodInvocationNames.contains(staticName)) {
                                 String fullyQualifiedName = _import.getPackageName();
                                 if (!isMockitoKotlinImport) {
                                     fullyQualifiedName += "." + _import.getClassName();
@@ -129,14 +132,17 @@ public class CleanupMockitoImports extends Recipe {
             return tree;
         }
 
-        private boolean possibleMockitoMethod(List<String> methodNamesHavingNullType) {
-            for (String missingMethod : methodNamesHavingNullType) {
-                if (MOCKITO_METHOD_NAMES.contains(missingMethod)) {
-                    return true;
+        private static class MockitoMethodTypeVisitor extends JavaIsoVisitor<List<String>> {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, List<String> methods) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, methods);
+                if (MOCKITO_METHOD_NAMES.contains(mi.getSimpleName()) &&
+                        mi.getSelect() == null &&
+                        TypeUtils.isWellFormedType(mi.getType())) {
+                    methods.add(mi.getSimpleName());
                 }
+                return mi;
             }
-
-            return false;
         }
 
         private static class WellFormedMockitoMethodTypeVisitor extends JavaIsoVisitor<List<String>> {
