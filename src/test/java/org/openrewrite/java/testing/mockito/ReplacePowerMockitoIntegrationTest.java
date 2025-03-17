@@ -661,4 +661,68 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void whenNew() {
+        //language=java
+        rewriteRun(
+          java(
+              """
+              import org.powermock.api.mockito.PowerMockito;
+              import static org.powermock.api.mockito.PowerMockito.*;
+
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MyTest {
+                static class Generator {
+                    public int getLuckyNumber() {
+                        return 436;
+                    }
+                }
+
+                @Test
+                public final void testNumbers() throws Exception {
+                    Generator mock2 = mock(Generator.class);
+                    PowerMockito.whenNew(Generator.class).withNoArguments().thenReturn(mock2);
+
+                    Generator gen = new Generator();
+                    when(gen.getLuckyNumber()).thenReturn(504);
+
+                    assertEquals(504, gen.getLuckyNumber());
+                }
+              }
+              """,
+              """
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.when;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
+              import static org.mockito.Mockito.*;
+
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MyTest {
+                static class Generator {
+                    public int getLuckyNumber() {
+                        return 436;
+                    }
+                }
+
+                @Test
+                public final void testNumbers() throws Exception {
+                    try (MockedConstruction<Generator> m = Mockito.mockConstruction(Generator.class)){
+                        Generator mock2 = mock(Generator.class);
+                        Generator gen = new Generator();
+                        when(gen.getLuckyNumber()).thenReturn(504);
+
+                        assertEquals(504, gen.getLuckyNumber());
+                    }
+                }
+              }
+              """
+          )
+        );
+    }
 }
