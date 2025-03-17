@@ -240,4 +240,22 @@ class GradleUseJunitJupiterTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void dontAddWhenMissingWhenNoBuildGradle() {
+        rewriteRun(
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              tasks.named('classes') { }
+              tasks.withType(JavaCompile) { }
+              tasks.withType(JavaCompile).configureEach { }
+              """,
+            sourceSpecs -> sourceSpecs.path("something.gradle")
+          )
+        );
+    }
 }

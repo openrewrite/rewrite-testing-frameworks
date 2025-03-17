@@ -27,7 +27,6 @@ import org.openrewrite.gradle.IsBuildGradle;
 import org.openrewrite.gradle.marker.GradleProject;
 import org.openrewrite.groovy.GroovyIsoVisitor;
 import org.openrewrite.groovy.tree.G;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -35,9 +34,9 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
+import static org.openrewrite.internal.ListUtils.concat;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -62,21 +61,10 @@ public class GradleUseJunitJupiter extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        //noinspection NotNullFieldNotInitialized
-        GroovyIsoVisitor<ExecutionContext> visitor = new GroovyIsoVisitor<ExecutionContext>() {
-            GradleProject gp;
-
+        return Preconditions.check(new IsBuildGradle<>(), new GroovyIsoVisitor<ExecutionContext>() {
             @Override
             public G.CompilationUnit visitCompilationUnit(G.CompilationUnit compilationUnit, ExecutionContext ctx) {
-                //noinspection DataFlowIssue
-                gp = compilationUnit.getMarkers().findFirst(GradleProject.class).orElse(null);
-                if (gp == null) {
-                    return compilationUnit;
-                }
-                if (gp.getPlugins().stream().noneMatch(plugin -> plugin.getFullyQualifiedClassName().contains("org.gradle.api.plugins.JavaBasePlugin"))) {
-                    return compilationUnit;
-                }
-                if (containsJUnitPlatformInvocation(compilationUnit)) {
+                if (!IsBuildGradle(compilationUnit) || !hasJavaBasePlugin(compilationUnit) || containsJUnitPlatformInvocation(compilationUnit)) {
                     return compilationUnit;
                 }
                 // If anywhere in the tree there is a useJunit() we can swap it out for useJUnitPlatform() and be done in one step
@@ -93,15 +81,22 @@ public class GradleUseJunitJupiter extends Recipe {
                 }
 
                 // No existing test task configuration seems to exist, add a whole new one
-                // Avoid adding a new test configuration to script plugins as it may be added too broadly to all scripts
-                if (cu.getSourcePath().toString().endsWith("build.gradle")) {
-                    return (G.CompilationUnit) new AddUseJUnitPlatform()
-                            .visitNonNull(cu, ctx, getCursor().getParent());
-                }
-                return cu;
+                return (G.CompilationUnit) new AddUseJUnitPlatform()
+                        .visitNonNull(cu, ctx, getCursor().getParent());
             }
-        };
-        return Preconditions.check(new IsBuildGradle<>(), visitor);
+        });
+    }
+
+    // Avoid adding a new test configuration to script plugins as it may be added too broadly to all scripts
+    private static boolean IsBuildGradle(G.CompilationUnit compilationUnit) {
+        return compilationUnit.getSourcePath().toString().endsWith("build.gradle");
+    }
+
+    private static Boolean hasJavaBasePlugin(G.CompilationUnit compilationUnit) {
+        return compilationUnit.getMarkers().findFirst(GradleProject.class)
+                .map(gp -> gp.getPlugins().stream().anyMatch(it ->
+                        it.getFullyQualifiedClassName().contains("org.gradle.api.plugins.JavaBasePlugin")))
+                .orElse(false);
     }
 
     private static boolean containsJUnitPlatformInvocation(G.CompilationUnit cu) {
@@ -152,20 +147,8 @@ public class GradleUseJunitJupiter extends Recipe {
     private static class AddUseJUnitPlatform extends GroovyIsoVisitor<ExecutionContext> {
         @Override
         public G.CompilationUnit visitCompilationUnit(G.CompilationUnit cu, ExecutionContext ctx) {
-            G.CompilationUnit template = GradleParser.builder()
-                    .build()
-                    .parse(ctx,
-                           "plugins {\n" +
-                           "    id 'java'\n" +
-                           "}\n" +
-                           "tasks.withType(Test).configureEach {\n" +
-                           "    useJUnitPlatform()\n" +
-                           "}")
-                    .map(G.CompilationUnit.class::cast)
-                    .collect(Collectors.toList())
-                    .get(0);
-            J.MethodInvocation configureEachInvocation = (J.MethodInvocation) template.getStatements().get(1);
-            return cu.withStatements(ListUtils.concat(cu.getStatements(), configureEachInvocation));
+            J.MethodInvocation task = createTaskUseJUnitPlatform(ctx, true).orElse(null);
+            return cu.withStatements(concat(cu.getStatements(), task));
         }
     }
 
@@ -185,7 +168,7 @@ public class GradleUseJunitJupiter extends Recipe {
                     if (!(m.getArguments().size() == 1 && m.getArguments().get(0) instanceof J.Lambda)) {
                         return m;
                     }
-                    // Other DSLs may be named "test" so only assume it is test {} if it isn't enclosed in anything else
+                    // Other DSLs may be named "test" so only assume it is `test {}` if it isn't enclosed in anything else
                     if (getCursor().getParentTreeCursor().firstEnclosing(J.MethodInvocation.class) != null) {
                         return m;
                     }
@@ -239,37 +222,32 @@ public class GradleUseJunitJupiter extends Recipe {
             if (!(l.getBody() instanceof J.Block)) {
                 return l;
             }
-            G.CompilationUnit cu = GradleParser.builder()
-                    .build()
-                    .parse(ctx,
-                           "plugins {\n" +
-                           "    id 'java'\n" +
-                           "}\n" +
-                           "tasks.withType(Test) {\n" +
-                           "    useJUnitPlatform()\n" +
-                           "}")
-                    .map(G.CompilationUnit.class::cast)
-                    .collect(Collectors.toList())
-                    .get(0);
-            J.MethodInvocation useJUnitPlatform = Optional.of(cu.getStatements().get(1))
-                    .map(J.MethodInvocation.class::cast)
-                    .map(J.MethodInvocation::getArguments)
-                    .map(args -> args.get(1))
-                    .map(J.Lambda.class::cast)
-                    .map(J.Lambda::getBody)
-                    .map(J.Block.class::cast)
-                    .map(J.Block::getStatements)
-                    .map(statements -> statements.get(0))
-                    .map(J.Return.class::cast)
-                    .map(J.Return::getExpression)
-                    .map(J.MethodInvocation.class::cast)
-                    .orElse(null);
-            if (useJUnitPlatform == null) {
-                return l;
-            }
-            J.Block b = (J.Block) l.getBody();
-            l = l.withBody(b.withStatements(ListUtils.concat(b.getStatements(), useJUnitPlatform)));
-            return autoFormat(l, ctx, requireNonNull(getCursor().getParent()));
+            return createTaskUseJUnitPlatform(ctx, false)
+                    .map(it -> (J.Lambda) it.getArguments().get(1))
+                    .map(it -> (J.Block) it.getBody())
+                    .map(it -> (J.Return) it.getStatements().get(0))
+                    .map(it -> ((J.MethodInvocation) it.getExpression()))
+                    .map(useJUnitPlatform -> {
+                        J.Block b = (J.Block) l.getBody();
+                        J.Lambda j = l.withBody(b.withStatements(concat(b.getStatements(), useJUnitPlatform)));
+                        return autoFormat(j, ctx, requireNonNull(getCursor().getParent()));
+                    })
+                    .orElse(l);
         }
+    }
+
+    private static Optional<J.MethodInvocation> createTaskUseJUnitPlatform(ExecutionContext ctx, boolean forEachInvocation) {
+        return GradleParser.builder()
+                .build()
+                .parse(ctx,
+                        "plugins {\n" +
+                                "    id 'java'\n" +
+                                "}\n" +
+                                "tasks.withType(Test)" + (forEachInvocation ? ".configureEach" : "") + " {\n" +
+                                "    useJUnitPlatform()\n" +
+                                "}")
+                .map(G.CompilationUnit.class::cast)
+                .findFirst()
+                .map(it -> (J.MethodInvocation) it.getStatements().get(1));
     }
 }
