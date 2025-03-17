@@ -32,7 +32,9 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RemoveTestPrefix extends Recipe {
@@ -77,6 +79,18 @@ public class RemoveTestPrefix extends Recipe {
     private static class RemoveTestPrefixVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private static final AnnotationMatcher ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.MethodSource");
+        private static final String STATIC_IMPORTS = "STATIC_IMPORTS";
+
+        @Override
+        public J.Import visitImport(J.Import _import, ExecutionContext ctx) {
+            J.Import anImport = super.visitImport(_import, ctx);
+            if (anImport.isStatic()) {
+                Set<String> staticImports = getCursor().getNearestMessage(STATIC_IMPORTS, new HashSet<>());
+                staticImports.add(anImport.getQualid().getSimpleName());
+                getCursor().putMessageOnFirstEnclosing(J.CompilationUnit.class, STATIC_IMPORTS, staticImports);
+            }
+            return anImport;
+        }
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method,
@@ -119,9 +133,14 @@ public class RemoveTestPrefix extends Recipe {
             // Skip implied methodSource
             for (J.Annotation annotation : method.getLeadingAnnotations()) {
                 if (ANNOTATION_MATCHER.matches(annotation) &&
-                    (annotation.getArguments() == null || annotation.getArguments().isEmpty())) {
+                        (annotation.getArguments() == null || annotation.getArguments().isEmpty())) {
                     return m;
                 }
+            }
+
+            // Skip when there's a conflicting static import
+            if (getCursor().getNearestMessage(STATIC_IMPORTS, new HashSet<>()).contains(newMethodName)) {
+                return m;
             }
 
             // Skip when calling a similarly named method

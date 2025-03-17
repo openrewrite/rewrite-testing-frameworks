@@ -91,9 +91,14 @@ public class GradleUseJunitJupiter extends Recipe {
                 if (cu != compilationUnit) {
                     return cu;
                 }
+
                 // No existing test task configuration seems to exist, add a whole new one
-                return (G.CompilationUnit) new AddUseJUnitPlatform()
-                        .visitNonNull(cu, ctx, getCursor().getParent());
+                // Avoid adding a new test configuration to script plugins as it may be added too broadly to all scripts
+                if (cu.getSourcePath().toString().endsWith("build.gradle")) {
+                    return (G.CompilationUnit) new AddUseJUnitPlatform()
+                            .visitNonNull(cu, ctx, getCursor().getParent());
+                }
+                return cu;
             }
         };
         return Preconditions.check(new IsBuildGradle<>(), visitor);
@@ -149,7 +154,8 @@ public class GradleUseJunitJupiter extends Recipe {
         public G.CompilationUnit visitCompilationUnit(G.CompilationUnit cu, ExecutionContext ctx) {
             G.CompilationUnit template = GradleParser.builder()
                     .build()
-                    .parse("plugins {\n" +
+                    .parse(ctx,
+                           "plugins {\n" +
                            "    id 'java'\n" +
                            "}\n" +
                            "tasks.withType(Test).configureEach {\n" +
@@ -235,7 +241,8 @@ public class GradleUseJunitJupiter extends Recipe {
             }
             G.CompilationUnit cu = GradleParser.builder()
                     .build()
-                    .parse("plugins {\n" +
+                    .parse(ctx,
+                           "plugins {\n" +
                            "    id 'java'\n" +
                            "}\n" +
                            "tasks.withType(Test) {\n" +
