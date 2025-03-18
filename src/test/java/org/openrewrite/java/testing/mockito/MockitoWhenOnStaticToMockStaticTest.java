@@ -93,7 +93,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
     @Test
     @Disabled("Current recipe does only work for direct `method invocation` in a `method declaration`.")
-    void shouldRefactorMockito_When2() {
+    void shouldRefactorMockito_WhenNestedStatements() {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
