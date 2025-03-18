@@ -16,10 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
@@ -55,10 +52,10 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(MOCKITO_WHEN), new JavaIsoVisitor<ExecutionContext>() {
-            @Override
+        return Preconditions.check(new UsesMethod<>(MOCKITO_WHEN), new JavaVisitor<ExecutionContext>() {
+            /*@Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
+                J.MethodDeclaration md = (J.MethodDeclaration) super.visitMethodDeclaration(method, ctx);
                 if (md.getBody() == null) {
                     return md;
                 }
@@ -68,6 +65,21 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         maybeWrapStatementsInTryWithResourcesMockedStatic(md, md.getBody().getStatements(), ctx);
 
                 return maybeAutoFormat(md, md.withBody(md.getBody().withStatements(newStatements)), ctx);
+            }*/
+
+            @Override
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+
+                J.MethodInvocation whenArg = getWhenArg(mi);
+                if (whenArg != null) {
+                    Cursor currCursor = getCursor().dropParentUntil(is -> is instanceof J.Block);
+                    String className = getClassName(whenArg);
+                    if (className != null) {
+                        return tryWithMockedStatic2(currCursor, mi, className, whenArg, ctx);
+                    }
+                }
+                return mi;
             }
 
             private List<Statement> maybeStatementsToMockedStatic(J.MethodDeclaration m, List<Statement> statements, ExecutionContext ctx) {
@@ -151,6 +163,33 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 return try_.withBody(try_.getBody().withStatements(newStatements))
                         .withPrefix(statement.getPrefix());
             }
+
+            private J.Try tryWithMockedStatic2(Cursor blockCursor, J.MethodInvocation mi, String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
+                J.Block block = blockCursor.getValue();
+                Expression thenReturnArg = mi.getArguments().get(0);
+
+                J.Block temp = javaTemplateMockStatic(String.format(
+                        "try(MockedStatic<%1$s> %2$s = mockStatic(%1$s.class)) {\n" +
+                                "    %2$s.when(() -> #{any()}).thenReturn(#{any()});\n" +
+                                "}", className, generateVariableName("mock" + className, getCursor(), INCREMENT_NUMBER)), ctx)
+                        .apply(blockCursor, block.getCoordinates().firstStatement(), whenArg, thenReturnArg);
+                J.Try try_ = (J.Try) temp.getStatements().get(0);
+
+                boolean hasMatched = false;
+                List<Statement> newStatements = new ArrayList<>();
+                for (Statement s : block.getStatements()) {
+                    if (mi.equals(s)) {
+                        newStatements.addAll(try_.getBody().getStatements());
+                        hasMatched = true;
+                    } else if (hasMatched) {
+                        newStatements.add(s);
+                    }
+                }
+
+                return try_.withBody(try_.getBody().withStatements(newStatements))
+                        .withPrefix(mi.getPrefix());
+            }
+
 
             private List<Statement> mockedStatic(J.MethodDeclaration m, J.MethodInvocation statement,  String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
                 String variableName = generateVariableName("mock" + className, updateCursor(m), INCREMENT_NUMBER);
