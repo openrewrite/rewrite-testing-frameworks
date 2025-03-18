@@ -20,6 +20,7 @@ import org.openrewrite.*;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.VariableNameUtils;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -85,9 +86,11 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                             maybeAddImport("org.mockito.MockedConstruction", false);
 
                             String mockedClassName = ((J.Identifier) mockArgument.getTarget()).getSimpleName();
-                            JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> mock%s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, mockedClassName, mockedClassName))
+                            String variableNameForMock = VariableNameUtils.generateVariableName("mock" + mockedClassName, getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                            JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
                                     .contextSensitive()
                                     .build();
+                            // For some reason the getCoordinates().replace() didn't work. Thus using the trick of `.firstStatement()` and then removing the extra statements
                             J.MethodDeclaration applied = template.apply(updateCursor(ret), method.getBody().getCoordinates().firstStatement());
                             J.Try tryy = (J.Try) applied.getBody().getStatements().get(0);
                             return autoFormat(applied.withBody(applied.getBody().withStatements(Collections.singletonList(tryy.withBody(originalBody)))), ctx);
