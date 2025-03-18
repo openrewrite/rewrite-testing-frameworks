@@ -225,4 +225,3 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
         return false;
     }
 }
-
