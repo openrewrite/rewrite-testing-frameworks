@@ -16,18 +16,22 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Statement;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.openrewrite.internal.ListUtils.concat;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 import static org.openrewrite.java.tree.Flag.Static;
@@ -137,7 +141,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 J.Try try_ = (J.Try) md.getBody().getStatements().get(0);
 
                 List<Statement> precedingStatements = statements.subList(0, index);
-                List<Statement> handledStatements = concat(precedingStatements, try_);
+                List<Statement> handledStatements = ListUtils.concat(precedingStatements, try_);
                 List<Statement> remainingStatements = statements.subList(index + 1, statements.size());
 
                 List<Statement> newStatements = ListUtils.concatAll(
