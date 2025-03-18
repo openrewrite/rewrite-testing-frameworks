@@ -46,7 +46,8 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
         return Preconditions.check(
                 new UsesMethod<>(PM_WHEN_NEW),
                 new JavaVisitor<ExecutionContext>() {
-                    @Override
+
+                    public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                     public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                         if (THEN_RETURN.matches(method) && method.getSelect() instanceof J.MethodInvocation) {
                             J.MethodInvocation select1 = (J.MethodInvocation) method.getSelect();
