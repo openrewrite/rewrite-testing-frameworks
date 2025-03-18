@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
@@ -46,7 +47,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
         return Preconditions.check(
                 new UsesMethod<>(PM_WHEN_NEW),
                 new JavaVisitor<ExecutionContext>() {
-                    public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                    public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         if (THEN_RETURN.matches(method) && method.getSelect() instanceof J.MethodInvocation) {
                             J.MethodInvocation select1 = (J.MethodInvocation) method.getSelect();
                             if (WITH_NO_ARGUMENTS.matches(select1) && select1.getSelect() instanceof J.MethodInvocation) {
