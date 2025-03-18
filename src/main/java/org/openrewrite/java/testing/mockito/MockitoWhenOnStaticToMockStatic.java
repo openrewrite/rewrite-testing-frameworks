@@ -60,20 +60,20 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 }
 
                 List<Statement> newStatements = isMethodDeclarationWithAnnotation(md, BEFORE) ?
-                        maybeStatementsToMockedStatic(md, md.getBody().getStatements()) :
-                        maybeWrapStatementsInTryWithResourcesMockedStatic(md, md.getBody().getStatements());
+                        maybeStatementsToMockedStatic(md, md.getBody().getStatements(), ctx) :
+                        maybeWrapStatementsInTryWithResourcesMockedStatic(md, md.getBody().getStatements(), ctx);
 
                 return maybeAutoFormat(md, md.withBody(md.getBody().withStatements(newStatements)), ctx);
             }
 
-            private List<Statement> maybeStatementsToMockedStatic(J.MethodDeclaration m, List<Statement> statements) {
+            private List<Statement> maybeStatementsToMockedStatic(J.MethodDeclaration m, List<Statement> statements, ExecutionContext ctx) {
                 List<Statement> list = new ArrayList<>();
                 for (Statement statement : statements) {
                     J.MethodInvocation whenArg = getWhenArg(statement);
                     if (whenArg != null) {
                         String className = getClassName(whenArg);
                         if (className != null) {
-                            list.addAll(mockedStatic(m, (J.MethodInvocation) statement, className, whenArg));
+                            list.addAll(mockedStatic(m, (J.MethodInvocation) statement, className, whenArg, ctx));
                         }
                     } else {
                         list.add(statement);
@@ -82,7 +82,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 return list;
             }
 
-            private List<Statement> maybeWrapStatementsInTryWithResourcesMockedStatic(J.MethodDeclaration m, List<Statement> statements) {
+            private List<Statement> maybeWrapStatementsInTryWithResourcesMockedStatic(J.MethodDeclaration m, List<Statement> statements, ExecutionContext ctx) {
                 AtomicBoolean restInTry = new AtomicBoolean(false);
                 return ListUtils.map(statements, (index, statement) -> {
                     if (restInTry.get()) {
@@ -95,7 +95,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         String className = getClassName(whenArg);
                         if (className != null) {
                             restInTry.set(true);
-                            return tryWithMockedStatic(m, statements, index, (J.MethodInvocation) statement, className, whenArg);
+                            return tryWithMockedStatic(m, statements, index, (J.MethodInvocation) statement, className, whenArg, ctx);
                         }
                     }
                     return statement;
@@ -125,26 +125,14 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 return clazz != null && clazz.getType() != null ? clazz.getSimpleName() : null;
             }
 
-            private J.Try tryWithMockedStatic(
-                    J.MethodDeclaration m,
-                    List<Statement> statements,
-                    Integer index,
-                    J.MethodInvocation statement,
-                    String className,
-                    J.MethodInvocation whenArg) {
+            private J.Try tryWithMockedStatic(J.MethodDeclaration m, List<Statement> statements, Integer index,
+                    J.MethodInvocation statement, String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
                 Expression thenReturnArg = statement.getArguments().get(0);
 
-                maybeAddImport("org.mockito.MockedStatic", false);
-                maybeAddImport("org.mockito.Mockito", "mockStatic");
-
-                J.MethodDeclaration md = JavaTemplate.builder(String.format(
+                J.MethodDeclaration md = javaTemplateMockStatic(String.format(
                         "try(MockedStatic<%1$s> %2$s = mockStatic(%1$s.class)) {\n" +
                         "    %2$s.when(() -> #{any()}).thenReturn(#{any()});\n" +
-                        "}", className, generateVariableName("mock" + className, updateCursor(m), INCREMENT_NUMBER)))
-                        .contextSensitive()
-                        .imports("org.mockito.MockedStatic")
-                        .staticImports("org.mockito.Mockito.mockStatic")
-                        .build()
+                        "}", className, generateVariableName("mock" + className, updateCursor(m), INCREMENT_NUMBER)), ctx)
                         .apply(getCursor(), m.getCoordinates().replaceBody(), whenArg, thenReturnArg);
                 J.Try try_ = (J.Try) md.getBody().getStatements().get(0);
 
@@ -154,31 +142,19 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
                 List<Statement> newStatements = ListUtils.concatAll(
                         try_.getBody().getStatements(),
-                        maybeWrapStatementsInTryWithResourcesMockedStatic(m.withBody(m.getBody().withStatements(handledStatements)), remainingStatements));
+                        maybeWrapStatementsInTryWithResourcesMockedStatic(m.withBody(m.getBody().withStatements(handledStatements)), remainingStatements, ctx));
 
                 return try_.withBody(try_.getBody().withStatements(newStatements))
                         .withPrefix(statement.getPrefix());
             }
 
-            private List<Statement> mockedStatic(
-                    J.MethodDeclaration m,
-                    J.MethodInvocation statement,
-                    String className,
-                    J.MethodInvocation whenArg) {
+            private List<Statement> mockedStatic(J.MethodDeclaration m, J.MethodInvocation statement,  String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
                 String variableName = generateVariableName("mock" + className, updateCursor(m), INCREMENT_NUMBER);
                 Expression thenReturnArg = statement.getArguments().get(0);
 
-                maybeAddImport("org.mockito.MockedStatic", false);
-                maybeAddImport("org.mockito.Mockito", "mockStatic");
-
-                J.MethodDeclaration md = JavaTemplate.builder(String.format(
-                                "%2$s = mockStatic(%1$s.class);\n" +
-                                "%2$s.when(() -> #{any()}).thenReturn(#{any()});\n"
-                                , className, variableName))
-                        .contextSensitive()
-                        .imports("org.mockito.MockedStatic")
-                        .staticImports("org.mockito.Mockito.mockStatic")
-                        .build()
+                J.MethodDeclaration md = javaTemplateMockStatic(String.format(
+                        "%2$s = mockStatic(%1$s.class);\n" +
+                        "%2$s.when(() -> #{any()}).thenReturn(#{any()});", className, variableName), ctx)
                         .apply(getCursor(), m.getCoordinates().replaceBody(), whenArg, thenReturnArg);
 
                 doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
@@ -223,6 +199,18 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 });
 
                 return md.getBody().getStatements();
+            }
+
+            private JavaTemplate javaTemplateMockStatic(String code, ExecutionContext ctx) {
+                maybeAddImport("org.mockito.MockedStatic", false);
+                maybeAddImport("org.mockito.Mockito", "mockStatic");
+
+                return JavaTemplate.builder(code)
+                        .contextSensitive()
+                        .imports("org.mockito.MockedStatic")
+                        .staticImports("org.mockito.Mockito.mockStatic")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
+                        .build();
             }
         });
     }
