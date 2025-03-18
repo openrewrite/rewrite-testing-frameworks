@@ -46,9 +46,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
         return Preconditions.check(
                 new UsesMethod<>(PM_WHEN_NEW),
                 new JavaVisitor<ExecutionContext>() {
-
-                    public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                    public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
+                    public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         if (THEN_RETURN.matches(method) && method.getSelect() instanceof J.MethodInvocation) {
                             J.MethodInvocation select1 = (J.MethodInvocation) method.getSelect();
                             if (WITH_NO_ARGUMENTS.matches(select1) && select1.getSelect() instanceof J.MethodInvocation) {
@@ -69,12 +67,12 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                                 }
                             }
                         }
-                        return super.visitMethodInvocation(method, executionContext);
+                        return super.visitMethodInvocation(method, ctx);
                     }
 
                     @Override
-                    public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-                        J ret = super.visitMethodDeclaration(method, executionContext);
+                    public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                        J ret = super.visitMethodDeclaration(method, ctx);
                         J.FieldAccess mockArgument = getCursor().getMessage("POWERMOCKITO_WHEN_NEW_REPLACED");
                         if (mockArgument != null && ret instanceof J.MethodDeclaration) {
                             J.MethodDeclaration retM = (J.MethodDeclaration) ret;
@@ -90,7 +88,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                                     .build();
                             J.MethodDeclaration applied = template.apply(updateCursor(ret), method.getBody().getCoordinates().firstStatement());
                             J.Try tryy = (J.Try) applied.getBody().getStatements().get(0);
-                            return autoFormat(applied.withBody(applied.getBody().withStatements(Collections.singletonList(tryy.withBody(originalBody)))), executionContext);
+                            return autoFormat(applied.withBody(applied.getBody().withStatements(Collections.singletonList(tryy.withBody(originalBody)))), ctx);
                         }
                         return ret;
                     }
