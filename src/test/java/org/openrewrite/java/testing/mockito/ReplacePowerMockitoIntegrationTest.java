@@ -715,7 +715,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
                   @Test
                   public final void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator> m = Mockito.mockConstruction(Generator.class)) {
+                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
                           Generator mock2 = mock(Generator.class);
 
                           Generator gen = new Generator();

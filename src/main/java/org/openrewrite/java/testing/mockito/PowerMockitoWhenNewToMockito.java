@@ -16,17 +16,14 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.openrewrite.*;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.openrewrite.Tree.randomId;
 
 public class PowerMockitoWhenNewToMockito extends Recipe {
 
@@ -55,7 +52,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                             J.MethodInvocation select1 = (J.MethodInvocation) method.getSelect();
                             if (WITH_NO_ARGUMENTS.matches(select1) && select1.getSelect() instanceof J.MethodInvocation) {
                                 J.MethodInvocation select2 = (J.MethodInvocation) select1.getSelect();
-                                if (PM_WHEN_NEW.matches(select2)) {
+                                if (PM_WHEN_NEW.matches(select2) && select2.getArguments().size() == 1) {
                                     maybeRemoveImport("org.powermock.api.mockito.PowerMockito");
                                     maybeAddImport("org.mockito.Mockito", "whenConstructed");
 
@@ -63,9 +60,9 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                                     while (c != null && !(c.getValue() instanceof J.MethodDeclaration)) {
                                         c = c.getParent();
                                     }
-                                    if (c != null) {
-                                        c.putMessage("POWERMOCKITO_WHEN_NEW_REPLACED", select2.getArguments());
-                                        c.putMessage("POWERMOCKITO_WHEN_NEW_CURSOR", getCursor());
+                                    Expression argument = select2.getArguments().get(0);
+                                    if (c != null && argument instanceof J.FieldAccess) {
+                                        c.putMessage("POWERMOCKITO_WHEN_NEW_REPLACED", (J.FieldAccess) argument);
                                         return null;
                                     }
                                 }
@@ -77,31 +74,22 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                     @Override
                     public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
                         J ret = super.visitMethodDeclaration(method, executionContext);
-                        List<Expression> mockArguments = getCursor().getMessage("POWERMOCKITO_WHEN_NEW_REPLACED");
-                        if (mockArguments != null && ret instanceof J.MethodDeclaration) {
+                        J.FieldAccess mockArgument = getCursor().getMessage("POWERMOCKITO_WHEN_NEW_REPLACED");
+                        if (mockArgument != null && ret instanceof J.MethodDeclaration) {
                             J.MethodDeclaration retM = (J.MethodDeclaration) ret;
                             J.Block originalBody = retM.getBody();
 
                             // onlyIfReferenced=false as `maybeAddImport` doesn't seem to find the type referred to in a try statement
+                            // see https://github.com/openrewrite/rewrite/issues/5187
                             maybeAddImport("org.mockito.MockedConstruction", false);
 
-                            List<JRightPadded<J.Try.Resource>> resources = mockArguments.stream().map(arg -> {
-                                // TODO "m" is not a good name
-                                J.Identifier name = new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, Collections.emptyList(), "m", null, null);
-                                JavaType typeMockito = JavaType.buildType("org.mockito.Mockito");
-                                JRightPadded<Expression> mockitoSelect = JRightPadded.build(new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, Collections.emptyList(), "Mockito", typeMockito, null));
-                                J.Identifier mockConstructionIdentifier = new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, Collections.emptyList(), "mockConstruction", null, null);
-                                Expression expr = new J.MethodInvocation(randomId(), Space.EMPTY, Markers.EMPTY, mockitoSelect, null, mockConstructionIdentifier, JContainer.build(Collections.singletonList(JRightPadded.build(arg))), null);
-                                J.VariableDeclarations.NamedVariable varr = new J.VariableDeclarations.NamedVariable(randomId(), Space.EMPTY, Markers.EMPTY, name, Collections.emptyList(), JLeftPadded.build(expr), null);
-                                JContainer<Expression> lhsTypeParameter = JContainer.build(Collections.singletonList(JRightPadded.build(new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, Collections.emptyList(), "Generator", null, null))));
-                                NameTree todoIdentifier = new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, Collections.emptyList(), "MockedConstruction", null, null);
-                                TypeTree typeexpr = new J.ParameterizedType(randomId(), Space.EMPTY, Markers.EMPTY, todoIdentifier, lhsTypeParameter, null);
-                                TypedTree vd = new J.VariableDeclarations(randomId(), Space.EMPTY, Markers.EMPTY, Collections.emptyList(), Collections.emptyList(), typeexpr, null, Collections.emptyList(), Collections.singletonList(JRightPadded.build(varr)));
-                                J.Try.Resource r = new J.Try.Resource(randomId(), Space.EMPTY, Markers.EMPTY, vd, false);
-                                return JRightPadded.build(r);
-                            }).collect(Collectors.toList());
-                            J.Try tryy = new J.Try(randomId(), Space.EMPTY, Markers.EMPTY, JContainer.build(resources), originalBody, Collections.emptyList(), null);
-                            return autoFormat(retM.withBody(originalBody.withStatements(Collections.singletonList(tryy))), executionContext);
+                            String mockedClassName = ((J.Identifier) mockArgument.getTarget()).getSimpleName();
+                            JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> mock%s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, mockedClassName, mockedClassName))
+                                    .contextSensitive()
+                                    .build();
+                            J.MethodDeclaration applied = template.apply(updateCursor(ret), method.getBody().getCoordinates().firstStatement());
+                            J.Try tryy = (J.Try) applied.getBody().getStatements().get(0);
+                            return autoFormat(applied.withBody(applied.getBody().withStatements(Collections.singletonList(tryy.withBody(originalBody)))), executionContext);
                         }
                         return ret;
                     }
