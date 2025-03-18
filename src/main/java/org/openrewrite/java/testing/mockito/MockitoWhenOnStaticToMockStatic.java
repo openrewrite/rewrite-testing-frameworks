@@ -170,12 +170,12 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                     .filter(it -> isMethodDeclarationWithAnnotation(it, BEFORE))
                                     .findFirst();
                             if (beforeMethod.isPresent()) {
+                                maybeAddImport("org.junit.After");
                                 after = JavaTemplate.builder("@After public void tearDown() {}")
                                         .imports("org.junit.After")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-4"))
                                         .build()
                                         .apply(updateCursor(after), beforeMethod.get().getCoordinates().after());
-                                maybeAddImport("org.junit.After", false);
                             }
                         }
 
@@ -204,7 +204,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             private JavaTemplate javaTemplateMockStatic(String code, ExecutionContext ctx) {
                 maybeAddImport("org.mockito.MockedStatic", false);
                 maybeAddImport("org.mockito.Mockito", "mockStatic");
-
                 return JavaTemplate.builder(code)
                         .contextSensitive()
                         .imports("org.mockito.MockedStatic")
