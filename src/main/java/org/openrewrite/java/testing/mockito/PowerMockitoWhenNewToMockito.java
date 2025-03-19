@@ -45,54 +45,52 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(
-                new UsesMethod<>(PM_WHEN_NEW),
-                new JavaVisitor<ExecutionContext>() {
-                    @Override
-                    public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                        if (THEN_RETURN.matches(method) && method.getSelect() instanceof J.MethodInvocation) {
-                            J.MethodInvocation select1 = (J.MethodInvocation) method.getSelect();
-                            if (WITH_NO_ARGUMENTS.matches(select1) && select1.getSelect() instanceof J.MethodInvocation) {
-                                J.MethodInvocation select2 = (J.MethodInvocation) select1.getSelect();
-                                if (PM_WHEN_NEW.matches(select2) && select2.getArguments().size() == 1) {
-                                    maybeRemoveImport("org.powermock.api.mockito.PowerMockito");
+        return Preconditions.check(new UsesMethod<>(PM_WHEN_NEW), new JavaVisitor<ExecutionContext>() {
+            @Override
+            public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                if (THEN_RETURN.matches(method) && method.getSelect() instanceof J.MethodInvocation) {
+                    J.MethodInvocation select1 = (J.MethodInvocation) method.getSelect();
+                    if (WITH_NO_ARGUMENTS.matches(select1) && select1.getSelect() instanceof J.MethodInvocation) {
+                        J.MethodInvocation select2 = (J.MethodInvocation) select1.getSelect();
+                        if (PM_WHEN_NEW.matches(select2) && select2.getArguments().size() == 1) {
+                            maybeRemoveImport("org.powermock.api.mockito.PowerMockito");
 
-                                    Cursor c = getCursor().dropParentUntil(x -> x instanceof J.MethodDeclaration);
-                                    Expression argument = select2.getArguments().get(0);
-                                    if (argument instanceof J.FieldAccess) {
-                                        c.putMessage("POWERMOCKITO_WHEN_NEW_REPLACED", (J.FieldAccess) argument);
-                                        return null;
-                                    }
-                                }
+                            Cursor c = getCursor().dropParentUntil(x -> x instanceof J.MethodDeclaration);
+                            Expression argument = select2.getArguments().get(0);
+                            if (argument instanceof J.FieldAccess) {
+                                c.putMessage("POWERMOCKITO_WHEN_NEW_REPLACED", (J.FieldAccess) argument);
+                                return null;
                             }
                         }
-                        return super.visitMethodInvocation(method, ctx);
                     }
+                }
+                return super.visitMethodInvocation(method, ctx);
+            }
 
-                    @Override
-                    public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                        J ret = super.visitMethodDeclaration(method, ctx);
-                        J.FieldAccess mockArgument = getCursor().getMessage("POWERMOCKITO_WHEN_NEW_REPLACED");
-                        if (mockArgument != null && ret instanceof J.MethodDeclaration) {
-                            J.MethodDeclaration retM = (J.MethodDeclaration) ret;
-                            J.Block originalBody = retM.getBody();
+            @Override
+            public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                J ret = super.visitMethodDeclaration(method, ctx);
+                J.FieldAccess mockArgument = getCursor().getMessage("POWERMOCKITO_WHEN_NEW_REPLACED");
+                if (mockArgument != null && ret instanceof J.MethodDeclaration) {
+                    J.MethodDeclaration retM = (J.MethodDeclaration) ret;
+                    J.Block originalBody = retM.getBody();
 
-                            // onlyIfReferenced=false as `maybeAddImport` doesn't seem to find the type referred to in a try statement
-                            // see https://github.com/openrewrite/rewrite/issues/5187
-                            maybeAddImport("org.mockito.MockedConstruction", false);
+                    // onlyIfReferenced=false as `maybeAddImport` doesn't seem to find the type referred to in a try statement
+                    // see https://github.com/openrewrite/rewrite/issues/5187
+                    maybeAddImport("org.mockito.MockedConstruction", false);
 
-                            String mockedClassName = ((J.Identifier) mockArgument.getTarget()).getSimpleName();
-                            String variableNameForMock = VariableNameUtils.generateVariableName("mock" + mockedClassName, getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
-                            JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
-                                    .contextSensitive()
-                                    .build();
-                            // For some reason the getCoordinates().replace() didn't work. Thus using the trick of `.firstStatement()` and then removing the extra statements
-                            J.MethodDeclaration applied = template.apply(updateCursor(ret), method.getBody().getCoordinates().firstStatement());
-                            J.Try tryy = (J.Try) applied.getBody().getStatements().get(0);
-                            return autoFormat(applied.withBody(applied.getBody().withStatements(Collections.singletonList(tryy.withBody(originalBody)))), ctx);
-                        }
-                        return ret;
-                    }
-                });
+                    String mockedClassName = ((J.Identifier) mockArgument.getTarget()).getSimpleName();
+                    String variableNameForMock = VariableNameUtils.generateVariableName("mock" + mockedClassName, getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                    JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
+                            .contextSensitive()
+                            .build();
+                    // For some reason the getCoordinates().replace() didn't work. Thus using the trick of `.firstStatement()` and then removing the extra statements
+                    J.MethodDeclaration applied = template.apply(updateCursor(ret), method.getBody().getCoordinates().firstStatement());
+                    J.Try tryy = (J.Try) applied.getBody().getStatements().get(0);
+                    return autoFormat(applied.withBody(applied.getBody().withStatements(Collections.singletonList(tryy.withBody(originalBody)))), ctx);
+                }
+                return ret;
+            }
+        });
     }
 }
