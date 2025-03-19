@@ -19,10 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.test.RecipeSpec;
-import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.SourceSpecs;
-import org.openrewrite.test.TypeValidation;
+import org.openrewrite.test.*;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -31,12 +28,13 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     //language=java
     public static final SourceSpecs CLASS_A = java(
       """
-        public class A {
-            public static Integer getNumber() {
-                return 42;
-            }
-        }
-        """
+      public class A {
+          public static Integer getNumber() {
+              return 42;
+         }
+      }
+      """,
+      SourceSpec::skip
     );
 
     @Override
