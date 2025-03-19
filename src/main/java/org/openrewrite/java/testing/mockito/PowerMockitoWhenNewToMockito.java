@@ -84,7 +84,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                     JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
                             .contextSensitive()
                             .build();
-                    J.MethodDeclaration applied = template.apply(updateCursor(ret), method.getCoordinates().replaceBody());
+                    J.MethodDeclaration applied = template.apply(getCursor(), method.getCoordinates().replaceBody());
                     J.Try tryy = (J.Try) applied.getBody().getStatements().get(0);
                     return autoFormat(applied.withBody(applied.getBody().withStatements(Collections.singletonList(tryy.withBody(originalBody)))), ctx);
                 }
