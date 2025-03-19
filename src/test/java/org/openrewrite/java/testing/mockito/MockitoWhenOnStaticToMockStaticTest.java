@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -80,8 +79,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               class Test {
                   void test() {
                       System.out.println("some statement");
-                      try (MockedStatic<A> mockA = mockStatic(A.class)) {
-                          mockA.when(() -> A.getNumber()).thenReturn(-1);
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
                           assertEquals(A.getNumber(), -1);
                       }
                   }
@@ -92,48 +91,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     }
 
     @Test
-    void shouldRefactorMockito_WhenNestedStatements() {
-        //language=java
-        rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
-          java(
-            """
-              import static org.junit.Assert.assertEquals;
-              import static org.mockito.Mockito.*;
-
-              class Test {
-                  void test() {
-                      if (true) {
-                          when(A.getNumber()).thenReturn(-1);
-                          assertEquals(A.getNumber(), -1);
-                      }
-                  }
-              }
-              """,
-            """
-              import org.mockito.MockedStatic;
-
-              import static org.junit.Assert.assertEquals;
-              import static org.mockito.Mockito.*;
-
-              class Test {
-                  void test() {
-                      if (true) {
-                          try (MockedStatic<A> mockA = mockStatic(A.class)) {
-                              mockA.when(() -> A.getNumber()).thenReturn(-1);
-                              assertEquals(A.getNumber(), -1);
-                          }
-                      }
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void shouldHandleMultipleStaticMocks() {
+    void shouldHandleMultipleStaticMocksAndNestedStatements() {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
@@ -150,6 +108,16 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
                       when(A.getNumber()).thenReturn(-2);
                       assertEquals(A.getNumber(), -2);
+
+                      if (true) {
+                          when(A.getNumber()).thenReturn(-3);
+                          assertEquals(A.getNumber(), -3);
+
+                          when(A.getNumber()).thenReturn(-4);
+                          assertEquals(A.getNumber(), -4);
+                      }
+
+                      assertEquals(A.getNumber(), -2);
                   }
               }
               """,
@@ -161,12 +129,26 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
               class Test {
                   void test() {
-                      try (MockedStatic<A> mockA = mockStatic(A.class)) {
-                          mockA.when(() -> A.getNumber()).thenReturn(-1);
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
                           assertEquals(A.getNumber(), -1);
 
-                          try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
-                              mockA1.when(() -> A.getNumber()).thenReturn(-2);
+                          try (MockedStatic<A> mockA2 = mockStatic(A.class)) {
+                              mockA2.when(() -> A.getNumber()).thenReturn(-2);
+                              assertEquals(A.getNumber(), -2);
+
+                              if (true) {
+                                  try (MockedStatic<A> mockA3 = mockStatic(A.class)) {
+                                      mockA3.when(() -> A.getNumber()).thenReturn(-3);
+                                      assertEquals(A.getNumber(), -3);
+
+                                      try (MockedStatic<A> mockA4 = mockStatic(A.class)) {
+                                          mockA4.when(() -> A.getNumber()).thenReturn(-4);
+                                          assertEquals(A.getNumber(), -4);
+                                      }
+                                  }
+                              }
+
                               assertEquals(A.getNumber(), -2);
                           }
                       }
@@ -210,17 +192,17 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               import static org.junit.Assert.assertEquals;
 
               class Test {
-                  private MockedStatic<A> mockA;
+                  private MockedStatic<A> mockA1;
 
                   @Before
                   public void setUp() {
-                      mockA = mockStatic(A.class);
-                      mockA.when(() -> A.getNumber()).thenReturn(-1);
+                      mockA1 = mockStatic(A.class);
+                      mockA1.when(() -> A.getNumber()).thenReturn(-1);
                   }
 
                   @After
                   public void tearDown() {
-                      mockA.close();
+                      mockA1.close();
                   }
 
                   void test1() {
@@ -271,18 +253,18 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               import static org.junit.Assert.assertEquals;
 
               class Test {
-                  private MockedStatic<A> mockA;
+                  private MockedStatic<A> mockA1;
 
                   @Before
                   public void setUp() {
-                      mockA = mockStatic(A.class);
-                      mockA.when(() -> A.getNumber()).thenReturn(-1);
+                      mockA1 = mockStatic(A.class);
+                      mockA1.when(() -> A.getNumber()).thenReturn(-1);
                   }
 
                   @After
                   public void tearDown() {
                       System.out.println("some statement");
-                      mockA.close();
+                      mockA1.close();
                   }
 
                   void test() {
