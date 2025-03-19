@@ -57,9 +57,9 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                                 if (PM_WHEN_NEW.matches(select2) && select2.getArguments().size() == 1) {
                                     maybeRemoveImport("org.powermock.api.mockito.PowerMockito");
 
-                                    Cursor c = getCursor().dropParentUntil(c -> c instanceof J.MethodDeclaration);
+                                    Cursor c = getCursor().dropParentUntil(x -> x instanceof J.MethodDeclaration);
                                     Expression argument = select2.getArguments().get(0);
-                                    if (c != null && argument instanceof J.FieldAccess) {
+                                    if (argument instanceof J.FieldAccess) {
                                         c.putMessage("POWERMOCKITO_WHEN_NEW_REPLACED", (J.FieldAccess) argument);
                                         return null;
                                     }
