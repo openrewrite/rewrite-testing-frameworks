@@ -131,11 +131,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                             }
                             return true;
                         });
-                        if (variables.isEmpty()) {
-                            return null;
-                        } else {
-                            return ret.withVariables(variables);
-                        }
+                        return variables.isEmpty() ? null : ret.withVariables(variables);
                     }
                 };
             }
