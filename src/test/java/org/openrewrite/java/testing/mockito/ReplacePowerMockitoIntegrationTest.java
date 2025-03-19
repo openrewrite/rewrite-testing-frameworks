@@ -715,7 +715,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   @Test
                   public final void testNumbers() throws Exception {
                       try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
-                          Generator mock = mock(Generator.class);
 
                           Generator gen = new Generator();
                           when(gen.getLuckyNumber()).thenReturn(504);
@@ -775,10 +774,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
                     assertEquals(504, gen2.getLuckyNumber());
                 }
-
-                public final String otherMethod() {
-                  return "no change here";
-                }
             }
             """,
             """
@@ -806,14 +801,11 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                 public final void testNumbers() throws Exception {
                     try (MockedConstruction<Generator2> mockGenerator2 = Mockito.mockConstruction(Generator2.class)) {
                         try (MockedConstruction<Generator1> mockGenerator1 = Mockito.mockConstruction(Generator1.class)) {
-                            Generator1 mock1 = mock(Generator1.class);
 
                             Generator1 gen1 = new Generator1();
                             when(gen1.getLuckyNumber()).thenReturn(504);
 
                             assertEquals(504, gen1.getLuckyNumber());
-
-                            Generator2 mock2 = mock(Generator2.class);
 
                             Generator2 gen2 = new Generator2();
                             when(gen2.getLuckyNumber()).thenReturn(504);
@@ -821,10 +813,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                             assertEquals(504, gen2.getLuckyNumber());
                         }
                     }
-                }
-
-                public final String otherMethod() {
-                  return "no change here";
                 }
             }
             """

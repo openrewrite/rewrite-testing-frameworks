@@ -15,12 +15,11 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.VariableNameUtils;
+import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -28,12 +27,16 @@ import org.openrewrite.java.tree.J;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class PowerMockitoWhenNewToMockito extends Recipe {
 
     private static final MethodMatcher PM_WHEN_NEW = new MethodMatcher("org.powermock.api.mockito.PowerMockito whenNew(..)");
     private static final MethodMatcher WITH_NO_ARGUMENTS = new MethodMatcher("*..* withNoArguments(..)");
     private static final MethodMatcher THEN_RETURN = new MethodMatcher("org.mockito.stubbing.OngoingStubbing thenReturn(..)");
+    private static final MethodMatcher MOCKITO_MOCK = new MethodMatcher("org.mockito.Mockito mock(..)");
+    private static final MethodMatcher PM_MOCK = new MethodMatcher("org.powermock.api.mockito.PowerMockito mock(..)");
 
     @Override
     public String getDisplayName() {
@@ -76,6 +79,8 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                 J ret = super.visitMethodDeclaration(method, ctx);
                 List<J.FieldAccess> mockArguments = getCursor().getMessage("POWERMOCKITO_WHEN_NEW_REPLACED");
                 if (mockArguments != null && ret instanceof J.MethodDeclaration) {
+                    doAfterVisit(removeMockUsagesVisitor(mockArguments, method.toString()));
+
                     J.MethodDeclaration retM = (J.MethodDeclaration) ret;
 
                     // onlyIfReferenced=false as `maybeAddImport` doesn't seem to find the type referred to in a try statement
@@ -95,6 +100,42 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                     return autoFormat(retM, ctx);
                 }
                 return ret;
+            }
+
+            private @NotNull JavaIsoVisitor<ExecutionContext> removeMockUsagesVisitor(List<J.FieldAccess> mockArguments, String inMethodSignature) {
+                Set<String> mockedClassNames = mockArguments.stream().map(fa -> {
+                    return ((J.Identifier) fa.getTarget()).getSimpleName();
+                }).collect(Collectors.toSet());
+                return new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+                        J.VariableDeclarations ret = super.visitVariableDeclarations(multiVariable, ctx);
+                        Cursor containingMethod = getCursor().dropParentUntil(x -> x instanceof J.MethodDeclaration);
+                        if (!inMethodSignature.equals(containingMethod.getValue().toString())) {
+                            return ret;
+                        }
+                        List<J.VariableDeclarations.NamedVariable> variables = ListUtils.filter(ret.getVariables(), varr -> {
+                            // The original code likely contains PowerMockito.mock(), but that gets converted to Mockito.mock() by other subrecipes of
+                            // org.openrewrite.java.testing.mockito.ReplacePowerMockito, so we need to check both.
+                            if (varr.getInitializer() instanceof J.MethodInvocation && (MOCKITO_MOCK.matches(varr.getInitializer()) || PM_MOCK.matches(varr.getInitializer()))) {
+                                J.MethodInvocation initializer = (J.MethodInvocation) varr.getInitializer();
+                                if (initializer.getArguments().size() == 1 && initializer.getArguments().get(0) instanceof J.FieldAccess) {
+                                    J.FieldAccess classReference = (J.FieldAccess) initializer.getArguments().get(0);
+                                    String mockedClassName = ((J.Identifier) classReference.getTarget()).getSimpleName();
+                                    if (mockedClassNames.contains(mockedClassName)) {
+                                        return false;
+                                    }
+                                }
+                            }
+                            return true;
+                        });
+                        if (variables.isEmpty()) {
+                            return null;
+                        } else {
+                            return ret.withVariables(variables);
+                        }
+                    }
+                };
             }
         });
     }
