@@ -84,8 +84,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                     JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
                             .contextSensitive()
                             .build();
-                    // For some reason the getCoordinates().replace() didn't work. Thus using the trick of `.firstStatement()` and then removing the extra statements
-                    J.MethodDeclaration applied = template.apply(updateCursor(ret), method.getBody().getCoordinates().firstStatement());
+                    J.MethodDeclaration applied = template.apply(updateCursor(ret), method.getCoordinates().replaceBody());
                     J.Try tryy = (J.Try) applied.getBody().getStatements().get(0);
                     return autoFormat(applied.withBody(applied.getBody().withStatements(Collections.singletonList(tryy.withBody(originalBody)))), ctx);
                 }
