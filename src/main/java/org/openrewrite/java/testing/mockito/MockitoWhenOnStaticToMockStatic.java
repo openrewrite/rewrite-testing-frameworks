@@ -60,7 +60,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
         return Preconditions.check(new UsesMethod<>(MOCKITO_WHEN), new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitBlock(J.Block block, ExecutionContext ctx) {
-
                 List<Statement> newStatements = isMethodDeclarationWithAnnotation(getCursor().firstEnclosing(J.MethodDeclaration.class), BEFORE) ?
                         maybeStatementsToMockedStatic(block, block.getStatements(), ctx) :
                         maybeWrapStatementsInTryWithResourcesMockedStatic(block, block.getStatements(), ctx);
@@ -130,17 +129,17 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             }
 
 
-            private J.Try tryWithMockedStatic(J.Block b, List<Statement> statements, Integer index,
+            private J.Try tryWithMockedStatic(J.Block block, List<Statement> statements, Integer index,
                                               J.MethodInvocation statement, String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
-                String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(b), INCREMENT_NUMBER);
+                String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 Expression thenReturnArg = statement.getArguments().get(0);
 
-                J.Block block = javaTemplateMockStatic(String.format(
+                J.Try try_ = (J.Try) javaTemplateMockStatic(String.format(
                         "try(MockedStatic<%1$s> %2$s = mockStatic(%1$s.class)) {\n" +
                                 "    %2$s.when(() -> #{any()}).thenReturn(#{any()});\n" +
                                 "}", className, variableName), ctx)
-                        .apply(getCursor(), b.getCoordinates().firstStatement(), whenArg, thenReturnArg);
-                J.Try try_ = (J.Try) block.getStatements().get(0);
+                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, thenReturnArg)
+                        .getStatements().get(0);
 
                 List<Statement> precedingStatements = statements.subList(0, index);
                 List<Statement> handledStatements = ListUtils.concat(precedingStatements, try_);
@@ -148,20 +147,21 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
                 List<Statement> newStatements = ListUtils.concatAll(
                         try_.getBody().getStatements(),
-                        maybeWrapStatementsInTryWithResourcesMockedStatic(b.withStatements(handledStatements), remainingStatements, ctx));
+                        maybeWrapStatementsInTryWithResourcesMockedStatic(block.withStatements(handledStatements), remainingStatements, ctx));
 
                 return try_.withBody(try_.getBody().withStatements(newStatements))
                         .withPrefix(statement.getPrefix());
             }
 
-            private List<Statement> mockedStatic(J.Block m, J.MethodInvocation statement,  String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
-                String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(m), INCREMENT_NUMBER);
+            private List<Statement> mockedStatic(J.Block block, J.MethodInvocation statement,  String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
+                String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 Expression thenReturnArg = statement.getArguments().get(0);
 
-                J.Block block = javaTemplateMockStatic(String.format(
+                List<Statement> statements = javaTemplateMockStatic(String.format(
                         "%2$s = mockStatic(%1$s.class);\n" +
                                 "%2$s.when(() -> #{any()}).thenReturn(#{any()});", className, variableName), ctx)
-                        .apply(getCursor(), m.getCoordinates().replace(), whenArg, thenReturnArg);
+                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, thenReturnArg)
+                        .getStatements().subList(0, 2);
 
                 doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
                     @Override
@@ -204,7 +204,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     }
                 });
 
-                return block.getStatements();
+                return statements;
             }
 
             private JavaTemplate javaTemplateMockStatic(String code, ExecutionContext ctx) {
