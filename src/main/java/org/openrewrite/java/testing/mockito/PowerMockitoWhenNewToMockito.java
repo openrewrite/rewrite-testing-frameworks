@@ -29,6 +29,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
+import static org.openrewrite.java.VariableNameUtils.generateVariableName;
+
 public class PowerMockitoWhenNewToMockito extends Recipe {
 
     private static final MethodMatcher PM_WHEN_NEW = new MethodMatcher("org.powermock.api.mockito.PowerMockito whenNew(..)");
@@ -88,7 +91,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
 
                     for (J.FieldAccess mockArgument: mockArguments) {
                         String mockedClassName = ((J.Identifier) mockArgument.getTarget()).getSimpleName();
-                        String variableNameForMock = VariableNameUtils.generateVariableName("mock" + mockedClassName, updateCursor(ret), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                        String variableNameForMock = generateVariableName("mock" + mockedClassName, updateCursor(ret), INCREMENT_NUMBER);
                         JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
                                 .contextSensitive()
                                 .imports("org.mockito.MockedConstruction")
