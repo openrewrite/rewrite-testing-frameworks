@@ -28,6 +28,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,7 +40,9 @@ import static org.openrewrite.java.tree.Flag.Static;
 public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     private static final AnnotationMatcher BEFORE = new AnnotationMatcher("org.junit.Before");
+    private static final AnnotationMatcher BEFORE_CLASS = new AnnotationMatcher("org.junit.BeforeClass");
     private static final AnnotationMatcher AFTER = new AnnotationMatcher("org.junit.After");
+    private static final AnnotationMatcher AFTER_CLASS = new AnnotationMatcher("org.junit.AfterClass");
     private static final MethodMatcher MOCKITO_WHEN = new MethodMatcher("org.mockito.Mockito when(..)");
 
     private int varCounter = 0;
@@ -52,20 +55,20 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
     @Override
     public String getDescription() {
         return "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic as Mockito4 no longer allows this." +
+                "When `@Before` or `@BeforeClass` is used, a `close` method is added to either the `@After` or `@AfterClass` method." +
                 "This change moves away from implicit bytecode manipulation for static method stubbing, making mocking behavior more explicit and scoped to avoid unintended side effects.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(MOCKITO_WHEN), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(MOCKITO_WHEN), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J visitBlock(J.Block block, ExecutionContext ctx) {
-                List<Statement> newStatements = isMethodDeclarationWithAnnotation(getCursor().firstEnclosing(J.MethodDeclaration.class), BEFORE) ?
+            public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
+                List<Statement> newStatements = isMethodDeclarationWithAnnotation(getCursor().firstEnclosing(J.MethodDeclaration.class), BEFORE, BEFORE_CLASS) ?
                         maybeStatementsToMockedStatic(block, block.getStatements(), ctx) :
                         maybeWrapStatementsInTryWithResourcesMockedStatic(block, block.getStatements(), ctx);
 
-                J.Block b = (J.Block) super.visitBlock(block.withStatements(newStatements), ctx);
-
+                J.Block b = super.visitBlock(block.withStatements(newStatements), ctx);
                 return maybeAutoFormat(block, b, ctx);
             }
 
@@ -154,6 +157,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             }
 
             private List<Statement> mockedStatic(J.Block block, J.MethodInvocation statement,  String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
+                boolean staticSetup = isMethodDeclarationWithAnnotation(getCursor().firstEnclosing(J.MethodDeclaration.class), BEFORE_CLASS);
                 String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 Expression thenReturnArg = statement.getArguments().get(0);
 
@@ -166,19 +170,23 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                        J.ClassDeclaration after = JavaTemplate.builder(String.format("private MockedStatic<%1$s> %2$s;", className, variableName))
+                        J.ClassDeclaration after = JavaTemplate.builder(
+                                String.format("private%s MockedStatic<%s> %s;", staticSetup ? " static" : "", className, variableName))
                                 .contextSensitive()
                                 .build()
                                 .apply(updateCursor(classDecl), classDecl.getBody().getCoordinates().firstStatement());
 
-                        if (classDecl.getBody().getStatements().stream().noneMatch(it -> isMethodDeclarationWithAnnotation(it, AFTER))) {
+                        if (classDecl.getBody().getStatements().stream().noneMatch(it -> isMethodDeclarationWithAnnotation(it, AFTER, AFTER_CLASS))) {
                             Optional<Statement> beforeMethod = after.getBody().getStatements().stream()
-                                    .filter(it -> isMethodDeclarationWithAnnotation(it, BEFORE))
+                                    .filter(it -> isMethodDeclarationWithAnnotation(it, BEFORE, BEFORE_CLASS))
                                     .findFirst();
                             if (beforeMethod.isPresent()) {
+                                maybeAddImport("org.junit.AfterClass");
                                 maybeAddImport("org.junit.After");
-                                after = JavaTemplate.builder("@After public void tearDown() {}")
-                                        .imports("org.junit.After")
+                                after = JavaTemplate.builder(String.format(
+                                            "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@After public"
+                                        ))
+                                        .imports(staticSetup ? "org.junit.AfterClass" : "org.junit.After")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-4"))
                                         .build()
                                         .apply(updateCursor(after), beforeMethod.get().getCoordinates().after());
@@ -193,7 +201,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
                         J.MethodDeclaration md = super.visitMethodDeclaration(methodDecl, ctx);
 
-                        if (isMethodDeclarationWithAnnotation(md, AFTER)) {
+                        if (isMethodDeclarationWithAnnotation(md, AFTER, AFTER_CLASS)) {
                             return JavaTemplate.builder(variableName + ".close();")
                                     .contextSensitive()
                                     .build()
@@ -220,9 +228,10 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
         });
     }
 
-    private static boolean isMethodDeclarationWithAnnotation(@Nullable Statement statement, AnnotationMatcher matcher) {
+    private static boolean isMethodDeclarationWithAnnotation(@Nullable Statement statement, AnnotationMatcher... matchers) {
         if (statement instanceof J.MethodDeclaration) {
-            return ((J.MethodDeclaration) statement).getLeadingAnnotations().stream().anyMatch(matcher::matches);
+            return ((J.MethodDeclaration) statement).getLeadingAnnotations().stream()
+                    .anyMatch(it -> Arrays.stream(matchers).anyMatch(m -> m.matches(it)));
         }
         return false;
     }
