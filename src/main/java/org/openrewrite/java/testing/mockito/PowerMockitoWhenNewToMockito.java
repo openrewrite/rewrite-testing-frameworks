@@ -102,9 +102,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
             }
 
             private JavaIsoVisitor<ExecutionContext> removeMockUsagesVisitor(List<J.FieldAccess> mockArguments, String inMethodSignature) {
-                Set<String> mockedClassNames = mockArguments.stream().map(fa -> {
-                    return ((J.Identifier) fa.getTarget()).getSimpleName();
-                }).collect(Collectors.toSet());
+                Set<String> mockedClassNames = mockArguments.stream().map(fa -> ((J.Identifier) fa.getTarget()).getSimpleName()).collect(Collectors.toSet());
                 return new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
