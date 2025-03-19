@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
@@ -102,7 +101,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                 return ret;
             }
 
-            private @NotNull JavaIsoVisitor<ExecutionContext> removeMockUsagesVisitor(List<J.FieldAccess> mockArguments, String inMethodSignature) {
+            private JavaIsoVisitor<ExecutionContext> removeMockUsagesVisitor(List<J.FieldAccess> mockArguments, String inMethodSignature) {
                 Set<String> mockedClassNames = mockArguments.stream().map(fa -> {
                     return ((J.Identifier) fa.getTarget()).getSimpleName();
                 }).collect(Collectors.toSet());
