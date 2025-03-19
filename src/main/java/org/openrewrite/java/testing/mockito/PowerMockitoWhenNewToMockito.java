@@ -56,7 +56,6 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                                 J.MethodInvocation select2 = (J.MethodInvocation) select1.getSelect();
                                 if (PM_WHEN_NEW.matches(select2) && select2.getArguments().size() == 1) {
                                     maybeRemoveImport("org.powermock.api.mockito.PowerMockito");
-                                    maybeAddImport("org.mockito.Mockito", "whenConstructed");
 
                                     Cursor c = getCursor();
                                     while (c != null && !(c.getValue() instanceof J.MethodDeclaration)) {
