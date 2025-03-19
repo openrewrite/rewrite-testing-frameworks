@@ -80,7 +80,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                     maybeAddImport("org.mockito.MockedConstruction", false);
 
                     String mockedClassName = ((J.Identifier) mockArgument.getTarget()).getSimpleName();
-                    String variableNameForMock = VariableNameUtils.generateVariableName("mock" + mockedClassName, getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                    String variableNameForMock = VariableNameUtils.generateVariableName("mock" + mockedClassName, updateCursor(ret), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
                     JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
                             .contextSensitive()
                             .build();
