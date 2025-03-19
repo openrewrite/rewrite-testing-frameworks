@@ -25,7 +25,9 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 public class PowerMockitoWhenNewToMockito extends Recipe {
 
@@ -55,10 +57,12 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                         if (PM_WHEN_NEW.matches(select2) && select2.getArguments().size() == 1) {
                             maybeRemoveImport("org.powermock.api.mockito.PowerMockito");
 
-                            Cursor c = getCursor().dropParentUntil(x -> x instanceof J.MethodDeclaration);
+                            Cursor containingMethod = getCursor().dropParentUntil(x -> x instanceof J.MethodDeclaration);
                             Expression argument = select2.getArguments().get(0);
                             if (argument instanceof J.FieldAccess) {
-                                c.putMessage("POWERMOCKITO_WHEN_NEW_REPLACED", (J.FieldAccess) argument);
+                                ArrayList<J.FieldAccess> listOfMocks = containingMethod.getMessage("POWERMOCKITO_WHEN_NEW_REPLACED", new ArrayList<J.FieldAccess>());
+                                listOfMocks.add((J.FieldAccess) argument);
+                                containingMethod.putMessage("POWERMOCKITO_WHEN_NEW_REPLACED", listOfMocks);
                                 return null;
                             }
                         }
@@ -70,23 +74,25 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
             @Override
             public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J ret = super.visitMethodDeclaration(method, ctx);
-                J.FieldAccess mockArgument = getCursor().getMessage("POWERMOCKITO_WHEN_NEW_REPLACED");
-                if (mockArgument != null && ret instanceof J.MethodDeclaration) {
+                List<J.FieldAccess> mockArguments = getCursor().getMessage("POWERMOCKITO_WHEN_NEW_REPLACED");
+                if (mockArguments != null && ret instanceof J.MethodDeclaration) {
                     J.MethodDeclaration retM = (J.MethodDeclaration) ret;
-                    J.Block originalBody = retM.getBody();
 
                     // onlyIfReferenced=false as `maybeAddImport` doesn't seem to find the type referred to in a try statement
                     // see https://github.com/openrewrite/rewrite/issues/5187
                     maybeAddImport("org.mockito.MockedConstruction", false);
 
-                    String mockedClassName = ((J.Identifier) mockArgument.getTarget()).getSimpleName();
-                    String variableNameForMock = VariableNameUtils.generateVariableName("mock" + mockedClassName, updateCursor(ret), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
-                    JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
-                            .contextSensitive()
-                            .build();
-                    J.MethodDeclaration applied = template.apply(getCursor(), method.getCoordinates().replaceBody());
-                    J.Try tryy = (J.Try) applied.getBody().getStatements().get(0);
-                    return autoFormat(applied.withBody(applied.getBody().withStatements(Collections.singletonList(tryy.withBody(originalBody)))), ctx);
+                    for (J.FieldAccess mockArgument: mockArguments) {
+                        String mockedClassName = ((J.Identifier) mockArgument.getTarget()).getSimpleName();
+                        String variableNameForMock = VariableNameUtils.generateVariableName("mock" + mockedClassName, updateCursor(ret), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                        JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
+                                .contextSensitive()
+                                .build();
+                        J.MethodDeclaration applied = template.apply(getCursor(), method.getCoordinates().replaceBody());
+                        J.Try tryy = (J.Try) applied.getBody().getStatements().get(0);
+                        retM = applied.withBody(applied.getBody().withStatements(Collections.singletonList(tryy.withBody(retM.getBody()))));
+                    }
+                    return autoFormat(retM, ctx);
                 }
                 return ret;
             }
