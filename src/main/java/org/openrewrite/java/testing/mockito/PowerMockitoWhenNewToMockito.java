@@ -81,7 +81,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                 J ret = super.visitMethodDeclaration(method, ctx);
                 List<J.FieldAccess> mockArguments = getCursor().getMessage("POWERMOCKITO_WHEN_NEW_REPLACED");
                 if (mockArguments != null && ret instanceof J.MethodDeclaration) {
-                    doAfterVisit(removeMockUsagesVisitor(mockArguments, method.toString()));
+                    doAfterVisit(removeMockUsagesVisitor(mockArguments, method));
 
                     J.MethodDeclaration retM = (J.MethodDeclaration) ret;
 
@@ -106,14 +106,14 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                 return ret;
             }
 
-            private JavaIsoVisitor<ExecutionContext> removeMockUsagesVisitor(List<J.FieldAccess> mockArguments, String inMethodSignature) {
+            private JavaIsoVisitor<ExecutionContext> removeMockUsagesVisitor(List<J.FieldAccess> mockArguments, J.MethodDeclaration inMethod) {
                 Set<String> mockedClassNames = mockArguments.stream().map(fa -> ((J.Identifier) fa.getTarget()).getSimpleName()).collect(Collectors.toSet());
                 return new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                         J.VariableDeclarations ret = super.visitVariableDeclarations(multiVariable, ctx);
                         Cursor containingMethod = getCursor().dropParentUntil(x -> x instanceof J.MethodDeclaration);
-                        if (!inMethodSignature.equals(containingMethod.getValue().toString())) {
+                        if (!inMethod.equals(containingMethod.getValue())) {
                             return ret;
                         }
                         List<J.VariableDeclarations.NamedVariable> variables = ListUtils.filter(ret.getVariables(), varr -> {
