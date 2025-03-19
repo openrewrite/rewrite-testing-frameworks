@@ -92,14 +92,14 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                     for (J.FieldAccess mockArgument: mockArguments) {
                         String mockedClassName = ((J.Identifier) mockArgument.getTarget()).getSimpleName();
                         String variableNameForMock = generateVariableName("mock" + mockedClassName, updateCursor(ret), INCREMENT_NUMBER);
-                        JavaTemplate template = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
+                        J.MethodDeclaration appliedTemplate = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
                                 .contextSensitive()
                                 .imports("org.mockito.MockedConstruction")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))
-                                .build();
-                        J.MethodDeclaration applied = template.apply(getCursor(), method.getCoordinates().replaceBody());
-                        J.Try tryy = (J.Try) applied.getBody().getStatements().get(0);
-                        retM = applied.withBody(applied.getBody().withStatements(Collections.singletonList(tryy.withBody(retM.getBody()))));
+                                .build()
+                                .apply(getCursor(), method.getCoordinates().replaceBody());
+                        J.Try try_ = (J.Try) appliedTemplate.getBody().getStatements().get(0);
+                        retM = appliedTemplate.withBody(appliedTemplate.getBody().withStatements(Collections.singletonList(try_.withBody(retM.getBody()))));
                     }
                     return autoFormat(retM, ctx);
                 }
