@@ -29,6 +29,7 @@ recipeDependencies {
     parserClasspath("org.powermock:powermock-core:1.6.5")
     parserClasspath("org.springframework:spring-test:6.1.+")
     parserClasspath("org.testng:testng:7.+")
+    parserClasspath("org.testcontainers:testcontainers:1.20.6")
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
 }
 
@@ -48,8 +49,6 @@ dependencies {
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
-
-    implementation("org.testcontainers:testcontainers:latest.release")
 
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
