@@ -131,7 +131,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 return clazz != null && clazz.getType() != null ? clazz.getSimpleName() : null;
             }
 
-
             private J.Try tryWithMockedStatic(J.Block block, List<Statement> statements, Integer index,
                                               J.MethodInvocation statement, String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
                 String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
