@@ -35,7 +35,9 @@ import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 public class PowerMockitoWhenNewToMockito extends Recipe {
 
     private static final MethodMatcher PM_WHEN_NEW = new MethodMatcher("org.powermock.api.mockito.PowerMockito whenNew(..)");
-    private static final MethodMatcher WITH_NO_ARGUMENTS = new MethodMatcher("*..* withNoArguments(..)");
+    private static final MethodMatcher WITH_NO_ARGUMENTS = new MethodMatcher("*..* withNoArguments()");
+    private static final MethodMatcher WITH_ARGUMENTS = new MethodMatcher("*..* withArguments(..)");
+    private static final MethodMatcher WITH_ANY_ARGUMENTS = new MethodMatcher("*..* withAnyArguments()");
     private static final MethodMatcher THEN_RETURN = new MethodMatcher("org.mockito.stubbing.OngoingStubbing thenReturn(..)");
     private static final MethodMatcher MOCKITO_MOCK = new MethodMatcher("org.mockito.Mockito mock(..)");
     private static final MethodMatcher PM_MOCK = new MethodMatcher("org.powermock.api.mockito.PowerMockito mock(..)");
@@ -57,7 +59,8 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
             public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 if (THEN_RETURN.matches(method) && method.getSelect() instanceof J.MethodInvocation) {
                     J.MethodInvocation select1 = (J.MethodInvocation) method.getSelect();
-                    if (WITH_NO_ARGUMENTS.matches(select1) && select1.getSelect() instanceof J.MethodInvocation) {
+                    boolean withArgumentsMethodMatch = WITH_ANY_ARGUMENTS.matches(select1) || WITH_ARGUMENTS.matches(select1) || WITH_NO_ARGUMENTS.matches(select1);
+                    if (withArgumentsMethodMatch && select1.getSelect() instanceof J.MethodInvocation) {
                         J.MethodInvocation select2 = (J.MethodInvocation) select1.getSelect();
                         if (PM_WHEN_NEW.matches(select2) && select2.getArguments().size() == 1) {
                             maybeRemoveImport("org.powermock.api.mockito.PowerMockito");
@@ -112,8 +115,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                     @Override
                     public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                         J.VariableDeclarations ret = super.visitVariableDeclarations(multiVariable, ctx);
-                        Cursor containingMethod = getCursor().dropParentUntil(x -> x instanceof J.MethodDeclaration);
-                        if (!inMethod.equals(containingMethod.getValue())) {
+                        if (!inMethod.equals(getCursor().firstEnclosing(J.MethodDeclaration.class))) {
                             return ret;
                         }
                         List<J.VariableDeclarations.NamedVariable> variables = ListUtils.filter(ret.getVariables(), varr -> {

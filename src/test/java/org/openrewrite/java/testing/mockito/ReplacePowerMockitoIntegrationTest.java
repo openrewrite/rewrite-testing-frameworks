@@ -819,4 +819,66 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void whenNewWithArguments() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+            import org.powermock.api.mockito.PowerMockito;
+            import static org.powermock.api.mockito.PowerMockito.*;
+
+            import org.junit.jupiter.api.Test;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+
+            public class MyTest2 {
+                public static class SomeTexts {
+                    String text;
+                    public SomeTexts(String text) { this.text = text; }
+                    public String getText() { return text; }
+                }
+
+                @Test
+                public final void testWords() throws Exception {
+                    SomeTexts mock = PowerMockito.mock(SomeTexts.class);
+                    PowerMockito.whenNew(SomeTexts.class).withArguments("Have a nice day!").thenReturn(mock);
+
+                    SomeTexts st = new SomeTexts("Have a nice day!");
+                    when(st.getText()).thenReturn("overridden");
+
+                    assertEquals("overridden", st.getText());
+                }
+            }
+            """,
+            """
+            import org.mockito.MockedConstruction;
+            import org.mockito.Mockito;
+            import static org.mockito.Mockito.when;
+
+            import org.junit.jupiter.api.Test;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+
+            public class MyTest2 {
+                public static class SomeTexts {
+                    String text;
+                    public SomeTexts(String text) { this.text = text; }
+                    public String getText() { return text; }
+                }
+
+                @Test
+                public final void testWords() throws Exception {
+                    try (MockedConstruction<SomeTexts> mockSomeTexts = Mockito.mockConstruction(SomeTexts.class)) {
+
+                        SomeTexts st = new SomeTexts("Have a nice day!");
+                        when(st.getText()).thenReturn("overridden");
+
+                        assertEquals("overridden", st.getText());
+                    }
+                }
+            }
+            """
+          )
+        );
+    }
 }
