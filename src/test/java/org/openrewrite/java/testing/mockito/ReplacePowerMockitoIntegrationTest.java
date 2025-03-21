@@ -16,6 +16,8 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -812,6 +814,69 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
                             assertEquals(504, gen2.getLuckyNumber());
                         }
+                    }
+                }
+            }
+            """
+          )
+        );
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"withArguments(\"Have a nice day!\")", "withAnyArguments()"})
+    void whenNewWithArguments(String methodCall) {
+        //language=java
+        rewriteRun(
+          java(
+            """
+            import org.powermock.api.mockito.PowerMockito;
+            import static org.powermock.api.mockito.PowerMockito.*;
+
+            import org.junit.jupiter.api.Test;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+
+            public class MyTest2 {
+                public static class SomeTexts {
+                    String text;
+                    public SomeTexts(String text) { this.text = text; }
+                    public String getText() { return text; }
+                }
+
+                @Test
+                public final void testWords() throws Exception {
+                    SomeTexts mock = PowerMockito.mock(SomeTexts.class);
+                    PowerMockito.whenNew(SomeTexts.class).METHODCALL.thenReturn(mock);
+
+                    SomeTexts st = new SomeTexts("Have a nice day!");
+                    when(st.getText()).thenReturn("overridden");
+
+                    assertEquals("overridden", st.getText());
+                }
+            }
+            """.replaceAll("METHODCALL", methodCall),
+            """
+            import org.mockito.MockedConstruction;
+            import org.mockito.Mockito;
+            import static org.mockito.Mockito.when;
+
+            import org.junit.jupiter.api.Test;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+
+            public class MyTest2 {
+                public static class SomeTexts {
+                    String text;
+                    public SomeTexts(String text) { this.text = text; }
+                    public String getText() { return text; }
+                }
+
+                @Test
+                public final void testWords() throws Exception {
+                    try (MockedConstruction<SomeTexts> mockSomeTexts = Mockito.mockConstruction(SomeTexts.class)) {
+
+                        SomeTexts st = new SomeTexts("Have a nice day!");
+                        when(st.getText()).thenReturn("overridden");
+
+                        assertEquals("overridden", st.getText());
                     }
                 }
             }
