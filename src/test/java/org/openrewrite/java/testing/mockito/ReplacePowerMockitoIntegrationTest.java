@@ -16,6 +16,8 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -820,8 +822,9 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         );
     }
 
-    @Test
-    void whenNewWithArguments() {
+    @ParameterizedTest
+    @ValueSource(strings = {"withArguments(\"Have a nice day!\")", "withAnyArguments()"})
+    void whenNewWithArguments(String methodCall) {
         //language=java
         rewriteRun(
           java(
@@ -842,7 +845,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                 @Test
                 public final void testWords() throws Exception {
                     SomeTexts mock = PowerMockito.mock(SomeTexts.class);
-                    PowerMockito.whenNew(SomeTexts.class).withArguments("Have a nice day!").thenReturn(mock);
+                    PowerMockito.whenNew(SomeTexts.class).METHODCALL.thenReturn(mock);
 
                     SomeTexts st = new SomeTexts("Have a nice day!");
                     when(st.getText()).thenReturn("overridden");
@@ -850,7 +853,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                     assertEquals("overridden", st.getText());
                 }
             }
-            """,
+            """.replaceAll("METHODCALL", methodCall),
             """
             import org.mockito.MockedConstruction;
             import org.mockito.Mockito;
