@@ -96,7 +96,8 @@ class FestToAssertJTest implements RewriteTest {
     void condition() {
         rewriteRun(
           // language=java
-          java("""
+          java(
+            """
                 import org.fest.assertions.api.Assertions;
                 import org.fest.assertions.core.Condition;
 
@@ -123,7 +124,8 @@ class FestToAssertJTest implements RewriteTest {
     void util() {
         rewriteRun(
           // language=java
-          java("""
+          java(
+            """
               import java.math.BigDecimal;
 
               import static org.fest.assertions.util.BigDecimalComparator.BIG_DECIMAL_COMPARATOR;
@@ -152,24 +154,25 @@ class FestToAssertJTest implements RewriteTest {
     void data() {
         rewriteRun(
           // language=java
-          java("""
-            import org.fest.assertions.data.MapEntry;
-
-            class Test {
-                MapEntry test() {
-                    return MapEntry.entry("one", "two");
-                }
-            }
-            """,
+          java(
             """
-            import org.assertj.core.data.MapEntry;
+              import org.fest.assertions.data.MapEntry;
 
-            class Test {
-                MapEntry test() {
-                    return MapEntry.entry("one", "two");
-                }
-            }
-            """)
+              class Test {
+                  MapEntry test() {
+                      return MapEntry.entry("one", "two");
+                  }
+              }
+              """,
+            """
+              import org.assertj.core.data.MapEntry;
+
+              class Test {
+                  MapEntry test() {
+                      return MapEntry.entry("one", "two");
+                  }
+              }
+              """)
         );
     }
 
@@ -177,30 +180,31 @@ class FestToAssertJTest implements RewriteTest {
     void methodRename() {
         rewriteRun(
           // language=java
-          java("""
-            import org.fest.assertions.api.Assertions;
-
-            class Test {
-                void test(Object object1, Object object2) {
-                    Assertions.assertThat(object1).isLenientEqualsToByIgnoringFields(object2, "one", "two");
-                    Assertions.assertThat(object1).isLenientEqualsToByAcceptingFields(object2, "one", "two");
-                    Assertions.assertThat(object1).isLenientEqualsToByIgnoringNullFields(object2);
-                    Assertions.assertThat(object1).isEqualsToByComparingFields(object2, "one", "two");
-                }
-            }
-            """,
+          java(
             """
-            import org.assertj.core.api.Assertions;
+              import org.fest.assertions.api.Assertions;
 
-            class Test {
-                void test(Object object1, Object object2) {
-                    Assertions.assertThat(object1).isEqualToIgnoringGivenFields(object2, "one", "two");
-                    Assertions.assertThat(object1).isEqualToComparingOnlyGivenFields(object2, "one", "two");
-                    Assertions.assertThat(object1).isEqualToIgnoringNullFields(object2);
-                    Assertions.assertThat(object1).isEqualToComparingFieldByField(object2, "one", "two");
-                }
-            }
-            """)
+              class Test {
+                  void test(Object object1, Object object2) {
+                      Assertions.assertThat(object1).isLenientEqualsToByIgnoringFields(object2, "one", "two");
+                      Assertions.assertThat(object1).isLenientEqualsToByAcceptingFields(object2, "one", "two");
+                      Assertions.assertThat(object1).isLenientEqualsToByIgnoringNullFields(object2);
+                      Assertions.assertThat(object1).isEqualsToByComparingFields(object2, "one", "two");
+                  }
+              }
+              """,
+            """
+              import org.assertj.core.api.Assertions;
+
+              class Test {
+                  void test(Object object1, Object object2) {
+                      Assertions.assertThat(object1).isEqualToIgnoringGivenFields(object2, "one", "two");
+                      Assertions.assertThat(object1).isEqualToComparingOnlyGivenFields(object2, "one", "two");
+                      Assertions.assertThat(object1).isEqualToIgnoringNullFields(object2);
+                      Assertions.assertThat(object1).isEqualToComparingFieldByField(object2, "one", "two");
+                  }
+              }
+              """)
         );
     }
 }
