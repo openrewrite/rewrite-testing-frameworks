@@ -492,6 +492,18 @@ tags:
   - testing
   - assertj
 recipeList:
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.fest.assertions.api.ObjectAssert#isLenientEqualsToByIgnoringFields(..)
+      newMethodName: isEqualToIgnoringGivenFields
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.fest.assertions.api.ObjectAssert#isLenientEqualsToByAcceptingFields(..)
+      newMethodName: isEqualToComparingOnlyGivenFields
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.fest.assertions.api.ObjectAssert#isLenientEqualsToByIgnoringNullFields(..)
+      newMethodName: isEqualToIgnoringNullFields
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.fest.assertions.api.ObjectAssert#isEqualsToByComparingFields(..)
+      newMethodName: isEqualToComparingFieldByField
   - org.openrewrite.java.ChangePackage:
       oldPackageName: org.fest.assertions.api
       newPackageName: org.assertj.core.api
