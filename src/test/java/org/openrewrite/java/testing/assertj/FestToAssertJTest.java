@@ -145,4 +145,30 @@ class FestToAssertJTest implements RewriteTest {
               """)
         );
     }
+
+    @Test
+    void testData() {
+        rewriteRun(
+          // language=java
+          java("""
+            import org.fest.assertions.data.MapEntry;
+
+            class Test {
+                MapEntry test() {
+                    return MapEntry.entry("one", "two");
+                }
+            }
+            """,
+            """
+            import org.assertj.core.data.MapEntry;
+
+            class Test {
+                MapEntry test() {
+                    return MapEntry.entry("one", "two");
+                }
+            }
+            """)
+        );
+    }
+
 }
