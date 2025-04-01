@@ -124,22 +124,24 @@ class FestToAssertJTest implements RewriteTest {
         rewriteRun(
           // language=java
           java("""
-              import java.util.Collection;
-              import org.fest.util.Collections;
+              import java.math.BigDecimal;
+
+              import static org.fest.assertions.util.BigDecimalComparator.BIG_DECIMAL_COMPARATOR;
 
               class Test {
-                  boolean emptyCollection(Collection<?> collection) {
-                      Collections.isNullOrEmpty(collection);
+                  int test(BigDecimal one, BigDecimal two) {
+                      return BIG_DECIMAL_COMPARATOR.compare(one, two);
                   }
               }
               """,
             """
-              import java.util.Collection;
-              import org.assertj.core.util.Collections;
+              import java.math.BigDecimal;
+
+              import static org.assertj.core.util.BigDecimalComparator.BIG_DECIMAL_COMPARATOR;
 
               class Test {
-                  boolean emptyCollection(Collection<?> collection) {
-                      Collections.isNullOrEmpty(collection);
+                  int test(BigDecimal one, BigDecimal two) {
+                      return BIG_DECIMAL_COMPARATOR.compare(one, two);
                   }
               }
               """)

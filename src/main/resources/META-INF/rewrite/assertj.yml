@@ -499,7 +499,7 @@ recipeList:
       oldFullyQualifiedTypeName: org.fest.assertions.core.Condition
       newFullyQualifiedTypeName: org.assertj.core.api.Condition
   - org.openrewrite.java.ChangePackage:
-      oldPackageName: org.fest.util
+      oldPackageName: org.fest.assertions.util
       newPackageName: org.assertj.core.util
   - org.openrewrite.java.ChangePackage:
       oldPackageName: org.fest.assertions.data
