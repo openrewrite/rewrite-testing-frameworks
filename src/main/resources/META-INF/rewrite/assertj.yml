@@ -480,3 +480,33 @@ recipeList:
       onlyIfUsing: org.assertj.core.api.Assertions
       acceptTransitive: true
   - tech.picnic.errorprone.refasterrules.JUnitToAssertJRulesRecipes
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.assertj.FestToAssertj
+displayName: Migrate Fest 2.x to AssertJ
+description: >-
+  AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability.
+  Converts Fest 2.x imports to AssertJ imports
+tags:
+  - testing
+  - assertj
+recipeList:
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.fest.assertions.api
+      newPackageName: org.assertj.core.api
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.fest.assertions.core.Condition
+      newFullyQualifiedTypeName: org.assertj.core.api.Condition
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.fest.util
+      newPackageName: org.assertj.core.util
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.fest.assertions.data
+      newPackageName: org.assertj.core.data
+  - org.openrewrite.java.dependencies.ChangeDependency:
+        oldGroupId: org.easytesting
+        oldArtifactId: fest-assert-core
+        newGroupId: org.assertj
+        newArtifactId: assertj-core
+        newVersion: 3.x
