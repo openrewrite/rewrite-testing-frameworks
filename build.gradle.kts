@@ -32,6 +32,7 @@ recipeDependencies {
     parserClasspath("org.testcontainers:testcontainers:1.20.6")
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
     parserClasspath("org.easytesting:fest-assert-core:2.+")
+    parserClasspath("org.easytesting:fest-util:+")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()

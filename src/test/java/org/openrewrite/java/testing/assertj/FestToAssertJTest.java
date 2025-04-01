@@ -32,7 +32,7 @@ class FestToAssertJTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "fest-assert-core"))
+            .classpathFromResources(new InMemoryExecutionContext(), "fest-assert-core", "fest-util"))
           .recipeFromResources("org.openrewrite.java.testing.assertj.FestToAssertj");
     }
 
@@ -97,25 +97,52 @@ class FestToAssertJTest implements RewriteTest {
         rewriteRun(
           // language=java
           java("""
-            import org.fest.assertions.api.Assertions;
-            import org.fest.assertions.core.Condition;
+                import org.fest.assertions.api.Assertions;
+                import org.fest.assertions.core.Condition;
 
-            class Test {
-                void test(String value, Condition<String> someCondition) {
-                    Assertions.assertThat(value).is(someCondition);
+                class Test {
+                    void test(String value, Condition<String> someCondition) {
+                        Assertions.assertThat(value).is(someCondition);
+                    }
                 }
-            }
-          """,
+              """,
             """
-            import org.assertj.core.api.Assertions;
-            import org.assertj.core.api.Condition;
+              import org.assertj.core.api.Assertions;
+              import org.assertj.core.api.Condition;
 
-            class Test {
-                void test(String value, Condition<String> someCondition) {
-                    Assertions.assertThat(value).is(someCondition);
-                }
-            }
-            """)
+              class Test {
+                  void test(String value, Condition<String> someCondition) {
+                      Assertions.assertThat(value).is(someCondition);
+                  }
+              }
+              """)
+        );
+    }
+
+    @Test
+    void testUtil() {
+        rewriteRun(
+          // language=java
+          java("""
+              import java.util.Collection;
+              import org.fest.util.Collections;
+
+              class Test {
+                  boolean emptyCollection(Collection<?> collection) {
+                      Collections.isNullOrEmpty(collection);
+                  }
+              }
+              """,
+            """
+              import java.util.Collection;
+              import org.assertj.core.util.Collections;
+
+              class Test {
+                  boolean emptyCollection(Collection<?> collection) {
+                      Collections.isNullOrEmpty(collection);
+                  }
+              }
+              """)
         );
     }
 }
