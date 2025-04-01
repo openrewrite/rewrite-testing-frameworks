@@ -98,14 +98,14 @@ class FestToAssertJTest implements RewriteTest {
           // language=java
           java(
             """
-                import org.fest.assertions.api.Assertions;
-                import org.fest.assertions.core.Condition;
+              import org.fest.assertions.api.Assertions;
+              import org.fest.assertions.core.Condition;
 
-                class Test {
-                    void test(String value, Condition<String> someCondition) {
-                        Assertions.assertThat(value).is(someCondition);
-                    }
-                }
+              class Test {
+                  void test(String value, Condition<String> someCondition) {
+                      Assertions.assertThat(value).is(someCondition);
+                  }
+              }
               """,
             """
               import org.assertj.core.api.Assertions;
