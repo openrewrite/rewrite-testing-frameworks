@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
