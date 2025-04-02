@@ -58,7 +58,7 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
         return new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
-            public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext executionContext) {
+            public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
                 // Mark classes
                 if (fieldAccess.getTarget().getType() instanceof JavaType.Class) {
                     JavaType.Class type = (JavaType.Class) fieldAccess.getTarget().getType();
@@ -85,11 +85,11 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
                     });
                 }
 
-                return super.visitFieldAccess(fieldAccess, executionContext);
+                return super.visitFieldAccess(fieldAccess, ctx);
             }
 
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 if (method.getMethodType() != null) {
                     if (!acc.methods.contains(method.getMethodType())) {
                         method.getMethodType().getAnnotations().forEach(annotation -> {
@@ -102,11 +102,11 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
                         });
                     }
                 }
-                return super.visitMethodInvocation(method, executionContext);
+                return super.visitMethodInvocation(method, ctx);
             }
 
             @Override
-            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext executionContext) {
+            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                 // Mark constructors
                 if (newClass.getConstructorType() != null) {
                     if(!acc.methods.contains(newClass.getConstructorType())) {
@@ -134,7 +134,7 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
                         });
                     }
                 }
-                return super.visitNewClass(newClass, executionContext);
+                return super.visitNewClass(newClass, ctx);
             }
         };
     }
@@ -144,8 +144,8 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
         return new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
-            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
-                J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, executionContext);
+            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+                J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, ctx);
                 if(!variableDeclarations.getVariables().isEmpty()) {
                     // if none of the variables in the declaration are used from production code, the annotation should be kept
                     boolean keepAnnotation = variableDeclarations.getVariables().stream().noneMatch(elem -> acc.fields.contains(elem.getVariableType()));
@@ -155,7 +155,7 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
                                 .findFirst();
                         if (annotation.isPresent() && annotation.get().getType() instanceof JavaType.Class) {
                             JavaType.Class type = (JavaType.Class) annotation.get().getType();
-                            return (J.VariableDeclarations) new RemoveAnnotation("@" + type.getFullyQualifiedName()).getVisitor().visitNonNull(variableDeclarations, executionContext, getCursor().getParentOrThrow());
+                            return (J.VariableDeclarations) new RemoveAnnotation("@" + type.getFullyQualifiedName()).getVisitor().visitNonNull(variableDeclarations, ctx, getCursor().getParentOrThrow());
                         }
                     }
                 }
@@ -163,30 +163,30 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
             }
 
             @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
-                J.MethodDeclaration methodDeclaration = super.visitMethodDeclaration(method, executionContext);
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                J.MethodDeclaration methodDeclaration = super.visitMethodDeclaration(method, ctx);
                 if (acc.methods.contains(methodDeclaration.getMethodType())) {
                     Optional<J.Annotation> annotation = methodDeclaration.getLeadingAnnotations().stream()
                             .filter(elem -> "VisibleForTesting".equals(elem.getSimpleName()))
                             .findFirst();
                     if (annotation.isPresent() && annotation.get().getType() instanceof JavaType.Class) {
                         JavaType.Class type = (JavaType.Class) annotation.get().getType();
-                        return (J.MethodDeclaration) new RemoveAnnotation("@" + type.getFullyQualifiedName()).getVisitor().visitNonNull(methodDeclaration, executionContext, getCursor().getParentOrThrow());
+                        return (J.MethodDeclaration) new RemoveAnnotation("@" + type.getFullyQualifiedName()).getVisitor().visitNonNull(methodDeclaration, ctx, getCursor().getParentOrThrow());
                     }
                 }
                 return methodDeclaration;
             }
 
             @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext executionContext) {
-                J.ClassDeclaration classDeclaration = super.visitClassDeclaration(classDecl, executionContext);
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                J.ClassDeclaration classDeclaration = super.visitClassDeclaration(classDecl, ctx);
                 if (acc.classes.contains(classDeclaration.getType())) {
                     Optional<J.Annotation> annotation = classDeclaration.getLeadingAnnotations().stream()
                             .filter(elem -> "VisibleForTesting".equals(elem.getSimpleName()))
                             .findFirst();
                     if (annotation.isPresent() && annotation.get().getType() instanceof JavaType.Class) {
                         JavaType.Class type = (JavaType.Class) annotation.get().getType();
-                        return (J.ClassDeclaration) new RemoveAnnotation("@" + type.getFullyQualifiedName()).getVisitor().visitNonNull(classDeclaration, executionContext, getCursor().getParentOrThrow());
+                        return (J.ClassDeclaration) new RemoveAnnotation("@" + type.getFullyQualifiedName()).getVisitor().visitNonNull(classDeclaration, ctx, getCursor().getParentOrThrow());
                     }
                 }
                 return classDeclaration;
