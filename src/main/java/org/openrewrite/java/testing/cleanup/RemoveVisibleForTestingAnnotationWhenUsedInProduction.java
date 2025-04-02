@@ -15,8 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
@@ -113,7 +112,7 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
                 }
             }
 
-            private @NotNull List<JavaType.FullyQualified> getAnnotations(JavaType type) {
+            private List<JavaType.FullyQualified> getAnnotations(JavaType type) {
                 if (type instanceof JavaType.Class) {
                     return ((JavaType.Class) type).getAnnotations();
                 } else if (type instanceof JavaType.Variable) {
@@ -163,7 +162,7 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
                 return classDeclaration;
             }
 
-            private <@Nullable T extends J> J getElement(ExecutionContext ctx, List<J.Annotation> leadingAnnotations, T target) {
+            private <T extends J> J getElement(ExecutionContext ctx, List<J.Annotation> leadingAnnotations, T target) {
                 Optional<J.Annotation> annotation = leadingAnnotations.stream()
                         .filter(elem -> "VisibleForTesting".equals(elem.getSimpleName()))
                         .findFirst();
