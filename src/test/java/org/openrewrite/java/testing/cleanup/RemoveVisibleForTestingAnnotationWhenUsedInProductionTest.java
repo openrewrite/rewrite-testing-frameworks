@@ -94,23 +94,24 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                         String variableTwo = production.getExternalState();
                     }
                 }
-                """)
+                """
+            )
           ),
           srcTestJava(
             java(
               """
-                    package com.example.test;
+                package com.example.test;
 
-                    import com.example.domain.Production;
+                import com.example.domain.Production;
 
-                    class ProductionTest {
-                        void test(Production production) {
-                            String variableOne = production.externalState;
-                            String variableTwo = production.getExternalState();
-                            String variableThree = production.internalState;
-                            String variableFour = production.getInternalState();
-                        }
+                class ProductionTest {
+                    void test(Production production) {
+                        String variableOne = production.externalState;
+                        String variableTwo = production.getExternalState();
+                        String variableThree = production.internalState;
+                        String variableFour = production.getInternalState();
                     }
+                }
                 """
             )
           )
@@ -158,21 +159,22 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                         String variableOne = production.externalState;
                     }
                 }
-                """)
+                """
+            )
           ),
           srcTestJava(
             java(
               """
-                    package com.example.test;
+                package com.example.test;
 
-                    import com.example.domain.Production;
+                import com.example.domain.Production;
 
-                    class ProductionTest {
-                        void test(Production production) {
-                            String variableOne = production.externalState;
-                            String variableTwo = production.internalState;
-                        }
+                class ProductionTest {
+                    void test(Production production) {
+                        String variableOne = production.externalState;
+                        String variableTwo = production.internalState;
                     }
+                }
                 """
             )
           )
@@ -225,7 +227,8 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                         String variableThree = production.externalState3;
                     }
                 }
-                """)
+                """
+            )
           ),
           srcTestJava(
             java(
@@ -291,21 +294,22 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                         production.externalCall();
                     }
                 }
-                """)
+                """
+            )
           ),
           srcTestJava(
             java(
               """
-                    package com.example.test;
+                package com.example.test;
 
-                    import com.example.domain.Production;
+                import com.example.domain.Production;
 
-                    class ProductionTest {
-                        void test(Production production) {
-                            production.internalCall();
-                            production.externalCall();
-                        }
+                class ProductionTest {
+                    void test(Production production) {
+                        production.internalCall();
+                        production.externalCall();
                     }
+                }
                 """
             )
           )
@@ -353,21 +357,22 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                         new Production();
                     }
                 }
-                """)
+                """
+            )
           ),
           srcTestJava(
             java(
               """
-                    package com.example.test;
+                package com.example.test;
 
-                    import com.example.domain.Production;
+                import com.example.domain.Production;
 
-                    class ProductionTest {
-                        void test(Production production) {
-                            new Production();
-                            new Production(1);
-                        }
+                class ProductionTest {
+                    void test(Production production) {
+                        new Production();
+                        new Production(1);
                     }
+                }
                 """
             )
           )
@@ -428,7 +433,8 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                         String variableOne = Production.ExternalInner.externalState;
                     }
                 }
-                """)
+                """
+            )
           ),
           srcTestJava(
             java(
@@ -492,21 +498,22 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                         new Production.ExternalInner();
                     }
                 }
-                """)
+                """
+            )
           ),
           srcTestJava(
             java(
               """
-                    package com.example.test;
+                package com.example.test;
 
-                    import com.example.domain.Production;
+                import com.example.domain.Production;
 
-                    class ProductionTest {
-                        void test(Production production) {
-                            new Production.InternalInner();
-                            new Production.ExternalInner();
-                        }
+                class ProductionTest {
+                    void test(Production production) {
+                        new Production.InternalInner();
+                        new Production.ExternalInner();
                     }
+                }
                 """
             )
           )
@@ -554,21 +561,22 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                         long variableOne = Production.EXTERNAL_CONSTANT;
                     }
                 }
-                """)
+                """
+            )
           ),
           srcTestJava(
             java(
               """
-                    package com.example.test;
+                package com.example.test;
 
-                    import com.example.domain.Production;
+                import com.example.domain.Production;
 
-                    class ProductionTest {
-                        void test(Production production) {
-                             long variableOne = Production.INTERNAL_CONSTANT;
-                             long variableTwo = Production.EXTERNAL_CONSTANT;
-                        }
+                class ProductionTest {
+                    void test(Production production) {
+                         long variableOne = Production.INTERNAL_CONSTANT;
+                         long variableTwo = Production.EXTERNAL_CONSTANT;
                     }
+                }
                 """
             )
           )
