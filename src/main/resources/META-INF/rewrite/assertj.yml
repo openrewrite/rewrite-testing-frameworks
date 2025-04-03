@@ -30,6 +30,7 @@ recipeList:
   - org.openrewrite.java.testing.assertj.StaticImports
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
+  - org.openrewrite.java.testing.assertj.SimplifyHasSizeJAssertion
 
   - tech.picnic.errorprone.refasterrules.AssertJBigDecimalRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJBigIntegerRulesRecipes
