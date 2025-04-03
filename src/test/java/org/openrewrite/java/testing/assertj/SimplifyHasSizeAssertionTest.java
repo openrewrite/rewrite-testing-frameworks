@@ -24,14 +24,14 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class SimplifyHasSizeJAssertionTest implements RewriteTest {
+class SimplifyHasSizeAssertionTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"))
-          .recipe(new SimplifyHasSizeJAssertion());
+          .recipe(new SimplifyHasSizeAssertion());
     }
 
     @DocumentExample
@@ -61,6 +61,27 @@ class SimplifyHasSizeJAssertionTest implements RewriteTest {
                       String b = "ab";
 
                       assertThat(a).hasSameSizeAs(b);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void stringCompare() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod() {
+                      String a = "ab";
+                      String b = "ab";
+
+                      assertThat(a).hasSize(b.compareTo("foo"));
                   }
               }
               """

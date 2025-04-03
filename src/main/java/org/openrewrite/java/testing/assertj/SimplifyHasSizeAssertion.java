@@ -29,12 +29,10 @@ import org.openrewrite.java.tree.JavaType;
 
 import java.util.Collections;
 
-public class SimplifyHasSizeJAssertion extends Recipe {
+public class SimplifyHasSizeAssertion extends Recipe {
 
-    private static final String ASSERT_THAT = "org.assertj.core.api.Assertions assertThat(..)";
-    private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher(ASSERT_THAT);
-    private static final String HAS_SIZE = "org.assertj.core.api.* hasSize(int)";
-    private static final MethodMatcher HAS_SIZE_MATCHER = new MethodMatcher(HAS_SIZE);
+    private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
+    private static final MethodMatcher HAS_SIZE_MATCHER = new MethodMatcher("org.assertj.core.api.* hasSize(int)");
     private static final String HAS_SAME_SIZE_AS = "hasSameSizeAs";
 
     private static final TypeMatcher CHAR_SEQUENCE_TYPE_MATCHER = new TypeMatcher("java.lang.CharSequence", true);
@@ -55,8 +53,8 @@ public class SimplifyHasSizeJAssertion extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 Preconditions.and(
-                        new UsesMethod<>(ASSERT_THAT, true),
-                        new UsesMethod<>(HAS_SIZE, true)
+                        new UsesMethod<>(ASSERT_THAT_MATCHER),
+                        new UsesMethod<>(HAS_SIZE_MATCHER)
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
@@ -68,23 +66,19 @@ public class SimplifyHasSizeJAssertion extends Recipe {
                         }
 
                         Expression expression = mi.getArguments().get(0);
-
-                        if (expression instanceof J.MethodInvocation) {
+                        if (expression instanceof J.MethodInvocation &&
+                                ((J.MethodInvocation) expression).getSelect() != null) {
                             Expression argument = ((J.MethodInvocation) expression).getSelect();
                             JavaType type = argument.getType();
-
                             if (CHAR_SEQUENCE_TYPE_MATCHER.matches(type) ||
                                     ITERABLE_TYPE_MATCHER.matches(type) ||
                                     MAP_TYPE_MATCHER.matches(type)) {
-                                mi = updateMethodInvocation(mi, argument);
+                                return updateMethodInvocation(mi, argument);
                             }
-                        }
-
-                        if (expression instanceof J.FieldAccess) {
+                        } else if (expression instanceof J.FieldAccess) {
                             Expression target = ((J.FieldAccess) expression).getTarget();
-
                             if (target.getType() instanceof JavaType.Array) {
-                                mi = updateMethodInvocation(mi, target);
+                                return updateMethodInvocation(mi, target);
                             }
                         }
                         return mi;
