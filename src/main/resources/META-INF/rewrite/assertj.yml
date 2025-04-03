@@ -24,6 +24,7 @@ tags:
   - assertj
 recipeList:
   - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
+  - org.openrewrite.java.testing.assertj.FestToAssertj
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
   - org.openrewrite.java.testing.testng.TestNgToAssertj
   - org.openrewrite.java.testing.assertj.IsEqualToIgnoringMillisToIsCloseToRecipe
