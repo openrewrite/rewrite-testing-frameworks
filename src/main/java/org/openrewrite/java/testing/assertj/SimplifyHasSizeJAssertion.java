@@ -15,8 +15,13 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.openrewrite.*;
-import org.openrewrite.java.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.TypeMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -63,8 +68,6 @@ public class SimplifyHasSizeJAssertion extends Recipe {
                         }
 
                         Expression expression = mi.getArguments().get(0);
-                        System.out.println(expression);
-                        if (expression instanceof J.MethodInvocation) {
                             Expression argument = ((J.MethodInvocation) expression).getSelect();
                             JavaType type = argument.getType();
                             System.out.println(type);
