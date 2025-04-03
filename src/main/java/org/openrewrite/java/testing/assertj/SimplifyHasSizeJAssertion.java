@@ -72,7 +72,6 @@ public class SimplifyHasSizeJAssertion extends Recipe {
                         if (expression instanceof J.MethodInvocation) {
                             Expression argument = ((J.MethodInvocation) expression).getSelect();
                             JavaType type = argument.getType();
-                            System.out.println(type);
 
                             if (CHAR_SEQUENCE_TYPE_MATCHER.matches(type) ||
                                     ITERABLE_TYPE_MATCHER.matches(type) ||
