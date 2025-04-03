@@ -31,11 +31,11 @@ import java.util.Collections;
 
 public class SimplifyHasSizeJAssertion extends Recipe {
 
-    public static final String ASSERT_THAT = "org.assertj.core.api.Assertions assertThat(..)";
+    private static final String ASSERT_THAT = "org.assertj.core.api.Assertions assertThat(..)";
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher(ASSERT_THAT);
-    public static final String HAS_SIZE = "org.assertj.core.api.* hasSize(int)";
+    private static final String HAS_SIZE = "org.assertj.core.api.* hasSize(int)";
     private static final MethodMatcher HAS_SIZE_MATCHER = new MethodMatcher(HAS_SIZE);
-    public static final String HAS_SAME_SIZE_AS = "hasSameSizeAs";
+    private static final String HAS_SAME_SIZE_AS = "hasSameSizeAs";
 
     private static final TypeMatcher CHAR_SEQUENCE_TYPE_MATCHER = new TypeMatcher("java.lang.CharSequence", true);
     private static final TypeMatcher ITERABLE_TYPE_MATCHER = new TypeMatcher("java.lang.Iterable", true);
@@ -76,9 +76,7 @@ public class SimplifyHasSizeJAssertion extends Recipe {
                             if (CHAR_SEQUENCE_TYPE_MATCHER.matches(type) ||
                                     ITERABLE_TYPE_MATCHER.matches(type) ||
                                     MAP_TYPE_MATCHER.matches(type)) {
-                                mi = mi.withMethodType(mi.getMethodType().withName(HAS_SAME_SIZE_AS))
-                                        .withName(mi.getName().withSimpleName(HAS_SAME_SIZE_AS))
-                                        .withArguments(Collections.singletonList(argument));
+                                mi = updateMethodInvocation(mi, argument);
                             }
                         }
 
@@ -86,12 +84,16 @@ public class SimplifyHasSizeJAssertion extends Recipe {
                             Expression target = ((J.FieldAccess) expression).getTarget();
 
                             if (target.getType() instanceof JavaType.Array) {
-                                mi = mi.withMethodType(mi.getMethodType().withName(HAS_SAME_SIZE_AS))
-                                        .withName(mi.getName().withSimpleName(HAS_SAME_SIZE_AS))
-                                        .withArguments(Collections.singletonList(target));
+                                mi = updateMethodInvocation(mi, target);
                             }
                         }
                         return mi;
+                    }
+
+                    private J.MethodInvocation updateMethodInvocation(J.MethodInvocation mi, Expression argument) {
+                        return mi.withMethodType(mi.getMethodType().withName(HAS_SAME_SIZE_AS))
+                                .withName(mi.getName().withSimpleName(HAS_SAME_SIZE_AS))
+                                .withArguments(Collections.singletonList(argument));
                     }
                 });
     }
