@@ -68,6 +68,8 @@ public class SimplifyHasSizeJAssertion extends Recipe {
                         }
 
                         Expression expression = mi.getArguments().get(0);
+
+                        if (expression instanceof J.MethodInvocation) {
                             Expression argument = ((J.MethodInvocation) expression).getSelect();
                             JavaType type = argument.getType();
                             System.out.println(type);
