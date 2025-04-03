@@ -70,11 +70,11 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
             }
 
             @Override
-            public J.MemberReference visitMemberReference(J.MemberReference mr, ExecutionContext executionContext) {
+            public J.MemberReference visitMemberReference(J.MemberReference mr, ExecutionContext ctx) {
                 if (mr.getMethodType() != null) {
                     checkAndRegister(acc.methods, mr.getMethodType());
                 }
-                return super.visitMemberReference(mr, executionContext);
+                return super.visitMemberReference(mr, ctx);
             }
 
             @Override
