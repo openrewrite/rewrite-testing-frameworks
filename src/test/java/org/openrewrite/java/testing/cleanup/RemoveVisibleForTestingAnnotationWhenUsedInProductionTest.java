@@ -119,6 +119,69 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
     }
 
     @Test
+    void constructor() {
+        //language=java
+        rewriteRun(
+          srcMainJava(
+            java(
+              """
+                package com.example.domain;
+
+                import org.jetbrains.annotations.VisibleForTesting;
+
+                public class Production {
+                    @VisibleForTesting
+                    public Production(){}
+                    @VisibleForTesting
+                    public Production(int debugLevel) {}
+                }
+                """,
+              """
+                package com.example.domain;
+
+                import org.jetbrains.annotations.VisibleForTesting;
+
+                public class Production {
+                    public Production(){}
+                    @VisibleForTesting
+                    public Production(int debugLevel) {}
+                }
+                """
+            ),
+            java(
+              """
+                package com.example.caller;
+
+                import com.example.domain.Production;
+
+                class ProductionCaller {
+                    void call() {
+                        new Production();
+                    }
+                }
+                """
+            )
+          ),
+          srcTestJava(
+            java(
+              """
+                package com.example.test;
+
+                import com.example.domain.Production;
+
+                class ProductionTest {
+                    void test(Production production) {
+                        new Production();
+                        new Production(1);
+                    }
+                }
+                """
+            )
+          )
+        );
+    }
+
+    @Test
     void fieldAccess() {
         //language=java
         rewriteRun(
@@ -254,6 +317,69 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
     }
 
     @Test
+    void referenceConstant() {
+        //language=java
+        rewriteRun(
+          srcMainJava(
+            java(
+              """
+                package com.example.domain;
+
+                import org.jetbrains.annotations.VisibleForTesting;
+
+                public class Production {
+                    @VisibleForTesting
+                    public static final long INTERNAL_CONSTANT = 1L;
+                    @VisibleForTesting
+                    public static final long EXTERNAL_CONSTANT = 2L;
+                }
+                """,
+              """
+                package com.example.domain;
+
+                import org.jetbrains.annotations.VisibleForTesting;
+
+                public class Production {
+                    @VisibleForTesting
+                    public static final long INTERNAL_CONSTANT = 1L;
+                    public static final long EXTERNAL_CONSTANT = 2L;
+                }
+                """
+            ),
+            java(
+              """
+                package com.example.caller;
+
+                import com.example.domain.Production;
+
+                class ProductionCaller {
+                    void call(Production production) {
+                        long variableOne = Production.EXTERNAL_CONSTANT;
+                    }
+                }
+                """
+            )
+          ),
+          srcTestJava(
+            java(
+              """
+                package com.example.test;
+
+                import com.example.domain.Production;
+
+                class ProductionTest {
+                    void test(Production production) {
+                         long variableOne = Production.INTERNAL_CONSTANT;
+                         long variableTwo = Production.EXTERNAL_CONSTANT;
+                    }
+                }
+                """
+            )
+          )
+        );
+    }
+
+    @Test
     void methodInvocation() {
         //language=java
         rewriteRun(
@@ -316,8 +442,8 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
         );
     }
 
-    @Test
-    void constructor() {
+
+    void genericMethodInvocation() {
         //language=java
         rewriteRun(
           srcMainJava(
@@ -329,9 +455,9 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
 
                 public class Production {
                     @VisibleForTesting
-                    public Production(){}
+                    public <T> void internalCall(T param){}
                     @VisibleForTesting
-                    public Production(int debugLevel) {}
+                    public <T> void externalCall(T param){}
                 }
                 """,
               """
@@ -340,9 +466,9 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                 import org.jetbrains.annotations.VisibleForTesting;
 
                 public class Production {
-                    public Production(){}
                     @VisibleForTesting
-                    public Production(int debugLevel) {}
+                    public <T> void internalCall(T param){}
+                    public <T> void externalCall(T param){}
                 }
                 """
             ),
@@ -353,8 +479,8 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                 import com.example.domain.Production;
 
                 class ProductionCaller {
-                    void call() {
-                        new Production();
+                    void call(Production production, Object arg) {
+                        production.externalCall(arg);
                     }
                 }
                 """
@@ -368,9 +494,87 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                 import com.example.domain.Production;
 
                 class ProductionTest {
+                    void test(Production production, Object arg) {
+                        production.internalCall(arg);
+                        production.externalCall(arg);
+                    }
+                }
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void methodReference() {
+        //language=java
+        rewriteRun(
+          srcMainJava(
+            java(
+              """
+                package com.example.domain;
+
+                import org.jetbrains.annotations.VisibleForTesting;
+
+                public class Production {
+                    @VisibleForTesting
+                    public String internalMethodReferenceWithInvocation(){}
+                    @VisibleForTesting
+                    public String internalMethodReferenceWithoutInvocation(){}
+                    @VisibleForTesting
+                    public String externalMethodReferenceWithInvocation(){}
+                    @VisibleForTesting
+                    public String externalMethodReferenceWithoutInvocation(){}
+                }
+                """,
+              """
+                package com.example.domain;
+
+                import org.jetbrains.annotations.VisibleForTesting;
+
+                public class Production {
+                    @VisibleForTesting
+                    public String internalMethodReferenceWithInvocation(){}
+                    @VisibleForTesting
+                    public String internalMethodReferenceWithoutInvocation(){}
+                    public String externalMethodReferenceWithInvocation(){}
+                    public String externalMethodReferenceWithoutInvocation(){}
+                }
+                """
+            ),
+            java(
+              """
+                package com.example.caller;
+
+                import com.example.domain.Production;
+                import java.util.function.Supplier;
+
+                class ProductionCaller {
+                    void call(Production production) {
+                        Supplier<String> supplierOne = production::externalMethodReferenceWithInvocation;
+                        Supplier<String> supplierTwo = production::externalMethodReferenceWithoutInvocation;
+                        String supplierOneResult = supplierOne.get();
+                    }
+                }
+                """
+            )
+          ),
+          srcTestJava(
+            java(
+              """
+                package com.example.test;
+
+                import com.example.domain.Production;
+                import java.util.function.Supplier;
+
+                class ProductionTest {
                     void test(Production production) {
-                        new Production();
-                        new Production(1);
+                        Supplier<String> supplierOne = production::externalMethodReferenceWithInvocation;
+                        Supplier<String> supplierTwo = production::externalMethodReferenceWithoutInvocation;
+                        String supplierOneResult = supplierOne.get();
+                        Supplier<String> supplierThree = production::internalMethodReferenceWithInvocation;
+                        Supplier<String> supplierFour = production::internalMethodReferenceWithoutInvocation;
+                        String supplierThreeResult = supplierThree.get();
                     }
                 }
                 """
@@ -512,69 +716,6 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                     void test(Production production) {
                         new Production.InternalInner();
                         new Production.ExternalInner();
-                    }
-                }
-                """
-            )
-          )
-        );
-    }
-
-    @Test
-    void referenceConstant() {
-        //language=java
-        rewriteRun(
-          srcMainJava(
-            java(
-              """
-                package com.example.domain;
-
-                import org.jetbrains.annotations.VisibleForTesting;
-
-                public class Production {
-                    @VisibleForTesting
-                    public static final long INTERNAL_CONSTANT = 1L;
-                    @VisibleForTesting
-                    public static final long EXTERNAL_CONSTANT = 2L;
-                }
-                """,
-              """
-                package com.example.domain;
-
-                import org.jetbrains.annotations.VisibleForTesting;
-
-                public class Production {
-                    @VisibleForTesting
-                    public static final long INTERNAL_CONSTANT = 1L;
-                    public static final long EXTERNAL_CONSTANT = 2L;
-                }
-                """
-            ),
-            java(
-              """
-                package com.example.caller;
-
-                import com.example.domain.Production;
-
-                class ProductionCaller {
-                    void call(Production production) {
-                        long variableOne = Production.EXTERNAL_CONSTANT;
-                    }
-                }
-                """
-            )
-          ),
-          srcTestJava(
-            java(
-              """
-                package com.example.test;
-
-                import com.example.domain.Production;
-
-                class ProductionTest {
-                    void test(Production production) {
-                         long variableOne = Production.INTERNAL_CONSTANT;
-                         long variableTwo = Production.EXTERNAL_CONSTANT;
                     }
                 }
                 """

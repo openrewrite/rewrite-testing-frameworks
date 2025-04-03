@@ -25,10 +25,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends ScanningRecipe<RemoveVisibleForTestingAnnotationWhenUsedInProduction.Scanned> {
 
@@ -45,7 +42,8 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
 
     @Override
     public String getDescription() {
-        return "The `@VisibleForTesting` annotation is used when a method or a field has been made more accessible then it would normally be, solely for testing purposes. " +
+        return "The `@VisibleForTesting` annotation marks a method or field that is intentionally made more accessible (e.g., changing its visibility from private or package-private to public or protected) solely for testing purposes." +
+                "The annotation serves as an indicator that the increased visibility is not part of the intended public API but exists only to support testability. " +
                 "This recipe removes the annotation where such an element is used from production classes. It identifies production classes as classes in `src/main` and test classes as classes in `src/test`. " +
                 "It will remove the `@VisibleForTesting` from methods, fields (both member fields and constants), constructors and inner classes. " +
                 "This recipe should not be used in an environment where QA tooling acts on the `@VisibleForTesting` annotation.";
@@ -61,50 +59,51 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
         return new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
-            public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
-                // Mark classes
-                if (fieldAccess.getTarget().getType() instanceof JavaType.Class) {
-                    checkAndRegister(acc.classes, fieldAccess.getTarget().getType());
+            public J.FieldAccess visitFieldAccess(J.FieldAccess fa, ExecutionContext ctx) {
+                if (fa.getTarget().getType() instanceof JavaType.Class) {
+                    checkAndRegister(acc.classes, fa.getTarget().getType());
                 }
-                // Mark fields
-                if (fieldAccess.getName().getFieldType() != null) {
-                    checkAndRegister(acc.fields, fieldAccess.getName().getFieldType());
+                if (fa.getName().getFieldType() != null) {
+                    checkAndRegister(acc.fields, fa.getName().getFieldType());
                 }
-                return super.visitFieldAccess(fieldAccess, ctx);
+                return super.visitFieldAccess(fa, ctx);
             }
 
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (method.getMethodType() != null) {
-                    checkAndRegister(acc.methods, method.getMethodType());
+            public J.MemberReference visitMemberReference(J.MemberReference mr, ExecutionContext executionContext) {
+                if (mr.getMethodType() != null) {
+                    checkAndRegister(acc.methods, mr.getMethodType());
                 }
-                return super.visitMethodInvocation(method, ctx);
+                return super.visitMemberReference(mr, executionContext);
             }
 
             @Override
-            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
-                // Mark constructors
-                if (newClass.getConstructorType() != null) {
-                    checkAndRegister(acc.methods, newClass.getConstructorType());
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
+                if (mi.getMethodType() != null) {
+                    checkAndRegister(acc.methods, mi.getMethodType());
                 }
-                // Mark classes
-                if (newClass.getClazz() != null && newClass.getClazz().getType() != null && newClass.getClazz().getType() instanceof JavaType.Class) {
-                    checkAndRegister(acc.classes, newClass.getClazz().getType());
+                return super.visitMethodInvocation(mi, ctx);
+            }
+
+            @Override
+            public J.NewClass visitNewClass(J.NewClass nc, ExecutionContext ctx) {
+                if (nc.getConstructorType() != null) {
+                    checkAndRegister(acc.methods, nc.getConstructorType());
                 }
-                return super.visitNewClass(newClass, ctx);
+                if (nc.getClazz() != null && nc.getClazz().getType() instanceof JavaType.Class) {
+                    checkAndRegister(acc.classes, nc.getClazz().getType());
+                }
+                return super.visitNewClass(nc, ctx);
             }
 
             private void checkAndRegister(List<String> target, JavaType type) {
                 if (!target.contains(TypeUtils.toString(type))) {
                     getAnnotations(type).forEach(annotation -> {
                         if ("VisibleForTesting".equals(annotation.getClassName())) {
-                            J.CompilationUnit compilationUnit = getCursor().firstEnclosing(J.CompilationUnit.class);
-                            if (compilationUnit != null) {
-                                compilationUnit
-                                        .getMarkers()
-                                        .findFirst(JavaSourceSet.class)
-                                        .filter(elem -> "main".equals(elem.getName()))
-                                        .ifPresent(sourceSet -> target.add(TypeUtils.toString(type)));
+                            J.CompilationUnit cu = getCursor().firstEnclosing(J.CompilationUnit.class);
+                            if (cu != null &&
+                                    cu.getMarkers().findFirst(JavaSourceSet.class).filter(s -> "main".equals(s.getName().toLowerCase(Locale.ROOT))).isPresent()){
+                                target.add(TypeUtils.toString(type));
                             }
                         }
                     });
@@ -129,8 +128,8 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
         return new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
-            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
-                J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, ctx);
+            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations vd, ExecutionContext ctx) {
+                J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(vd, ctx);
                 if (!variableDeclarations.getVariables().isEmpty()) {
                     // if none of the variables in the declaration are used from production code, the annotation should be kept
                     boolean keepAnnotation = variableDeclarations.getVariables().stream()
@@ -144,8 +143,8 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
             }
 
             @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                J.MethodDeclaration methodDeclaration = super.visitMethodDeclaration(method, ctx);
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
+                J.MethodDeclaration methodDeclaration = super.visitMethodDeclaration(md, ctx);
                 if (methodDeclaration.getMethodType() != null && acc.methods.contains(TypeUtils.toString(methodDeclaration.getMethodType()))) {
                     return (J.MethodDeclaration) getElement(ctx, methodDeclaration.getLeadingAnnotations(), methodDeclaration);
                 }
@@ -153,8 +152,8 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
             }
 
             @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                J.ClassDeclaration classDeclaration = super.visitClassDeclaration(classDecl, ctx);
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
+                J.ClassDeclaration classDeclaration = super.visitClassDeclaration(cd, ctx);
                 if (classDeclaration.getType() != null && acc.classes.contains(TypeUtils.toString(classDeclaration.getType()))) {
                     return (J.ClassDeclaration) getElement(ctx, classDeclaration.getLeadingAnnotations(), classDeclaration);
                 }
