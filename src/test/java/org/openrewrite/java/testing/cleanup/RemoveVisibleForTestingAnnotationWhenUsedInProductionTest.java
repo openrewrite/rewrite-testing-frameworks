@@ -442,8 +442,8 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
         );
     }
 
-
-    void genericMethodInvocation() {
+    @Test
+    void methodInvocationWithParametersWithGenericTypeAndReturnTypeWithGenericType() {
         //language=java
         rewriteRun(
           srcMainJava(
@@ -452,23 +452,41 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                 package com.example.domain;
 
                 import org.jetbrains.annotations.VisibleForTesting;
+                import java.util.List;
+                import java.util.ArrayList;
 
                 public class Production {
                     @VisibleForTesting
-                    public <T> void internalCall(T param){}
+                    public List<?> internalCallWithParamAndReturnType(List<?> list){ return list; }
                     @VisibleForTesting
-                    public <T> void externalCall(T param){}
+                    public void internalCallWithParam(List<?> list){}
+                    @VisibleForTesting
+                    public List<?> internalCallWithReturnType(){ return new ArrayList<>(); }
+                    @VisibleForTesting
+                    public List<?> externalCallWithParamAndReturnType(List<?> list){ return list; }
+                    @VisibleForTesting
+                    public void externalCallWithParam(List<?> list){}
+                    @VisibleForTesting
+                    public List<?> externalCallWithReturnType(){ return  new ArrayList<>(); }
                 }
                 """,
               """
                 package com.example.domain;
 
                 import org.jetbrains.annotations.VisibleForTesting;
+                import java.util.List;
+                import java.util.ArrayList;
 
                 public class Production {
                     @VisibleForTesting
-                    public <T> void internalCall(T param){}
-                    public <T> void externalCall(T param){}
+                    public List<?> internalCallWithParamAndReturnType(List<?> list){ return list; }
+                    @VisibleForTesting
+                    public void internalCallWithParam(List<?> list){}
+                    @VisibleForTesting
+                    public List<?> internalCallWithReturnType(){ return new ArrayList<>(); }
+                    public List<?> externalCallWithParamAndReturnType(List<?> list){ return list; }
+                    public void externalCallWithParam(List<?> list){}
+                    public List<?> externalCallWithReturnType(){ return  new ArrayList<>(); }
                 }
                 """
             ),
@@ -477,10 +495,13 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                 package com.example.caller;
 
                 import com.example.domain.Production;
+                import java.util.List;
 
                 class ProductionCaller {
-                    void call(Production production, Object arg) {
-                        production.externalCall(arg);
+                    void call(Production production, List<String> list) {
+                        List<?> listOne = production.externalCallWithParamAndReturnType(list);
+                        production.externalCallWithParam(list);
+                        List<?> listTwo = production.externalCallWithReturnType();
                     }
                 }
                 """
@@ -492,11 +513,16 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                 package com.example.test;
 
                 import com.example.domain.Production;
+                import java.util.List;
 
                 class ProductionTest {
-                    void test(Production production, Object arg) {
-                        production.internalCall(arg);
-                        production.externalCall(arg);
+                    void test(Production production, List<String> list) {
+                        List<?> listOne = production.externalCallWithParamAndReturnType(list);
+                        production.externalCallWithParam(list);
+                        List<?> listTwo = production.externalCallWithReturnType();
+                        List<?> listThree = production.internalCallWithParamAndReturnType(list);
+                        production.internalCallWithParam(list);
+                        List<?> listFour = production.internalCallWithReturnType();
                     }
                 }
                 """
