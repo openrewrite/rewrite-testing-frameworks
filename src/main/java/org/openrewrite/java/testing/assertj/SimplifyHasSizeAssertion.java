@@ -21,7 +21,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.TypeMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -33,11 +32,11 @@ public class SimplifyHasSizeAssertion extends Recipe {
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
     private static final MethodMatcher HAS_SIZE_MATCHER = new MethodMatcher("org.assertj.core.api.* hasSize(int)");
-    private static final String HAS_SAME_SIZE_AS = "hasSameSizeAs";
+    private static final MethodMatcher CHAR_SEQUENCE_LENGTH_MATCHER = new MethodMatcher("java.lang.CharSequence length()", true);
+    private static final MethodMatcher ITERABLE_SIZE_MATCHER = new MethodMatcher("java.lang.Iterable size()", true);
+    private static final MethodMatcher MAP_SIZE_MATCHER = new MethodMatcher("java.util.Map size()", true);
 
-    private static final TypeMatcher CHAR_SEQUENCE_TYPE_MATCHER = new TypeMatcher("java.lang.CharSequence", true);
-    private static final TypeMatcher ITERABLE_TYPE_MATCHER = new TypeMatcher("java.lang.Iterable", true);
-    private static final TypeMatcher MAP_TYPE_MATCHER = new TypeMatcher("java.util.Map", true);
+    private static final String HAS_SAME_SIZE_AS = "hasSameSizeAs";
 
     @Override
     public String getDisplayName() {
@@ -66,13 +65,11 @@ public class SimplifyHasSizeAssertion extends Recipe {
                         }
 
                         Expression expression = mi.getArguments().get(0);
-                        if (expression instanceof J.MethodInvocation &&
-                                ((J.MethodInvocation) expression).getSelect() != null) {
-                            Expression argument = ((J.MethodInvocation) expression).getSelect();
-                            JavaType type = argument.getType();
-                            if (CHAR_SEQUENCE_TYPE_MATCHER.matches(type) ||
-                                    ITERABLE_TYPE_MATCHER.matches(type) ||
-                                    MAP_TYPE_MATCHER.matches(type)) {
+                        if (expression instanceof J.MethodInvocation) {
+                            if (CHAR_SEQUENCE_LENGTH_MATCHER.matches(expression) ||
+                                    ITERABLE_SIZE_MATCHER.matches(expression) ||
+                                    MAP_SIZE_MATCHER.matches(expression)) {
+                                Expression argument = ((J.MethodInvocation) expression).getSelect();
                                 return updateMethodInvocation(mi, argument);
                             }
                         } else if (expression instanceof J.FieldAccess) {
