@@ -69,6 +69,39 @@ class SimplifyHasSizeAssertionTest implements RewriteTest {
     }
 
     @Test
+    void chainedStringAssertionHasSameSizeAs() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod() {
+                      String a = "ab";
+                      String b = "ab";
+
+                      assertThat(a).isNotNull().hasSize(b.length());
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod() {
+                      String a = "ab";
+                      String b = "ab";
+
+                      assertThat(a).isNotNull().hasSameSizeAs(b);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void stringCompare() {
         rewriteRun(
           //language=java

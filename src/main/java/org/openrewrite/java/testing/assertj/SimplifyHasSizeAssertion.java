@@ -30,7 +30,6 @@ import java.util.Collections;
 
 public class SimplifyHasSizeAssertion extends Recipe {
 
-    private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
     private static final MethodMatcher HAS_SIZE_MATCHER = new MethodMatcher("org.assertj.core.api.* hasSize(int)");
 
     private static final MethodMatcher CHAR_SEQUENCE_LENGTH_MATCHER = new MethodMatcher("java.lang.CharSequence length()", true);
@@ -51,17 +50,12 @@ public class SimplifyHasSizeAssertion extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(
-                Preconditions.and(
-                        new UsesMethod<>(ASSERT_THAT_MATCHER),
-                        new UsesMethod<>(HAS_SIZE_MATCHER)
-                ),
+        return Preconditions.check(new UsesMethod<>(HAS_SIZE_MATCHER),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-
-                        if (!HAS_SIZE_MATCHER.matches(mi) || !ASSERT_THAT_MATCHER.matches(mi.getSelect())) {
+                        if (!HAS_SIZE_MATCHER.matches(mi)) {
                             return mi;
                         }
 
@@ -70,8 +64,7 @@ public class SimplifyHasSizeAssertion extends Recipe {
                             if (CHAR_SEQUENCE_LENGTH_MATCHER.matches(expression) ||
                                     ITERABLE_SIZE_MATCHER.matches(expression) ||
                                     MAP_SIZE_MATCHER.matches(expression)) {
-                                Expression argument = ((J.MethodInvocation) expression).getSelect();
-                                return updateMethodInvocation(mi, argument);
+                                return updateMethodInvocation(mi, ((J.MethodInvocation) expression).getSelect());
                             }
                         } else if (expression instanceof J.FieldAccess) {
                             Expression target = ((J.FieldAccess) expression).getTarget();
