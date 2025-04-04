@@ -32,6 +32,7 @@ public class SimplifyHasSizeAssertion extends Recipe {
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
     private static final MethodMatcher HAS_SIZE_MATCHER = new MethodMatcher("org.assertj.core.api.* hasSize(int)");
+
     private static final MethodMatcher CHAR_SEQUENCE_LENGTH_MATCHER = new MethodMatcher("java.lang.CharSequence length()", true);
     private static final MethodMatcher ITERABLE_SIZE_MATCHER = new MethodMatcher("java.lang.Iterable size()", true);
     private static final MethodMatcher MAP_SIZE_MATCHER = new MethodMatcher("java.util.Map size()", true);
@@ -40,12 +41,12 @@ public class SimplifyHasSizeAssertion extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Simplify AssertJ assertions with hasSize argument";
+        return "Simplify AssertJ assertions with `hasSize` argument";
     }
 
     @Override
     public String getDescription() {
-        return "Simplify AssertJ assertions by replacing hasSize with hasSameSizeAs dedicated assertions.";
+        return "Simplify AssertJ assertions by replacing `hasSize` with `hasSameSizeAs` dedicated assertions.";
     }
 
     @Override
