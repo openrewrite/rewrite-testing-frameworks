@@ -172,7 +172,6 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
                 return target;
             }
         };
-
         return Preconditions.check(new IsLikelyNotTest().getVisitor(), visitor);
     }
 }
