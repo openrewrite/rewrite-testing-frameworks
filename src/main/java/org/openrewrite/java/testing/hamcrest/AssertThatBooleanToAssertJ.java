@@ -50,7 +50,7 @@ public class AssertThatBooleanToAssertJ extends Recipe {
                     maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
                     maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
                     return JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(String)}).isTrue()")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), booleanArgument, reasonArgument);

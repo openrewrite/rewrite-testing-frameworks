@@ -23,13 +23,14 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.test.TypeValidation.all;
 
 class HamcrestMatcherToJUnit5Test implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "hamcrest-2.2"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3"))
           .recipe(new HamcrestMatcherToJUnit5());
     }
 
@@ -122,6 +123,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void notEqualToString() {
         //language=java
         rewriteRun(
+          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false)),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -464,6 +466,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void sameInstance() {
         //language=java
         rewriteRun(
+          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false)),
           java(
             """
               import org.junit.jupiter.api.Test;

@@ -29,9 +29,9 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "junit-jupiter-api-5.9",
-            "hamcrest-2.2",
-            "assertj-core-3.24"))
+            "junit-jupiter-api-5",
+            "hamcrest-3",
+            "assertj-core-3"))
           .recipe(new HamcrestOfMatchersToAssertJ());
     }
 
@@ -43,12 +43,12 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.allOf;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
-                            
+
               class MyTest {
                   @Test
                   void testMethod() {
@@ -86,12 +86,12 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.allOf;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
-                            
+
               class MyTest {
                   @Test
                   void testMethod() {
@@ -155,12 +155,12 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.anyOf;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
-                            
+
               class MyTest {
                   @Test
                   void testMethod() {
@@ -198,12 +198,12 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.anyOf;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
-                            
+
               class MyTest {
                   @Test
                   void testMethod() {
@@ -269,12 +269,12 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-                            
+
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.anyOf;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
-                            
+
               class MyTest {
                   @Test
                   void testMethod() {
@@ -289,7 +289,7 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
-                            
+
               class MyTest {
                   @Test
                   void testMethod() {

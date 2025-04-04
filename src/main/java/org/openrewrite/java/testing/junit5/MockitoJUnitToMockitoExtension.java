@@ -105,7 +105,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
 
                     cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
                             .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "junit-jupiter-api-5.9", "mockito-junit-jupiter-3.12"))
+                                    .classpathFromResources(ctx, "junit-jupiter-api-5", "mockito-junit-jupiter-3.12"))
                             .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                             .build()
                             .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
@@ -121,7 +121,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                     if (!strictness.contains("STRICT_STUBS")) {
                         cd = JavaTemplate.builder("@MockitoSettings(strictness = " + strictness + ")")
                                 .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5.9", "mockito-junit-jupiter-3.12"))
+                                        .classpathFromResources(ctx, "junit-jupiter-api-5", "mockito-junit-jupiter-3.12"))
                                 .imports("org.mockito.junit.jupiter.MockitoSettings", "org.mockito.quality.Strictness")
                                 .build()
                                 .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));

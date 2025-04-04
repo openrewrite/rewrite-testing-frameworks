@@ -15,27 +15,37 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.VariableNameUtils;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Flag;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
+import static org.openrewrite.java.VariableNameUtils.generateVariableName;
+import static org.openrewrite.java.tree.Flag.Static;
 
 public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
+    private static final AnnotationMatcher BEFORE = new AnnotationMatcher("org.junit.Before");
+    private static final AnnotationMatcher BEFORE_CLASS = new AnnotationMatcher("org.junit.BeforeClass");
+    private static final AnnotationMatcher AFTER = new AnnotationMatcher("org.junit.After");
+    private static final AnnotationMatcher AFTER_CLASS = new AnnotationMatcher("org.junit.AfterClass");
     private static final MethodMatcher MOCKITO_WHEN = new MethodMatcher("org.mockito.Mockito when(..)");
+
+    private int varCounter = 0;
 
     @Override
     public String getDisplayName() {
@@ -44,93 +54,184 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic as Mockito4 no longer allows this.";
+        return "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic as Mockito4 no longer allows this." +
+                "When `@Before` or `@BeforeClass` is used, a `close` method is added to either the `@After` or `@AfterClass` method." +
+                "This change moves away from implicit bytecode manipulation for static method stubbing, making mocking behavior more explicit and scoped to avoid unintended side effects.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesMethod<>(MOCKITO_WHEN), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-                if (m.getBody() == null) {
-                    return m;
-                }
+            public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
+                List<Statement> newStatements = isMethodDeclarationWithAnnotation(getCursor().firstEnclosing(J.MethodDeclaration.class), BEFORE, BEFORE_CLASS) ?
+                        maybeStatementsToMockedStatic(block, block.getStatements(), ctx) :
+                        maybeWrapStatementsInTryWithResourcesMockedStatic(block, block.getStatements(), ctx);
 
-                List<Statement> newStatements = maybeWrapStatementsInTryWithResourcesMockedStatic(m, m.getBody().getStatements());
-                return maybeAutoFormat(m, m.withBody(m.getBody().withStatements(newStatements)), ctx);
+                J.Block b = super.visitBlock(block.withStatements(newStatements), ctx);
+                return maybeAutoFormat(block, b, ctx);
             }
 
-            private List<Statement> maybeWrapStatementsInTryWithResourcesMockedStatic(J.MethodDeclaration m, List<Statement> remainingStatements) {
+            private List<Statement> maybeStatementsToMockedStatic(J.Block m, List<Statement> statements, ExecutionContext ctx) {
+                List<Statement> list = new ArrayList<>();
+                for (Statement statement : statements) {
+                    J.MethodInvocation whenArg = getWhenArg(statement);
+                    if (whenArg != null) {
+                        String className = getClassName(whenArg);
+                        if (className != null) {
+                            list.addAll(mockedStatic(m, (J.MethodInvocation) statement, className, whenArg, ctx));
+                        }
+                    } else {
+                        list.add(statement);
+                    }
+                }
+                return list;
+            }
+
+            private List<Statement> maybeWrapStatementsInTryWithResourcesMockedStatic(J.Block block, List<Statement> statements, ExecutionContext ctx) {
                 AtomicBoolean restInTry = new AtomicBoolean(false);
-                return ListUtils.flatMap(remainingStatements, (index, statement) -> {
+                return ListUtils.map(statements, (index, statement) -> {
                     if (restInTry.get()) {
                         // Rest of the statements have ended up in the try block
-                        return Collections.emptyList();
+                        return null;
                     }
 
-                    if (statement instanceof J.MethodInvocation &&
-                        MOCKITO_WHEN.matches(((J.MethodInvocation) statement).getSelect())) {
-                        J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) statement).getSelect();
-                        if (when != null && when.getArguments().get(0) instanceof J.MethodInvocation) {
-                            J.MethodInvocation whenArg = (J.MethodInvocation) when.getArguments().get(0);
-                            if (whenArg.getMethodType() != null && whenArg.getMethodType().hasFlags(Flag.Static)) {
-                                if (whenArg.getSelect() instanceof J.Identifier) {
-                                    J.Identifier clazz = (J.Identifier) whenArg.getSelect();
-                                    if (clazz.getType() != null) {
-                                        return tryWithMockedStatic(m, remainingStatements, index, statement, clazz.getSimpleName(), whenArg, restInTry);
-                                    }
-                                } else if (whenArg.getSelect() instanceof J.FieldAccess) {
-                                    J.FieldAccess fieldAccess = (J.FieldAccess) whenArg.getSelect();
-                                    if (fieldAccess.getTarget() instanceof J.Identifier) {
-                                        J.Identifier clazz = (J.Identifier) fieldAccess.getTarget();
-                                        if (clazz.getType() != null) {
-                                            return tryWithMockedStatic(m, remainingStatements, index, statement, clazz.getSimpleName(), whenArg, restInTry);
-                                        }
-                                    }
-                                }
-                            }
+                    J.MethodInvocation whenArg = getWhenArg(statement);
+                    if (whenArg != null) {
+                        String className = getClassName(whenArg);
+                        if (className != null) {
+                            restInTry.set(true);
+                            return tryWithMockedStatic(block, statements, index, (J.MethodInvocation) statement, className, whenArg, ctx);
                         }
                     }
                     return statement;
                 });
             }
 
-            private J.Try tryWithMockedStatic(
-                    J.MethodDeclaration m,
-                    List<Statement> remainingStatements,
-                    Integer index,
-                    Statement statement,
-                    String simpleName,
-                    J.MethodInvocation whenArg,
-                    AtomicBoolean restInTry) {
-                String mockName = VariableNameUtils.generateVariableName("mock" + simpleName, updateCursor(m), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+            private J.@Nullable MethodInvocation getWhenArg(Statement statement) {
+                if (statement instanceof J.MethodInvocation && MOCKITO_WHEN.matches(((J.MethodInvocation) statement).getSelect())) {
+                    J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) statement).getSelect();
+                    if (when != null && when.getArguments().get(0) instanceof J.MethodInvocation) {
+                        J.MethodInvocation whenArg = (J.MethodInvocation) when.getArguments().get(0);
+                        if (whenArg.getMethodType() != null && whenArg.getMethodType().hasFlags(Static)) {
+                            return whenArg;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            private @Nullable String getClassName(J.MethodInvocation whenArg) {
+                J.Identifier clazz = null;
+                if (whenArg.getSelect() instanceof J.Identifier) {
+                    clazz = (J.Identifier) whenArg.getSelect();
+                } else if (whenArg.getSelect() instanceof J.FieldAccess && ((J.FieldAccess) whenArg.getSelect()).getTarget() instanceof J.Identifier) {
+                    clazz = (J.Identifier) ((J.FieldAccess) whenArg.getSelect()).getTarget();
+                }
+                return clazz != null && clazz.getType() != null ? clazz.getSimpleName() : null;
+            }
+
+            private J.Try tryWithMockedStatic(J.Block block, List<Statement> statements, Integer index,
+                                              J.MethodInvocation statement, String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
+                String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
+                Expression thenReturnArg = statement.getArguments().get(0);
+
+                J.Try try_ = (J.Try) javaTemplateMockStatic(String.format(
+                        "try(MockedStatic<%1$s> %2$s = mockStatic(%1$s.class)) {\n" +
+                                "    %2$s.when(() -> #{any()}).thenReturn(#{any()});\n" +
+                                "}", className, variableName), ctx)
+                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, thenReturnArg)
+                        .getStatements().get(0);
+
+                List<Statement> precedingStatements = statements.subList(0, index);
+                List<Statement> handledStatements = ListUtils.concat(precedingStatements, try_);
+                List<Statement> remainingStatements = statements.subList(index + 1, statements.size());
+
+                List<Statement> newStatements = ListUtils.concatAll(
+                        try_.getBody().getStatements(),
+                        maybeWrapStatementsInTryWithResourcesMockedStatic(block.withStatements(handledStatements), remainingStatements, ctx));
+
+                return try_.withBody(try_.getBody().withStatements(newStatements))
+                        .withPrefix(statement.getPrefix());
+            }
+
+            private List<Statement> mockedStatic(J.Block block, J.MethodInvocation statement,  String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
+                boolean staticSetup = isMethodDeclarationWithAnnotation(getCursor().firstEnclosing(J.MethodDeclaration.class), BEFORE_CLASS);
+                String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
+                Expression thenReturnArg = statement.getArguments().get(0);
+
+                List<Statement> statements = javaTemplateMockStatic(String.format(
+                        "%2$s = mockStatic(%1$s.class);\n" +
+                                "%2$s.when(() -> #{any()}).thenReturn(#{any()});", className, variableName), ctx)
+                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, thenReturnArg)
+                        .getStatements().subList(0, 2);
+
+                doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                        J.ClassDeclaration after = JavaTemplate.builder(
+                                String.format("private%s MockedStatic<%s> %s;", staticSetup ? " static" : "", className, variableName))
+                                .contextSensitive()
+                                .build()
+                                .apply(updateCursor(classDecl), classDecl.getBody().getCoordinates().firstStatement());
+
+                        if (classDecl.getBody().getStatements().stream().noneMatch(it -> isMethodDeclarationWithAnnotation(it, AFTER, AFTER_CLASS))) {
+                            Optional<Statement> beforeMethod = after.getBody().getStatements().stream()
+                                    .filter(it -> isMethodDeclarationWithAnnotation(it, BEFORE, BEFORE_CLASS))
+                                    .findFirst();
+                            if (beforeMethod.isPresent()) {
+                                maybeAddImport("org.junit.AfterClass");
+                                maybeAddImport("org.junit.After");
+                                after = JavaTemplate.builder(String.format(
+                                            "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@After public"
+                                        ))
+                                        .imports(staticSetup ? "org.junit.AfterClass" : "org.junit.After")
+                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-4"))
+                                        .build()
+                                        .apply(updateCursor(after), beforeMethod.get().getCoordinates().after());
+                            }
+                        }
+
+                        J.ClassDeclaration cd = super.visitClassDeclaration(after, ctx);
+                        return maybeAutoFormat(classDecl, cd, ctx);
+                    }
+
+                    @Override
+                    public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
+                        J.MethodDeclaration md = super.visitMethodDeclaration(methodDecl, ctx);
+
+                        if (isMethodDeclarationWithAnnotation(md, AFTER, AFTER_CLASS)) {
+                            return JavaTemplate.builder(variableName + ".close();")
+                                    .contextSensitive()
+                                    .build()
+                                    .apply(getCursor(), md.getBody().getCoordinates().lastStatement());
+                        }
+
+                        return md;
+                    }
+                });
+
+                return statements;
+            }
+
+            private JavaTemplate javaTemplateMockStatic(String code, ExecutionContext ctx) {
                 maybeAddImport("org.mockito.MockedStatic", false);
                 maybeAddImport("org.mockito.Mockito", "mockStatic");
-                String template = String.format(
-                        "try(MockedStatic<%1$s> %2$s = mockStatic(%1$s.class)) {\n" +
-                        "    %2$s.when(#{any()}).thenReturn(#{any()});\n" +
-                        "}", simpleName, mockName);
-                J.Try try_ = (J.Try) ((J.MethodDeclaration) JavaTemplate.builder(template)
+                return JavaTemplate.builder(code)
                         .contextSensitive()
                         .imports("org.mockito.MockedStatic")
                         .staticImports("org.mockito.Mockito.mockStatic")
-                        .build()
-                        .apply(getCursor(), m.getCoordinates().replaceBody(),
-                                whenArg, ((J.MethodInvocation) statement).getArguments().get(0)))
-                        .getBody().getStatements().get(0);
-
-                restInTry.set(true);
-
-                List<Statement> precedingStatements = remainingStatements.subList(0, index);
-                return try_.withBody(try_.getBody().withStatements(ListUtils.concatAll(
-                                try_.getBody().getStatements(),
-                                maybeWrapStatementsInTryWithResourcesMockedStatic(
-                                        m.withBody(m.getBody().withStatements(ListUtils.concat(precedingStatements, try_))),
-                                        remainingStatements.subList(index + 1, remainingStatements.size())
-                                ))))
-                        .withPrefix(statement.getPrefix());
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
+                        .build();
             }
         });
+    }
+
+    private static boolean isMethodDeclarationWithAnnotation(@Nullable Statement statement, AnnotationMatcher... matchers) {
+        if (statement instanceof J.MethodDeclaration) {
+            return ((J.MethodDeclaration) statement).getLeadingAnnotations().stream()
+                    .anyMatch(it -> Arrays.stream(matchers).anyMatch(m -> m.matches(it)));
+        }
+        return false;
     }
 }

@@ -31,7 +31,7 @@ class RemoveTestPrefixTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "junit-jupiter-api-5.9", "junit-jupiter-params-5.9"))
+            "junit-jupiter-api-5", "junit-jupiter-params-5"))
           .recipe(new RemoveTestPrefix());
     }
 
@@ -385,31 +385,58 @@ class RemoveTestPrefixTest implements RewriteTest {
           // language=java
           java(
             """
-            import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.Test;
 
-            public class FooTest {
-              @Test
-              void bar() {
-                  testFoo();
+              public class FooTest {
+                @Test
+                void bar() {
+                    testFoo();
+                }
+
+                @Test
+                void testFoo() {}
               }
-
-              @Test
-              void testFoo() {}
-            }
-            """,
+              """,
             """
-            import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.Test;
 
-            public class FooTest {
-              @Test
-              void bar() {
-                  foo();
+              public class FooTest {
+                @Test
+                void bar() {
+                    foo();
+                }
+
+                @Test
+                void foo() {}
               }
+              """
+          )
+        );
+    }
 
-              @Test
-              void foo() {}
-            }
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/680")
+    @Test
+    void ignoreConflictingStaticImport() {
+        rewriteRun(
+          //language=java
+          java(
             """
+              import static java.lang.String.valueOf;
+
+              import org.junit.jupiter.api.Test;
+
+              class FooTest {
+                @Test
+                void testValueOf() {
+                }
+
+                @Test
+                void foo() {
+                    // make sure the imported method is referenced
+                    valueOf(123);
+                }
+              }
+              """
           )
         );
     }

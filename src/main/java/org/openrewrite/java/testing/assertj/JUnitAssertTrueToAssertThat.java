@@ -61,7 +61,7 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
                 if (args.size() == 1) {
                     return JavaTemplate.builder("assertThat(#{any(boolean)}).isTrue();")
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual);
                 }
@@ -69,7 +69,7 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
                 Expression message = args.get(1);
                 return JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isTrue();")
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
                         .apply(getCursor(), mi.getCoordinates().replace(), actual, message);
             }

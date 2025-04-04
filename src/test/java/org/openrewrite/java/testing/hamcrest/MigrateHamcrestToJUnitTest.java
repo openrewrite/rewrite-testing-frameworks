@@ -23,13 +23,14 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.test.TypeValidation.all;
 
 class MigrateHamcrestToJUnitTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "hamcrest-2.2"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3"))
           .recipeFromResource("/META-INF/rewrite/hamcrest.yml", "org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5");
     }
 
@@ -38,6 +39,7 @@ class MigrateHamcrestToJUnitTest implements RewriteTest {
     void equalToString() {
         //language=java
         rewriteRun(
+          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false)),
           java(
             """
               import org.junit.jupiter.api.Test;

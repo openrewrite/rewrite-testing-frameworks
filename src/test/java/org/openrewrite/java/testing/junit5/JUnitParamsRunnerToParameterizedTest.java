@@ -31,7 +31,7 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "JUnitParams-1.1", "hamcrest-2.2"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "JUnitParams-1.1", "hamcrest-3"))
           .recipe(new JUnitParamsRunnerToParameterized());
     }
 
@@ -46,24 +46,24 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import junitparams.JUnitParamsRunner;
               import junitparams.Parameters;
-                  
+
               @RunWith(JUnitParamsRunner.class)
               public class PersonTests {
-              
+
                   @Test
                   @Parameters
                   public void personIsAdult(int age, boolean valid) {
                   }
-              
+
                   private Object[] parametersForPersonIsAdult() {
                       return new Object[]{new Object[]{13, false}, new Object[]{17, false}};
                   }
-              
+
                   @Test
                   @Parameters
                   public void personIsChild(int age, boolean valid) {
                   }
-              
+
                   private Object[] parametersForPersonIsChild() {
                       return new Object[]{new Object[]{3, false}, new Object[]{7, false}};
                   }
@@ -72,23 +72,23 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
-              
+
               public class PersonTests {
-              
+
                   @ParameterizedTest
                   @MethodSource("parametersForPersonIsAdult")
                   public void personIsAdult(int age, boolean valid) {
                   }
-              
+
                   private static Object[] parametersForPersonIsAdult() {
                       return new Object[]{new Object[]{13, false}, new Object[]{17, false}};
                   }
-              
+
                   @ParameterizedTest
                   @MethodSource("parametersForPersonIsChild")
                   public void personIsChild(int age, boolean valid) {
                   }
-              
+
                   private static Object[] parametersForPersonIsChild() {
                       return new Object[]{new Object[]{3, false}, new Object[]{7, false}};
                   }
@@ -110,39 +110,39 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
               import junitparams.Parameters;
               import junitparams.NamedParameters;
               import junitparams.naming.TestCaseName;
-                  
+
               @RunWith(JUnitParamsRunner.class)
               public class PersonTests {
-              
+
                   @Test
                   @Parameters(method = "youngAdultPersonParams")
                   @TestCaseName("persons-age: {0} is-young-adult: {1}")
                   public void personIsAdult(int age, boolean valid) {
                   }
-              
+
                   private Object[] youngAdultPersonParams() {
                       return new Object[]{new Object[]{13, false}, new Object[]{17, false}};
                   }
-              
+
                   @Test
                   @Parameters(named = "named-params")
                   @TestCaseName("persons-age: {0} is-young-adult: {1}")
                   public void personIsNamedAdult(int age, boolean valid) {
                   }
-              
+
                   @NamedParameters("named-params")
                   private Object[] namedPeopleParams() {
                       return new Object[]{new Object[]{13, false}, new Object[]{17, false}};
                   }
-              
+
                   @Test
                   @Parameters(method = "named2,named3")
                   public void paramsInMultipleMethods(String p1, Integer p2) { }
-                  
+
                   private Object named2() {
                       return new Object[]{"AAA", 1};
                   }
-                  
+
                   private Object named3() {
                       return new Object[]{"BBB", 2};
                   }
@@ -151,36 +151,36 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
             """
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
-              
+
               public class PersonTests {
-              
+
                   @ParameterizedTest(name = "persons-age: {0} is-young-adult: {1}")
                   @MethodSource("youngAdultPersonParams")
                   public void personIsAdult(int age, boolean valid) {
                   }
-              
+
                   private static Object[] youngAdultPersonParams() {
                       return new Object[]{new Object[]{13, false}, new Object[]{17, false}};
                   }
-              
+
                   @ParameterizedTest(name = "persons-age: {0} is-young-adult: {1}")
                   @MethodSource("namedPeopleParams")
                   public void personIsNamedAdult(int age, boolean valid) {
                   }
-              
-              
+
+
                   private static Object[] namedPeopleParams() {
                       return new Object[]{new Object[]{13, false}, new Object[]{17, false}};
                   }
-              
+
                   @ParameterizedTest
                   @MethodSource({"named2", "named3"})
                   public void paramsInMultipleMethods(String p1, Integer p2) { }
-              
+
                   private static Object named2() {
                       return new Object[]{"AAA", 1};
                   }
-              
+
                   private static Object named3() {
                       return new Object[]{"BBB", 2};
                   }
@@ -200,9 +200,9 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import junitparams.JUnitParamsRunner;
               import junitparams.Parameters;
-              
+
               enum PersonType {MALE, FEMALE}
-              
+
               @RunWith(JUnitParamsRunner.class)
               class EnumSourceTests {
                   @Test
@@ -215,9 +215,9 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import junitparams.JUnitParamsRunner;
               import junitparams.Parameters;
-              
+
               enum PersonType {MALE, FEMALE}
-              
+
               @RunWith(JUnitParamsRunner.class)
               class EnumSourceTests {
                   @Test

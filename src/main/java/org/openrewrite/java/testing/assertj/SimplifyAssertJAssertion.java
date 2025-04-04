@@ -93,7 +93,7 @@ public class SimplifyAssertJAssertion extends Recipe {
 
                 // Assume zero argument replacement method
                 return JavaTemplate.builder("#{any()}." + dedicatedAssertion + "()")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
                         .apply(getCursor(), mi.getCoordinates().replace(), mi.getSelect());
             }

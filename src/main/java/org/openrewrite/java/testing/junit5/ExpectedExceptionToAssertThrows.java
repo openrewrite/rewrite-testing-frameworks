@@ -67,7 +67,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
             if (javaParser == null) {
                 javaParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5.9", "hamcrest-2.2");
+                        .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3");
             }
             return javaParser;
 

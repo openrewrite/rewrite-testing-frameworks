@@ -38,7 +38,7 @@ class AssertJBestPracticesTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.parser(
             JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3.24"))
+              .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"))
           .recipeFromResources("org.openrewrite.java.testing.assertj.Assertj");
     }
 
@@ -155,7 +155,7 @@ class AssertJBestPracticesTest implements RewriteTest {
               arguments("String", "assertThat(x.matches(y)).isTrue()", "assertThat(x).matches(y)"),
               arguments("String", "assertThat(x.trim()).isEmpty()", "assertThat(x).isBlank()"),
               arguments("String", "assertThat(x.length()).isEqualTo(5)", "assertThat(x).hasSize(5)"),
-//              arguments("String", "assertThat(x).hasSize(y.length())", "assertThat(x).hasSameSizeAs(y)"),
+              arguments("String", "assertThat(x).hasSize(y.length())", "assertThat(x).hasSameSizeAs(y)"),
               // Related to File
               arguments("java.io.File", "assertThat(x).hasSize(0)", "assertThat(x).isEmpty()"),
               arguments("java.io.File", "assertThat(x.length()).isZero()", "assertThat(x).isEmpty()"),
@@ -252,10 +252,10 @@ class AssertJBestPracticesTest implements RewriteTest {
                 "assertThat(x.containsAll(y)).isTrue()",
                 "assertThat(x).containsAll(y)"),
               // Related to Map
-//              arguments(
-//                "java.util.Map<String, Object>",
-//                "assertThat(x).hasSize(y.size())",
-//                "assertThat(x).hasSameSizeAs(y)"),
+              arguments(
+                "java.util.Map<String, Object>",
+                "assertThat(x).hasSize(y.size())",
+                "assertThat(x).hasSameSizeAs(y)"),
               arguments(
                 "java.util.Map<String, Object>",
                 "assertThat(x.containsKey(\"b\")).isTrue()",

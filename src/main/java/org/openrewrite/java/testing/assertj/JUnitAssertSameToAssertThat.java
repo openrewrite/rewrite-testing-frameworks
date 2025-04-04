@@ -62,7 +62,7 @@ public class JUnitAssertSameToAssertThat extends Recipe {
                 if (args.size() == 2) {
                     return JavaTemplate.builder("assertThat(#{any()}).isSameAs(#{any()});")
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
                 }
@@ -70,7 +70,7 @@ public class JUnitAssertSameToAssertThat extends Recipe {
                 Expression message = args.get(2);
                 return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isSameAs(#{any()});")
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
                         .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
             }

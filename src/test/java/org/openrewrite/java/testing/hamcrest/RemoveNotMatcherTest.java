@@ -24,17 +24,20 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.test.RewriteTest.toRecipe;
+import static org.openrewrite.test.TypeValidation.all;
 
 class RemoveNotMatcherTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "hamcrest-2.2"))
-          .recipe(toRecipe(RemoveNotMatcherVisitor::new));
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3"))
+          .recipe(toRecipe(RemoveNotMatcherVisitor::new))
+          .typeValidationOptions(all().immutableExecutionContext(false));
     }
 
     @DocumentExample
+    @Test
     void nestedNotMatcher() {
         rewriteRun(
           //language=java

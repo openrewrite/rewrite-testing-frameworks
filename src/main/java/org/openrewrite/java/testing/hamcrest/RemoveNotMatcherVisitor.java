@@ -57,19 +57,19 @@ class RemoveNotMatcherVisitor extends JavaIsoVisitor<ExecutionContext> {
                 result = mi.getArguments().get(0).withPrefix(mi.getPrefix());
             } else {
                 JavaTemplate template = JavaTemplate.builder("equalTo(#{any(java.lang.Object)})")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "hamcrest-2.2"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "hamcrest-3"))
                         .staticImports("org.hamcrest.Matchers.equalTo")
                         .build();
                 maybeAddImport("org.hamcrest.Matchers", "equalTo");
                 result = template.apply(getCursor(), mi.getCoordinates().replace(), mi.getArguments().get(0));
             }
 
-            ctx.putMessage(result.toString(), !logicalContext);
+            ctx.putMessage(result.toString(), !logicalContext); // FIXME Do not store on the use execution context
 
             return result;
         } else {
             if (ctx.pollMessage(mi.toString()) == null) {
-                ctx.putMessage(mi.toString(), true);
+                ctx.putMessage(mi.toString(), true); // FIXME Do not store on the use execution context
             }
         }
         return super.visitMethodInvocation(mi, ctx);

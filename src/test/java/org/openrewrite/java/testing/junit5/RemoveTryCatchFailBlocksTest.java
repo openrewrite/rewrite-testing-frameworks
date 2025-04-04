@@ -30,9 +30,7 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-jupiter-api-5.9"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new RemoveTryCatchFailBlocks());
     }
 
@@ -81,7 +79,7 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.fail;
 
               class MyTest {
@@ -586,7 +584,7 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import java.io.FileOutputStream;
               import java.io.IOException;
-              
+
               class MyTest {
                   @Test
                   public void testMethod() {

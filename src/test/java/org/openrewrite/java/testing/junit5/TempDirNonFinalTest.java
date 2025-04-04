@@ -30,7 +30,7 @@ class TempDirNonFinalTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new TempDirNonFinal());
     }
 
@@ -42,9 +42,9 @@ class TempDirNonFinalTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
-                            
+
               class MyTest {
                   @TempDir
                   static final File tempDir;
@@ -52,9 +52,9 @@ class TempDirNonFinalTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
-                            
+
               class MyTest {
                   @TempDir
                   static File tempDir;
@@ -72,9 +72,9 @@ class TempDirNonFinalTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.nio.file.Path;
-                            
+
               class MyTest {
                   @TempDir
                   static final Path tempDir;
@@ -82,9 +82,9 @@ class TempDirNonFinalTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.nio.file.Path;
-                            
+
               class MyTest {
                   @TempDir
                   static Path tempDir;
@@ -104,9 +104,9 @@ class TempDirNonFinalTest implements RewriteTest {
               import java.io.File;
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.io.TempDir;
-              
+
               import java.nio.file.Path;
-              
+
               class MyTest {
                   @Test
                   void fileTest(@TempDir final File tempDir) {
@@ -125,9 +125,9 @@ class TempDirNonFinalTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.io.TempDir;
-                            
+
               import java.io.File;
-                            
+
               class MyTest {
                   @TempDir
                   static File tempDir;
@@ -145,9 +145,9 @@ class TempDirNonFinalTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.io.TempDir;
-              
+
               import java.nio.file.Path;
-              
+
               class MyTest {
                   @TempDir
                   static Path tempDir;

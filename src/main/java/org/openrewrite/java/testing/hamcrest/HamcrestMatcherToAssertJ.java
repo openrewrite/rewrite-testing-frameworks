@@ -106,7 +106,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
                             (reasonArgument != null ? ".as(#{any(String)})" : "") +
                             ".%s(%s)",
                             actual, assertion, getArgumentsTemplate(matcherArgumentMethod)))
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                     .staticImports(
                             "org.assertj.core.api.Assertions.assertThat",
                             "org.assertj.core.api.Assertions.within")

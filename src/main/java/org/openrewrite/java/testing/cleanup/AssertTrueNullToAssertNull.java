@@ -74,14 +74,14 @@ public class AssertTrueNullToAssertNull extends Recipe {
                                 .contextSensitive()
                                 .staticImports("org.junit.jupiter.api.Assertions.assertNull")
                                 .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                                        .classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
                                 .contextSensitive()
                                 .imports("org.junit.jupiter.api.Assertions")
                                 .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5.9"))
+                                        .classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();
                     }
                     return t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);

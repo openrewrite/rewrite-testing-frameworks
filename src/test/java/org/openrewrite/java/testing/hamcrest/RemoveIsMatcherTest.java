@@ -29,7 +29,7 @@ class RemoveIsMatcherTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "hamcrest-2.2"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3"))
           .recipe(new RemoveIsMatcher());
     }
 
@@ -44,7 +44,7 @@ class RemoveIsMatcherTest implements RewriteTest {
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.is;
             import static org.hamcrest.Matchers.equalTo;
-                            
+
             class ATest {
                 @Test
                 void testEquals() {
@@ -57,7 +57,7 @@ class RemoveIsMatcherTest implements RewriteTest {
             import org.junit.jupiter.api.Test;
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.equalTo;
-                            
+
             class ATest {
                 @Test
                 void testEquals() {
@@ -78,7 +78,7 @@ class RemoveIsMatcherTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.Matchers.is;
               import static org.hamcrest.Matchers.equalTo;
-              
+
               class ATest {
                   @Test
                   void testMethod() {
@@ -100,7 +100,7 @@ class RemoveIsMatcherTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.*;
-              
+
               class ATest {
                   @Test
                   void testMethod() {
@@ -115,7 +115,7 @@ class RemoveIsMatcherTest implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.not;
               import static org.hamcrest.Matchers.equalTo;
-              
+
               class ATest {
                   @Test
                   void testMethod() {
@@ -139,7 +139,7 @@ class RemoveIsMatcherTest implements RewriteTest {
               import org.hamcrest.Matcher;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.*;
-              
+
               class ATest {
                   @Test
                   void testMethod() {
@@ -147,7 +147,7 @@ class RemoveIsMatcherTest implements RewriteTest {
                       String str2 = "Hello world!";
                       foo(is(equalTo(str2)));
                   }
-                  
+
                   void foo(Matcher<String> matcher) {
                   }
               }

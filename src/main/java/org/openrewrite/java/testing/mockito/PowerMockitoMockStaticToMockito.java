@@ -362,12 +362,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 setUpMethodAnnotationName = "BeforeEach";
                 tearDownMethodAnnotationName = "AfterEach";
                 annotationPackage = "org.junit.jupiter.api";
-                additionalClasspathResource = "junit-jupiter-api-5.9";
+                additionalClasspathResource = "junit-jupiter-api-5";
             } else {
                 setUpMethodAnnotationName = "BeforeMethod";
                 tearDownMethodAnnotationName = "AfterMethod";
                 annotationPackage = "org.testng.annotations";
-                additionalClasspathResource = "testng-7.7";
+                additionalClasspathResource = "testng-7";
                 tearDownMethodAnnotationParameters = "(alwaysRun = true)";
             }
 

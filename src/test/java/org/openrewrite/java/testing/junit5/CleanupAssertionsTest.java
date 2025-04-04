@@ -30,7 +30,7 @@ class CleanupAssertionsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipeFromResources("org.openrewrite.java.testing.junit5.CleanupAssertions");
     }
 
@@ -74,7 +74,7 @@ class CleanupAssertionsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
-            
+
               class ExampleTest {
                   @Test
                   void test() {

@@ -201,7 +201,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                     private J.MethodInvocation applyTemplate(ExecutionContext ctx, J.MethodInvocation m, String template, Object... parameters) {
                         J.MethodInvocation invocation = JavaTemplate.builder(template)
                                 .contextSensitive()
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3.24"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                 .build()
                                 .apply(getCursor(), m.getCoordinates().replace(), parameters);
 

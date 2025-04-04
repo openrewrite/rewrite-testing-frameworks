@@ -32,7 +32,7 @@ class UpdateMockWebServerTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "junit-jupiter-api-5.9", "mockwebserver-3.14"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5", "mockwebserver-3.14"))
           .recipe(new UpdateMockWebServer());
     }
 
@@ -53,12 +53,12 @@ class UpdateMockWebServerTest implements RewriteTest {
             """
               import okhttp3.mockwebserver.MockWebServer;
               import org.junit.jupiter.api.AfterEach;
-                  
+
               import java.io.IOException;
-              
+
               class MyTest {
                   public MockWebServer server = new MockWebServer();
-              
+
                   @AfterEach
                   void afterEachTest() throws IOException {
                       server.close();
@@ -78,11 +78,11 @@ class UpdateMockWebServerTest implements RewriteTest {
               import okhttp3.mockwebserver.MockWebServer;
               import org.junit.Rule;
               import org.junit.jupiter.api.AfterEach;
-              
+
               class MyTest {
                   @Rule
                   public MockWebServer server = new MockWebServer();
-                  
+
                   @AfterEach
                   void afterEachTest() { }
               }
@@ -90,12 +90,12 @@ class UpdateMockWebServerTest implements RewriteTest {
             """
               import okhttp3.mockwebserver.MockWebServer;
               import org.junit.jupiter.api.AfterEach;
-              
+
               import java.io.IOException;
-                  
+
               class MyTest {
                   public MockWebServer server = new MockWebServer();
-              
+
                   @AfterEach
                   void afterEachTest() throws IOException {
                       server.close();

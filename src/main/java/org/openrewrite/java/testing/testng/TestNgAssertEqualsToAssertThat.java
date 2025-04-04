@@ -68,7 +68,7 @@ public class TestNgAssertEqualsToAssertThat extends Recipe {
                     return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
                             .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3.24"))
+                                    .classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
                 } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
@@ -77,7 +77,7 @@ public class TestNgAssertEqualsToAssertThat extends Recipe {
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
                             .imports("java.util.function.Supplier")
                             .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3.24"))
+                                    .classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(
                                     getCursor(),
@@ -92,7 +92,7 @@ public class TestNgAssertEqualsToAssertThat extends Recipe {
                     return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
                             .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                             .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3.24"))
+                                    .classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), method.getCoordinates().replace(), actual, expected, args.get(2));
 
@@ -107,7 +107,7 @@ public class TestNgAssertEqualsToAssertThat extends Recipe {
                         .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
                         .imports("java.util.function.Supplier")
                         .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "assertj-core-3.24"))
+                                .classpathFromResources(ctx, "assertj-core-3"))
                         .build()
                         .apply(
                                 getCursor(),

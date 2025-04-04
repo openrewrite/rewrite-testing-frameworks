@@ -32,7 +32,7 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new JUnitAssertArrayEqualsToAssertThat());
     }
 
@@ -250,9 +250,9 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
           java(
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-              
+
               public class MyTest {
                   @Test
                   public void test() {
@@ -265,10 +265,10 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Test;
-              
+
               import static org.assertj.core.api.Assertions.assertThat;
               import static org.assertj.core.api.Assertions.within;
-              
+
               public class MyTest {
                   @Test
                   public void test() {

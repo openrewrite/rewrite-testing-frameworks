@@ -23,14 +23,16 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.test.TypeValidation.all;
 
 class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5.9", "hamcrest-2.2"))
-          .recipe(new HamcrestInstanceOfToJUnit5());
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3"))
+          .recipe(new HamcrestInstanceOfToJUnit5())
+          .typeValidationOptions(all().immutableExecutionContext(false));
     }
 
     @DocumentExample

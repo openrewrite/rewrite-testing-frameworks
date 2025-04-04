@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
-import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 @SuppressWarnings({"NewClassNamingConvention", "EqualsWithItself", "deprecation", "LanguageMismatch"})
@@ -40,7 +40,7 @@ class JUnit5MigrationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13", "hamcrest-2.2"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()
@@ -81,6 +81,9 @@ class JUnit5MigrationTest implements RewriteTest {
     void assertThatReceiver() {
         //language=java
         rewriteRun(
+          spec -> spec
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3")),
           java(
             """
               import org.junit.Assert;
@@ -437,6 +440,93 @@ class JUnit5MigrationTest implements RewriteTest {
               </project>
               """,
             spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.4"))
+          )
+        );
+    }
+
+    @Test
+    void addMockitoJupiterDependencyIfExtendWithPresent() {
+        rewriteRun(
+          spec -> spec
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "mockito-all-1.10"))
+            .recipe(Environment.builder()
+              .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
+              .build()
+              .activateRecipes("org.openrewrite.java.testing.junit5.UseMockitoExtension")),
+          mavenProject("sample",
+            //language=java
+            srcMainJava(
+              java(
+                """
+                  import org.junit.runner.RunWith;
+                  import org.mockito.runners.MockitoJUnitRunner;
+
+                  @RunWith(MockitoJUnitRunner.class)
+                  public class MyClassTest {}
+                  """,
+                """
+                  import org.junit.jupiter.api.extension.ExtendWith;
+                  import org.mockito.junit.jupiter.MockitoExtension;
+
+                  @ExtendWith(MockitoExtension.class)
+                  public class MyClassTest {}
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>project</artifactId>
+                    <version>0.0.1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.12</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>2.23.4</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>project</artifactId>
+                    <version>0.0.1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.12</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>4.11.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-junit-jupiter</artifactId>
+                            <version>4.11.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
           )
         );
     }

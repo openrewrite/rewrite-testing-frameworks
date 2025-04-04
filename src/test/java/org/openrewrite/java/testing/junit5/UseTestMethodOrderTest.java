@@ -30,7 +30,7 @@ class UseTestMethodOrderTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4.13"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(new UseTestMethodOrder());
     }
 
@@ -43,7 +43,7 @@ class UseTestMethodOrderTest implements RewriteTest {
             """
               import org.junit.FixMethodOrder;
               import org.junit.runners.MethodSorters;
-              
+
               @FixMethodOrder(MethodSorters.NAME_ASCENDING)
               class Test {
               }
@@ -51,7 +51,7 @@ class UseTestMethodOrderTest implements RewriteTest {
             """
               import org.junit.jupiter.api.MethodOrderer.MethodName;
               import org.junit.jupiter.api.TestMethodOrder;
-              
+
               @TestMethodOrder(MethodName.class)
               class Test {
               }
@@ -69,11 +69,11 @@ class UseTestMethodOrderTest implements RewriteTest {
             """
               import org.junit.FixMethodOrder;
               import org.junit.runners.MethodSorters;
-              
+
               @FixMethodOrder(MethodSorters.DEFAULT)
               class Test {
               }
-              
+
               @FixMethodOrder
               class Test2 {
               }
@@ -81,11 +81,11 @@ class UseTestMethodOrderTest implements RewriteTest {
             """
               import org.junit.jupiter.api.MethodOrderer.MethodName;
               import org.junit.jupiter.api.TestMethodOrder;
-              
+
               @TestMethodOrder(MethodName.class)
               class Test {
               }
-              
+
               @TestMethodOrder(MethodName.class)
               class Test2 {
               }
@@ -103,7 +103,7 @@ class UseTestMethodOrderTest implements RewriteTest {
             """
               import org.junit.FixMethodOrder;
               import org.junit.runners.MethodSorters;
-              
+
               @FixMethodOrder(MethodSorters.JVM)
               class Test {
               }
@@ -111,7 +111,7 @@ class UseTestMethodOrderTest implements RewriteTest {
             """
               import org.junit.jupiter.api.MethodOrderer.MethodName;
               import org.junit.jupiter.api.TestMethodOrder;
-              
+
               @TestMethodOrder(MethodName.class)
               class Test {
               }

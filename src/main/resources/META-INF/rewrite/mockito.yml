@@ -168,12 +168,6 @@ recipeList:
   - org.openrewrite.java.testing.mockito.MockUtilsToStatic
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
   - org.openrewrite.java.testing.mockito.ReplacePowerMockito
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.mockito
-      artifactId: mockito-junit-jupiter
-      version: 3.x
-      onlyIfUsing: org.mockito.junit.jupiter.*
-      acceptTransitive: true
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.mockito
       artifactId: "*"
