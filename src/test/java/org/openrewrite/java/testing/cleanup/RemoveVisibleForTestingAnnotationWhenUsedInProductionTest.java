@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
@@ -463,11 +464,15 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                     @VisibleForTesting
                     public List<?> internalCallWithReturnType(){ return new ArrayList<>(); }
                     @VisibleForTesting
+                    public List<? extends List<?>> internalCallWithGenericType(List<? extends List<?>> l) { return new ArrayList<>(l); }
+                    @VisibleForTesting
                     public List<?> externalCallWithParamAndReturnType(List<?> list){ return list; }
                     @VisibleForTesting
                     public void externalCallWithParam(List<?> list){}
                     @VisibleForTesting
                     public List<?> externalCallWithReturnType(){ return  new ArrayList<>(); }
+                    @VisibleForTesting
+                    public List<? extends List<?>> externalCallWithGenericType(List<? extends List<?>> l) { return new ArrayList<>(l); }
                 }
                 """,
               """
@@ -484,9 +489,12 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                     public void internalCallWithParam(List<?> list){}
                     @VisibleForTesting
                     public List<?> internalCallWithReturnType(){ return new ArrayList<>(); }
+                    @VisibleForTesting
+                    public List<? extends List<?>> internalCallWithGenericType(List<? extends List<?>> l) { return new ArrayList<>(l); }
                     public List<?> externalCallWithParamAndReturnType(List<?> list){ return list; }
                     public void externalCallWithParam(List<?> list){}
                     public List<?> externalCallWithReturnType(){ return  new ArrayList<>(); }
+                    public List<? extends List<?>> externalCallWithGenericType(List<? extends List<?>> l) { return new ArrayList<>(l); }
                 }
                 """
             ),
@@ -496,12 +504,14 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
 
                 import com.example.domain.Production;
                 import java.util.List;
+                import java.util.ArrayList;
 
                 class ProductionCaller {
                     void call(Production production, List<String> list) {
                         List<?> listOne = production.externalCallWithParamAndReturnType(list);
                         production.externalCallWithParam(list);
                         List<?> listTwo = production.externalCallWithReturnType();
+                        List<? extends List<?>> listThree = production.externalCallWithGenericType(new ArrayList<ArrayList<?>>(new ArrayList<>()));
                     }
                 }
                 """
@@ -514,15 +524,126 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
 
                 import com.example.domain.Production;
                 import java.util.List;
+                import java.util.ArrayList;
 
                 class ProductionTest {
                     void test(Production production, List<String> list) {
                         List<?> listOne = production.externalCallWithParamAndReturnType(list);
                         production.externalCallWithParam(list);
                         List<?> listTwo = production.externalCallWithReturnType();
-                        List<?> listThree = production.internalCallWithParamAndReturnType(list);
+                        List<? extends List<?>> listThree = production.externalCallWithGenericType(new ArrayList<ArrayList<?>>(new ArrayList<>()));
+                        List<?> listFour = production.internalCallWithParamAndReturnType(list);
                         production.internalCallWithParam(list);
-                        List<?> listFour = production.internalCallWithReturnType();
+                        List<?> listFive = production.internalCallWithReturnType();
+                        List<? extends List<?>> listSix = production.internalCallWithGenericType(new ArrayList<ArrayList<?>>(new ArrayList<>()));
+                    }
+                }
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    @Disabled("implement when engine supports generic method declaration reference from invocation")
+    void genericMethodInvocation() {
+        //language=java
+        rewriteRun(
+          srcMainJava(
+            java(
+              """
+                package com.example.domain;
+
+                import org.jetbrains.annotations.VisibleForTesting;
+                import java.util.List;
+                import java.util.ArrayList;
+                import java.util.Map;
+
+                public class Production {
+                    @VisibleForTesting
+                    public <T> void internalCall(T param){}
+                    @VisibleForTesting
+                    public <T extends List> void internalCall(T param){}
+                    @VisibleForTesting
+                    public <T extends ArrayList> void internalCall(T param){}
+                    @VisibleForTesting
+                    public <T extends Map> void internalCall(T param){}
+                    @VisibleForTesting
+                    public <T> void externalCall(T param){}
+                    @VisibleForTesting
+                    public <T extends List> void externalCall(T param){}
+                    @VisibleForTesting
+                    public <T extends ArrayList> void externalCall(T param){}
+                    @VisibleForTesting
+                    public <T extends Map> void externalCall(T param){}
+                }
+                """,
+              """
+                package com.example.domain;
+
+                import org.jetbrains.annotations.VisibleForTesting;
+                import java.util.List;
+                import java.util.ArrayList;
+                import java.util.Map;
+
+                public class Production {
+                    @VisibleForTesting
+                    public <T> void internalCall(T param){}
+                    @VisibleForTesting
+                    public <T extends List> void internalCall(T param){}
+                    @VisibleForTesting
+                    public <T extends ArrayList> void internalCall(T param){}
+                    @VisibleForTesting
+                    public <T extends Map> void internalCall(T param){}
+                    public <T> void externalCall(T param){}
+                    public <T extends List> void externalCall(T param){}
+                    public <T extends ArrayList> void externalCall(T param){}
+                    public <T extends Map> void externalCall(T param){}
+                }
+                """
+            ),
+            java(
+              """
+                package com.example.caller;
+
+                import com.example.domain.Production;
+                import java.util.List;
+                import java.util.ArrayList;
+                import java.util.LinkedList;
+                import java.util.HashMap;
+
+                class ProductionCaller {
+                    void call(Production production, Object arg, List<String> list, ArrayList<String> list2, HashMap<String, String> map) {
+                        production.externalCall(arg);
+                        production.externalCall(list);
+                        production.externalCall(list2);
+                        production.externalCall(map);
+                    }
+                }
+                """
+            )
+          ),
+          srcTestJava(
+            java(
+              """
+                package com.example.test;
+
+                import com.example.domain.Production;
+                import java.util.List;
+                import java.util.ArrayList;
+                import java.util.LinkedList;
+                import java.util.HashMap;
+
+                class ProductionTest {
+                    void test(Production production, Object arg, List<String> list, ArrayList<String> list2, HashMap<String, String> map) {
+                        production.internalCall(arg);
+                        production.internalCall(list);
+                        production.internalCall(list2);
+                        production.internalCall(map);
+                        production.externalCall(arg);
+                        production.externalCall(list);
+                        production.externalCall(list2);
+                        production.externalCall(map);
                     }
                 }
                 """

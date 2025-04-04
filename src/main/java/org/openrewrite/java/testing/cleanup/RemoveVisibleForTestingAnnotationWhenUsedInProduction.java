@@ -42,10 +42,11 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
 
     @Override
     public String getDescription() {
-        return "The `@VisibleForTesting` annotation marks a method or field that is intentionally made more accessible (e.g., changing its visibility from private or package-private to public or protected) solely for testing purposes." +
+        return "The `@VisibleForTesting` annotation marks a method or field that is intentionally made more accessible (e.g., changing its visibility from private or package-private to public or protected) solely for testing purposes. " +
                 "The annotation serves as an indicator that the increased visibility is not part of the intended public API but exists only to support testability. " +
                 "This recipe removes the annotation where such an element is used from production classes. It identifies production classes as classes in `src/main` and test classes as classes in `src/test`. " +
                 "It will remove the `@VisibleForTesting` from methods, fields (both member fields and constants), constructors and inner classes. " +
+                "It does not support generic methods (e.g. `<T> T method(T);`. " +
                 "This recipe should not be used in an environment where QA tooling acts on the `@VisibleForTesting` annotation.";
     }
 
