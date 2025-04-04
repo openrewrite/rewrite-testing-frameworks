@@ -26,7 +26,10 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends ScanningRecipe<RemoveVisibleForTestingAnnotationWhenUsedInProduction.VisibleForTesting> {
 
@@ -99,12 +102,13 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
             }
 
             private void checkAndRegister(Set<String> target, JavaType type) {
-                if (!target.contains(TypeUtils.toString(type))) {
-                    getAnnotations(type).forEach(annotation -> {
+                String typeString = TypeUtils.toString(type);
+                if (!target.contains(typeString)) {
+                    for (JavaType.FullyQualified annotation : getAnnotations(type)) {
                         if ("VisibleForTesting".equals(annotation.getClassName())) {
-                            target.add(TypeUtils.toString(type));
+                            target.add(typeString);
                         }
-                    });
+                    }
                 }
             }
 
@@ -131,11 +135,13 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
                 J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(vd, ctx);
                 if (!variableDeclarations.getVariables().isEmpty()) {
                     // if none of the variables in the declaration are used from production code, the annotation should be kept
-                    boolean keepAnnotation = variableDeclarations.getVariables().stream()
-                          .filter(elem -> elem.getVariableType() != null)
-                          .noneMatch(elem -> acc.fieldPatterns.contains(TypeUtils.toString(elem.getVariableType())));
-                    if (!keepAnnotation) {
-                        return (J.VariableDeclarations) getElement(ctx, variableDeclarations.getLeadingAnnotations(), variableDeclarations);
+                    for (J.VariableDeclarations.NamedVariable elem : variableDeclarations.getVariables()) {
+                        if (elem.getVariableType() != null) {
+                            if (acc.fieldPatterns.contains(TypeUtils.toString(elem.getVariableType()))) {
+                                return (J.VariableDeclarations) new RemoveAnnotation("@*..VisibleForTesting").getVisitor()
+                                        .visitNonNull(variableDeclarations, ctx, getCursor().getParentOrThrow());
+                            }
+                        }
                     }
                 }
                 return variableDeclarations;
@@ -145,7 +151,8 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
                 J.MethodDeclaration methodDeclaration = super.visitMethodDeclaration(md, ctx);
                 if (methodDeclaration.getMethodType() != null && acc.methodPatterns.contains(TypeUtils.toString(methodDeclaration.getMethodType()))) {
-                    return (J.MethodDeclaration) getElement(ctx, methodDeclaration.getLeadingAnnotations(), methodDeclaration);
+                    return (J.MethodDeclaration) new RemoveAnnotation("@*..VisibleForTesting").getVisitor()
+                            .visitNonNull(methodDeclaration, ctx, getCursor().getParentOrThrow());
                 }
                 return methodDeclaration;
             }
@@ -154,20 +161,10 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
                 J.ClassDeclaration classDeclaration = super.visitClassDeclaration(cd, ctx);
                 if (classDeclaration.getType() != null && acc.classPatterns.contains(TypeUtils.toString(classDeclaration.getType()))) {
-                    return (J.ClassDeclaration) getElement(ctx, classDeclaration.getLeadingAnnotations(), classDeclaration);
+                    return (J.ClassDeclaration) new RemoveAnnotation("@*..VisibleForTesting").getVisitor()
+                            .visitNonNull(classDeclaration, ctx, getCursor().getParentOrThrow());
                 }
                 return classDeclaration;
-            }
-
-            private <T extends J> J getElement(ExecutionContext ctx, List<J.Annotation> leadingAnnotations, T target) {
-                Optional<J.Annotation> annotation = leadingAnnotations.stream()
-                      .filter(elem -> "VisibleForTesting".equals(elem.getSimpleName()))
-                      .findFirst();
-                if (annotation.isPresent() && annotation.get().getType() instanceof JavaType.Class) {
-                    JavaType.Class type = (JavaType.Class) annotation.get().getType();
-                    return new RemoveAnnotation("@" + type.getFullyQualifiedName()).getVisitor().visitNonNull(target, ctx, getCursor().getParentOrThrow());
-                }
-                return target;
             }
         };
         return Preconditions.check(new IsLikelyNotTest().getVisitor(), visitor);
