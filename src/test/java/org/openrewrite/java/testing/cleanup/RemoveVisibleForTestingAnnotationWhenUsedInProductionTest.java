@@ -27,8 +27,7 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec
-          .recipe(new RemoveVisibleForTestingAnnotationWhenUsedInProduction());
+        spec.recipe(new RemoveVisibleForTestingAnnotationWhenUsedInProduction());
     }
 
     @DocumentExample
@@ -111,6 +110,45 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
                         String variableTwo = production.getExternalState();
                         String variableThree = production.internalState;
                         String variableFour = production.getInternalState();
+                    }
+                }
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void removeImport() {
+        //language=java
+        rewriteRun(
+          srcMainJava(
+            java(
+              """
+                import org.jetbrains.annotations.VisibleForTesting;
+
+                public class Production {
+
+                    @VisibleForTesting
+                    public String getExternalState() {
+                         return "foo";
+                    }
+                }
+                """,
+              """
+                public class Production {
+
+                    public String getExternalState() {
+                         return "foo";
+                    }
+                }
+                """
+            ),
+            java(
+              """
+                class ProductionCaller {
+                    void call(Production production) {
+                        String variableTwo = production.getExternalState();
                     }
                 }
                 """
