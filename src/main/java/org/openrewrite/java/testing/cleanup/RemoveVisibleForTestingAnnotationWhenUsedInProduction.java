@@ -28,8 +28,6 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.*;
 
-import static org.openrewrite.Preconditions.and;
-
 public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends ScanningRecipe<RemoveVisibleForTestingAnnotationWhenUsedInProduction.VisibleForTesting> {
 
     public static class VisibleForTesting {
