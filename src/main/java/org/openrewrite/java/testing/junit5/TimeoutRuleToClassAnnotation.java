@@ -91,37 +91,37 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
         }
 
         private J.ClassDeclaration insertTimeoutAnnotation(Expression ex, J.ClassDeclaration cd, ExecutionContext ctx) {
-            Expression timeout = null;
-            Expression units = null;
+            JavaTemplate.Builder builder;
+            Object[] params;
             if (ex instanceof J.NewClass) {
                 List<Expression> arguments = ((J.NewClass) ex).getArguments();
-                timeout = arguments.get(0);
-                units = arguments.size() == 2 ? arguments.get(1) : buildTimeUnit("MILLISECONDS", cd, ctx);
+                if (arguments.size() == 2) {
+                    builder = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = #{any(TimeUnit)})");
+                    params = new Object[]{arguments.get(0), arguments.get(1)};
+                } else {
+                    builder = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)");
+                    params = new Object[]{arguments.get(0)};
+                }
             } else if (ex instanceof J.MethodInvocation) {
-
+                String simpleName = ((J.MethodInvocation) ex).getName().getSimpleName();
+                String units = simpleName.equals("millis") ? "MILLISECONDS" : "SECONDS";
+                builder = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit." + units + ")");
+                params = new Object[]{((J.MethodInvocation) ex).getArguments().get(0)};
+            } else {
+                return cd;
             }
 
-            cd = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = #{any(TimeUnit)})")
-                    .javaParser(javaParser(ctx))
+            cd = builder.javaParser(javaParser(ctx))
                     .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
                     .build()
                     .apply(
                             updateCursor(cd),
                             cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
-                            timeout, units
+                            params
                     );
             maybeAddImport("org.junit.jupiter.api.Timeout");
             maybeAddImport("java.util.concurrent.TimeUnit");
             return cd;
-        }
-
-        private Expression buildTimeUnit(String unit, J.ClassDeclaration cd, ExecutionContext ctx) {
-            return JavaTemplate.builder("TimeUnit." + unit + ")")
-                    .contextSensitive()
-                    .javaParser(javaParser(ctx))
-                    .imports("java.util.concurrent.TimeUnit")
-                    .build()
-                    .apply(getCursor(), cd.getCoordinates().replace());
         }
     }
 }
