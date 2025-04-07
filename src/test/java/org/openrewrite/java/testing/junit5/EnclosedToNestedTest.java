@@ -174,6 +174,54 @@ class EnclosedToNestedTest implements RewriteTest {
     }
 
     @Test
+    void recognizesTestAnnotationWithTimeoutRuleAndArguments() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.experimental.runners.Enclosed;
+              import org.junit.runner.RunWith;
+              import org.junit.Rule;
+              import org.junit.rules.Timeout;
+
+              @RunWith(Enclosed.class)
+              public class RootTest {
+                  public static class InnerTest {
+
+                      @Rule
+                      public Timeout timeout = new Timeout(30);
+
+                      @Test(timeout = 10)
+                      public void test() {
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.Timeout;
+
+              import java.util.concurrent.TimeUnit;
+
+              public class RootTest {
+                  @Nested
+                  @Timeout(value = 30, unit = TimeUnit.MILLISECONDS)
+                  public class InnerTest {
+
+                      @Test
+                      @Timeout(value = 10, unit = TimeUnit.MILLISECONDS)
+                      public void test() {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doesNotAnnotateNonTestInnerClasses() {
         //language=java
         rewriteRun(
