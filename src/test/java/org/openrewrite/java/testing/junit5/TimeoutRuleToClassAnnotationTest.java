@@ -249,4 +249,53 @@ class TimeoutRuleToClassAnnotationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void notRemoveRulesIfNotInitialized() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.Timeout;
+              import java.util.concurrent.TimeUnit;
+
+              class MyTest {
+
+                  @Rule
+                  public Timeout timeout = null;
+
+                  void testMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void notRemoveRulesWithBuilder() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.Timeout;
+              import java.util.concurrent.TimeUnit;
+
+              class MyTest {
+
+                  @Rule
+                  public Timeout timeout = Timeout.builder()
+                                          .withTimeout(2, TimeUnit.SECONDS)
+                                          .withLookingForStuckThread(true)
+                                          .build();
+
+                  void testMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

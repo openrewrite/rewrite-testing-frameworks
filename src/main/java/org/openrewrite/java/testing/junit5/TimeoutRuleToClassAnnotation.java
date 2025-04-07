@@ -60,9 +60,12 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                                 "org.junit.rules.Timeout")) {
                             List<J.VariableDeclarations.NamedVariable> variables = ((J.VariableDeclarations) statement).getVariables();
                             if (!variables.isEmpty()) {
-                                initializer.set(variables.get(0).getInitializer());
+                                Expression timeoutInitializer = variables.get(0).getInitializer();
+                                if (isNewTimeoutInstance(timeoutInitializer) || isTimeoutFactory(timeoutInitializer)) {
+                                    initializer.set(timeoutInitializer);
+                                    return null;
+                                }
                             }
-                            return null;
                         }
                     }
                     return statement;
@@ -74,6 +77,21 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                     return insertTimeoutAnnotation(initializer.get(), cd, ctx);
                 }
                 return cd;
+            }
+
+            private boolean isNewTimeoutInstance(Expression timeoutInitializer) {
+                if (timeoutInitializer instanceof J.NewClass) {
+                    return ((J.Identifier) ((J.NewClass) timeoutInitializer).getClazz()).getSimpleName().equals("Timeout");
+                }
+                return false;
+            }
+
+            private boolean isTimeoutFactory(Expression timeoutInitializer) {
+                if (timeoutInitializer instanceof J.MethodInvocation) {
+                    String name = ((J.MethodInvocation) timeoutInitializer).getSimpleName();
+                    return name.equals("millis") || name.equals("seconds");
+                }
+                return false;
             }
 
             private J.ClassDeclaration insertTimeoutAnnotation(Expression ex, J.ClassDeclaration cd, ExecutionContext ctx) {
@@ -89,7 +107,7 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                         params = new Object[]{arguments.get(0)};
                     }
                 } else if (ex instanceof J.MethodInvocation) {
-                    String simpleName = ((J.MethodInvocation) ex).getName().getSimpleName();
+                    String simpleName = ((J.MethodInvocation) ex).getSimpleName();
                     String units = simpleName.equals("millis") ? "MILLISECONDS" : "SECONDS";
                     builder = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit." + units + ")");
                     params = new Object[]{((J.MethodInvocation) ex).getArguments().get(0)};
