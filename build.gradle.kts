@@ -79,3 +79,8 @@ dependencies {
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
     testRuntimeOnly("org.testng:testng:latest.release")
 }
+
+tasks.test {
+    // The `TestNgToAssertJTest` tests require a lot of memory for the `JavaTemplate` caching
+    maxHeapSize = "1g"
+}
