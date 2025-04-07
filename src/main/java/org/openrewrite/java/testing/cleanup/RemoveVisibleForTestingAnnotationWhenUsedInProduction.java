@@ -38,6 +38,7 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
         Set<String> methodPatterns = new HashSet<>();
         Set<String> fieldPatterns = new HashSet<>();
         Set<String> classPatterns = new HashSet<>();
+        Set<String> fullyQualifiedVisibleForTestingAnnotationPatterns = new HashSet<>();
     }
 
     @Override
@@ -48,11 +49,11 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
     @Override
     public String getDescription() {
         return "The `@VisibleForTesting` annotation marks a method or field that is intentionally made more accessible (e.g., changing its visibility from private or package-private to public or protected) solely for testing purposes. " +
-                "The annotation serves as an indicator that the increased visibility is not part of the intended public API but exists only to support testability. " +
-                "This recipe removes the annotation where such an element is used from production classes. It identifies production classes as classes in `src/main` and test classes as classes in `src/test`. " +
-                "It will remove the `@VisibleForTesting` from methods, fields (both member fields and constants), constructors and inner classes. " +
-                "It does not support generic methods (e.g. `<T> T method(T);`. " +
-                "This recipe should not be used in an environment where QA tooling acts on the `@VisibleForTesting` annotation.";
+              "The annotation serves as an indicator that the increased visibility is not part of the intended public API but exists only to support testability. " +
+              "This recipe removes the annotation where such an element is used from production classes. It identifies production classes as classes in `src/main` and test classes as classes in `src/test`. " +
+              "It will remove the `@VisibleForTesting` from methods, fields (both member fields and constants), constructors and inner classes. " +
+              "It does not support generic methods (e.g. `<T> T method(T);`. " +
+              "This recipe should not be used in an environment where QA tooling acts on the `@VisibleForTesting` annotation.";
     }
 
     @Override
@@ -108,6 +109,7 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
                     for (JavaType.FullyQualified annotation : getAnnotations(type)) {
                         if ("VisibleForTesting".equals(annotation.getClassName())) {
                             target.add(typeString);
+                            acc.fullyQualifiedVisibleForTestingAnnotationPatterns.add(annotation.getFullyQualifiedName());
                         }
                     }
                 }
@@ -130,48 +132,59 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(VisibleForTesting acc) {
         JavaIsoVisitor<ExecutionContext> visitor = new JavaIsoVisitor<ExecutionContext>() {
-
             @Override
-            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations vd, ExecutionContext ctx) {
-                J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(vd, ctx);
-                if (!variableDeclarations.getVariables().isEmpty()) {
+            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations variableDeclarations, ExecutionContext ctx) {
+                J.VariableDeclarations vd = super.visitVariableDeclarations(variableDeclarations, ctx);
+                if (!vd.getVariables().isEmpty()) {
                     // if none of the variables in the declaration are used from production code, the annotation should be kept
-                    for (J.VariableDeclarations.NamedVariable elem : variableDeclarations.getVariables()) {
+                    for (J.VariableDeclarations.NamedVariable elem : vd.getVariables()) {
                         if (elem.getVariableType() != null) {
                             if (acc.fieldPatterns.contains(TypeUtils.toString(elem.getVariableType()))) {
-                                return (J.VariableDeclarations) new RemoveAnnotation("@*..VisibleForTesting").getVisitor()
-                                        .visitNonNull(variableDeclarations, ctx, getCursor().getParentOrThrow());
+                                J.VariableDeclarations newVd = (J.VariableDeclarations) new RemoveAnnotation("@*..VisibleForTesting").getVisitor()
+                                      .visitNonNull(vd, ctx, getCursor().getParentOrThrow());
+                                if (vd != newVd) {
+                                    acc.fullyQualifiedVisibleForTestingAnnotationPatterns.forEach(this::maybeRemoveImport);
+                                }
+                                return newVd;
                             }
                         }
                     }
                 }
-                return variableDeclarations;
+                return vd;
             }
 
             @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
-                J.MethodDeclaration methodDeclaration = super.visitMethodDeclaration(md, ctx);
-                if (methodDeclaration.getMethodType() != null && acc.methodPatterns.contains(TypeUtils.toString(methodDeclaration.getMethodType()))) {
-                    return (J.MethodDeclaration) new RemoveAnnotation("@*..VisibleForTesting").getVisitor()
-                            .visitNonNull(methodDeclaration, ctx, getCursor().getParentOrThrow());
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDeclaration, ExecutionContext ctx) {
+                J.MethodDeclaration md = super.visitMethodDeclaration(methodDeclaration, ctx);
+                if (md.getMethodType() != null && acc.methodPatterns.contains(TypeUtils.toString(md.getMethodType()))) {
+                    J.MethodDeclaration newMd = (J.MethodDeclaration) new RemoveAnnotation("@*..VisibleForTesting").getVisitor()
+                          .visitNonNull(md, ctx, getCursor().getParentOrThrow());
+                    if (md != newMd) {
+                        acc.fullyQualifiedVisibleForTestingAnnotationPatterns.forEach(this::maybeRemoveImport);
+                    }
+                    return newMd;
                 }
-                return methodDeclaration;
+                return md;
             }
 
             @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
-                J.ClassDeclaration classDeclaration = super.visitClassDeclaration(cd, ctx);
-                if (classDeclaration.getType() != null && acc.classPatterns.contains(TypeUtils.toString(classDeclaration.getType()))) {
-                    return (J.ClassDeclaration) new RemoveAnnotation("@*..VisibleForTesting").getVisitor()
-                            .visitNonNull(classDeclaration, ctx, getCursor().getParentOrThrow());
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
+                J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, ctx);
+                if (cd.getType() != null && acc.classPatterns.contains(TypeUtils.toString(cd.getType()))) {
+                    J.ClassDeclaration newCd = (J.ClassDeclaration) new RemoveAnnotation("@*..VisibleForTesting").getVisitor()
+                          .visitNonNull(cd, ctx, getCursor().getParentOrThrow());
+                    if (cd != newCd) {
+                        acc.fullyQualifiedVisibleForTestingAnnotationPatterns.forEach(this::maybeRemoveImport);
+                    }
+                    return newCd;
                 }
-                return classDeclaration;
+                return cd;
             }
         };
         return Preconditions.check(
-                Preconditions.and(
-                        new IsLikelyNotTest().getVisitor(),
-                        new UsesType<>("*..VisibleForTesting", true)),
-                visitor);
+              Preconditions.and(
+                    new IsLikelyNotTest().getVisitor(),
+                    new UsesType<>("*..VisibleForTesting", true)),
+              visitor);
     }
 }
