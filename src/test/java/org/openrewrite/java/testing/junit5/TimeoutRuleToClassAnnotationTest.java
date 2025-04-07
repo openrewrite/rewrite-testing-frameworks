@@ -57,6 +57,7 @@ class TimeoutRuleToClassAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Timeout;
+
               import java.util.concurrent.TimeUnit;
 
               @Timeout(value = 30, unit = TimeUnit.MILLISECONDS)
@@ -91,6 +92,7 @@ class TimeoutRuleToClassAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Timeout;
+
               import java.util.concurrent.TimeUnit;
 
               @Timeout(value = 30, unit = TimeUnit.SECONDS)
@@ -125,6 +127,7 @@ class TimeoutRuleToClassAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Timeout;
+
               import java.util.concurrent.TimeUnit;
 
               @Timeout(value = 2, unit = TimeUnit.MINUTES)
@@ -159,6 +162,7 @@ class TimeoutRuleToClassAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Timeout;
+
               import java.util.concurrent.TimeUnit;
 
               @Timeout(value = 30, unit = TimeUnit.MILLISECONDS)
@@ -193,6 +197,7 @@ class TimeoutRuleToClassAnnotationTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Timeout;
+
               import java.util.concurrent.TimeUnit;
 
               @Timeout(value = 30, unit = TimeUnit.SECONDS)
@@ -215,6 +220,7 @@ class TimeoutRuleToClassAnnotationTest implements RewriteTest {
               import org.junit.Rule;
               import org.junit.rules.Timeout;
               import org.junit.rules.TemporaryFolder;
+
               import java.util.concurrent.TimeUnit;
 
               class MyTest {
@@ -230,6 +236,7 @@ class TimeoutRuleToClassAnnotationTest implements RewriteTest {
               import org.junit.Rule;
               import org.junit.jupiter.api.Timeout;
               import org.junit.rules.TemporaryFolder;
+
               import java.util.concurrent.TimeUnit;
 
               @Timeout(value = 30, unit = TimeUnit.SECONDS)

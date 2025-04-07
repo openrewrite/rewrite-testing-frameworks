@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -62,15 +61,9 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
     public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-        private JavaParser.@Nullable Builder<?, ?> javaParser;
-
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            if (javaParser == null) {
-                javaParser = JavaParser.fromJavaVersion()
+            return JavaParser.fromJavaVersion()
                         .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3");
-            }
-            return javaParser;
-
         }
 
         @Override

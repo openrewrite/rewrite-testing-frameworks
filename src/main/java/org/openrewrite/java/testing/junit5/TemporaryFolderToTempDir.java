@@ -49,16 +49,9 @@ public class TemporaryFolderToTempDir extends Recipe {
             final AnnotationMatcher classRule = new AnnotationMatcher("@org.junit.ClassRule");
             final AnnotationMatcher rule = new AnnotationMatcher("@org.junit.Rule");
 
-
-            private JavaParser.@Nullable Builder<?, ?> javaParser;
-
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
+                    return JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "junit-jupiter-api-5");
-                }
-                return javaParser;
-
             }
 
             @Override
@@ -157,16 +150,9 @@ public class TemporaryFolderToTempDir extends Recipe {
     private static class AddNewFolderMethod extends JavaIsoVisitor<ExecutionContext> {
         private final J.MethodInvocation methodInvocation;
 
-
-        private JavaParser.@Nullable Builder<?, ?> javaParser;
-
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            if (javaParser == null) {
-                javaParser = JavaParser.fromJavaVersion()
+                return JavaParser.fromJavaVersion()
                         .classpathFromResources(ctx, "junit-jupiter-api-5");
-            }
-            return javaParser;
-
         }
 
         public AddNewFolderMethod(J.MethodInvocation methodInvocation) {
@@ -236,16 +222,9 @@ public class TemporaryFolderToTempDir extends Recipe {
             J.MethodInvocation methodScope;
             JavaType.Method newMethodType;
 
-
-            private JavaParser.@Nullable Builder<?, ?> javaParser;
-
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
+                    return JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "junit-jupiter-api-5");
-                }
-                return javaParser;
-
             }
 
             public TranslateNewFolderMethodInvocation(J.MethodInvocation method, JavaType.Method newMethodType) {

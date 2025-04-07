@@ -55,14 +55,9 @@ public class UpdateTestAnnotation extends Recipe {
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
 
-        private JavaParser.@Nullable Builder<?, ?> javaParser;
-
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            if (javaParser == null) {
-                javaParser = JavaParser.fromJavaVersion()
+            return JavaParser.fromJavaVersion()
                         .classpathFromResources(ctx, "junit-jupiter-api-5", "apiguardian-api-1.1");
-            }
-            return javaParser;
         }
 
         @Override
@@ -185,14 +180,9 @@ public class UpdateTestAnnotation extends Recipe {
 
             boolean found;
 
-            private JavaParser.@Nullable Builder<?, ?> javaParser;
-
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
+                   return JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "junit-jupiter-api-5", "apiguardian-api-1.1");
-                }
-                return javaParser;
             }
 
             @Override

@@ -176,15 +176,9 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
      */
     private static class ParametersNoArgsImplicitMethodSource extends JavaIsoVisitor<ExecutionContext> {
 
-        private JavaParser.@Nullable Builder<?, ?> javaParser;
-
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            if (javaParser == null) {
-                javaParser = JavaParser.fromJavaVersion()
+                return JavaParser.fromJavaVersion()
                         .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3", "junit-jupiter-params-5");
-            }
-            return javaParser;
-
         }
 
 

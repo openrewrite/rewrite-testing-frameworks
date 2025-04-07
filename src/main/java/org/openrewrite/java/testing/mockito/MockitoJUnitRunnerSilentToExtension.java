@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -47,14 +46,9 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>("org.mockito.junit.MockitoJUnitRunner$Silent", false), new JavaIsoVisitor<ExecutionContext>() {
 
-            private JavaParser.@Nullable Builder<?, ?> javaParser;
-
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
+                 return JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "mockito-junit-jupiter-3.12", "mockito-core-3.12");
-                }
-                return javaParser;
             }
 
             final AnnotationMatcher silentRunnerMatcher = new AnnotationMatcher("@org.junit.runner.RunWith(org.mockito.junit.MockitoJUnitRunner.Silent.class)");
