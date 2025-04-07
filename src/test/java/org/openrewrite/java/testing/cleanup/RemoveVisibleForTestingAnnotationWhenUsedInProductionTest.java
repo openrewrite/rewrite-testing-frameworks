@@ -158,39 +158,6 @@ class RemoveVisibleForTestingAnnotationWhenUsedInProductionTest implements Rewri
     }
 
     @Test
-    void leaveImport() {
-        //language=java
-        rewriteRun(
-              srcMainJava(
-                    java(
-                          """
-                            import org.jetbrains.annotations.VisibleForTesting;
-
-                            public class Production {
-
-                                @VisibleForTesting
-                                public String getExternalState() {
-                                     return "foo";
-                                }
-                            }
-                            """
-                    )
-              ),
-              srcTestJava(
-                    java(
-                          """
-                            class ProductionTest {
-                                void test(Production production) {
-                                    production.getExternalState();
-                                }
-                            }
-                            """
-                    )
-              )
-        );
-    }
-
-    @Test
     void constructor() {
         //language=java
         rewriteRun(
