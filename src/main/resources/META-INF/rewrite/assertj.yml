@@ -60,12 +60,13 @@ tags:
   - testing
   - assertj
 recipeList:
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: "org.assertj.core.api.AssertionsForClassTypes assertThat(..)"
-      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: "org.assertj.core.api.AssertionsForInterfaceTypes assertThat(..)"
-      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
+# https://github.com/openrewrite/rewrite-testing-frameworks/issues/664
+#  - org.openrewrite.java.ChangeMethodTargetToStatic:
+#      methodPattern: "org.assertj.core.api.AssertionsForClassTypes assertThat(..)"
+#      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
+#  - org.openrewrite.java.ChangeMethodTargetToStatic:
+#      methodPattern: "org.assertj.core.api.AssertionsForInterfaceTypes assertThat(..)"
+#      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: "org.assertj.core.api.Fail fail(..)"
       fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
