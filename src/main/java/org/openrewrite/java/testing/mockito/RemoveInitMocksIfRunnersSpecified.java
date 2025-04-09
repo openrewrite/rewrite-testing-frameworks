@@ -45,8 +45,8 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                 Preconditions.and(
                         new UsesMethod<>(INIT_MOCKS_MATCHER),
                         Preconditions.or(
-                            new UsesType<>("org.mockito.junit.jupiter.MockitoExtension", false),
-                            new UsesType<>("org.mockito.junit.MockitoJUnitRunner", false)
+                                new UsesType<>("org.mockito.junit.jupiter.MockitoExtension", false),
+                                new UsesType<>("org.mockito.junit.MockitoJUnitRunner", false)
                         )
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
@@ -64,7 +64,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                     @Override
                     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                         J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-                        System.out.println("method declaration: "  + md);
+                        System.out.println("method declaration: " + md);
                         if (getCursor().pollMessage("initMocks") != null) {
                             if (md.getBody().getStatements().isEmpty()) {
                                 return null;
