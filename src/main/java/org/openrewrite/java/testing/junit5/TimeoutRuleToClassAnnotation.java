@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -55,7 +56,7 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-                AtomicReference<Expression> initializer = new AtomicReference<>();
+                AtomicReference<@Nullable Expression> initializer = new AtomicReference<>();
 
                 cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
                     if (statement instanceof J.VariableDeclarations) {
@@ -76,30 +77,31 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                     return statement;
                 })));
 
-                if (initializer.get() != null) {
+                Expression initializerValue = initializer.get();
+                if (initializerValue != null) {
                     maybeRemoveImport("org.junit.Rule");
                     maybeRemoveImport("org.junit.rules.Timeout");
-                    return insertTimeoutAnnotation(initializer.get(), cd, ctx);
+                    return insertTimeoutAnnotation(initializerValue, cd, ctx);
                 }
                 return cd;
             }
 
             private J.ClassDeclaration insertTimeoutAnnotation(Expression ex, J.ClassDeclaration cd, ExecutionContext ctx) {
-                JavaTemplate.Builder builder;
+                String template;
                 Object[] params;
                 if (ex instanceof J.NewClass) {
                     List<Expression> arguments = ((J.NewClass) ex).getArguments();
                     if (arguments.size() == 2) {
-                        builder = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = #{any(TimeUnit)})");
+                        template = "@Timeout(value = #{any(long)}, unit = #{any(TimeUnit)})";
                         params = new Object[]{arguments.get(0), arguments.get(1)};
                     } else {
-                        builder = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)");
+                        template = "@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)";
                         params = new Object[]{arguments.get(0)};
                     }
                 } else if (ex instanceof J.MethodInvocation) {
                     String simpleName = ((J.MethodInvocation) ex).getSimpleName();
                     String units = simpleName.equals("millis") ? "MILLISECONDS" : "SECONDS";
-                    builder = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit." + units + ")");
+                    template = "@Timeout(value = #{any(long)}, unit = TimeUnit." + units + ")";
                     params = new Object[]{((J.MethodInvocation) ex).getArguments().get(0)};
                 } else {
                     return cd;
@@ -107,7 +109,8 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
 
                 maybeAddImport("org.junit.jupiter.api.Timeout");
                 maybeAddImport("java.util.concurrent.TimeUnit");
-                return builder.javaParser(JavaParser.fromJavaVersion()
+                return JavaTemplate.builder(template)
+                        .javaParser(JavaParser.fromJavaVersion()
                                 .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                         .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
                         .build()
