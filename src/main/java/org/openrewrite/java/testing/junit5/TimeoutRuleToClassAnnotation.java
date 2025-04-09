@@ -89,7 +89,7 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
             private J.ClassDeclaration insertTimeoutAnnotation(Expression ex, J.ClassDeclaration cd, ExecutionContext ctx) {
                 String template;
                 Object[] params;
-                if (ex instanceof J.NewClass) {
+                if (TIMEOUT_CONSTRUCTOR_MATCHER.matches(ex)) {
                     List<Expression> arguments = ((J.NewClass) ex).getArguments();
                     if (arguments.size() == 2) {
                         template = "@Timeout(value = #{any(long)}, unit = #{any(TimeUnit)})";
@@ -98,7 +98,7 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                         template = "@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)";
                         params = new Object[]{arguments.get(0)};
                     }
-                } else if (ex instanceof J.MethodInvocation) {
+                } else if (MILLIS_SECONDS_MATCHER.matches(ex)) {
                     String simpleName = ((J.MethodInvocation) ex).getSimpleName();
                     String units = simpleName.equals("millis") ? "MILLISECONDS" : "SECONDS";
                     template = "@Timeout(value = #{any(long)}, unit = TimeUnit." + units + ")";
@@ -114,13 +114,10 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                                 .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                         .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
                         .build()
-                        .apply(
-                                updateCursor(cd),
+                        .apply(updateCursor(cd),
                                 cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
-                                params
-                        );
+                                params);
             }
         });
     }
-
 }
