@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -47,16 +46,6 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>("org.mockito.junit.MockitoJUnitRunner$Silent", false), new JavaIsoVisitor<ExecutionContext>() {
 
-            private JavaParser.@Nullable Builder<?, ?> javaParser;
-
-            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "mockito-junit-jupiter-3.12", "mockito-core-3.12");
-                }
-                return javaParser;
-            }
-
             final AnnotationMatcher silentRunnerMatcher = new AnnotationMatcher("@org.junit.runner.RunWith(org.mockito.junit.MockitoJUnitRunner.Silent.class)");
 
             @Override
@@ -65,7 +54,8 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
                 if (cd.getLeadingAnnotations().stream().anyMatch(silentRunnerMatcher::matches)) {
                     JavaTemplate template = JavaTemplate.builder("@MockitoSettings(strictness = Strictness.LENIENT)")
                             .imports("org.mockito.quality.Strictness", "org.mockito.junit.jupiter.MockitoSettings")
-                            .javaParser(javaParser(ctx))
+                            .javaParser(JavaParser.fromJavaVersion()
+                                    .classpathFromResources(ctx, "mockito-junit-jupiter-3.12", "mockito-core-3.12"))
                             .build();
                     cd = maybeAutoFormat(cd, template.apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))), ctx);
                     doAfterVisit(new RunnerToExtension(Collections.singletonList("org.mockito.junit.MockitoJUnitRunner$Silent"),

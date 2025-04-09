@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -45,17 +44,6 @@ public class UseTestMethodOrder extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>("org.junit.FixMethodOrder", false), new JavaIsoVisitor<ExecutionContext>() {
 
-
-            private JavaParser.@Nullable Builder<?, ?> javaParser;
-
-            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5");
-                }
-                return javaParser;
-            }
-
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = classDecl;
@@ -69,7 +57,8 @@ public class UseTestMethodOrder extends Recipe {
                     maybeRemoveImport("org.junit.runners.MethodSorters");
 
                     cd = JavaTemplate.builder("@TestMethodOrder(MethodName.class)")
-                            .javaParser(javaParser(ctx))
+                            .javaParser(JavaParser.fromJavaVersion()
+                                    .classpathFromResources(ctx, "junit-jupiter-api-5"))
                             .imports("org.junit.jupiter.api.TestMethodOrder",
                                     "org.junit.jupiter.api.MethodOrderer.*")
                             .build()

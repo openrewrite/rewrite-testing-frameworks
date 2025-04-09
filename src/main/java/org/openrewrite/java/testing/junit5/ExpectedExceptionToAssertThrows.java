@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -60,18 +59,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         return Preconditions.check(new UsesType<>("org.junit.rules.ExpectedException", false), new ExpectedExceptionToAssertThrowsVisitor());
     }
 
-    public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        private JavaParser.@Nullable Builder<?, ?> javaParser;
-
-        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            if (javaParser == null) {
-                javaParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3");
-            }
-            return javaParser;
-
-        }
+    private static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -164,7 +152,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             String templateString = expectedExceptionParam instanceof String ? "#{}assertThrows(#{}, () -> #{any()});" : "#{}assertThrows(#{any()}, () -> #{any()});";
             m = JavaTemplate.builder(templateString)
                     .contextSensitive()
-                    .javaParser(javaParser(ctx))
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                     .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                     .build()
                     .apply(
@@ -189,7 +178,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
                 m = JavaTemplate.builder("assertTrue(exception.getMessage().contains(#{any(java.lang.String)}));")
                         .contextSensitive()
-                        .javaParser(javaParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                         .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
                         .build()
                         .apply(
@@ -202,7 +192,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
             JavaTemplate assertThatTemplate = JavaTemplate.builder("assertThat(#{}, #{any()});")
                     .contextSensitive()
-                    .javaParser(javaParser(ctx))
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                     .staticImports("org.hamcrest.MatcherAssert.assertThat")
                     .build();
 
