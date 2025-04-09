@@ -23,6 +23,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -33,6 +34,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class TimeoutRuleToClassAnnotation extends Recipe {
+
+    private static final MethodMatcher TIMEOUT_CONSTRUCTOR_MATCHER = new MethodMatcher("org.junit.rules.Timeout <constructor>(..)");
+    private static final MethodMatcher MILLIS_SECONDS_MATCHER = new MethodMatcher("org.junit.rules.Timeout *(long)");
 
     @Override
     public String getDisplayName() {
@@ -61,7 +65,8 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                             List<J.VariableDeclarations.NamedVariable> variables = ((J.VariableDeclarations) statement).getVariables();
                             if (!variables.isEmpty()) {
                                 Expression timeoutInitializer = variables.get(0).getInitializer();
-                                if (isNewTimeoutInstance(timeoutInitializer) || isTimeoutFactory(timeoutInitializer)) {
+                                if (TIMEOUT_CONSTRUCTOR_MATCHER.matches(timeoutInitializer) ||
+                                        MILLIS_SECONDS_MATCHER.matches(timeoutInitializer)) {
                                     initializer.set(timeoutInitializer);
                                     return null;
                                 }
@@ -77,21 +82,6 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                     return insertTimeoutAnnotation(initializer.get(), cd, ctx);
                 }
                 return cd;
-            }
-
-            private boolean isNewTimeoutInstance(Expression timeoutInitializer) {
-                if (timeoutInitializer instanceof J.NewClass) {
-                    return ((J.Identifier) ((J.NewClass) timeoutInitializer).getClazz()).getSimpleName().equals("Timeout");
-                }
-                return false;
-            }
-
-            private boolean isTimeoutFactory(Expression timeoutInitializer) {
-                if (timeoutInitializer instanceof J.MethodInvocation) {
-                    String name = ((J.MethodInvocation) timeoutInitializer).getSimpleName();
-                    return name.equals("millis") || name.equals("seconds");
-                }
-                return false;
             }
 
             private J.ClassDeclaration insertTimeoutAnnotation(Expression ex, J.ClassDeclaration cd, ExecutionContext ctx) {
