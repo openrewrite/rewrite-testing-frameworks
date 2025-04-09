@@ -23,6 +23,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.RemoveAnnotation;
 import org.openrewrite.java.search.IsLikelyNotTest;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
@@ -67,10 +68,10 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
 
             @Override
             public J.FieldAccess visitFieldAccess(J.FieldAccess fa, ExecutionContext ctx) {
-                if (fa.getTarget().getType() instanceof JavaType.Class) {
+                if (fa.getTarget().getType() instanceof JavaType.Class && !((JavaType.Class) fa.getTarget().getType()).hasFlags(Flag.Private)) {
                     checkAndRegister(acc.classPatterns, fa.getTarget().getType());
                 }
-                if (fa.getName().getFieldType() != null) {
+                if (fa.getName().getFieldType() != null && !fa.getName().getFieldType().hasFlags(Flag.Private)) {
                     checkAndRegister(acc.fieldPatterns, fa.getName().getFieldType());
                 }
                 return super.visitFieldAccess(fa, ctx);
@@ -78,7 +79,7 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
 
             @Override
             public J.MemberReference visitMemberReference(J.MemberReference mr, ExecutionContext ctx) {
-                if (mr.getMethodType() != null) {
+                if (mr.getMethodType() != null && !mr.getMethodType().hasFlags(Flag.Private)) {
                     checkAndRegister(acc.methodPatterns, mr.getMethodType());
                 }
                 return super.visitMemberReference(mr, ctx);
@@ -86,7 +87,7 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
-                if (mi.getMethodType() != null) {
+                if (mi.getMethodType() != null && !mi.getMethodType().hasFlags(Flag.Private)) {
                     checkAndRegister(acc.methodPatterns, mi.getMethodType());
                 }
                 return super.visitMethodInvocation(mi, ctx);
@@ -94,10 +95,10 @@ public class RemoveVisibleForTestingAnnotationWhenUsedInProduction extends Scann
 
             @Override
             public J.NewClass visitNewClass(J.NewClass nc, ExecutionContext ctx) {
-                if (nc.getConstructorType() != null) {
+                if (nc.getConstructorType() != null && !nc.getConstructorType().hasFlags(Flag.Private)) {
                     checkAndRegister(acc.methodPatterns, nc.getConstructorType());
                 }
-                if (nc.getClazz() != null && nc.getClazz().getType() instanceof JavaType.Class) {
+                if (nc.getClazz() != null && nc.getClazz().getType() instanceof JavaType.Class && !((JavaType.Class) nc.getClazz().getType()).hasFlags(Flag.Private)) {
                     checkAndRegister(acc.classPatterns, nc.getClazz().getType());
                 }
                 return super.visitNewClass(nc, ctx);
