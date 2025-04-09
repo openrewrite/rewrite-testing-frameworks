@@ -70,12 +70,6 @@ public class UpdateMockWebServer extends Recipe {
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
 
-                    private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                            return JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "junit-4", "junit-jupiter-api-5", "apiguardian-api-1.1",
-                                            "mockwebserver-3.14");
-                    }
-
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
@@ -86,7 +80,9 @@ public class UpdateMockWebServer extends Recipe {
                                 cd = JavaTemplate.builder("@AfterEach\nvoid afterEachTest() throws IOException {#{any(okhttp3.mockwebserver.MockWebServer)}.close();\n}")
                                         .contextSensitive()
                                         .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
-                                        .javaParser(javaParser(ctx))
+                                        .javaParser(JavaParser.fromJavaVersion()
+                                                .classpathFromResources(ctx, "junit-4", "junit-jupiter-api-5", "apiguardian-api-1.1",
+                                                        "mockwebserver-3.14"))
                                         .build()
                                         .apply(
                                                 updateCursor(cd),
@@ -101,7 +97,9 @@ public class UpdateMockWebServer extends Recipe {
                                         cd = JavaTemplate.builder("#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
                                                 .contextSensitive()
                                                 .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
-                                                .javaParser(javaParser(ctx))
+                                                .javaParser(JavaParser.fromJavaVersion()
+                                                        .classpathFromResources(ctx, "junit-4", "junit-jupiter-api-5", "apiguardian-api-1.1",
+                                                                "mockwebserver-3.14"))
                                                 .build()
                                                 .apply(
                                                         updateCursor(cd),

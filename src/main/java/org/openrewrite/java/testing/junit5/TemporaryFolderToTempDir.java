@@ -150,11 +150,6 @@ public class TemporaryFolderToTempDir extends Recipe {
     private static class AddNewFolderMethod extends JavaIsoVisitor<ExecutionContext> {
         private final J.MethodInvocation methodInvocation;
 
-        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                return JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5");
-        }
-
         public AddNewFolderMethod(J.MethodInvocation methodInvocation) {
             this.methodInvocation = methodInvocation;
         }
@@ -206,7 +201,8 @@ public class TemporaryFolderToTempDir extends Recipe {
                                 "}")
                         .contextSensitive()
                         .imports("java.io.File", "java.io.IOException")
-                        .javaParser(javaParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "junit-jupiter-api-5"))
                         .build()
                         .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
                 newFolderMethodDeclaration = ((J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1)).getMethodType();

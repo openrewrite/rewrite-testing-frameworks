@@ -55,11 +55,6 @@ public class UpdateTestAnnotation extends Recipe {
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
 
-        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            return JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5", "apiguardian-api-1.1");
-        }
-
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
@@ -114,9 +109,11 @@ public class UpdateTestAnnotation extends Recipe {
             ChangeTestAnnotation cta = new ChangeTestAnnotation();
             J.MethodDeclaration m = (J.MethodDeclaration) cta.visitNonNull(method, ctx, getCursor().getParentOrThrow());
             if (m != method) {
+                JavaParser.Builder<?, ?> javaParser = JavaParser.fromJavaVersion()
+                        .classpathFromResources(ctx, "junit-jupiter-api-5", "apiguardian-api-1.1");
                 if (cta.expectedException != null) {
                     m = JavaTemplate.builder("org.junit.jupiter.api.function.Executable o = () -> #{};")
-                            .javaParser(javaParser(ctx))
+                            .javaParser(javaParser)
                             .build()
                             .apply(
                                     updateCursor(m),
@@ -133,14 +130,14 @@ public class UpdateTestAnnotation extends Recipe {
                     if (cta.expectedException instanceof J.FieldAccess &&
                         TypeUtils.isAssignableTo("org.junit.Test$None", ((J.FieldAccess) cta.expectedException).getTarget().getType())) {
                         m = JavaTemplate.builder("assertDoesNotThrow(#{any(org.junit.jupiter.api.function.Executable)});")
-                                .javaParser(javaParser(ctx))
+                                .javaParser(javaParser)
                                 .staticImports("org.junit.jupiter.api.Assertions.assertDoesNotThrow")
                                 .build()
                                 .apply(updateCursor(m), m.getCoordinates().replaceBody(), lambda);
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertDoesNotThrow");
                     } else {
                         m = JavaTemplate.builder("assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
-                                .javaParser(javaParser(ctx))
+                                .javaParser(javaParser)
                                 .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                 .build()
                                 .apply(updateCursor(m), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
@@ -152,7 +149,7 @@ public class UpdateTestAnnotation extends Recipe {
                 }
                 if (cta.timeout != null) {
                     m = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)")
-                            .javaParser(javaParser(ctx))
+                            .javaParser(javaParser)
                             .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
                             .build()
                             .apply(

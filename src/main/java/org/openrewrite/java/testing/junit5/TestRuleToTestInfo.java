@@ -54,11 +54,6 @@ public class TestRuleToTestInfo extends Recipe {
         private static final AnnotationMatcher JUNIT_BEFORE_MATCHER = new AnnotationMatcher("@org.junit.Before");
         private static final AnnotationMatcher JUPITER_BEFORE_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
 
-        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                return JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5");
-        }
-
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             J.CompilationUnit compilationUnit = super.visitCompilationUnit(cu, ctx);
@@ -129,7 +124,8 @@ public class TestRuleToTestInfo extends Recipe {
                                "public void setup(TestInfo testInfo) {" + testMethodStatement + "}";
                     cd = JavaTemplate.builder(t)
                             .contextSensitive()
-                            .javaParser(javaParser(ctx))
+                            .javaParser(JavaParser.fromJavaVersion()
+                                    .classpathFromResources(ctx, "junit-jupiter-api-5"))
                             .imports("org.junit.jupiter.api.TestInfo",
                                     "org.junit.jupiter.api.BeforeEach",
                                     "java.util.Optional",

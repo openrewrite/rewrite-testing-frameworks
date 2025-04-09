@@ -59,12 +59,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         return Preconditions.check(new UsesType<>("org.junit.rules.ExpectedException", false), new ExpectedExceptionToAssertThrowsVisitor());
     }
 
-    public static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
-
-        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            return JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3");
-        }
+    private static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -157,7 +152,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             String templateString = expectedExceptionParam instanceof String ? "#{}assertThrows(#{}, () -> #{any()});" : "#{}assertThrows(#{any()}, () -> #{any()});";
             m = JavaTemplate.builder(templateString)
                     .contextSensitive()
-                    .javaParser(javaParser(ctx))
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                     .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                     .build()
                     .apply(
@@ -182,7 +178,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             if (expectMessageMethodInvocation != null && !isExpectMessageArgAMatcher && m.getBody() != null) {
                 m = JavaTemplate.builder("assertTrue(exception.getMessage().contains(#{any(java.lang.String)}));")
                         .contextSensitive()
-                        .javaParser(javaParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                         .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
                         .build()
                         .apply(
@@ -195,7 +192,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
             JavaTemplate assertThatTemplate = JavaTemplate.builder("assertThat(#{}, #{any()});")
                     .contextSensitive()
-                    .javaParser(javaParser(ctx))
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                     .staticImports("org.hamcrest.MatcherAssert.assertThat")
                     .build();
 
