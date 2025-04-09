@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2025 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -24,7 +23,6 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
 
 public class RemoveInitMocksIfRunnersSpecified extends Recipe {
     @Override
@@ -45,10 +43,11 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 Preconditions.and(
-                        new UsesMethod<>(INIT_MOCKS_MATCHER)
-//                        Preconditions.or(
-//                            new UsesType<>(timesMatcher)
-//                        )
+                        new UsesMethod<>(INIT_MOCKS_MATCHER),
+                        Preconditions.or(
+                            new UsesType<>("org.mockito.junit.jupiter.MockitoExtension", false),
+                            new UsesType<>("org.mockito.junit.MockitoJUnitRunner", false)
+                        )
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
@@ -72,6 +71,16 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             }
                         }
                         return md;
+                    }
+
+                    @Override
+                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
+                        for (J.Annotation annotation : cd.getLeadingAnnotations()) {
+                            if (MOCKITO_EXTENSION_MATCHER.matches(annotation) || MOCKITO_JUNIT_MATCHER.matches(annotation)) {
+                                return super.visitClassDeclaration(cd, ctx);
+                            }
+                        }
+                        return cd;
                     }
                 }
         );

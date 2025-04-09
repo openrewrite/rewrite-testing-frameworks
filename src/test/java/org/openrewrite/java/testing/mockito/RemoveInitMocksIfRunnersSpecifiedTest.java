@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2025 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,6 +93,65 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
 
               @RunWith(MockitoJUnitRunner.class)
               class A {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveEnclosingMethodIfNotEmpty() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.runner.RunWith;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import org.mockito.MockitoAnnotations;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class A {
+
+                  public void setUp() {
+                      MockitoAnnotations.initMocks(this);
+                      System.out.println("log");
+                  }
+              }
+              """,
+            """
+              import org.junit.runner.RunWith;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class A {
+
+                  public void setUp() {
+                      System.out.println("log");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void notRemoveInitMocksWithoutRunners() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.MockitoAnnotations;
+
+              class A {
+
+                  public void setUp() {
+                      MockitoAnnotations.initMocks(this);
+                  }
+
+                  public void test() {
+                  }
               }
               """
           )
