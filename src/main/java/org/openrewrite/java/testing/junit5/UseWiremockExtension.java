@@ -51,7 +51,7 @@ public class UseWiremockExtension extends Recipe {
             public J preVisit(J tree, ExecutionContext ctx) {
                 if (tree instanceof JavaSourceFile) {
                     doAfterVisit(new ChangeType("com.github.tomakehurst.wiremock.junit.WireMockRule",
-                            "com.github.tomakehurst.wiremock.junit5.WireMockExtension", true).getVisitor());
+                            "com.github.tomakehurst.wiremock.junit5.WireMockExtension", true, null).getVisitor());
                 }
                 return tree;
             }
@@ -62,7 +62,7 @@ public class UseWiremockExtension extends Recipe {
                 J.NewClass n = (J.NewClass) super.visitNewClass(newClass, ctx);
                 if (newWiremockRule.matches(n)) {
                     maybeAddImport("com.github.tomakehurst.wiremock.junit5.WireMockExtension");
-                    doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true)
+                    doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true, null)
                             .getVisitor());
 
                     Expression arg = n.getArguments().get(0);

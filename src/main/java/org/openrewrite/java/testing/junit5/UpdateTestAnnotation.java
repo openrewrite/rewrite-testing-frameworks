@@ -71,7 +71,7 @@ public class UpdateTestAnnotation extends Recipe {
             Set<NameTree> nameTreeSet = c.findType("org.junit.Test");
             if (!nameTreeSet.isEmpty()) {
                 // Update other references like `Test.class`.
-                c = (J.CompilationUnit) new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test", true)
+                c = (J.CompilationUnit) new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test", true, null)
                         .getVisitor().visitNonNull(c, ctx);
             }
 
