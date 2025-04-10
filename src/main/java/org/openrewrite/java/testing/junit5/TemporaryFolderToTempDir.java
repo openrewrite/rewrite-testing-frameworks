@@ -49,16 +49,9 @@ public class TemporaryFolderToTempDir extends Recipe {
             final AnnotationMatcher classRule = new AnnotationMatcher("@org.junit.ClassRule");
             final AnnotationMatcher rule = new AnnotationMatcher("@org.junit.Rule");
 
-
-            private JavaParser.@Nullable Builder<?, ?> javaParser;
-
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
+                    return JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "junit-jupiter-api-5");
-                }
-                return javaParser;
-
             }
 
             @Override
@@ -66,7 +59,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                 J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, ctx);
                 if (c != cu) {
                     c = (J.CompilationUnit) new ChangeType(
-                            "org.junit.rules.TemporaryFolder", "java.io.File", true, null).getVisitor()
+                            "org.junit.rules.TemporaryFolder", "java.io.File", true).getVisitor()
                             .visit(c, ctx);
                     maybeAddImport("java.io.File");
                     maybeAddImport("org.junit.jupiter.api.io.TempDir");
@@ -157,18 +150,6 @@ public class TemporaryFolderToTempDir extends Recipe {
     private static class AddNewFolderMethod extends JavaIsoVisitor<ExecutionContext> {
         private final J.MethodInvocation methodInvocation;
 
-
-        private JavaParser.@Nullable Builder<?, ?> javaParser;
-
-        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            if (javaParser == null) {
-                javaParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5");
-            }
-            return javaParser;
-
-        }
-
         public AddNewFolderMethod(J.MethodInvocation methodInvocation) {
             this.methodInvocation = methodInvocation;
         }
@@ -220,7 +201,8 @@ public class TemporaryFolderToTempDir extends Recipe {
                                 "}")
                         .contextSensitive()
                         .imports("java.io.File", "java.io.IOException")
-                        .javaParser(javaParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "junit-jupiter-api-5"))
                         .build()
                         .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
                 newFolderMethodDeclaration = ((J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1)).getMethodType();
@@ -236,16 +218,9 @@ public class TemporaryFolderToTempDir extends Recipe {
             J.MethodInvocation methodScope;
             JavaType.Method newMethodType;
 
-
-            private JavaParser.@Nullable Builder<?, ?> javaParser;
-
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
+                    return JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "junit-jupiter-api-5");
-                }
-                return javaParser;
-
             }
 
             public TranslateNewFolderMethodInvocation(J.MethodInvocation method, JavaType.Method newMethodType) {

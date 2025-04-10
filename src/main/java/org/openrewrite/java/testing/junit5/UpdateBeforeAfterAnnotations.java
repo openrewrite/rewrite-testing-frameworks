@@ -51,10 +51,10 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         @Override
         public J preVisit(J tree, ExecutionContext ctx) {
             stopAfterPreVisit();
-            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true, null).getVisitor());
-            doAfterVisit(new ChangeType("org.junit.After", "org.junit.jupiter.api.AfterEach", true, null).getVisitor());
-            doAfterVisit(new ChangeType("org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll", true, null).getVisitor());
-            doAfterVisit(new ChangeType("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll", true, null).getVisitor());
+            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true).getVisitor());
+            doAfterVisit(new ChangeType("org.junit.After", "org.junit.jupiter.api.AfterEach", true).getVisitor());
+            doAfterVisit(new ChangeType("org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll", true).getVisitor());
+            doAfterVisit(new ChangeType("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll", true).getVisitor());
             return tree;
         }
     }

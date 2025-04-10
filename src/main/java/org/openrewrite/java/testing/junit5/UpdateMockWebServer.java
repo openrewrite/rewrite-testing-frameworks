@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
@@ -70,16 +69,6 @@ public class UpdateMockWebServer extends Recipe {
                         new UsesType<>("okhttp3.mockwebserver.MockWebServer", false)
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
-                    private JavaParser.@Nullable Builder<?, ?> javaParser;
-
-                    private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                        if (javaParser == null) {
-                            javaParser = JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "junit-4", "junit-jupiter-api-5", "apiguardian-api-1.1",
-                                            "mockwebserver-3.14");
-                        }
-                        return javaParser;
-                    }
 
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -91,7 +80,9 @@ public class UpdateMockWebServer extends Recipe {
                                 cd = JavaTemplate.builder("@AfterEach\nvoid afterEachTest() throws IOException {#{any(okhttp3.mockwebserver.MockWebServer)}.close();\n}")
                                         .contextSensitive()
                                         .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
-                                        .javaParser(javaParser(ctx))
+                                        .javaParser(JavaParser.fromJavaVersion()
+                                                .classpathFromResources(ctx, "junit-4", "junit-jupiter-api-5", "apiguardian-api-1.1",
+                                                        "mockwebserver-3.14"))
                                         .build()
                                         .apply(
                                                 updateCursor(cd),
@@ -106,7 +97,9 @@ public class UpdateMockWebServer extends Recipe {
                                         cd = JavaTemplate.builder("#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
                                                 .contextSensitive()
                                                 .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
-                                                .javaParser(javaParser(ctx))
+                                                .javaParser(JavaParser.fromJavaVersion()
+                                                        .classpathFromResources(ctx, "junit-4", "junit-jupiter-api-5", "apiguardian-api-1.1",
+                                                                "mockwebserver-3.14"))
                                                 .build()
                                                 .apply(
                                                         updateCursor(cd),
