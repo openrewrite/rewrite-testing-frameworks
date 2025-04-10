@@ -70,6 +70,44 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
     }
 
     @Test
+    void removeInitMocksWithStaticImport() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.MockitoAnnotations;
+
+              import static org.mockito.MockitoAnnotations.initMocks;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+
+                  public void setUp() {
+                      initMocks(this);
+                  }
+
+                  public void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+
+                  public void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void removeInitMocksInJUnit4() {
         rewriteRun(
           //language=java
