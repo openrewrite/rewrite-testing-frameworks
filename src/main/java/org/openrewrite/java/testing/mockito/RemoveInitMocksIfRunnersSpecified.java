@@ -72,6 +72,8 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                         J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
                         if (getCursor().pollMessage("initMocks") != null) {
                             if (md.getBody() != null && md.getBody().getStatements().isEmpty()) {
+                                maybeRemoveImport("org.junit.jupiter.api.BeforeEach");
+                                maybeRemoveImport("org.junit.Before");
                                 return null;
                             }
                         }

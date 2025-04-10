@@ -39,6 +39,7 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
           //language=java
           java(
             """
+              import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.junit.jupiter.MockitoExtension;
               import org.mockito.MockitoAnnotations;
@@ -46,6 +47,7 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
               @ExtendWith(MockitoExtension.class)
               class A {
 
+                  @BeforeEach
                   public void setUp() {
                       MockitoAnnotations.initMocks(this);
                   }
@@ -113,6 +115,7 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
           //language=java
           java(
             """
+              import org.junit.Before;
               import org.junit.runner.RunWith;
               import org.mockito.junit.MockitoJUnitRunner;
               import org.mockito.MockitoAnnotations;
@@ -120,6 +123,7 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
               @RunWith(MockitoJUnitRunner.class)
               class A {
 
+                  @Before
                   public void setUp() {
                       MockitoAnnotations.initMocks(this);
                   }
