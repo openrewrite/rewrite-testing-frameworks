@@ -26,17 +26,14 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.List;
 
 public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
 
-    private static final String JUNIT = "org.junit.jupiter.api.Assertions";
-    private static final String ASSERTJ = "org.assertj.core.api.AssertionsForClassTypes";
-    private static final MethodMatcher ASSERT_THROWS_MATCHER = new MethodMatcher(JUNIT + " assertThrows(..)");
-    private static final JavaType THROWING_CALLABLE_TYPE = JavaType.buildType("org.assertj.core.api.ThrowableAssert.ThrowingCallable");
+    private static final String JUNIT_ASSERTIONS = "org.junit.jupiter.api.Assertions";
+    private static final String ASSERTIONS_FOR_CLASS_TYPES = "org.assertj.core.api.AssertionsForClassTypes";
+    private static final MethodMatcher ASSERT_THROWS_MATCHER = new MethodMatcher(JUNIT_ASSERTIONS + " assertThrows(..)");
 
     @Override
     public String getDisplayName() {
@@ -62,40 +59,25 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                     return mi;
                 }
 
+                maybeAddImport(ASSERTIONS_FOR_CLASS_TYPES, "assertThatExceptionOfType");
+                maybeRemoveImport(JUNIT_ASSERTIONS + ".assertThrows");
+                maybeRemoveImport(JUNIT_ASSERTIONS);
+
                 List<Expression> args = mi.getArguments();
-                Expression expected = args.get(0);
-                J executable = args.get(1);
-
-                if (executable instanceof J.Lambda) {
-                    executable = ((J.Lambda) executable).withType(THROWING_CALLABLE_TYPE);
-                } else if (executable instanceof J.MemberReference) {
-                    executable = ((J.MemberReference) executable).withType(THROWING_CALLABLE_TYPE);
-                } else {
-                    return mi;
-                }
-
-                maybeAddImport(ASSERTJ, "assertThatExceptionOfType", false);
-                maybeRemoveImport(JUNIT + ".assertThrows");
-                maybeRemoveImport(JUNIT);
-                doAfterVisit(new LambdaBlockToExpression().getVisitor());
-
                 if (args.size() == 2) {
                     return JavaTemplate.builder("assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
-                            .staticImports(ASSERTJ + ".assertThatExceptionOfType")
+                            .staticImports(ASSERTIONS_FOR_CLASS_TYPES + ".assertThatExceptionOfType")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
-                            .apply(getCursor(), mi.getCoordinates().replace(), expected, executable);
+                            .apply(getCursor(), mi.getCoordinates().replace(), args.get(0), args.get(1));
                 }
 
-                Expression message = args.get(2);
                 return JavaTemplate.builder("assertThatExceptionOfType(#{any()}).as(#{any()}).isThrownBy(#{any()})")
-                        .staticImports(ASSERTJ + ".assertThatExceptionOfType")
-                        .imports("java.util.function.Supplier")
+                        .staticImports(ASSERTIONS_FOR_CLASS_TYPES + ".assertThatExceptionOfType")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
-                        .apply(getCursor(), mi.getCoordinates().replace(), expected, message, executable);
+                        .apply(getCursor(), mi.getCoordinates().replace(), args.get(0), args.get(2), args.get(1));
             }
-
         });
     }
 }
