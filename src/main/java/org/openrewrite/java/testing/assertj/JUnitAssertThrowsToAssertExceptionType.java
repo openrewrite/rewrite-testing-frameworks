@@ -24,14 +24,16 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.staticanalysis.LambdaBlockToExpression;
+
+import java.util.List;
 
 public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
 
-    private static final MethodMatcher ASSERT_THROWS_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertThrows(..)");
-    private static final JavaType THROWING_CALLABLE_TYPE = JavaType.buildType("org.assertj.core.api.ThrowableAssert.ThrowingCallable");
+    private static final String JUNIT_ASSERTIONS = "org.junit.jupiter.api.Assertions";
+    private static final String ASSERTIONS_FOR_CLASS_TYPES = "org.assertj.core.api.AssertionsForClassTypes";
+    private static final MethodMatcher ASSERT_THROWS_MATCHER = new MethodMatcher(JUNIT_ASSERTIONS + " assertThrows(..)");
 
     @Override
     public String getDisplayName() {
@@ -49,33 +51,32 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (ASSERT_THROWS_MATCHER.matches(mi) &&
-                    mi.getArguments().size() == 2 &&
-                    getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
-                    J executable = mi.getArguments().get(1);
-                    if (executable instanceof J.Lambda) {
-                        executable = ((J.Lambda) executable).withType(THROWING_CALLABLE_TYPE);
-                    } else if (executable instanceof J.MemberReference) {
-                        executable = ((J.MemberReference) executable).withType(THROWING_CALLABLE_TYPE);
-                    } else {
-                        executable = null;
-                    }
-
-                    if (executable != null) {
-                        mi = JavaTemplate
-                                .builder("assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                .staticImports("org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType")
-                                .build()
-                                .apply(getCursor(), mi.getCoordinates().replace(), mi.getArguments().get(0), executable);
-                        maybeAddImport("org.assertj.core.api.AssertionsForClassTypes", "assertThatExceptionOfType", false);
-                        maybeRemoveImport("org.junit.jupiter.api.Assertions.assertThrows");
-                        maybeRemoveImport("org.junit.jupiter.api.Assertions");
-
-                        doAfterVisit(new LambdaBlockToExpression().getVisitor());
-                    }
+                if (!ASSERT_THROWS_MATCHER.matches(mi)) {
+                    return mi;
                 }
-                return mi;
+
+                if (!(getCursor().getParentTreeCursor().getValue() instanceof J.Block)) {
+                    return mi;
+                }
+
+                maybeAddImport(ASSERTIONS_FOR_CLASS_TYPES, "assertThatExceptionOfType");
+                maybeRemoveImport(JUNIT_ASSERTIONS + ".assertThrows");
+                maybeRemoveImport(JUNIT_ASSERTIONS);
+
+                List<Expression> args = mi.getArguments();
+                if (args.size() == 2) {
+                    return JavaTemplate.builder("assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
+                            .staticImports(ASSERTIONS_FOR_CLASS_TYPES + ".assertThatExceptionOfType")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                            .build()
+                            .apply(getCursor(), mi.getCoordinates().replace(), args.get(0), args.get(1));
+                }
+
+                return JavaTemplate.builder("assertThatExceptionOfType(#{any()}).as(#{any()}).isThrownBy(#{any()})")
+                        .staticImports(ASSERTIONS_FOR_CLASS_TYPES + ".assertThatExceptionOfType")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                        .build()
+                        .apply(getCursor(), mi.getCoordinates().replace(), args.get(0), args.get(2), args.get(1));
             }
         });
     }
