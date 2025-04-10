@@ -23,9 +23,11 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.J;
 
 public class RemoveInitMocksIfRunnersSpecified extends Recipe {
+
     @Override
     public String getDisplayName() {
         return "Remove `MockitoAnnotations.initMocks(this)` if specified JUnit runners";
@@ -36,9 +38,11 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
         return "Remove `MockitoAnnotations.initMocks(this)` if specified class-level JUnit runners `@RunWith(MockitoJUnitRunner.class)` or `@ExtendWith(MockitoExtension.class)`.";
     }
 
+    private static final String MOCKITO_EXTENSION = "org.mockito.junit.jupiter.MockitoExtension";
+    private static final String MOCKITO_JUNIT_RUNNER = "org.mockito.junit.MockitoJUnitRunner";
+    private static final AnnotationMatcher MOCKITO_EXTENSION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.extension.ExtendWith(" + MOCKITO_EXTENSION + ".class)");
+    private static final AnnotationMatcher MOCKITO_JUNIT_MATCHER = new AnnotationMatcher("@org.junit.runner.RunWith(" + MOCKITO_JUNIT_RUNNER + ".class)");
     private static final MethodMatcher INIT_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations initMocks(..)", false);
-    private static final AnnotationMatcher MOCKITO_EXTENSION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)");
-    private static final AnnotationMatcher MOCKITO_JUNIT_MATCHER = new AnnotationMatcher("@org.junit.runner.RunWith(org.mockito.junit.MockitoJUnitRunner.class)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -46,8 +50,8 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                 Preconditions.and(
                         new UsesMethod<>(INIT_MOCKS_MATCHER),
                         Preconditions.or(
-                                new UsesType<>("org.mockito.junit.jupiter.MockitoExtension", false),
-                                new UsesType<>("org.mockito.junit.MockitoJUnitRunner", false)
+                                new UsesType<>(MOCKITO_EXTENSION, false),
+                                new UsesType<>(MOCKITO_JUNIT_RUNNER, false)
                         )
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
@@ -76,10 +80,9 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
 
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
-                        for (J.Annotation annotation : cd.getLeadingAnnotations()) {
-                            if (MOCKITO_EXTENSION_MATCHER.matches(annotation) || MOCKITO_JUNIT_MATCHER.matches(annotation)) {
-                                return super.visitClassDeclaration(cd, ctx);
-                            }
+                        if (service(AnnotationService.class).matches(updateCursor(cd), MOCKITO_EXTENSION_MATCHER) ||
+                                service(AnnotationService.class).matches(updateCursor(cd), MOCKITO_JUNIT_MATCHER)) {
+                            return super.visitClassDeclaration(cd, ctx);
                         }
                         return cd;
                     }
