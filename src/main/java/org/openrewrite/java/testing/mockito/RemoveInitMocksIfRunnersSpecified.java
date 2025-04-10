@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -50,8 +51,9 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                         )
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
+
                     @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                    public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (INIT_MOCKS_MATCHER.matches(mi)) {
                             maybeRemoveImport("org.mockito.MockitoAnnotations");
@@ -62,11 +64,10 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                     }
 
                     @Override
-                    public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                    public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                         J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-                        System.out.println("method declaration: " + md);
                         if (getCursor().pollMessage("initMocks") != null) {
-                            if (md.getBody().getStatements().isEmpty()) {
+                            if (md.getBody() != null && md.getBody().getStatements().isEmpty()) {
                                 return null;
                             }
                         }
