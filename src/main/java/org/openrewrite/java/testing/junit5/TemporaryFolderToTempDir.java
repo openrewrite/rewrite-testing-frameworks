@@ -59,7 +59,7 @@ public class TemporaryFolderToTempDir extends Recipe {
                 J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, ctx);
                 if (c != cu) {
                     c = (J.CompilationUnit) new ChangeType(
-                            "org.junit.rules.TemporaryFolder", "java.io.File", true, null).getVisitor()
+                            "org.junit.rules.TemporaryFolder", "java.io.File", true).getVisitor()
                             .visit(c, ctx);
                     maybeAddImport("java.io.File");
                     maybeAddImport("org.junit.jupiter.api.io.TempDir");
