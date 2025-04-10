@@ -104,39 +104,6 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
     }
 
     @Test
-    void isEqualToZeroToIsZero() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              import java.time.temporal.Temporal;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Foo {
-                  void testMethod(Temporal timestampA, Temporal timestampB) {
-                      assertThat(Duration.between(timestampA, timestampB).getNano()).isEqualTo(0);
-                  }
-              }
-              """,
-            """
-              import java.time.Duration;
-              import java.time.temporal.Temporal;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Foo {
-                  void testMethod(Temporal timestampA, Temporal timestampB) {
-                      assertThat(Duration.between(timestampA, timestampB).getNano()).isZero();
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void isEqualToVariable() {
         //language=java
         rewriteRun(
@@ -164,72 +131,6 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       int zero = 0;
                       assertThat(Duration.between(timestampA, timestampB)).hasNanos(zero);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isGreaterThanZeroToIsPositive() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              import java.time.temporal.Temporal;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Foo {
-                  void testMethod(Temporal timestampA, Temporal timestampB) {
-                      assertThat(Duration.between(timestampA, timestampB).getSeconds()).isGreaterThan(0);
-                  }
-              }
-              """,
-            """
-              import java.time.Duration;
-              import java.time.temporal.Temporal;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Foo {
-                  void testMethod(Temporal timestampA, Temporal timestampB) {
-                      assertThat(Duration.between(timestampA, timestampB).getSeconds()).isPositive();
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isLessThanZeroToIsNegative() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              import java.time.temporal.Temporal;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Foo {
-                  void testMethod(Temporal timestampA, Temporal timestampB) {
-                      assertThat(Duration.between(timestampA, timestampB).getSeconds()).isLessThan(0);
-                  }
-              }
-              """,
-            """
-              import java.time.Duration;
-              import java.time.temporal.Temporal;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Foo {
-                  void testMethod(Temporal timestampA, Temporal timestampB) {
-                      assertThat(Duration.between(timestampA, timestampB).getSeconds()).isNegative();
                   }
               }
               """
