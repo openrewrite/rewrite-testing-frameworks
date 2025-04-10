@@ -92,7 +92,7 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                 if (TIMEOUT_CONSTRUCTOR_MATCHER.matches(ex)) {
                     List<Expression> arguments = ((J.NewClass) ex).getArguments();
                     if (arguments.size() == 2) {
-                        template = "@Timeout(value = #{any(long)}, unit = #{any(TimeUnit)})";
+                        template = "@Timeout(value = #{any(long)}, unit = #{any(java.util.concurrent.TimeUnit)})";
                         params = new Object[]{arguments.get(0), arguments.get(1)};
                     } else {
                         template = "@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)";
@@ -112,7 +112,8 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                 return JavaTemplate.builder(template)
                         .javaParser(JavaParser.fromJavaVersion()
                                 .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
-                        .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
+                        .imports("org.junit.jupiter.api.Timeout",
+                                "java.util.concurrent.TimeUnit")
                         .build()
                         .apply(updateCursor(cd),
                                 cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
