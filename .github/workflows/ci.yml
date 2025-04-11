@@ -27,3 +27,8 @@ jobs:
       ossrh_token: ${{ secrets.OSSRH_TOKEN }}
       ossrh_signing_key: ${{ secrets.OSSRH_SIGNING_KEY }}
       ossrh_signing_password: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
+  slackNotificationOfFailure:
+    uses: rtCamp/action-slack-notify@v2.3.3
+    if: failure()
+    env:
+      SLACK_WEBHOOK: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
