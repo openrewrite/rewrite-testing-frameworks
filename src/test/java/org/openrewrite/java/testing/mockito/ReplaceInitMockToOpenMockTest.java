@@ -64,10 +64,12 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
 
               class A {
 
+                  private AutoCloseable mocks;
+
                   @BeforeEach
                   public void setUp() {
                       test1();
-                      AutoCloseable mocks = MockitoAnnotations.openMocks(this);
+                      mocks = MockitoAnnotations.openMocks(this);
                       test2();
                   }
 
@@ -75,6 +77,11 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
                   }
 
                   public void test2() {
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      mocks.close();
                   }
               }
               """
