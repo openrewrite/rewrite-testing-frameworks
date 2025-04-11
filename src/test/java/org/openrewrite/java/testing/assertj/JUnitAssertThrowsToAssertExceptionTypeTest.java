@@ -148,17 +148,17 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import static org.junit.jupiter.api.Assertions.assertThrows;
+             import static org.junit.jupiter.api.Assertions.assertThrows;
 
-              public class SimpleExpectedExceptionTest {
-                  public void throwsExceptionWithSpecificType() {
-                      NullPointerException npe = hashCode() == 42
-                        ? new NullPointerException()
-                        : assertThrows(NullPointerException.class, () -> {
-                          throw new NullPointerException();
-                      });
-                  }
-              }
+             public class SimpleExpectedExceptionTest {
+                 public void throwsExceptionWithSpecificType() {
+                     NullPointerException npe = hashCode() == 42
+                       ? new NullPointerException()
+                       : assertThrows(NullPointerException.class, () -> {
+                         throw new NullPointerException();
+                     });
+                 }
+             }
              """,
             """
               import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
