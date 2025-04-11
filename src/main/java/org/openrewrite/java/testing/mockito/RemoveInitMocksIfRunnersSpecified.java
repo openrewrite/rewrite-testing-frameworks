@@ -63,7 +63,6 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (INIT_MOCKS_MATCHER.matches(mi)) {
                             maybeRemoveImport("org.mockito.MockitoAnnotations");
-                            getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, "initMocks", "removed");
                             return null;
                         }
                         return mi;
@@ -72,12 +71,10 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                     @Override
                     public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                         J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-                        if (getCursor().pollMessage("initMocks") != null) {
-                            if (md.getBody() != null && md.getBody().getStatements().isEmpty()) {
-                                maybeRemoveImport("org.junit.jupiter.api.BeforeEach");
-                                maybeRemoveImport("org.junit.Before");
-                                return null;
-                            }
+                        if (md != method && md.getBody() != null && md.getBody().getStatements().isEmpty()) {
+                            maybeRemoveImport("org.junit.jupiter.api.BeforeEach");
+                            maybeRemoveImport("org.junit.Before");
+                            return null;
                         }
                         return md;
                     }
