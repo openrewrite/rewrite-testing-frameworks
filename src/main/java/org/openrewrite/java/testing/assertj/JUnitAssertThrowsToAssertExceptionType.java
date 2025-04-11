@@ -28,6 +28,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
 
@@ -48,6 +49,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesMethod<>(ASSERT_THROWS_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
+
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
@@ -55,24 +57,25 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                     return mi;
                 }
 
-                if (!(getCursor().getParentTreeCursor().getValue() instanceof J.Block)) {
-                    return mi;
-                }
+                boolean returnActual = !(getCursor().getParentTreeCursor().getValue() instanceof J.Block);
 
                 maybeAddImport(ASSERTIONS_FOR_CLASS_TYPES, "assertThatExceptionOfType");
                 maybeRemoveImport(JUNIT_ASSERTIONS + ".assertThrows");
                 maybeRemoveImport(JUNIT_ASSERTIONS);
 
                 List<Expression> args = mi.getArguments();
+
+                UnaryOperator<String> decorator = returnActual ? code -> code + ".actual()" : UnaryOperator.identity();
+
                 if (args.size() == 2) {
-                    return JavaTemplate.builder("assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})")
+                    return JavaTemplate.builder(decorator.apply("assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})"))
                             .staticImports(ASSERTIONS_FOR_CLASS_TYPES + ".assertThatExceptionOfType")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), args.get(0), args.get(1));
                 }
 
-                return JavaTemplate.builder("assertThatExceptionOfType(#{any()}).as(#{any()}).isThrownBy(#{any()})")
+                return JavaTemplate.builder(decorator.apply("assertThatExceptionOfType(#{any()}).as(#{any()}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})"))
                         .staticImports(ASSERTIONS_FOR_CLASS_TYPES + ".assertThatExceptionOfType")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
