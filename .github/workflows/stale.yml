@@ -2,8 +2,9 @@
 name: stale
 
 on:
+  workflow_dispatch: {}
   schedule:
-    - cron: 36 4 * * *
+    - cron: 36 4 * * 1
 
 jobs:
   build:
