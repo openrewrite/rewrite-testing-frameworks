@@ -113,7 +113,6 @@ public class AssertJBigIntegerRules {
     AbstractBigIntegerAssert<?> before(AbstractBigIntegerAssert<?> bigIntegerAssert) {
       return Refaster.anyOf(
           bigIntegerAssert.isEqualTo(1),
-          bigIntegerAssert.isEqualTo(1L),
           bigIntegerAssert.isEqualTo(BigInteger.ONE));
     }
 
