@@ -21,42 +21,11 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class AssertJDoubleRulesTest implements RewriteTest {
+class AssertJIntegerRulesTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new AssertJDoubleRulesRecipes());
-    }
-
-    @Test
-    void isCloseTo() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-
-              class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isEqualTo(compare, Offset.offset(0.0));
-                      Assertions.assertThat(d).isEqualTo(compare, Offset.offset(1.0));
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-
-              class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isEqualTo(compare);
-                      Assertions.assertThat(d).isCloseTo(compare, Offset.offset(1.0));
-                  }
-              }
-              """
-          )
-        );
+        spec.recipe(new AssertJIntegerRulesRecipes());
     }
 
     @Test
@@ -70,9 +39,9 @@ class AssertJDoubleRulesTest implements RewriteTest {
               import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isCloseTo(compare, Offset.offset(0.0));
-                      Assertions.assertThat(d).isCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(int i, int compare) {
+                      Assertions.assertThat(i).isCloseTo(compare, Offset.offset(0));
+                      Assertions.assertThat(i).isCloseTo(compare, Percentage.withPercentage(0));
                   }
               }
               """,
@@ -82,9 +51,9 @@ class AssertJDoubleRulesTest implements RewriteTest {
               import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isEqualTo(compare);
-                      Assertions.assertThat(d).isEqualTo(compare);
+                  public void test(int i, int compare) {
+                      Assertions.assertThat(i).isEqualTo(compare);
+                      Assertions.assertThat(i).isEqualTo(compare);
                   }
               }
               """
@@ -103,9 +72,9 @@ class AssertJDoubleRulesTest implements RewriteTest {
               import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isNotCloseTo(compare, Offset.offset(0.0));
-                      Assertions.assertThat(d).isNotCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(int i, int compare) {
+                      Assertions.assertThat(i).isNotCloseTo(compare, Offset.offset(0));
+                      Assertions.assertThat(i).isNotCloseTo(compare, Percentage.withPercentage(0));
                   }
               }
               """,
@@ -115,9 +84,9 @@ class AssertJDoubleRulesTest implements RewriteTest {
               import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isNotEqualTo(compare);
-                      Assertions.assertThat(d).isNotEqualTo(compare);
+                  public void test(int i, int compare) {
+                      Assertions.assertThat(i).isNotEqualTo(compare);
+                      Assertions.assertThat(i).isNotEqualTo(compare);
                   }
               }
               """
@@ -134,8 +103,8 @@ class AssertJDoubleRulesTest implements RewriteTest {
               import org.assertj.core.api.Assertions;
 
               class A {
-                  public void test(double d) {
-                      Assertions.assertThat(d).isEqualTo(0.0);
+                  public void test(int i) {
+                      Assertions.assertThat(i).isEqualTo(0);
                   }
               }
               """,
@@ -143,8 +112,8 @@ class AssertJDoubleRulesTest implements RewriteTest {
               import org.assertj.core.api.Assertions;
 
               class A {
-                  public void test(double d) {
-                      Assertions.assertThat(d).isZero();
+                  public void test(int i) {
+                      Assertions.assertThat(i).isZero();
                   }
               }
               """
@@ -161,8 +130,8 @@ class AssertJDoubleRulesTest implements RewriteTest {
               import org.assertj.core.api.Assertions;
 
               class A {
-                  public void test(double d) {
-                      Assertions.assertThat(d).isNotEqualTo(0.0);
+                  public void test(int i) {
+                      Assertions.assertThat(i).isNotEqualTo(0);
                   }
               }
               """,
@@ -170,8 +139,8 @@ class AssertJDoubleRulesTest implements RewriteTest {
               import org.assertj.core.api.Assertions;
 
               class A {
-                  public void test(double d) {
-                      Assertions.assertThat(d).isNotZero();
+                  public void test(int i) {
+                      Assertions.assertThat(i).isNotZero();
                   }
               }
               """
@@ -188,8 +157,8 @@ class AssertJDoubleRulesTest implements RewriteTest {
               import org.assertj.core.api.Assertions;
 
               class A {
-                  public void test(double d) {
-                      Assertions.assertThat(d).isEqualTo(1.0);
+                  public void test(int i) {
+                      Assertions.assertThat(i).isEqualTo(1);
                   }
               }
               """,
@@ -197,8 +166,8 @@ class AssertJDoubleRulesTest implements RewriteTest {
               import org.assertj.core.api.Assertions;
 
               class A {
-                  public void test(double d) {
-                      Assertions.assertThat(d).isOne();
+                  public void test(int i) {
+                      Assertions.assertThat(i).isOne();
                   }
               }
               """
@@ -217,12 +186,12 @@ class AssertJDoubleRulesTest implements RewriteTest {
               import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isOne();
-                      Assertions.assertThat(d).isEqualTo(compare);
-                      Assertions.assertThat(d).isNotEqualTo(compare);
-                      Assertions.assertThat(d).isCloseTo(compare, Offset.offset(1.0));
-                      Assertions.assertThat(d).isCloseTo(compare, Percentage.withPercentage(2.0));
+                  public void test(int i, int compare) {
+                      Assertions.assertThat(i).isOne();
+                      Assertions.assertThat(i).isEqualTo(compare);
+                      Assertions.assertThat(i).isNotEqualTo(compare);
+                      Assertions.assertThat(i).isCloseTo(compare, Offset.offset(1));
+                      Assertions.assertThat(i).isCloseTo(compare, Percentage.withPercentage(2));
                   }
               }
               """
