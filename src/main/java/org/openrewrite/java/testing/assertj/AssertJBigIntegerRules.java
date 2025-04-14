@@ -77,7 +77,6 @@ public class AssertJBigIntegerRules {
     AbstractBigIntegerAssert<?> before(AbstractBigIntegerAssert<?> bigIntegerAssert) {
       return Refaster.anyOf(
           bigIntegerAssert.isEqualTo(0),
-          bigIntegerAssert.isEqualTo(0L),
           bigIntegerAssert.isEqualTo(BigInteger.ZERO));
     }
 
@@ -96,7 +95,6 @@ public class AssertJBigIntegerRules {
     AbstractBigIntegerAssert<?> before(AbstractBigIntegerAssert<?> bigIntegerAssert) {
       return Refaster.anyOf(
           bigIntegerAssert.isNotEqualTo(0),
-          bigIntegerAssert.isNotEqualTo(0L),
           bigIntegerAssert.isNotEqualTo(BigInteger.ZERO));
     }
 
