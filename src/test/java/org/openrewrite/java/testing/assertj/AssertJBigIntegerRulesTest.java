@@ -35,27 +35,26 @@ class AssertJBigIntegerRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
               import java.math.BigInteger;
 
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
+
               class A {
-                  public void test(BigInteger bigInteger, BigInteger compare) {
-                      Assertions.assertThat(bigInteger).isCloseTo(compare, Offset.offset(BigInteger.ZERO));
-                      Assertions.assertThat(bigInteger).isCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(BigInteger bigInteger, BigInteger expected) {
+                      Assertions.assertThat(bigInteger).isCloseTo(expected, offset(BigInteger.ZERO));
+                      Assertions.assertThat(bigInteger).isCloseTo(expected, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
               import java.math.BigInteger;
 
               class A {
-                  public void test(BigInteger bigInteger, BigInteger compare) {
-                      Assertions.assertThat(bigInteger).isEqualTo(compare);
-                      Assertions.assertThat(bigInteger).isEqualTo(compare);
+                  public void test(BigInteger bigInteger, BigInteger expected) {
+                      Assertions.assertThat(bigInteger).isEqualTo(expected);
+                      Assertions.assertThat(bigInteger).isEqualTo(expected);
                   }
               }
               """
@@ -70,27 +69,26 @@ class AssertJBigIntegerRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
               import java.math.BigInteger;
 
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
+
               class A {
-                  public void test(BigInteger bigInteger, BigInteger compare) {
-                      Assertions.assertThat(bigInteger).isNotCloseTo(compare, Offset.offset(BigInteger.ZERO));
-                      Assertions.assertThat(bigInteger).isNotCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(BigInteger bigInteger, BigInteger expected) {
+                      Assertions.assertThat(bigInteger).isNotCloseTo(expected, offset(BigInteger.ZERO));
+                      Assertions.assertThat(bigInteger).isNotCloseTo(expected, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
               import java.math.BigInteger;
 
               class A {
-                  public void test(BigInteger bigInteger, BigInteger compare) {
-                      Assertions.assertThat(bigInteger).isNotEqualTo(compare);
-                      Assertions.assertThat(bigInteger).isNotEqualTo(compare);
+                  public void test(BigInteger bigInteger, BigInteger expected) {
+                      Assertions.assertThat(bigInteger).isNotEqualTo(expected);
+                      Assertions.assertThat(bigInteger).isNotEqualTo(expected);
                   }
               }
               """
@@ -204,17 +202,18 @@ class AssertJBigIntegerRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
               import java.math.BigInteger;
 
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
+
               class A {
-                  public void test(BigInteger bigInteger, BigInteger compare) {
+                  public void test(BigInteger bigInteger, BigInteger expected) {
                       Assertions.assertThat(bigInteger).isOne();
-                      Assertions.assertThat(bigInteger).isEqualTo(compare);
-                      Assertions.assertThat(bigInteger).isNotEqualTo(compare);
-                      Assertions.assertThat(bigInteger).isCloseTo(compare, Offset.offset(BigInteger.valueOf(1)));
-                      Assertions.assertThat(bigInteger).isCloseTo(compare, Percentage.withPercentage(2));
+                      Assertions.assertThat(bigInteger).isEqualTo(expected);
+                      Assertions.assertThat(bigInteger).isNotEqualTo(expected);
+                      Assertions.assertThat(bigInteger).isCloseTo(expected, offset(BigInteger.valueOf(1)));
+                      Assertions.assertThat(bigInteger).isCloseTo(expected, withPercentage(2));
                   }
               }
               """
