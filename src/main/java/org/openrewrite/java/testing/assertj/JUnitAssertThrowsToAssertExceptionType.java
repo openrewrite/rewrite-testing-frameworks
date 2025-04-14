@@ -28,7 +28,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
 import java.util.List;
-import java.util.function.UnaryOperator;
+import java.util.Optional;
 
 public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
 
@@ -57,7 +57,13 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                     return mi;
                 }
 
-                boolean returnActual = !(getCursor().getParentTreeCursor().getValue() instanceof J.Block);
+                Optional<Boolean> hasReturnType = hasReturnType();
+
+                if (!hasReturnType.isPresent()) {
+                    return mi;
+                }
+
+                boolean returnActual = hasReturnType.get();
 
                 maybeAddImport(ASSERTIONS_FOR_CLASS_TYPES, "assertThatExceptionOfType");
                 maybeRemoveImport(JUNIT_ASSERTIONS + ".assertThrows");
@@ -65,21 +71,57 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
 
                 List<Expression> args = mi.getArguments();
 
-                UnaryOperator<String> decorator = returnActual ? code -> code + ".actual()" : UnaryOperator.identity();
-
                 if (args.size() == 2) {
-                    return JavaTemplate.builder(decorator.apply("assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})"))
+                    String code = "assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})";
+                    if (returnActual) {
+                        code += ".actual()";
+                    }
+                    return JavaTemplate.builder(code)
                             .staticImports(ASSERTIONS_FOR_CLASS_TYPES + ".assertThatExceptionOfType")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), args.get(0), args.get(1));
                 }
 
-                return JavaTemplate.builder(decorator.apply("assertThatExceptionOfType(#{any()}).as(#{any()}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})"))
+                String code = "assertThatExceptionOfType(#{any()}).as(#{any()}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})";
+                if (returnActual) {
+                    code += ".actual()";
+                }
+                return JavaTemplate.builder(code)
                         .staticImports(ASSERTIONS_FOR_CLASS_TYPES + ".assertThatExceptionOfType")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
                         .apply(getCursor(), mi.getCoordinates().replace(), args.get(0), args.get(2), args.get(1));
+            }
+
+            /**
+             * Check if there is a return type which would indicate the need for using
+             * {@code .actual()} in the AssertJ call.
+             * <p>
+             * If the presence of a return type could not be determined then {@code Optional.empty()} is returned
+             * and the current {@code J.MethodInvocation} should be used without further changes.
+             *
+             * @return {@code Optional.of(true)} if there is a return type otherwise {@code Optional.of(false)}.
+             * If it could not be determined then {@code Optional.empty()}.
+             */
+            private Optional<Boolean> hasReturnType() {
+                Object parent = getCursor().getParentTreeCursor().getValue();
+
+                // These all have the method invocation return something
+                if (parent instanceof J.Assignment ||
+                        parent instanceof J.VariableDeclarations ||
+                        parent instanceof J.VariableDeclarations.NamedVariable ||
+                        parent instanceof J.Return ||
+                        parent instanceof J.Ternary) {
+                    return Optional.of(true);
+                }
+
+                if (parent instanceof J.Block) {
+                    return Optional.of(false);
+                }
+
+                // Unknown parent type so not supported
+                return Optional.empty();
             }
         });
     }

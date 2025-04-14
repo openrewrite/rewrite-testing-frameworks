@@ -138,10 +138,37 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
         );
     }
 
-    /**
-     * A degenerate case showing we need to make sure the <code>assertThrows</code> appears
-     * immediately inside a J.Block.
-     */
+    @Test
+    void assertThrowsVarAssignment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      var npe = assertThrows(NullPointerException.class, () -> {
+                          throw new NullPointerException();
+                      });
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      var npe = assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> {
+                          throw new NullPointerException();
+                      }).actual();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void assertThrowsTernaryAssignment() {
         //language=java
@@ -210,6 +237,56 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                     }
                 }
                 """
+          )
+        );
+    }
+
+    /**
+     * A degenerate case showing we don't perform the conversion when the <code>assertThrows</code> appears
+     * immediately inside a J.Lambda.
+     */
+    @Test
+    void assertThrowsConsumerUsage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.function.Consumer;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      Consumer<? extends Throwable> c = ex -> assertThrows(ex.getClass(), () -> {
+                          throw ex;
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    /**
+     * A degenerate case showing we don't perform the conversion when the <code>assertThrows</code> appears
+     * immediately inside a J.Lambda.
+     */
+    @Test
+    void assertThrowsSupplierUsage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.function.Supplier;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+                public class SimpleExpectedExceptionTest {
+                    public void throwsExceptionWithSpecificType() {
+                        Supplier<NullPointerException> s = () -> assertThrows(NullPointerException.class, () -> { throw new NullPointerException(); });
+                    }
+                }
+              """
           )
         );
     }
