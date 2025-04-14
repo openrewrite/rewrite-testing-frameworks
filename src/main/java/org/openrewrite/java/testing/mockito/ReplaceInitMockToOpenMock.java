@@ -72,18 +72,19 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
                             J.ClassDeclaration after = JavaTemplate.builder("private AutoCloseable mocks;")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx))
-                                    //.contextSensitive()
+                                    .contextSensitive()
                                     .build()
                                     .apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
 
 
-                            maybeAddImport("org.junit.AfterEach");
+                            maybeAddImport("org.junit.jupiter.api.AfterEach");
                             after = JavaTemplate.builder("    @AfterEach\n" +
                                             "    void tearDown() throws Exception {\n" +
                                             "        mocks.close();\n" +
                                             "    }")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                                    .imports("org.junit.AfterEach")
+                                    .imports("org.junit.jupiter.api.AfterEach")
+                                    .contextSensitive()
                                     .build()
                                     .apply(updateCursor(after), after.getBody().getCoordinates().lastStatement());
 
@@ -111,6 +112,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                         return JavaTemplate.builder("mocks = MockitoAnnotations.openMocks(this);")
                                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))
                                                 .imports("org.mockito.MockitoAnnotations")
+                                                .contextSensitive()
                                                 .build()
                                                 .apply(getCursor(), st.getCoordinates().replace());
                                     }
