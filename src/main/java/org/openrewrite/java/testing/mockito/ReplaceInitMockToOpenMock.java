@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.openrewrite.*;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
@@ -24,8 +23,8 @@ import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
-import java.util.List;
-import java.util.Objects;
+import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
+import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 
 public class ReplaceInitMockToOpenMock extends Recipe {
 
@@ -68,9 +67,12 @@ public class ReplaceInitMockToOpenMock extends Recipe {
 
                     TreeVisitor<J, ExecutionContext> tmp = new JavaIsoVisitor<ExecutionContext>() {
 
+                        private String variableName;
+
                         @Override
                         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
-                            J.ClassDeclaration after = JavaTemplate.builder("private AutoCloseable mocks;")
+                            variableName = generateVariableName("mocks", getCursor(), INCREMENT_NUMBER);
+                            J.ClassDeclaration after = JavaTemplate.builder("private AutoCloseable " + variableName + ";")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx))
                                     .contextSensitive()
                                     .build()
@@ -94,17 +96,17 @@ public class ReplaceInitMockToOpenMock extends Recipe {
 
                             }
                             after = super.visitClassDeclaration(after, ctx);
-                            return after;
+                            return maybeAutoFormat(cd, after, ctx);
                         }
 
                         @Override
                         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                            J.MethodDeclaration md = method;
+                            J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
 
                             if (service(AnnotationService.class).matches(updateCursor(md), BEFORE_EACH_MATCHER) && md.getBody() != null) {
                                 for (Statement st : md.getBody().getStatements()) {
                                     if (st instanceof J.MethodInvocation && INIT_MOCKS_MATCHER.matches((J.MethodInvocation) st)) {
-                                        md = JavaTemplate.builder("mocks = MockitoAnnotations.openMocks(this);")
+                                        md = JavaTemplate.builder(variableName + " = MockitoAnnotations.openMocks(this);")
                                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))
                                                 .imports("org.mockito.MockitoAnnotations")
                                                 .contextSensitive()
@@ -116,9 +118,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                             }
 
                             if (service(AnnotationService.class).matches(updateCursor(md), AFTER_EACH_MATCHER) && md.getBody() != null) {
-                                md = JavaTemplate.builder("mocks.close();")
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))
-                                        .imports("org.mockito.MockitoAnnotations")
+                                md = JavaTemplate.builder(variableName + ".close();")
                                         .contextSensitive()
                                         .build()
                                         .apply(updateCursor(md), md.getBody().getCoordinates().lastStatement());
