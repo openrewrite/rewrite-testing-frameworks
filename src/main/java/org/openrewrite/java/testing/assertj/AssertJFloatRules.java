@@ -64,7 +64,7 @@ public class AssertJFloatRules {
     @BeforeTemplate
     AbstractFloatAssert<?> before(AbstractFloatAssert<?> floatAssert, float n) {
       return Refaster.anyOf(
-          floatAssert.isCloseTo(n, offset(0F)), floatAssert.isCloseTo(n, withPercentage(0)));
+          floatAssert.isCloseTo(n, offset(0f)), floatAssert.isCloseTo(n, withPercentage(0)));
     }
 
     @AfterTemplate
@@ -81,7 +81,7 @@ public class AssertJFloatRules {
     @BeforeTemplate
     AbstractFloatAssert<?> before(AbstractFloatAssert<?> floatAssert, float n) {
       return Refaster.anyOf(
-          floatAssert.isNotCloseTo(n, offset(0F)), floatAssert.isNotCloseTo(n, withPercentage(0)));
+          floatAssert.isNotCloseTo(n, offset(0f)), floatAssert.isNotCloseTo(n, withPercentage(0)));
     }
 
     @AfterTemplate
