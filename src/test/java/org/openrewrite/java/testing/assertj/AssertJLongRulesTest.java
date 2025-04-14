@@ -35,20 +35,19 @@ class AssertJLongRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
                   public void test(long l, long compare) {
-                      Assertions.assertThat(l).isCloseTo(compare, Offset.offset(0L));
-                      Assertions.assertThat(l).isCloseTo(compare, Percentage.withPercentage(0));
+                      Assertions.assertThat(l).isCloseTo(compare, offset(0L));
+                      Assertions.assertThat(l).isCloseTo(compare, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
 
               class A {
                   public void test(long l, long compare) {
@@ -68,20 +67,19 @@ class AssertJLongRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
                   public void test(long l, long compare) {
-                      Assertions.assertThat(l).isNotCloseTo(compare, Offset.offset(0L));
-                      Assertions.assertThat(l).isNotCloseTo(compare, Percentage.withPercentage(0));
+                      Assertions.assertThat(l).isNotCloseTo(compare, offset(0L));
+                      Assertions.assertThat(l).isNotCloseTo(compare, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
 
               class A {
                   public void test(long l, long compare) {
@@ -182,16 +180,17 @@ class AssertJLongRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
                   public void test(long l, long compare) {
                       Assertions.assertThat(l).isOne();
                       Assertions.assertThat(l).isEqualTo(compare);
                       Assertions.assertThat(l).isNotEqualTo(compare);
-                      Assertions.assertThat(l).isCloseTo(compare, Offset.offset(1L));
-                      Assertions.assertThat(l).isCloseTo(compare, Percentage.withPercentage(2));
+                      Assertions.assertThat(l).isCloseTo(compare, offset(1L));
+                      Assertions.assertThat(l).isCloseTo(compare, withPercentage(2));
                   }
               }
               """

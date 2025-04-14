@@ -35,25 +35,24 @@ class AssertJByteRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(byte b, byte compare) {
-                      Assertions.assertThat(b).isCloseTo(compare, Offset.offset((byte)0));
-                      Assertions.assertThat(b).isCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(byte b, byte expected) {
+                      Assertions.assertThat(b).isCloseTo(expected, offset((byte)0));
+                      Assertions.assertThat(b).isCloseTo(expected, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(byte b, byte compare) {
-                      Assertions.assertThat(b).isEqualTo(compare);
-                      Assertions.assertThat(b).isEqualTo(compare);
+                  public void test(byte b, byte expected) {
+                      Assertions.assertThat(b).isEqualTo(expected);
+                      Assertions.assertThat(b).isEqualTo(expected);
                   }
               }
               """
@@ -68,25 +67,24 @@ class AssertJByteRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(byte b, byte compare) {
-                      Assertions.assertThat(b).isNotCloseTo(compare, Offset.offset((byte)0));
-                      Assertions.assertThat(b).isNotCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(byte b, byte expected) {
+                      Assertions.assertThat(b).isNotCloseTo(expected, offset((byte)0));
+                      Assertions.assertThat(b).isNotCloseTo(expected, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(byte b, byte compare) {
-                      Assertions.assertThat(b).isNotEqualTo(compare);
-                      Assertions.assertThat(b).isNotEqualTo(compare);
+                  public void test(byte b, byte expected) {
+                      Assertions.assertThat(b).isNotEqualTo(expected);
+                      Assertions.assertThat(b).isNotEqualTo(expected);
                   }
               }
               """
@@ -182,16 +180,17 @@ class AssertJByteRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(byte b, byte compare) {
+                  public void test(byte b, byte expected) {
                       Assertions.assertThat(b).isOne();
-                      Assertions.assertThat(b).isEqualTo(compare);
-                      Assertions.assertThat(b).isNotEqualTo(compare);
-                      Assertions.assertThat(b).isCloseTo(compare, Offset.offset((byte)1));
-                      Assertions.assertThat(b).isCloseTo(compare, Percentage.withPercentage(2));
+                      Assertions.assertThat(b).isEqualTo(expected);
+                      Assertions.assertThat(b).isNotEqualTo(expected);
+                      Assertions.assertThat(b).isCloseTo(expected, offset((byte)1));
+                      Assertions.assertThat(b).isCloseTo(expected, withPercentage(2));
                   }
               }
               """

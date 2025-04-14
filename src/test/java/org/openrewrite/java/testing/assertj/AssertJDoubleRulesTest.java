@@ -35,23 +35,25 @@ class AssertJDoubleRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
+
+              import static org.assertj.core.data.Offset.offset;
 
               class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isEqualTo(compare, Offset.offset(0.0));
-                      Assertions.assertThat(d).isEqualTo(compare, Offset.offset(1.0));
+                  public void test(double d, double expected) {
+                      Assertions.assertThat(d).isEqualTo(expected, offset(0.0));
+                      Assertions.assertThat(d).isEqualTo(expected, offset(1.0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
+
+              import static org.assertj.core.data.Offset.offset;
 
               class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isEqualTo(compare);
-                      Assertions.assertThat(d).isCloseTo(compare, Offset.offset(1.0));
+                  public void test(double d, double expected) {
+                      Assertions.assertThat(d).isEqualTo(expected);
+                      Assertions.assertThat(d).isCloseTo(expected, offset(1.0));
                   }
               }
               """
@@ -66,25 +68,24 @@ class AssertJDoubleRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isCloseTo(compare, Offset.offset(0.0));
-                      Assertions.assertThat(d).isCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(double d, double expected) {
+                      Assertions.assertThat(d).isCloseTo(expected, offset(0.0));
+                      Assertions.assertThat(d).isCloseTo(expected, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isEqualTo(compare);
-                      Assertions.assertThat(d).isEqualTo(compare);
+                  public void test(double d, double expected) {
+                      Assertions.assertThat(d).isEqualTo(expected);
+                      Assertions.assertThat(d).isEqualTo(expected);
                   }
               }
               """
@@ -99,25 +100,24 @@ class AssertJDoubleRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isNotCloseTo(compare, Offset.offset(0.0));
-                      Assertions.assertThat(d).isNotCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(double d, double expected) {
+                      Assertions.assertThat(d).isNotCloseTo(expected, offset(0.0));
+                      Assertions.assertThat(d).isNotCloseTo(expected, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(double d, double compare) {
-                      Assertions.assertThat(d).isNotEqualTo(compare);
-                      Assertions.assertThat(d).isNotEqualTo(compare);
+                  public void test(double d, double expected) {
+                      Assertions.assertThat(d).isNotEqualTo(expected);
+                      Assertions.assertThat(d).isNotEqualTo(expected);
                   }
               }
               """
@@ -213,16 +213,17 @@ class AssertJDoubleRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(double d, double compare) {
+                  public void test(double d, double expected) {
                       Assertions.assertThat(d).isOne();
-                      Assertions.assertThat(d).isEqualTo(compare);
-                      Assertions.assertThat(d).isNotEqualTo(compare);
-                      Assertions.assertThat(d).isCloseTo(compare, Offset.offset(1.0));
-                      Assertions.assertThat(d).isCloseTo(compare, Percentage.withPercentage(2.0));
+                      Assertions.assertThat(d).isEqualTo(expected);
+                      Assertions.assertThat(d).isNotEqualTo(expected);
+                      Assertions.assertThat(d).isCloseTo(expected, offset(1.0));
+                      Assertions.assertThat(d).isCloseTo(expected, withPercentage(2.0));
                   }
               }
               """

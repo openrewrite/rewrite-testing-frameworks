@@ -35,23 +35,25 @@ class AssertJFloatRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
+
+              import static org.assertj.core.data.Offset.offset;
 
               class A {
-                  public void test(float f, float compare) {
-                      Assertions.assertThat(f).isEqualTo(compare, Offset.offset(0.0f));
-                      Assertions.assertThat(f).isEqualTo(compare, Offset.offset(1.0f));
+                  public void test(float f, float expected) {
+                      Assertions.assertThat(f).isEqualTo(expected, offset(0.0f));
+                      Assertions.assertThat(f).isEqualTo(expected, offset(1.0f));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
+
+              import static org.assertj.core.data.Offset.offset;
 
               class A {
-                  public void test(float f, float compare) {
-                      Assertions.assertThat(f).isEqualTo(compare);
-                      Assertions.assertThat(f).isCloseTo(compare, Offset.offset(1.0f));
+                  public void test(float f, float expected) {
+                      Assertions.assertThat(f).isEqualTo(expected);
+                      Assertions.assertThat(f).isCloseTo(expected, offset(1.0f));
                   }
               }
               """
@@ -66,25 +68,24 @@ class AssertJFloatRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(float f, float compare) {
-                      Assertions.assertThat(f).isCloseTo(compare, Offset.offset(0.0f));
-                      Assertions.assertThat(f).isCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(float f, float expected) {
+                      Assertions.assertThat(f).isCloseTo(expected, offset(0.0f));
+                      Assertions.assertThat(f).isCloseTo(expected, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(float f, float compare) {
-                      Assertions.assertThat(f).isEqualTo(compare);
-                      Assertions.assertThat(f).isEqualTo(compare);
+                  public void test(float f, float expected) {
+                      Assertions.assertThat(f).isEqualTo(expected);
+                      Assertions.assertThat(f).isEqualTo(expected);
                   }
               }
               """
@@ -99,25 +100,24 @@ class AssertJFloatRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(float f, float compare) {
-                      Assertions.assertThat(f).isNotCloseTo(compare, Offset.offset(0.0f));
-                      Assertions.assertThat(f).isNotCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(float f, float expected) {
+                      Assertions.assertThat(f).isNotCloseTo(expected, offset(0.0f));
+                      Assertions.assertThat(f).isNotCloseTo(expected, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(float f, float compare) {
-                      Assertions.assertThat(f).isNotEqualTo(compare);
-                      Assertions.assertThat(f).isNotEqualTo(compare);
+                  public void test(float f, float expected) {
+                      Assertions.assertThat(f).isNotEqualTo(expected);
+                      Assertions.assertThat(f).isNotEqualTo(expected);
                   }
               }
               """
@@ -213,16 +213,17 @@ class AssertJFloatRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(float f, float compare) {
+                  public void test(float f, float expected) {
                       Assertions.assertThat(f).isOne();
-                      Assertions.assertThat(f).isEqualTo(compare);
-                      Assertions.assertThat(f).isNotEqualTo(compare);
-                      Assertions.assertThat(f).isCloseTo(compare, Offset.offset(1.0f));
-                      Assertions.assertThat(f).isCloseTo(compare, Percentage.withPercentage(2.0f));
+                      Assertions.assertThat(f).isEqualTo(expected);
+                      Assertions.assertThat(f).isNotEqualTo(expected);
+                      Assertions.assertThat(f).isCloseTo(expected, offset(1.0f));
+                      Assertions.assertThat(f).isCloseTo(expected, withPercentage(2.0f));
                   }
               }
               """

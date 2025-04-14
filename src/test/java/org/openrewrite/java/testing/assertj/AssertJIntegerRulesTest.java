@@ -35,25 +35,24 @@ class AssertJIntegerRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(int i, int compare) {
-                      Assertions.assertThat(i).isCloseTo(compare, Offset.offset(0));
-                      Assertions.assertThat(i).isCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(int i, int expected) {
+                      Assertions.assertThat(i).isCloseTo(expected, offset(0));
+                      Assertions.assertThat(i).isCloseTo(expected, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(int i, int compare) {
-                      Assertions.assertThat(i).isEqualTo(compare);
-                      Assertions.assertThat(i).isEqualTo(compare);
+                  public void test(int i, int expected) {
+                      Assertions.assertThat(i).isEqualTo(expected);
+                      Assertions.assertThat(i).isEqualTo(expected);
                   }
               }
               """
@@ -68,25 +67,24 @@ class AssertJIntegerRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(int i, int compare) {
-                      Assertions.assertThat(i).isNotCloseTo(compare, Offset.offset(0));
-                      Assertions.assertThat(i).isNotCloseTo(compare, Percentage.withPercentage(0));
+                  public void test(int i, int expected) {
+                      Assertions.assertThat(i).isNotCloseTo(expected, offset(0));
+                      Assertions.assertThat(i).isNotCloseTo(expected, withPercentage(0));
                   }
               }
               """,
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
 
               class A {
-                  public void test(int i, int compare) {
-                      Assertions.assertThat(i).isNotEqualTo(compare);
-                      Assertions.assertThat(i).isNotEqualTo(compare);
+                  public void test(int i, int expected) {
+                      Assertions.assertThat(i).isNotEqualTo(expected);
+                      Assertions.assertThat(i).isNotEqualTo(expected);
                   }
               }
               """
@@ -182,16 +180,17 @@ class AssertJIntegerRulesTest implements RewriteTest {
           java(
             """
               import org.assertj.core.api.Assertions;
-              import org.assertj.core.data.Offset;
-              import org.assertj.core.data.Percentage;
+
+              import static org.assertj.core.data.Offset.offset;
+              import static org.assertj.core.data.Percentage.withPercentage;
 
               class A {
-                  public void test(int i, int compare) {
+                  public void test(int i, int expected) {
                       Assertions.assertThat(i).isOne();
-                      Assertions.assertThat(i).isEqualTo(compare);
-                      Assertions.assertThat(i).isNotEqualTo(compare);
-                      Assertions.assertThat(i).isCloseTo(compare, Offset.offset(1));
-                      Assertions.assertThat(i).isCloseTo(compare, Percentage.withPercentage(2));
+                      Assertions.assertThat(i).isEqualTo(expected);
+                      Assertions.assertThat(i).isNotEqualTo(expected);
+                      Assertions.assertThat(i).isCloseTo(expected, offset(1));
+                      Assertions.assertThat(i).isCloseTo(expected, withPercentage(2));
                   }
               }
               """
