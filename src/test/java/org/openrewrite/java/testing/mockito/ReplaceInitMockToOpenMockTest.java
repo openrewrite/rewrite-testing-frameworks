@@ -61,6 +61,7 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
             """
               import org.mockito.MockitoAnnotations;
               import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.AfterEach;
 
               class A {
 

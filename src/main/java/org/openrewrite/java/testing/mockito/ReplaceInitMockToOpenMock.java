@@ -105,23 +105,16 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                         @Override
                         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-                            if (service(AnnotationService.class).matches(updateCursor(md), BEFORE_EACH_MATCHER)) {
-                                List<Statement> statements = Objects.requireNonNull(ListUtils.map(md.getBody().getStatements(),
-                                        st -> {
-                                            if (st instanceof J.MethodInvocation && INIT_MOCKS_MATCHER.matches((J.MethodInvocation) st)) {
-                                                Cursor cursor = new Cursor(getCursor(), st);
-                                                return JavaTemplate.builder("mocks = MockitoAnnotations.openMocks(this);")
-                                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))
-                                                        .imports("org.mockito.MockitoAnnotations")
-                                                        .build()
-                                                        .apply(cursor, st.getCoordinates().replace());
-                                            }
-                                            return st;
-                                        }));
-
-                                md = md.withBody(md.getBody().withStatements(statements));
-
-                                return md; //autoFormat(md, ctx);
+                            if (service(AnnotationService.class).matches(updateCursor(md), BEFORE_EACH_MATCHER) && md.getBody() != null) {
+                                for (Statement st : md.getBody().getStatements()) {
+                                    if (st instanceof J.MethodInvocation && INIT_MOCKS_MATCHER.matches((J.MethodInvocation) st)) {
+                                        return JavaTemplate.builder("mocks = MockitoAnnotations.openMocks(this);")
+                                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))
+                                                .imports("org.mockito.MockitoAnnotations")
+                                                .build()
+                                                .apply(getCursor(), st.getCoordinates().replace());
+                                    }
+                                }
                             }
                             return md;
                         }
