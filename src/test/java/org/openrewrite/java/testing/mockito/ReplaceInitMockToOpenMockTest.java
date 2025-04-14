@@ -91,6 +91,128 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
     }
 
     @Test
+    void mocksVariablePresent() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+
+                  String mocks = "mocks";
+
+                  @BeforeEach
+                  public void setUp() {
+                      test1();
+                      MockitoAnnotations.initMocks(this);
+                      test2();
+                  }
+
+                  public void test1() {
+                  }
+
+                  public void test2() {
+                  }
+              }
+              """,
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+
+                  private AutoCloseable mocks1;
+
+                  String mocks = "mocks";
+
+                  @BeforeEach
+                  public void setUp() {
+                      test1();
+                      mocks1 = MockitoAnnotations.openMocks(this);
+                      test2();
+                  }
+
+                  public void test1() {
+                  }
+
+                  public void test2() {
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      mocks1.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void emptyAfterEachTest() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+
+                  @BeforeEach
+                  public void setUp() {
+                      test1();
+                      MockitoAnnotations.initMocks(this);
+                      test2();
+                  }
+
+                  public void test1() {
+                  }
+
+                  public void test2() {
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                  }
+              }
+              """,
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+
+                  private AutoCloseable mocks;
+
+                  @BeforeEach
+                  public void setUp() {
+                      test1();
+                      mocks = MockitoAnnotations.openMocks(this);
+                      test2();
+                  }
+
+                  public void test1() {
+                  }
+
+                  public void test2() {
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void ifAfterEachPresent () {
         rewriteRun(
           //language=java
