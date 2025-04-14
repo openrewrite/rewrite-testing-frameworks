@@ -35,18 +35,25 @@ recipeList:
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
 
   - tech.picnic.errorprone.refasterrules.AssertJBigDecimalRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJBigIntegerRulesRecipes
+  #- tech.picnic.errorprone.refasterrules.AssertJBigIntegerRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJBigIntegerRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJBooleanRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJByteRulesRecipes
+  #- tech.picnic.errorprone.refasterrules.AssertJByteRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJByteRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJCharSequenceRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJDoubleRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJFloatRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJIntegerRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJLongRulesRecipes
+  #- tech.picnic.errorprone.refasterrules.AssertJDoubleRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJDoubleRulesRecipes
+  #- tech.picnic.errorprone.refasterrules.AssertJFloatRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJFloatRulesRecipes
+  #- tech.picnic.errorprone.refasterrules.AssertJIntegerRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJIntegerRulesRecipes
+  #- tech.picnic.errorprone.refasterrules.AssertJLongRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJLongRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJNumberRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJPrimitiveRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJShortRulesRecipes
+  #- tech.picnic.errorprone.refasterrules.AssertJShortRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJShortRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJStringRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJThrowingCallableRulesRecipes
 
