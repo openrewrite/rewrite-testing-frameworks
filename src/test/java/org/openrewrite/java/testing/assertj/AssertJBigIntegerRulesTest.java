@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -26,6 +27,73 @@ class AssertJBigIntegerRulesTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AssertJBigIntegerRulesRecipes());
+    }
+
+    @DocumentExample
+    @Test
+    void isZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+                      import java.math.BigInteger;
+
+                      class A {
+                          public void test(BigInteger bigInteger) {
+                              Assertions.assertThat(bigInteger).isEqualTo(0);
+                              Assertions.assertThat(bigInteger).isEqualTo(0L);
+                              Assertions.assertThat(bigInteger).isEqualTo(BigInteger.ZERO);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+                      import java.math.BigInteger;
+
+                      class A {
+                          public void test(BigInteger bigInteger) {
+                              Assertions.assertThat(bigInteger).isZero();
+                              Assertions.assertThat(bigInteger).isZero();
+                              Assertions.assertThat(bigInteger).isZero();
+                          }
+                      }
+                      """
+              )
+        );
+    }
+
+    @Test
+    void isNotZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+                      import java.math.BigInteger;
+
+                      class A {
+                          public void test(BigInteger bigInteger) {
+                              Assertions.assertThat(bigInteger).isNotEqualTo(0);
+                              Assertions.assertThat(bigInteger).isNotEqualTo(0L);
+                              Assertions.assertThat(bigInteger).isNotEqualTo(BigInteger.ZERO);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+                      import java.math.BigInteger;
+
+                      class A {
+                          public void test(BigInteger bigInteger) {
+                              Assertions.assertThat(bigInteger).isNotZero();
+                              Assertions.assertThat(bigInteger).isNotZero();
+                              Assertions.assertThat(bigInteger).isNotZero();
+                          }
+                      }
+                      """
+              )
+        );
     }
 
     @Test
@@ -89,72 +157,6 @@ class AssertJBigIntegerRulesTest implements RewriteTest {
                   public void test(BigInteger bigInteger, BigInteger expected) {
                       Assertions.assertThat(bigInteger).isNotEqualTo(expected);
                       Assertions.assertThat(bigInteger).isNotEqualTo(expected);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-              import java.math.BigInteger;
-
-              class A {
-                  public void test(BigInteger bigInteger) {
-                      Assertions.assertThat(bigInteger).isEqualTo(0);
-                      Assertions.assertThat(bigInteger).isEqualTo(0L);
-                      Assertions.assertThat(bigInteger).isEqualTo(BigInteger.ZERO);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-              import java.math.BigInteger;
-
-              class A {
-                  public void test(BigInteger bigInteger) {
-                      Assertions.assertThat(bigInteger).isZero();
-                      Assertions.assertThat(bigInteger).isZero();
-                      Assertions.assertThat(bigInteger).isZero();
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isNotZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-              import java.math.BigInteger;
-
-              class A {
-                  public void test(BigInteger bigInteger) {
-                      Assertions.assertThat(bigInteger).isNotEqualTo(0);
-                      Assertions.assertThat(bigInteger).isNotEqualTo(0L);
-                      Assertions.assertThat(bigInteger).isNotEqualTo(BigInteger.ZERO);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-              import java.math.BigInteger;
-
-              class A {
-                  public void test(BigInteger bigInteger) {
-                      Assertions.assertThat(bigInteger).isNotZero();
-                      Assertions.assertThat(bigInteger).isNotZero();
-                      Assertions.assertThat(bigInteger).isNotZero();
                   }
               }
               """

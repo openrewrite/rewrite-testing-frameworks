@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -26,6 +27,61 @@ class AssertJShortRulesTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AssertJShortRulesRecipes());
+    }
+
+    @DocumentExample
+    @Test
+    void isZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(short s) {
+                              Assertions.assertThat(s).isEqualTo((short)0);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(short s) {
+                              Assertions.assertThat(s).isZero();
+                          }
+                      }
+                      """
+              )
+        );
+    }
+
+    @Test
+    void isNotZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(short s) {
+                              Assertions.assertThat(s).isNotEqualTo((short)0);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(short s) {
+                              Assertions.assertThat(s).isNotZero();
+                          }
+                      }
+                      """
+              )
+        );
     }
 
     @Test
@@ -85,60 +141,6 @@ class AssertJShortRulesTest implements RewriteTest {
                   public void test(short s, short compare) {
                       Assertions.assertThat(s).isNotEqualTo(compare);
                       Assertions.assertThat(s).isNotEqualTo(compare);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(short s) {
-                      Assertions.assertThat(s).isEqualTo((short)0);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(short s) {
-                      Assertions.assertThat(s).isZero();
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isNotZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(short s) {
-                      Assertions.assertThat(s).isNotEqualTo((short)0);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(short s) {
-                      Assertions.assertThat(s).isNotZero();
                   }
               }
               """

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -26,6 +27,61 @@ class AssertJDoubleRulesTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AssertJDoubleRulesRecipes());
+    }
+
+    @DocumentExample
+    @Test
+    void isZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(double d) {
+                              Assertions.assertThat(d).isEqualTo(0.0);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(double d) {
+                              Assertions.assertThat(d).isZero();
+                          }
+                      }
+                      """
+              )
+        );
+    }
+
+    @Test
+    void isNotZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(double d) {
+                              Assertions.assertThat(d).isNotEqualTo(0.0);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(double d) {
+                              Assertions.assertThat(d).isNotZero();
+                          }
+                      }
+                      """
+              )
+        );
     }
 
     @Test
@@ -118,60 +174,6 @@ class AssertJDoubleRulesTest implements RewriteTest {
                   public void test(double d, double expected) {
                       Assertions.assertThat(d).isNotEqualTo(expected);
                       Assertions.assertThat(d).isNotEqualTo(expected);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(double d) {
-                      Assertions.assertThat(d).isEqualTo(0.0);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(double d) {
-                      Assertions.assertThat(d).isZero();
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isNotZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(double d) {
-                      Assertions.assertThat(d).isNotEqualTo(0.0);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(double d) {
-                      Assertions.assertThat(d).isNotZero();
                   }
               }
               """

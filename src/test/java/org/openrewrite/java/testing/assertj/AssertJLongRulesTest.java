@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -26,6 +27,61 @@ class AssertJLongRulesTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AssertJLongRulesRecipes());
+    }
+
+    @DocumentExample
+    @Test
+    void isZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(long l) {
+                              Assertions.assertThat(l).isEqualTo(0L);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(long l) {
+                              Assertions.assertThat(l).isZero();
+                          }
+                      }
+                      """
+              )
+        );
+    }
+
+    @Test
+    void isNotZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(long l) {
+                              Assertions.assertThat(l).isNotEqualTo(0L);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(long l) {
+                              Assertions.assertThat(l).isNotZero();
+                          }
+                      }
+                      """
+              )
+        );
     }
 
     @Test
@@ -85,60 +141,6 @@ class AssertJLongRulesTest implements RewriteTest {
                   public void test(long l, long compare) {
                       Assertions.assertThat(l).isNotEqualTo(compare);
                       Assertions.assertThat(l).isNotEqualTo(compare);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(long l) {
-                      Assertions.assertThat(l).isEqualTo(0L);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(long l) {
-                      Assertions.assertThat(l).isZero();
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isNotZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(long l) {
-                      Assertions.assertThat(l).isNotEqualTo(0L);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(long l) {
-                      Assertions.assertThat(l).isNotZero();
                   }
               }
               """

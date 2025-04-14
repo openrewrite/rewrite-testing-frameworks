@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -26,6 +27,61 @@ class AssertJFloatRulesTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AssertJFloatRulesRecipes());
+    }
+
+    @DocumentExample
+    @Test
+    void isZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(float f) {
+                              Assertions.assertThat(f).isEqualTo(0.0f);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(float f) {
+                              Assertions.assertThat(f).isZero();
+                          }
+                      }
+                      """
+              )
+        );
+    }
+
+    @Test
+    void isNotZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(float f) {
+                              Assertions.assertThat(f).isNotEqualTo(0.0f);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(float f) {
+                              Assertions.assertThat(f).isNotZero();
+                          }
+                      }
+                      """
+              )
+        );
     }
 
     @Test
@@ -118,60 +174,6 @@ class AssertJFloatRulesTest implements RewriteTest {
                   public void test(float f, float expected) {
                       Assertions.assertThat(f).isNotEqualTo(expected);
                       Assertions.assertThat(f).isNotEqualTo(expected);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(float f) {
-                      Assertions.assertThat(f).isEqualTo(0.0f);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(float f) {
-                      Assertions.assertThat(f).isZero();
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isNotZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(float f) {
-                      Assertions.assertThat(f).isNotEqualTo(0.0f);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(float f) {
-                      Assertions.assertThat(f).isNotZero();
                   }
               }
               """

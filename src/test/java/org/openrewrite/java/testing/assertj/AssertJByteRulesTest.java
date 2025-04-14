@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -26,6 +27,61 @@ class AssertJByteRulesTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AssertJByteRulesRecipes());
+    }
+
+    @DocumentExample
+    @Test
+    void isZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(byte b) {
+                              Assertions.assertThat(b).isEqualTo((byte)0);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(byte b) {
+                              Assertions.assertThat(b).isZero();
+                          }
+                      }
+                      """
+              )
+        );
+    }
+
+    @Test
+    void isNotZero() {
+        rewriteRun(
+              //language=java
+              java(
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(byte b) {
+                              Assertions.assertThat(b).isNotEqualTo((byte)0);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class A {
+                          public void test(byte b) {
+                              Assertions.assertThat(b).isNotZero();
+                          }
+                      }
+                      """
+              )
+        );
     }
 
     @Test
@@ -85,60 +141,6 @@ class AssertJByteRulesTest implements RewriteTest {
                   public void test(byte b, byte expected) {
                       Assertions.assertThat(b).isNotEqualTo(expected);
                       Assertions.assertThat(b).isNotEqualTo(expected);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(byte b) {
-                      Assertions.assertThat(b).isEqualTo((byte)0);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(byte b) {
-                      Assertions.assertThat(b).isZero();
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isNotZero() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(byte b) {
-                      Assertions.assertThat(b).isNotEqualTo((byte)0);
-                  }
-              }
-              """,
-            """
-              import org.assertj.core.api.Assertions;
-
-              class A {
-                  public void test(byte b) {
-                      Assertions.assertThat(b).isNotZero();
                   }
               }
               """

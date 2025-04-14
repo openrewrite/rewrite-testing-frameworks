@@ -15,14 +15,14 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import static org.assertj.core.data.Offset.offset;
-import static org.assertj.core.data.Percentage.withPercentage;
-
 import com.google.errorprone.refaster.Refaster;
 import com.google.errorprone.refaster.annotation.AfterTemplate;
 import com.google.errorprone.refaster.annotation.BeforeTemplate;
 import org.assertj.core.api.AbstractByteAssert;
 import org.openrewrite.java.template.RecipeDescriptor;
+
+import static org.assertj.core.data.Offset.offset;
+import static org.assertj.core.data.Percentage.withPercentage;
 
 @RecipeDescriptor(
       name = "Adopt AssertJ Byte Assertions",

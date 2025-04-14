@@ -15,15 +15,16 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import static org.assertj.core.data.Offset.offset;
-import static org.assertj.core.data.Percentage.withPercentage;
-
 import com.google.errorprone.refaster.Refaster;
 import com.google.errorprone.refaster.annotation.AfterTemplate;
 import com.google.errorprone.refaster.annotation.BeforeTemplate;
-import java.math.BigInteger;
 import org.assertj.core.api.AbstractBigIntegerAssert;
 import org.openrewrite.java.template.RecipeDescriptor;
+
+import java.math.BigInteger;
+
+import static org.assertj.core.data.Offset.offset;
+import static org.assertj.core.data.Percentage.withPercentage;
 
 @RecipeDescriptor(
       name = "Adopt AssertJ BigInteger Assertions",
