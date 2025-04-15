@@ -15,7 +15,10 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
@@ -55,8 +58,8 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                 new JavaIsoVisitor<ExecutionContext>() {
 
                     @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-                        J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                        J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (INIT_MOCKS_MATCHER.matches(mi)) {
                             doAfterVisit(
                                     tmp
