@@ -41,6 +41,7 @@ class AssertJDoubleRulesTest implements RewriteTest {
                       class A {
                           public void test(double d) {
                               Assertions.assertThat(d).isEqualTo(0.0);
+                              Assertions.assertThat(d).isEqualTo(0d);
                           }
                       }
                       """,
@@ -49,6 +50,7 @@ class AssertJDoubleRulesTest implements RewriteTest {
 
                       class A {
                           public void test(double d) {
+                              Assertions.assertThat(d).isZero();
                               Assertions.assertThat(d).isZero();
                           }
                       }
