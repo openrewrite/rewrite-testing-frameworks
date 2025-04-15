@@ -36,8 +36,8 @@ public class NoInitializationForInjectMock extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Removes unnecessary initialization for fields annotated with `@InjectMocks` in Mockito tests. If the" +
-               " field was final, the final modifier is removed.";
+        return "Removes unnecessary initialization for fields annotated with `@InjectMocks` in Mockito tests. If the " +
+               "field was final, the final modifier is removed.";
     }
 
     @Override

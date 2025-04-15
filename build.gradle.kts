@@ -54,13 +54,14 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
     testImplementation("org.openrewrite:rewrite-test")
-    testImplementation("org.openrewrite:rewrite-kotlin:$rewriteVersion")
+    testImplementation("org.openrewrite:rewrite-kotlin")
     testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
 
     annotationProcessor("org.openrewrite:rewrite-templating:${rewriteVersion}")
     implementation("org.openrewrite:rewrite-templating:${rewriteVersion}")
     compileOnly("com.google.errorprone:error_prone_core:2.+") {
         exclude("com.google.auto.service", "auto-service-annotations")
+        exclude("io.github.eisop","dataflow-errorprone")
     }
 
     testRuntimeOnly(gradleApi())
