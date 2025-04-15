@@ -90,6 +90,66 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
         );
     }
 
+
+    @Test
+    void replaceInitMocksWithStaticImportToOpenMocks() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.BeforeEach;
+
+              import static org.mockito.MockitoAnnotations.initMocks;
+
+              class A {
+
+                  @BeforeEach
+                  public void setUp() {
+                      test1();
+                      initMocks(this);
+                      test2();
+                  }
+
+                  public void test1() {
+                  }
+
+                  public void test2() {
+                  }
+              }
+              """,
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+
+                  private AutoCloseable mocks;
+
+                  @BeforeEach
+                  public void setUp() {
+                      test1();
+                      mocks = MockitoAnnotations.openMocks(this);
+                      test2();
+                  }
+
+                  public void test1() {
+                  }
+
+                  public void test2() {
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void mocksVariableIsAlreadyPresent() {
         rewriteRun(

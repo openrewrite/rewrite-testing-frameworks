@@ -61,35 +61,40 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-                        variableName = generateVariableName("mocks", getCursor(), INCREMENT_NUMBER);
-                        J.ClassDeclaration after = JavaTemplate.builder("private AutoCloseable " + variableName + ";")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx))
-                                .build()
-                                .apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
+                        if (isAnnotatedMethodPresent(classDecl, BEFORE_EACH_MATCHER)) {
+                            variableName = generateVariableName("mocks", getCursor(), INCREMENT_NUMBER);
+                            J.ClassDeclaration after = JavaTemplate.builder("private AutoCloseable " + variableName + ";")
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx))
+                                    .build()
+                                    .apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
 
-                        return maybeAutoFormat(cd, after, ctx);
+                            return maybeAutoFormat(cd, after, ctx);
+                        }
+                        return cd;
                     }
-
 
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (INIT_MOCKS_MATCHER.matches(mi)) {
                             doAfterVisit(updateJUnitLifecycleMethods);
+                            maybeRemoveImport("org.mockito.MockitoAnnotations.initMocks");
                         }
                         return mi;
+                    }
+
+                    private boolean isAnnotatedMethodPresent(J.ClassDeclaration cd, AnnotationMatcher beforeEachMatcher) {
+                        return cd.getBody().getStatements().stream().anyMatch(
+                                st -> st instanceof J.MethodDeclaration &&
+                                        ((J.MethodDeclaration) st).getLeadingAnnotations().stream().anyMatch(beforeEachMatcher::matches)
+                        );
                     }
 
                     final TreeVisitor<J, ExecutionContext> updateJUnitLifecycleMethods = new JavaIsoVisitor<ExecutionContext>() {
 
                         @Override
                         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
-                            boolean isAfterEachPresent = cd.getBody().getStatements().stream().anyMatch(
-                                    st -> st instanceof J.MethodDeclaration &&
-                                            ((J.MethodDeclaration) st).getLeadingAnnotations().stream().anyMatch(AFTER_EACH_MATCHER::matches)
-                            );
-
-                            if (!isAfterEachPresent) {
+                            if (!isAnnotatedMethodPresent(cd, AFTER_EACH_MATCHER) && isAnnotatedMethodPresent(cd, BEFORE_EACH_MATCHER)) {
                                 maybeAddImport("org.junit.jupiter.api.AfterEach");
                                 cd = JavaTemplate.builder("    @AfterEach\n" +
                                                 "    void tearDown() throws Exception {\n" +
@@ -98,10 +103,10 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                         .imports("org.junit.jupiter.api.AfterEach")
                                         .build()
                                         .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
-
                             }
+
                             cd = super.visitClassDeclaration(cd, ctx);
-                            return maybeAutoFormat(cd, cd, ctx);
+                            return autoFormat(cd, ctx);
                         }
 
                         @Override
