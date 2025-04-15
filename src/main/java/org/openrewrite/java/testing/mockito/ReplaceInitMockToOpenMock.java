@@ -49,13 +49,13 @@ public class ReplaceInitMockToOpenMock extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        TreeVisitor<?, ExecutionContext> and = Preconditions.and(
+        TreeVisitor<?, ExecutionContext> preconditions = Preconditions.and(
                 new UsesMethod<>(INIT_MOCKS_MATCHER),
                 Preconditions.not(new UsesType<>(MOCKITO_EXTENSION, false)),
                 Preconditions.not(new UsesType<>(MOCKITO_JUNIT_RUNNER, false))
         );
-        return Preconditions.check(and, new JavaIsoVisitor<ExecutionContext>() {
-                    private String variableName;
+        return Preconditions.check(preconditions, new JavaIsoVisitor<ExecutionContext>() {
+                    private String variableName = "mocks";
 
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -75,14 +75,12 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (INIT_MOCKS_MATCHER.matches(mi)) {
-                            doAfterVisit(
-                                    tmp
-                            );
+                            doAfterVisit(updateJUnitLifecycleMethods);
                         }
                         return mi;
                     }
 
-                    TreeVisitor<J, ExecutionContext> tmp = new JavaIsoVisitor<ExecutionContext>() {
+                    final TreeVisitor<J, ExecutionContext> updateJUnitLifecycleMethods = new JavaIsoVisitor<ExecutionContext>() {
 
                         @Override
                         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
