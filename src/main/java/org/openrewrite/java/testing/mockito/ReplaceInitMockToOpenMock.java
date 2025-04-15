@@ -85,9 +85,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                     TreeVisitor<J, ExecutionContext> tmp = new JavaIsoVisitor<ExecutionContext>() {
 
                         @Override
-                        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-
+                        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
                             boolean isAfterEachPresent = cd.getBody().getStatements().stream().anyMatch(
                                     st -> st instanceof J.MethodDeclaration &&
                                             ((J.MethodDeclaration) st).getLeadingAnnotations().stream().anyMatch(AFTER_EACH_MATCHER::matches)
@@ -105,7 +103,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
 
                             }
                             cd = super.visitClassDeclaration(cd, ctx);
-                            return maybeAutoFormat(classDecl, cd, ctx);
+                            return maybeAutoFormat(cd, cd, ctx);
                         }
 
                         @Override
