@@ -17,7 +17,7 @@
 ---
 
 # We override the picnic recipes because they replace to less semantic methods (e.g. `isZero()` to `isEqualTo(0)`)
-# We prefer the reverse (e.g. `isEqualTo(0)` to `isZero()`)
+# We prefer semantic methods (e.g. `isZero()`)
 # That is: AssertJBigIntegerRulesRecipes, AssertJByteRulesRecipes, AssertJDoubleRulesRecipes, AssertJFloatRulesRecipes, AssertJIntegerRulesRecipes, AssertJLongRulesRecipes, AssertJShortRulesRecipes
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.Assertj
