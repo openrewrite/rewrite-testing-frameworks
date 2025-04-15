@@ -49,13 +49,27 @@ public class ReplaceInitMockToOpenMock extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(
-                Preconditions.and(
-                        new UsesMethod<>(INIT_MOCKS_MATCHER),
-                        Preconditions.not(new UsesType<>(MOCKITO_EXTENSION, false)),
-                        Preconditions.not(new UsesType<>(MOCKITO_JUNIT_RUNNER, false))
-                ),
-                new JavaIsoVisitor<ExecutionContext>() {
+        TreeVisitor<?, ExecutionContext> and = Preconditions.and(
+                new UsesMethod<>(INIT_MOCKS_MATCHER),
+                Preconditions.not(new UsesType<>(MOCKITO_EXTENSION, false)),
+                Preconditions.not(new UsesType<>(MOCKITO_JUNIT_RUNNER, false))
+        );
+        return Preconditions.check(and, new JavaIsoVisitor<ExecutionContext>() {
+                    private String variableName;
+
+                    @Override
+                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                        J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+
+                        variableName = generateVariableName("mocks", getCursor(), INCREMENT_NUMBER);
+                        J.ClassDeclaration after = JavaTemplate.builder("private AutoCloseable " + variableName + ";")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx))
+                                .build()
+                                .apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
+
+                        return maybeAutoFormat(cd, after, ctx);
+                    }
+
 
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -70,36 +84,28 @@ public class ReplaceInitMockToOpenMock extends Recipe {
 
                     TreeVisitor<J, ExecutionContext> tmp = new JavaIsoVisitor<ExecutionContext>() {
 
-                        private String variableName;
-
                         @Override
-                        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
-                            variableName = generateVariableName("mocks", getCursor(), INCREMENT_NUMBER);
-                            J.ClassDeclaration after = JavaTemplate.builder("private AutoCloseable " + variableName + ";")
-                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx))
-                                    .contextSensitive()
-                                    .build()
-                                    .apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
+                        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-                            boolean isAfterEachPresent = after.getBody().getStatements().stream().anyMatch(
+                            boolean isAfterEachPresent = cd.getBody().getStatements().stream().anyMatch(
                                     st -> st instanceof J.MethodDeclaration &&
                                             ((J.MethodDeclaration) st).getLeadingAnnotations().stream().anyMatch(AFTER_EACH_MATCHER::matches)
                             );
 
                             if (!isAfterEachPresent) {
                                 maybeAddImport("org.junit.jupiter.api.AfterEach");
-                                after = JavaTemplate.builder("    @AfterEach\n" +
+                                cd = JavaTemplate.builder("    @AfterEach\n" +
                                                 "    void tearDown() throws Exception {\n" +
                                                 "    }")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                         .imports("org.junit.jupiter.api.AfterEach")
-                                        .contextSensitive()
                                         .build()
-                                        .apply(updateCursor(after), after.getBody().getCoordinates().lastStatement());
+                                        .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
 
                             }
-                            after = super.visitClassDeclaration(after, ctx);
-                            return maybeAutoFormat(cd, after, ctx);
+                            cd = super.visitClassDeclaration(cd, ctx);
+                            return maybeAutoFormat(classDecl, cd, ctx);
                         }
 
                         @Override
@@ -109,18 +115,25 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                             if (service(AnnotationService.class).matches(updateCursor(md), BEFORE_EACH_MATCHER) && md.getBody() != null) {
                                 for (Statement st : md.getBody().getStatements()) {
                                     if (st instanceof J.MethodInvocation && INIT_MOCKS_MATCHER.matches((J.MethodInvocation) st)) {
-                                        md = JavaTemplate.builder(variableName + " = MockitoAnnotations.openMocks(this);")
+                                        return JavaTemplate.builder(variableName + " = MockitoAnnotations.openMocks(this);")
                                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))
                                                 .imports("org.mockito.MockitoAnnotations")
                                                 .contextSensitive()
                                                 .build()
                                                 .apply(getCursor(), st.getCoordinates().replace());
-                                        return md;
                                     }
                                 }
                             }
 
                             if (service(AnnotationService.class).matches(updateCursor(md), AFTER_EACH_MATCHER) && md.getBody() != null) {
+                                for (Statement st : md.getBody().getStatements()) {
+                                    if (st instanceof J.MethodInvocation &&
+                                            ((J.MethodInvocation) st).getSelect() instanceof J.Identifier &&
+                                            ((J.Identifier) ((J.MethodInvocation) st).getSelect()).getSimpleName().equals(variableName)) {
+                                        return md;
+                                    }
+                                }
+
                                 md = JavaTemplate.builder(variableName + ".close();")
                                         .contextSensitive()
                                         .build()
