@@ -15,6 +15,10 @@
 #
 
 ---
+
+# We override the picnic recipes because they replace to less semantic methods (e.g. `isZero()` to `isEqualTo(0)`)
+# We prefer the reverse (e.g. `isEqualTo(0)` to `isZero()`)
+# That is: AssertJBigIntegerRulesRecipes, AssertJByteRulesRecipes, AssertJDoubleRulesRecipes, AssertJFloatRulesRecipes, AssertJIntegerRulesRecipes, AssertJLongRulesRecipes, AssertJShortRulesRecipes
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.Assertj
 displayName: AssertJ best practices
@@ -33,26 +37,18 @@ recipeList:
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
-
   - tech.picnic.errorprone.refasterrules.AssertJBigDecimalRulesRecipes
-  #- tech.picnic.errorprone.refasterrules.AssertJBigIntegerRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJBigIntegerRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJBooleanRulesRecipes
-  #- tech.picnic.errorprone.refasterrules.AssertJByteRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJByteRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJCharSequenceRulesRecipes
-  #- tech.picnic.errorprone.refasterrules.AssertJDoubleRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJDoubleRulesRecipes
-  #- tech.picnic.errorprone.refasterrules.AssertJFloatRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJFloatRulesRecipes
-  #- tech.picnic.errorprone.refasterrules.AssertJIntegerRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJIntegerRulesRecipes
-  #- tech.picnic.errorprone.refasterrules.AssertJLongRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJLongRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJNumberRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJPrimitiveRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJRulesRecipes
-  #- tech.picnic.errorprone.refasterrules.AssertJShortRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJShortRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJStringRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJThrowingCallableRulesRecipes
