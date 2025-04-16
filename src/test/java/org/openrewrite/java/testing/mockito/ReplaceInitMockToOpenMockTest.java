@@ -406,4 +406,34 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void noChangesWithJunit4() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.Before;
+
+              class A {
+
+                  @Before
+                  public void setUp() {
+                      test1();
+                      MockitoAnnotations.initMocks(this);
+                      test2();
+                  }
+
+                  public void test1() {
+                  }
+
+                  public void test2() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
 }

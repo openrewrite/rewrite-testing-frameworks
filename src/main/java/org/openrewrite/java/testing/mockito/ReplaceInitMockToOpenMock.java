@@ -43,7 +43,8 @@ public class ReplaceInitMockToOpenMock extends Recipe {
 
     private static final String MOCKITO_EXTENSION = "org.mockito.junit.jupiter.MockitoExtension";
     private static final String MOCKITO_JUNIT_RUNNER = "org.mockito.junit.MockitoJUnitRunner";
-    private static final AnnotationMatcher BEFORE_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
+    private static final String JUPITER_BEFORE_EACH = "org.junit.jupiter.api.BeforeEach";
+    private static final AnnotationMatcher BEFORE_EACH_MATCHER = new AnnotationMatcher("@" + JUPITER_BEFORE_EACH);
     private static final AnnotationMatcher AFTER_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.AfterEach");
     private static final MethodMatcher INIT_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations initMocks(..)", false);
 
@@ -51,6 +52,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         TreeVisitor<?, ExecutionContext> preconditions = Preconditions.and(
                 new UsesMethod<>(INIT_MOCKS_MATCHER),
+                new UsesType<>(JUPITER_BEFORE_EACH, false),
                 Preconditions.not(new UsesType<>(MOCKITO_EXTENSION, false)),
                 Preconditions.not(new UsesType<>(MOCKITO_JUNIT_RUNNER, false))
         );
