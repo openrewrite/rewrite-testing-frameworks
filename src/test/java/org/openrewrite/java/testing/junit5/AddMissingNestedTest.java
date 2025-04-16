@@ -225,7 +225,8 @@ class AddMissingNestedTest implements RewriteTest {
                 @interface CustomTest {
                 }
             }
-            """)
+            """
+          )
         );
     }
 }

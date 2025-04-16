@@ -378,7 +378,8 @@ class JUnit5MigrationTest implements RewriteTest {
               tasks.withType(Test).configureEach {
                   useJUnitPlatform()
               }
-              """),
+              """
+          ),
           //language=xml
           pomXml(
             """
@@ -396,7 +397,8 @@ class JUnit5MigrationTest implements RewriteTest {
                       </dependency>
                   </dependencies>
               </project>
-              """)
+              """
+          )
         );
     }
 

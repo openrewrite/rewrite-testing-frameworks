@@ -58,7 +58,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                         assertThat(str1, not(containsString(str2)));
                     }
                 }
-                """));
+                """
+              ));
         }
 
         @Test
@@ -81,7 +82,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                         assertThat(str1, is(equalTo(str2)));
                     }
                 }
-                """));
+                """
+              ));
         }
 
         @Test
@@ -104,7 +106,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                         assertThat(str1, anyOf(equalTo(str2)));
                     }
                 }
-                """));
+                """
+              ));
         }
 
         @Test
@@ -128,7 +131,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                         assertThat(str1, anyOf(List.of(equalTo(str2))));
                     }
                 }
-                """));
+                """
+              ));
         }
     }
 
@@ -166,7 +170,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                           assertThat(str1).isEmpty();
                       }
                   }
-                  """)
+                  """
+              )
             );
         }
 
@@ -245,7 +250,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                           assertThat(str1).isEqualTo(str2);
                       }
                   }
-                  """)
+                  """
+              )
             );
         }
 
@@ -281,7 +287,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                           assertThat(str1).isEqualTo("Hello world!");
                       }
                   }
-                  """)
+                  """
+              )
             );
         }
 
@@ -298,7 +305,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                         this.name = name;
                     }
                 }
-                """),
+                """
+              ),
               //language=java
               java(
                     """
@@ -329,7 +337,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                           assertThat(theBiscuit).isEqualTo(myBiscuit);
                       }
                   }
-                  """)
+                  """
+              )
             );
         }
 
@@ -367,7 +376,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                           assertThat(intA).isLessThan(intB);
                       }
                   }
-                  """)
+                  """
+              )
             );
         }
 
@@ -411,7 +421,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                           assertThat(list).containsExactlyInAnyOrder(states.toArray());
                       }
                   }
-                  """)
+                  """
+              )
             );
         }
 
@@ -446,7 +457,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                           assertThat(1.0).isCloseTo(2.0, within(1.0));
                       }
                   }
-                  """)
+                  """
+              )
             );
         }
 
@@ -489,7 +501,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                           assertThat(x).isCloseTo(y, within(z));
                       }
                   }
-                  """)
+                  """
+              )
             );
         }
     }
@@ -530,7 +543,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                           assertThat(str1).as("Should match").isEqualTo(str2);
                       }
                   }
-                  """)
+                  """
+              )
             );
         }
 
@@ -576,7 +590,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                           return "Should match";
                       }
                   }
-                  """)
+                  """
+              )
             );
         }
     }

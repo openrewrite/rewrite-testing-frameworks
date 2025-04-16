@@ -90,7 +90,8 @@ class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
                       when(mockFoo.addMap(anyMap())).thenReturn(true);
                   }
               }
-              """)
+              """
+          )
         );
     }
 }

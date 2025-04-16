@@ -65,7 +65,8 @@ class AssertThatBooleanToAssertJTest implements RewriteTest {
                       assertThat(1 != 2).as("Reason").isTrue();
                   }
               }
-              """)
+              """
+          )
         );
     }
 }

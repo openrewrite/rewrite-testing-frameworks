@@ -194,7 +194,8 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
                   </dependency>
                 </dependencies>
               </project>
-              """),
+              """
+          ),
           //language=java
           java(
             """

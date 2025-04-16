@@ -116,7 +116,8 @@ class FestToAssertJTest implements RewriteTest {
                       Assertions.assertThat(value).is(someCondition);
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -146,7 +147,8 @@ class FestToAssertJTest implements RewriteTest {
                       return BIG_DECIMAL_COMPARATOR.compare(one, two);
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -172,7 +174,8 @@ class FestToAssertJTest implements RewriteTest {
                       return MapEntry.entry("one", "two");
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -204,7 +207,8 @@ class FestToAssertJTest implements RewriteTest {
                       Assertions.assertThat(object1).isEqualToComparingFieldByField(object2, "one", "two");
                   }
               }
-              """)
+              """
+          )
         );
     }
 }
