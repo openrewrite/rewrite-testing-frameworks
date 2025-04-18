@@ -55,7 +55,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Pragmatists @RunWith(JUnitParamsRunner.class) to JUnit Jupiter Parameterized Tests";
+        return "Pragmatists `@RunWith(JUnitParamsRunner.class)` to JUnit Jupiter `@Parameterized` tests";
     }
 
     @Override
@@ -176,18 +176,6 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
      */
     private static class ParametersNoArgsImplicitMethodSource extends JavaIsoVisitor<ExecutionContext> {
 
-        private JavaParser.@Nullable Builder<?, ?> javaParser;
-
-        private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            if (javaParser == null) {
-                javaParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3", "junit-jupiter-params-5");
-            }
-            return javaParser;
-
-        }
-
-
         private final Set<String> initMethods;
         private final Set<String> unsupportedConversions;
         private final Map<String, String> initMethodReferences;
@@ -202,16 +190,18 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             this.unsupportedConversions = unsupportedConversions;
 
             // build @ParameterizedTest template
+            JavaParser.Builder<?, ?> javaParser = JavaParser.fromJavaVersion()
+                    .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3", "junit-jupiter-params-5");
             this.parameterizedTestTemplate = JavaTemplate.builder("@ParameterizedTest")
-                    .javaParser(javaParser(ctx))
+                    .javaParser(javaParser)
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @ParameterizedTest(#{}) template
             this.parameterizedTestTemplateWithName = JavaTemplate.builder("@ParameterizedTest(name = \"#{}\")")
-                    .javaParser(javaParser(ctx))
+                    .javaParser(javaParser)
                     .imports("org.junit.jupiter.params.ParameterizedTest").build();
             // build @MethodSource("...") template
             this.methodSourceTemplate = JavaTemplate.builder("@MethodSource(#{})")
-                    .javaParser(javaParser(ctx))
+                    .javaParser(javaParser)
                     .imports("org.junit.jupiter.params.provider.MethodSource").build();
         }
 

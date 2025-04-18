@@ -15,6 +15,10 @@
 #
 
 ---
+
+# We override the picnic recipes because they replace to less semantic methods (e.g. `isZero()` to `isEqualTo(0)`)
+# We prefer semantic methods (e.g. `isZero()`)
+# That is: AssertJBigIntegerRulesRecipes, AssertJByteRulesRecipes, AssertJDoubleRulesRecipes, AssertJFloatRulesRecipes, AssertJIntegerRulesRecipes, AssertJLongRulesRecipes, AssertJShortRulesRecipes
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.Assertj
 displayName: AssertJ best practices
@@ -24,26 +28,28 @@ tags:
   - assertj
 recipeList:
   - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
+  - org.openrewrite.java.testing.assertj.FestToAssertj
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
   - org.openrewrite.java.testing.testng.TestNgToAssertj
+  - org.openrewrite.java.testing.assertj.AdoptAssertJDurationAssertions
   - org.openrewrite.java.testing.assertj.IsEqualToIgnoringMillisToIsCloseToRecipe
   - org.openrewrite.java.testing.assertj.StaticImports
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
-
+  - org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
   - tech.picnic.errorprone.refasterrules.AssertJBigDecimalRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJBigIntegerRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJBigIntegerRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJBooleanRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJByteRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJByteRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJCharSequenceRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJDoubleRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJFloatRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJIntegerRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJLongRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJDoubleRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJFloatRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJIntegerRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJLongRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJNumberRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJPrimitiveRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJRulesRecipes
-  - tech.picnic.errorprone.refasterrules.AssertJShortRulesRecipes
+  - org.openrewrite.java.testing.assertj.AssertJShortRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJStringRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJThrowingCallableRulesRecipes
 
@@ -58,12 +64,13 @@ tags:
   - testing
   - assertj
 recipeList:
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: "org.assertj.core.api.AssertionsForClassTypes assertThat(..)"
-      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: "org.assertj.core.api.AssertionsForInterfaceTypes assertThat(..)"
-      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
+# https://github.com/openrewrite/rewrite-testing-frameworks/issues/664
+#  - org.openrewrite.java.ChangeMethodTargetToStatic:
+#      methodPattern: "org.assertj.core.api.AssertionsForClassTypes assertThat(..)"
+#      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
+#  - org.openrewrite.java.ChangeMethodTargetToStatic:
+#      methodPattern: "org.assertj.core.api.AssertionsForInterfaceTypes assertThat(..)"
+#      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: "org.assertj.core.api.Fail fail(..)"
       fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
@@ -480,3 +487,45 @@ recipeList:
       onlyIfUsing: org.assertj.core.api.Assertions
       acceptTransitive: true
   - tech.picnic.errorprone.refasterrules.JUnitToAssertJRulesRecipes
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.assertj.FestToAssertj
+displayName: Migrate Fest 2.x to AssertJ
+description: >-
+  AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability.
+  Converts Fest 2.x imports to AssertJ imports.
+tags:
+  - testing
+  - assertj
+recipeList:
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.fest.assertions.api.ObjectAssert#isLenientEqualsToByIgnoringFields(..)
+      newMethodName: isEqualToIgnoringGivenFields
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.fest.assertions.api.ObjectAssert#isLenientEqualsToByAcceptingFields(..)
+      newMethodName: isEqualToComparingOnlyGivenFields
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.fest.assertions.api.ObjectAssert#isLenientEqualsToByIgnoringNullFields(..)
+      newMethodName: isEqualToIgnoringNullFields
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.fest.assertions.api.ObjectAssert#isEqualsToByComparingFields(..)
+      newMethodName: isEqualToComparingFieldByField
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.fest.assertions.api
+      newPackageName: org.assertj.core.api
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.fest.assertions.core.Condition
+      newFullyQualifiedTypeName: org.assertj.core.api.Condition
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.fest.assertions.util
+      newPackageName: org.assertj.core.util
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.fest.assertions.data
+      newPackageName: org.assertj.core.data
+  - org.openrewrite.java.dependencies.ChangeDependency:
+        oldGroupId: org.easytesting
+        oldArtifactId: fest-assert-core
+        newGroupId: org.assertj
+        newArtifactId: assertj-core
+        newVersion: 3.x

@@ -77,7 +77,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                       return 3;
                   }
               }
-              """),
+              """
+          ),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -111,7 +112,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                       assertThat(theBiscuit.getHazelnutCount()).as("hazelnuts").isEqualTo(3);
                   }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -136,7 +138,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                       assertThat(str1, allOf(equalTo(str2), hasLength(12)));
                   }
               }
-              """, """
+              """,
+                """
               import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
@@ -153,7 +156,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                               );
                   }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -178,7 +182,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                       assertThat(str1, anyOf(equalTo(str2), hasLength(12)));
                   }
               }
-              """, """
+              """,
+                """
               import org.junit.jupiter.api.Test;
 
               import static org.assertj.core.api.Assertions.assertThat;
@@ -195,7 +200,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                               );
                   }
               }
-              """));
+              """
+          ));
     }
 
     private static Stream<Arguments> arrayReplacements() {
@@ -338,7 +344,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                       this.name = name;
                   }
               }
-              """),
+              """
+          ),
           java(before, after));
     }
 

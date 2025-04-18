@@ -29,7 +29,9 @@ recipeDependencies {
     parserClasspath("org.powermock:powermock-core:1.6.5")
     parserClasspath("org.springframework:spring-test:6.1.+")
     parserClasspath("org.testng:testng:7.+")
+    parserClasspath("org.testcontainers:testcontainers:1.20.6")
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
+    parserClasspath("org.easytesting:fest-assert-core:2.+")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
@@ -49,21 +51,20 @@ dependencies {
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
-    implementation("org.testcontainers:testcontainers:latest.release")
-
     testImplementation("org.openrewrite:rewrite-java-17")
     testImplementation("org.openrewrite:rewrite-groovy")
     testImplementation("org.openrewrite:rewrite-test")
-    testImplementation("org.openrewrite:rewrite-kotlin:$rewriteVersion")
+    testImplementation("org.openrewrite:rewrite-kotlin")
     testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
 
     annotationProcessor("org.openrewrite:rewrite-templating:${rewriteVersion}")
     implementation("org.openrewrite:rewrite-templating:${rewriteVersion}")
-    compileOnly("com.google.errorprone:error_prone_core:2.+:with-dependencies") {
+    compileOnly("com.google.errorprone:error_prone_core:2.+") {
         exclude("com.google.auto.service", "auto-service-annotations")
+        exclude("io.github.eisop","dataflow-errorprone")
     }
 
-    testRuntimeOnly("org.gradle:gradle-tooling-api:latest.release")
+    testRuntimeOnly(gradleApi())
 
     testRuntimeOnly("com.tngtech.archunit:archunit:0.23.1")
     testRuntimeOnly("com.github.javafaker:javafaker:latest.release") {
@@ -78,4 +79,9 @@ dependencies {
     testRuntimeOnly("org.testcontainers:testcontainers:latest.release")
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
     testRuntimeOnly("org.testng:testng:latest.release")
+}
+
+tasks.test {
+    // The `TestNgToAssertJTest` tests require a lot of memory for the `JavaTemplate` caching
+    maxHeapSize = "1g"
 }

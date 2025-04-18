@@ -67,7 +67,7 @@ public class ExplicitContainerImage extends Recipe {
             public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                 J.NewClass nc = super.visitNewClass(newClass, ctx);
                 if (methodMatcher.matches(nc)) {
-                    Expression constructorArgument = getConstructorArgument(nc);
+                    Expression constructorArgument = getConstructorArgument(nc, ctx);
                     return nc.withArguments(singletonList(constructorArgument))
                             .withMethodType(nc.getMethodType()
                                     .withParameterTypes(singletonList(constructorArgument.getType()))
@@ -76,12 +76,12 @@ public class ExplicitContainerImage extends Recipe {
                 return nc;
             }
 
-            private Expression getConstructorArgument(J.NewClass newClass) {
+            private Expression getConstructorArgument(J.NewClass newClass, ExecutionContext ctx) {
                 if (parseImage != null && parseImage) {
                     maybeAddImport("org.testcontainers.utility.DockerImageName");
                     return JavaTemplate.builder("DockerImageName.parse(\"" + image + "\")")
                             .imports("org.testcontainers.utility.DockerImageName")
-                            .javaParser(JavaParser.fromJavaVersion().classpath("testcontainers"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testcontainers"))
                             .build()
                             .apply(getCursor(), newClass.getCoordinates().replace())
                             .withPrefix(Space.EMPTY);

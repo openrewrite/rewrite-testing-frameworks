@@ -99,7 +99,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
                       String action3(double d);
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -139,7 +140,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
                       String action();
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -179,7 +181,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
                       String action(String s, int i);
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -224,7 +227,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
                       String action2();
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -257,7 +261,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
 
                   interface Dependency {}
               }
-              """)
+              """
+          )
         );
     }
 
@@ -316,7 +321,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
                       String action();
                   }
               }
-              """)
+              """
+          )
         );
     }
 }

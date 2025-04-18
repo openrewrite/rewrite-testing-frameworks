@@ -15,27 +15,29 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
+@SuppressWarnings({"Convert2MethodRef", "ThrowableNotThrown"})
 class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new JUnitAssertThrowsToAssertExceptionType());
     }
 
-    @SuppressWarnings({"Convert2MethodRef", "CodeBlock2Expr"})
     @DocumentExample
     @Test
     void toAssertExceptionOfType() {
@@ -106,7 +108,6 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
     }
 
     @Test
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/pull/331")
     void assertThrowsAssignment() {
         //language=java
         rewriteRun(
@@ -121,19 +122,24 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                       });
                   }
               }
+              """,
+            """
+              import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      NullPointerException npe = assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> {
+                          throw new NullPointerException();
+                      }).actual();
+                  }
+              }
               """
           )
         );
     }
 
-    /**
-     * A degenerate case showing we need to make sure the <code>assertThrows</code> appears
-     * immediately inside a J.Block.
-     */
-    @SuppressWarnings("ThrowableNotThrown")
     @Test
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/pull/331")
-    void assertThrowsTernaryAssignment() {
+    void assertThrowsVarAssignment() {
         //language=java
         rewriteRun(
           java(
@@ -142,15 +148,291 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
 
               public class SimpleExpectedExceptionTest {
                   public void throwsExceptionWithSpecificType() {
+                      var npe = assertThrows(NullPointerException.class, () -> {
+                          throw new NullPointerException();
+                      });
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      var npe = assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> {
+                          throw new NullPointerException();
+                      }).actual();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertThrowsTernaryAssignment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+             import static org.junit.jupiter.api.Assertions.assertThrows;
+
+             public class SimpleExpectedExceptionTest {
+                 public void throwsExceptionWithSpecificType() {
+                     NullPointerException npe = hashCode() == 42
+                       ? new NullPointerException()
+                       : assertThrows(NullPointerException.class, () -> {
+                         throw new NullPointerException();
+                     });
+                 }
+             }
+             """,
+            """
+              import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
                       NullPointerException npe = hashCode() == 42
                         ? new NullPointerException()
-                        : assertThrows(NullPointerException.class, () -> {
+                        : assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> {
                           throw new NullPointerException();
+                      }).actual();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertThrowsMethodReturn() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+                import static org.junit.jupiter.api.Assertions.assertThrows;
+
+                public class SimpleExpectedExceptionTest {
+                    public void throwsExceptionWithSpecificType() {
+                        NullPointerException npe = exception();
+                    }
+                    NullPointerException exception() {
+                        return assertThrows(NullPointerException.class, () -> {
+                            throw new NullPointerException();
+                        });
+                    }
+                }
+                """,
+            """
+                import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+
+                public class SimpleExpectedExceptionTest {
+                    public void throwsExceptionWithSpecificType() {
+                        NullPointerException npe = exception();
+                    }
+                    NullPointerException exception() {
+                        return assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> {
+                            throw new NullPointerException();
+                        }).actual();
+                    }
+                }
+                """
+          )
+        );
+    }
+
+    /**
+     * A degenerate case showing we don't perform the conversion when the <code>assertThrows</code> appears
+     * immediately inside a J.Lambda.
+     */
+    @Test
+    void assertThrowsConsumerUsage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.function.Consumer;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      Consumer<? extends Throwable> c = ex -> assertThrows(ex.getClass(), () -> {
+                          throw ex;
                       });
                   }
               }
               """
           )
         );
+    }
+
+    /**
+     * A degenerate case showing we don't perform the conversion when the <code>assertThrows</code> appears
+     * immediately inside a J.Lambda.
+     */
+    @Test
+    void assertThrowsSupplierUsage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.function.Supplier;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+                public class SimpleExpectedExceptionTest {
+                    public void throwsExceptionWithSpecificType() {
+                        Supplier<NullPointerException> s = () -> assertThrows(NullPointerException.class, () -> { throw new NullPointerException(); });
+                    }
+                }
+              """
+          )
+        );
+    }
+
+    @Nested
+    class WithMessage {
+
+        @ParameterizedTest
+        @ValueSource(strings = {"\"message\"", "() -> \"message\""})
+        void messageFromDirectObject(String message) {
+            //language=java
+            rewriteRun(
+              java(
+                String.format("""
+                  import static org.junit.jupiter.api.Assertions.assertThrows;
+
+                  public class SimpleExpectedExceptionTest {
+                      public void throwsExceptionWithSpecificType() {
+                          assertThrows(NullPointerException.class, () -> foo(), %s);
+                      }
+                      void foo() {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """, message),
+                String.format("""
+                  import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+
+                  public class SimpleExpectedExceptionTest {
+                      public void throwsExceptionWithSpecificType() {
+                          assertThatExceptionOfType(NullPointerException.class).as(%s).isThrownBy(() -> foo());
+                      }
+                      void foo() {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """, message)
+              )
+            );
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"\"message\"", "() -> \"message\""})
+        void withMemberReference(String message) {
+            //language=java
+            rewriteRun(
+              java(
+                String.format("""
+                  import static org.junit.jupiter.api.Assertions.assertThrows;
+                  import java.util.concurrent.CompletableFuture;
+                  import java.util.concurrent.ExecutionException;
+
+                  public class SimpleExpectedExceptionTest {
+                      public void throwsExceptionWithSpecificType() {
+                          CompletableFuture<Boolean> future = new CompletableFuture<>();
+                          assertThrows(ExecutionException.class, future::get, %s);
+                      }
+                  }
+                  """, message),
+                String.format("""
+                  import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+                  import java.util.concurrent.CompletableFuture;
+                  import java.util.concurrent.ExecutionException;
+
+                  public class SimpleExpectedExceptionTest {
+                      public void throwsExceptionWithSpecificType() {
+                          CompletableFuture<Boolean> future = new CompletableFuture<>();
+                          assertThatExceptionOfType(ExecutionException.class).as(%s).isThrownBy(future::get);
+                      }
+                  }
+                  """, message)
+              )
+            );
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"\"message\"", "() -> \"message\""})
+        void withReturnValue(String message) {
+            //language=java
+            rewriteRun(
+              java(
+                String.format("""
+                  import static org.junit.jupiter.api.Assertions.assertThrows;
+
+                  public class SimpleExpectedExceptionTest {
+                      public void throwsExceptionWithSpecificType() {
+                          NullPointerException npe = assertThrows(NullPointerException.class, this::foo, %s);
+                      }
+                      void foo() {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """, message),
+                String.format("""
+                  import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+
+                  public class SimpleExpectedExceptionTest {
+                      public void throwsExceptionWithSpecificType() {
+                          NullPointerException npe = assertThatExceptionOfType(NullPointerException.class).as(%s).isThrownBy(this::foo).actual();
+                      }
+                      void foo() {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """, message)
+              )
+            );
+
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"String message = \"message\"", "java.util.function.Supplier<String> message = () -> \"message\""})
+        void messageFromVariable(String message) {
+            //language=java
+            rewriteRun(
+              java(
+                String.format("""
+                  import static org.junit.jupiter.api.Assertions.assertThrows;
+
+                  public class SimpleExpectedExceptionTest {
+                      public void throwsExceptionWithSpecificType() {
+                          %s;
+
+                          assertThrows(NullPointerException.class, () -> foo(), message);
+                      }
+                      void foo() {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """, message),
+                String.format("""
+                  import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+
+                  public class SimpleExpectedExceptionTest {
+                      public void throwsExceptionWithSpecificType() {
+                          %s;
+
+                          assertThatExceptionOfType(NullPointerException.class).as(message).isThrownBy(() -> foo());
+                      }
+                      void foo() {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """, message)
+              )
+            );
+        }
     }
 }

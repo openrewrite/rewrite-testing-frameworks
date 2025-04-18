@@ -16,6 +16,8 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -658,6 +660,227 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void whenNew() {
+        //language=java
+        rewriteRun(
+          java(
+              """
+              import org.powermock.api.mockito.PowerMockito;
+              import static org.powermock.api.mockito.PowerMockito.*;
+
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MyTest {
+                  static class Generator {
+                      public int getLuckyNumber() {
+                        return 436;
+                      }
+                  }
+                  @Test
+                  public final void testNumbers() throws Exception {
+                      Generator mock = mock(Generator.class);
+                      PowerMockito.whenNew(Generator.class).withNoArguments().thenReturn(mock);
+
+                      Generator gen = new Generator();
+                      when(gen.getLuckyNumber()).thenReturn(504);
+
+                      assertEquals(504, gen.getLuckyNumber());
+                  }
+
+                  public final String otherMethod() {
+                    return "no change here";
+                  }
+              }
+              """,
+              """
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.mock;
+
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedConstruction;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MyTest {
+                  static class Generator {
+                      public int getLuckyNumber() {
+                        return 436;
+                      }
+                  }
+
+                  @Test
+                  public final void testNumbers() throws Exception {
+                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
+
+                          Generator gen = new Generator();
+                          when(gen.getLuckyNumber()).thenReturn(504);
+
+                          assertEquals(504, gen.getLuckyNumber());
+                      }
+                  }
+
+                  public final String otherMethod() {
+                    return "no change here";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenNewTwoMocks() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+            import org.powermock.api.mockito.PowerMockito;
+            import static org.powermock.api.mockito.PowerMockito.*;
+
+            import org.junit.jupiter.api.Test;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+
+            public class MyTest {
+                static class Generator1 {
+                    public int getLuckyNumber() {
+                      return 436;
+                    }
+                }
+                static class Generator2 {
+                    public int getLuckyNumber() {
+                      return 136;
+                    }
+                }
+
+                @Test
+                public final void testNumbers() throws Exception {
+                    Generator1 mock1 = mock(Generator1.class);
+                    PowerMockito.whenNew(Generator1.class).withNoArguments().thenReturn(mock1);
+
+                    Generator1 gen1 = new Generator1();
+                    when(gen1.getLuckyNumber()).thenReturn(504);
+
+                    assertEquals(504, gen1.getLuckyNumber());
+
+                    Generator2 mock2 = mock(Generator2.class);
+                    PowerMockito.whenNew(Generator2.class).withNoArguments().thenReturn(mock2);
+
+                    Generator2 gen2 = new Generator2();
+                    when(gen2.getLuckyNumber()).thenReturn(504);
+
+                    assertEquals(504, gen2.getLuckyNumber());
+                }
+            }
+            """,
+            """
+            import static org.mockito.Mockito.when;
+            import static org.mockito.Mockito.mock;
+
+            import org.junit.jupiter.api.Test;
+            import org.mockito.MockedConstruction;
+
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+
+            public class MyTest {
+                static class Generator1 {
+                    public int getLuckyNumber() {
+                      return 436;
+                    }
+                }
+                static class Generator2 {
+                    public int getLuckyNumber() {
+                      return 136;
+                    }
+                }
+
+                @Test
+                public final void testNumbers() throws Exception {
+                    try (MockedConstruction<Generator2> mockGenerator2 = Mockito.mockConstruction(Generator2.class)) {
+                        try (MockedConstruction<Generator1> mockGenerator1 = Mockito.mockConstruction(Generator1.class)) {
+
+                            Generator1 gen1 = new Generator1();
+                            when(gen1.getLuckyNumber()).thenReturn(504);
+
+                            assertEquals(504, gen1.getLuckyNumber());
+
+                            Generator2 gen2 = new Generator2();
+                            when(gen2.getLuckyNumber()).thenReturn(504);
+
+                            assertEquals(504, gen2.getLuckyNumber());
+                        }
+                    }
+                }
+            }
+            """
+          )
+        );
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"withArguments(\"Have a nice day!\")", "withAnyArguments()"})
+    void whenNewWithArguments(String methodCall) {
+        //language=java
+        rewriteRun(
+          java(
+            """
+            import org.powermock.api.mockito.PowerMockito;
+            import static org.powermock.api.mockito.PowerMockito.*;
+
+            import org.junit.jupiter.api.Test;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+
+            public class MyTest2 {
+                public static class SomeTexts {
+                    String text;
+                    public SomeTexts(String text) { this.text = text; }
+                    public String getText() { return text; }
+                }
+
+                @Test
+                public final void testWords() throws Exception {
+                    SomeTexts mock = PowerMockito.mock(SomeTexts.class);
+                    PowerMockito.whenNew(SomeTexts.class).METHODCALL.thenReturn(mock);
+
+                    SomeTexts st = new SomeTexts("Have a nice day!");
+                    when(st.getText()).thenReturn("overridden");
+
+                    assertEquals("overridden", st.getText());
+                }
+            }
+            """.replaceAll("METHODCALL", methodCall),
+            """
+            import org.mockito.MockedConstruction;
+            import org.mockito.Mockito;
+            import static org.mockito.Mockito.when;
+
+            import org.junit.jupiter.api.Test;
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+
+            public class MyTest2 {
+                public static class SomeTexts {
+                    String text;
+                    public SomeTexts(String text) { this.text = text; }
+                    public String getText() { return text; }
+                }
+
+                @Test
+                public final void testWords() throws Exception {
+                    try (MockedConstruction<SomeTexts> mockSomeTexts = Mockito.mockConstruction(SomeTexts.class)) {
+
+                        SomeTexts st = new SomeTexts("Have a nice day!");
+                        when(st.getText()).thenReturn("overridden");
+
+                        assertEquals("overridden", st.getText());
+                    }
+                }
+            }
+            """
           )
         );
     }
