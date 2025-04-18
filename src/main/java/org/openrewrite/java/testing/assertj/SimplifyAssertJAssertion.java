@@ -64,7 +64,7 @@ public class SimplifyAssertJAssertion extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Simplify AssertJ assertions by replacing them with more expressiove dedicated assertions.";
+        return "Simplify AssertJ assertions by replacing them with more expressive dedicated assertions.";
     }
 
     @Override
