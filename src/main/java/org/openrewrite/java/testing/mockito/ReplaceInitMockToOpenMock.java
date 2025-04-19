@@ -68,7 +68,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                             J.ClassDeclaration after = JavaTemplate.builder("private AutoCloseable " + variableName + ";")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx))
                                     .build()
-                                    .apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
+                                    .apply(getCursor(), cd.getBody().getCoordinates().firstStatement());
 
                             return maybeAutoFormat(cd, after, ctx);
                         }
@@ -80,7 +80,6 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (INIT_MOCKS_MATCHER.matches(mi)) {
                             doAfterVisit(updateJUnitLifecycleMethods);
-                            maybeRemoveImport("org.mockito.MockitoAnnotations.initMocks");
                         }
                         return mi;
                     }
@@ -98,13 +97,11 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
                             if (!isAnnotatedMethodPresent(cd, AFTER_EACH_MATCHER) && isAnnotatedMethodPresent(cd, BEFORE_EACH_MATCHER)) {
                                 maybeAddImport("org.junit.jupiter.api.AfterEach");
-                                cd = JavaTemplate.builder("    @AfterEach\n" +
-                                                "    void tearDown() throws Exception {\n" +
-                                                "    }")
+                                cd = JavaTemplate.builder("@AfterEach\nvoid tearDown() throws Exception {\n}")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                         .imports("org.junit.jupiter.api.AfterEach")
                                         .build()
-                                        .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
+                                        .apply(getCursor(), cd.getBody().getCoordinates().lastStatement());
                             }
 
                             cd = super.visitClassDeclaration(cd, ctx);
@@ -116,6 +113,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
 
                             if (service(AnnotationService.class).matches(updateCursor(md), BEFORE_EACH_MATCHER) && md.getBody() != null) {
+                                maybeRemoveImport("org.mockito.MockitoAnnotations.initMocks");
                                 for (Statement st : md.getBody().getStatements()) {
                                     if (st instanceof J.MethodInvocation && INIT_MOCKS_MATCHER.matches((J.MethodInvocation) st)) {
                                         return JavaTemplate.builder(variableName + " = MockitoAnnotations.openMocks(this);")
@@ -126,9 +124,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                                 .apply(getCursor(), st.getCoordinates().replace());
                                     }
                                 }
-                            }
-
-                            if (service(AnnotationService.class).matches(updateCursor(md), AFTER_EACH_MATCHER) && md.getBody() != null) {
+                            } else if (service(AnnotationService.class).matches(updateCursor(md), AFTER_EACH_MATCHER) && md.getBody() != null) {
                                 for (Statement st : md.getBody().getStatements()) {
                                     if (st instanceof J.MethodInvocation &&
                                             ((J.MethodInvocation) st).getSelect() instanceof J.Identifier &&
@@ -140,7 +136,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                 md = JavaTemplate.builder(variableName + ".close();")
                                         .contextSensitive()
                                         .build()
-                                        .apply(updateCursor(md), md.getBody().getCoordinates().lastStatement());
+                                        .apply(getCursor(), md.getBody().getCoordinates().lastStatement());
                                 return maybeAutoFormat(method, md, ctx);
                             }
 
