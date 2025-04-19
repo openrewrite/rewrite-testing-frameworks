@@ -55,7 +55,8 @@ class AnyToNullableTest implements RewriteTest {
                     </dependency>
                 </dependencies>
             </project>
-            """),
+            """
+          ),
           //language=java
           java(
                 """
@@ -64,7 +65,8 @@ class AnyToNullableTest implements RewriteTest {
                     return "Hello " + obj;
                 }
             }
-            """),
+            """
+          ),
           //language=java
           java(
             """
@@ -115,7 +117,8 @@ class AnyToNullableTest implements RewriteTest {
                     </dependency>
                 </dependencies>
             </project>
-            """),
+            """
+          ),
           //language=java
           java(
                 """
@@ -124,7 +127,8 @@ class AnyToNullableTest implements RewriteTest {
                     return "Hello " + obj;
                 }
             }
-            """),
+            """
+          ),
           //language=java
           java(
             """

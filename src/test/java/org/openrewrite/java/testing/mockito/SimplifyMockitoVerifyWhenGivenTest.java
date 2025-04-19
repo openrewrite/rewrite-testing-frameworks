@@ -50,7 +50,8 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
                       verify(mockString).replace(eq("foo"), eq("bar"));
                   }
               }
-              """, """
+              """,
+                """
               import static org.mockito.Mockito.verify;
               import static org.mockito.Mockito.mock;
 
@@ -82,7 +83,8 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
                       verify(mockString).replace(eq("foo"), eq("bar"));
                   }
               }
-              """, """
+              """,
+                """
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.verify;
 
@@ -113,7 +115,8 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
                       when(mockString.replace(eq("foo"), eq("bar"))).thenReturn("bar");
                   }
               }
-              """, """
+              """,
+                """
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
 
@@ -164,7 +167,8 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
                       doThrow(new RuntimeException()).when("foo").substring(eq(1));
                   }
               }
-              """, """
+              """,
+                """
               import static org.mockito.Mockito.doThrow;
 
               class Test {
@@ -191,7 +195,8 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
                       given("foo".substring(eq(1)));
                   }
               }
-              """, """
+              """,
+                """
               import static org.mockito.BDDMockito.given;
 
               class Test {
@@ -226,7 +231,8 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
                       when(mockString.replace(eq("foo"), anyString())).thenReturn("bar");
                   }
               }
-              """, """
+              """,
+                """
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
               import static org.mockito.ArgumentMatchers.eq;
@@ -275,7 +281,8 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
                   String baz(Object v4, Object v5) { return  ""; }
                   void quux(int x) {}
               }
-              """, """
+              """,
+                """
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.verify;

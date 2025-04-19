@@ -578,6 +578,7 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       this.num3 = num3;
                   }
               }
-              """));
+              """
+          ));
     }
 }

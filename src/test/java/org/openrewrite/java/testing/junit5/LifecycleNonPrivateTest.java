@@ -62,7 +62,8 @@ class LifecycleNonPrivateTest implements RewriteTest {
                   private void unaffected() {
                   }
               }
-              """)
+              """
+          )
         );
     }
 

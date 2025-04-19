@@ -53,7 +53,8 @@ class RemoveIsMatcherTest implements RewriteTest {
                     assertThat(str1, is(equalTo(str2)));
                 }
             }
-            """, """
+            """,
+                """
             import org.junit.jupiter.api.Test;
             import static org.hamcrest.MatcherAssert.assertThat;
             import static org.hamcrest.Matchers.equalTo;
@@ -66,7 +67,8 @@ class RemoveIsMatcherTest implements RewriteTest {
                     assertThat(str1, equalTo(str2));
                 }
             }
-            """));
+            """
+          ));
     }
 
     @Test

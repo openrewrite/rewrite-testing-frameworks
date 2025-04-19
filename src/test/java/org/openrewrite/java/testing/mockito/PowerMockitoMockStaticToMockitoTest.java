@@ -551,7 +551,8 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               """,
             """
               public class MyPowerMockTestCase {}
-              """)
+              """
+          )
         );
     }
 

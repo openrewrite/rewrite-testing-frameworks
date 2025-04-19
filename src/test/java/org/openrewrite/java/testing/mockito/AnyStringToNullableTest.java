@@ -44,7 +44,8 @@ class AnyStringToNullableTest implements RewriteTest {
                     return "Hello " + name;
                 }
             }
-            """),
+            """
+          ),
           java(
             """
               import static org.mockito.Mockito.anyString;
@@ -85,7 +86,8 @@ class AnyStringToNullableTest implements RewriteTest {
                     return "Hello " + value;
                 }
             }
-            """),
+            """
+          ),
           java(
             """
               import static org.mockito.Mockito.mock;

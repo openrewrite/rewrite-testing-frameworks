@@ -73,7 +73,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       }
                   }
               }
-              """, """
+              """,
+                """
               import static org.junit.Assert.assertEquals;
               import static org.mockito.ArgumentMatchers.anyInt;
               import static org.mockito.Mockito.mockStatic;
@@ -102,7 +103,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       }
                   }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -178,7 +180,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       assertEquals("BARecho", new Bar().getMsg("echo"));
                   }
               }
-              """, """
+              """,
+                """
               import com.openrewrite.Foo;
               import com.openrewrite.Bar;
               import org.junit.Test;
@@ -212,7 +215,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       }
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -256,7 +260,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       }
                   }
               }
-              """, """
+              """,
+                """
               import org.junit.Test;
               import org.mockito.MockedConstruction;
 
@@ -290,7 +295,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       }
                   }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -405,7 +411,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       }
                   }
               }
-              """));
+              """
+          ));
     }
 
     @Test
