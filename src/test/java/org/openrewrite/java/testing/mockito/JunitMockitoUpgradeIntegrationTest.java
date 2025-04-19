@@ -51,7 +51,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
     void replaceMockAnnotation() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          spec -> spec.typeValidationOptions(TypeValidation.none()).expectedCyclesThatMakeChanges(2),
           java(
             """
               package org.openrewrite.java.testing.junit5;
@@ -88,6 +88,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
             """
               package org.openrewrite.java.testing.junit5;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.Mock;
@@ -98,12 +99,13 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
               import static org.mockito.Mockito.verify;
 
               public class MockitoTests {
+                  private AutoCloseable mocks;
                   @Mock
                   List<String> mockedList;
 
                   @BeforeEach
                   public void initMocks() {
-                      MockitoAnnotations.initMocks(this);
+                      mocks = MockitoAnnotations.openMocks(this);
                   }
 
                   @Test
@@ -114,6 +116,11 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
 
                       verify(mockedList).add("one");
                       verify(mockedList).clear();
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      mocks.close();
                   }
               }
               """
