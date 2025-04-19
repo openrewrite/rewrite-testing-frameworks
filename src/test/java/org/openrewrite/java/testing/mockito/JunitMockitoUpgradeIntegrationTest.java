@@ -51,7 +51,6 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
     void replaceMockAnnotation() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()).expectedCyclesThatMakeChanges(2),
           java(
             """
               package org.openrewrite.java.testing.junit5;
