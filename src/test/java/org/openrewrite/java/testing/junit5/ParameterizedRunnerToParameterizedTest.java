@@ -235,6 +235,7 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
           spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
+              import org.junit.Before;
               import org.junit.Test;
               import org.junit.runner.RunWith;
               import org.junit.runners.Parameterized;
@@ -261,12 +262,16 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       return Arrays.asList(new Object[]{124, "Otis", "TheDog", Map.of("toys", "ball", "treats", "bacon")}, new Object[]{126, "Garfield", "TheBoss", Map.of("toys", "yarn", "treats", "fish")});
                   }
 
+                  @Before
+                  public void setUp() {}
+
                   @Test
                   public void checkName() {
                   }
               }
               """,
             """
+              import org.junit.Before;
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
 
@@ -284,6 +289,9 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       return Arrays.asList(new Object[]{124, "Otis", "TheDog", Map.of("toys", "ball", "treats", "bacon")}, new Object[]{126, "Garfield", "TheBoss", Map.of("toys", "yarn", "treats", "fish")});
                   }
 
+                  @Before
+                  public void setUp() {}
+
                   @MethodSource("parameters")
                   @ParameterizedTest(name = "{index}: {0} {1} - {2}")
                   public void checkName(Integer id, String name, String nickName, Map<String, String> stuff) {
@@ -295,6 +303,7 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       this.name = name;
                       this.nickName = nickName;
                       this.stuff = stuff;
+                      this.setUp();
                   }
               }
               """

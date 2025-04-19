@@ -34,6 +34,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final AnnotationMatcher JUNIT_TEST = new AnnotationMatcher("@org.junit.Test");
     private static final AnnotationMatcher JUPITER_TEST = new AnnotationMatcher("@org.junit.jupiter.api.Test");
     private static final AnnotationMatcher PARAMETERS = new AnnotationMatcher("@org.junit.runners.Parameterized$Parameters");
+    private static final AnnotationMatcher BEFORE = new AnnotationMatcher("@org.junit.Before");
     private static final AnnotationMatcher PARAMETER = new AnnotationMatcher("@org.junit.runners.Parameterized$Parameter");
     private static final AnnotationMatcher PARAMETERIZED_TEST = new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest");
 
@@ -41,6 +42,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final String CONSTRUCTOR_ARGUMENTS = "constructor-args";
     private static final String FIELD_INJECTION_ARGUMENTS = "field-injection-args";
     private static final String PARAMETERS_METHOD_NAME = "parameters-method-name";
+    private static final String BEFORE_METHOD_NAME = "before-method-name";
 
     @Override
     public String getDisplayName() {
@@ -69,16 +71,17 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 List<Statement> constructorParams = (List<Statement>) params.get(CONSTRUCTOR_ARGUMENTS);
                 Map<Integer, Statement> fieldInjectionParams = (Map<Integer, Statement>) params.get(FIELD_INJECTION_ARGUMENTS);
                 String initMethodName = "init" + cd.getSimpleName();
+                String beforeMethodName = (String) params.getOrDefault(BEFORE_METHOD_NAME, null);
 
                 // Constructor Injected Test
                 if (parametersMethodName != null && constructorParams != null && constructorParams.stream().anyMatch(org.openrewrite.java.tree.J.VariableDeclarations.class::isInstance)) {
-                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true, ctx));
+                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true, beforeMethodName,ctx));
                 }
 
                 // Field Injected Test
                 else if (parametersMethodName != null && fieldInjectionParams != null) {
                     List<Statement> fieldParams = new ArrayList<>(fieldInjectionParams.values());
-                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false, ctx));
+                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false, beforeMethodName, ctx));
                 }
             }
             return cd;
@@ -88,16 +91,18 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
+            Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
             if (m.isConstructor()) {
-                Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
                 params.put(CONSTRUCTOR_ARGUMENTS, m.getParameters());
             }
             for (J.Annotation annotation : m.getLeadingAnnotations()) {
                 if (PARAMETERS.matches(annotation)) {
-                    Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
                     params.put(PARAMETERS_ANNOTATION_ARGUMENTS, annotation.getArguments());
                     params.put(PARAMETERS_METHOD_NAME, method.getSimpleName());
                     break;
+                }
+                if (BEFORE.matches(annotation)) {
+                    params.put(BEFORE_METHOD_NAME, method.getSimpleName());
                 }
             }
             return m;
@@ -161,6 +166,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                                                               @Nullable List<Expression> parameterizedTestAnnotationParameters,
                                                               List<Statement> parameterizedTestMethodParameters,
                                                               boolean isConstructorInjection,
+                                                              @Nullable String beforeMethodName,
                                                               ExecutionContext ctx) {
             this.scope = scope;
             this.initMethodName = initMethodName;
@@ -217,6 +223,9 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
                 for (String p : initStatementParams) {
                     initMethodTemplate.append("    this.").append(p).append(" = ").append(p).append(";\n");
+                }
+                if (beforeMethodName != null) {
+                    initMethodTemplate.append("    this.").append(beforeMethodName).append("();\n");
                 }
 
                 initMethodTemplate.append("}");
