@@ -29,7 +29,7 @@ class EnvironmentVariablesTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new EnvironmentVariables())
           .parser(
-            JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit", "junit-jupiter-api", "system-rules"));
+            JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api", "system-rules"));
     }
 
     @DocumentExample
