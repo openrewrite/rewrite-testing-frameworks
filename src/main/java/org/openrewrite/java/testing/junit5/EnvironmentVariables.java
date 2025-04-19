@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.junit5;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.NlsRewrite;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaParser;
@@ -48,17 +47,18 @@ public class EnvironmentVariables extends Recipe {
     private static final String EXTEND_WITH = "org.junit.jupiter.api.extension.ExtendWith";
 
     @Override
-    public @NlsRewrite.DisplayName @NonNull String getDisplayName() {
+    public @NonNull String getDisplayName() {
         return "Migrate JUnit 4 environmentVariables rule to JUnit 5 system stubs extension";
     }
 
     @Override
-    public @NlsRewrite.Description @NonNull String getDescription() {
-        return "Replaces usage of the JUnit 4 `@Rule EnvironmentVariables` with the JUnit 5-compatible "
-                + "`SystemStubsExtension` and `@SystemStub EnvironmentVariables` from the System Stubs "
-                + "library.";
+    public @NonNull String getDescription() {
+        return "Replaces usage of the JUnit 4 `@Rule EnvironmentVariables` with the JUnit 5-compatible " +
+                "`SystemStubsExtension` and `@SystemStub EnvironmentVariables` from the System Stubs " +
+                "library.";
     }
 
+    @Override
     public @NonNull TreeVisitor<?, ExecutionContext> getVisitor() {
         return new EnvironmentVariablesVisitor();
     }
@@ -141,8 +141,8 @@ public class EnvironmentVariables extends Recipe {
                         getEnvVarClearTemplate(ctx, argCount)
                                 .apply(updateCursor(m), m.getCoordinates().replace(), getArgs(m, argCount));
 
-                if (getCursor().getParentTreeCursor().getValue() instanceof J.Block
-                        && !(j instanceof Statement)) {
+                if (getCursor().getParentTreeCursor().getValue() instanceof J.Block &&
+                        !(j instanceof Statement)) {
                     return null;
                 }
                 return j;

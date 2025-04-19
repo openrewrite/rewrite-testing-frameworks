@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -31,6 +32,7 @@ class EnvironmentVariablesTest implements RewriteTest {
             JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit", "junit-jupiter-api", "system-rules"));
     }
 
+    @DocumentExample
     @Test
     void supportedRule() {
         rewriteRun(
@@ -87,7 +89,9 @@ class EnvironmentVariablesTest implements RewriteTest {
                       environmentVariables.remove("clear1").remove("clear2");
                   }
               }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -131,7 +135,9 @@ class EnvironmentVariablesTest implements RewriteTest {
                       environmentVariables.set("testSet", "valueSet").remove("clear1").remove("clear2");
                   }
               }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -176,7 +182,9 @@ class EnvironmentVariablesTest implements RewriteTest {
                       environmentVariables.remove("testSet");
                   }
               }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -193,6 +201,8 @@ class EnvironmentVariablesTest implements RewriteTest {
                   @Rule
                   public SystemOutRule systemOutRule = new SystemOutRule().mute().enableLog();
               }
-              """));
+              """
+          )
+        );
     }
 }
