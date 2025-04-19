@@ -128,7 +128,7 @@ recipeList:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter-params
       version: 5.x
-      onlyIfUsing: org.junit.jupiter.params.ParameterizedTest
+      onlyIfUsing: org.junit.runners.Parameterized
       acceptTransitive: true
       scope: test
   - org.openrewrite.maven.UpgradePluginVersion:
