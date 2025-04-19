@@ -15,11 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import static org.openrewrite.java.testing.junit5.Junit4Utils.CLASS_RULE;
-import static org.openrewrite.java.testing.junit5.Junit4Utils.RULE;
-import static org.openrewrite.java.testing.junit5.Junit4Utils.isRule;
-import static java.util.Comparator.comparing;
-
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
@@ -34,6 +29,9 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
+
+import static java.util.Comparator.comparing;
+import static org.openrewrite.java.testing.junit5.Junit4Utils.*;
 
 /**
  * A recipe to replace JUnit 4's EnvironmentVariables rule from contrib with the JUnit 5-compatible

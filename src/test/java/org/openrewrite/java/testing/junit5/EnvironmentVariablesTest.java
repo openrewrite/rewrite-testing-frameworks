@@ -15,13 +15,13 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import static org.openrewrite.java.Assertions.java;
-
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+
+import static org.openrewrite.java.Assertions.java;
 
 class EnvironmentVariablesTest implements RewriteTest {
     @Override
@@ -38,56 +38,56 @@ class EnvironmentVariablesTest implements RewriteTest {
           java(
             // before
             """
-            import org.junit.jupiter.api.BeforeEach;
-            import org.junit.contrib.java.lang.system.EnvironmentVariables;
-            import org.junit.Rule;
-            import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.contrib.java.lang.system.EnvironmentVariables;
+              import org.junit.Rule;
+              import org.junit.jupiter.api.Test;
 
-            public class RuleTest {
-                @Rule
-                public EnvironmentVariables environmentVariables = new EnvironmentVariables()
-                        .set("testSetInline", "valueSetInline").clear("testClearInline");
+              public class RuleTest {
+                  @Rule
+                  public EnvironmentVariables environmentVariables = new EnvironmentVariables()
+                          .set("testSetInline", "valueSetInline").clear("testClearInline");
 
-                @BeforeEach
-                public void setUp() {
-                    System.out.println("Setting up...");
-                }
+                  @BeforeEach
+                  public void setUp() {
+                      System.out.println("Setting up...");
+                  }
 
-                @Test
-                public void test() {
-                    environmentVariables.clear();
-                    environmentVariables.set("testSet", "valueSet").clear("testClear");
-                    environmentVariables.clear("clear1", "clear2").clear();
-                }
-            }
-            """,
+                  @Test
+                  public void test() {
+                      environmentVariables.clear();
+                      environmentVariables.set("testSet", "valueSet").clear("testClear");
+                      environmentVariables.clear("clear1", "clear2").clear();
+                  }
+              }
+              """,
             // after
             """
-            import org.junit.jupiter.api.BeforeEach;
-            import org.junit.jupiter.api.Test;
-            import org.junit.jupiter.api.extension.ExtendWith;
-            import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
-            import uk.org.webcompere.systemstubs.jupiter.SystemStub;
-            import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+              import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+              import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
-            @ExtendWith(SystemStubsExtension.class)
-            public class RuleTest {
-                @SystemStub
-                public EnvironmentVariables environmentVariables = new EnvironmentVariables()
-                        .set("testSetInline", "valueSetInline").remove("testClearInline");
+              @ExtendWith(SystemStubsExtension.class)
+              public class RuleTest {
+                  @SystemStub
+                  public EnvironmentVariables environmentVariables = new EnvironmentVariables()
+                          .set("testSetInline", "valueSetInline").remove("testClearInline");
 
-                @BeforeEach
-                public void setUp() {
-                    System.out.println("Setting up...");
-                }
+                  @BeforeEach
+                  public void setUp() {
+                      System.out.println("Setting up...");
+                  }
 
-                @Test
-                public void test() {
-                    environmentVariables.set("testSet", "valueSet").remove("testClear");
-                    environmentVariables.remove("clear1").remove("clear2");
-                }
-            }
-            """));
+                  @Test
+                  public void test() {
+                      environmentVariables.set("testSet", "valueSet").remove("testClear");
+                      environmentVariables.remove("clear1").remove("clear2");
+                  }
+              }
+              """));
     }
 
     @Test
@@ -97,41 +97,41 @@ class EnvironmentVariablesTest implements RewriteTest {
           java(
             // before
             """
-            import org.junit.ClassRule;
-            import org.junit.jupiter.api.BeforeAll;
-            import org.junit.contrib.java.lang.system.EnvironmentVariables;
+              import org.junit.ClassRule;
+              import org.junit.jupiter.api.BeforeAll;
+              import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
-            public class RuleTest {
-                @ClassRule
-                public static EnvironmentVariables environmentVariables = new EnvironmentVariables()
-                        .set("testSetInline", "valueSetInline").clear("clearInline");
+              public class RuleTest {
+                  @ClassRule
+                  public static EnvironmentVariables environmentVariables = new EnvironmentVariables()
+                          .set("testSetInline", "valueSetInline").clear("clearInline");
 
-                @BeforeAll
-                public static void setUp() {
-                    environmentVariables.set("testSet", "valueSet").clear("clear1", "clear2");
-                }
-            }
-            """,
+                  @BeforeAll
+                  public static void setUp() {
+                      environmentVariables.set("testSet", "valueSet").clear("clear1", "clear2");
+                  }
+              }
+              """,
             // after
             """
-            import org.junit.jupiter.api.BeforeAll;
-            import org.junit.jupiter.api.extension.ExtendWith;
-            import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
-            import uk.org.webcompere.systemstubs.jupiter.SystemStub;
-            import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
+              import org.junit.jupiter.api.BeforeAll;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+              import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+              import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
-            @ExtendWith(SystemStubsExtension.class)
-            public class RuleTest {
-                @SystemStub
-                public static EnvironmentVariables environmentVariables = new EnvironmentVariables()
-                        .set("testSetInline", "valueSetInline").remove("clearInline");
+              @ExtendWith(SystemStubsExtension.class)
+              public class RuleTest {
+                  @SystemStub
+                  public static EnvironmentVariables environmentVariables = new EnvironmentVariables()
+                          .set("testSetInline", "valueSetInline").remove("clearInline");
 
-                @BeforeAll
-                public static void setUp() {
-                    environmentVariables.set("testSet", "valueSet").remove("clear1").remove("clear2");
-                }
-            }
-            """));
+                  @BeforeAll
+                  public static void setUp() {
+                      environmentVariables.set("testSet", "valueSet").remove("clear1").remove("clear2");
+                  }
+              }
+              """));
     }
 
     @Test
@@ -141,42 +141,42 @@ class EnvironmentVariablesTest implements RewriteTest {
           java(
             // before
             """
-            import org.junit.jupiter.api.AfterEach;
-            import org.junit.jupiter.api.BeforeEach;
-            import org.junit.contrib.java.lang.system.EnvironmentVariables;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
-            public class RuleTest {
-                public EnvironmentVariables environmentVariables = new EnvironmentVariables();
+              public class RuleTest {
+                  public EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
-                @BeforeEach
-                public void setUp() {
-                    environmentVariables.set("testSet", "valueSet");
-                }
-                @AfterEach
-                public void tearDown() {
-                    environmentVariables.clear("testSet");
-                }
-            }
-            """,
+                  @BeforeEach
+                  public void setUp() {
+                      environmentVariables.set("testSet", "valueSet");
+                  }
+                  @AfterEach
+                  public void tearDown() {
+                      environmentVariables.clear("testSet");
+                  }
+              }
+              """,
             // after
             """
-            import org.junit.jupiter.api.AfterEach;
-            import org.junit.jupiter.api.BeforeEach;
-            import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 
-            public class RuleTest {
-                public EnvironmentVariables environmentVariables = new EnvironmentVariables();
+              public class RuleTest {
+                  public EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
-                @BeforeEach
-                public void setUp() {
-                    environmentVariables.set("testSet", "valueSet");
-                }
-                @AfterEach
-                public void tearDown() {
-                    environmentVariables.remove("testSet");
-                }
-            }
-            """));
+                  @BeforeEach
+                  public void setUp() {
+                      environmentVariables.set("testSet", "valueSet");
+                  }
+                  @AfterEach
+                  public void tearDown() {
+                      environmentVariables.remove("testSet");
+                  }
+              }
+              """));
     }
 
     @Test
@@ -186,13 +186,13 @@ class EnvironmentVariablesTest implements RewriteTest {
           java(
             // before
             """
-            import org.junit.Rule;
-            import org.junit.contrib.java.lang.system.SystemOutRule;
+              import org.junit.Rule;
+              import org.junit.contrib.java.lang.system.SystemOutRule;
 
-            public class RuleTest {
-                @Rule
-                public SystemOutRule systemOutRule = new SystemOutRule().mute().enableLog();
-            }
-            """));
+              public class RuleTest {
+                  @Rule
+                  public SystemOutRule systemOutRule = new SystemOutRule().mute().enableLog();
+              }
+              """));
     }
 }

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.experimental.UtilityClass;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
@@ -24,6 +25,7 @@ import java.util.*;
 /**
  * Utility class containing JUnit4 related helper methods used in JUnit4 to JUnit5 migration recipes
  */
+@UtilityClass
 public class Junit4Utils {
     static final String AFTER = "org.junit.After";
     static final String AFTER_CLASS = "org.junit.AfterClass";
@@ -36,8 +38,6 @@ public class Junit4Utils {
     static final String RULE = "org.junit.Rule";
     static final String RUN_WITH = "org.junit.runner.RunWith";
     static final String TEST = "org.junit.Test";
-
-    private Junit4Utils() {}
 
     static Set<String> classAnnotations() {
         return new HashSet<>(Arrays.asList(RUN_WITH, FIX_METHOD_ORDER, IGNORE));
@@ -68,7 +68,7 @@ public class Junit4Utils {
      * Determines whether the given statement (class, method, or variable declaration) has any
      * annotation from the provided list of fully qualified annotation names.
      *
-     * @param stmt The statement to inspect.
+     * @param stmt        The statement to inspect.
      * @param annotations A collection of fully qualified annotation class names to match against.
      * @return true if any matching annotation is present, false otherwise.
      */
