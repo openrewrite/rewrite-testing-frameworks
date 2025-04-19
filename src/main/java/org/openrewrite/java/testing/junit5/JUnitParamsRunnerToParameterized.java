@@ -47,8 +47,10 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static final AnnotationMatcher PARAMETERS_MATCHER = new AnnotationMatcher("@junitparams.Parameters");
     private static final AnnotationMatcher TEST_CASE_NAME_MATCHER = new AnnotationMatcher("@junitparams.naming.TestCaseName");
     private static final AnnotationMatcher NAMED_PARAMETERS_MATCHER = new AnnotationMatcher("@junitparams.NamedParameters");
+    private static final AnnotationMatcher CONVERTER_MATCHER = new AnnotationMatcher("@junitparams.converters.Param");
 
     private static final String INIT_METHOD_REFERENCES = "init-method-references";
+    private static final String CSV_PARAMS = "csv-params";
     private static final String PARAMETERS_FOR_PREFIX = "parametersFor";
     private static final String INIT_METHODS_MAP = "named-parameters-map";
     private static final String CONVERSION_NOT_SUPPORTED = "conversion-not-supported";
@@ -77,8 +79,9 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-            Set<String> initMethods = getCursor().getMessage(INIT_METHOD_REFERENCES);
-            if (initMethods != null && !initMethods.isEmpty()) {
+            Set<String> initMethods = getCursor().computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>());
+            Boolean hasCsvParams = getCursor().getMessage(CSV_PARAMS);
+            if (!initMethods.isEmpty() || Boolean.TRUE.equals(hasCsvParams)) {
                 doAfterVisit(new ParametersNoArgsImplicitMethodSource(initMethods,
                         getCursor().computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<>()),
                         getCursor().computeMessageIfAbsent(CONVERSION_NOT_SUPPORTED, v -> new HashSet<>()),
@@ -108,6 +111,9 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                     for (String method : annotationArgumentValue.split(",")) {
                         classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>()).add(method);
                     }
+                } else if (isSupportedCsvParam(anno)) {
+                    anno = getCsVParamTemplate(ctx).apply(updateCursor(anno), anno.getCoordinates().replace(), anno.getArguments().get(0));
+                    classDeclCursor.putMessage(CSV_PARAMS,  Boolean.TRUE);
                 } else if (anno.getArguments() != null && !anno.getArguments().isEmpty()) {
                     // This conversion is not supported add a comment to the annotation and the method name to the not supported list
                     String comment = " JunitParamsRunnerToParameterized conversion not supported";
@@ -163,6 +169,40 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                 }
             }
             return value;
+        }
+
+        private boolean isSupportedCsvParam(J.Annotation anno) {
+            if (anno.getArguments() == null || anno.getArguments().size() != 1) {
+                return false;
+            }
+            Expression argValue = anno.getArguments().get(0);
+            if (argValue instanceof J.Assignment) {
+               if (!((J.Assignment) argValue).getVariable().toString().equals("value")) {
+                   return false;
+               }
+               argValue = ((J.Assignment) argValue).getAssignment();
+            }
+            if (!(argValue instanceof J.NewArray)) {
+                return false;
+            }
+            return !doTestParamsHaveCustomConverter(getCursor().firstEnclosing(J.MethodDeclaration.class));
+        }
+
+        private boolean doTestParamsHaveCustomConverter(J.@Nullable MethodDeclaration method) {
+            if (method == null) {
+                return false;
+            }
+            return method.getParameters().stream()
+                    .filter(param -> param instanceof J.VariableDeclarations)
+                    .map(J.VariableDeclarations.class::cast)
+                    .anyMatch(v -> v.getLeadingAnnotations().stream().anyMatch(CONVERTER_MATCHER::matches));
+        }
+
+        private static JavaTemplate getCsVParamTemplate(ExecutionContext ctx) {
+            return JavaTemplate.builder("@CsvSource(#{any(java.lang.String[])})")
+                    .imports("org.junit.jupiter.params.provider.CsvSource")
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params"))
+                    .build();
         }
     }
 
@@ -222,6 +262,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             maybeRemoveImport("junitparams.naming.TestCaseName");
             maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
             maybeAddImport("org.junit.jupiter.params.provider.MethodSource");
+            maybeAddImport("org.junit.jupiter.params.provider.CsvSource");
             return cd;
         }
 
