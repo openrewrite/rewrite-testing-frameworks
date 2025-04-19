@@ -67,9 +67,13 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
                   private Object[] parametersForPersonIsChild() {
                       return new Object[]{new Object[]{3, false}, new Object[]{7, false}};
                   }
+
+                  @Test
+                  public void regularTest() {}
               }
               """,
             """
+              import org.junit.Test;
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
 
@@ -92,6 +96,9 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
                   private static Object[] parametersForPersonIsChild() {
                       return new Object[]{new Object[]{3, false}, new Object[]{7, false}};
                   }
+
+                  @Test
+                  public void regularTest() {}
               }
               """
           )

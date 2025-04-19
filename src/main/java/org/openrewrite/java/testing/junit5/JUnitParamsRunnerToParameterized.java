@@ -55,6 +55,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static final String INIT_METHOD_REFERENCES = "init-method-references";
     private static final String CSV_PARAMS = "csv-params";
     private static final String PARAMETERS_FOR_PREFIX = "parametersFor";
+    private static final String PARAMETERIZED_TESTS = "parameterized-tests";
     private static final String INIT_METHODS_MAP = "named-parameters-map";
     private static final String CONVERSION_NOT_SUPPORTED = "conversion-not-supported";
 
@@ -88,6 +89,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                 doAfterVisit(new ParametersNoArgsImplicitMethodSource(initMethods,
                         getCursor().computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<>()),
                         getCursor().computeMessageIfAbsent(CONVERSION_NOT_SUPPORTED, v -> new HashSet<>()),
+                        getCursor().computeMessageIfAbsent(PARAMETERIZED_TESTS, v -> new HashSet<>()),
                         ctx));
             }
             return cd;
@@ -111,6 +113,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             if (PARAMETERS_MATCHER.matches(anno)) {
                 Annotated annotated = Traits.annotated(PARAMETERS_MATCHER).require(annotation, getCursor().getParentOrThrow());
                 String annotationArgumentValue = getAnnotationArgumentForInitMethod(annotated, "method", "named");
+                classDeclCursor.computeMessageIfAbsent(PARAMETERIZED_TESTS, v -> new HashSet<>())
+                        .add(getCursor().firstEnclosing(J.MethodDeclaration.class).getSimpleName());
                 if (annotationArgumentValue != null) {
                     for (String method : annotationArgumentValue.split(",")) {
                         classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>()).add(method);
@@ -202,16 +206,18 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
         private final Set<String> initMethods;
         private final Set<String> unsupportedConversions;
+        private final Set<String> parameterizedTests;
         private final Map<String, String> initMethodReferences;
 
         private final JavaTemplate parameterizedTestTemplate;
         private final JavaTemplate parameterizedTestTemplateWithName;
         private final JavaTemplate methodSourceTemplate;
 
-        public ParametersNoArgsImplicitMethodSource(Set<String> initMethods, Map<String, String> initMethodReferences, Set<String> unsupportedConversions, ExecutionContext ctx) {
+        public ParametersNoArgsImplicitMethodSource(Set<String> initMethods, Map<String, String> initMethodReferences, Set<String> unsupportedConversions, Set<String> parameterizedTests, ExecutionContext ctx) {
             this.initMethods = initMethods;
             this.initMethodReferences = initMethodReferences;
             this.unsupportedConversions = unsupportedConversions;
+            this.parameterizedTests = parameterizedTests;
 
             // build @ParameterizedTest template
             JavaParser.Builder<?, ?> javaParser = JavaParser.fromJavaVersion()
@@ -279,6 +285,9 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
 
         private J.Annotation maybeReplaceTestAnnotation(Cursor anno, @Nullable String parameterizedTestArgument) {
             if (JUPITER_TEST_ANNOTATION_MATCHER.matches(anno.getValue()) || JUNIT_TEST_ANNOTATION_MATCHER.matches(anno.getValue())) {
+                if (!parameterizedTests.contains(anno.firstEnclosing(J.MethodDeclaration.class).getSimpleName())) {
+                    return anno.getValue();
+                }
                 if (parameterizedTestArgument == null) {
                     return parameterizedTestTemplate.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace());
                 } else {
