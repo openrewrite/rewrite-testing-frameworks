@@ -38,7 +38,6 @@ class EnvironmentVariablesTest implements RewriteTest {
         rewriteRun(
           // language=java
           java(
-            // before
             """
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.contrib.java.lang.system.EnvironmentVariables;
@@ -63,7 +62,6 @@ class EnvironmentVariablesTest implements RewriteTest {
                   }
               }
               """,
-            // after
             """
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
@@ -99,7 +97,6 @@ class EnvironmentVariablesTest implements RewriteTest {
         rewriteRun(
           // language=java
           java(
-            // before
             """
               import org.junit.ClassRule;
               import org.junit.jupiter.api.BeforeAll;
@@ -116,7 +113,6 @@ class EnvironmentVariablesTest implements RewriteTest {
                   }
               }
               """,
-            // after
             """
               import org.junit.jupiter.api.BeforeAll;
               import org.junit.jupiter.api.extension.ExtendWith;
@@ -145,7 +141,6 @@ class EnvironmentVariablesTest implements RewriteTest {
         rewriteRun(
           // language=java
           java(
-            // before
             """
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
@@ -164,7 +159,6 @@ class EnvironmentVariablesTest implements RewriteTest {
                   }
               }
               """,
-            // after
             """
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
@@ -192,7 +186,6 @@ class EnvironmentVariablesTest implements RewriteTest {
         rewriteRun(
           // language=java
           java(
-            // before
             """
               import org.junit.Rule;
               import org.junit.contrib.java.lang.system.SystemOutRule;

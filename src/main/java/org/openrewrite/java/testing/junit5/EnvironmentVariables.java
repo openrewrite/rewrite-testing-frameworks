@@ -37,12 +37,9 @@ import static org.openrewrite.java.testing.junit5.Junit4Utils.*;
  * `SystemStubsExtension` and `EnvironmentVariables` from the System Stubs library.
  */
 public class EnvironmentVariables extends Recipe {
-    public static final String ENVIRONMENT_VARIABLES =
-            "org.junit.contrib.java.lang.system.EnvironmentVariables";
-    public static final String ENVIRONMENT_VARIABLES_STUB =
-            "uk.org.webcompere.systemstubs.environment.EnvironmentVariables";
-    public static final String SYSTEM_STUBS_EXTENSION =
-            "uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension";
+    public static final String ENVIRONMENT_VARIABLES = "org.junit.contrib.java.lang.system.EnvironmentVariables";
+    public static final String ENVIRONMENT_VARIABLES_STUB = "uk.org.webcompere.systemstubs.environment.EnvironmentVariables";
+    public static final String SYSTEM_STUBS_EXTENSION = "uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension";
     public static final String SYSTEM_STUB = "uk.org.webcompere.systemstubs.jupiter.SystemStub";
     private static final String EXTEND_WITH = "org.junit.jupiter.api.extension.ExtendWith";
 
