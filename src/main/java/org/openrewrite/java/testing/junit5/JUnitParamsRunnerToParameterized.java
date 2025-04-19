@@ -105,7 +105,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             J.Annotation anno = super.visitAnnotation(annotation, ctx);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
             if (PARAMETERS_MATCHER.matches(anno)) {
-                classDeclCursor.computeMessageIfAbsent(PARAMETERIZED_TESTS, v -> new HashSet<>()).add(getCursor().firstEnclosing(J.MethodDeclaration.class).getSimpleName());
+                classDeclCursor.computeMessageIfAbsent(PARAMETERIZED_TESTS, v -> new HashSet<>())
+                        .add(getCursor().firstEnclosing(J.MethodDeclaration.class).getSimpleName());
                 String annotationArgumentValue = getAnnotationArgumentForInitMethod(anno, "method", "named");
                 if (annotationArgumentValue != null) {
                     for (String method : annotationArgumentValue.split(",")) {
