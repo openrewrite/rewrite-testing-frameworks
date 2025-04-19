@@ -8,6 +8,7 @@ description = "A rewrite module automating best practices and major version migr
 
 recipeDependencies {
     parserClasspath("com.github.database-rider:rider-junit5:1.44.0")
+    parserClasspath("com.github.stefanbirkner:system-rules:1.19.0")
     parserClasspath("com.github.tomakehurst:wiremock-jre8:2.35.0")
     parserClasspath("com.squareup.okhttp3:mockwebserver:3.14.9")
     parserClasspath("com.squareup.okhttp3:mockwebserver:4.10.0")
@@ -32,6 +33,8 @@ recipeDependencies {
     parserClasspath("org.testcontainers:testcontainers:1.20.6")
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
     parserClasspath("org.easytesting:fest-assert-core:2.+")
+    parserClasspath("uk.org.webcompere:system-stubs-core:2.1.8")
+    parserClasspath("uk.org.webcompere:system-stubs-jupiter:2.1.8")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
