@@ -64,11 +64,8 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                         if (getCursor().getMessage("initMocksFound", false)) {
                             variableName = generateVariableName("mocks", getCursor(), INCREMENT_NUMBER);
-                            J.ClassDeclaration after = JavaTemplate.builder("private AutoCloseable " + variableName + ";")
-                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx))
-                                    .build()
-                                    .apply(getCursor(), cd.getBody().getCoordinates().firstStatement());
-
+                            J.ClassDeclaration after = JavaTemplate.apply("private AutoCloseable " + variableName + ";",
+                                    getCursor(), cd.getBody().getCoordinates().firstStatement());
                             return maybeAutoFormat(cd, after, ctx);
                         }
                         return cd;
