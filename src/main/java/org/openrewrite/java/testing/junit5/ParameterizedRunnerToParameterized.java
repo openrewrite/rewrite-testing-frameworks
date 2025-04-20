@@ -20,6 +20,7 @@ import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -95,7 +96,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             if (m.isConstructor()) {
                 params.put(CONSTRUCTOR_ARGUMENTS, m.getParameters());
             }
-            for (J.Annotation annotation : m.getLeadingAnnotations()) {
+            for (J.Annotation annotation : service(AnnotationService.class).getAllAnnotations(getCursor())) {
                 if (PARAMETERS.matches(annotation)) {
                     params.put(PARAMETERS_ANNOTATION_ARGUMENTS, annotation.getArguments());
                     params.put(PARAMETERS_METHOD_NAME, method.getSimpleName());
@@ -114,7 +115,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
             J.Annotation parameterAnnotation = null;
             Integer position = 0;
-            for (J.Annotation leadingAnnotation : variableDeclarations.getLeadingAnnotations()) {
+            for (J.Annotation leadingAnnotation : service(AnnotationService.class).getAllAnnotations(getCursor())) {
                 if (PARAMETER.matches(leadingAnnotation)) {
                     parameterAnnotation = leadingAnnotation;
                     if (parameterAnnotation.getArguments() != null && !(parameterAnnotation.getArguments().get(0) instanceof J.Empty)) {
