@@ -62,8 +62,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-
-                        if (isAnnotatedMethodPresent(classDecl, BEFORE_EACH_MATCHER)) {
+                        if (getCursor().getMessage("initMocksFound", false)) {
                             variableName = generateVariableName("mocks", getCursor(), INCREMENT_NUMBER);
                             J.ClassDeclaration after = JavaTemplate.builder("private AutoCloseable " + variableName + ";")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx))
@@ -76,22 +75,31 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                     }
 
                     @Override
+                    public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                        if (service(AnnotationService.class).matches(getCursor(), BEFORE_EACH_MATCHER)) {
+                            return super.visitMethodDeclaration(method, ctx);
+                        }
+                        return method;
+                    }
+
+                    @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (INIT_MOCKS_MATCHER.matches(mi)) {
+                            getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, "initMocksFound", true);
                             doAfterVisit(updateJUnitLifecycleMethods);
                         }
                         return mi;
                     }
 
-                    private boolean isAnnotatedMethodPresent(J.ClassDeclaration cd, AnnotationMatcher beforeEachMatcher) {
-                        return cd.getBody().getStatements().stream().anyMatch(
-                                st -> st instanceof J.MethodDeclaration &&
-                                        ((J.MethodDeclaration) st).getLeadingAnnotations().stream().anyMatch(beforeEachMatcher::matches)
-                        );
-                    }
-
                     final TreeVisitor<J, ExecutionContext> updateJUnitLifecycleMethods = new JavaIsoVisitor<ExecutionContext>() {
+
+                        private boolean isAnnotatedMethodPresent(J.ClassDeclaration cd, AnnotationMatcher beforeEachMatcher) {
+                            return cd.getBody().getStatements().stream().anyMatch(
+                                    st -> st instanceof J.MethodDeclaration &&
+                                            ((J.MethodDeclaration) st).getLeadingAnnotations().stream().anyMatch(beforeEachMatcher::matches)
+                            );
+                        }
 
                         @Override
                         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
@@ -112,19 +120,24 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
 
-                            if (service(AnnotationService.class).matches(updateCursor(md), BEFORE_EACH_MATCHER) && md.getBody() != null) {
+                            if (service(AnnotationService.class).matches(getCursor(), BEFORE_EACH_MATCHER) && md.getBody() != null) {
                                 maybeRemoveImport("org.mockito.MockitoAnnotations.initMocks");
-                                for (Statement st : md.getBody().getStatements()) {
-                                    if (st instanceof J.MethodInvocation && INIT_MOCKS_MATCHER.matches((J.MethodInvocation) st)) {
-                                        return JavaTemplate.builder(variableName + " = MockitoAnnotations.openMocks(this);")
-                                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))
-                                                .imports("org.mockito.MockitoAnnotations")
-                                                .contextSensitive()
-                                                .build()
-                                                .apply(getCursor(), st.getCoordinates().replace());
+                                return (J.MethodDeclaration) new JavaVisitor<ExecutionContext>() {
+                                    @Override
+                                    public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                                        J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+                                        if (INIT_MOCKS_MATCHER.matches(mi)) {
+                                            return JavaTemplate.builder(variableName + " = MockitoAnnotations.openMocks(this);")
+                                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))
+                                                    .imports("org.mockito.MockitoAnnotations")
+                                                    .contextSensitive()
+                                                    .build()
+                                                    .apply(getCursor(), mi.getCoordinates().replace());
+                                        }
+                                        return mi;
                                     }
-                                }
-                            } else if (service(AnnotationService.class).matches(updateCursor(md), AFTER_EACH_MATCHER) && md.getBody() != null) {
+                                }.visitNonNull(md, ctx, getCursor().getParentOrThrow());
+                            } else if (service(AnnotationService.class).matches(getCursor(), AFTER_EACH_MATCHER) && md.getBody() != null) {
                                 for (Statement st : md.getBody().getStatements()) {
                                     if (st instanceof J.MethodInvocation &&
                                             ((J.MethodInvocation) st).getSelect() instanceof J.Identifier &&
