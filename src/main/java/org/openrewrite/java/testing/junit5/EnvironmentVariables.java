@@ -100,7 +100,7 @@ public class EnvironmentVariables extends Recipe {
             J.VariableDeclarations vd = (J.VariableDeclarations) annotated("@org.junit.*Rule").asVisitor(a ->
                             (new JavaIsoVisitor<ExecutionContext>() {
                                 @Override
-                                public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext executionContext) {
+                                public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
                                     return systemStubsTemplate(ctx).apply(updateCursor(annotation), annotation.getCoordinates().replace());
                                 }
                             }).visit(a.getTree(), ctx, a.getCursor().getParentOrThrow()))

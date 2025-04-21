@@ -16,11 +16,10 @@
 package org.openrewrite.java.testing.junit5;
 
 import lombok.experimental.UtilityClass;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Statement;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Utility class containing JUnit4 related helper methods used in JUnit4 to JUnit5 migration recipes
