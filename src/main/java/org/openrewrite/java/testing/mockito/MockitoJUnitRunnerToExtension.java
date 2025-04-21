@@ -58,6 +58,7 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                 AtomicReference<Strictness> strictness = new AtomicReference<>();
                 annotated(runWith).<AtomicReference<Strictness>>asVisitor((a, s) -> a.getTree().acceptJava(new JavaIsoVisitor<AtomicReference<Strictness>>() {
+                    @Override
                     public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicReference<Strictness> strictness) {
                         for (Strictness strict : Strictness.values()) {
                             if (TypeUtils.isAssignableTo(strict.runner, fieldAccess.getTarget().getType())) {
