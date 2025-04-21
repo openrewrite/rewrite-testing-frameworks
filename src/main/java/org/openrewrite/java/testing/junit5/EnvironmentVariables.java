@@ -20,17 +20,13 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.*;
+import org.openrewrite.java.tree.*;
 
 import static java.util.Comparator.comparing;
-import static org.openrewrite.java.testing.junit5.Junit4Utils.*;
+import static org.openrewrite.java.testing.junit5.Junit4Utils.CLASS_RULE;
+import static org.openrewrite.java.testing.junit5.Junit4Utils.RULE;
+import static org.openrewrite.java.trait.Traits.annotated;
 
 /**
  * A recipe to replace JUnit 4's EnvironmentVariables rule from contrib with the JUnit 5-compatible
@@ -63,7 +59,6 @@ public class EnvironmentVariables extends Recipe {
     private static class EnvironmentVariablesVisitor extends JavaVisitor<ExecutionContext> {
 
         private static final String HAS_ENV_VAR_RULE = "hasEnvVarRule";
-        private static final String REPLACE_TEST_RULE_ANNOTATION = "replaceTestRuleAnnotation";
         private static final MethodMatcher ENV_VAR_CLEAR =
                 new MethodMatcher(ENVIRONMENT_VARIABLES + " clear(String[])");
 
@@ -99,33 +94,28 @@ public class EnvironmentVariables extends Recipe {
         public @NonNull J visitVariableDeclarations(
                 J.@NonNull VariableDeclarations variableDecls, @NonNull ExecutionContext ctx) {
             // missing type attribution, possibly parsing error.
-            if (variableDecls.getType() == null) {
+            if (variableDecls.getType() == null || !TypeUtils.isAssignableTo(ENVIRONMENT_VARIABLES, variableDecls.getType())) {
                 return variableDecls;
             }
-            boolean isEnvVarRule = isEnvVarRule(variableDecls);
+            J.VariableDeclarations vd = (J.VariableDeclarations) annotated("@org.junit.*Rule").asVisitor(a ->
+                            (new JavaIsoVisitor<ExecutionContext>() {
+                                @Override
+                                public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext executionContext) {
+                                    return systemStubsTemplate(ctx).apply(updateCursor(annotation), annotation.getCoordinates().replace());
+                                }
+                            }).visit(a.getTree(), ctx, a.getCursor().getParentOrThrow()))
+                    .visit(variableDecls, ctx, getCursor().getParentOrThrow());
 
-            if (isEnvVarRule) {
+            if (variableDecls != vd) {
                 // put message to first enclosing ClassDeclaration, to inform that we have an env var rule.
                 getCursor()
                         .dropParentUntil(c -> c instanceof J.ClassDeclaration)
                         .putMessage(HAS_ENV_VAR_RULE, true);
-                // put message to variable, to inform that we need to replace the test rule annotation.
-                getCursor().putMessage(REPLACE_TEST_RULE_ANNOTATION, true);
             }
 
-            return super.visitVariableDeclarations(variableDecls, ctx);
+            return super.visitVariableDeclarations(vd, ctx);
         }
 
-        @Override
-        public @NonNull J visitAnnotation(
-                J.@NonNull Annotation annotation, @NonNull ExecutionContext ctx) {
-            if (!shouldReplace(annotation)) {
-                return super.visitAnnotation(annotation, ctx);
-            }
-            return systemStubsTemplate(ctx).apply(getCursor(), annotation.getCoordinates().replace());
-        }
-
-        @SuppressWarnings("NullAway") // may need to delete a method
         @Override
         public @Nullable J visitMethodInvocation(
                 J.@NonNull MethodInvocation method, @NonNull ExecutionContext ctx) {
@@ -158,21 +148,6 @@ public class EnvironmentVariables extends Recipe {
             return super.visitType(type, ctx);
         }
 
-        private boolean shouldReplace(J.Annotation annotation) {
-            if (annotation.getType() == null) {
-                return false;
-            }
-            String type = ((JavaType.FullyQualified) annotation.getType()).getFullyQualifiedName();
-            if (!type.equals(RULE) && !type.equals(CLASS_RULE)) { // not a test rule annotation
-                return false;
-            }
-            if (getCursor().getParentTreeCursor().getValue() instanceof J.VariableDeclarations) {
-                return Boolean.TRUE.equals(
-                        getCursor().getParentTreeCursor().getMessage(REPLACE_TEST_RULE_ANNOTATION));
-            }
-            return false;
-        }
-
         private static JavaTemplate systemStubExtensionTemplate(ExecutionContext ctx) {
             return JavaTemplate.builder("@ExtendWith(SystemStubsExtension.class)")
                     .imports(EXTEND_WITH, SYSTEM_STUBS_EXTENSION)
@@ -186,14 +161,6 @@ public class EnvironmentVariables extends Recipe {
                     .imports(SYSTEM_STUB)
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter"))
                     .build();
-        }
-
-        private static boolean isEnvVarRule(J.VariableDeclarations variableDeclarations) {
-            if (!isRule(variableDeclarations)) {
-                return false;
-            }
-            JavaType.FullyQualified type = (JavaType.FullyQualified) variableDeclarations.getType();
-            return type != null && type.getFullyQualifiedName().equals(ENVIRONMENT_VARIABLES);
         }
 
         private static JavaTemplate getEnvVarClearTemplate(ExecutionContext ctx, int argsSize) {

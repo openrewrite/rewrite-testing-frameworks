@@ -59,31 +59,4 @@ public class Junit4Utils {
     static Set<String> fieldAnnotations() {
         return new HashSet<>(Arrays.asList(RULE, CLASS_RULE));
     }
-
-    static boolean isRule(J.VariableDeclarations variableDeclarations) {
-        return hasAnnotation(variableDeclarations, Arrays.asList(RULE, CLASS_RULE));
-    }
-
-    /**
-     * Determines whether the given statement (class, method, or variable declaration) has any
-     * annotation from the provided list of fully qualified annotation names.
-     *
-     * @param stmt        The statement to inspect.
-     * @param annotations A collection of fully qualified annotation class names to match against.
-     * @return true if any matching annotation is present, false otherwise.
-     */
-    static boolean hasAnnotation(Statement stmt, Collection<String> annotations) {
-        List<J.Annotation> stmtAnnotations = new ArrayList<>();
-        if (stmt instanceof J.ClassDeclaration) {
-            stmtAnnotations = ((J.ClassDeclaration) stmt).getLeadingAnnotations();
-        } else if (stmt instanceof J.MethodDeclaration) {
-            stmtAnnotations = ((J.MethodDeclaration) stmt).getLeadingAnnotations();
-        } else if (stmt instanceof J.VariableDeclarations) {
-            stmtAnnotations = ((J.VariableDeclarations) stmt).getLeadingAnnotations();
-        }
-        return stmtAnnotations.stream()
-                .filter(a -> a.getType() instanceof JavaType.Class)
-                .map(a -> (JavaType.Class) a.getType())
-                .anyMatch(t -> annotations.contains(t.getFullyQualifiedName()));
-    }
 }
