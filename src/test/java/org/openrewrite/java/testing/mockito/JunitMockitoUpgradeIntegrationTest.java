@@ -22,7 +22,6 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -51,7 +50,9 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
     void replaceMockAnnotation() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          spec -> spec
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "mockito-core", "junit-4", "hamcrest-3", "junit-jupiter-api-5")),
           java(
             """
               package org.openrewrite.java.testing.junit5;
@@ -88,6 +89,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
             """
               package org.openrewrite.java.testing.junit5;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
               import org.mockito.Mock;
@@ -98,12 +100,13 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
               import static org.mockito.Mockito.verify;
 
               public class MockitoTests {
+                  private AutoCloseable mocks;
                   @Mock
                   List<String> mockedList;
 
                   @BeforeEach
                   public void initMocks() {
-                      MockitoAnnotations.initMocks(this);
+                      mocks = MockitoAnnotations.openMocks(this);
                   }
 
                   @Test
@@ -114,6 +117,11 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
 
                       verify(mockedList).add("one");
                       verify(mockedList).clear();
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      mocks.close();
                   }
               }
               """

@@ -2482,6 +2482,7 @@ examples:
     after: |
       package org.openrewrite.java.testing.junit5;
 
+      import org.junit.jupiter.api.AfterEach;
       import org.junit.jupiter.api.BeforeEach;
       import org.junit.jupiter.api.Test;
       import org.mockito.Mock;
@@ -2492,12 +2493,13 @@ examples:
       import static org.mockito.Mockito.verify;
 
       public class MockitoTests {
+          private AutoCloseable mocks;
           @Mock
           List<String> mockedList;
 
           @BeforeEach
           public void initMocks() {
-              MockitoAnnotations.initMocks(this);
+              mocks = MockitoAnnotations.openMocks(this);
           }
 
           @Test
@@ -2508,6 +2510,11 @@ examples:
 
               verify(mockedList).add("one");
               verify(mockedList).clear();
+          }
+
+          @AfterEach
+          void tearDown() throws Exception {
+              mocks.close();
           }
       }
     language: java
@@ -3582,6 +3589,59 @@ examples:
           void test(Object myObject) {
               myObject.wait();
               verify(myObject, never()).wait();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.ReplaceInitMockToOpenMock
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.mockito.MockitoAnnotations;
+      import org.junit.jupiter.api.BeforeEach;
+
+      class A {
+
+          @BeforeEach
+          public void setUp() {
+              test1();
+              MockitoAnnotations.initMocks(this);
+              test2();
+          }
+
+          public void test1() {
+          }
+
+          public void test2() {
+          }
+      }
+    after: |
+      import org.mockito.MockitoAnnotations;
+      import org.junit.jupiter.api.AfterEach;
+      import org.junit.jupiter.api.BeforeEach;
+
+      class A {
+
+          private AutoCloseable mocks;
+
+          @BeforeEach
+          public void setUp() {
+              test1();
+              mocks = MockitoAnnotations.openMocks(this);
+              test2();
+          }
+
+          public void test1() {
+          }
+
+          public void test2() {
+          }
+
+          @AfterEach
+          void tearDown() throws Exception {
+              mocks.close();
           }
       }
     language: java
