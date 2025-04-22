@@ -300,6 +300,23 @@ examples:
 - description: ''
   sources:
   - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+      class Test {
+          void test() {
+              assertThat("test").isEqualTo("");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+      class Test {
+          void test() {
+              assertThat("test").isEmpty();
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
       import static org.testng.Assert.fail;
 
       class Test {
@@ -317,23 +334,6 @@ examples:
               fail("foo");
               fail("foo", new IllegalStateException());
               fail();
-          }
-      }
-    language: java
-- description: ''
-  sources:
-  - before: |
-      import static org.assertj.core.api.Assertions.assertThat;
-      class Test {
-          void test() {
-              assertThat("test").isEqualTo("");
-          }
-      }
-    after: |
-      import static org.assertj.core.api.Assertions.assertThat;
-      class Test {
-          void test() {
-              assertThat("test").isEmpty();
           }
       }
     language: java
