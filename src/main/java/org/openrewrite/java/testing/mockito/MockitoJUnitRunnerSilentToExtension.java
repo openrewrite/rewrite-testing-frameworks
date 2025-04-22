@@ -30,6 +30,10 @@ import org.openrewrite.java.tree.J;
 import java.util.Collections;
 import java.util.Comparator;
 
+/**
+ * @deprecated Use MockitoJUnitRunnerToExtension instead.
+ */
+@Deprecated
 public class MockitoJUnitRunnerSilentToExtension extends Recipe {
 
     @Override
