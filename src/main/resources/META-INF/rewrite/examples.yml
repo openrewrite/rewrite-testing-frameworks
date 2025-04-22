@@ -1,0 +1,3844 @@
+# Copyright 2025 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.archunit.ArchUnit0to1Migration
+examples:
+- description: ''
+  sources:
+  - before: |
+      import com.tngtech.archunit.core.domain.JavaPackage;
+      import java.util.Set;
+      import com.tngtech.archunit.core.domain.JavaClass;
+
+      public class ArchUnitTest {
+          public Set<JavaClass> sample(JavaPackage javaPackage) {
+              return javaPackage.getAllClasses();
+          }
+      }
+    after: |
+      import com.tngtech.archunit.core.domain.JavaPackage;
+      import java.util.Set;
+      import com.tngtech.archunit.core.domain.JavaClass;
+
+      public class ArchUnitTest {
+          public Set<JavaClass> sample(JavaPackage javaPackage) {
+              return javaPackage.getClassesInPackageTree();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5
+examples:
+- description: ''
+  sources:
+  - before: |
+      <project>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>org.openrewrite</groupId>
+          <artifactId>arquillian</artifactId>
+          <version>1.0-SNAPSHOT</version>
+          <dependencies>
+              <dependency>
+                  <groupId>org.jboss.arquillian.junit</groupId>
+                  <artifactId>arquillian-junit-container</artifactId>
+                  <version>1.7.0.Final</version>
+                  <scope>test</scope>
+              </dependency>
+          </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
+  - before: project
+    language: mavenProject
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.arquillian.ReplaceArquillianInSequenceAnnotation
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.jboss.arquillian.junit.InSequence;
+
+      class A {
+          @InSequence(2)
+          void second() {}
+
+          @InSequence(1)
+          void first() {}
+      }
+    after: |
+      import org.junit.jupiter.api.MethodOrderer;
+      import org.junit.jupiter.api.Order;
+      import org.junit.jupiter.api.TestMethodOrder;
+
+      @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+      class A {
+          @Order(2)
+          void second() {}
+
+          @Order(1)
+          void first() {}
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.AdoptAssertJDurationAssertions
+examples:
+- description: ''
+  sources:
+  - before: |
+      import java.time.Duration;
+      import java.time.temporal.Temporal;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Foo {
+          void testMethod(Temporal timestampA, Temporal timestampB) {
+              assertThat(Duration.between(timestampA, timestampB).getSeconds()).isEqualTo(1);
+          }
+      }
+    after: |
+      import java.time.Duration;
+      import java.time.temporal.Temporal;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Foo {
+          void testMethod(Temporal timestampA, Temporal timestampB) {
+              assertThat(Duration.between(timestampA, timestampB)).hasSeconds(1);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.AssertJBigIntegerRulesRecipes
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.assertj.core.api.Assertions;
+      import java.math.BigInteger;
+
+      class A {
+          public void test(BigInteger bigInteger) {
+              Assertions.assertThat(bigInteger).isEqualTo(0);
+              Assertions.assertThat(bigInteger).isEqualTo(0L);
+              Assertions.assertThat(bigInteger).isEqualTo(BigInteger.ZERO);
+          }
+      }
+    after: |
+      import org.assertj.core.api.Assertions;
+      import java.math.BigInteger;
+
+      class A {
+          public void test(BigInteger bigInteger) {
+              Assertions.assertThat(bigInteger).isZero();
+              Assertions.assertThat(bigInteger).isZero();
+              Assertions.assertThat(bigInteger).isZero();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.AssertJByteRulesRecipes
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(byte b) {
+              Assertions.assertThat(b).isEqualTo((byte)0);
+          }
+      }
+    after: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(byte b) {
+              Assertions.assertThat(b).isZero();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.AssertJDoubleRulesRecipes
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(double d) {
+              Assertions.assertThat(d).isEqualTo(0.0);
+              Assertions.assertThat(d).isEqualTo(0d);
+          }
+      }
+    after: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(double d) {
+              Assertions.assertThat(d).isZero();
+              Assertions.assertThat(d).isZero();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.AssertJFloatRulesRecipes
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(float f) {
+              Assertions.assertThat(f).isEqualTo(0.0f);
+              Assertions.assertThat(f).isEqualTo(0.0F);
+          }
+      }
+    after: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(float f) {
+              Assertions.assertThat(f).isZero();
+              Assertions.assertThat(f).isZero();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.AssertJIntegerRulesRecipes
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(int i) {
+              Assertions.assertThat(i).isEqualTo(0);
+          }
+      }
+    after: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(int i) {
+              Assertions.assertThat(i).isZero();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.AssertJLongRulesRecipes
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(long l) {
+              Assertions.assertThat(l).isEqualTo(0L);
+          }
+      }
+    after: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(long l) {
+              Assertions.assertThat(l).isZero();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.AssertJShortRulesRecipes
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(short s) {
+              Assertions.assertThat(s).isEqualTo((short)0);
+          }
+      }
+    after: |
+      import org.assertj.core.api.Assertions;
+
+      class A {
+          public void test(short s) {
+              Assertions.assertThat(s).isZero();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.Assertj
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.testng.Assert.fail;
+
+      class Test {
+          void test() {
+              fail("foo");
+              fail("foo", new IllegalStateException());
+              fail();
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.fail;
+
+      class Test {
+          void test() {
+              fail("foo");
+              fail("foo", new IllegalStateException());
+              fail();
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+      class Test {
+          void test() {
+              assertThat("test").isEqualTo("");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+      class Test {
+          void test() {
+              assertThat("test").isEmpty();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.CollapseConsecutiveAssertThatStatements
+examples:
+- description: ''
+  sources:
+  - before: |
+      import java.util.Arrays;
+      import java.util.List;
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void test() {
+              List<String> listA = Arrays.asList("a", "b", "c");
+              assertThat(listA).isNotNull();
+              assertThat(listA).hasSize(3);
+              assertThat(listA).containsExactly("a", "b", "c");
+          }
+          private int[] notification() {
+              return new int[]{1, 2, 3};
+          }
+      }
+    after: |
+      import java.util.Arrays;
+      import java.util.List;
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void test() {
+              List<String> listA = Arrays.asList("a", "b", "c");
+              assertThat(listA)
+                      .isNotNull()
+                      .hasSize(3)
+                      .containsExactly("a", "b", "c");
+          }
+          private int[] notification() {
+              return new int[]{1, 2, 3};
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.FestToAssertj
+examples:
+- description: ''
+  sources:
+  - before: |
+      <project>
+          <groupId>com.example</groupId>
+          <artifactId>sample-project</artifactId>
+          <version>1.0-SNAPSHOT</version>
+          <dependencies>
+              <dependency>
+                  <groupId>org.easytesting</groupId>
+                  <artifactId>fest-assert-core</artifactId>
+                  <version>2.0M10</version>
+                  <scope>test</scope>
+              </dependency>
+          </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
+  - before: |
+      import org.fest.assertions.api.Assertions;
+
+      import static org.fest.assertions.api.Assertions.assertThat;
+
+      class MyTest {
+          void test(Object value) {
+              Assertions.assertThat(value).isEqualTo("foo");
+              assertThat(value).isEqualTo("bar");
+          }
+      }
+    after: |
+      import org.assertj.core.api.Assertions;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void test(Object value) {
+              Assertions.assertThat(value).isEqualTo("foo");
+              assertThat(value).isEqualTo("bar");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.IsEqualToIgnoringMillisToIsCloseToRecipe
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.assertj.core.api.Assertions;
+
+      import java.util.Date;
+
+      class A {
+          public void foo(Date date1, Date date2) {
+              Assertions.assertThat(date1).isEqualToIgnoringMillis(date2);
+          }
+      }
+    after: |
+      import org.assertj.core.api.Assertions;
+
+      import java.util.Date;
+
+      class A {
+          public void foo(Date date1, Date date2) {
+              Assertions.assertThat(date1).isCloseTo(date2, 1000L);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitAssertArrayEqualsToAssertThat
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+
+      public class MyTest {
+
+          @Test
+          public void test() {
+              Integer[] expected = new Integer[] {1, 2, 3};
+              assertArrayEquals(expected, notification());
+          }
+          private Integer[] notification() {
+              return new Integer[] {1, 2, 3};
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      public class MyTest {
+
+          @Test
+          public void test() {
+              Integer[] expected = new Integer[] {1, 2, 3};
+              assertThat(notification()).containsExactly(expected);
+          }
+          private Integer[] notification() {
+              return new Integer[] {1, 2, 3};
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitAssertEqualsToAssertThat
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertEquals(1, notification());
+          }
+          private Integer notification() {
+              return 1;
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertThat(notification()).isEqualTo(1);
+          }
+          private Integer notification() {
+              return 1;
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitAssertFalseToAssertThat
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertFalse;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertFalse(notification() != null && notification() > 0);
+          }
+          private Integer notification() {
+              return 1;
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertThat(notification() != null && notification() > 0).isFalse();
+          }
+          private Integer notification() {
+              return 1;
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitAssertInstanceOfToAssertThat
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+      class Test {
+          void test() {
+              assertInstanceOf(Integer.class, 4);
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test() {
+              assertThat(4).isInstanceOf(Integer.class);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitAssertNotEqualsToAssertThat
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertNotEquals(1, notification());
+          }
+          private Integer notification() {
+              return 2;
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertThat(notification()).isNotEqualTo(1);
+          }
+          private Integer notification() {
+              return 2;
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitAssertNotNullToAssertThat
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertNotNull(notification());
+          }
+          private String notification() {
+              return "";
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertThat(notification()).isNotNull();
+          }
+          private String notification() {
+              return "";
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitAssertNullToAssertThat
+examples:
+- description: ''
+  sources:
+  - before: |2
+          import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertNull;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertNull(notification());
+          }
+          private String notification() {
+              return null;
+          }
+      }
+    after: |2
+          import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertThat(notification()).isNull();
+          }
+          private String notification() {
+              return null;
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitAssertSameToAssertThat
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertSame;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              String str = "String";
+              assertSame(notification(), str);
+          }
+          private String notification() {
+              return "String";
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              String str = "String";
+              assertThat(str).isSameAs(notification());
+          }
+          private String notification() {
+              return "String";
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitAssertThrowsToAssertExceptionType
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.junit.jupiter.api.Assertions.assertThrows;
+
+      public class SimpleExpectedExceptionTest {
+          public void throwsExceptionWithSpecificType() {
+              assertThrows(NullPointerException.class, () -> foo());
+          }
+          void foo() {
+              throw new NullPointerException();
+          }
+      }
+    after: |
+      import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+
+      public class SimpleExpectedExceptionTest {
+          public void throwsExceptionWithSpecificType() {
+              assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> foo());
+          }
+          void foo() {
+              throw new NullPointerException();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitAssertTrueToAssertThat
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertTrue(notification() != null && notification() > 0);
+          }
+          private Integer notification() {
+              return 1;
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              assertThat(notification() != null && notification() > 0).isTrue();
+          }
+          private Integer notification() {
+              return 1;
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitFailToAssertJFail
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.fail;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              fail();
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.fail;
+
+      public class MyTest {
+          @Test
+          public void test() {
+              fail("");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion
+examples:
+- description: ''
+  parameters:
+  - isEqualTo
+  - 'null'
+  - isNull
+  - java.lang.Object
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+      class Test {
+          void test(String a) {
+              assertThat(a).isEqualTo(null);
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+      class Test {
+          void test(String a) {
+              assertThat(a).isNull();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion
+examples:
+- description: ''
+  parameters:
+  - isEmpty
+  - isTrue
+  - isEmpty
+  - java.lang.String
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod() {
+              assertThat("hello world".isEmpty()).isTrue();
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod() {
+              assertThat("hello world").isEmpty();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod() {
+              String s = "hello world";
+              assertThat(s.isEmpty()).isTrue();
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod() {
+              String s = "hello world";
+              assertThat(s).isEmpty();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod() {
+              String a = "ab";
+              String b = "ab";
+
+              assertThat(a).hasSize(b.length());
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod() {
+              String a = "ab";
+              String b = "ab";
+
+              assertThat(a).hasSameSizeAs(b);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.StaticImports
+examples:
+- description: ''
+  sources:
+  - before: |
+      import java.util.List;
+      import org.assertj.core.api.Assertions;
+      import static org.assertj.core.api.Fail.fail;
+
+      public class Test {
+          List<String> exampleList;
+          void method() {
+              Assertions.assertThat(true).isTrue();
+              Assertions.assertThat(exampleList).hasSize(0);
+              fail("This is a failure");
+          }
+      }
+    after: |
+      import java.util.List;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+      import static org.assertj.core.api.Assertions.fail;
+
+      public class Test {
+          List<String> exampleList;
+          void method() {
+              assertThat(true).isTrue();
+              assertThat(exampleList).hasSize(0);
+              fail("This is a failure");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.AssertEqualsBooleanToAssertBoolean
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+
+      public class Test {
+          void test() {
+              String a = "a";
+              String c = "c";
+              boolean b = false;
+              assertEquals(false, b);
+              assertEquals(false, a.equals(c));
+              assertEquals(false, a.equals(c), "message");
+          }
+      }
+    after: |
+      import static org.junit.jupiter.api.Assertions.assertFalse;
+
+      public class Test {
+          void test() {
+              String a = "a";
+              String c = "c";
+              boolean b = false;
+              assertFalse(b);
+              assertFalse(a.equals(c));
+              assertFalse(a.equals(c), "message");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipe
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.junit.jupiter.api.Assertions.assertFalse;
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      public class Test {
+          void test() {
+              assertFalse(true, "assert false true");
+              assertTrue(false, "assert true false");
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Assertions;
+
+      public class Test {
+          void test() {
+              Assertions.fail("assert false true");
+              Assertions.fail("assert true false");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.AssertNotEqualsBooleanToAssertBoolean
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+      public class Test {
+          void test() {
+              String a = "a";
+              String c = "c";
+              boolean b = false;
+              assertNotEquals(false, b);
+              assertNotEquals(false, a.equals(c));
+              assertNotEquals(false, a.equals(c), "message");
+          }
+      }
+    after: |
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      public class Test {
+          void test() {
+              String a = "a";
+              String c = "c";
+              boolean b = false;
+              assertTrue(b);
+              assertTrue(a.equals(c));
+              assertTrue(a.equals(c), "message");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.AssertTrueComparisonToAssertEquals
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Assertions;
+
+      public class Test {
+          void test() {
+              int a = 1;
+              int b = 1;
+              Assertions.assertTrue(a == b, "a does not equal b");
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Assertions;
+
+      public class Test {
+          void test() {
+              int a = 1;
+              int b = 1;
+              Assertions.assertEquals(a, b, "a does not equal b");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.AssertionsArgumentOrder
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+
+      class MyTest {
+          void someMethod() {
+              assertEquals(result(), "result");
+              assertEquals(result(), "result", "message");
+              assertEquals(0L, 1L);
+          }
+          String result() {
+              return "result";
+          }
+      }
+    after: |
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+
+      class MyTest {
+          void someMethod() {
+              assertEquals("result", result());
+              assertEquals("result", result(), "message");
+              assertEquals(0L, 1L);
+          }
+          String result() {
+              return "result";
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.RemoveEmptyTests
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Test;
+      class MyTest {
+          @Test
+          public void method() {
+          }
+      }
+    after: |
+      import org.junit.Test;
+      class MyTest {
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.RemoveTestPrefix
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Nested;
+      import org.junit.jupiter.api.Test;
+
+      class ATest {
+          @Test
+          void testMethod() {
+          }
+
+          @Test
+          void test_snake_case() {
+          }
+
+          @Test
+          void testRTFCharacters() {
+          }
+
+          @Nested
+          class NestedTestClass {
+              @Test
+              void testAnotherTestMethod() {
+              }
+          }
+
+          @Nested
+          class AnotherNestedTestClass {
+              @Test
+              void testYetAnotherTestMethod() {
+              }
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Nested;
+      import org.junit.jupiter.api.Test;
+
+      class ATest {
+          @Test
+          void method() {
+          }
+
+          @Test
+          void snake_case() {
+          }
+
+          @Test
+          void rtfCharacters() {
+          }
+
+          @Nested
+          class NestedTestClass {
+              @Test
+              void anotherTestMethod() {
+              }
+          }
+
+          @Nested
+          class AnotherNestedTestClass {
+              @Test
+              void yetAnotherTestMethod() {
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.SimplifyTestThrows
+examples:
+- description: ''
+  sources:
+  - before: |
+      import java.io.IOException;
+      import org.junit.jupiter.api.Test;
+
+      class ATest {
+          @Test
+          void throwsMultiple() throws IOException, ArrayIndexOutOfBoundsException, ClassCastException {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      class ATest {
+          @Test
+          void throwsMultiple() throws Exception {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.TestsShouldIncludeAssertions
+examples:
+- description: ''
+  parameters:
+  - 'null'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      public class AaTest {
+          @Test
+          public void methodTest() {
+              Integer it = Integer.valueOf("2");
+              System.out.println(it);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+      public class AaTest {
+          @Test
+          public void methodTest() {
+              assertDoesNotThrow(() -> {
+                  Integer it = Integer.valueOf("2");
+                  System.out.println(it);
+              });
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
+examples:
+- description: ''
+  parameters:
+  - 'false'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Nested;
+      import org.junit.jupiter.api.Test;
+
+      public class ATest {
+
+          @Test
+          void testMethod() {
+          }
+
+          @Nested
+          public class NestedTestClass {
+
+              @Test
+              void anotherTestMethod() {
+              }
+          }
+
+          @Nested
+          public class AnotherNestedTestClass {
+
+              private static final String CONSTANT = "foo";
+
+              private void setup() {
+              }
+
+              @Test
+              void anotherTestMethod() {
+              }
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Nested;
+      import org.junit.jupiter.api.Test;
+
+      class ATest {
+
+          @Test
+          void testMethod() {
+          }
+
+          @Nested
+          class NestedTestClass {
+
+              @Test
+              void anotherTestMethod() {
+              }
+          }
+
+          @Nested
+          class AnotherNestedTestClass {
+
+              private static final String CONSTANT = "foo";
+
+              private void setup() {
+              }
+
+              @Test
+              void anotherTestMethod() {
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.datafaker.JavaFakerToDataFaker
+examples:
+- description: ''
+  sources:
+  - before: |
+      import com.github.javafaker.Faker;
+      class A {
+          void method() {
+              Faker faker = new Faker();
+              String name = faker.name().fullName();
+              String address = faker.address().fullAddress();
+
+              String md5 = faker.crypto().md5();
+              String relationship = faker.relationships().sibling();
+          }
+      }
+    after: |
+      import net.datafaker.Faker;
+      class A {
+          void method() {
+              Faker faker = new Faker();
+              String name = faker.name().fullName();
+              String address = faker.address().fullAddress();
+
+              String md5 = faker.hashing().md5();
+              String relationship = faker.relationships().sibling();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.dbrider.ExecutionListenerToDbRiderAnnotation
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.springframework.test.context.TestExecutionListeners;
+      import com.github.database.rider.spring.DBRiderTestExecutionListener;
+
+      @TestExecutionListeners(mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS, listeners = {DBRiderTestExecutionListener.class})
+      public class Sample {}
+    after: |
+      import com.github.database.rider.junit5.api.DBRider;
+
+      @DBRider
+      public class Sample {}
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.easymock.EasyMockToMockito
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.easymock.EasyMockRunner;
+      import org.easymock.Mock;
+      import org.easymock.EasyMock;
+      import org.easymock.TestSubject;
+      import org.junit.Before;
+      import org.junit.Test;
+      import org.junit.runner.RunWith;
+
+      import static org.junit.Assert.assertEquals;
+      import static org.easymock.EasyMock.createNiceMock;
+      import static org.easymock.EasyMock.expect;
+      import static org.easymock.EasyMock.replay;
+      import static org.easymock.EasyMock.verify;
+
+      @RunWith(EasyMockRunner.class)
+      public class ExampleTest {
+
+          private Service service;
+          private Dependency dependency;
+
+          @Mock
+          private Dependency dependency2;
+
+          @TestSubject
+          Service service2 = new Service();
+
+          @Before
+          public void setUp() {
+              dependency = createNiceMock(Dependency.class);
+              service = new Service(dependency);
+          }
+
+          @Test
+          public void testServiceMethod() {
+              expect(dependency.performAction()).andReturn("Mocked Result");
+              EasyMock.replay(dependency);
+              replay(dependency);
+              assertEquals("Mocked Result", service.useDependency());
+              verify(dependency);
+          }
+
+          class Service {
+              private Dependency dependency;
+
+              Service() {}
+
+              Service(Dependency dependency) {
+                  this.dependency = dependency;
+              }
+
+              String useDependency() {
+                  return dependency.performAction();
+              }
+          }
+
+          interface Dependency {
+              String performAction();
+          }
+      }
+    after: |
+      import org.junit.Before;
+      import org.junit.Test;
+      import org.junit.runner.RunWith;
+      import org.mockito.InjectMocks;
+      import org.mockito.Mock;
+      import org.mockito.junit.MockitoJUnitRunner;
+
+      import static org.junit.Assert.assertEquals;
+      import static org.mockito.Mockito.verify;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      @RunWith(MockitoJUnitRunner.class)
+      public class ExampleTest {
+
+          private Service service;
+          private Dependency dependency;
+
+          @Mock
+          private Dependency dependency2;
+
+          @InjectMocks
+          Service service2;
+
+          @Before
+          public void setUp() {
+              dependency = mock(Dependency.class);
+              service = new Service(dependency);
+          }
+
+          @Test
+          public void testServiceMethod() {
+              when(dependency.performAction()).thenReturn("Mocked Result");
+              assertEquals("Mocked Result", service.useDependency());
+              verify(dependency).performAction();
+          }
+
+          class Service {
+              private Dependency dependency;
+
+              Service() {}
+
+              Service(Dependency dependency) {
+                  this.dependency = dependency;
+              }
+
+              String useDependency() {
+                  return dependency.performAction();
+              }
+          }
+
+          interface Dependency {
+              String performAction();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.easymock.EasyMockVerifyToMockitoVerify
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.easymock.EasyMock.*;
+
+      public class ExampleTest {
+          public void testServiceMethod() {
+              Dependency dependency = createNiceMock(Dependency.class);
+              expect(dependency.action("", 2)).andReturn("result");
+
+              Dependency dependency2 = createNiceMock(Dependency.class);
+              expect(dependency2.action("", 2)).andReturn("result");
+              expect(dependency2.action2());
+
+              Dependency dependency3 = createNiceMock(Dependency.class);
+              expect(dependency3.action("A", 1)).andReturn("result");
+              expect(dependency3.action2()).andReturn("result");
+              expect(dependency3.action3(3.3)).andReturn("result");
+
+              verify(dependency);
+              verify(dependency2);
+              verify(dependency3);
+          }
+
+          interface Dependency {
+              String action(String s, int i);
+              String action2();
+              String action3(double d);
+          }
+      }
+    after: |
+      import static org.easymock.EasyMock.expect;
+      import static org.easymock.EasyMock.createNiceMock;
+      import static org.mockito.Mockito.verify;
+
+      public class ExampleTest {
+          public void testServiceMethod() {
+              Dependency dependency = createNiceMock(Dependency.class);
+              expect(dependency.action("", 2)).andReturn("result");
+
+              Dependency dependency2 = createNiceMock(Dependency.class);
+              expect(dependency2.action("", 2)).andReturn("result");
+              expect(dependency2.action2());
+
+              Dependency dependency3 = createNiceMock(Dependency.class);
+              expect(dependency3.action("A", 1)).andReturn("result");
+              expect(dependency3.action2()).andReturn("result");
+              expect(dependency3.action3(3.3)).andReturn("result");
+
+              verify(dependency).action("", 2);
+              verify(dependency2).action("", 2);
+              verify(dependency2).action2();
+              verify(dependency3).action("A", 1);
+              verify(dependency3).action2();
+              verify(dependency3).action3(3.3);
+          }
+
+          interface Dependency {
+              String action(String s, int i);
+              String action2();
+              String action3(double d);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.easymock.RemoveExtendsEasyMockSupport
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.easymock.EasyMockSupport;
+
+      public class Test extends EasyMockSupport {
+      }
+    after: |
+      public class Test {
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.AssertThatBooleanToAssertJ
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.hamcrest.MatcherAssert.assertThat;
+
+      class ATest {
+          @Test
+          void test() {
+              assertThat("Reason", 1 != 2);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class ATest {
+          @Test
+          void test() {
+              assertThat(1 != 2).as("Reason").isTrue();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.HamcrestInstanceOfToJUnit5
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import java.util.List;
+
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.instanceOf;
+      import static org.hamcrest.Matchers.isA;
+      import static org.hamcrest.Matchers.not;
+
+      class ATest {
+          private static final List<Integer> list = List.of();
+          @Test
+          void testInstance() {
+              assertThat(list, instanceOf(Iterable.class));
+              assertThat(list, not(instanceOf(Integer.class)));
+              assertThat(list, isA(Iterable.class));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import java.util.List;
+
+      import static org.junit.jupiter.api.Assertions.assertFalse;
+      import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+      class ATest {
+          private static final List<Integer> list = List.of();
+          @Test
+          void testInstance() {
+              assertInstanceOf(Iterable.class, list);
+              assertFalse(Integer.class.isAssignableFrom(list.getClass()));
+              assertInstanceOf(Iterable.class, list);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.HamcrestIsMatcherToAssertJ
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.is;
+
+      class ATest {
+          @Test
+          void testEquals() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1, is(str2));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class ATest {
+          @Test
+          void testEquals() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1).isEqualTo(str2);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ
+examples:
+- description: ''
+  parameters:
+  - equalTo
+  - isEqualTo
+  - 'null'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.equalTo;
+
+      class ATest {
+          @Test
+          void test() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1, equalTo(str2));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class ATest {
+          @Test
+          void test() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1).isEqualTo(str2);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.HamcrestMatcherToJUnit5
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.equalTo;
+
+      class ATest {
+          @Test
+          void testEquals() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1, equalTo(str2));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+
+      class ATest {
+          @Test
+          void testEquals() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertEquals(str1, str2);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ
+examples:
+- description: ''
+  parameters:
+  - equalTo
+  - isNotEqualTo
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.not;
+      import static org.hamcrest.Matchers.equalTo;
+
+      class ATest {
+          @Test
+          void test() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1, not(equalTo(str2)));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class ATest {
+          @Test
+          void test() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1).isNotEqualTo(str2);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.HamcrestOfMatchersToAssertJ
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.allOf;
+      import static org.hamcrest.Matchers.equalTo;
+      import static org.hamcrest.Matchers.hasLength;
+
+      class MyTest {
+          @Test
+          void testMethod() {
+              assertThat("hello world", allOf(equalTo("hello world"), hasLength(12)));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.equalTo;
+      import static org.hamcrest.Matchers.hasLength;
+
+      class MyTest {
+          @Test
+          void testMethod() {
+              assertThat("hello world")
+                      .satisfies(
+                              arg -> assertThat(arg, equalTo("hello world")),
+                              arg -> assertThat(arg, hasLength(12))
+                      );
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
+examples:
+- description: ''
+  sources:
+  - before: |
+      class Biscuit {
+          String name;
+          Biscuit(String name) {
+              this.name = name;
+          }
+
+          int getChocolateChipCount() {
+              return 10;
+          }
+
+          int getHazelnutCount() {
+              return 3;
+          }
+      }
+    language: java
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.*;
+
+      public class BiscuitTest {
+          @Test
+          public void biscuits() {
+              Biscuit theBiscuit = new Biscuit("Ginger");
+              Biscuit myBiscuit = new Biscuit("Ginger");
+              assertThat(theBiscuit, equalTo(myBiscuit));
+              assertThat("chocolate chips", theBiscuit.getChocolateChipCount(), equalTo(10));
+              assertThat("hazelnuts", theBiscuit.getHazelnutCount(), equalTo(3));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      public class BiscuitTest {
+          @Test
+          public void biscuits() {
+              Biscuit theBiscuit = new Biscuit("Ginger");
+              Biscuit myBiscuit = new Biscuit("Ginger");
+              assertThat(theBiscuit).isEqualTo(myBiscuit);
+              assertThat(theBiscuit.getChocolateChipCount()).as("chocolate chips").isEqualTo(10);
+              assertThat(theBiscuit.getHazelnutCount()).as("hazelnuts").isEqualTo(3);
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.allOf;
+      import static org.hamcrest.Matchers.equalTo;
+      import static org.hamcrest.Matchers.hasLength;
+
+      class ATest {
+          @Test
+          void test() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1, allOf(equalTo(str2), hasLength(12)));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class ATest {
+          @Test
+          void test() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1)
+                      .satisfies(
+                              arg -> assertThat(arg).isEqualTo(str2),
+                              arg -> assertThat(arg).hasSize(12)
+                      );
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.anyOf;
+      import static org.hamcrest.Matchers.equalTo;
+      import static org.hamcrest.Matchers.hasLength;
+
+      class ATest {
+          @Test
+          void test() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1, anyOf(equalTo(str2), hasLength(12)));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class ATest {
+          @Test
+          void test() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1)
+                      .satisfiesAnyOf(
+                              arg -> assertThat(arg).isEqualTo(str2),
+                              arg -> assertThat(arg).hasSize(12)
+                      );
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.equalTo;
+      import static org.hamcrest.Matchers.is;
+      import static org.hamcrest.Matchers.not;
+
+      class ATest {
+          @Test
+          void testEquals() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1, is(equalTo(str2)));
+              assertThat(str1, is(not(equalTo(str2 + "!"))));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+      class ATest {
+          @Test
+          void testEquals() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertEquals(str1, str2);
+              assertNotEquals(str1, str2 + "!");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.is;
+      import static org.hamcrest.Matchers.equalTo;
+
+      class ATest {
+          @Test
+          void testEquals() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1, is(equalTo(str2)));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.equalTo;
+
+      class ATest {
+          @Test
+          void testEquals() {
+              String str1 = "Hello world!";
+              String str2 = "Hello world!";
+              assertThat(str1, equalTo(str2));
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.AddHamcrestJUnitDependency
+examples:
+- description: ''
+  sources:
+  - before: |
+      class FooTest {
+          void bar() {
+              org.junit.Assert.assertThat("a", org.hamcrest.Matchers.is("a"));
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.AddJupiterDependencies
+examples:
+- description: ''
+  sources:
+  - before: |
+      <project>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>org.example</groupId>
+          <artifactId>project</artifactId>
+          <version>0.0.1</version>
+      </project>
+    path: pom.xml
+    language: xml
+  - before: project
+    language: mavenProject
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.AddMissingNested
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      public class RootTest {
+          public class InnerTest {
+              @Test
+              public void test() {
+              }
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Nested;
+      import org.junit.jupiter.api.Test;
+
+      public class RootTest {
+          @Nested
+          public class InnerTest {
+              @Test
+              public void test() {
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.params.provider.ValueSource;
+      import static org.junit.jupiter.api.Assertions.*;
+
+      class NumbersTest {
+          @Test
+          @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
+          void testIsOdd(int number) {
+              assertTrue(number % 2 != 0);
+          }
+      }
+    after: |
+      import org.junit.jupiter.params.ParameterizedTest;
+      import org.junit.jupiter.params.provider.ValueSource;
+      import static org.junit.jupiter.api.Assertions.*;
+
+      class NumbersTest {
+          @ParameterizedTest
+          @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
+          void testIsOdd(int number) {
+              assertTrue(number % 2 != 0);
+          }
+      }
+    language: java
+  - before: |
+      import org.junit.jupiter.api.Test
+      import org.junit.jupiter.params.provider.ValueSource
+      import org.junit.jupiter.api.Assertions.assertTrue
+
+      class NumbersTest {
+          @Test
+          @ValueSource(ints = [1, 3, 5, -3, 15, Int.MAX_VALUE])
+          fun testIsOdd(number: Int) {
+              assertTrue(number % 2 != 0)
+          }
+      }
+    after: |
+      import org.junit.jupiter.params.ParameterizedTest
+      import org.junit.jupiter.params.provider.ValueSource
+      import org.junit.jupiter.api.Assertions.assertTrue
+
+      class NumbersTest {
+          @ParameterizedTest
+          @ValueSource(ints = [1, 3, 5, -3, 15, Int.MAX_VALUE])
+          fun testIsOdd(number: Int) {
+              assertTrue(number % 2 != 0)
+          }
+      }
+    language: kotlin
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static org.junit.jupiter.api.Assertions.assertThrows;
+
+      class MyTest {
+
+          @Test
+          public void test() {
+              Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
+                  foo();
+                  System.out.println("foo");
+                  foo();
+              });
+              assertEquals("Error message", exception.getMessage());
+          }
+          void foo() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static org.junit.jupiter.api.Assertions.assertThrows;
+
+      class MyTest {
+
+          @Test
+          public void test() {
+              foo();
+              System.out.println("foo");
+              Throwable exception = assertThrows(IllegalArgumentException.class, () ->
+                  foo());
+              assertEquals("Error message", exception.getMessage());
+          }
+          void foo() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.AssertToAssertions
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Test;
+
+      import static org.junit.Assert.assertFalse;
+
+      public class MyTest {
+          T t = new T();
+          @Test
+          public void test() {
+              assertFalse(t.getName(), MyTest.class.isAssignableFrom(t.getClass()));
+          }
+
+          class T {
+              String getName() {
+                  return "World";
+              }
+          }
+      }
+    after: |
+      import org.junit.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertFalse;
+
+      public class MyTest {
+          T t = new T();
+          @Test
+          public void test() {
+              assertFalse(MyTest.class.isAssignableFrom(t.getClass()), t.getName());
+          }
+
+          class T {
+              String getName() {
+                  return "World";
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.AssertTrueInstanceofToAssertInstanceOf
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import java.util.ArrayList;
+      import java.util.List;
+
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      class ATest {
+          @Test
+          void testJUnit5() {
+              List<String> list = new ArrayList<>();
+              assertTrue(list instanceof Iterable);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import java.util.ArrayList;
+      import java.util.List;
+
+      import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+      class ATest {
+          @Test
+          void testJUnit5() {
+              List<String> list = new ArrayList<>();
+              assertInstanceOf(Iterable.class, list);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.CleanupAssertions
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Assertions;
+      import org.junit.jupiter.api.Test;
+
+      class ExampleTest {
+          @Test
+          void test() {
+              Assertions.assertTrue("" == null);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Assertions;
+      import org.junit.jupiter.api.Test;
+
+      class ExampleTest {
+          @Test
+          void test() {
+              Assertions.assertNull("");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.CleanupJUnitImports
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Test;
+
+      public class MyTest {}
+    after: |
+      public class MyTest {}
+    language: java
+  - before: |
+      import org.junit.Test
+
+      class MyTest {}
+    after: |
+      class MyTest {}
+    language: kotlin
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import org.junit.Test;
+      import org.junit.rules.ExpectedException;
+
+      class MyTest {
+
+          @Rule
+          ExpectedException thrown = ExpectedException.none();
+
+          @Test
+          public void testEmptyPath() {
+              this.thrown.expect(IllegalArgumentException.class);
+              this.thrown.expectMessage("Invalid location: gs://");
+              foo();
+          }
+          void foo() {
+          }
+      }
+    after: |
+      import org.junit.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertThrows;
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      class MyTest {
+
+          @Test
+          public void testEmptyPath() {
+              Throwable exception = assertThrows(IllegalArgumentException.class, () ->
+                  foo());
+              assertTrue(exception.getMessage().contains("Invalid location: gs://"));
+          }
+          void foo() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.GradleUseJunitJupiter
+examples:
+- description: ''
+  sources:
+  - before: |
+      plugins {
+          id 'java-library'
+      }
+      tasks.named('classes') { }
+      tasks.withType(JavaCompile) { }
+      tasks.withType(JavaCompile).configureEach { }
+    after: |
+      plugins {
+          id 'java-library'
+      }
+      tasks.named('classes') { }
+      tasks.withType(JavaCompile) { }
+      tasks.withType(JavaCompile).configureEach { }
+      tasks.withType(Test).configureEach {
+          useJUnitPlatform()
+      }
+    path: build.gradle
+    language: groovy
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.JUnit4to5Migration
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Test;
+      import org.junit.experimental.runners.Enclosed;
+      import org.junit.runner.RunWith;
+
+      @RunWith(Enclosed.class)
+      public class RootTest {
+          public static class InnerTest {
+              @Test
+              public void test() {
+              }
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Nested;
+      import org.junit.jupiter.api.Test;
+
+      public class RootTest {
+          @Nested
+          public class InnerTest {
+              @Test
+              public void test() {
+              }
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      import static java.util.Arrays.asList;
+      import static org.hamcrest.Matchers.containsInAnyOrder;
+
+      public class SampleTest {
+          @SuppressWarnings("ALL")
+          @Test
+          public void filterShouldRemoveUnusedConfig() {
+              Assert.assertThat(asList("1", "2", "3"),
+                      containsInAnyOrder("3", "2", "1"));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static java.util.Arrays.asList;
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.containsInAnyOrder;
+
+      public class SampleTest {
+          @SuppressWarnings("ALL")
+          @Test
+          public void filterShouldRemoveUnusedConfig() {
+              assertThat(asList("1", "2", "3"),
+                      containsInAnyOrder("3", "2", "1"));
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      package org.openrewrite.java.testing.junit5;
+
+      import org.junit.Before;
+      import org.junit.Test;
+      import org.mockito.Mock;
+      import org.mockito.MockitoAnnotations;
+
+      import java.util.List;
+
+      import static org.mockito.Mockito.verify;
+
+      public class MockitoTests {
+          @Mock
+          List<String> mockedList;
+
+          @Before
+          public void initMocks() {
+              MockitoAnnotations.initMocks(this);
+          }
+
+          @Test
+          public void usingAnnotationBasedMock() {
+
+              mockedList.add("one");
+              mockedList.clear();
+
+              verify(mockedList).add("one");
+              verify(mockedList).clear();
+          }
+      }
+    after: |
+      package org.openrewrite.java.testing.junit5;
+
+      import org.junit.jupiter.api.AfterEach;
+      import org.junit.jupiter.api.BeforeEach;
+      import org.junit.jupiter.api.Test;
+      import org.mockito.Mock;
+      import org.mockito.MockitoAnnotations;
+
+      import java.util.List;
+
+      import static org.mockito.Mockito.verify;
+
+      public class MockitoTests {
+          private AutoCloseable mocks;
+          @Mock
+          List<String> mockedList;
+
+          @BeforeEach
+          public void initMocks() {
+              mocks = MockitoAnnotations.openMocks(this);
+          }
+
+          @Test
+          public void usingAnnotationBasedMock() {
+
+              mockedList.add("one");
+              mockedList.clear();
+
+              verify(mockedList).add("one");
+              verify(mockedList).clear();
+          }
+
+          @AfterEach
+          void tearDown() throws Exception {
+              mocks.close();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.JUnit5BestPractices
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Before;
+
+      public class Example {
+          @Before
+          public void initialize() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.BeforeEach;
+
+      class Example {
+          @BeforeEach
+          void initialize() {
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Assertions;
+
+      public class Test {
+          void method() {
+              Assertions.assertTrue(true);
+          }
+      }
+    after: |
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      public class Test {
+          void method() {
+              assertTrue(true);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.JUnitParamsRunnerToParameterized
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Test;
+      import org.junit.runner.RunWith;
+      import junitparams.JUnitParamsRunner;
+      import junitparams.Parameters;
+
+      @RunWith(JUnitParamsRunner.class)
+      public class PersonTests {
+
+          @Test
+          @Parameters
+          public void personIsAdult(int age, boolean valid) {
+          }
+
+          private Object[] parametersForPersonIsAdult() {
+              return new Object[]{new Object[]{13, false}, new Object[]{17, false}};
+          }
+
+          @Test
+          @Parameters
+          public void personIsChild(int age, boolean valid) {
+          }
+
+          private Object[] parametersForPersonIsChild() {
+              return new Object[]{new Object[]{3, false}, new Object[]{7, false}};
+          }
+
+          @Test
+          public void regularTest() {}
+      }
+    after: |
+      import org.junit.Test;
+      import org.junit.jupiter.params.ParameterizedTest;
+      import org.junit.jupiter.params.provider.MethodSource;
+
+      public class PersonTests {
+
+          @ParameterizedTest
+          @MethodSource("parametersForPersonIsAdult")
+          public void personIsAdult(int age, boolean valid) {
+          }
+
+          private static Object[] parametersForPersonIsAdult() {
+              return new Object[]{new Object[]{13, false}, new Object[]{17, false}};
+          }
+
+          @ParameterizedTest
+          @MethodSource("parametersForPersonIsChild")
+          public void personIsChild(int age, boolean valid) {
+          }
+
+          private static Object[] parametersForPersonIsChild() {
+              return new Object[]{new Object[]{3, false}, new Object[]{7, false}};
+          }
+
+          @Test
+          public void regularTest() {}
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.MigrateJUnitTestCase
+examples:
+- description: ''
+  sources:
+  - before: |
+      import junit.framework.TestCase;
+
+      public class MathTest extends TestCase {
+          protected long value1;
+          protected long value2;
+
+          @Override
+          protected void setUp() {
+              super.setUp();
+              value1 = 2;
+              value2 = 3;
+          }
+
+          public void testAdd() {
+              setName("primitive test");
+              long result = value1 + value2;
+              assertEquals(5, result);
+              fail("some Failure message");
+          }
+
+          @Override
+          protected void tearDown() {
+              super.tearDown();
+              value1 = 0;
+              value2 = 0;
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.AfterEach;
+      import org.junit.jupiter.api.BeforeEach;
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.*;
+
+      public class MathTest {
+          protected long value1;
+          protected long value2;
+
+          @BeforeEach
+          public void setUp() {
+              value1 = 2;
+              value2 = 3;
+          }
+
+          @Test
+          public void testAdd() {
+              //setName("primitive test");
+              long result = value1 + value2;
+              assertEquals(5, result);
+              fail("some Failure message");
+          }
+
+          @AfterEach
+          public void tearDown() {
+              value1 = 0;
+              value2 = 0;
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.ParameterizedRunnerToParameterized
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Test;
+      import org.junit.runner.RunWith;
+      import org.junit.runners.Parameterized;
+      import org.junit.runners.Parameterized.Parameters;
+
+      import java.util.Arrays;
+      import java.util.List;
+
+      @RunWith(Parameterized.class)
+      public class VetTests {
+
+          private String firstName;
+          private String lastName;
+          private Integer id;
+
+          public VetTests(String firstName, String lastName, Integer id) {
+              this.firstName = firstName;
+              this.lastName = lastName;
+              this.id = id;
+          }
+
+          @Test
+          public void testSerialization() {
+              Vet vet = new Vet();
+              vet.setFirstName(firstName);
+              vet.setLastName(lastName);
+              vet.setId(id);
+          }
+
+          @Parameters
+          public static List<Object[]> parameters() {
+              return Arrays.asList(
+                  new Object[] { "Otis", "TheDog", 124 },
+                  new Object[] { "Garfield", "TheBoss", 126 });
+          }
+      }
+    after: |
+      import org.junit.jupiter.params.ParameterizedTest;
+      import org.junit.jupiter.params.provider.MethodSource;
+
+      import java.util.Arrays;
+      import java.util.List;
+
+      public class VetTests {
+
+          private String firstName;
+          private String lastName;
+          private Integer id;
+
+          public void initVetTests(String firstName, String lastName, Integer id) {
+              this.firstName = firstName;
+              this.lastName = lastName;
+              this.id = id;
+          }
+
+          @MethodSource("parameters")
+          @ParameterizedTest
+          public void testSerialization(String firstName, String lastName, Integer id) {
+              initVetTests(firstName, lastName, id);
+              Vet vet = new Vet();
+              vet.setFirstName(firstName);
+              vet.setLastName(lastName);
+              vet.setId(id);
+          }
+
+          public static List<Object[]> parameters() {
+              return Arrays.asList(
+                  new Object[] { "Otis", "TheDog", 124 },
+                  new Object[] { "Garfield", "TheBoss", 126 });
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.RepeatedTest;
+      import org.junit.jupiter.api.DisplayName;
+
+      class MyTest {
+          @Test
+          @RepeatedTest(3)
+          @DisplayName("When an entry does not exist, it should be created and initialized to 0")
+          void testMethod() {
+              System.out.println("foobar");
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.RepeatedTest;
+      import org.junit.jupiter.api.DisplayName;
+
+      class MyTest {
+          @RepeatedTest(3)
+          @DisplayName("When an entry does not exist, it should be created and initialized to 0")
+          void testMethod() {
+              System.out.println("foobar");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.RemoveObsoleteRunners
+examples:
+- description: ''
+  parameters:
+  - |-
+    List.of(
+                  "org.junit.runners.JUnit4",
+                  "org.junit.runners.BlockJUnit4ClassRunner"
+                )
+  sources:
+  - before: |
+      import org.junit.runner.RunWith;
+      import org.junit.runners.JUnit4;
+
+      @RunWith(JUnit4.class)
+      public class Foo {
+      }
+    after: |
+      public class Foo {
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Assertions;
+      import org.junit.jupiter.api.Test;
+
+      class MyTest {
+          @Test
+          public void testMethod() {
+              try {
+                  int divide = 50 / 0;
+              } catch (ArithmeticException e) {
+                  Assertions.fail(e.getMessage());
+              }
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Assertions;
+      import org.junit.jupiter.api.Test;
+
+      class MyTest {
+          @Test
+          public void testMethod() {
+              Assertions.assertDoesNotThrow(() -> {
+                  int divide = 50 / 0;
+              });
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.RunnerToExtension
+examples:
+- description: ''
+  parameters:
+  - List.of("org.mockito.runners.MockitoJUnitRunner")
+  - org.mockito.junit.jupiter.MockitoExtension
+  sources:
+  - before: |
+      import org.junit.runner.RunWith;
+      import org.mockito.runners.MockitoJUnitRunner;
+
+      @RunWith(MockitoJUnitRunner.class)
+      public class MyTest {
+      }
+    after: |
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.junit.jupiter.MockitoExtension;
+
+      @ExtendWith(MockitoExtension.class)
+      public class MyTest {
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.TemporaryFolderToTempDir
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Rule
+      import org.junit.rules.TemporaryFolder
+
+      class AbstractIntegrationTest {
+          @Rule
+          TemporaryFolder temporaryFolder = new TemporaryFolder()
+
+          def setup() {
+              projectDir = temporaryFolder.root
+              buildFile = temporaryFolder.newFile('build.gradle')
+              settingsFile = temporaryFolder.newFile('settings.gradle')
+          }
+      }
+    after: |
+      import org.junit.Rule
+      import org.junit.rules.TemporaryFolder
+
+      class AbstractIntegrationTest {
+          @TempDir
+          File temporaryFolder
+
+          def setup() {
+              projectDir = temporaryFolder.root
+              buildFile = File.createTempFile('build.gradle', null, temporaryFolder)
+              settingsFile = File.createTempFile('settings.gradle', null, temporaryFolder)
+          }
+      }
+    language: groovy
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.TestRuleToTestInfo
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import org.junit.rules.TestName;
+
+      public class SomeTest {
+          @Rule
+          public TestName name = new TestName();
+          protected String randomName() {
+              return name.getMethodName();
+          }
+
+          private static class SomeInnerClass {
+          }
+      }
+    after: "import org.junit.jupiter.api.BeforeEach;\nimport org.junit.jupiter.api.TestInfo;\n\
+      \nimport java.lang.reflect.Method;\nimport java.util.Optional;\n\npublic class\
+      \ SomeTest {\n    \n    public String name;\n    protected String randomName()\
+      \ {\n        return name;\n    }\n\n    private static class SomeInnerClass\
+      \ {\n    }\n\n    @BeforeEach\n    public void setup(TestInfo testInfo) {\n\
+      \        Optional<Method> testMethod = testInfo.getTestMethod();\n        if\
+      \ (testMethod.isPresent()) {\n            this.name = testMethod.get().getName();\n\
+      \        }\n    }\n}\n"
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.TimeoutRuleToClassAnnotation
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import org.junit.rules.Timeout;
+      import java.util.concurrent.TimeUnit;
+
+      class MyTest {
+
+          @Rule
+          public Timeout timeout = new Timeout(30);
+
+          void testMethod() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Timeout;
+
+      import java.util.concurrent.TimeUnit;
+
+      @Timeout(value = 30, unit = TimeUnit.MILLISECONDS)
+      class MyTest {
+
+          void testMethod() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Before;
+
+      class Test {
+          @Before
+          void before() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.BeforeEach;
+
+      class Test {
+          @BeforeEach
+          void before() {
+          }
+      }
+    language: java
+  - before: |
+      import org.junit.Before
+
+      class Test {
+
+          @Before
+          fun before() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.BeforeEach
+
+      class Test {
+
+          @BeforeEach
+          fun before() {
+          }
+      }
+    language: kotlin
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.UpdateMockWebServer
+examples:
+- description: ''
+  sources:
+  - before: |
+      import okhttp3.mockwebserver.MockWebServer;
+      import org.junit.Rule;
+      class MyTest {
+          @Rule
+          public MockWebServer server = new MockWebServer();
+      }
+    after: |
+      import okhttp3.mockwebserver.MockWebServer;
+      import org.junit.jupiter.api.AfterEach;
+
+      import java.io.IOException;
+
+      class MyTest {
+          public MockWebServer server = new MockWebServer();
+
+          @AfterEach
+          void afterEachTest() throws IOException {
+              server.close();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.UpdateTestAnnotation
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Test;
+
+      public class MyTest {
+
+          @Test(expected = Test.None.class)
+          public void test_printLine() {
+              int arr = new int[]{0}[0];
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+      public class MyTest {
+
+          @Test
+          public void test_printLine() {
+              assertDoesNotThrow(() -> {
+                  int arr = new int[]{0}[0];
+              });
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.UseAssertSame
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      class MyTest {
+
+          @Test
+          public void test() {
+              String number = "thirty-six";
+              String otherNumber = number;
+              assertTrue(number == otherNumber);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertSame;
+
+      class MyTest {
+
+          @Test
+          public void test() {
+              String number = "thirty-six";
+              String otherNumber = number;
+              assertSame(number, otherNumber);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.hamcrest.CoreMatchers.is;
+      import static org.junit.Assert.assertThat;
+
+      class Test {
+          void test() {
+              assertThat(1 + 1, is(2));
+          }
+      }
+    after: |
+      import static org.hamcrest.CoreMatchers.is;
+      import static org.hamcrest.MatcherAssert.assertThat;
+
+      class Test {
+          void test() {
+              assertThat(1 + 1, is(2));
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.UseWiremockExtension
+examples:
+- description: ''
+  sources:
+  - before: |
+      import com.github.tomakehurst.wiremock.junit.WireMockRule;
+      import org.junit.Rule;
+
+      import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
+      class Test {
+          @Rule
+          public WireMockRule wm = new WireMockRule(options().dynamicHttpsPort());
+      }
+    after: |
+      import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+      import org.junit.jupiter.api.extension.RegisterExtension;
+
+      import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
+      class Test {
+          @RegisterExtension
+          public WireMockExtension wm = WireMockExtension.newInstance().options(options().dynamicHttpsPort()).build();
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.CleanupMockitoImports
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.mockito.Mock;
+      import java.util.Arrays;
+
+      public class MyTest {}
+    after: |
+      import java.util.Arrays;
+
+      public class MyTest {}
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.MockUtilsToStatic
+examples:
+- description: ''
+  sources:
+  - before: |
+      package mockito.example;
+
+      import org.mockito.internal.util.MockUtil;
+
+      public class MockitoMockUtils {
+          public void isMockExample() {
+              new MockUtil().isMock("I am a real String");
+          }
+      }
+    after: |
+      package mockito.example;
+
+      import org.mockito.internal.util.MockUtil;
+
+      public class MockitoMockUtils {
+          public void isMockExample() {
+              MockUtil.isMock("I am a real String");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.Mockito1to3Migration
+examples:
+- description: ''
+  sources:
+  - before: |
+      package mockito.example;
+
+      import java.util.List;
+      import java.util.Map;
+      import java.util.Set;
+
+      import static org.mockito.ArgumentMatchers.anyListOf;
+      import static org.mockito.ArgumentMatchers.anySetOf;
+      import static org.mockito.ArgumentMatchers.anyMapOf;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      public class MockitoVarargMatcherTest {
+          public static class Foo {
+              public boolean addList(List<String> strings) { return true; }
+              public boolean addSet(Set<String> strings) { return true; }
+              public boolean addMap(Map<String, String> stringStringMap) { return true; }
+          }
+          public void usesVarargMatcher() {
+              Foo mockFoo = mock(Foo.class);
+              when(mockFoo.addList(anyListOf(String.class))).thenReturn(true);
+              when(mockFoo.addSet(anySetOf(String.class))).thenReturn(true);
+              when(mockFoo.addMap(anyMapOf(String.class, String.class))).thenReturn(true);
+          }
+      }
+    after: |
+      package mockito.example;
+
+      import java.util.List;
+      import java.util.Map;
+      import java.util.Set;
+
+      import static org.mockito.ArgumentMatchers.anyList;
+      import static org.mockito.ArgumentMatchers.anySet;
+      import static org.mockito.ArgumentMatchers.anyMap;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      public class MockitoVarargMatcherTest {
+          public static class Foo {
+              public boolean addList(List<String> strings) { return true; }
+              public boolean addSet(Set<String> strings) { return true; }
+              public boolean addMap(Map<String, String> stringStringMap) { return true; }
+          }
+          public void usesVarargMatcher() {
+              Foo mockFoo = mock(Foo.class);
+              when(mockFoo.addList(anyList())).thenReturn(true);
+              when(mockFoo.addSet(anySet())).thenReturn(true);
+              when(mockFoo.addMap(anyMap())).thenReturn(true);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.Mockito1to4Migration
+examples:
+- description: ''
+  sources:
+  - before: |
+      plugins {
+          id 'java-library'
+      }
+      repositories {
+          mavenCentral()
+      }
+      dependencies {
+          implementation("org.apache.commons:commons-lang3:3.17.0")
+          testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+          testImplementation("org.mockito:mockito-core:3.12.4")
+          testImplementation("org.mockito:mockito-junit-jupiter:3.12.4")
+      }
+      test {
+         useJUnitPlatform()
+      }
+    after: |
+      plugins {
+          id 'java-library'
+      }
+      repositories {
+          mavenCentral()
+      }
+      dependencies {
+          implementation("org.apache.commons:commons-lang3:3.17.0")
+          testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+          testImplementation("org.mockito:mockito-core:4.11.0")
+          testImplementation("org.mockito:mockito-junit-jupiter:4.11.0")
+      }
+      test {
+         useJUnitPlatform()
+      }
+    path: build.gradle
+    language: groovy
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.Mockito;
+      import org.mockito.junit.jupiter.MockitoExtension;
+      import java.util.List;
+
+      @ExtendWith(MockitoExtension.class)
+      public class MyTest {
+          @Test
+          public void test() {
+              List<String> list = Mockito.mock(List.class);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.Mockito1to5Migration
+examples:
+- description: ''
+  sources:
+  - before: |
+      <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <version>3.11.2</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
+- description: ''
+  sources:
+  - before: |
+      plugins {
+          id 'java-library'
+      }
+      repositories {
+          mavenCentral()
+      }
+      dependencies {
+          implementation("org.apache.commons:commons-lang3:3.17.0")
+          testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+          testImplementation("org.mockito:mockito-core:3.12.4")
+          testImplementation("org.mockito:mockito-junit-jupiter:3.12.4")
+      }
+      test {
+         useJUnitPlatform()
+      }
+    path: build.gradle
+    language: groovy
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.Mockito;
+      import org.mockito.junit.jupiter.MockitoExtension;
+      import java.util.List;
+
+      @ExtendWith(MockitoExtension.class)
+      class MyTest {
+          @Test
+          void test() {
+              List<String> list = Mockito.mock(List.class);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.MockitoBestPractices
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.mockito.junit.jupiter.MockitoSettings;
+      import org.mockito.quality.Strictness;
+      @MockitoSettings(strictness = Strictness.WARN)
+      class A {}
+    after: |
+      class A {}
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.MockitoJUnitRunnerSilentToExtension
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.runner.RunWith;
+      import org.mockito.junit.MockitoJUnitRunner;
+
+      @RunWith(MockitoJUnitRunner.Silent.class)
+      public class ExternalAPIServiceTest {
+      }
+    after: |
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.junit.jupiter.MockitoExtension;
+      import org.mockito.junit.jupiter.MockitoSettings;
+      import org.mockito.quality.Strictness;
+
+      @MockitoSettings(strictness = Strictness.LENIENT)
+      @ExtendWith(MockitoExtension.class)
+      public class ExternalAPIServiceTest {
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.MockitoWhenOnStaticToMockStatic
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.junit.Assert.assertEquals;
+      import static org.mockito.Mockito.*;
+
+      class Test {
+          void test() {
+              System.out.println("some statement");
+              when(A.getNumber()).thenReturn(-1);
+              assertEquals(A.getNumber(), -1);
+          }
+      }
+    after: |
+      import org.mockito.MockedStatic;
+
+      import static org.junit.Assert.assertEquals;
+      import static org.mockito.Mockito.*;
+
+      class Test {
+          void test() {
+              System.out.println("some statement");
+              try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                  mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                  assertEquals(A.getNumber(), -1);
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.NoInitializationForInjectMock
+examples:
+- description: ''
+  sources:
+  - before: |
+      class MyObject {
+          private String someField;
+
+          public MyObject(String someField) {
+              this.someField = someField;
+          }
+      }
+    language: java
+  - before: |
+      import org.mockito.InjectMocks;
+
+      class MyTest {
+          @InjectMocks
+          MyObject myObject = new MyObject("someField");
+      }
+    after: |
+      import org.mockito.InjectMocks;
+
+      class MyTest {
+          @InjectMocks
+          MyObject myObject;
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.mockito.Mockito.mockStatic;
+
+      import java.util.Calendar;
+
+      import org.junit.jupiter.api.Test;
+      import org.powermock.core.classloader.annotations.PrepareForTest;
+
+      @PrepareForTest({Calendar.class})
+      public class MyTest {
+
+          @Test
+          void testStaticMethod() {
+              mockStatic(Calendar.class);
+          }
+      }
+    after: |
+      import static org.mockito.Mockito.mockStatic;
+
+      import java.util.Calendar;
+
+      import org.junit.jupiter.api.AfterEach;
+      import org.junit.jupiter.api.BeforeEach;
+      import org.junit.jupiter.api.Test;
+      import org.mockito.MockedStatic;
+
+      public class MyTest {
+
+          private MockedStatic<Calendar> mockedCalendar;
+
+          @BeforeEach
+          void setUpStaticMocks() {
+              mockedCalendar = mockStatic(Calendar.class);
+          }
+
+          @AfterEach
+          void tearDownStaticMocks() {
+              mockedCalendar.closeOnDemand();
+          }
+
+          @Test
+          void testStaticMethod() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.RemoveInitMocksIfRunnersSpecified
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.BeforeEach;
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.junit.jupiter.MockitoExtension;
+      import org.mockito.MockitoAnnotations;
+
+      @ExtendWith(MockitoExtension.class)
+      class A {
+
+          @BeforeEach
+          public void setUp() {
+              MockitoAnnotations.initMocks(this);
+          }
+
+          public void test() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.junit.jupiter.MockitoExtension;
+
+      @ExtendWith(MockitoExtension.class)
+      class A {
+
+          public void test() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.RemoveTimesZeroAndOne
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.mockito.Mockito.times;
+      import static org.mockito.Mockito.verify;
+
+      class MyTest {
+          void test(Object myObject) {
+              myObject.wait();
+              verify(myObject, times(0)).wait();
+          }
+      }
+    after: |
+      import static org.mockito.Mockito.never;
+      import static org.mockito.Mockito.verify;
+
+      class MyTest {
+          void test(Object myObject) {
+              myObject.wait();
+              verify(myObject, never()).wait();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.ReplaceInitMockToOpenMock
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.mockito.MockitoAnnotations;
+      import org.junit.jupiter.api.BeforeEach;
+
+      class A {
+
+          @BeforeEach
+          public void setUp() {
+              test1();
+              MockitoAnnotations.initMocks(this);
+              test2();
+          }
+
+          public void test1() {
+          }
+
+          public void test2() {
+          }
+      }
+    after: |
+      import org.mockito.MockitoAnnotations;
+      import org.junit.jupiter.api.AfterEach;
+      import org.junit.jupiter.api.BeforeEach;
+
+      class A {
+
+          private AutoCloseable mocks;
+
+          @BeforeEach
+          public void setUp() {
+              test1();
+              mocks = MockitoAnnotations.openMocks(this);
+              test2();
+          }
+
+          public void test1() {
+          }
+
+          public void test2() {
+          }
+
+          @AfterEach
+          void tearDown() throws Exception {
+              mocks.close();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.ReplacePowerMockito
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.testng.Assert.assertEquals;
+
+      import java.util.Calendar;
+      import java.util.Currency;
+      import java.util.Locale;
+
+      import org.mockito.Mockito;
+      import org.powermock.api.mockito.PowerMockito;
+      import org.powermock.core.classloader.annotations.PrepareForTest;
+      import org.testng.annotations.BeforeClass;
+      import org.testng.annotations.Test;
+
+      @PrepareForTest(value = {Calendar.class, Currency.class})
+      public class StaticMethodTest {
+
+          private Calendar calendarMock;
+
+          @BeforeClass
+          void setUp() {
+              calendarMock = Mockito.mock(Calendar.class);
+          }
+
+          @Test
+          void testWithCalendar() {
+              PowerMockito.mockStatic(Calendar.class);
+              PowerMockito.mockStatic(Currency.class);
+              Mockito.when(Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+              assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
+              Mockito.verify(Currency.getAvailableCurrencies(), Mockito.never());
+          }
+      }
+    after: |
+      import static org.testng.Assert.assertEquals;
+
+      import java.util.Calendar;
+      import java.util.Currency;
+      import java.util.Locale;
+
+      import org.mockito.MockedStatic;
+      import org.mockito.Mockito;
+      import org.testng.annotations.AfterMethod;
+      import org.testng.annotations.BeforeClass;
+      import org.testng.annotations.BeforeMethod;
+      import org.testng.annotations.Test;
+
+      public class StaticMethodTest {
+
+          private MockedStatic<Currency> mockedCurrency;
+
+          private MockedStatic<Calendar> mockedCalendar;
+
+          private Calendar calendarMock;
+
+          @BeforeClass
+          void setUp() {
+              calendarMock = Mockito.mock(Calendar.class);
+          }
+
+          @BeforeMethod
+          void setUpStaticMocks() {
+              mockedCurrency = Mockito.mockStatic(Currency.class);
+              mockedCalendar = Mockito.mockStatic(Calendar.class);
+          }
+
+          @AfterMethod(alwaysRun = true)
+          void tearDownStaticMocks() {
+              mockedCalendar.closeOnDemand();
+              mockedCurrency.closeOnDemand();
+          }
+
+          @Test
+          void testWithCalendar() {
+              mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+              assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
+              mockedCurrency.verify(Currency::getAvailableCurrencies, Mockito.never());
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.SimplifyMockitoVerifyWhenGiven
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.mockito.Mockito.verify;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.ArgumentMatchers.eq;
+
+      class Test {
+          void test() {
+              var mockString = mock(String.class);
+              verify(mockString).replace(eq("foo"), eq("bar"));
+          }
+      }
+    after: |
+      import static org.mockito.Mockito.verify;
+      import static org.mockito.Mockito.mock;
+
+      class Test {
+          void test() {
+              var mockString = mock(String.class);
+              verify(mockString).replace("foo", "bar");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.VerifyZeroToNoMoreInteractions
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.mockito.Mockito.verifyZeroInteractions;
+
+      class MyTest {
+          void test() {
+              verifyZeroInteractions(System.out);
+          }
+      }
+    after: |
+      import static org.mockito.Mockito.verifyNoMoreInteractions;
+
+      class MyTest {
+          void test() {
+              verifyNoMoreInteractions(System.out);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.search.FindUnitTests
+examples:
+- description: ''
+  sources:
+  - before: |
+      import foo.Foo;
+      import org.junit.jupiter.api.Test;
+
+      public class FooTest {
+         @Test
+         public void test() {
+             Foo foo = new Foo();
+             foo.bar();
+             foo.baz();
+         }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.ExplicitContainerImage
+examples:
+- description: ''
+  parameters:
+  - org.testcontainers.containers.NginxContainer
+  - nginx:1.9.4
+  - 'null'
+  sources:
+  - before: |
+      import org.testcontainers.containers.NginxContainer;
+      class Foo {
+          NginxContainer container = new NginxContainer();
+      }
+    after: |
+      import org.testcontainers.containers.NginxContainer;
+      class Foo {
+          NginxContainer container = new NginxContainer("nginx:1.9.4");
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.TestContainersBestPractices
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.testcontainers.containers.ContainerState;
+      class Foo {
+          String method(ContainerState container) {
+              return container.getContainerIpAddress();
+          }
+      }
+    after: |
+      import org.testcontainers.containers.ContainerState;
+      class Foo {
+          String method(ContainerState container) {
+              return container.getHost();
+          }
+      }
+    language: java
