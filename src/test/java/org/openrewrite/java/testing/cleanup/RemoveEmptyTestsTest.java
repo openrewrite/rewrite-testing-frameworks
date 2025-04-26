@@ -33,6 +33,30 @@ class RemoveEmptyTestsTest implements RewriteTest {
           .recipe(new RemoveEmptyTests());
     }
 
+    @DocumentExample
+    @Test
+    void removeEmptyTest() {
+        //language=java
+        rewriteRun(
+
+          java(
+            """
+              import org.junit.Test;
+              class MyTest {
+                  @Test
+                  public void method() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              class MyTest {
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void isNotTest() {
         //language=java
@@ -60,30 +84,6 @@ class RemoveEmptyTestsTest implements RewriteTest {
                   public void method() {
                       // comment
                   }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void removeEmptyTest() {
-        //language=java
-        rewriteRun(
-
-          java(
-            """
-              import org.junit.Test;
-              class MyTest {
-                  @Test
-                  public void method() {
-                  }
-              }
-              """,
-            """
-              import org.junit.Test;
-              class MyTest {
               }
               """
           )

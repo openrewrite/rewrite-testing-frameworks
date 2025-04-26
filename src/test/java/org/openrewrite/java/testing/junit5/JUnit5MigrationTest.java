@@ -47,34 +47,6 @@ class JUnit5MigrationTest implements RewriteTest {
             .activateRecipes("org.openrewrite.java.testing.junit5.JUnit4to5Migration"));
     }
 
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/284")
-    @Test
-    void classReference() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.Test;
-
-              public class Sample {
-                  void method() {
-                      Class<Test> c = Test.class;
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              public class Sample {
-                  void method() {
-                      Class<Test> c = Test.class;
-                  }
-              }
-              """
-          )
-        );
-    }
-
     @DocumentExample
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/145")
@@ -114,6 +86,34 @@ class JUnit5MigrationTest implements RewriteTest {
                   public void filterShouldRemoveUnusedConfig() {
                       assertThat(asList("1", "2", "3"),
                               containsInAnyOrder("3", "2", "1"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/284")
+    @Test
+    void classReference() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+
+              public class Sample {
+                  void method() {
+                      Class<Test> c = Test.class;
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              public class Sample {
+                  void method() {
+                      Class<Test> c = Test.class;
                   }
               }
               """

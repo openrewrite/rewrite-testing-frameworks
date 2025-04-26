@@ -36,6 +36,38 @@ class ArchUnit0To1MigrationTest implements RewriteTest {
           .recipeFromResource("/META-INF/rewrite/archunit.yml", "org.openrewrite.java.testing.archunit.ArchUnit0to1Migration");
     }
 
+    @DocumentExample
+    @Test
+    void shouldUseGetClassesInPackageTree() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import com.tngtech.archunit.core.domain.JavaPackage;
+              import java.util.Set;
+              import com.tngtech.archunit.core.domain.JavaClass;
+                            
+              public class ArchUnitTest {
+                  public Set<JavaClass> sample(JavaPackage javaPackage) {
+                      return javaPackage.getAllClasses();
+                  }
+              }
+              """,
+            """
+              import com.tngtech.archunit.core.domain.JavaPackage;
+              import java.util.Set;
+              import com.tngtech.archunit.core.domain.JavaClass;
+                            
+              public class ArchUnitTest {
+                  public Set<JavaClass> sample(JavaPackage javaPackage) {
+                      return javaPackage.getClassesInPackageTree();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void shouldMigrateMavenDependency() {
         rewriteRun(
@@ -80,38 +112,6 @@ class ArchUnit0To1MigrationTest implements RewriteTest {
                     """.formatted(version);
               })
             )
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void shouldUseGetClassesInPackageTree() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import com.tngtech.archunit.core.domain.JavaPackage;
-              import java.util.Set;
-              import com.tngtech.archunit.core.domain.JavaClass;
-                            
-              public class ArchUnitTest {
-                  public Set<JavaClass> sample(JavaPackage javaPackage) {
-                      return javaPackage.getAllClasses();
-                  }
-              }
-              """,
-            """
-              import com.tngtech.archunit.core.domain.JavaPackage;
-              import java.util.Set;
-              import com.tngtech.archunit.core.domain.JavaClass;
-                            
-              public class ArchUnitTest {
-                  public Set<JavaClass> sample(JavaPackage javaPackage) {
-                      return javaPackage.getClassesInPackageTree();
-                  }
-              }
-              """
           )
         );
     }

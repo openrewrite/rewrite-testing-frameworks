@@ -37,39 +37,6 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
           .recipe(new ExpectedExceptionToAssertThrows());
     }
 
-    @Test
-    void leavesOtherRulesAlone() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.Rule;
-              import org.junit.rules.TemporaryFolder;
-              import org.junit.rules.ExpectedException;
-
-              class MyTest {
-
-                  @Rule
-                  TemporaryFolder tempDir = new TemporaryFolder();
-
-                  @Rule
-                  ExpectedException thrown = ExpectedException.none();
-              }
-              """,
-            """
-              import org.junit.Rule;
-              import org.junit.rules.TemporaryFolder;
-
-              class MyTest {
-
-                  @Rule
-                  TemporaryFolder tempDir = new TemporaryFolder();
-              }
-              """
-          )
-        );
-    }
-
     @DocumentExample
     @Test
     void expectedExceptionRule() {
@@ -112,6 +79,39 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                   }
                   void foo() {
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leavesOtherRulesAlone() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.TemporaryFolder;
+              import org.junit.rules.ExpectedException;
+
+              class MyTest {
+
+                  @Rule
+                  TemporaryFolder tempDir = new TemporaryFolder();
+
+                  @Rule
+                  ExpectedException thrown = ExpectedException.none();
+              }
+              """,
+            """
+              import org.junit.Rule;
+              import org.junit.rules.TemporaryFolder;
+
+              class MyTest {
+
+                  @Rule
+                  TemporaryFolder tempDir = new TemporaryFolder();
               }
               """
           )

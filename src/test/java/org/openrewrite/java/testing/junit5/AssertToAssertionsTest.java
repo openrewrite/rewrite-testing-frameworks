@@ -39,47 +39,6 @@ class AssertToAssertionsTest implements RewriteTest {
           .recipe(new AssertToAssertions());
     }
 
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/128")
-    @Test
-    void dontSwitchAssertEqualsStringArguments() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              class Entity {
-                  String getField() {
-                      return "b";
-                  }
-              }
-              """
-          ),
-          java(
-            """
-              import static org.junit.Assert.assertEquals;
-
-              class MyTest {
-                  void foo() {
-                      Entity entity = new Entity();
-                      String hello = "a";
-                      assertEquals(hello, entity.getField());
-                  }
-              }
-              """,
-            """
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-
-              class MyTest {
-                  void foo() {
-                      Entity entity = new Entity();
-                      String hello = "a";
-                      assertEquals(hello, entity.getField());
-                  }
-              }
-              """
-          )
-        );
-    }
-
     @DocumentExample
     @Test
     void stringArgumentIsMethodInvocation() {
@@ -122,6 +81,47 @@ class AssertToAssertionsTest implements RewriteTest {
                       String getName() {
                           return "World";
                       }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/128")
+    @Test
+    void dontSwitchAssertEqualsStringArguments() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Entity {
+                  String getField() {
+                      return "b";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import static org.junit.Assert.assertEquals;
+
+              class MyTest {
+                  void foo() {
+                      Entity entity = new Entity();
+                      String hello = "a";
+                      assertEquals(hello, entity.getField());
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class MyTest {
+                  void foo() {
+                      Entity entity = new Entity();
+                      String hello = "a";
+                      assertEquals(hello, entity.getField());
                   }
               }
               """
