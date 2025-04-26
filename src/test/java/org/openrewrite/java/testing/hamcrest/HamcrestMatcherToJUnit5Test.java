@@ -34,6 +34,44 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
           .recipe(new HamcrestMatcherToJUnit5());
     }
 
+    @DocumentExample
+    @Test
+    void equalToString() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, equalTo(str2));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertEquals(str1, str2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void equalToObject() {
         //language=java
@@ -74,44 +112,6 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                       Biscuit theBiscuit = new Biscuit("Ginger");
                       Biscuit myBiscuit = new Biscuit("Ginger");
                       assertEquals(theBiscuit, myBiscuit);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void equalToString() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-              import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.hamcrest.Matchers.equalTo;
-
-              class ATest {
-                  @Test
-                  void testEquals() {
-                      String str1 = "Hello world!";
-                      String str2 = "Hello world!";
-                      assertThat(str1, equalTo(str2));
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-
-              class ATest {
-                  @Test
-                  void testEquals() {
-                      String str1 = "Hello world!";
-                      String str2 = "Hello world!";
-                      assertEquals(str1, str2);
                   }
               }
               """

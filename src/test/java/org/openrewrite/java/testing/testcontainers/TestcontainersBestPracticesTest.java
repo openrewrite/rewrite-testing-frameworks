@@ -37,6 +37,32 @@ class TestcontainersBestPracticesTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion().classpath("testcontainers"));
     }
 
+    @DocumentExample
+    @Test
+    void getHost() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.testcontainers.containers.ContainerState;
+              class Foo {
+                  String method(ContainerState container) {
+                      return container.getContainerIpAddress();
+                  }
+              }
+              """,
+            """
+              import org.testcontainers.containers.ContainerState;
+              class Foo {
+                  String method(ContainerState container) {
+                      return container.getHost();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void dependencyUpdate() {
         rewriteRun(
@@ -77,32 +103,6 @@ class TestcontainersBestPracticesTest implements RewriteTest {
                   </project>
                   """.formatted(matcher.group(1));
             })
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void getHost() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.testcontainers.containers.ContainerState;
-              class Foo {
-                  String method(ContainerState container) {
-                      return container.getContainerIpAddress();
-                  }
-              }
-              """,
-            """
-              import org.testcontainers.containers.ContainerState;
-              class Foo {
-                  String method(ContainerState container) {
-                      return container.getHost();
-                  }
-              }
-              """
           )
         );
     }
