@@ -30,6 +30,34 @@ class SimplifyAssertJAssertionTest implements RewriteTest {
         spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"));
     }
 
+
+    @DocumentExample
+    @Test
+    void convertsStringIsEqualToNull() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyAssertJAssertion("isEqualTo", "null", "isNull", "java.lang.Object")),
+          // language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              class Test {
+                  void test(String a) {
+                      assertThat(a).isEqualTo(null);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              class Test {
+                  void test(String a) {
+                      assertThat(a).isNull();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void primitiveBooleanIsFalse() {
         rewriteRun(
@@ -75,34 +103,6 @@ class SimplifyAssertJAssertionTest implements RewriteTest {
               class Test {
                   void test(Boolean arg) {
                       assertThat(arg).isFalse();
-                  }
-              }
-              """
-          )
-        );
-    }
-
-
-    @DocumentExample
-    @Test
-    void convertsStringIsEqualToNull() {
-        rewriteRun(
-          spec -> spec.recipe(new SimplifyAssertJAssertion("isEqualTo", "null", "isNull", "java.lang.Object")),
-          // language=java
-          java(
-            """
-              import static org.assertj.core.api.Assertions.assertThat;
-              class Test {
-                  void test(String a) {
-                      assertThat(a).isEqualTo(null);
-                  }
-              }
-              """,
-            """
-              import static org.assertj.core.api.Assertions.assertThat;
-              class Test {
-                  void test(String a) {
-                      assertThat(a).isNull();
                   }
               }
               """
