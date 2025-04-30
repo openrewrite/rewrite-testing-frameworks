@@ -70,7 +70,6 @@ public class UseWiremockExtension extends Recipe {
                     JavaParser.Builder<?, ?> wiremockParser = JavaParser.fromJavaVersion()
                             .dependsOn(
                                     //language=java
-                                    "" +
                                     "package com.github.tomakehurst.wiremock.junit5;" +
                                     "import com.github.tomakehurst.wiremock.core.Options;" +
                                     "public class WireMockExtension {" +
@@ -82,7 +81,6 @@ public class UseWiremockExtension extends Recipe {
                                     "  }" +
                                     "}",
                                     //language=java
-                                    "" +
                                     "package com.github.tomakehurst.wiremock.core;" +
                                     "public class WireMockConfiguration implements Options {" +
                                     "  public static native WireMockConfiguration options();" +
@@ -92,7 +90,6 @@ public class UseWiremockExtension extends Recipe {
                                     "  public native WireMockConfiguration dynamicHttpsPort();" +
                                     "}",
                                     //language=java
-                                    "" +
                                     "package com.github.tomakehurst.wiremock.core;" +
                                     "public interface Options {}");
 
