@@ -2443,6 +2443,67 @@ examples:
 - description: ''
   sources:
   - before: |
+      import org.junit.Test;
+      import org.junit.experimental.runners.Enclosed;
+      import org.junit.runner.RunWith;
+
+      @RunWith(Enclosed.class)
+      public class RootTest {
+          public static class InnerTest {
+              @Test
+              public void test() {
+              }
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Nested;
+      import org.junit.jupiter.api.Test;
+
+      public class RootTest {
+          @Nested
+          public class InnerTest {
+              @Test
+              public void test() {
+              }
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      import org.junit.Assert;
+      import org.junit.Test;
+
+      import static java.util.Arrays.asList;
+      import static org.hamcrest.Matchers.containsInAnyOrder;
+
+      public class SampleTest {
+          @SuppressWarnings("ALL")
+          @Test
+          public void filterShouldRemoveUnusedConfig() {
+              Assert.assertThat(asList("1", "2", "3"),
+                      containsInAnyOrder("3", "2", "1"));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static java.util.Arrays.asList;
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.containsInAnyOrder;
+
+      public class SampleTest {
+          @SuppressWarnings("ALL")
+          @Test
+          public void filterShouldRemoveUnusedConfig() {
+              assertThat(asList("1", "2", "3"),
+                      containsInAnyOrder("3", "2", "1"));
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
       package org.openrewrite.java.testing.junit5;
 
       import org.junit.Before;
@@ -2509,67 +2570,6 @@ examples:
           @AfterEach
           void tearDown() throws Exception {
               mocks.close();
-          }
-      }
-    language: java
-- description: ''
-  sources:
-  - before: |
-      import org.junit.Assert;
-      import org.junit.Test;
-
-      import static java.util.Arrays.asList;
-      import static org.hamcrest.Matchers.containsInAnyOrder;
-
-      public class SampleTest {
-          @SuppressWarnings("ALL")
-          @Test
-          public void filterShouldRemoveUnusedConfig() {
-              Assert.assertThat(asList("1", "2", "3"),
-                      containsInAnyOrder("3", "2", "1"));
-          }
-      }
-    after: |
-      import org.junit.jupiter.api.Test;
-
-      import static java.util.Arrays.asList;
-      import static org.hamcrest.MatcherAssert.assertThat;
-      import static org.hamcrest.Matchers.containsInAnyOrder;
-
-      public class SampleTest {
-          @SuppressWarnings("ALL")
-          @Test
-          public void filterShouldRemoveUnusedConfig() {
-              assertThat(asList("1", "2", "3"),
-                      containsInAnyOrder("3", "2", "1"));
-          }
-      }
-    language: java
-- description: ''
-  sources:
-  - before: |
-      import org.junit.Test;
-      import org.junit.experimental.runners.Enclosed;
-      import org.junit.runner.RunWith;
-
-      @RunWith(Enclosed.class)
-      public class RootTest {
-          public static class InnerTest {
-              @Test
-              public void test() {
-              }
-          }
-      }
-    after: |
-      import org.junit.jupiter.api.Nested;
-      import org.junit.jupiter.api.Test;
-
-      public class RootTest {
-          @Nested
-          public class InnerTest {
-              @Test
-              public void test() {
-              }
           }
       }
     language: java
@@ -3383,6 +3383,25 @@ examples:
 - description: ''
   sources:
   - before: |
+      <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <version>3.11.2</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
+- description: ''
+  sources:
+  - before: |
       plugins {
           id 'java-library'
       }
@@ -3415,25 +3434,6 @@ examples:
           }
       }
     language: java
-- description: ''
-  sources:
-  - before: |
-      <project>
-        <modelVersion>4.0.0</modelVersion>
-        <groupId>com.example</groupId>
-        <artifactId>demo</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
-        <dependencies>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-inline</artifactId>
-                <version>3.11.2</version>
-                <scope>test</scope>
-            </dependency>
-        </dependencies>
-      </project>
-    path: pom.xml
-    language: xml
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockitoBestPractices
