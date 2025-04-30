@@ -31,6 +31,76 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
         setParserSettings(spec, JUNIT_4_DEPENDENCY, LEGACY_JMOCKIT_DEPENDENCY, MOCKITO_CORE_DEPENDENCY);
     }
 
+    @DocumentExample
+    @Test
+    void whenMixedArgumentMatcher() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+
+              class MyObject {
+                  public String getSomeField(String s, String s2, String s3, long l1) {
+                      return "X";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import java.util.ArrayList;
+              import java.util.List;
+
+              import mockit.NonStrictExpectations;
+              import mockit.Mocked;
+              import mockit.integration.junit4.JMockit;
+              import org.junit.runner.RunWith;
+
+              import static org.junit.Assert.assertNull;
+
+              @RunWith(JMockit.class)
+              class MyTest {
+                  @Mocked
+                  MyObject myObject;
+
+                  void test() {
+                      String bazz = "bazz";
+                      new NonStrictExpectations() {{
+                          myObject.getSomeField("foo", anyString, bazz, 10L);
+                          result = null;
+                      }};
+                      assertNull(myObject.getSomeField("foo", "bar", bazz, 10L));
+                  }
+              }
+              """,
+            """
+              import java.util.ArrayList;
+              import java.util.List;
+
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              import static org.junit.Assert.assertNull;
+              import static org.mockito.Mockito.*;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  MyObject myObject;
+
+                  void test() {
+                      String bazz = "bazz";
+                      lenient().when(myObject.getSomeField(eq("foo"), anyString(), eq(bazz), eq(10L))).thenReturn(null);
+                      assertNull(myObject.getSomeField("foo", "bar", bazz, 10L));
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void whenNullResult() {
         //language=java
@@ -590,76 +660,6 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
                   void test() {
                       lenient().when(myObject.getSomeField()).thenReturn(null);
                       assertNull(myObject.getSomeField());
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void whenMixedArgumentMatcher() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.util.List;
-
-              class MyObject {
-                  public String getSomeField(String s, String s2, String s3, long l1) {
-                      return "X";
-                  }
-              }
-              """
-          ),
-          java(
-            """
-              import java.util.ArrayList;
-              import java.util.List;
-
-              import mockit.NonStrictExpectations;
-              import mockit.Mocked;
-              import mockit.integration.junit4.JMockit;
-              import org.junit.runner.RunWith;
-
-              import static org.junit.Assert.assertNull;
-
-              @RunWith(JMockit.class)
-              class MyTest {
-                  @Mocked
-                  MyObject myObject;
-
-                  void test() {
-                      String bazz = "bazz";
-                      new NonStrictExpectations() {{
-                          myObject.getSomeField("foo", anyString, bazz, 10L);
-                          result = null;
-                      }};
-                      assertNull(myObject.getSomeField("foo", "bar", bazz, 10L));
-                  }
-              }
-              """,
-            """
-              import java.util.ArrayList;
-              import java.util.List;
-
-              import org.junit.runner.RunWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.MockitoJUnitRunner;
-
-              import static org.junit.Assert.assertNull;
-              import static org.mockito.Mockito.*;
-
-              @RunWith(MockitoJUnitRunner.class)
-              class MyTest {
-                  @Mock
-                  MyObject myObject;
-
-                  void test() {
-                      String bazz = "bazz";
-                      lenient().when(myObject.getSomeField(eq("foo"), anyString(), eq(bazz), eq(10L))).thenReturn(null);
-                      assertNull(myObject.getSomeField("foo", "bar", bazz, 10L));
                   }
               }
               """

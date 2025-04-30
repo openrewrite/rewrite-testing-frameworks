@@ -34,6 +34,39 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
           .recipe(new AssertTrueComparisonToAssertEquals());
     }
 
+    @DocumentExample
+    @SuppressWarnings({"ConstantConditions", "SimplifiableAssertion"})
+    @Test
+    void preserveMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+
+              public class Test {
+                  void test() {
+                      int a = 1;
+                      int b = 1;
+                      Assertions.assertTrue(a == b, "a does not equal b");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+
+              public class Test {
+                  void test() {
+                      int a = 1;
+                      int b = 1;
+                      Assertions.assertEquals(a, b, "a does not equal b");
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/204")
     @SuppressWarnings({"ConstantConditions", "SimplifiableAssertion"})
     @Test
@@ -93,39 +126,6 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
                       int a = 1;
                       int b = 1;
                       Assertions.assertEquals(a, b);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @SuppressWarnings({"ConstantConditions", "SimplifiableAssertion"})
-    @Test
-    void preserveMessage() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.Assertions;
-
-              public class Test {
-                  void test() {
-                      int a = 1;
-                      int b = 1;
-                      Assertions.assertTrue(a == b, "a does not equal b");
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Assertions;
-
-              public class Test {
-                  void test() {
-                      int a = 1;
-                      int b = 1;
-                      Assertions.assertEquals(a, b, "a does not equal b");
                   }
               }
               """

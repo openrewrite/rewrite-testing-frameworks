@@ -95,56 +95,6 @@ class JMockitFullVerificationsToMockitoTest implements RewriteTest {
         );
     }
 
-    @Test
-    void whenTimes() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import mockit.FullVerifications;
-              import mockit.Mocked;
-              import mockit.integration.junit5.JMockitExtension;
-              import org.junit.jupiter.api.extension.ExtendWith;
-              
-              @ExtendWith(JMockitExtension.class)
-              class MyTest {
-                  @Mocked
-                  Object myObject;
-              
-                  void test() {
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
-                      new FullVerifications() {{
-                          myObject.wait(anyLong, anyInt);
-                          times = 2;
-                      }};
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
-              
-              import static org.mockito.Mockito.*;
-              
-              @ExtendWith(MockitoExtension.class)
-              class MyTest {
-                  @Mock
-                  Object myObject;
-              
-                  void test() {
-                      myObject.wait(10L, 10);
-                      myObject.wait(10L, 10);
-                      verify(myObject, times(2)).wait(anyLong(), anyInt());
-                      verifyNoMoreInteractions(myObject);
-                  }
-              }
-              """
-          )
-        );
-    }
-
     @DocumentExample
     @Test
     void whenOtherStatements() {
@@ -188,6 +138,56 @@ class JMockitFullVerificationsToMockitoTest implements RewriteTest {
                       verify(myObject).wait(anyLong(), anyInt());
                       verifyNoMoreInteractions(myObject);
                       System.out.println("bla");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenTimes() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.FullVerifications;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+              
+                  void test() {
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
+                      new FullVerifications() {{
+                          myObject.wait(anyLong, anyInt);
+                          times = 2;
+                      }};
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              
+              import static org.mockito.Mockito.*;
+              
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+              
+                  void test() {
+                      myObject.wait(10L, 10);
+                      myObject.wait(10L, 10);
+                      verify(myObject, times(2)).wait(anyLong(), anyInt());
+                      verifyNoMoreInteractions(myObject);
                   }
               }
               """

@@ -172,6 +172,7 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
                         TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
                         TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
                         TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate") ||
                         TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterEach") ||
                         TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeEach") ||
                         TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterAll") ||

@@ -152,7 +152,6 @@ class JUnit5BestPracticesTest implements RewriteTest {
     void changeIgnoreToDisabled() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.Ignore;
@@ -194,28 +193,39 @@ class JUnit5BestPracticesTest implements RewriteTest {
     void changeThrowingRunnableToExecutable() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api")),
           java(
             """
+              import java.io.IOException;
               import org.junit.function.ThrowingRunnable;
               import org.junit.jupiter.api.Test;
 
               public class Example {
-                @Test
-                public void testExpectedIOException() {
-                  ThrowingRunnable runnable = () -> throwsIOException("Simply throw an IOException");
-                }
+                  @Test
+                  public void testExpectedIOException() {
+                      ThrowingRunnable runnable = () -> throwsIOException("Simply throw an IOException");
+                  }
+
+                  void throwsIOException(String message) throws IOException {
+                      throw new IOException(message);
+                  }
               }
               """,
             """
+              import java.io.IOException;
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.function.Executable;
 
-              public class Example {
-                @Test
-                public void testExpectedIOException() {
-                  Executable runnable = () -> throwsIOException("Simply throw an IOException");
-                }
+              class Example {
+                  @Test
+                  void expectedIOException() {
+                      Executable runnable = () -> throwsIOException("Simply throw an IOException");
+                  }
+
+                  void throwsIOException(String message) throws IOException {
+                      throw new IOException(message);
+                  }
               }
               """
           )
