@@ -388,7 +388,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
 
         @Override
-        public @Nullable J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+        public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
             J.MethodDeclaration enclosingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
             // remove redundant super call, otherwise it will create compilation error when this constructor is converted to regular method.
