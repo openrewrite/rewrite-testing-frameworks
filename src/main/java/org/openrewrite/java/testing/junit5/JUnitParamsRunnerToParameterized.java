@@ -359,8 +359,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         }
 
         @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, ctx);
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext executionContext) {
+            if (classDeclaration.getType() != classType) {
                 return classDeclaration;
             }
             J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, executionContext);
