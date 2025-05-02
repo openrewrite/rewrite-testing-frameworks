@@ -358,8 +358,9 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             this.classType = classType;
         }
 
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext executionContext) {
-            if (classDeclaration.getType() != classType) {
+        @Override
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, ctx);
                 return classDeclaration;
             }
             J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, executionContext);
@@ -380,6 +381,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             return m.withModifiers(ListUtils.concat(m.getModifiers(), staticModifier));
         }
 
+        @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             Cursor classCursor = getCursor().dropParentUntil(j -> j instanceof J.ClassDeclaration);
             J.MethodDeclaration enclosingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
