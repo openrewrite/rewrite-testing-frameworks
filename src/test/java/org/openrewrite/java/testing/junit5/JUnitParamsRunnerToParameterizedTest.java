@@ -198,6 +198,71 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
     }
 
     @Test
+    void methodSourceWithInstanceAccess() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import java.time.LocalDateTime;
+              import junitparams.JUnitParamsRunner;
+              import junitparams.Parameters;
+              import junitparams.NamedParameters;
+              import junitparams.naming.TestCaseName;
+
+              @RunWith(JUnitParamsRunner.class)
+              public class PersonTests {
+
+                  @Test
+                  @Parameters(method = "youngAdultPersonParams")
+                  public void personIsAdult(int age, boolean valid) {
+                  }
+
+                  private Object[] youngAdultPersonParams() {
+                      return new Object[]{new Object[]{getAge(2000), false}, new Object[]{getAge(2005), false}};
+                  }
+
+                  private int getAge(int birthYear) {
+                      return getCurrentYear() - birthYear;
+                  }
+
+                  private int getCurrentYear() {
+                     return LocalDateTime.now().getYear();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              import java.time.LocalDateTime;
+
+              public class PersonTests {
+
+                  @ParameterizedTest
+                  @MethodSource("youngAdultPersonParams")
+                  public void personIsAdult(int age, boolean valid) {
+                  }
+
+                  private static Object[] youngAdultPersonParams() {
+                      return new Object[]{new Object[]{getAge(2000), false}, new Object[]{getAge(2005), false}};
+                  }
+
+                  private static int getAge(int birthYear) {
+                      return getCurrentYear() - birthYear;
+                  }
+
+                  private static int getCurrentYear() {
+                     return LocalDateTime.now().getYear();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void csvSource() {
         //language=java
         rewriteRun(

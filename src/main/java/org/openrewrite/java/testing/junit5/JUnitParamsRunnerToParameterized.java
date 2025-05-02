@@ -23,10 +23,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.trait.Literal;
 import org.openrewrite.java.trait.Traits;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Space;
-import org.openrewrite.java.tree.TextComment;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
@@ -241,6 +238,10 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             // Remove @RunWith(JUnitParamsRunner.class) annotation
             doAfterVisit(new RemoveAnnotationVisitor(RUN_WITH_JUNIT_PARAMS_ANNOTATION_MATCHER));
+            List<String> methodNames = getCursor().getMessage(MakeMethodStatic.REFERENCED_METHODS);
+            if (methodNames != null && !methodNames.isEmpty()) {
+                doAfterVisit(new MakeMethodStatic(cd.getType(), methodNames));
+            }
 
             // Update Imports
             maybeRemoveImport("org.junit.Test");
@@ -264,23 +265,27 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             final String paramTestName = initMethodReferences.get(m.getSimpleName());
 
-            m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), anno -> {
+            List<J.Annotation> annotations = ListUtils.map(m.getLeadingAnnotations(), anno -> {
                 if (TEST_CASE_NAME_MATCHER.matches(anno) || NAMED_PARAMETERS_MATCHER.matches(anno)) {
                     return null;
                 }
                 anno = maybeReplaceTestAnnotation(new Cursor(getCursor(), anno), paramTestName);
                 anno = maybeReplaceParametersAnnotation(new Cursor(getCursor(), anno), method.getSimpleName());
                 return anno;
-            }));
+            });
+
+            if (annotations.isEmpty()) {
+                m = m.withLeadingAnnotations(Collections.emptyList());
+            } else {
+                m = m.withLeadingAnnotations(annotations);
+            }
 
             // If the method is an init-method then add a static modifier if necessary
             if (initMethods.contains(m.getSimpleName()) || initMethodReferences.containsValue(m.getSimpleName())) {
-                if (m.getModifiers().stream().noneMatch(it -> J.Modifier.Type.Static == it.getType())) {
-                    J.Modifier staticModifier = new J.Modifier(Tree.randomId(), Space.format(" "), Markers.EMPTY, null, J.Modifier.Type.Static, new ArrayList<>());
-                    m = maybeAutoFormat(m, m.withModifiers(ListUtils.concat(m.getModifiers(), staticModifier)), ctx, getCursor().getParentTreeCursor());
-                }
+                Cursor enclosingCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
+                enclosingCursor.computeMessageIfAbsent(MakeMethodStatic.REFERENCED_METHODS, k -> new ArrayList<>()).add(m.getSimpleName());
             }
-            return m;
+            return maybeAutoFormat(method, m, m.getName(), ctx, getCursor().getParentTreeCursor());
         }
 
         private J.Annotation maybeReplaceTestAnnotation(Cursor anno, @Nullable String parameterizedTestArgument) {
@@ -339,5 +344,49 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             return annotationArgumentValue;
         }
 
+    }
+
+    private static class MakeMethodStatic extends JavaIsoVisitor<ExecutionContext> {
+
+        private static final String REFERENCED_METHODS = "referencedMethods";
+
+        private final JavaType.FullyQualified classType;
+        private final List<String> methodNames;
+
+        MakeMethodStatic(JavaType.FullyQualified classType, List<String> methodNames) {
+            this.methodNames = methodNames;
+            this.classType = classType;
+        }
+
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext executionContext) {
+            if (classDeclaration.getType() != classType) {
+                return classDeclaration;
+            }
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, executionContext);
+            List<String> methodNames = getCursor().getMessage(REFERENCED_METHODS);
+            if (methodNames != null && !methodNames.isEmpty()) {
+                doAfterVisit(new MakeMethodStatic(classType, methodNames));
+            }
+            return cd;
+        }
+
+        @Override
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            if (!methodNames.contains(method.getSimpleName()) || method.hasModifier(J.Modifier.Type.Static) || method.getMethodType().getDeclaringType() != classType) {
+                return method;
+            }
+            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+            J.Modifier staticModifier = new J.Modifier(Tree.randomId(), Space.format(" "), Markers.EMPTY, null, J.Modifier.Type.Static, new ArrayList<>());
+            return m.withModifiers(ListUtils.concat(m.getModifiers(), staticModifier));
+        }
+
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            Cursor classCursor = getCursor().dropParentUntil(j -> j instanceof J.ClassDeclaration);
+            J.MethodDeclaration enclosingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
+            if (methodNames.contains(enclosingMethod.getSimpleName()) && method.getMethodType().getDeclaringType() == classType) {
+                classCursor.computeMessageIfAbsent(REFERENCED_METHODS, k -> new ArrayList<>()).add(method.getSimpleName());
+            }
+            return super.visitMethodInvocation(method, ctx);
+        }
     }
 }
