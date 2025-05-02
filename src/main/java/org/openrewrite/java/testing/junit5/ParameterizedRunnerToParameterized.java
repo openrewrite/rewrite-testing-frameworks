@@ -386,5 +386,22 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             }
             return m;
         }
+
+        @Override
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+            J.MethodDeclaration enclosingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
+            // remove redundant super call, otherwise it will create compilation error when this constructor is converted to regular method.
+            // TODO: Handle super call with arguments.
+            if (enclosingMethod != null && enclosingMethod.isConstructor() && mi.getName().getSimpleName().equals("super") && isEmptyArgs(mi)) {
+                return null;
+            }
+            return mi;
+        }
+
+        private static boolean isEmptyArgs(J.MethodInvocation mi) {
+            return mi.getArguments().isEmpty()
+                    || (mi.getArguments().size() == 1 && mi.getArguments().get(0) instanceof J.Empty);
+        }
     }
 }
