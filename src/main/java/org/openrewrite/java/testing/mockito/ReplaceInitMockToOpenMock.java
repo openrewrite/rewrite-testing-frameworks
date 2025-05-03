@@ -19,13 +19,16 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markers;
 
+import static java.util.Collections.emptyList;
+import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 
@@ -91,6 +94,8 @@ public class ReplaceInitMockToOpenMock extends Recipe {
 
                     final TreeVisitor<J, ExecutionContext> updateJUnitLifecycleMethods = new JavaIsoVisitor<ExecutionContext>() {
 
+                        private final String EXCEPTION_CLASS_NAME = "java.lang.Exception";
+
                         private boolean isAnnotatedMethodPresent(J.ClassDeclaration cd, AnnotationMatcher beforeEachMatcher) {
                             return cd.getBody().getStatements().stream().anyMatch(
                                     st -> st instanceof J.MethodDeclaration &&
@@ -119,6 +124,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
 
                             if (service(AnnotationService.class).matches(getCursor(), BEFORE_EACH_MATCHER) && md.getBody() != null) {
                                 maybeRemoveImport("org.mockito.MockitoAnnotations.initMocks");
+                                maybeAddImport("org.mockito.MockitoAnnotations");
                                 return (J.MethodDeclaration) new JavaVisitor<ExecutionContext>() {
                                     @Override
                                     public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -147,10 +153,20 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                         .contextSensitive()
                                         .build()
                                         .apply(getCursor(), md.getBody().getCoordinates().lastStatement());
+                                md = addThrowsIfAbsent(md);
+
                                 return maybeAutoFormat(method, md, ctx);
                             }
 
                             return md;
+                        }
+
+                        private J.MethodDeclaration addThrowsIfAbsent(J.MethodDeclaration md) {
+                            if (md.getThrows() != null && md.getThrows().stream().anyMatch(j -> TypeUtils.isOfClassType(j.getType(), EXCEPTION_CLASS_NAME))) {
+                                return md;
+                            }
+                            JavaType.Class exceptionType = JavaType.ShallowClass.build(EXCEPTION_CLASS_NAME);
+                            return md.withThrows(ListUtils.concat(md.getThrows(), new J.Identifier(randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), exceptionType.getClassName(), exceptionType, null)));
                         }
                     };
                 }
