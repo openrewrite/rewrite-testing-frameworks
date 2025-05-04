@@ -579,7 +579,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     }
 
     @Test
-    void newTemporaryFolderInstanceAsArgumentNotSupported() {
+    void newTemporaryFolderInstanceAsArgument() {
         //language=java
         rewriteRun(
           java(
@@ -590,7 +590,19 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
                       doSomething(new TemporaryFolder());
                   }
                   void doSomething(TemporaryFolder tempFolder) {
+                      tempFolder.create();
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+              import java.nio.file.Files;
 
+              public class Z {
+                  void why() {
+                      doSomething(Files.createTempDirectory("junit").toFile());
+                  }
+                  void doSomething(File tempFolder) {
                   }
               }
               """
@@ -599,7 +611,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     }
 
     @Test
-    void notSupported() {
+    void temporaryFolderInstanceAsParameter() {
         //language=java
         rewriteRun(
           java(
@@ -608,9 +620,24 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               public class Z {
                   void why() {
                       TemporaryFolder t = new TemporaryFolder();
+                      t.create();
                       doSomething(t);
                   }
                   void doSomething(TemporaryFolder tempFolder) {
+
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+              import java.nio.file.Files;
+
+              public class Z {
+                  void why() {
+                      File t = Files.createTempDirectory("junit").toFile();
+                      doSomething(t);
+                  }
+                  void doSomething(File tempFolder) {
 
                   }
               }
@@ -668,6 +695,79 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
                           throw new IOException("Couldn't create folders " + root);
                       }
                       return result;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void notAsRule() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.File;
+              import org.junit.rules.TemporaryFolder;
+              import org.junit.Test;
+
+              public class TempDirTest {
+                  @Test
+                  void testPath() {
+                      TemporaryFolder t = new TemporaryFolder();
+                      File f = t.newFile("foo.txt");
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+              import java.nio.file.Files;
+
+              import org.junit.Test;
+
+              public class TempDirTest {
+                  @Test
+                  void testPath() {
+                      File t = Files.createTempDirectory("junit").toFile();
+                      File f = File.createTempFile("foo.txt", null, t);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void temporaryFolderWithParenDir() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.File;
+              import org.junit.rules.TemporaryFolder;
+              import org.junit.Test;
+
+              public class TempDirTest {
+                  @Test
+                  void testPath() {
+                      TemporaryFolder t = new TemporaryFolder(new File("parent"));
+                      t.create();
+                      File f = t.newFile("foo.txt");
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+              import java.nio.file.Files;
+
+              import org.junit.Test;
+
+              public class TempDirTest {
+                  @Test
+                  void testPath() {
+                      File t = Files.createTempDirectory(new File("parent").toPath(), "junit").toFile();
+                      File f = File.createTempFile("foo.txt", null, t);
                   }
               }
               """
