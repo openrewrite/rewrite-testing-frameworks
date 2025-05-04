@@ -52,12 +52,12 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Assertions;
+              import static org.junit.jupiter.api.Assertions.fail;
 
               public class Test {
                   void test() {
-                      Assertions.fail("assert false true");
-                      Assertions.fail("assert true false");
+                      fail("assert false true");
+                      fail("assert true false");
                   }
               }
               """
@@ -82,12 +82,12 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Assertions;
+              import static org.junit.jupiter.api.Assertions.fail;
 
               public class Test {
                   void test() {
-                      Assertions.fail("assert false true");
-                      Assertions.fail("assert true false");
+                      fail("assert false true");
+                      fail("assert true false");
                   }
               }
               """

@@ -40,8 +40,6 @@ public class AssertLiteralBooleanToFail {
     }
 
     @AfterTemplate
-    // This annotation does not get taken into account
-    // resulting in Assertions.fail(message) being outputted
     @UseImportPolicy(value = STATIC_IMPORT_ALWAYS)
     void after(String message) {
         fail(message);
