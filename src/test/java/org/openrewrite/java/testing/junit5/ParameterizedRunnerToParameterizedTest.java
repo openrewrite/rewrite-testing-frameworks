@@ -497,7 +497,6 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       }
 
                       public void initI1(String path) {
-                          super(path);
                       }
 
                       @MethodSource("data1")
@@ -589,5 +588,90 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
               }
               """
           ));
+    }
+
+    @Test
+    void methodSourceWithSuperCall() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+              import org.junit.runners.Parameterized.Parameters;
+
+              import java.util.Arrays;
+              import java.util.List;
+
+              @RunWith(Parameterized.class)
+              public class VetTests {
+
+                  private String firstName;
+                  private String lastName;
+                  private Integer id;
+
+                  public VetTests(String firstName, String lastName, Integer id) {
+                      super();
+                      this.firstName = firstName;
+                      this.lastName = lastName;
+                      this.id = id;
+                  }
+
+                  @Test
+                  public void testSerialization() {
+                      Vet vet = new Vet();
+                      vet.setFirstName(firstName);
+                      vet.setLastName(lastName);
+                      vet.setId(id);
+                  }
+
+                  @Parameters
+                  public static List<Object[]> parameters() {
+                      return Arrays.asList(
+                          new Object[] { "Otis", "TheDog", 124 },
+                          new Object[] { "Garfield", "TheBoss", 126 });
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              import java.util.Arrays;
+              import java.util.List;
+
+              public class VetTests {
+
+                  private String firstName;
+                  private String lastName;
+                  private Integer id;
+
+                  public void initVetTests(String firstName, String lastName, Integer id) {
+                      this.firstName = firstName;
+                      this.lastName = lastName;
+                      this.id = id;
+                  }
+
+                  @MethodSource("parameters")
+                  @ParameterizedTest
+                  public void testSerialization(String firstName, String lastName, Integer id) {
+                      initVetTests(firstName, lastName, id);
+                      Vet vet = new Vet();
+                      vet.setFirstName(firstName);
+                      vet.setLastName(lastName);
+                      vet.setId(id);
+                  }
+
+                  public static List<Object[]> parameters() {
+                      return Arrays.asList(
+                          new Object[] { "Otis", "TheDog", 124 },
+                          new Object[] { "Garfield", "TheBoss", 126 });
+                  }
+              }
+              """
+          )
+        );
     }
 }
