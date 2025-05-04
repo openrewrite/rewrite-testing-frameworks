@@ -66,14 +66,23 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             import org.junit.Rule
             import org.junit.rules.TemporaryFolder
 
+            import java.io.File
+            import java.io.IOException
+
             class AbstractIntegrationTest {
                 @TempDir
                 File temporaryFolder
 
                 def setup() {
                     projectDir = temporaryFolder.root
-                    buildFile = File.createTempFile('build.gradle', null, temporaryFolder)
-                    settingsFile = File.createTempFile('settings.gradle', null, temporaryFolder)
+                    buildFile = newFile(temporaryFolder, 'build.gradle')
+                    settingsFile = newFile(temporaryFolder, 'settings.gradle')
+                }
+
+                private static File newFile(File parent, String child) throws IOException {
+                    File result = new File(parent, child)
+                    result.createNewFile()
+                    return result
                 }
             }
             """
@@ -476,7 +485,13 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
                   @Test
                   public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
                       final String fileName = "SampleFile.txt";
-                      File f = File.createTempFile(fileName, null, tempFolder);
+                      File f = newFile(tempFolder, fileName);
+                  }
+
+                  private static File newFile(File parent, String child) throws IOException {
+                      File result = new File(parent, child);
+                      result.createNewFile();
+                      return result;
                   }
               }
               """
@@ -531,8 +546,14 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
                   public void newNamedFileIsCreatedUnderRootFolder() throws IOException {
                       final String fileName = "SampleFile.txt";
                       final String otherFileName = "otherText.txt";
-                      File f = File.createTempFile(fileName, null, tempFolder);
-                      File f2 = File.createTempFile(otherFileName, null, tempFolder2);
+                      File f = newFile(tempFolder, fileName);
+                      File f2 = newFile(tempFolder2, otherFileName);
+                  }
+
+                  private static File newFile(File parent, String child) throws IOException {
+                      File result = new File(parent, child);
+                      result.createNewFile();
+                      return result;
                   }
               }
               """
@@ -709,12 +730,13 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
           java(
             """
               import java.io.File;
+              import java.io.IOException;
               import org.junit.rules.TemporaryFolder;
               import org.junit.Test;
 
               public class TempDirTest {
                   @Test
-                  void testPath() {
+                  void testPath() throws IOException {
                       TemporaryFolder t = new TemporaryFolder();
                       File f = t.newFile("foo.txt");
                   }
@@ -722,15 +744,22 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               """,
             """
               import java.io.File;
+              import java.io.IOException;
               import java.nio.file.Files;
 
               import org.junit.Test;
 
               public class TempDirTest {
                   @Test
-                  void testPath() {
+                  void testPath() throws IOException {
                       File t = Files.createTempDirectory("junit").toFile();
-                      File f = File.createTempFile("foo.txt", null, t);
+                      File f = newFile(t, "foo.txt");
+                  }
+
+                  private static File newFile(File parent, String child) throws IOException {
+                      File result = new File(parent, child);
+                      result.createNewFile();
+                      return result;
                   }
               }
               """
@@ -745,12 +774,13 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
           java(
             """
               import java.io.File;
+              import java.io.IOException;
               import org.junit.rules.TemporaryFolder;
               import org.junit.Test;
 
               public class TempDirTest {
                   @Test
-                  void testPath() {
+                  void testPath() throws IOException {
                       TemporaryFolder t = new TemporaryFolder(new File("parent"));
                       t.create();
                       File f = t.newFile("foo.txt");
@@ -759,15 +789,22 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               """,
             """
               import java.io.File;
+              import java.io.IOException;
               import java.nio.file.Files;
 
               import org.junit.Test;
 
               public class TempDirTest {
                   @Test
-                  void testPath() {
+                  void testPath() throws IOException {
                       File t = Files.createTempDirectory(new File("parent").toPath(), "junit").toFile();
-                      File f = File.createTempFile("foo.txt", null, t);
+                      File f = newFile(t, "foo.txt");
+                  }
+
+                  private static File newFile(File parent, String child) throws IOException {
+                      File result = new File(parent, child);
+                      result.createNewFile();
+                      return result;
                   }
               }
               """
