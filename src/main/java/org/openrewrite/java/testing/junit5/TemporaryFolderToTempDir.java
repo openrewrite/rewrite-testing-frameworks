@@ -15,7 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -45,271 +45,256 @@ public class TemporaryFolderToTempDir extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.rules.TemporaryFolder", false), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(
+                new UsesType<>("org.junit.rules.TemporaryFolder", false),
+                new TemporaryFolderToTempDirVisitor());
+    }
+}
 
-            final AnnotationMatcher classRule = new AnnotationMatcher("@org.junit.ClassRule");
-            final AnnotationMatcher rule = new AnnotationMatcher("@org.junit.Rule");
+class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
 
-            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                    return JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5");
-            }
+    final AnnotationMatcher classRule = new AnnotationMatcher("@org.junit.ClassRule");
+    final AnnotationMatcher rule = new AnnotationMatcher("@org.junit.Rule");
 
-            @Override
-            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, ctx);
-                if (c != cu) {
-                    c = (J.CompilationUnit) new ChangeType(
-                            "org.junit.rules.TemporaryFolder", "java.io.File", true).getVisitor()
-                            .visit(c, ctx);
-                    maybeAddImport("java.io.File");
-                    maybeAddImport("org.junit.jupiter.api.io.TempDir");
-                    maybeRemoveImport("org.junit.ClassRule");
-                    maybeRemoveImport("org.junit.Rule");
-                    maybeRemoveImport("org.junit.rules.TemporaryFolder");
-                }
-                return c;
-            }
-
-            @Override
-            public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
-                J.VariableDeclarations mv = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable, ctx);
-                if (!isRuleAnnotatedTemporaryFolder(mv)) {
-                    return mv;
-                }
-                String fieldVars = mv.getVariables().stream()
-                        .map(fv -> fv.withInitializer(null))
-                        .map(it -> it.print(getCursor()))
-                        .collect(Collectors.joining(","));
-                String modifiers = mv.getModifiers().stream().map(it -> it.getType().name().toLowerCase()).collect(Collectors.joining(" "));
-                mv = JavaTemplate.builder("@TempDir\n#{} File#{};")
-                        .contextSensitive()
-                        .imports("java.io.File", "org.junit.jupiter.api.io.TempDir")
-                        .javaParser(javaParser(ctx))
-                        .build()
-                        .apply(
-                                updateCursor(mv),
-                                mv.getCoordinates().replace(),
-                                modifiers,
-                                fieldVars
-                        );
-                return mv;
-            }
-
-            private boolean isRuleAnnotatedTemporaryFolder(J.VariableDeclarations vd) {
-                return TypeUtils.isOfClassType(vd.getTypeAsFullyQualified(), "org.junit.rules.TemporaryFolder") &&
-                       vd.getLeadingAnnotations().stream().anyMatch(anno -> classRule.matches(anno) || rule.matches(anno));
-            }
-
-            @Override
-            public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                updateCursor(mi);
-                if (mi.getSelect() != null && mi.getMethodType() != null &&
-                    TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "org.junit.rules.TemporaryFolder")) {
-                    switch (mi.getSimpleName()) {
-                        case "newFile":
-                            return convertToNewFile(mi, ctx);
-                        case "newFolder":
-                            doAfterVisit(new AddNewFolderOrFileMethod(mi, FileOrFolder.FOLDER));
-                            break;
-                        case "create":
-                            //noinspection ConstantConditions
-                            return null;
-                        case "getRoot":
-                            return mi.getSelect().withPrefix(mi.getPrefix());
-                        default:
-                            return mi;
-                    }
-                }
-                return mi;
-            }
-
-            private J convertToNewFile(J.MethodInvocation mi, ExecutionContext ctx) {
-                if (mi.getSelect() == null) {
-                    return mi;
-                }
-                List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
-                if (args.isEmpty()) {
-                    J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
-                    return JavaTemplate.builder("File.createTempFile(\"junit\", null, #{any(java.io.File)})")
-                            .imports("java.io.File")
-                            .javaParser(javaParser(ctx))
-                            .build()
-                            .apply(getCursor(), mi.getCoordinates().replace(), tempDir);
-                } else {
-                    doAfterVisit(new AddNewFolderOrFileMethod(mi, FileOrFolder.FILE));
-                    return mi;
-                }
-            }
-        });
+    @Override
+    public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+        J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, ctx);
+        if (c != cu) {
+            c = (J.CompilationUnit) new ChangeType(
+                    "org.junit.rules.TemporaryFolder", "java.io.File", true).getVisitor()
+                    .visit(c, ctx);
+            maybeAddImport("java.io.File");
+            maybeAddImport("org.junit.jupiter.api.io.TempDir");
+            maybeRemoveImport("org.junit.ClassRule");
+            maybeRemoveImport("org.junit.Rule");
+            maybeRemoveImport("org.junit.rules.TemporaryFolder");
+        }
+        return c;
     }
 
-    private static class AddNewFolderOrFileMethod extends JavaIsoVisitor<ExecutionContext> {
-        private final J.MethodInvocation methodInvocation;
-        private final FileOrFolder fileOrFolder;
-
-        public AddNewFolderOrFileMethod(J.MethodInvocation methodInvocation, FileOrFolder fileOrFolder) {
-            this.methodInvocation = methodInvocation;
-            this.fileOrFolder = fileOrFolder;
+    @Override
+    public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+        J.VariableDeclarations mv = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable, ctx);
+        if (!isRuleAnnotatedTemporaryFolder(mv)) {
+            return mv;
         }
+        String fieldVars = mv.getVariables().stream()
+                .map(fv -> fv.withInitializer(null))
+                .map(it -> it.print(getCursor()))
+                .collect(Collectors.joining(","));
+        String modifiers = mv.getModifiers().stream().map(it -> it.getType().name().toLowerCase()).collect(Collectors.joining(" "));
+        return JavaTemplate.builder("@TempDir\n#{} File#{};")
+                .contextSensitive()
+                .imports("java.io.File", "org.junit.jupiter.api.io.TempDir")
+                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                .build()
+                .apply(
+                        updateCursor(mv),
+                        mv.getCoordinates().replace(),
+                        modifiers,
+                        fieldVars
+                );
+    }
 
-        private boolean hasClassType(Statement j, @Nullable String classType) {
-            if (classType == null) {
-                return false;
-            }
+    private boolean isRuleAnnotatedTemporaryFolder(J.VariableDeclarations vd) {
+        return TypeUtils.isOfClassType(vd.getTypeAsFullyQualified(), "org.junit.rules.TemporaryFolder") &&
+                vd.getLeadingAnnotations().stream().anyMatch(anno -> classRule.matches(anno) || rule.matches(anno));
+    }
 
-            if (!(j instanceof J.VariableDeclarations)) {
-                return false;
-            }
-
-            J.VariableDeclarations variable = (J.VariableDeclarations) j;
-
-            if (variable.getTypeExpression() == null) {
-                return false;
-            }
-
-            return TypeUtils.isOfClassType(variable.getTypeExpression().getType(), classType);
-        }
-
-        @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-            JavaType.Method newMethodDeclaration = getMethodDeclaration(cd, fileOrFolder).orElse(null);
-
-            if (newMethodDeclaration == null) {
-                cd = JavaTemplate.builder(fileOrFolder.template)
-                        .contextSensitive()
-                        .imports("java.io.File", "java.io.IOException")
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "junit-jupiter-api-5"))
-                        .build()
-                        .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
-                newMethodDeclaration = ((J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1)).getMethodType();
-                maybeAddImport("java.io.File");
-                maybeAddImport("java.io.IOException");
-            }
-            assert (newMethodDeclaration != null);
-            doAfterVisit(new TranslateNewFolderOrFileMethodInvocation(methodInvocation, newMethodDeclaration, fileOrFolder));
-            return cd;
-        }
-
-        private Optional<JavaType.Method> getMethodDeclaration(J.ClassDeclaration cd, FileOrFolder fileOrFolder) {
-            return cd.getBody().getStatements().stream()
-                    .filter(J.MethodDeclaration.class::isInstance)
-                    .map(J.MethodDeclaration.class::cast)
-                    .filter(m -> {
-                        List<Statement> params = m.getParameters();
-                        return fileOrFolder.methodName.equals(m.getSimpleName())
-                                && params.size() == 2
-                                && hasClassType(params.get(0), "java.io.File")
-                                && hasClassType(params.get(1), "java.lang.String");
-                    }).map(J.MethodDeclaration::getMethodType).filter(Objects::nonNull).findAny();
-        }
-
-        private static class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionContext> {
-            J.MethodInvocation methodScope;
-            JavaType.Method newMethodType;
-            FileOrFolder fileOrFolder;
-
-            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                    return JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5");
-            }
-
-            public TranslateNewFolderOrFileMethodInvocation(J.MethodInvocation method, JavaType.Method newMethodType, FileOrFolder fileOrFolder) {
-                this.methodScope = method;
-                this.newMethodType = newMethodType;
-                this.fileOrFolder = fileOrFolder;
-            }
-
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (!mi.isScope(methodScope)) {
+    @Override
+    public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+        J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+        updateCursor(mi);
+        if (mi.getSelect() != null && mi.getMethodType() != null &&
+                TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "org.junit.rules.TemporaryFolder")) {
+            switch (mi.getSimpleName()) {
+                case "newFile":
+                    return convertToNewFile(mi, ctx);
+                case "newFolder":
+                    doAfterVisit(new AddNewFolderOrFileMethod(mi, FileOrFolder.FOLDER));
+                    break;
+                case "create":
+                    //noinspection ConstantConditions
+                    return null;
+                case "getRoot":
+                    return mi.getSelect().withPrefix(mi.getPrefix());
+                default:
                     return mi;
-                }
-                if (mi.getSelect() != null) {
-                    mi = fileOrFolder == FileOrFolder.FOLDER ? toNewFolder(mi, ctx) : toNewFile(mi, ctx);
-                    mi = mi.withMethodType(newMethodType);
-                    J.ClassDeclaration parentClass = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).getValue();
-                    mi = mi.withName(mi.getName().withType(parentClass.getType()));
-                }
-                return mi;
-            }
-
-            private J.MethodInvocation toNewFolder(J.MethodInvocation mi, ExecutionContext ctx) {
-                J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
-                List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
-                if (args.isEmpty()) {
-                    mi = JavaTemplate.builder("newFolder(#{any(java.io.File)}, \"junit\")")
-                            .imports("java.io.File")
-                            .javaParser(javaParser(ctx))
-                            .build()
-                            .apply(updateCursor(mi), mi.getCoordinates().replace(), tempDir);
-                } else if (args.size() == 1) {
-                    mi = JavaTemplate.builder("newFolder(#{any(java.io.File)}, #{any(java.lang.String)})")
-                            .imports("java.io.File")
-                            .javaParser(javaParser(ctx))
-                            .build()
-                            .apply(
-                                    updateCursor(mi),
-                                    mi.getCoordinates().replace(),
-                                    tempDir,
-                                    args.get(0)
-                            );
-                } else {
-                    final StringBuilder sb = new StringBuilder("newFolder(#{any(java.io.File)}");
-                    args.forEach(arg -> sb.append(", #{any(java.lang.String)}"));
-                    sb.append(")");
-                    List<Object> templateArgs = new ArrayList<>(args);
-                    templateArgs.add(0, tempDir);
-                    mi = JavaTemplate.builder(sb.toString())
-                            .contextSensitive()
-                            .imports("java.io.File")
-                            .javaParser(javaParser(ctx))
-                            .build()
-                            .apply(
-                                    updateCursor(mi),
-                                    mi.getCoordinates().replace(),
-                                    templateArgs.toArray()
-                            );
-                }
-                return mi;
-            }
-
-            private J.MethodInvocation toNewFile(J.MethodInvocation mi, ExecutionContext ctx) {
-                J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
-                List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
-                if (args.size() != 1) {
-                    return mi; // unexpected
-                }
-                return JavaTemplate.builder("newFile(#{any(java.io.File)}, #{any(java.lang.String)})")
-                        .imports("java.io.File")
-                        .javaParser(javaParser(ctx))
-                        .build()
-                        .apply(updateCursor(mi), mi.getCoordinates().replace(), tempDir, args.get(0));
             }
         }
+        return mi;
     }
 
-    @AllArgsConstructor
-    private enum FileOrFolder {
-        FILE("newFile", "private static File newFile(File parent, String child) throws IOException {\n" +
-                "    File result = new File(parent, child);\n" +
-                "    result.createNewFile();\n" +
-                "    return result;\n" +
-                "}"),
-        FOLDER("newFolder", "private static File newFolder(File root, String... subDirs) throws IOException {\n" +
-                "    String subFolder = String.join(\"/\", subDirs);\n" +
-                "    File result = new File(root, subFolder);\n" +
-                "    if(!result.mkdirs()) {\n" +
-                "        throw new IOException(\"Couldn't create folders \" + root);\n" +
-                "    }\n" +
-                "    return result;\n" +
-                "}");
+    private J convertToNewFile(J.MethodInvocation mi, ExecutionContext ctx) {
+        if (mi.getSelect() == null) {
+            return mi;
+        }
+        List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
+        if (args.isEmpty()) {
+            J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
+            return JavaTemplate.builder("File.createTempFile(\"junit\", null, #{any(java.io.File)})")
+                    .imports("java.io.File")
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .build()
+                    .apply(getCursor(), mi.getCoordinates().replace(), tempDir);
+        }
 
-        String methodName;
-        String template;
+        doAfterVisit(new AddNewFolderOrFileMethod(mi, FileOrFolder.FILE));
+        return mi;
     }
+}
+
+@RequiredArgsConstructor
+class AddNewFolderOrFileMethod extends JavaIsoVisitor<ExecutionContext> {
+    private final J.MethodInvocation methodInvocation;
+    private final FileOrFolder fileOrFolder;
+
+    private boolean hasClassType(Statement j, @Nullable String classType) {
+        if (classType == null) {
+            return false;
+        }
+
+        if (!(j instanceof J.VariableDeclarations)) {
+            return false;
+        }
+
+        J.VariableDeclarations variable = (J.VariableDeclarations) j;
+
+        if (variable.getTypeExpression() == null) {
+            return false;
+        }
+
+        return TypeUtils.isOfClassType(variable.getTypeExpression().getType(), classType);
+    }
+
+    @Override
+    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+        J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+        JavaType.Method newMethodDeclaration = getMethodDeclaration(cd, fileOrFolder).orElse(null);
+
+        if (newMethodDeclaration == null) {
+            cd = JavaTemplate.builder(fileOrFolder.template)
+                    .contextSensitive()
+                    .imports("java.io.File", "java.io.IOException")
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .build()
+                    .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
+            newMethodDeclaration = ((J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1)).getMethodType();
+            maybeAddImport("java.io.File");
+            maybeAddImport("java.io.IOException");
+        }
+        assert (newMethodDeclaration != null);
+        doAfterVisit(new TranslateNewFolderOrFileMethodInvocation(methodInvocation, newMethodDeclaration, fileOrFolder));
+        return cd;
+    }
+
+    private Optional<JavaType.Method> getMethodDeclaration(J.ClassDeclaration cd, FileOrFolder fileOrFolder) {
+        return cd.getBody().getStatements().stream()
+                .filter(J.MethodDeclaration.class::isInstance)
+                .map(J.MethodDeclaration.class::cast)
+                .filter(m -> {
+                    List<Statement> params = m.getParameters();
+                    return fileOrFolder.methodName.equals(m.getSimpleName())
+                            && params.size() == 2
+                            && hasClassType(params.get(0), "java.io.File")
+                            && hasClassType(params.get(1), "java.lang.String");
+                }).map(J.MethodDeclaration::getMethodType).filter(Objects::nonNull).findAny();
+    }
+}
+
+@RequiredArgsConstructor
+class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionContext> {
+    final J.MethodInvocation methodScope;
+    final JavaType.Method newMethodType;
+    final FileOrFolder fileOrFolder;
+
+    @Override
+    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+        J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+        if (!mi.isScope(methodScope)) {
+            return mi;
+        }
+        if (mi.getSelect() != null) {
+            mi = fileOrFolder == FileOrFolder.FOLDER ? toNewFolder(mi, ctx) : toNewFile(mi, ctx);
+            mi = mi.withMethodType(newMethodType);
+            J.ClassDeclaration parentClass = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).getValue();
+            mi = mi.withName(mi.getName().withType(parentClass.getType()));
+        }
+        return mi;
+    }
+
+    private J.MethodInvocation toNewFolder(J.MethodInvocation mi, ExecutionContext ctx) {
+        J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
+        List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
+        if (args.isEmpty()) {
+            return JavaTemplate.builder("newFolder(#{any(java.io.File)}, \"junit\")")
+                    .imports("java.io.File")
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .build()
+                    .apply(updateCursor(mi), mi.getCoordinates().replace(), tempDir);
+        }
+
+        if (args.size() == 1) {
+            return JavaTemplate.builder("newFolder(#{any(java.io.File)}, #{any(java.lang.String)})")
+                    .imports("java.io.File")
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .build()
+                    .apply(
+                            updateCursor(mi),
+                            mi.getCoordinates().replace(),
+                            tempDir,
+                            args.get(0)
+                    );
+        }
+
+        StringBuilder sb = new StringBuilder("newFolder(#{any(java.io.File)}");
+        args.forEach(arg -> sb.append(", #{any(java.lang.String)}"));
+        sb.append(")");
+        List<Object> templateArgs = new ArrayList<>(args);
+        templateArgs.add(0, tempDir);
+        return JavaTemplate.builder(sb.toString())
+                .contextSensitive()
+                .imports("java.io.File")
+                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                .build()
+                .apply(
+                        updateCursor(mi),
+                        mi.getCoordinates().replace(),
+                        templateArgs.toArray()
+                );
+    }
+
+    private J.MethodInvocation toNewFile(J.MethodInvocation mi, ExecutionContext ctx) {
+        J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
+        List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
+        if (args.size() != 1) {
+            return mi; // unexpected
+        }
+        return JavaTemplate.builder("newFile(#{any(java.io.File)}, #{any(java.lang.String)})")
+                .imports("java.io.File")
+                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                .build()
+                .apply(updateCursor(mi), mi.getCoordinates().replace(), tempDir, args.get(0));
+    }
+}
+
+@RequiredArgsConstructor
+enum FileOrFolder {
+    FILE("newFile", "private static File newFile(File parent, String child) throws IOException {\n" +
+            "    File result = new File(parent, child);\n" +
+            "    result.createNewFile();\n" +
+            "    return result;\n" +
+            "}"),
+    FOLDER("newFolder", "private static File newFolder(File root, String... subDirs) throws IOException {\n" +
+            "    String subFolder = String.join(\"/\", subDirs);\n" +
+            "    File result = new File(root, subFolder);\n" +
+            "    if(!result.mkdirs()) {\n" +
+            "        throw new IOException(\"Couldn't create folders \" + root);\n" +
+            "    }\n" +
+            "    return result;\n" +
+            "}");
+
+    final String methodName;
+    final String template;
 }
