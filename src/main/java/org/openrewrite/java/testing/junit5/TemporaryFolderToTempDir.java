@@ -58,12 +58,13 @@ public class TemporaryFolderToTempDir extends Recipe {
 
 class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
 
-    final String temporaryFolder = "org.junit.rules.TemporaryFolder";
-    final String tempDir = "org.junit.jupiter.api.io.TempDir";
-    final AnnotationMatcher classRule = new AnnotationMatcher("@org.junit.ClassRule");
-    final AnnotationMatcher rule = new AnnotationMatcher("@org.junit.Rule");
-    final MethodMatcher newTemporaryFolder = new MethodMatcher(temporaryFolder + "<constructor>()");
-    final MethodMatcher newTemporaryFolderWithArg = new MethodMatcher(temporaryFolder + "<constructor>(java.io.File)");
+    private static final String TEMPORARY_FOLDER = "org.junit.rules.TemporaryFolder";
+    private static final String TEMP_DIR = "org.junit.jupiter.api.io.TempDir";
+    private static final AnnotationMatcher CLASS_RULE = new AnnotationMatcher("@org.junit.ClassRule");
+    private static final AnnotationMatcher RULE = new AnnotationMatcher("@org.junit.Rule");
+    private static final MethodMatcher NEW_TEMPORARY_FOLDER = new MethodMatcher(TEMPORARY_FOLDER + "<constructor>()");
+    private static final MethodMatcher NEW_TEMPORARY_FOLDER_WITH_ARG = new MethodMatcher(TEMPORARY_FOLDER + "<constructor>(java.io.File)");
+
     final JavaTemplate createTempDirTemplate = JavaTemplate.builder("Files.createTempDirectory(\"junit\").toFile()")
             .imports("java.nio.file.Files")
             .build();
@@ -91,34 +92,29 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     @Override
     public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
         J.VariableDeclarations mv = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable, ctx);
-        if (!TypeUtils.isOfClassType(multiVariable.getTypeAsFullyQualified(), temporaryFolder)) {
+        if (!TypeUtils.isOfClassType(multiVariable.getTypeAsFullyQualified(), TEMPORARY_FOLDER)) {
             return mv;
         }
         mv = mv.withTypeExpression(toFileIdentifier(mv.getTypeExpression()));
-        JavaTemplate template = JavaTemplate.builder("@TempDir")
-                .imports(tempDir)
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                .build();
-        return (J.VariableDeclarations) annotated("@org.junit.*Rule").asVisitor(a ->
-                        (new JavaIsoVisitor<ExecutionContext>() {
-                            @Override
-                            public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
-                                return template.apply(updateCursor(annotation), annotation.getCoordinates().replace());
-                            }
-                        }).visit(a.getTree(), ctx, a.getCursor().getParentOrThrow()))
-                .visit(mv, ctx, getCursor().getParentOrThrow());
+        return (J.VariableDeclarations) annotated("@org.junit.*Rule")
+                .asVisitor(a -> JavaTemplate.builder("@TempDir")
+                        .imports(TEMP_DIR)
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                        .build()
+                        .apply(a.getCursor(), a.getTree().getCoordinates().replace()))
+                .visitNonNull(mv, ctx, getCursor().getParentOrThrow());
     }
 
     @Override
     public @Nullable J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
         boolean hasRuleAnnotation = hasRuleAnnotation();
-        if (newTemporaryFolder.matches(newClass)) {
+        if (NEW_TEMPORARY_FOLDER.matches(newClass)) {
             if (hasRuleAnnotation) {
                 return null;
             }
             return createTempDirTemplate.apply(getCursor(), newClass.getCoordinates().replace());
         }
-        if (newTemporaryFolderWithArg.matches(newClass)) {
+        if (NEW_TEMPORARY_FOLDER_WITH_ARG.matches(newClass)) {
             if (hasRuleAnnotation) {
                 return null;
             }
@@ -161,7 +157,7 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
         if (vd == null) {
             return false;
         }
-        return vd.getLeadingAnnotations().stream().anyMatch(anno -> classRule.matches(anno) || rule.matches(anno));
+        return vd.getLeadingAnnotations().stream().anyMatch(anno -> CLASS_RULE.matches(anno) || RULE.matches(anno));
     }
 
     private J convertToNewFile(J.MethodInvocation mi, ExecutionContext ctx) {
