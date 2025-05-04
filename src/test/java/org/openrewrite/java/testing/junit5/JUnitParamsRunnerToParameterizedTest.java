@@ -268,28 +268,28 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
         rewriteRun(
           java(
             """
-             import org.junit.Test;
-             import org.junit.runner.RunWith;
-             import junitparams.JUnitParamsRunner;
-             import junitparams.Parameters;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import junitparams.JUnitParamsRunner;
+              import junitparams.Parameters;
 
-             @RunWith(JUnitParamsRunner.class)
-             class CsvSourceTests {
-                 @Test
-                 @Parameters({"Lav,20", "Katy,25"})
-                 public void csvSource(String name, int age) { }
-             }
-             """,
+              @RunWith(JUnitParamsRunner.class)
+              class CsvSourceTests {
+                  @Test
+                  @Parameters({"Lav,20", "Katy,25"})
+                  public void csvSource(String name, int age) { }
+              }
+              """,
             """
-             import org.junit.jupiter.params.ParameterizedTest;
-             import org.junit.jupiter.params.provider.CsvSource;
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
 
-             class CsvSourceTests {
-                 @ParameterizedTest
-                 @CsvSource({"Lav,20", "Katy,25"})
-                 public void csvSource(String name, int age) { }
-             }
-             """
+              class CsvSourceTests {
+                  @ParameterizedTest
+                  @CsvSource({"Lav,20", "Katy,25"})
+                  public void csvSource(String name, int age) { }
+              }
+              """
           )
         );
     }
@@ -300,28 +300,28 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
         rewriteRun(
           java(
             """
-             import org.junit.Test;
-             import org.junit.runner.RunWith;
-             import junitparams.JUnitParamsRunner;
-             import junitparams.Parameters;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import junitparams.JUnitParamsRunner;
+              import junitparams.Parameters;
 
-             @RunWith(JUnitParamsRunner.class)
-             class CsvSourceTests {
-                 @Test
-                 @Parameters(value = {"Lav,20", "Katy,25"})
-                 public void csvSource(String name, int age) { }
-             }
-             """,
+              @RunWith(JUnitParamsRunner.class)
+              class CsvSourceTests {
+                  @Test
+                  @Parameters(value = {"Lav,20", "Katy,25"})
+                  public void csvSource(String name, int age) { }
+              }
+              """,
             """
-             import org.junit.jupiter.params.ParameterizedTest;
-             import org.junit.jupiter.params.provider.CsvSource;
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
 
-             class CsvSourceTests {
-                 @ParameterizedTest
-                 @CsvSource(value = {"Lav,20", "Katy,25"})
-                 public void csvSource(String name, int age) { }
-             }
-             """
+              class CsvSourceTests {
+                  @ParameterizedTest
+                  @CsvSource(value = {"Lav,20", "Katy,25"})
+                  public void csvSource(String name, int age) { }
+              }
+              """
           )
         );
     }
@@ -332,38 +332,38 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
         rewriteRun(
           java(
             """
-             import org.junit.Test;
-             import org.junit.runner.RunWith;
-             import java.util.Date;
-             import junitparams.converters.Param;
-             import junitparams.JUnitParamsRunner;
-             import junitparams.Parameters;
-             import junitparams.converters.NullableConverter;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import java.util.Date;
+              import junitparams.converters.Param;
+              import junitparams.JUnitParamsRunner;
+              import junitparams.Parameters;
+              import junitparams.converters.NullableConverter;
 
-             @RunWith(JUnitParamsRunner.class)
-             class CsvSourceTests {
-                 @Test
-                 @Parameters({"01.12.2012"})
-                 public void csvSource(@Param(converter = NullableConverter.class) Date date) { }
-             }
-             """,
+              @RunWith(JUnitParamsRunner.class)
+              class CsvSourceTests {
+                  @Test
+                  @Parameters({"01.12.2012"})
+                  public void csvSource(@Param(converter = NullableConverter.class) Date date) { }
+              }
+              """,
             """
-             import org.junit.Test;
-             import org.junit.runner.RunWith;
-             import java.util.Date;
-             import junitparams.converters.Param;
-             import junitparams.JUnitParamsRunner;
-             import junitparams.Parameters;
-             import junitparams.converters.NullableConverter;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import java.util.Date;
+              import junitparams.converters.Param;
+              import junitparams.JUnitParamsRunner;
+              import junitparams.Parameters;
+              import junitparams.converters.NullableConverter;
 
-             @RunWith(JUnitParamsRunner.class)
-             class CsvSourceTests {
-                 @Test
-                 // JunitParamsRunnerToParameterized conversion not supported
-                 @Parameters({"01.12.2012"})
-                 public void csvSource(@Param(converter = NullableConverter.class) Date date) { }
-             }
-             """
+              @RunWith(JUnitParamsRunner.class)
+              class CsvSourceTests {
+                  @Test
+                  // JunitParamsRunnerToParameterized conversion not supported
+                  @Parameters({"01.12.2012"})
+                  public void csvSource(@Param(converter = NullableConverter.class) Date date) { }
+              }
+              """
           )
         );
     }
