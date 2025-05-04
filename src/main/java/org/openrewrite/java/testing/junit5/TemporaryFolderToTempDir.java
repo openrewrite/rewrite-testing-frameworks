@@ -65,13 +65,6 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     private static final MethodMatcher NEW_TEMPORARY_FOLDER = new MethodMatcher(TEMPORARY_FOLDER + "<constructor>()");
     private static final MethodMatcher NEW_TEMPORARY_FOLDER_WITH_ARG = new MethodMatcher(TEMPORARY_FOLDER + "<constructor>(java.io.File)");
 
-    final JavaTemplate createTempDirTemplate = JavaTemplate.builder("Files.createTempDirectory(\"junit\").toFile()")
-            .imports("java.nio.file.Files")
-            .build();
-    final JavaTemplate createTempDirTemplateWithArg = JavaTemplate.builder("Files.createTempDirectory(#{any(java.io.File)}.toPath(), \"junit\").toFile()")
-            .imports("java.nio.file.Files")
-            .build();
-
     @Override
     public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
         J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, ctx);
@@ -107,18 +100,17 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
 
     @Override
     public @Nullable J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
-        boolean hasRuleAnnotation = hasRuleAnnotation();
         if (NEW_TEMPORARY_FOLDER.matches(newClass)) {
-            if (hasRuleAnnotation) {
-                return null;
-            }
-            return createTempDirTemplate.apply(getCursor(), newClass.getCoordinates().replace());
+            return hasRuleAnnotation() ? null : JavaTemplate.builder("Files.createTempDirectory(\"junit\").toFile()")
+                    .imports("java.nio.file.Files")
+                    .build()
+                    .apply(getCursor(), newClass.getCoordinates().replace());
         }
         if (NEW_TEMPORARY_FOLDER_WITH_ARG.matches(newClass)) {
-            if (hasRuleAnnotation) {
-                return null;
-            }
-            return createTempDirTemplateWithArg.apply(getCursor(), newClass.getCoordinates().replace(), newClass.getArguments().get(0));
+            return hasRuleAnnotation() ? null : JavaTemplate.builder("Files.createTempDirectory(#{any(java.io.File)}.toPath(), \"junit\").toFile()")
+                    .imports("java.nio.file.Files")
+                    .build()
+                    .apply(getCursor(), newClass.getCoordinates().replace(), newClass.getArguments().get(0));
         }
         return super.visitNewClass(newClass, ctx);
     }
