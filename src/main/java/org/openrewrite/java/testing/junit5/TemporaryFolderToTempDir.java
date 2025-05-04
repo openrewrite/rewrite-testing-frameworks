@@ -195,10 +195,10 @@ class AddNewFolderOrFileMethod extends JavaIsoVisitor<ExecutionContext> {
                 .map(J.MethodDeclaration.class::cast)
                 .filter(m -> {
                     List<Statement> params = m.getParameters();
-                    return fileOrFolder.methodName.equals(m.getSimpleName())
-                            && params.size() == 2
-                            && hasClassType(params.get(0), "java.io.File")
-                            && hasClassType(params.get(1), "java.lang.String");
+                    return fileOrFolder.methodName.equals(m.getSimpleName()) &&
+                            params.size() == 2 &&
+                            hasClassType(params.get(0), "java.io.File") &&
+                            hasClassType(params.get(1), "java.lang.String");
                 }).map(J.MethodDeclaration::getMethodType).filter(Objects::nonNull).findAny();
     }
 }
