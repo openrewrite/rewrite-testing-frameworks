@@ -497,7 +497,6 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       }
 
                       public void initI1(String path) {
-                          super(path);
                       }
 
                       @MethodSource("data1")
