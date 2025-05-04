@@ -2960,14 +2960,23 @@ examples:
       import org.junit.Rule
       import org.junit.rules.TemporaryFolder
 
+      import java.io.File
+      import java.io.IOException
+
       class AbstractIntegrationTest {
           @TempDir
           File temporaryFolder
 
           def setup() {
               projectDir = temporaryFolder.root
-              buildFile = File.createTempFile('build.gradle', null, temporaryFolder)
-              settingsFile = File.createTempFile('settings.gradle', null, temporaryFolder)
+              buildFile = newFile(temporaryFolder, 'build.gradle')
+              settingsFile = newFile(temporaryFolder, 'settings.gradle')
+          }
+
+          private static File newFile(File parent, String child) throws IOException {
+              File result = new File(parent, child)
+              result.createNewFile()
+              return result
           }
       }
     language: groovy
@@ -3383,25 +3392,6 @@ examples:
 - description: ''
   sources:
   - before: |
-      <project>
-        <modelVersion>4.0.0</modelVersion>
-        <groupId>com.example</groupId>
-        <artifactId>demo</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
-        <dependencies>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-inline</artifactId>
-                <version>3.11.2</version>
-                <scope>test</scope>
-            </dependency>
-        </dependencies>
-      </project>
-    path: pom.xml
-    language: xml
-- description: ''
-  sources:
-  - before: |
       plugins {
           id 'java-library'
       }
@@ -3434,6 +3424,25 @@ examples:
           }
       }
     language: java
+- description: ''
+  sources:
+  - before: |
+      <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <version>3.11.2</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockitoBestPractices
