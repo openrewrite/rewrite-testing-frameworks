@@ -336,7 +336,70 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
           )
         );
     }
+    @Test
+    void annotatedAfterEachMethodIsPresentButMissingThrowsException() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.mockito.MockitoAnnotations.initMocks;
 
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+
+                  @BeforeEach
+                  public void init() {
+                      test1();
+                      initMocks(this);
+                      test2();
+                  }
+
+                  public void test1() {
+                  }
+
+                  public void test2() {
+                  }
+
+                  @AfterEach
+                  void close() {
+                      test2();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.mockito.MockitoAnnotations;
+
+              class A {
+
+                  private AutoCloseable mocks;
+
+                  @BeforeEach
+                  public void init() {
+                      test1();
+                      mocks = MockitoAnnotations.openMocks(this);
+                      test2();
+                  }
+
+                  public void test1() {
+                  }
+
+                  public void test2() {
+                  }
+
+                  @AfterEach
+                  void close() throws Exception {
+                      test2();
+                      mocks.close();
+                  }
+              }
+              """
+          )
+        );
+    }
     @Test
     void helperInnerClassIsPresent() {
         rewriteRun(
