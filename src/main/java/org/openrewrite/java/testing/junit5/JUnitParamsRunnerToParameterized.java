@@ -377,7 +377,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                 return method;
             }
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-            J.Modifier staticModifier = new J.Modifier(Tree.randomId(), Space.format(" "), Markers.EMPTY, null, J.Modifier.Type.Static, new ArrayList<>());
+            J.Modifier staticModifier = new J.Modifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, null, J.Modifier.Type.Static, new ArrayList<>());
             return m.withModifiers(ListUtils.concat(m.getModifiers(), staticModifier));
         }
 
