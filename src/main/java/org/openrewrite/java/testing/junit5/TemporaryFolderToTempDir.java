@@ -71,11 +71,6 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
             .imports("java.nio.file.Files")
             .build();
 
-    private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-        return JavaParser.fromJavaVersion()
-                .classpathFromResources(ctx, "junit-jupiter-api-5");
-    }
-
     @Override
     public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
         J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, ctx);
@@ -100,7 +95,10 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
             return mv;
         }
         mv = mv.withTypeExpression(toFileIdentifier(mv.getTypeExpression()));
-        JavaTemplate template = JavaTemplate.builder("@TempDir").imports(tempDir).javaParser(javaParser(ctx)).build();
+        JavaTemplate template = JavaTemplate.builder("@TempDir")
+                .imports(tempDir)
+                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                .build();
         return (J.VariableDeclarations) annotated("@org.junit.*Rule").asVisitor(a ->
                         (new JavaIsoVisitor<ExecutionContext>() {
                             @Override
