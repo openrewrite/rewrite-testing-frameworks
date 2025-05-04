@@ -76,7 +76,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
                 // Constructor Injected Test
                 if (parametersMethodName != null && constructorParams != null && constructorParams.stream().anyMatch(org.openrewrite.java.tree.J.VariableDeclarations.class::isInstance)) {
-                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true, beforeMethodName,ctx));
+                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true, beforeMethodName, ctx));
                 }
 
                 // Field Injected Test
@@ -266,7 +266,6 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 return cd;
             }
 
-
             if (initMethodDeclarationTemplate != null) {
                 cd = initMethodDeclarationTemplate.apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
                 J.Block finalBody = cd.getBody();
@@ -291,7 +290,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     if (statement instanceof J.VariableDeclarations) {
                         J.VariableDeclarations varDecls = (J.VariableDeclarations) statement;
                         if (varDecls.getVariables().stream().anyMatch(it -> fieldNames.contains(it.getSimpleName())) &&
-                            (varDecls.hasModifier(J.Modifier.Type.Final))) {
+                                (varDecls.hasModifier(J.Modifier.Type.Final))) {
                             varDecls = varDecls.withModifiers(ListUtils.map(varDecls.getModifiers(), mod -> mod.getType() == J.Modifier.Type.Final ? null : mod));
                             statement = maybeAutoFormat(statement, varDecls, ctx, new Cursor(getCursor(), finalBody));
                         }
@@ -382,6 +381,12 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                             })
                             .collect(Collectors.toSet());
                     getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("INIT_VARS", fieldNames);
+
+                    // Remove any potential super call
+                    m = m.withBody(m.getBody().withStatements(ListUtils.mapFirst(m.getBody().getStatements(),
+                            stmt -> stmt instanceof J.MethodInvocation &&
+                                    "super".equals(((J.MethodInvocation) stmt).getSimpleName()) ?
+                                    null : stmt)));
                 }
             }
             return m;
