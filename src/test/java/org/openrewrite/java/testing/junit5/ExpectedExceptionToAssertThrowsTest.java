@@ -66,8 +66,9 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
             """
               import org.junit.Test;
 
+              import static org.hamcrest.CoreMatchers.containsString;
+              import static org.hamcrest.MatcherAssert.assertThat;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              import static org.junit.jupiter.api.Assertions.assertTrue;
 
               class MyTest {
 
@@ -75,7 +76,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                   public void testEmptyPath() {
                       Throwable exception = assertThrows(IllegalArgumentException.class, () ->
                           foo());
-                      assertTrue(exception.getMessage().contains("Invalid location: gs://"));
+                      assertThat(exception.getMessage(), containsString("Invalid location: gs://"));
                   }
                   void foo() {
                   }
@@ -257,7 +258,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                   public void statementsBeforeExpected() {
                       int[] a = new int[] { 1 };
                       thrown.expect(IndexOutOfBoundsException.class);
-                      thrown.expectMessage("Index 1 out of bounds for length 1");
+                      thrown.expectMessage("Index 1 out of bounds for length " + a.length);
                       int b = a[1];
                   }
               }
@@ -265,17 +266,18 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
             """
               package org.openrewrite.java.testing.junit5;
 
+              import static org.hamcrest.CoreMatchers.containsString;
+              import static org.hamcrest.MatcherAssert.assertThat;
               import static org.junit.jupiter.api.Assertions.assertThrows;
-              import static org.junit.jupiter.api.Assertions.assertTrue;
 
               public class SimpleExpectedExceptionTest {
 
                   public void statementsBeforeExpected() {
+                      int[] a = new int[] { 1 };
                       Throwable exception = assertThrows(IndexOutOfBoundsException.class, () -> {
-                          int[] a = new int[]{1};
                           int b = a[1];
                       });
-                      assertTrue(exception.getMessage().contains("Index 1 out of bounds for length 1"));
+                      assertThat(exception.getMessage(), containsString("Index 1 out of bounds for length " + a.length));
                   }
               }
               """
@@ -465,6 +467,218 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                   }
                   void foo() throws IOException {
                       throw new IOException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void refactorExpectExceptionWithConditionalStatement() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class BranchingExpectedExceptionTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testWithBranch() {
+                      boolean condition = true;
+                      this.thrown.expect(IllegalArgumentException.class);
+                      this.thrown.expectMessage("Error message");
+
+                      if (condition) {
+                          throw new IllegalArgumentException("Error message");
+                      } else {
+                          throw new IllegalArgumentException("Different message");
+                      }
+                  }
+              }
+              """,
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import org.junit.Test;
+
+              import static org.hamcrest.CoreMatchers.containsString;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class BranchingExpectedExceptionTest {
+
+                  @Test
+                  public void testWithBranch() {
+                      boolean condition = true;
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
+
+                          if (condition) {
+                              throw new IllegalArgumentException("Error message");
+                          } else {
+                              throw new IllegalArgumentException("Different message");
+                          }
+                      });
+                      assertThat(exception.getMessage(), containsString("Error message"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void refactorExpectExceptionWithConditionalThrow() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class ConditionalThrowTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testConditionalThrow() {
+                      boolean shouldThrow = true;
+                      if (shouldThrow) {
+                          this.thrown.expect(IllegalArgumentException.class);
+                          this.thrown.expectMessage("input must be greater than or equal to zero");
+                          foo(-1);
+                      } else {
+                          assertThat(foo(2), equalTo(4));
+                      }
+                  }
+                  public int foo(int x) {
+                      if (x < 0) {
+                          throw new IllegalArgumentException("input must be greater than or equal to zero");
+                      } else {
+                          return 2 * x;
+                      }
+                  }
+              }
+              """,
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import static org.hamcrest.CoreMatchers.containsString;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              import org.junit.Test;
+
+              public class ConditionalThrowTest {
+
+                  @Test
+                  public void testConditionalThrow() {
+                      boolean shouldThrow = true;
+                      if (shouldThrow) {
+                          Throwable exception = assertThrows(IllegalArgumentException.class, () ->
+                              foo(-1));
+                          assertThat(exception.getMessage(), containsString("input must be greater than or equal to zero"));
+                      } else {
+                          assertThat(foo(2), equalTo(4));
+                      }
+                  }
+                  public int foo(int x) {
+                      if (x < 0) {
+                          throw new IllegalArgumentException("input must be greater than or equal to zero");
+                      } else {
+                          return 2 * x;
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void refactorExpectExceptionWithConditionalThrowNoElse() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class ConditionalThrowTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testConditionalThrow() {
+                      int x = 2;
+                      if (x < 0) {
+                          this.thrown.expect(IllegalArgumentException.class);
+                          this.thrown.expectMessage("input must be greater than or equal to zero");
+                      }
+                      int y = foo(x);
+                      assertThat(y, equalTo(4));
+                  }
+                  public int foo(int x) {
+                      if (x < 0) {
+                          throw new IllegalArgumentException("input must be greater than or equal to zero");
+                      } else {
+                          return 2 * x;
+                      }
+                  }
+              }
+              """,
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import static org.hamcrest.CoreMatchers.containsString;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              import org.junit.Test;
+
+              public class ConditionalThrowTest {
+
+                  @Test
+                  public void testConditionalThrow() {
+                      int x = 2;
+                      if (x < 0) {
+                          Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
+                              int y = foo(x);
+                              assertThat(y, equalTo(4));
+                          });
+                          assertThat(exception.getMessage(), containsString("input must be greater than or equal to zero"));
+                          return;
+                      }
+                      int y = foo(x);
+                      assertThat(y, equalTo(4));
+                  }
+                  public int foo(int x) {
+                      if (x < 0) {
+                          throw new IllegalArgumentException("input must be greater than or equal to zero");
+                      } else {
+                          return 2 * x;
+                      }
                   }
               }
               """
