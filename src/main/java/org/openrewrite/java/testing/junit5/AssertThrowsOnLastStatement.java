@@ -153,18 +153,19 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             continue;
                         }
 
-                        String type = "";
+                        String type = "Object";
                         if (e.getType() instanceof JavaType.Primitive) {
                             type = e.getType().toString();
-                        } else {
+                        } else if (e.getType() != null && TypeUtils.asClass(e.getType()) != null) {
                             type = TypeUtils.asClass(e.getType()).getClassName();
                         }
                         Statement varDecl = JavaTemplate.builder(type + " " + getVariableName(e) + " = #{any()}\n")
                                 .build()
                                 .apply(new Cursor(getCursor(), lambdaStatement), lambdaStatement.getCoordinates().replace(), e);
-                        maybeAddImport(TypeUtils.asFullyQualified(e.getType()));
-                        statements.add(varDecl.withPrefix(methodStatement.getPrefix().withComments(emptyList())));
                         J.Identifier name = ((J.VariableDeclarations) varDecl).getVariables().get(0).getName();
+                        maybeAddImport(TypeUtils.asFullyQualified(e.getType()));
+
+                        statements.add(varDecl.withPrefix(methodStatement.getPrefix().withComments(emptyList())));
                         lambdaArguments.add(name);
                     }
                     lambdaStatement = mi.withArguments(lambdaArguments);
