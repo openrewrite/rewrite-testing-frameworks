@@ -448,14 +448,14 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              package org.test.other;
-
-              public class SomeObject {}
-
-              public class SomeObjectProvider {
-                  public static SomeObject getSomeObject() {
-                      return null;
-                  }
+            package org.test.other;
+            public class SomeObject {}
+            public class SomeObjectProvider {
+                public static SomeObject getSomeObject() {
+                    return null;
+                }
+                public static void testThing(SomeObject someObject) {}
+            }
 
                   public static void testThing(SomeObject someObject) {}
               }
