@@ -471,6 +471,75 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
     }
 
     @Test
+    void methodWithTearDownIsPresent() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.AfterAll;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.mockito.MockitoAnnotations;
+
+              import static org.mockito.MockitoAnnotations.initMocks;
+
+              class A {
+
+                  @BeforeEach
+                  public void setUp() {
+                      test1();
+                      initMocks(this);
+                      test2();
+                  }
+
+                  public void test1() {
+                  }
+
+                  public void test2() {
+                  }
+
+                  @AfterAll
+                  public static void tearDown() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterAll;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.mockito.MockitoAnnotations;
+
+              class A {
+
+                  private AutoCloseable mocks;
+
+                  @BeforeEach
+                  public void setUp() {
+                      test1();
+                      mocks = MockitoAnnotations.openMocks(this);
+                      test2();
+                  }
+
+                  public void test1() {
+                  }
+
+                  public void test2() {
+                  }
+
+                  @AfterAll
+                  public static void tearDown() {
+                  }
+
+                  @AfterEach
+                  void tearDown0() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void noChangesWithJunit4() {
         rewriteRun(
           //language=java
