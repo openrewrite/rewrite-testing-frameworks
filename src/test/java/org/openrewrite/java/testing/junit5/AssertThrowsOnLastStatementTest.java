@@ -448,6 +448,69 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
         rewriteRun(
           java(
             """
+             import java.nio.file.Path;
+
+             class Tester {
+                 public static void testThing(Path path) {}
+             }
+             """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.nio.file.Paths;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          doB();
+                          Tester.testThing(Paths.get("file.txt"));
+                      });
+                  }
+
+                  void doA();
+                  void doB();
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.nio.file.Path;
+              import java.nio.file.Paths;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      doB();
+                      Path x = Paths.get("file.txt");
+                      assertThrows(Exception.class, () ->
+                          Tester.testThing(x));
+                  }
+
+                  void doA();
+                  void doB();
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void lastStatementHasArgumentWhichNeedImportFromSource() {
+        //language=java
+        rewriteRun(
+          java(
+            """
               package org.test.other;
               public class SomeObject {}
               public class SomeObjectProvider {
