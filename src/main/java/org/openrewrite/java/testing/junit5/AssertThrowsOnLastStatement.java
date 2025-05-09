@@ -175,7 +175,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 return lambdaStatement;
             }
 
-            private @NotNull String getVariableName(Expression e) {
+            private String getVariableName(Expression e) {
                 if(e instanceof J.MethodInvocation) {
                     String name = ((J.MethodInvocation) e).getSimpleName();
                     name = name.replaceAll("^get", "");
