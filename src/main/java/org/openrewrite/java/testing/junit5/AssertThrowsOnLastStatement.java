@@ -153,20 +153,23 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         JavaTemplate.Builder builder = JavaTemplate.builder("#{} " + getVariableName(e) + " = #{any()}\n")
                                 .javaParser(JavaParser.fromJavaVersion().classpath(JavaParser.runtimeClasspath()));
 
-                        String type = "Object";
+                        Object type = "Object";
                         if (e.getType() instanceof JavaType.Primitive) {
                             type = e.getType().toString();
                         } else if (e.getType() != null && TypeUtils.asClass(e.getType()) != null) {
-                            type = TypeUtils.asClass(e.getType()).getClassName();
-                            builder.contextSensitive().imports(TypeUtils.asFullyQualified(e.getType()).getFullyQualifiedName());
+                            type = TypeUtils.asClass(e.getType());
                             maybeAddImport(TypeUtils.asFullyQualified(e.getType()).getFullyQualifiedName(), false);
+                            if (e instanceof J.MethodInvocation && ((J.MethodInvocation) e).getSelect() != null) {
+                                builder.imports(TypeUtils.asFullyQualified(((J.MethodInvocation) e).getSelect().getType()).getFullyQualifiedName());
+                            }
+                            builder.imports(TypeUtils.asFullyQualified(e.getType()).getFullyQualifiedName());
                         }
 
                         Statement varDecl = builder
                                 .build()
                                 .apply(new Cursor(getCursor(), lambdaStatement), lambdaStatement.getCoordinates().replace(), type, e);
                         J.Identifier name = ((J.VariableDeclarations) varDecl).getVariables().get(0).getName();
-
+                        doAfterVisit(ShortenFullyQualifiedTypeReferences.modifyOnly(varDecl));
                         statements.add(varDecl.withPrefix(methodStatement.getPrefix().withComments(emptyList())));
                         lambdaArguments.add(name);
                     }
@@ -176,7 +179,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
             }
 
             private String getVariableName(Expression e) {
-                if(e instanceof J.MethodInvocation) {
+                if (e instanceof J.MethodInvocation) {
                     String name = ((J.MethodInvocation) e).getSimpleName();
                     name = name.replaceAll("^get", "");
                     name = StringUtils.uncapitalize(name);
