@@ -441,4 +441,75 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void lastStatementHasArgumentWhichNeedImport() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.test.other;
+
+              public class SomeObject {}
+
+              public class SomeObjectProvider {
+                  public static SomeObject getSomeObject() {
+                      return null;
+                  }
+
+                  public static void testThing(SomeObject someObject) {}
+              }
+            """
+          ),
+          java(
+            """
+              package org.test;
+
+              import org.junit.jupiter.api.Test;
+              import org.test.other.SomeObjectProvider;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          doB();
+                          SomeObjectProvider.testThing(SomeObjectProvider.getSomeObject());
+                      });
+                  }
+
+                  void doA();
+                  void doB();
+              }
+              """,
+            """
+              package org.test;
+
+              import org.junit.jupiter.api.Test;
+              import org.test.other.SomeObject;
+              import org.test.other.SomeObjectProvider;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      doB();
+                      SomeObject someObject = SomeObjectProvider.getSomeObject();
+                      assertThrows(Exception.class, () ->
+                          SomeObjectProvider.testThing(someObject));
+                  }
+
+                  void doA();
+                  void doB();
+              }
+              """
+          )
+        );
+    }
 }

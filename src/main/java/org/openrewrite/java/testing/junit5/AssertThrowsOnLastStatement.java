@@ -19,10 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.VariableNameUtils;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
@@ -60,7 +57,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                     return m;
                 }
                 doAfterVisit(new LambdaBlockToExpression().getVisitor());
-                return m.withBody(m.getBody().withStatements(ListUtils.flatMap(m.getBody().getStatements(), methodStatement -> {
+                J.MethodDeclaration methodDeclaration = m.withBody(m.getBody().withStatements(ListUtils.flatMap(m.getBody().getStatements(), methodStatement -> {
                     J statementToCheck = methodStatement;
                     final J.VariableDeclarations assertThrowsWithVarDec;
                     final J.VariableDeclarations.NamedVariable assertThrowsVar;
@@ -120,7 +117,6 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                         List<Statement> variableAssignments = new ArrayList<>();
                         final Statement newLambdaStatement = extractExpressionArguments(methodStatement, lambdaStatement, variableAssignments);
-
                         J.MethodInvocation newAssertThrows = methodInvocation.withArguments(
                                 ListUtils.map(arguments, (argIdx, argument) -> {
                                     if (argIdx == 1) {
@@ -141,6 +137,8 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         return variableAssignments;
                     });
                 })));
+                updateCursor(methodDeclaration);
+                return methodDeclaration;
             }
 
             private @NotNull Statement extractExpressionArguments(Statement methodStatement, Statement lambdaStatement, List<Statement> statements) {
@@ -153,17 +151,22 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             continue;
                         }
 
+                        JavaTemplate.Builder builder = JavaTemplate.builder("#{} " + getVariableName(e) + " = #{any()}\n")
+                                .javaParser(JavaParser.fromJavaVersion().classpath(JavaParser.runtimeClasspath()));
+
                         String type = "Object";
                         if (e.getType() instanceof JavaType.Primitive) {
                             type = e.getType().toString();
                         } else if (e.getType() != null && TypeUtils.asClass(e.getType()) != null) {
                             type = TypeUtils.asClass(e.getType()).getClassName();
+                            builder.contextSensitive().imports(TypeUtils.asFullyQualified(e.getType()).getFullyQualifiedName());
+                            maybeAddImport(TypeUtils.asFullyQualified(e.getType()).getFullyQualifiedName(), false);
                         }
-                        Statement varDecl = JavaTemplate.builder(type + " " + getVariableName(e) + " = #{any()}\n")
+
+                        Statement varDecl = builder
                                 .build()
-                                .apply(new Cursor(getCursor(), lambdaStatement), lambdaStatement.getCoordinates().replace(), e);
+                                .apply(new Cursor(getCursor(), lambdaStatement), lambdaStatement.getCoordinates().replace(), type, e);
                         J.Identifier name = ((J.VariableDeclarations) varDecl).getVariables().get(0).getName();
-                        maybeAddImport(TypeUtils.asFullyQualified(e.getType()));
 
                         statements.add(varDecl.withPrefix(methodStatement.getPrefix().withComments(emptyList())));
                         lambdaArguments.add(name);
