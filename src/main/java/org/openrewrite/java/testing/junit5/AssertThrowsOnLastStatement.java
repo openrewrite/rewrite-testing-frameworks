@@ -118,8 +118,8 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             return lambdaStatement.withPrefix(methodStatement.getPrefix().withComments(emptyList()));
                         }
 
-                        List<Statement> statements = new ArrayList<>();
-                        final Statement newLambdaStatement = extractExpressionArguments(methodStatement, lambdaStatement, statements);
+                        List<Statement> variableAssignments = new ArrayList<>();
+                        final Statement newLambdaStatement = extractExpressionArguments(methodStatement, lambdaStatement, variableAssignments);
 
                         J.MethodInvocation newAssertThrows = methodInvocation.withArguments(
                                 ListUtils.map(arguments, (argIdx, argument) -> {
@@ -132,13 +132,13 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         );
 
                         if (assertThrowsWithVarDec == null) {
-                            statements.add(newAssertThrows);
-                            return statements;
+                            variableAssignments.add(newAssertThrows);
+                            return variableAssignments;
                         }
 
                         J.VariableDeclarations.NamedVariable newAssertThrowsVar = assertThrowsVar.withInitializer(newAssertThrows);
-                        statements.add(assertThrowsWithVarDec.withVariables(singletonList(newAssertThrowsVar)));
-                        return statements;
+                        variableAssignments.add(assertThrowsWithVarDec.withVariables(singletonList(newAssertThrowsVar)));
+                        return variableAssignments;
                     });
                 })));
             }
