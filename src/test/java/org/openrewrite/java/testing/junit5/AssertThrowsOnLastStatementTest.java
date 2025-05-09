@@ -280,4 +280,165 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void lastStatementHasArgumentWhichIsMethodCall() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          doB();
+                          testThing(getC());
+                      });
+                  }
+
+                  void doA();
+                  void doB();
+                  String getC();
+                  void testThing(String c);
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      doB();
+                      String c = getC();
+                      assertThrows(Exception.class, () ->
+                          testThing(c));
+                  }
+
+                  void doA();
+                  void doB();
+                  String getC();
+                  void testThing(String c);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void lastStatementHasArgumentWhichIsChainedMethodCall() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.lang.StringBuilder;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          doB();
+                          testThing(getC().toString());
+                      });
+                  }
+
+                  void doA();
+                  void doB();
+                  StringBuilder getC();
+                  void testThing(String c);
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.lang.StringBuilder;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      doB();
+                      String toString = getC().toString();
+                      assertThrows(Exception.class, () ->
+                          testThing(toString));
+                  }
+
+                  void doA();
+                  void doB();
+                  StringBuilder getC();
+                  void testThing(String c);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void lastStatementHasArgumentWhichIsExpression() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          doB();
+                          testThing(getC() == 1);
+                      });
+                  }
+
+                  void doA();
+                  void doB();
+                  int getC();
+                  void testThing(boolean c);
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      doB();
+                      boolean x = getC() == 1;
+                      assertThrows(Exception.class, () ->
+                          testThing(x));
+                  }
+
+                  void doA();
+                  void doB();
+                  int getC();
+                  void testThing(boolean c);
+              }
+              """
+          )
+        );
+    }
 }
