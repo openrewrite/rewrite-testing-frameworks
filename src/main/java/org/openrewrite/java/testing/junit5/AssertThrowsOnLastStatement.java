@@ -140,7 +140,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 return methodDeclaration;
             }
 
-            private @NotNull Statement extractExpressionArguments(Statement methodStatement, Statement lambdaStatement, List<Statement> statements) {
+            private Statement extractExpressionArguments(Statement methodStatement, Statement lambdaStatement, List<Statement> statements) {
                 if (lambdaStatement instanceof J.MethodInvocation) {
                     J.MethodInvocation mi = (J.MethodInvocation) lambdaStatement;
                     List<Expression> lambdaArguments = new ArrayList<>(mi.getArguments().size());
