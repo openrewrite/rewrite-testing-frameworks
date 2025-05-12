@@ -205,6 +205,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 if (e instanceof J.MethodInvocation) {
                     String name = ((J.MethodInvocation) e).getSimpleName();
                     name = name.replaceAll("^get", "");
+                    name = name.replaceAll("^is", "");
                     name = StringUtils.uncapitalize(name);
                     return VariableNameUtils.generateVariableName(!name.isEmpty() ? name : "x", new Cursor(getCursor(), e), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
                 }
