@@ -205,14 +205,7 @@ recipeList:
       acceptTransitive: true
       scope: test
   - org.openrewrite.java.testing.mockito.Mockito1to4Migration
-  - org.openrewrite.java.testing.mockito.MockitoJUnitRunnerSilentToExtension
-  - org.openrewrite.java.testing.junit5.RunnerToExtension:
-      runners:
-        - org.mockito.runners.MockitoJUnitRunner
-        - org.mockito.junit.MockitoJUnitRunner
-        - org.mockito.runners.MockitoJUnit44Runner
-        - org.mockito.junit.MockitoJUnit44Runner
-      extension: org.mockito.junit.jupiter.MockitoExtension
+  - org.openrewrite.java.testing.mockito.MockitoJUnitRunnerToExtension
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.IgnoreToDisabled
