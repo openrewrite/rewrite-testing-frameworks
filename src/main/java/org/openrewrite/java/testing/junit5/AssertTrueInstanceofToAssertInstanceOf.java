@@ -24,6 +24,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.TypedTree;
 
 public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
     @Override
@@ -46,7 +47,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 MethodMatcher junit5Matcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(boolean, ..)");
                 MethodMatcher junit4Matcher = new MethodMatcher("org.junit.Assert assertTrue(.., boolean)");
 
-                J clazz;
+                TypedTree clazz;
                 Expression expression;
                 Expression reason;
 
@@ -64,7 +65,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                     if (argument instanceof J.InstanceOf) {
                         J.InstanceOf instanceOf = (J.InstanceOf) argument;
                         expression = instanceOf.getExpression();
-                        clazz = instanceOf.getClazz();
+                        clazz = (TypedTree) instanceOf.getClazz();
                     } else {
                         return mi;
                     }
@@ -84,7 +85,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                     if (argument instanceof J.InstanceOf) {
                         J.InstanceOf instanceOf = (J.InstanceOf) argument;
                         expression = instanceOf.getExpression();
-                        clazz = instanceOf.getClazz();
+                        clazz = (TypedTree) instanceOf.getClazz();
                     } else {
                         return mi;
                     }
@@ -97,6 +98,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                     .builder("assertInstanceOf(#{}.class, #{any(java.lang.Object)}" + (reason != null ? ", #{any(java.lang.String)})" : ")"))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-4"))
                     .staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf")
+                    .imports(String.valueOf(clazz.getType()))
                     .build();
 
                 J.MethodInvocation methodd = reason != null ?

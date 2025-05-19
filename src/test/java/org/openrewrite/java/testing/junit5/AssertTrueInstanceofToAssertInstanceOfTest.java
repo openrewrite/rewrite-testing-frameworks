@@ -50,7 +50,7 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
                   @Test
                   void testJUnit5() {
                       List<String> list = new ArrayList<>();
-                      assertTrue(list instanceof Iterable);
+                      assertTrue(list instanceof List);
                   }
               }
               """,
@@ -65,7 +65,7 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
                   @Test
                   void testJUnit5() {
                       List<String> list = new ArrayList<>();
-                      assertInstanceOf(Iterable.class, list);
+                      assertInstanceOf(List.class, list);
                   }
               }
               """

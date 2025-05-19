@@ -663,8 +663,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                   }
                   """,
                 """
-                  import static org.assertj.core.api.Assertions.assertThat;
                   import java.math.BigDecimal;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
 
                   class A {
                       void foo() {
@@ -709,9 +710,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               }
               """,
             """
-              import static org.assertj.core.api.Assertions.assertThat;
-
               import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
 
               class DebugTest {
                   class Foo {
@@ -753,9 +754,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               }
               """,
             """
-              import static org.assertj.core.api.Assertions.assertThat;
-
               import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
 
               class DebugTest {
                   @Test

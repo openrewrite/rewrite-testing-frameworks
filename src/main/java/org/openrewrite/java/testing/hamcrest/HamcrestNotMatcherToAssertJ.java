@@ -107,13 +107,13 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                     .build();
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             maybeRemoveImport("org.hamcrest.Matchers.not");
             maybeRemoveImport("org.hamcrest.Matchers." + notMatcher);
             maybeRemoveImport("org.hamcrest.CoreMatchers.not");
             maybeRemoveImport("org.hamcrest.CoreMatchers." + notMatcher);
             maybeRemoveImport("org.hamcrest.MatcherAssert");
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
 
             List<Expression> templateArguments = new ArrayList<>();
             templateArguments.add(actualArgument);
@@ -139,11 +139,11 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                     .build();
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
             maybeRemoveImport("org.hamcrest.Matchers.not");
             maybeRemoveImport("org.hamcrest.Matchers." + notMatcher);
             maybeRemoveImport("org.hamcrest.MatcherAssert");
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
 
             List<Expression> templateArguments = new ArrayList<>();
             templateArguments.add(actualArgument);
