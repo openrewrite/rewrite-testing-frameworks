@@ -60,7 +60,7 @@ class UseXMLUnitLegacyTest implements RewriteTest {
                     <dependency>
                       <groupId>org.xmlunit</groupId>
                       <artifactId>xmlunit-legacy</artifactId>
-                      <version>2.10.0</version>
+                      <version>2.10.1</version>
                     </dependency>
                   </dependencies>
                 </project>

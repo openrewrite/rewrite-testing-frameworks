@@ -541,7 +541,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
 
               public class MyTest {
-                  @org.junit.jupiter.api.Test
+                  @Test
                   public void feature1() {
                   }
               }
@@ -571,7 +571,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
 
               public class MyTest {
-                  @org.junit.jupiter.api.Test
+                  @Test
                   public void feature1() {
                   }
 
