@@ -68,8 +68,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
               """,
             """
               import static org.easymock.EasyMock.expect;
-              import static org.easymock.EasyMock.createNiceMock;
               import static org.mockito.Mockito.verify;
+              import static org.easymock.EasyMock.createNiceMock;
 
               public class ExampleTest {
                   public void testServiceMethod() {
@@ -126,8 +126,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
               """,
             """
               import static org.easymock.EasyMock.expect;
-              import static org.easymock.EasyMock.createNiceMock;
               import static org.mockito.Mockito.verify;
+              import static org.easymock.EasyMock.createNiceMock;
 
               public class ExampleTest {
                   public void testServiceMethod() {
@@ -167,8 +167,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
               """,
             """
               import static org.easymock.EasyMock.expect;
-              import static org.easymock.EasyMock.createNiceMock;
               import static org.mockito.Mockito.verify;
+              import static org.easymock.EasyMock.createNiceMock;
 
               public class ExampleTest {
                   public void testServiceMethod() {
@@ -210,8 +210,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
               """,
             """
               import static org.easymock.EasyMock.expect;
-              import static org.easymock.EasyMock.createNiceMock;
               import static org.mockito.Mockito.verify;
+              import static org.easymock.EasyMock.createNiceMock;
 
               public class ExampleTest {
                   public void testServiceMethod() {
