@@ -280,4 +280,296 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void lastStatementHasArgumentWhichIsMethodCall() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          doB();
+                          testThing(getC());
+                      });
+                  }
+
+                  void doA();
+                  void doB();
+                  String getC();
+                  void testThing(String c);
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      doB();
+                      String c = getC();
+                      assertThrows(Exception.class, () ->
+                          testThing(c));
+                  }
+
+                  void doA();
+                  void doB();
+                  String getC();
+                  void testThing(String c);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void lastStatementHasArgumentWhichIsChainedMethodCall() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.lang.StringBuilder;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          doB();
+                          testThing(getC().toString());
+                      });
+                  }
+
+                  void doA();
+                  void doB();
+                  StringBuilder getC();
+                  void testThing(String c);
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.lang.StringBuilder;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      doB();
+                      String toString = getC().toString();
+                      assertThrows(Exception.class, () ->
+                          testThing(toString));
+                  }
+
+                  void doA();
+                  void doB();
+                  StringBuilder getC();
+                  void testThing(String c);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void lastStatementHasArgumentWhichIsExpression() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          doB();
+                          testThing(getC() == 1);
+                      });
+                  }
+
+                  void doA();
+                  void doB();
+                  int getC();
+                  void testThing(boolean c);
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      doB();
+                      boolean x = getC() == 1;
+                      assertThrows(Exception.class, () ->
+                          testThing(x));
+                  }
+
+                  void doA();
+                  void doB();
+                  int getC();
+                  void testThing(boolean c);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void lastStatementHasArgumentWhichNeedImport() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+             import java.nio.file.Path;
+
+             class Tester {
+                 public static void testThing(Path path) {}
+             }
+             """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.nio.file.Paths;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          doB();
+                          Tester.testThing(Paths.get("file.txt"));
+                      });
+                  }
+
+                  void doA();
+                  void doB();
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.nio.file.Path;
+              import java.nio.file.Paths;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      doB();
+                      Path x = Paths.get("file.txt");
+                      assertThrows(Exception.class, () ->
+                          Tester.testThing(x));
+                  }
+
+                  void doA();
+                  void doB();
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void lastStatementHasArgumentWhichNeedImportFromSource() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.test.other;
+              public class SomeObject {}
+              public class SomeObjectProvider {
+                  public static SomeObject getSomeObject() {
+                      return null;
+                  }
+                  public static void testThing(SomeObject someObject) {}
+              }
+              """
+          ),
+          java(
+            """
+              package org.test;
+
+              import org.junit.jupiter.api.Test;
+              import org.test.other.SomeObjectProvider;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          doB();
+                          SomeObjectProvider.testThing(SomeObjectProvider.getSomeObject());
+                      });
+                  }
+
+                  void doA();
+                  void doB();
+              }
+              """,
+            """
+              package org.test;
+
+              import org.junit.jupiter.api.Test;
+              import org.test.other.SomeObject;
+              import org.test.other.SomeObjectProvider;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      doB();
+                      SomeObject someObject = SomeObjectProvider.getSomeObject();
+                      assertThrows(Exception.class, () ->
+                          SomeObjectProvider.testThing(someObject));
+                  }
+
+                  void doA();
+                  void doB();
+              }
+              """
+          )
+        );
+    }
 }
