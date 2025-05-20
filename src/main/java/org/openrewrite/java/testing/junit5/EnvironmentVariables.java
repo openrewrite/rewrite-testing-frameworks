@@ -126,7 +126,7 @@ public class EnvironmentVariables extends Recipe {
                 int argCount = argCount(m);
                 J j =
                         getEnvVarClearTemplate(ctx, argCount)
-                                .apply(updateCursor(m), m.getCoordinates().replace(), getArgs(m, argCount));
+                                .apply(updateCursor(m), m.getCoordinates().replace(), (Object[]) getArgs(m, argCount));
 
                 if (getCursor().getParentTreeCursor().getValue() instanceof J.Block &&
                         !(j instanceof Statement)) {
