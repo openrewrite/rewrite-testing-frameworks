@@ -185,4 +185,42 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               """
           ));
     }
+
+    @Test
+    void jUnit4GenericInstanceOf() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.ArrayList;
+              import java.util.List;
+
+              import static org.junit.Assert.assertTrue;
+
+              class ATest {
+                  @Test
+                  void testJUnit5() {
+                      List<String> list = new ArrayList<>();
+                      assertTrue(list instanceof List<?>);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.ArrayList;
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+              class ATest {
+                  @Test
+                  void testJUnit5() {
+                      List<String> list = new ArrayList<>();
+                      assertInstanceOf(List.class, list);
+                  }
+              }
+              """
+          ));
+    }
 }
