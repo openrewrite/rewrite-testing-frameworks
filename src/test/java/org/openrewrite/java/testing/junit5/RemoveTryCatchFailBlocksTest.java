@@ -703,14 +703,14 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                   @Test
                   void testCheckRole() throws InterruptedException {
                     executeTest(new Runnable() {
-                               public void run() {
-                                   Integer number = Integer.valueOf("10");
-                                   try {
-                                       System.out.println(number / 0);
-                                   } catch (ArithmeticException ae) {
-                                       Assertions.fail("division by zero");
-                                   }
-                               }
+                      public void run() {
+                          Integer number = Integer.valueOf("10");
+                          try {
+                              System.out.println(number / 0);
+                          } catch (ArithmeticException ae) {
+                              Assertions.fail("division by zero");
+                          }
+                      }
                     });
                   }
 
@@ -731,12 +731,12 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                   @Test
                   void testCheckRole() throws InterruptedException {
                     executeTest(new Runnable() {
-                               public void run() {
-                                   Integer number = Integer.valueOf("10");
-                                   Assertions.assertDoesNotThrow(() -> {
-                                       System.out.println(number / 0);
-                                   }, "division by zero");
-                               }
+                      public void run() {
+                          Integer number = Integer.valueOf("10");
+                          Assertions.assertDoesNotThrow(() -> {
+                              System.out.println(number / 0);
+                          }, "division by zero");
+                      }
                     });
                   }
 
