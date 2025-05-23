@@ -154,7 +154,6 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             maybeAddImport("org.junit.jupiter.api.Assertions");
             maybeRemoveCatchTypes(try_);
             return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()}, #{any(String)})")
-                    .contextSensitive()
                     .imports("org.junit.jupiter.api.Assertions")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                     .build()

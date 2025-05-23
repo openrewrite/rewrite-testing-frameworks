@@ -688,4 +688,68 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/732")
+    void substitutionFailure() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+
+              class MyTest {
+                  @Test
+                  void testCheckRole() throws InterruptedException {
+                    executeTest(new Runnable() {
+                      public void run() {
+                          Integer number = Integer.valueOf("10");
+                          try {
+                              System.out.println(number / 0);
+                          } catch (ArithmeticException ae) {
+                              Assertions.fail("division by zero");
+                          }
+                      }
+                    });
+                  }
+
+                  private void executeTest(Runnable runnable) throws InterruptedException {
+                  }
+
+                  private class SubClass {
+                    public void xyz() {
+                    }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+
+              class MyTest {
+                  @Test
+                  void testCheckRole() throws InterruptedException {
+                    executeTest(new Runnable() {
+                      public void run() {
+                          Integer number = Integer.valueOf("10");
+                          Assertions.assertDoesNotThrow(() -> {
+                              System.out.println(number / 0);
+                          }, "division by zero");
+                      }
+                    });
+                  }
+
+                  private void executeTest(Runnable runnable) throws InterruptedException {
+                  }
+
+                  private class SubClass {
+                    public void xyz() {
+                    }
+                  }
+              }
+              """
+          )
+        );
+    }
 }
