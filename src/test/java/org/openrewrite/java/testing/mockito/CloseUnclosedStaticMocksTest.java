@@ -19,40 +19,37 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.test.*;
+import org.openrewrite.test.RecipeSpec;
+import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
 class CloseUnclosedStaticMocksTest implements RewriteTest {
 
-    //language=java
-    public static final SourceSpecs CLASS_A = java(
-      """
-      public class A {
-          public static Integer getNumber() {
-              return 42;
-         }
-      }
-      """,
-      SourceSpec::skip
-    );
-
-    public static final SourceSpecs CLASS_B = java(
-      """
-      public class B {
-          public static Long getLong() {
-              return 42L;
-         }
-      }
-      """,
-      SourceSpec::skip
-    );
-
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new CloseUnclosedStaticMocks())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core-5"));
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core-5")
+            //language=java
+            .dependsOn(
+              """
+                public class A {
+                    public static Integer getNumber() {
+                        return 42;
+                   }
+                }
+                """,
+              """
+                public class B {
+                    public static Long getLong() {
+                        return 42L;
+                   }
+                }
+                """
+            )
+          );
     }
 
     @DocumentExample
@@ -60,8 +57,7 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
     void shouldWrapMockStaticInTryWithResources() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()), // TODO Remove escape hatch
           java(
             """
               import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -97,7 +93,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
           java(
             """
               import org.mockito.MockedStatic;
@@ -135,8 +130,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
-          CLASS_B,
           java(
             """
               import org.mockito.MockedStatic;
@@ -180,7 +173,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
           java(
             """
               import org.junit.jupiter.api.BeforeEach;
@@ -232,7 +224,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
           java(
             """
               import org.junit.jupiter.api.BeforeAll;
@@ -284,7 +275,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
           java(
             """
               import org.junit.jupiter.api.AfterEach;
@@ -343,8 +333,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
-          CLASS_B,
           java(
             """
               import org.junit.jupiter.api.BeforeEach;
@@ -405,8 +393,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
-          CLASS_B,
           java(
             """
               import org.junit.jupiter.api.AfterEach;
