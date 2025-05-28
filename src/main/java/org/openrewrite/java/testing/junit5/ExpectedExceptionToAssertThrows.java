@@ -131,9 +131,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             Statement firstExpectedExceptionMethodInvocation = getCursor().getMessage(FIRST_EXPECTED_EXCEPTION_METHOD_INVOCATION);
             String templateString = exceptionClass instanceof String ? "#{}assertThrows(#{}, () -> #{any()});" : "#{}assertThrows(#{any()}, () -> #{any()});";
             b = JavaTemplate.builder(templateString)
-                    .contextSensitive()
-                    .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                     .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                     .build()
                     .apply(
@@ -152,14 +150,15 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     "exception",
                     JavaType.ShallowClass.build("java.lang.Throwable"),
                     null);
-            b =  b.withStatements(ListUtils.map(b.getStatements(), statement -> {
+            b = b.withStatements(ListUtils.map(b.getStatements(), statement -> {
                 if (statement instanceof J.MethodInvocation) {
                     if (EXPECTED_EXCEPTION_ALL_MATCHER.matches((J.MethodInvocation) statement)) {
                         removeStatement.set(true);
                         return getExpectExceptionTemplate((J.MethodInvocation) statement, ctx)
                                 .<J.MethodInvocation>map(t -> t.apply(
                                         new Cursor(updateCursor, statement),
-                                        statement.getCoordinates().replace(), exceptionIdentifier,
+                                        statement.getCoordinates().replace(),
+                                        exceptionIdentifier,
                                         ((J.MethodInvocation) statement).getArguments().get(0)))
                                 .orElse(null);
                     }
@@ -179,7 +178,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             if (!EXPECTED_EXCEPTION_ALL_MATCHER.matches(method)) {
                 return method;
             }
-            getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).putMessage("hasExpectException", true );
+            getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).putMessage("hasExpectException", true);
             getCursor().dropParentUntil(J.Block.class::isInstance).computeMessageIfAbsent(FIRST_EXPECTED_EXCEPTION_METHOD_INVOCATION, k -> method);
             List<Statement> successorStatements = findSuccessorStatements(getCursor());
             getCursor().putMessageOnFirstEnclosing(J.Block.class, STATEMENTS_AFTER_EXPECT_EXCEPTION, successorStatements);
@@ -221,7 +220,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         }
 
         private Optional<JavaTemplate> getExpectExceptionTemplate(J.MethodInvocation method, ExecutionContext ctx) {
-            String template = null;
+            String template;
             if (EXPECTED_MESSAGE_STRING_MATCHER.matches(method)) {
                 maybeAddImport("org.hamcrest.CoreMatchers", "containsString");
                 template = "assertThat(#{any(java.lang.Throwable)}.getMessage(), containsString(#{any(java.lang.String)}))";
@@ -231,17 +230,14 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 template = "assertThat(#{any(java.lang.Throwable)}, #{any(org.hamcrest.Matcher)})";
             } else if (EXPECTED_EXCEPTION_CAUSE_MATCHER.matches(method)) {
                 template = "assertThat(#{any(java.lang.Throwable)}.getCause(), #{any(org.hamcrest.Matcher)})";
-            }
-            if (template == null) {
+            } else {
                 return Optional.empty();
             }
             maybeAddImport("org.hamcrest.MatcherAssert", "assertThat");
-            return Optional.of(JavaTemplate.builder(template).contextSensitive()
-                    .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
+            return Optional.of(JavaTemplate.builder(template)
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                     .staticImports("org.hamcrest.MatcherAssert.assertThat", "org.hamcrest.CoreMatchers.containsString")
                     .build());
-
         }
     }
 }
