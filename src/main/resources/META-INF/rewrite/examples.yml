@@ -1532,8 +1532,8 @@ examples:
       }
     after: |
       import static org.easymock.EasyMock.expect;
-      import static org.easymock.EasyMock.createNiceMock;
       import static org.mockito.Mockito.verify;
+      import static org.easymock.EasyMock.createNiceMock;
 
       public class ExampleTest {
           public void testServiceMethod() {
@@ -1814,7 +1814,6 @@ examples:
     after: |
       import org.junit.jupiter.api.Test;
 
-      import static org.assertj.core.api.Assertions.assertThat;
       import static org.hamcrest.MatcherAssert.assertThat;
       import static org.hamcrest.Matchers.equalTo;
       import static org.hamcrest.Matchers.hasLength;
@@ -1822,7 +1821,7 @@ examples:
       class MyTest {
           @Test
           void testMethod() {
-              assertThat("hello world")
+              org.assertj.core.api.Assertions.assertThat("hello world")
                       .satisfies(
                               arg -> assertThat(arg, equalTo("hello world")),
                               arg -> assertThat(arg, hasLength(12))
@@ -2248,7 +2247,7 @@ examples:
           @Test
           void testJUnit5() {
               List<String> list = new ArrayList<>();
-              assertTrue(list instanceof Iterable);
+              assertTrue(list instanceof List);
           }
       }
     after: |
@@ -2262,7 +2261,7 @@ examples:
           @Test
           void testJUnit5() {
               List<String> list = new ArrayList<>();
-              assertInstanceOf(Iterable.class, list);
+              assertInstanceOf(List.class, list);
           }
       }
     language: java
@@ -2396,8 +2395,9 @@ examples:
     after: |
       import org.junit.Test;
 
+      import static org.hamcrest.CoreMatchers.containsString;
+      import static org.hamcrest.MatcherAssert.assertThat;
       import static org.junit.jupiter.api.Assertions.assertThrows;
-      import static org.junit.jupiter.api.Assertions.assertTrue;
 
       class MyTest {
 
@@ -2405,7 +2405,7 @@ examples:
           public void testEmptyPath() {
               Throwable exception = assertThrows(IllegalArgumentException.class, () ->
                   foo());
-              assertTrue(exception.getMessage().contains("Invalid location: gs://"));
+              assertThat(exception.getMessage(), containsString("Invalid location: gs://"));
           }
           void foo() {
           }
@@ -3392,6 +3392,25 @@ examples:
 - description: ''
   sources:
   - before: |
+      <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <version>3.11.2</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
+- description: ''
+  sources:
+  - before: |
       plugins {
           id 'java-library'
       }
@@ -3424,25 +3443,6 @@ examples:
           }
       }
     language: java
-- description: ''
-  sources:
-  - before: |
-      <project>
-        <modelVersion>4.0.0</modelVersion>
-        <groupId>com.example</groupId>
-        <artifactId>demo</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
-        <dependencies>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-inline</artifactId>
-                <version>3.11.2</version>
-                <scope>test</scope>
-            </dependency>
-        </dependencies>
-      </project>
-    path: pom.xml
-    language: xml
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockitoBestPractices

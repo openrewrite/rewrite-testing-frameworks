@@ -82,6 +82,7 @@ recipeList:
       artifactId: byte-buddy*
       newVersion: 1.12.19
   - org.openrewrite.java.testing.mockito.ReplaceInitMockToOpenMock
+#  - org.openrewrite.java.testing.mockito.CloseUnclosedStaticMocks
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to3Migration

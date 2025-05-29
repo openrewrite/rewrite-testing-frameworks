@@ -393,7 +393,7 @@ recipeList:
       groupId: org.assertj
       artifactId: assertj-core
       version: 3.x
-      onlyIfUsing: org.assertj.core.api.Assertions
+      onlyIfUsing: org.junit.jupiter.api.Assertions
       acceptTransitive: true
   - tech.picnic.errorprone.refasterrules.JUnitToAssertJRulesRecipes
 
