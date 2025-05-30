@@ -60,10 +60,13 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()), // TODO Remove escape hatch
           java(
             """
+              import org.junit.jupiter.api.Test;
+
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.mockStatic;
 
-              class Test {
+              class TestClass {
+                  @Test
                   void test() {
                       mockStatic(A.class);
                       assertEquals(A.getNumber(), 42);
@@ -71,12 +74,14 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
               }
               """,
             """
+              import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.mockStatic;
 
-              class Test {
+              class TestClass {
+                  @Test
                   void test() {
                       try (MockedStatic<A> mockedStaticA = mockStatic(A.class)) {
                           assertEquals(A.getNumber(), 42);
@@ -95,12 +100,14 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
+              import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.mockStatic;
 
-              class Test {
+              class TestClass {
+                  @Test
                   void test() {
                       MockedStatic<A> mocked = mockStatic(A.class);
                       assertEquals(A.getNumber(), 42);
@@ -108,12 +115,14 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
               }
               """,
             """
+              import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.mockStatic;
 
-              class Test {
+              class TestClass {
+                  @Test
                   void test() {
                       try (MockedStatic<A> mocked = mockStatic(A.class)) {
                           assertEquals(A.getNumber(), 42);
@@ -132,12 +141,14 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
+              import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.mockStatic;
 
-              class Test {
+              class TestClass {
+                  @Test
                   void test() {
                       MockedStatic<A> mocked = mockStatic(A.class);
                       assertEquals(A.getNumber(), 42);
@@ -147,12 +158,14 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
               }
               """,
             """
+              import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.mockito.Mockito.mockStatic;
 
-              class Test {
+              class TestClass {
+                  @Test
                   void test() {
                       try (MockedStatic<A> mocked = mockStatic(A.class))
                       {
@@ -211,7 +224,7 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
 
                   @AfterEach
                   public void tearDown() {
-                      mockedStaticA.close();
+                      mockedStaticA.closeOnDemand();
                   }
               }
               """
@@ -262,7 +275,7 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
 
                   @AfterAll
                   public static void tearDown() {
-                      mockedStaticA.close();
+                      mockedStaticA.closeOnDemand();
                   }
               }
               """
@@ -316,7 +329,7 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
                   @AfterEach
                   public void tearDown() {
                       System.out.println("Cleaning up");
-                      mockedStaticA.close();
+                      mockedStaticA.closeOnDemand();
                   }
 
                   void test() {
@@ -379,8 +392,8 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
 
                   @AfterEach
                   public void tearDown() {
-                      mockA.close();
-                      mockB.close();
+                      mockA.closeOnDemand();
+                      mockB.closeOnDemand();
                   }
               }
               """
@@ -420,6 +433,80 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
                   public void tearDown() {
                       mockA.close();
                       mockB.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void unclosedMockInNonLifecycleOrTestMethod() {
+        // language=java
+        rewriteRun(
+          java(
+            """
+            import static org.junit.jupiter.api.Assertions.assertEquals;
+            import static org.mockito.Mockito.mockStatic;
+
+            public class TestClass {
+                void utilityMethod() {
+                    mockStatic(A.class);
+                }
+            }
+            """));
+    }
+
+    @Test
+    void withNestedClass() {
+        //language=java
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          java(
+            """
+              import org.junit.jupiter.api.BeforeAll;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  @BeforeAll
+                  public static void setUp() {
+                      mockStatic(A.class);
+                  }
+
+                  void test() {
+                      assertEquals(A.getNumber(), 42);
+                  }
+
+                  class NestedClass {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterAll;
+              import org.junit.jupiter.api.BeforeAll;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  private static MockedStatic<A> mockedStaticA;
+                  @BeforeAll
+                  public static void setUp() {
+                      mockedStaticA = mockStatic(A.class);
+                  }
+
+                  void test() {
+                      assertEquals(A.getNumber(), 42);
+                  }
+
+                  class NestedClass {
+                  }
+
+                  @AfterAll
+                  public static void tearDown() {
+                      mockedStaticA.closeOnDemand();
                   }
               }
               """
