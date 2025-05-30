@@ -73,9 +73,11 @@ public class CloseUnclosedStaticMocks extends Recipe {
         @Override
         public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             J j = super.visitCompilationUnit(cu, ctx);
-            maybeAddImport("org.mockito.MockedStatic");
-            maybeAddImport("org.junit.jupiter.api.AfterEach");
-            maybeAddImport("org.junit.jupiter.api.AfterAll");
+            if (j != cu) {
+                maybeAddImport("org.mockito.MockedStatic");
+                maybeAddImport("org.junit.jupiter.api.AfterEach");
+                maybeAddImport("org.junit.jupiter.api.AfterAll");
+            }
             return j;
         }
 
@@ -102,7 +104,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
                 String annotationName = a.getTree().getSimpleName();
                 if (annotationName.startsWith("Before")) {
                     cursor.putMessage(MethodType.class.getSimpleName(), MethodType.LIFECYCLE);
-                } else if (annotationName.endsWith("Test")){
+                } else if (annotationName.endsWith("Test")) {
                     cursor.putMessage(MethodType.class.getSimpleName(), MethodType.TESTABLE);
                 }
                 return a.getTree();
@@ -282,9 +284,15 @@ public class CloseUnclosedStaticMocks extends Recipe {
 
     @RequiredArgsConstructor
     private static class DeclareMockVarAndClose extends JavaIsoVisitor<ExecutionContext> {
-        @Nullable private final String scopedClassName;
+
+        @Nullable
+        private final String scopedClassName;
+
         private final String varName;
-        @Nullable private final String mockedClassName;
+
+        @Nullable
+        private final String mockedClassName;
+
         private final boolean isStatic;
 
         private boolean closed = false;
