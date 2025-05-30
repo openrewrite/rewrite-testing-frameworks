@@ -300,7 +300,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
             //language=java
             rewriteRun(
               java(
-                String.format("""
+                      """
                   import static org.junit.jupiter.api.Assertions.assertThrows;
 
                   public class SimpleExpectedExceptionTest {
@@ -311,8 +311,8 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                           throw new NullPointerException();
                       }
                   }
-                  """, message),
-                String.format("""
+                  """.formatted(message),
+                      """
                   import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
                   public class SimpleExpectedExceptionTest {
@@ -323,7 +323,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                           throw new NullPointerException();
                       }
                   }
-                  """, message)
+                  """.formatted(message)
               )
             );
         }
@@ -334,7 +334,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
             //language=java
             rewriteRun(
               java(
-                String.format("""
+                      """
                   import static org.junit.jupiter.api.Assertions.assertThrows;
                   import java.util.concurrent.CompletableFuture;
                   import java.util.concurrent.ExecutionException;
@@ -345,8 +345,8 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                           assertThrows(ExecutionException.class, future::get, %s);
                       }
                   }
-                  """, message),
-                String.format("""
+                  """.formatted(message),
+                      """
                   import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
                   import java.util.concurrent.CompletableFuture;
                   import java.util.concurrent.ExecutionException;
@@ -357,7 +357,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                           assertThatExceptionOfType(ExecutionException.class).as(%s).isThrownBy(future::get);
                       }
                   }
-                  """, message)
+                  """.formatted(message)
               )
             );
         }
@@ -368,7 +368,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
             //language=java
             rewriteRun(
               java(
-                String.format("""
+                      """
                   import static org.junit.jupiter.api.Assertions.assertThrows;
 
                   public class SimpleExpectedExceptionTest {
@@ -379,8 +379,8 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                           throw new NullPointerException();
                       }
                   }
-                  """, message),
-                String.format("""
+                  """.formatted(message),
+                      """
                   import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
                   public class SimpleExpectedExceptionTest {
@@ -391,7 +391,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                           throw new NullPointerException();
                       }
                   }
-                  """, message)
+                  """.formatted(message)
               )
             );
 
@@ -403,7 +403,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
             //language=java
             rewriteRun(
               java(
-                String.format("""
+                      """
                   import static org.junit.jupiter.api.Assertions.assertThrows;
 
                   public class SimpleExpectedExceptionTest {
@@ -416,8 +416,8 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                           throw new NullPointerException();
                       }
                   }
-                  """, message),
-                String.format("""
+                  """.formatted(message),
+                      """
                   import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
                   public class SimpleExpectedExceptionTest {
@@ -430,7 +430,7 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                           throw new NullPointerException();
                       }
                   }
-                  """, message)
+                  """.formatted(message)
               )
             );
         }

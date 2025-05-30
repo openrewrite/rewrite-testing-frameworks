@@ -60,8 +60,8 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                     return md;
                 }
 
-                maybeAddImport("org.mockito.Mockito", "verify");
                 maybeRemoveImport("org.easymock.EasyMock.verify");
+                maybeAddImport("org.mockito.Mockito", "verify");
 
                 int idx = 0;
                 for (Statement statement : md.getBody().getStatements()) {

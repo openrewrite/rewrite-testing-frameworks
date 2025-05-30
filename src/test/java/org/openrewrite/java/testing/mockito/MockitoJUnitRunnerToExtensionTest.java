@@ -46,15 +46,15 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-            String.format("""
+                  """
               import org.junit.runner.RunWith;
               import org.mockito.junit.MockitoJUnitRunner;
 
               @RunWith(%s)
               public class ExternalAPIServiceTest {
               }
-              """, runnerName),
-            String.format("""
+              """.formatted(runnerName),
+                  """
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.junit.jupiter.MockitoExtension;
               import org.mockito.junit.jupiter.MockitoSettings;
@@ -64,7 +64,7 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
               @ExtendWith(MockitoExtension.class)
               public class ExternalAPIServiceTest {
               }
-              """, strictness)
+              """.formatted(strictness)
           )
         );
     }

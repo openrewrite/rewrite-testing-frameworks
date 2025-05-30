@@ -59,7 +59,6 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
 
-              import static org.assertj.core.api.Assertions.assertThat;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
@@ -67,7 +66,7 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
               class MyTest {
                   @Test
                   void testMethod() {
-                      assertThat("hello world")
+                      org.assertj.core.api.Assertions.assertThat("hello world")
                               .satisfies(
                                       arg -> assertThat(arg, equalTo("hello world")),
                                       arg -> assertThat(arg, hasLength(12))
@@ -102,7 +101,6 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
 
-              import static org.assertj.core.api.Assertions.assertThat;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
@@ -110,7 +108,7 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
               class MyTest {
                   @Test
                   void testMethod() {
-                      assertThat("hello world")
+                      org.assertj.core.api.Assertions.assertThat("hello world")
                               .as("reason")
                               .satisfies(
                                       arg -> assertThat(arg, equalTo("hello world")),
@@ -171,7 +169,6 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
 
-              import static org.assertj.core.api.Assertions.assertThat;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
@@ -179,7 +176,7 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
               class MyTest {
                   @Test
                   void testMethod() {
-                      assertThat("hello world")
+                      org.assertj.core.api.Assertions.assertThat("hello world")
                               .satisfiesAnyOf(
                                       arg -> assertThat(arg, equalTo("hello world")),
                                       arg -> assertThat(arg, hasLength(12))
@@ -214,7 +211,6 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
 
-              import static org.assertj.core.api.Assertions.assertThat;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
@@ -222,7 +218,7 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
               class MyTest {
                   @Test
                   void testMethod() {
-                      assertThat("hello world")
+                      org.assertj.core.api.Assertions.assertThat("hello world")
                               .satisfiesAnyOf(
                                       arg -> assertThat(arg, equalTo("hello world")),
                                       arg -> assertThat(arg, hasLength(12)),
@@ -285,7 +281,6 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
 
-              import static org.assertj.core.api.Assertions.assertThat;
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.hasLength;
@@ -293,7 +288,7 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
               class MyTest {
                   @Test
                   void testMethod() {
-                      assertThat("hello world")
+                      org.assertj.core.api.Assertions.assertThat("hello world")
                               .as("reason")
                               .satisfiesAnyOf(
                                       arg -> assertThat(arg, equalTo("hello world")),

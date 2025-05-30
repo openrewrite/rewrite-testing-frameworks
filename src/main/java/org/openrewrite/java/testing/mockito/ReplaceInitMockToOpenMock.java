@@ -107,7 +107,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
                             if (!isAnnotatedMethodPresent(cd, AFTER_EACH_MATCHER) && isAnnotatedMethodPresent(cd, BEFORE_EACH_MATCHER)) {
                                 maybeAddImport("org.junit.jupiter.api.AfterEach");
-                                cd = JavaTemplate.builder("@AfterEach\nvoid tearDown() throws Exception {\n}")
+                                cd = JavaTemplate.builder("@AfterEach\nvoid " + tearDownMethodName(cd) + "() throws Exception {\n}")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                         .imports("org.junit.jupiter.api.AfterEach")
                                         .build()
@@ -167,6 +167,18 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                             }
                             JavaType.Class exceptionType = JavaType.ShallowClass.build(EXCEPTION_CLASS_NAME);
                             return md.withThrows(ListUtils.concat(md.getThrows(), new J.Identifier(randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), exceptionType.getClassName(), exceptionType, null)));
+                        }
+
+                        private String tearDownMethodName(J.ClassDeclaration cd) {
+                            String methodName = "tearDown";
+                            int suffix = 0;
+                            String updatedMethodName = methodName;
+                            for (Statement st : cd.getBody().getStatements()) {
+                                if (st instanceof J.MethodDeclaration && ((J.MethodDeclaration) st).getSimpleName().equals(updatedMethodName)) {
+                                    updatedMethodName = methodName + suffix++;
+                                }
+                            }
+                            return updatedMethodName;
                         }
                     };
                 }

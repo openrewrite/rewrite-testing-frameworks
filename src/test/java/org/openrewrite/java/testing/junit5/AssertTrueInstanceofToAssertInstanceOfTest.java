@@ -50,7 +50,7 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
                   @Test
                   void testJUnit5() {
                       List<String> list = new ArrayList<>();
-                      assertTrue(list instanceof Iterable);
+                      assertTrue(list instanceof List);
                   }
               }
               """,
@@ -65,7 +65,7 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
                   @Test
                   void testJUnit5() {
                       List<String> list = new ArrayList<>();
-                      assertInstanceOf(Iterable.class, list);
+                      assertInstanceOf(List.class, list);
                   }
               }
               """
@@ -180,6 +180,44 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
                   void testJUnit5() {
                       List<String> list = new ArrayList<>();
                       assertInstanceOf(Iterable.class, list, "Not instance of Iterable");
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void jUnit4GenericInstanceOf() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.ArrayList;
+              import java.util.List;
+
+              import static org.junit.Assert.assertTrue;
+
+              class ATest {
+                  @Test
+                  void testJUnit5() {
+                      List<String> list = new ArrayList<>();
+                      assertTrue(list instanceof List<?>);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.ArrayList;
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+              class ATest {
+                  @Test
+                  void testJUnit5() {
+                      List<String> list = new ArrayList<>();
+                      assertInstanceOf(List.class, list);
                   }
               }
               """

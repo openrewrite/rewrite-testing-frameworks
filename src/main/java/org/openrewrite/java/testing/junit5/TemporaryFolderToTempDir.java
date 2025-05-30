@@ -125,7 +125,7 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
                 case "newFile":
                     return convertToNewFile(mi, ctx);
                 case "newFolder":
-                    doAfterVisit(new AddNewFolderOrFileMethod(mi, FileOrFolder.FOLDER));
+                    doAfterVisit(new AddNewFolderOrFileMethod(mi, FileOrFolder.FOLDER, getCursor().firstEnclosing(J.ClassDeclaration.class)));
                     break;
                 case "create":
                     //noinspection ConstantConditions
@@ -165,8 +165,7 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), tempDir);
         }
-
-        doAfterVisit(new AddNewFolderOrFileMethod(mi, FileOrFolder.FILE));
+        doAfterVisit(new AddNewFolderOrFileMethod(mi, FileOrFolder.FILE, getCursor().firstEnclosing(J.ClassDeclaration.class)));
         return mi;
     }
 }
@@ -175,6 +174,7 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
 class AddNewFolderOrFileMethod extends JavaIsoVisitor<ExecutionContext> {
     private final J.MethodInvocation methodInvocation;
     private final FileOrFolder fileOrFolder;
+    private final J.ClassDeclaration enclosingClass;
 
     private boolean hasClassType(Statement j, @Nullable String classType) {
         if (classType == null) {
@@ -197,6 +197,9 @@ class AddNewFolderOrFileMethod extends JavaIsoVisitor<ExecutionContext> {
     @Override
     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+        if (!cd.isScope(enclosingClass)) {
+            return cd;
+        }
         JavaType.Method newMethodDeclaration = getMethodDeclaration(cd, fileOrFolder).orElse(null);
 
         if (newMethodDeclaration == null) {

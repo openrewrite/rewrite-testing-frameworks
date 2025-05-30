@@ -111,12 +111,12 @@ public class HamcrestMatcherToAssertJ extends Recipe {
                             "org.assertj.core.api.Assertions.assertThat",
                             "org.assertj.core.api.Assertions.within")
                     .build();
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-            maybeAddImport("org.assertj.core.api.Assertions", "within");
             maybeRemoveImport("org.hamcrest.Matchers." + matcher);
             maybeRemoveImport("org.hamcrest.CoreMatchers." + matcher);
             maybeRemoveImport("org.hamcrest.MatcherAssert");
             maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
+            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+            maybeAddImport("org.assertj.core.api.Assertions", "within");
 
             List<Expression> templateArguments = new ArrayList<>();
             templateArguments.add(actualArgument);
