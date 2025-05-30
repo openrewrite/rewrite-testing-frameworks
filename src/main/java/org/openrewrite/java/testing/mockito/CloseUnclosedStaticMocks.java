@@ -117,7 +117,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
         }
 
         @Override
-        public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+        public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
             if (isRedundantCloseOfTryWithResource(mi)) {
                 return null;
@@ -167,8 +167,8 @@ public class CloseUnclosedStaticMocks extends Recipe {
             String varName = namedVariable.getSimpleName();
             String mockedClassName = getMockedClassName((J.MethodInvocation) namedVariable.getInitializer());
             if (mockedClassName != null) {
-                boolean isStatic = vd.hasModifier(J.Modifier.Type.Static)
-                                || Boolean.TRUE.equals(getCursor().getNearestMessage("staticMethod"));
+                boolean isStatic = vd.hasModifier(J.Modifier.Type.Static) ||
+                                Boolean.TRUE.equals(getCursor().getNearestMessage("staticMethod"));
                 doAfterVisit(new DeclareMockVarAndClose(getScopedClassName(), varName, mockedClassName, isStatic));
                 return JavaTemplate.builder(varName + " = #{any()}").contextSensitive().build()
                         .apply(updateCursor(vd), vd.getCoordinates().replace(), namedVariable.getInitializer());

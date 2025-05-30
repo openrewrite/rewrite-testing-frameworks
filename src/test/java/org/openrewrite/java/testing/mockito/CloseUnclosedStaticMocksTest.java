@@ -454,7 +454,8 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
                     mockStatic(A.class);
                 }
             }
-            """));
+            """
+          ));
     }
 
     @Test
