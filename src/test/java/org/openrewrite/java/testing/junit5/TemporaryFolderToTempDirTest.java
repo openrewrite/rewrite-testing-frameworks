@@ -591,7 +591,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
                   public static final File file;
 
                   public static void init() {
-                      File aDir = temporaryFolder;
+                      File aDir = file;
                   }
               }
               """
