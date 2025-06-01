@@ -588,10 +588,10 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
 
               public class MyTest {
                   @TempDir
-                  public static final File temporaryFolder;
+                  public static final File file;
 
                   public static void init() {
-                      File aDir = temporaryFolder;
+                      File aDir = file;
                   }
               }
               """

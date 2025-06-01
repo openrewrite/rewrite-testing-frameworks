@@ -288,7 +288,7 @@ class AssertJBestPracticesTest implements RewriteTest {
               arguments(
                 "java.util.Optional<Object>",
                 "assertThat(x.get()).isEqualTo(value)",
-                "assertThat(x).contains(value)"),
+                "assertThat(x).hasValue(value)"),
               arguments(
                 "java.util.Optional<Object>",
                 "assertThat(x.get()).isSameAs(value)",
