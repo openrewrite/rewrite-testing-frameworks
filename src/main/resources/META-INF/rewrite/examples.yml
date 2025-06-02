@@ -3246,6 +3246,41 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.CloseUnclosedStaticMocks
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static org.mockito.Mockito.mockStatic;
+
+      class TestClass {
+          @Test
+          void test() {
+              mockStatic(A.class);
+              assertEquals(A.getNumber(), 42);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import org.mockito.MockedStatic;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static org.mockito.Mockito.mockStatic;
+
+      class TestClass {
+          @Test
+          void test() {
+              try (MockedStatic<A> mockedStaticA = mockStatic(A.class)) {
+                  assertEquals(A.getNumber(), 42);
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockUtilsToStatic
 examples:
 - description: ''
