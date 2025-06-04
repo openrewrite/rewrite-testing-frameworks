@@ -574,10 +574,10 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
 
               public class MyTest {
                   @ClassRule
-                  public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
+                  public static final TemporaryFolder temp = new TemporaryFolder();
 
                   public static void init() {
-                      File aDir = temporaryFolder.getRoot();
+                      File aDir = temp.getRoot();
                   }
               }
               """,
@@ -588,10 +588,10 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
 
               public class MyTest {
                   @TempDir
-                  public static final File file;
+                  public static final File temp;
 
                   public static void init() {
-                      File aDir = file;
+                      File aDir = temp;
                   }
               }
               """
