@@ -153,9 +153,6 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             continue;
                         }
 
-                        JavaTemplate.Builder builder = JavaTemplate.builder("#{} " + getVariableName(e) + " = #{any()};\n")
-                                .javaParser(JavaParser.fromJavaVersion().classpath(JavaParser.runtimeClasspath()).logCompilationWarningsAndErrors(true));
-
                         Object type = "Object";
                         if (e.getType() instanceof JavaType.Primitive) {
                             type = e.getType().toString();
