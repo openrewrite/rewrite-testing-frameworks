@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -574,7 +575,7 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     }
 
     @Test
-    void sameArgumentTypeTwiceExtractedToUniquelyNamedVariables() {
+    void uniqueVariableNames() {
         //language=java
         rewriteRun(
           java(
@@ -619,6 +620,103 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                   String getB() { return "B"; }
                   String getC() { return "C"; }
                   void testThing(String one, String two) {}
+              }
+              """
+          )
+        );
+    }
+
+    @Disabled("Creates duplicate variables `b`")
+    @Test
+    void duplicateVariableNames() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          getA();
+                          testThing(getB(), getB());
+                      });
+                  }
+
+                  String getA() { return "A"; }
+                  String getB() { return "B"; }
+                  void testThing(String one, String two) {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      getA();
+                      String b = getB();
+                      String b1 = getB();
+                      assertThrows(Exception.class, () ->
+                          testThing(b, c));
+                  }
+
+                  String getA() { return "A"; }
+                  String getB() { return "B"; }
+                  void testThing(String one, String two) {}
+              }
+              """
+          )
+        );
+    }
+
+    @Disabled("Not implemented yet")
+    @Test
+    void lambdaWithSingleStatementStillExtractsVariable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          testThing(getA());
+                      });
+                  }
+
+                  String getA() { return "A"; }
+                  void testThing(String one) {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      String a = getA();
+                      assertThrows(Exception.class, () ->
+                          testThing(a));
+                  }
+
+                  String getA() { return "A"; }
+                  void testThing(String one) {}
               }
               """
           )
