@@ -19,16 +19,14 @@ import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.VariableNameUtils;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
@@ -150,48 +148,31 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 if (lambdaStatement instanceof J.MethodInvocation) {
                     J.MethodInvocation mi = (J.MethodInvocation) lambdaStatement;
                     return mi.withArguments(ListUtils.map(mi.getArguments(), e -> {
-                        if (e instanceof J.Identifier || e instanceof J.Literal || e instanceof J.Empty) {
+                        if (e instanceof J.Identifier || e instanceof J.Literal || e instanceof J.Empty || e == null) {
                             return e;
                         }
 
-                        Object type = "Object";
+                        Object variableTypeShort = "Object";
+                        JavaType variableTypeFqn = null;
                         if (e.getType() instanceof JavaType.Primitive) {
-                            type = e.getType().toString();
-                        } else if (e.getType() != null && TypeUtils.asClass(e.getType()) != null) {
-                            type = TypeUtils.asClass(e.getType()).getClassName();
-                            maybeAddImport(TypeUtils.asFullyQualified(e.getType()).getFullyQualifiedName(), false);
+                            variableTypeShort = e.getType().toString();
+                            variableTypeFqn = e.getType();
+                        } else if (e.getType() instanceof JavaType.FullyQualified) {
+                            JavaType.FullyQualified aClass = (JavaType.FullyQualified) e.getType();
+                            variableTypeShort = aClass.getClassName();
+                            variableTypeFqn = aClass;
+                            maybeAddImport(aClass.getFullyQualifiedName(), false);
                         }
 
-                        J.VariableDeclarations varDecl = new J.VariableDeclarations(Tree.randomId(),
-                                Space.EMPTY,
-                                Markers.EMPTY,
-                                Collections.emptyList(),
-                                Collections.emptyList(),
-                                new J.Identifier(Tree.randomId(),
-                                        Space.EMPTY,
-                                        Markers.EMPTY,
-                                        Collections.emptyList(),
-                                        type.toString(),
-                                        e.getType(),
-                                        null),
-                                null,
-                                Collections.emptyList(),
-                                Arrays.asList(JRightPadded.build(new J.VariableDeclarations.NamedVariable(Tree.randomId(),
-                                        Space.SINGLE_SPACE,
-                                        Markers.EMPTY,
-                                        new J.Identifier(Tree.randomId(),
-                                                Space.EMPTY,
-                                                Markers.EMPTY,
-                                                Collections.emptyList(),
-                                                getVariableName(e),
-                                                e.getType(),
-                                                new JavaType.Variable(null, 0, getVariableName(e), null, e.getType(), null)),
-                                        Collections.emptyList(),
-                                        JLeftPadded.build((Expression) e.withPrefix(Space.SINGLE_SPACE)).withBefore(Space.SINGLE_SPACE),
-                                        new JavaType.Variable(null, 0, getVariableName(e), null, e.getType(), null)))));
-
-                        precedingVars.add(varDecl.withPrefix(varPrefix));
-                        return varDecl.getVariables().get(0).getName();
+                        JavaTemplate.Builder builder = JavaTemplate.builder("#{} #{} = #{any()};");
+                        J.VariableDeclarations varDecl = builder.build()
+                                .apply(new Cursor(getCursor(), lambdaStatement),
+                                        lambdaStatement.getCoordinates().replace(),
+                                        variableTypeShort, getVariableName(e), e);
+                        precedingVars.add(varDecl
+                                .withPrefix(varPrefix).withType(variableTypeFqn));
+                        return varDecl.getVariables().get(0).getName()
+                                .withPrefix(e.getPrefix()).withType(variableTypeFqn);
                     }));
                 }
                 return lambdaStatement;

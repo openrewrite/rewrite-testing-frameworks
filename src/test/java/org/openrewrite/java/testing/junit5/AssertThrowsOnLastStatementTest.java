@@ -572,4 +572,56 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void sameArgumentTypeTwiceExtractedToUniquelyNamedVariables() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          getA();
+                          testThing(getB(), getC());
+                      });
+                  }
+
+                  String getA() { return "A"; }
+                  String getB() { return "B"; }
+                  String getC() { return "C"; }
+                  void testThing(String one, String two) {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      getA();
+                      String b = getB();
+                      String c = getC();
+                      assertThrows(Exception.class, () ->
+                          testThing(b, c));
+                  }
+
+                  String getA() { return "A"; }
+                  String getB() { return "B"; }
+                  String getC() { return "C"; }
+                  void testThing(String one, String two) {}
+              }
+              """
+          )
+        );
+    }
 }
