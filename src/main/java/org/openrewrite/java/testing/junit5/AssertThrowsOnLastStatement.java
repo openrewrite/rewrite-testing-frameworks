@@ -120,7 +120,8 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         }
 
                         List<Statement> variableAssignments = new ArrayList<>();
-                        final Statement newLambdaStatement = extractExpressionArguments(methodStatement, lambdaStatement, variableAssignments);
+                        Space prefix = methodStatement.getPrefix().withComments(emptyList());
+                        final Statement newLambdaStatement = extractExpressionArguments(lambdaStatement, variableAssignments, prefix);
                         J.MethodInvocation newAssertThrows = methodInvocation.withArguments(
                                 ListUtils.map(arguments, (argIdx, argument) -> {
                                     if (argIdx == 1) {
@@ -145,14 +146,12 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 return methodDeclaration;
             }
 
-            private Statement extractExpressionArguments(Statement methodStatement, Statement lambdaStatement, List<Statement> statements) {
+            private Statement extractExpressionArguments(Statement lambdaStatement, List<Statement> precedingVars, Space varPrefix) {
                 if (lambdaStatement instanceof J.MethodInvocation) {
                     J.MethodInvocation mi = (J.MethodInvocation) lambdaStatement;
-                    List<Expression> lambdaArguments = new ArrayList<>(mi.getArguments().size());
-                    for (Expression e : mi.getArguments()) {
+                    return mi.withArguments(ListUtils.map(mi.getArguments(), e -> {
                         if (e instanceof J.Identifier || e instanceof J.Literal || e instanceof J.Empty) {
-                            lambdaArguments.add(e);
-                            continue;
+                            return e;
                         }
 
                         Object type = "Object";
@@ -188,14 +187,12 @@ public class AssertThrowsOnLastStatement extends Recipe {
                                                 e.getType(),
                                                 new JavaType.Variable(null, 0, getVariableName(e), null, e.getType(), null)),
                                         Collections.emptyList(),
-                                        JLeftPadded.build((Expression)e.withPrefix(Space.SINGLE_SPACE)).withBefore(Space.SINGLE_SPACE),
+                                        JLeftPadded.build((Expression) e.withPrefix(Space.SINGLE_SPACE)).withBefore(Space.SINGLE_SPACE),
                                         new JavaType.Variable(null, 0, getVariableName(e), null, e.getType(), null)))));
 
-                        J.Identifier name = varDecl.getVariables().get(0).getName();
-                        statements.add(varDecl.withPrefix(methodStatement.getPrefix().withComments(emptyList())));
-                        lambdaArguments.add(name);
-                    }
-                    lambdaStatement = mi.withArguments(lambdaArguments);
+                        precedingVars.add(varDecl.withPrefix(varPrefix));
+                        return varDecl.getVariables().get(0).getName();
+                    }));
                 }
                 return lambdaStatement;
             }
