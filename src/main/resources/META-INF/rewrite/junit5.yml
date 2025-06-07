@@ -102,21 +102,7 @@ recipeList:
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: junit
       artifactId: junit
-  - org.openrewrite.maven.ExcludeDependency:
-      groupId: junit
-      artifactId: junit
-  # Workaround for https://github.com/testcontainers/testcontainers-java/issues/970:
-  - org.openrewrite.maven.RemoveExclusion:
-      groupId: org.testcontainers
-      artifactId: '*'
-      exclusionGroupId: junit
-      exclusionArtifactId: junit
-  # Similar for https://github.com/openrewrite/rewrite-testing-frameworks/issues/477
-  - org.openrewrite.maven.RemoveExclusion:
-      groupId: org.springframework.boot
-      artifactId: spring-boot-testcontainers
-      exclusionGroupId: junit
-      exclusionArtifactId: junit
+  - org.openrewrite.java.testing.junit5.ExcludeJUnit4IfNoTestcontainers
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
@@ -145,7 +131,17 @@ recipeList:
       newFullyQualifiedTypeName: org.jbehave.core.junit.JupiterStories
   - org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5
   - org.openrewrite.java.testing.dbrider.MigrateDbRiderSpringToDbRiderJUnit5
-
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.ExcludeJUnit4IfNoTestcontainers
+preconditions:
+  - org.openrewrite.maven.search.DoesNotIncludeDependency:
+      groupId: org.testcontainers
+      artifactId: '*'
+recipeList:
+  - org.openrewrite.maven.ExcludeDependency:
+      groupId: junit
+      artifactId: junit
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
