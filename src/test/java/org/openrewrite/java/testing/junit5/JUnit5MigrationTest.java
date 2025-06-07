@@ -162,157 +162,165 @@ class JUnit5MigrationTest implements RewriteTest {
         // Just using play-test_2.13 as an example because it appears to still depend on junit.
         // In practice, this would probably just break it, I assume.
         //language=xml
-        String before = """
-          <project>
-              <modelVersion>4.0.0</modelVersion>
-              <parent>
-                  <groupId>org.springframework.boot</groupId>
-                  <artifactId>spring-boot-starter-parent</artifactId>
-                  <version>3.2.1</version>
-                  <relativePath/> <!-- lookup parent from repository -->
-              </parent>
-              <groupId>dev.ted</groupId>
-              <artifactId>needs-exclusion</artifactId>
-              <version>0.0.1</version>
-              <dependencies>
-                  <dependency>
+        rewriteRun(
+          pomXml(
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <parent>
                       <groupId>org.springframework.boot</groupId>
-                      <artifactId>spring-boot-starter</artifactId>
-                  </dependency>
-                  <dependency>
-                      <groupId>com.typesafe.play</groupId>
-                      <artifactId>play-test_2.13</artifactId>
-                      <version>2.9.6</version>
-                      <scope>test</scope>
-                  </dependency>
-              </dependencies>
-          </project>
-          """;
-        //language=xml
-        String after = """
-          <project>
-              <modelVersion>4.0.0</modelVersion>
-              <parent>
-                  <groupId>org.springframework.boot</groupId>
-                  <artifactId>spring-boot-starter-parent</artifactId>
-                  <version>3.2.1</version>
-                  <relativePath/> <!-- lookup parent from repository -->
-              </parent>
-              <groupId>dev.ted</groupId>
-              <artifactId>needs-exclusion</artifactId>
-              <version>0.0.1</version>
-              <dependencies>
-                  <dependency>
+                      <artifactId>spring-boot-starter-parent</artifactId>
+                      <version>3.2.1</version>
+                      <relativePath/> <!-- lookup parent from repository -->
+                  </parent>
+                  <groupId>dev.ted</groupId>
+                  <artifactId>needs-exclusion</artifactId>
+                  <version>0.0.1</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.springframework.boot</groupId>
+                          <artifactId>spring-boot-starter</artifactId>
+                      </dependency>
+                      <dependency>
+                          <groupId>com.typesafe.play</groupId>
+                          <artifactId>play-test_2.13</artifactId>
+                          <version>2.9.6</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """,
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <parent>
                       <groupId>org.springframework.boot</groupId>
-                      <artifactId>spring-boot-starter</artifactId>
-                  </dependency>
-                  <dependency>
-                      <groupId>com.typesafe.play</groupId>
-                      <artifactId>play-test_2.13</artifactId>
-                      <version>2.9.6</version>
-                      <scope>test</scope>
-                      <exclusions>
-                          <exclusion>
-                              <groupId>junit</groupId>
-                              <artifactId>junit</artifactId>
-                          </exclusion>
-                      </exclusions>
-                  </dependency>
-              </dependencies>
-          </project>
-          """;
-        rewriteRun(pomXml(before, after));
+                      <artifactId>spring-boot-starter-parent</artifactId>
+                      <version>3.2.1</version>
+                      <relativePath/> <!-- lookup parent from repository -->
+                  </parent>
+                  <groupId>dev.ted</groupId>
+                  <artifactId>needs-exclusion</artifactId>
+                  <version>0.0.1</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.springframework.boot</groupId>
+                          <artifactId>spring-boot-starter</artifactId>
+                      </dependency>
+                      <dependency>
+                          <groupId>com.typesafe.play</groupId>
+                          <artifactId>play-test_2.13</artifactId>
+                          <version>2.9.6</version>
+                          <scope>test</scope>
+                          <exclusions>
+                              <exclusion>
+                                  <groupId>junit</groupId>
+                                  <artifactId>junit</artifactId>
+                              </exclusion>
+                          </exclusions>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """
+          )
+        );
     }
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
     void dontExcludeJunit4DependencyFromTestcontainers() {
         //language=xml
-        String before = """
-          <project>
-              <modelVersion>4.0.0</modelVersion>
-              <groupId>com.example.jackson</groupId>
-              <artifactId>test-plugins</artifactId>
-              <version>1.0.0</version>
-              <dependencies>
-                  <dependency>
-                      <groupId>org.testcontainers</groupId>
-                      <artifactId>testcontainers</artifactId>
-                      <version>1.18.3</version>
-                      <scope>test</scope>
-                  </dependency>
-              </dependencies>
-          </project>
-          """;
-        // Output identical, but we want to make sure we don't exclude junit4 from testcontainers
-        rewriteRun(pomXml(before));
+        rewriteRun(
+          pomXml(
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example.jackson</groupId>
+                  <artifactId>test-plugins</artifactId>
+                  <version>1.0.0</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.testcontainers</groupId>
+                          <artifactId>testcontainers</artifactId>
+                          <version>1.18.3</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """
+          )
+        );
     }
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
     void dontExcludeJunit4DependencyFromTestcontainersJupiter() {
         //language=xml
-        String before = """
-          <project>
-              <modelVersion>4.0.0</modelVersion>
-              <groupId>com.example.jackson</groupId>
-              <artifactId>test-plugins</artifactId>
-              <version>1.0.0</version>
-              <dependencies>
-                  <dependency>
-                      <groupId>org.testcontainers</groupId>
-                      <artifactId>junit-jupiter</artifactId>
-                      <version>1.18.3</version>
-                      <scope>test</scope>
-                  </dependency>
-              </dependencies>
-          </project>
-          """;
-        // Output identical, but we want to make sure we don't exclude junit4 from testcontainers
-        rewriteRun(pomXml(before));
+        rewriteRun(
+          pomXml(
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example.jackson</groupId>
+                  <artifactId>test-plugins</artifactId>
+                  <version>1.0.0</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.testcontainers</groupId>
+                          <artifactId>junit-jupiter</artifactId>
+                          <version>1.18.3</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """
+          )
+        );
     }
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/477")
     void dontExcludeJunit4DependencyFromSpringBootTestcontainers() {
-        //language=xml
-        String before = """
-          <project>
-              <modelVersion>4.0.0</modelVersion>
-              <parent>
-                  <groupId>org.springframework.boot</groupId>
-                  <artifactId>spring-boot-starter-parent</artifactId>
-                  <version>3.2.1</version>
-                  <relativePath/> <!-- lookup parent from repository -->
-              </parent>
-              <groupId>dev.ted</groupId>
-              <artifactId>testcontainer-migrate</artifactId>
-              <version>0.0.1</version>
-              <dependencies>
-                  <dependency>
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <parent>
                       <groupId>org.springframework.boot</groupId>
-                      <artifactId>spring-boot-starter</artifactId>
-                  </dependency>
-                  <dependency>
-                      <groupId>org.springframework.boot</groupId>
-                      <artifactId>spring-boot-starter-test</artifactId>
-                      <scope>test</scope>
-                  </dependency>
-                  <dependency>
-                      <groupId>org.springframework.boot</groupId>
-                      <artifactId>spring-boot-testcontainers</artifactId>
-                      <scope>test</scope>
-                  </dependency>
-                  <dependency>
-                      <groupId>org.testcontainers</groupId>
-                      <artifactId>junit-jupiter</artifactId>
-                      <scope>test</scope>
-                  </dependency>
-              </dependencies>
-          </project>
-          """;
-        // Output identical, but we want to make sure we don't exclude junit4 from testcontainers
-        rewriteRun(pomXml(before));
+                      <artifactId>spring-boot-starter-parent</artifactId>
+                      <version>3.2.1</version>
+                      <relativePath/> <!-- lookup parent from repository -->
+                  </parent>
+                  <groupId>dev.ted</groupId>
+                  <artifactId>testcontainer-migrate</artifactId>
+                  <version>0.0.1</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.springframework.boot</groupId>
+                          <artifactId>spring-boot-starter</artifactId>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.springframework.boot</groupId>
+                          <artifactId>spring-boot-starter-test</artifactId>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.springframework.boot</groupId>
+                          <artifactId>spring-boot-testcontainers</artifactId>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.testcontainers</groupId>
+                          <artifactId>junit-jupiter</artifactId>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """
+          )
+        );
     }
 
     // edge case for deprecated use of assertEquals
