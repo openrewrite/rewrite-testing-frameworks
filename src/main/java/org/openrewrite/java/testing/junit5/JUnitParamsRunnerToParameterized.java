@@ -23,7 +23,6 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.trait.Literal;
-import org.openrewrite.java.trait.Traits;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -111,7 +110,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             J.Annotation anno = super.visitAnnotation(annotation, ctx);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
             if (PARAMETERS_MATCHER.matches(anno)) {
-                Annotated annotated = Traits.annotated(PARAMETERS_MATCHER).require(annotation, getCursor().getParentOrThrow());
+                Annotated annotated = new Annotated.Matcher(PARAMETERS_MATCHER).require(annotation, getCursor().getParentOrThrow());
                 String annotationArgumentValue = getAnnotationArgumentForInitMethod(annotated, "method", "named");
                 classDeclCursor.computeMessageIfAbsent(PARAMETERIZED_TESTS, v -> new HashSet<>())
                         .add(getCursor().firstEnclosing(J.MethodDeclaration.class).getSimpleName());
@@ -135,7 +134,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                     unsupportedMethods.add(junitParamsDefaultInitMethodName(m.getSimpleName()));
                 }
             } else if (NAMED_PARAMETERS_MATCHER.matches(annotation)) {
-                Annotated annotated = Traits.annotated(NAMED_PARAMETERS_MATCHER).require(annotation, getCursor().getParentOrThrow());
+                Annotated annotated = new Annotated.Matcher(NAMED_PARAMETERS_MATCHER).require(annotation, getCursor().getParentOrThrow());
                 Optional<Literal> value = annotated.getDefaultAttribute("value");
                 if (value.isPresent()) {
                     J.MethodDeclaration m = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();
@@ -143,7 +142,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                     classDeclCursor.computeMessageIfAbsent(INIT_METHODS_MAP, v -> new HashMap<>()).put(value.get().getString(), m.getSimpleName());
                 }
             } else if (TEST_CASE_NAME_MATCHER.matches(anno)) {
-                Annotated annotated = Traits.annotated(TEST_CASE_NAME_MATCHER).require(annotation, getCursor().getParentOrThrow());
+                Annotated annotated = new Annotated.Matcher(TEST_CASE_NAME_MATCHER).require(annotation, getCursor().getParentOrThrow());
                 // test name for ParameterizedTest argument
                 Optional<Literal> value = annotated.getDefaultAttribute("value");
                 if (value.isPresent()) {
