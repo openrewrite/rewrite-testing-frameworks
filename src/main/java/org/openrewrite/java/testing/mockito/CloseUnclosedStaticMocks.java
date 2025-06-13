@@ -21,6 +21,7 @@ import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -35,7 +36,6 @@ import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
-import static org.openrewrite.java.trait.Traits.annotated;
 
 /**
  * Ensures that all mockStatic calls are properly closed.
@@ -100,7 +100,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
         @Override
         public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             Cursor cursor = getCursor();
-            annotated("@org.junit.jupiter.api.*").asVisitor(a -> {
+            new Annotated.Matcher("@org.junit.jupiter.api.*").asVisitor(a -> {
                 String annotationName = a.getTree().getSimpleName();
                 if (annotationName.startsWith("Before")) {
                     cursor.putMessage(MethodType.class.getSimpleName(), MethodType.LIFECYCLE);
@@ -333,7 +333,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
                 return md;
             }
             AnnotationMatcher annotationMatcher = isStatic ? AFTER_ALL_MATCHER : AFTER_EACH_MATCHER;
-            boolean matched = annotated(annotationMatcher).<AtomicBoolean>asVisitor((a, found) -> {
+            boolean matched = new Annotated.Matcher(annotationMatcher).<AtomicBoolean>asVisitor((a, found) -> {
                 found.set(true);
                 return a.getTree();
             }).reduce(md, new AtomicBoolean()).get();
