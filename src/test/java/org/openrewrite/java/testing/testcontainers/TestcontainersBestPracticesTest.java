@@ -84,7 +84,7 @@ class TestcontainersBestPracticesTest implements RewriteTest {
               </project>
               """,
             spec -> spec.after(after -> {
-                Matcher matcher = Pattern.compile("<version>(1\\.19\\.\\d+)</version>").matcher(after);
+                Matcher matcher = Pattern.compile("<version>(1\\.21\\.\\d+)</version>").matcher(after);
                 assertTrue(matcher.find());
                 //language=xml
                 return """

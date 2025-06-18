@@ -24,7 +24,7 @@ recipeList:
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.testcontainers
       artifactId: "*"
-      newVersion: 1.19.x
+      newVersion: 1.21.x
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImages
   - org.openrewrite.java.testing.testcontainers.GetHostMigration
 ---
