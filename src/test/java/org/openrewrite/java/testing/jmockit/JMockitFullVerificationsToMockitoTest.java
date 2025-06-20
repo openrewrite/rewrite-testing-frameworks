@@ -95,7 +95,6 @@ class JMockitFullVerificationsToMockitoTest implements RewriteTest {
         );
     }
 
-    @DocumentExample
     @Test
     void whenOtherStatements() {
         //language=java

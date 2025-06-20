@@ -87,7 +87,6 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
         );
     }
 
-    @DocumentExample
     @Test
     void whenNoResultNoTimes() {
         //language=java

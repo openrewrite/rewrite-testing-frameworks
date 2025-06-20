@@ -117,7 +117,6 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
     }
 
     @Test
-    @DocumentExample
     void allOfStringMatchersAndConvert() {
         rewriteRun(
           //language=java
@@ -161,7 +160,6 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
     }
 
     @Test
-    @DocumentExample
     void convertAnyOfMatchersAfterSatisfiesAnyOfConversion() {
         rewriteRun(
           //language=java

@@ -79,7 +79,6 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
         );
     }
 
-    @DocumentExample
     @Test
     void whenNoTimesNoArgs() {
         //language=java
