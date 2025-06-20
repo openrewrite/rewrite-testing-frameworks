@@ -113,8 +113,8 @@ public class AssertTrueNullToAssertNull extends Recipe {
                 if (binary.getOperator() != J.Binary.Type.Equal) {
                     return false;
                 }
-                return binary.getLeft() instanceof J.Literal && ((J.Literal) binary.getLeft()).getValue() == null ||
-                       binary.getRight() instanceof J.Literal && ((J.Literal) binary.getRight()).getValue() == null;
+                return J.Literal.isLiteralValue(binary.getLeft(), null) ||
+                        J.Literal.isLiteralValue(binary.getRight(), null);
             }
         });
     }
