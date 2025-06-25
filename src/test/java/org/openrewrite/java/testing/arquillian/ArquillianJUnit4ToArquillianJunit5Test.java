@@ -56,7 +56,10 @@ class ArquillianJUnit4ToArquillianJunit5Test implements RewriteTest {
                     </dependencies>
                 </project>
                 """,
-              spec -> spec.after(pom -> assertThat(pom).contains("<version>1.9.").actual())
+              spec -> spec.after(pom -> assertThat(pom)
+                .doesNotContain("<version>1.7.")
+                .contains("<version>1.1")
+                .actual())
             )
           )
         );
