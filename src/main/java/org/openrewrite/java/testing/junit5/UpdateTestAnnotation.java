@@ -30,6 +30,7 @@ import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 
 public class UpdateTestAnnotation extends Recipe {
@@ -141,7 +142,8 @@ public class UpdateTestAnnotation extends Recipe {
                                 .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                                 .build()
                                 .apply(updateCursor(m), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
-                        m = m.withThrows(Collections.emptyList());
+                        // Only remove the throws clause for the specific exception being tested
+                        m = removeSpecificThrowsClause(m, cta.expectedException);
                         // Unconditionally add the import for assertThrows, got a report where the above template adds the method successfully
                         // but with missing type attribution for assertThrows so the import was missing
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows", false);
@@ -166,6 +168,44 @@ public class UpdateTestAnnotation extends Recipe {
             }
 
             return super.visitMethodDeclaration(m, ctx);
+        }
+
+        private J.MethodDeclaration removeSpecificThrowsClause(J.MethodDeclaration method, Expression expectedException) {
+            List<NameTree> thrown = method.getThrows();
+            if (thrown == null || thrown.isEmpty()) {
+                return method;
+            }
+
+            // Extract the exception type from the expected exception expression
+            JavaType expectedType = null;
+            if (expectedException instanceof J.FieldAccess) {
+                J.FieldAccess fa = (J.FieldAccess) expectedException;
+                expectedType = fa.getTarget().getType();
+            } else if (expectedException instanceof J.Identifier) {
+                J.Identifier id = (J.Identifier) expectedException;
+                expectedType = id.getFieldType() != null ? id.getFieldType().getOwner() : id.getType();
+            }
+
+            if (expectedType == null) {
+                return method;
+            }
+
+            // Filter out only the exception that matches the expected exception
+            final JavaType finalExpectedType = expectedType;
+            List<NameTree> filteredThrows = ListUtils.map(thrown, throwClause -> {
+                JavaType throwType = throwClause.getType();
+                if (throwType != null && TypeUtils.isAssignableTo(finalExpectedType, throwType)) {
+                    return null;
+                }
+                return throwClause;
+            });
+
+            // If all throws were removed, return empty list, otherwise keep the remaining ones
+            if (filteredThrows.isEmpty() || filteredThrows.stream().allMatch(t -> t == null)) {
+                return method.withThrows(Collections.emptyList());
+            }
+
+            return method.withThrows(filteredThrows);
         }
 
         private static class ChangeTestAnnotation extends JavaIsoVisitor<ExecutionContext> {
