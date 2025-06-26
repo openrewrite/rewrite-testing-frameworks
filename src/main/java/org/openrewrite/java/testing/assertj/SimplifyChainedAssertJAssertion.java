@@ -92,7 +92,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
 
                 // assert has correct assertion
-                if (!assertToReplace.matches(mi) || mi.getArguments().size() != 1) {
+                if (!assertToReplace.matches(mi) || mi.getArguments().size() != 1 || !(mi.getSelect() instanceof J.MethodInvocation)) {
                     return mi;
                 }
 
