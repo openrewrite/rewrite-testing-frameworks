@@ -177,13 +177,11 @@ public class UpdateTestAnnotation extends Recipe {
             }
 
             // Extract the exception type from the expected exception expression
+            // This should always be a `J.FieldAccess` of the form MyException.class
             JavaType expectedType = null;
             if (expectedException instanceof J.FieldAccess) {
                 J.FieldAccess fa = (J.FieldAccess) expectedException;
                 expectedType = fa.getTarget().getType();
-            } else if (expectedException instanceof J.Identifier) {
-                J.Identifier id = (J.Identifier) expectedException;
-                expectedType = id.getFieldType() != null ? id.getFieldType().getOwner() : id.getType();
             }
 
             if (expectedType == null) {

@@ -605,7 +605,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   void foo() throws IOException {
                       // might throw IOException
                   }
-                  
+
                   void bar() throws IllegalArgumentException {
                       throw new IllegalArgumentException("boom");
                   }
@@ -631,7 +631,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   void foo() throws IOException {
                       // might throw IOException
                   }
-                  
+
                   void bar() throws IllegalArgumentException {
                       throw new IllegalArgumentException("boom");
                   }
