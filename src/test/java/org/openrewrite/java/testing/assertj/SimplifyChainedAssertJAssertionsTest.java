@@ -28,7 +28,6 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -313,7 +312,7 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
             String before = template.formatted(formattedAssertBefore);
 
             String finalArgument = "".equals(firstArg) ? secondArg : firstArg;
-            List<String> formattedArgs = new ArrayList<>(Arrays.asList(dedicatedAssertion, finalArgument));
+            List<String> formattedArgs = new ArrayList<>(List.of(dedicatedAssertion, finalArgument));
             if (!"".equals(firstArg) && !"".equals(secondArg)) {
                 formattedArgs.add(secondArg);
             }
