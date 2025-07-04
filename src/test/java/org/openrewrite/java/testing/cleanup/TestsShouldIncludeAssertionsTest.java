@@ -440,9 +440,9 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
     }
 
     @Test
-    void kotlinTest() {
+    void retainKotlinBody() {
+        //language=kotlin
         rewriteRun(
-          //language=kotlin
           kotlin(
             """
               import org.junit.jupiter.api.Test
