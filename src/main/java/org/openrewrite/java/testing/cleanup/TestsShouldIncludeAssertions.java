@@ -27,6 +27,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -94,7 +95,12 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Test", false), new TestShouldIncludeAssertionsVisitor(additionalAsserts));
+        return Preconditions.check(
+                Preconditions.and(
+                        new UsesType<>("org.junit.jupiter.api.Test", false),
+                        Preconditions.not(new KotlinFileChecker<>())
+                ),
+                new TestShouldIncludeAssertionsVisitor(additionalAsserts));
     }
 
     private static class TestShouldIncludeAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -111,12 +117,11 @@ public class TestsShouldIncludeAssertions extends Recipe {
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext
-                ctx) {
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             if ((!methodIsTest(method) || method.getBody() == null || method.getBody().getStatements().isEmpty()) ||
-                methodIsDisabled(method) ||
-                methodHasAssertion(method.getBody()) ||
-                methodInvocationInBodyContainsAssertion()) {
+                    methodIsDisabled(method) ||
+                    methodHasAssertion(method.getBody()) ||
+                    methodInvocationInBodyContainsAssertion()) {
                 return method;
             }
 
