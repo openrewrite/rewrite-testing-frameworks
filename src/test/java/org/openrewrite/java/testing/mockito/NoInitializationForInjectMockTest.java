@@ -60,7 +60,6 @@ class NoInitializationForInjectMockTest implements RewriteTest {
               """,
               """
               class MyTest {
-                 \s
                   MyObject myObject = new MyObject("someField");
               }
               """
@@ -83,8 +82,32 @@ class NoInitializationForInjectMockTest implements RewriteTest {
               """,
             """
               class MyTest {
-                 \s
                   final MyObject myObject = new MyObject("someField");
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeInitializerWhenDefaultConstructor() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.InjectMocks;
+
+              class MyTest {
+                  @InjectMocks
+                  Object myObject = new Object();
+              }
+              """,
+            """
+              import org.mockito.InjectMocks;
+
+              class MyTest {
+                  @InjectMocks
+                  Object myObject;
               }
               """
           )
