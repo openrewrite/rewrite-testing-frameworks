@@ -29,26 +29,26 @@ class NoInitializationForInjectMockTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12"))
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12")
+            .dependsOn(
+              //language=java
+              """
+                class MyObject {
+                    private String someField;
+
+                    public MyObject(String someField) {
+                        this.someField = someField;
+                    }
+                }
+                """))
           .recipe(new NoInitializationForInjectMock());
     }
 
     @Test
     @DocumentExample
-    void removeInitializationOfInjectMocks() {
+    void removeAnnotationFromInitializedField() {
         //language=java
         rewriteRun(
-          java(
-            """
-              class MyObject {
-                  private String someField;
-
-                  public MyObject(String someField) {
-                      this.someField = someField;
-                  }
-              }
-              """
-          ),
           java(
             """
               import org.mockito.InjectMocks;
@@ -59,11 +59,9 @@ class NoInitializationForInjectMockTest implements RewriteTest {
               }
               """,
               """
-              import org.mockito.InjectMocks;
-
               class MyTest {
-                  @InjectMocks
-                  MyObject myObject;
+                 \s
+                  MyObject myObject = new MyObject("someField");
               }
               """
           )
@@ -71,20 +69,9 @@ class NoInitializationForInjectMockTest implements RewriteTest {
     }
 
     @Test
-    void removeInitializationOfInjectMocksWithFinal() {
+    void removeAnnotationFromFinalField() {
         //language=java
         rewriteRun(
-          java(
-            """
-              class MyObject {
-                  private String someField;
-
-                  public MyObject(String someField) {
-                      this.someField = someField;
-                  }
-              }
-              """
-          ),
           java(
             """
               import org.mockito.InjectMocks;
@@ -94,6 +81,21 @@ class NoInitializationForInjectMockTest implements RewriteTest {
                   final MyObject myObject = new MyObject("someField");
               }
               """,
+            """
+              class MyTest {
+                 \s
+                  final MyObject myObject = new MyObject("someField");
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainAnnotationOnNotInitializedField() {
+        //language=java
+        rewriteRun(
+          java(
             """
               import org.mockito.InjectMocks;
 
