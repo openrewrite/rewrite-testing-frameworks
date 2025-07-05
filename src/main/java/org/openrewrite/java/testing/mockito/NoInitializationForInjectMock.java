@@ -41,8 +41,8 @@ public class NoInitializationForInjectMock extends Recipe {
     @Override
     public String getDescription() {
         return "Remove either the `@InjectMocks` annotation from fields, or the initializer, based on the initializer.\n" +
-                "* In the case of a no-args constructor, remove the initializer and retain the annotation.\n" +
-                "* In the case of any other initializer, remove the annotation and retain the initializer.";
+                " * In the case of a no-args constructor, remove the initializer and retain the annotation.\n" +
+                " * In the case of any other initializer, remove the annotation and retain the initializer.";
     }
 
     @Override
