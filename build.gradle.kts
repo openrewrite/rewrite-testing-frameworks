@@ -48,7 +48,7 @@ dependencies {
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
     runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:latest.release:recipes")
-    compileOnly("org.junit.jupiter:junit-jupiter-engine:5.+")
+    compileOnly("org.junit.jupiter:junit-jupiter-engine:5.13.3")
     compileOnly("org.assertj:assertj-core:3.+")
 
     compileOnly("org.projectlombok:lombok:latest.release")
