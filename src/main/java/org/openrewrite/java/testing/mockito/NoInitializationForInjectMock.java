@@ -15,62 +15,65 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.openrewrite.*;
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.RemoveAnnotationVisitor;
+import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.service.AnnotationService;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
-import java.util.Iterator;
+import java.util.Set;
 
 public class NoInitializationForInjectMock extends Recipe {
 
-    private static final AnnotationMatcher INJECT_MOCKS = new AnnotationMatcher("@org.mockito.InjectMocks");
-
     @Override
     public String getDisplayName() {
-        return "Remove initialization when using `@InjectMocks`";
+        return "Remove `@InjectMocks` annotation or initializer";
     }
 
     @Override
     public String getDescription() {
-        return "Removes unnecessary initialization for fields annotated with `@InjectMocks` in Mockito tests. If the " +
-               "field was final, the final modifier is removed.";
+        return "Remove either the `@InjectMocks` annotation from fields, or the initializer, based on the initializer.\n" +
+                " * In the case of a no-args constructor, remove the initializer and retain the annotation.\n" +
+                " * In the case of any other initializer, remove the annotation and retain the initializer.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.mockito.*", false), new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations variableDeclarations, ExecutionContext ctx) {
-                J.VariableDeclarations vd = super.visitVariableDeclarations(variableDeclarations, ctx);
-
-                if (isField(getCursor()) && new AnnotationService().matches(getCursor(), INJECT_MOCKS)) {
-                    return maybeAutoFormat(vd, vd
-                                    .withModifiers(ListUtils.map(vd.getModifiers(), modifier -> modifier.getType() == J.Modifier.Type.Final ? null : modifier))
-                                    .withVariables(ListUtils.map(vd.getVariables(), it -> it.withInitializer(null))),
-                            ctx, getCursor().getParentOrThrow());
-                }
-
-                return vd;
-            }
-
-            // copied from org.openrewrite.java.search.FindFieldsOfType.isField(Cursor), should probably become part of the API
-            private boolean isField(Cursor cursor) {
-                Iterator<Object> path = cursor.getPath();
-                while (path.hasNext()) {
-                    Object o = path.next();
-                    if (o instanceof J.MethodDeclaration) {
-                        return false;
+        return Preconditions.check(
+                new UsesType<>("org.mockito.InjectMocks", false),
+                new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.@Nullable VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+                        J.VariableDeclarations vds = super.visitVariableDeclarations(multiVariable, ctx);
+                        Set<J.Annotation> annotations = FindAnnotations.find(vds, "@org.mockito.InjectMocks");
+                        if (!annotations.isEmpty()) {
+                            J.VariableDeclarations.NamedVariable namedVariable = vds.getVariables().get(0);
+                            Expression initializer = namedVariable.getInitializer();
+                            if (initializer != null) {
+                                if (initializer instanceof J.NewClass &&
+                                        (((J.NewClass) initializer).getArguments().isEmpty() ||
+                                                (((J.NewClass) initializer).getArguments().get(0) instanceof J.Empty))) {
+                                    return autoFormat(
+                                            vds
+                                                    .withModifiers(ListUtils.map(vds.getModifiers(), m -> m.getType() == J.Modifier.Type.Final ? null : m))
+                                                    .withVariables(ListUtils.map(vds.getVariables(), v -> v.withInitializer(null))),
+                                            ctx);
+                                }
+                                maybeRemoveImport("org.mockito.InjectMocks");
+                                return (J.VariableDeclarations) new RemoveAnnotationVisitor(new AnnotationMatcher("@org.mockito.InjectMocks"))
+                                        .visit(vds, ctx);
+                            }
+                        }
+                        return vds;
                     }
-                    if (o instanceof J.ClassDeclaration) {
-                        return true;
-                    }
-                }
-                return true;
-            }
-        });
+                });
     }
 }
