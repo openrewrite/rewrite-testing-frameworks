@@ -61,7 +61,11 @@ public class NoInitializationForInjectMock extends Recipe {
                                 if (initializer instanceof J.NewClass &&
                                         (((J.NewClass) initializer).getArguments().isEmpty() ||
                                                 (((J.NewClass) initializer).getArguments().get(0) instanceof J.Empty))) {
-                                    return vds.withVariables(ListUtils.map(vds.getVariables(), v -> v.withInitializer(null)));
+                                    return autoFormat(
+                                            vds
+                                                    .withModifiers(ListUtils.map(vds.getModifiers(), m -> m.getType() == J.Modifier.Type.Final ? null : m))
+                                                    .withVariables(ListUtils.map(vds.getVariables(), v -> v.withInitializer(null))),
+                                            ctx);
                                 }
                                 maybeRemoveImport("org.mockito.InjectMocks");
                                 return (J.VariableDeclarations) new RemoveAnnotationVisitor(new AnnotationMatcher("@org.mockito.InjectMocks"))

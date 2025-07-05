@@ -115,6 +115,31 @@ class NoInitializationForInjectMockTest implements RewriteTest {
     }
 
     @Test
+    void removeFinalModifier() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.InjectMocks;
+
+              class MyTest {
+                  @InjectMocks
+                  final Object myObject = new Object();
+              }
+              """,
+            """
+              import org.mockito.InjectMocks;
+
+              class MyTest {
+                  @InjectMocks
+                  Object myObject;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void retainAnnotationOnNotInitializedField() {
         //language=java
         rewriteRun(
