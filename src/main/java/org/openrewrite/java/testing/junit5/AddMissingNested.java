@@ -84,20 +84,21 @@ public class AddMissingNested extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-            boolean alreadyNested = classDecl.getLeadingAnnotations().stream()
-                    .anyMatch(a -> TypeUtils.isOfClassType(a.getType(), NESTED));
-            boolean isAnnotationType = cd.getKind() == J.ClassDeclaration.Kind.Type.Annotation;
-            if (!isAnnotationType && !alreadyNested && hasTestMethods(cd)) {
-                cd = JavaTemplate.builder("@Nested")
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "junit-jupiter-api-5"))
-                        .imports(NESTED)
-                        .build()
-                        .apply(getCursor(), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
-                cd.getModifiers().removeIf(modifier -> modifier.getType() == J.Modifier.Type.Static);
-                return maybeAutoFormat(classDecl, cd, ctx);
+            if (cd.hasModifier(J.Modifier.Type.Abstract) ||
+                    cd.getKind() == J.ClassDeclaration.Kind.Type.Annotation ||
+                    classDecl.getLeadingAnnotations().stream()
+                            .anyMatch(a -> TypeUtils.isOfClassType(a.getType(), NESTED)) ||
+                    !hasTestMethods(cd)) {
+                return cd;
             }
-            return cd;
+            cd = JavaTemplate.builder("@Nested")
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .imports(NESTED)
+                    .build()
+                    .apply(getCursor(), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+            cd.getModifiers().removeIf(modifier -> modifier.getType() == J.Modifier.Type.Static);
+            return maybeAutoFormat(classDecl, cd, ctx);
         }
 
         private static boolean hasTestMethods(final J.ClassDeclaration cd) {

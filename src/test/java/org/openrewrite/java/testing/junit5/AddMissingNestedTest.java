@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -226,6 +227,27 @@ class AddMissingNestedTest implements RewriteTest {
                 }
             }
             """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/759")
+    void abstractInnerClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              public class RootTest {
+                  public abstract class InnerTest {
+                      @Test
+                      public void test() {
+                      }
+                  }
+              }
+              """
           )
         );
     }
