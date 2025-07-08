@@ -48,8 +48,8 @@ class JUnit5MigrationTest implements RewriteTest {
     }
 
     @DocumentExample
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/145")
+    @Test
     void assertThatReceiver() {
         //language=java
         rewriteRun(
@@ -121,8 +121,8 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/279")
+    @Test
     void upgradeMavenPluginVersions() {
         rewriteRun(
           pomXml(
@@ -226,8 +226,8 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
+    @Test
     void dontExcludeJunit4DependencyFromTestcontainers() {
         //language=xml
         rewriteRun(
@@ -252,8 +252,8 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
+    @Test
     void dontExcludeJunit4DependencyFromTestcontainersJupiter() {
         //language=xml
         rewriteRun(
@@ -278,8 +278,8 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/477")
+    @Test
     void dontExcludeJunit4DependencyFromSpringBootTestcontainers() {
         rewriteRun(
           //language=xml

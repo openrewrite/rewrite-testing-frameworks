@@ -209,8 +209,8 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
         );
     }
 
-    @SuppressWarnings("CodeBlock2Expr")
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/201")
+    @SuppressWarnings("CodeBlock2Expr")
     @Test
     void usesAdditionalAssertion() {
         rewriteRun(

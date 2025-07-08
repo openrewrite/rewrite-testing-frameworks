@@ -254,8 +254,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/618")
+    @Test
     void bodyNull() {
         //language=java
         rewriteRun(

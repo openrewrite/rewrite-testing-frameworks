@@ -3484,15 +3484,6 @@ examples:
 - description: ''
   sources:
   - before: |
-      class MyObject {
-          private String someField;
-
-          public MyObject(String someField) {
-              this.someField = someField;
-          }
-      }
-    language: java
-  - before: |
       import org.mockito.InjectMocks;
 
       class MyTest {
@@ -3500,11 +3491,8 @@ examples:
           MyObject myObject = new MyObject("someField");
       }
     after: |
-      import org.mockito.InjectMocks;
-
       class MyTest {
-          @InjectMocks
-          MyObject myObject;
+          MyObject myObject = new MyObject("someField");
       }
     language: java
 ---

@@ -33,8 +33,8 @@ class RemoveIsMatcherTest implements RewriteTest {
           .recipe(new RemoveIsMatcher());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void isMatcher() {
         rewriteRun(
           //language=java

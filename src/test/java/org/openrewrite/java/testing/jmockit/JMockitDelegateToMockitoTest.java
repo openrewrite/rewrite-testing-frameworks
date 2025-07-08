@@ -30,9 +30,9 @@ import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultPa
  * with the template being printed out. These tests were written to try to replicate this issue, however I was unable to.
  * They may help anyone who wants to add Delegate migration.
  */
-@SuppressWarnings("ResultOfMethodCallIgnored")
 @Disabled
 @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/522")
+@SuppressWarnings("ResultOfMethodCallIgnored")
 class JMockitDelegateToMockitoTest implements RewriteTest {
 
     @Override

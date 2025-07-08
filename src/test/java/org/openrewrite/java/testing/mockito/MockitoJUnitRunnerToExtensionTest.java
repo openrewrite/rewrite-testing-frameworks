@@ -36,12 +36,12 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
           .recipe(new MockitoJUnitRunnerToExtension());
     }
 
-    @DocumentExample
-    @ParameterizedTest
     @CsvSource({
       "MockitoJUnitRunner.Silent.class,Strictness.LENIENT",
       "MockitoJUnitRunner.class,Strictness.WARN"
     })
+    @DocumentExample
+    @ParameterizedTest
     void mockitoRunnerToExtension(String runnerName, String strictness) {
         //language=java
         rewriteRun(

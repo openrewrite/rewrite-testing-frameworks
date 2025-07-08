@@ -47,8 +47,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
 
     @Nested
     class Strings {
-        @Test
         @DocumentExample
+        @Test
         void stringIsEmptyExample() {
             rewriteRun(
               //language=java
@@ -95,8 +95,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
             );
         }
 
-        @ParameterizedTest
         @MethodSource("stringReplacements")
+        @ParameterizedTest
         void stringReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
             //language=java
             String template = """
@@ -148,8 +148,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
             );
         }
 
-        @ParameterizedTest
         @MethodSource("fileReplacements")
+        @ParameterizedTest
         void fileReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
             //language=java
             String template = """
@@ -194,8 +194,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
             );
         }
 
-        @ParameterizedTest
         @MethodSource("pathReplacements")
+        @ParameterizedTest
         void pathReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
             //language=java
             String template = """
@@ -242,8 +242,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
             );
         }
 
-        @ParameterizedTest
         @MethodSource("collectionReplacements")
+        @ParameterizedTest
         void collectionReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
             //language=java
             String template = """
@@ -285,8 +285,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
             );
         }
 
-        @ParameterizedTest
         @MethodSource("mapReplacements")
+        @ParameterizedTest
         void mapReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
             //language=java
             String template = """
@@ -369,8 +369,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
             );
         }
 
-        @ParameterizedTest
         @MethodSource("optionalReplacements")
+        @ParameterizedTest
         void optionalReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String arg) {
             //language=java
             String template = """
@@ -406,8 +406,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
             );
         }
 
-        @ParameterizedTest
         @MethodSource("collectionReplacements")
+        @ParameterizedTest
         void collectionReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion) {
             //language=java
             String template = """

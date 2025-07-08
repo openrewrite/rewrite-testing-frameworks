@@ -103,8 +103,8 @@ class AssertTrueEqualsToAssertEqualsTest implements RewriteTest {
         );
     }
 
-    @SuppressWarnings("SimplifiableAssertion")
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/238")
+    @SuppressWarnings("SimplifiableAssertion")
     @Test
     void retainArraysEquals() {
         //language=java

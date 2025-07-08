@@ -34,8 +34,8 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
           .recipe(new RemoveTryCatchFailBlocks());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void removeTryCatchBlock() {
         //language=java
         rewriteRun(
@@ -614,8 +614,8 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/489")
+    @Test
     void doesNotRunonTryFinally() {
         //language=java
         rewriteRun(
@@ -641,8 +641,8 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/547")
+    @Test
     void noChangeOnDirectReturn() {
         //language=java
         rewriteRun(
@@ -664,8 +664,8 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/547")
+    @Test
     void noChangeOnNestedReturn() {
         //language=java
         rewriteRun(
@@ -689,8 +689,8 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/732")
+    @Test
     void substitutionFailure() {
         //language=java
         rewriteRun(

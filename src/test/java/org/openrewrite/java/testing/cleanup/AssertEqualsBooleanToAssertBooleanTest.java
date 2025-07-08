@@ -106,8 +106,8 @@ class AssertEqualsBooleanToAssertBooleanTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/587")
+    @Test
     void assertTrueWithNonBoolean() {
         rewriteRun(
           spec -> spec.recipe(new AssertEqualsBooleanToAssertBoolean()),

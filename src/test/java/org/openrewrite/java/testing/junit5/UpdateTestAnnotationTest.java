@@ -311,8 +311,8 @@ class UpdateTestAnnotationTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/450")
+    @Test
     void annotationWithTimeout() {
         //language=java
         rewriteRun(
@@ -584,8 +584,8 @@ class UpdateTestAnnotationTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/754")
+    @Test
     void preserveThrowsClauseForOtherExceptions() {
         //language=java
         rewriteRun(
@@ -641,8 +641,8 @@ class UpdateTestAnnotationTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/563")
+    @Test
     void removeThrowsCheckedException() {
         //language=java
         rewriteRun(

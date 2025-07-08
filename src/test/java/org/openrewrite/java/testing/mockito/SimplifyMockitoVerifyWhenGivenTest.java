@@ -66,8 +66,8 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/634")
+    @Test
     void shouldRemoveUnneccesaryEqFromVerify_withMockitoStarImport() {
         rewriteRun(
           //language=Java

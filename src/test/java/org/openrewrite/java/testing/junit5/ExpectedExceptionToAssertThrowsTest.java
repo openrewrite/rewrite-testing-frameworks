@@ -238,8 +238,8 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         );
     }
 
-    @SuppressWarnings("ConstantConditions")
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/77")
+    @SuppressWarnings("ConstantConditions")
     @Test
     void refactorExpectMessageString() {
         //language=java
@@ -424,8 +424,8 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/563")
+    @Test
     void expectedCheckedExceptionThrowsRemoved() {
         //language=java
         rewriteRun(

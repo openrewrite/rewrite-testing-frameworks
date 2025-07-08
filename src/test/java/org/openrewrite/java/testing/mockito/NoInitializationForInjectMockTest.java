@@ -44,8 +44,8 @@ class NoInitializationForInjectMockTest implements RewriteTest {
           .recipe(new NoInitializationForInjectMock());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void removeAnnotationFromInitializedField() {
         //language=java
         rewriteRun(

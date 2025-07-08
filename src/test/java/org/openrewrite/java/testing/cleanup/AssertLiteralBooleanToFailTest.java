@@ -33,9 +33,9 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
           .recipe(new AssertLiteralBooleanToFailRecipe());
     }
 
-    @Test
     @DocumentExample
     @SuppressWarnings("SimplifiableAssertion")
+    @Test
     void assertWithStaticImports() {
         //language=java
         rewriteRun(
@@ -65,8 +65,8 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
         );
     }
 
-    @Test
     @SuppressWarnings("SimplifiableAssertion")
+    @Test
     void assertWithAssertionsImport() {
         //language=java
         rewriteRun(

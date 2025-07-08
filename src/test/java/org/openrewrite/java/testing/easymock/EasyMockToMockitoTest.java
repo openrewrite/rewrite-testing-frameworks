@@ -32,8 +32,8 @@ class EasyMockToMockitoTest implements RewriteTest {
           .recipeFromResources("org.openrewrite.java.testing.easymock.EasyMockToMockito");
     }
 
-    @Test
     @DocumentExample
+    @Test
     void replaceEasyMockByMockito() {
         //language=java
         rewriteRun(

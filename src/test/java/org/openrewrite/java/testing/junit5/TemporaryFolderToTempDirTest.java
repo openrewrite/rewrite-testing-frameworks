@@ -667,8 +667,8 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/311")
+    @Test
     void newFolderChainedCall() {
         //language=java
         rewriteRun(

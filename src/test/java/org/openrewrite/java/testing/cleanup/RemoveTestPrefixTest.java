@@ -302,8 +302,8 @@ class RemoveTestPrefixTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/471")
+    @Test
     void ignoreTestingAsPrefix() {
         //language=java
         rewriteRun(
@@ -325,8 +325,8 @@ class RemoveTestPrefixTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/258")
+    @Test
     void ignoreWhenStaticImportConflicts() {
         rewriteRun(
           //language=java
@@ -346,8 +346,8 @@ class RemoveTestPrefixTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/258")
+    @Test
     void removeOnQualifiedMethodDespiteConflict() {
         rewriteRun(
           //language=java

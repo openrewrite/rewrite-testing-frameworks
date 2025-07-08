@@ -684,8 +684,8 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/611")
+    @Test
     void existingMockitoMockStaticShouldNotBeTouched() {
         //language=java
         rewriteRun(
@@ -703,8 +703,8 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/358")
+    @Test
     void doesNotExplodeOnTopLevelMethodDeclaration() {
         rewriteRun(
           groovy(

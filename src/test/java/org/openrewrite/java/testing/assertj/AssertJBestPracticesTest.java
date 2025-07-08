@@ -43,8 +43,8 @@ class AssertJBestPracticesTest implements RewriteTest {
     }
 
     @DocumentExample
-    @Test
     @SuppressWarnings("DataFlowIssue")
+    @Test
     void convertsIsEqualToEmptyString() {
         rewriteRun(
           // language=java
@@ -69,8 +69,8 @@ class AssertJBestPracticesTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/398")
+    @Test
     void sizeIsEqualToZeroToIsEmpty() {
         //language=java
         rewriteRun(
@@ -295,8 +295,8 @@ class AssertJBestPracticesTest implements RewriteTest {
                 "assertThat(x).containsSame(value)"));
         }
 
-        @ParameterizedTest
         @MethodSource("replacements")
+        @ParameterizedTest
         void sonarReplacements(
           String argumentsType, String assertToReplace, String dedicatedAssertion) {
             String template =

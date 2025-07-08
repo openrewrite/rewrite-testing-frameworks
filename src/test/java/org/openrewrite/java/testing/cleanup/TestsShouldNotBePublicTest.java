@@ -495,8 +495,8 @@ class TestsShouldNotBePublicTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/309")
+    @Test
     void baseclassForTestsNeedsToStayPublic() {
         //language=java
         rewriteRun(

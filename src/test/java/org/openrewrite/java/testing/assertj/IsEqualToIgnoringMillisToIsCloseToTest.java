@@ -23,8 +23,8 @@ import static org.openrewrite.java.Assertions.java;
 
 class IsEqualToIgnoringMillisToIsCloseToTest implements RewriteTest {
 
-    @Test
     @DocumentExample
+    @Test
     void replaceDeprecation() {
         rewriteRun(spec -> spec.recipe(new IsEqualToIgnoringMillisToIsCloseToRecipe()),
           //language=java

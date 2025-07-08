@@ -231,8 +231,8 @@ class AddMissingNestedTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/759")
+    @Test
     void abstractInnerClass() {
         //language=java
         rewriteRun(

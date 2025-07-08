@@ -359,8 +359,8 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/479")
+    @Test
     void shouldImportWhenCustomClassIsUsed() {
         //language=java
         rewriteRun(

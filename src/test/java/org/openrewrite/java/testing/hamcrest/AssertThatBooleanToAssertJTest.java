@@ -36,8 +36,8 @@ class AssertThatBooleanToAssertJTest implements RewriteTest {
               "assertj-core-3"));
     }
 
-    @Test
     @DocumentExample
+    @Test
     void assertThatBoolean() {
         rewriteRun(
           //language=java

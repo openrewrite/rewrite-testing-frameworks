@@ -34,8 +34,8 @@ class TempDirNonFinalTest implements RewriteTest {
           .recipe(new TempDirNonFinal());
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
+    @Test
     void tempDirStaticFinalFile() {
         //language=java
         rewriteRun(
@@ -64,8 +64,8 @@ class TempDirNonFinalTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
+    @Test
     void tempDirStaticFinalPath() {
         //language=java
         rewriteRun(
@@ -94,8 +94,8 @@ class TempDirNonFinalTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241, https://github.com/openrewrite/rewrite-testing-frameworks/issues/483")
+    @Test
     void tempDirFileParameter() {
         //language=java
         rewriteRun(
@@ -117,8 +117,8 @@ class TempDirNonFinalTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
+    @Test
     void tempDirStaticFile() {
         //language=java
         rewriteRun(
@@ -137,8 +137,8 @@ class TempDirNonFinalTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
+    @Test
     void tempDirStaticPath() {
         //language=java
         rewriteRun(
