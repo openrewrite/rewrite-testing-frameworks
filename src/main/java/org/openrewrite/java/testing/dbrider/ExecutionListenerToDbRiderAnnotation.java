@@ -206,7 +206,7 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
         }
 
         private @Nullable Expression getMigratedMergeMode() {
-            if (mergeMode != null && mergeMode instanceof J.FieldAccess && "REPLACE_DEFAULTS".equals(((J.FieldAccess) mergeMode).getName().getSimpleName())) {
+            if (mergeMode instanceof J.FieldAccess && "REPLACE_DEFAULTS".equals(((J.FieldAccess) mergeMode).getName().getSimpleName())) {
                 return null;
             }
             return mergeMode;
