@@ -40,7 +40,7 @@ class JUnit5MigrationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "testng"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()
@@ -51,11 +51,11 @@ class JUnit5MigrationTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/145")
     @Test
     void assertThatReceiver() {
-        //language=java
         rewriteRun(
           spec -> spec
             .parser(JavaParser.fromJavaVersion()
               .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3")),
+          //language=java
           java(
             """
               import org.junit.Assert;
@@ -472,6 +472,68 @@ class JUnit5MigrationTest implements RewriteTest {
                       </dependency>
                   </dependencies>
               </project>
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangesIfTestNgIncluded() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation 'junit:junit:4.12'
+                  testImplementation 'org.testng:testng:7.8.0'
+              }
+              tasks.withType(Test).configureEach {
+                  useJUnitPlatform()
+              }
+              """
+          ),
+          //language=xml
+          pomXml(
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>dev.ted</groupId>
+                  <artifactId>testcontainer-migrate</artifactId>
+                  <version>0.0.1</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>junit</groupId>
+                          <artifactId>junit</artifactId>
+                          <version>4.12</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.testng</groupId>
+                          <artifactId>testng</artifactId>
+                          <version>7.8.0</version>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.Ignore;
+              import org.testng.annotations.Test;
+
+              class ExampleClass {
+                  @Ignore
+                  @Test
+                  public void testMethod() {}
+              }
               """
           )
         );
