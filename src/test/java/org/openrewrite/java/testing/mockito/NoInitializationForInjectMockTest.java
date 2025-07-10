@@ -33,12 +33,20 @@ class NoInitializationForInjectMockTest implements RewriteTest {
             .dependsOn(
               //language=java
               """
-                class MyObject {
+                interface MyObjectInterface {}
+                class MyObject implements MyObjectInterface {
                     private String someField;
 
                     public MyObject(String someField) {
                         this.someField = someField;
                     }
+                }
+                class MyObjectSingleConstructor implements MyObjectInterface {
+                    public MyObjectSingleConstructor() {}
+                }
+                class MyObjectMultipleConstructors implements MyObjectInterface {
+                    public MyObjectMultipleConstructors() {}
+                    public MyObjectMultipleConstructors(String someField) {}
                 }
                 """))
           .recipe(new NoInitializationForInjectMock());
@@ -90,7 +98,7 @@ class NoInitializationForInjectMockTest implements RewriteTest {
     }
 
     @Test
-    void removeInitializerWhenDefaultConstructor() {
+    void removeInitializerWhenDefaultConstructorAndOnlySingleConstructorExists() {
         //language=java
         rewriteRun(
           java(
@@ -99,7 +107,7 @@ class NoInitializationForInjectMockTest implements RewriteTest {
 
               class MyTest {
                   @InjectMocks
-                  Object myObject = new Object();
+                  MyObjectSingleConstructor myObject = new MyObjectSingleConstructor();
               }
               """,
             """
@@ -107,7 +115,7 @@ class NoInitializationForInjectMockTest implements RewriteTest {
 
               class MyTest {
                   @InjectMocks
-                  Object myObject;
+                  MyObjectSingleConstructor myObject;
               }
               """
           )
@@ -150,6 +158,53 @@ class NoInitializationForInjectMockTest implements RewriteTest {
               class MyTest {
                   @InjectMocks
                   MyObject myObject;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainConstructorOnInitializedFieldWhenTypeNonEquivalence() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.InjectMocks;
+
+              class MyTest {
+                  @InjectMocks
+                  MyObjectInterface myObject = new MyObjectSingleConstructor();
+              }
+              """,
+            """
+              class MyTest {
+                  MyObjectInterface myObject = new MyObjectSingleConstructor();
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainNoArgsConstructorInitializerFieldWhenMultipleConstructorsExist() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.InjectMocks;
+
+              class MyTest {
+                  @InjectMocks
+                  MyObjectMultipleConstructors myObject = new MyObjectMultipleConstructors();
+                  @InjectMocks
+                  MyObjectMultipleConstructors myObject2 = new MyObjectMultipleConstructors("someField");
+              }
+              """,
+            """
+              class MyTest {
+                  MyObjectMultipleConstructors myObject = new MyObjectMultipleConstructors();
+                  MyObjectMultipleConstructors myObject2 = new MyObjectMultipleConstructors("someField");
               }
               """
           )

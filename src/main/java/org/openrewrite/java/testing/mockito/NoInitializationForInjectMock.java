@@ -28,6 +28,7 @@ import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 
 import java.util.Set;
 
@@ -41,7 +42,9 @@ public class NoInitializationForInjectMock extends Recipe {
     @Override
     public String getDescription() {
         return "Remove either the `@InjectMocks` annotation from fields, or the initializer, based on the initializer.\n" +
-                " * In the case of a no-args constructor, remove the initializer and retain the annotation.\n" +
+                " * In the case of a no-args constructor:\n" +
+                "   * When the type of the constructor matches the type of the annotated field _and_ only a single constructor exists, remove the initializer and retain the annotation.\n" +
+                "   * Otherwise remove the annotation and retain the initializer.\n" +
                 " * In the case of any other initializer, remove the annotation and retain the initializer.";
     }
 
@@ -59,13 +62,18 @@ public class NoInitializationForInjectMock extends Recipe {
                             Expression initializer = namedVariable.getInitializer();
                             if (initializer != null) {
                                 if (initializer instanceof J.NewClass &&
+                                        namedVariable.getType() == initializer.getType() &&
                                         (((J.NewClass) initializer).getArguments().isEmpty() ||
                                                 (((J.NewClass) initializer).getArguments().get(0) instanceof J.Empty))) {
-                                    return autoFormat(
-                                            vds
-                                                    .withModifiers(ListUtils.map(vds.getModifiers(), m -> m.getType() == J.Modifier.Type.Final ? null : m))
-                                                    .withVariables(ListUtils.map(vds.getVariables(), v -> v.withInitializer(null))),
-                                            ctx);
+                                    JavaType.Class clazz = (JavaType.Class) initializer.getType();
+                                    long constructorCount = clazz != null ? clazz.getMethods().stream().filter(method -> "<constructor>".equals(method.getName())).count() : 0;
+                                    if (constructorCount == 1) {
+                                        return autoFormat(
+                                                vds
+                                                        .withModifiers(ListUtils.map(vds.getModifiers(), m -> m.getType() == J.Modifier.Type.Final ? null : m))
+                                                        .withVariables(ListUtils.map(vds.getVariables(), v -> v.withInitializer(null))),
+                                                ctx);
+                                    }
                                 }
                                 maybeRemoveImport("org.mockito.InjectMocks");
                                 return (J.VariableDeclarations) new RemoveAnnotationVisitor(new AnnotationMatcher("@org.mockito.InjectMocks"))
