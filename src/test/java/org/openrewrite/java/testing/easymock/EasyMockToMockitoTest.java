@@ -122,7 +122,7 @@ class EasyMockToMockitoTest implements RewriteTest {
                   private Dependency dependency2;
 
                   @InjectMocks
-                  Service service2;
+                  Service service2 = new Service();
 
                   @Before
                   public void setUp() {

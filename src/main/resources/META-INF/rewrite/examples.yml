@@ -1462,7 +1462,7 @@ examples:
           private Dependency dependency2;
 
           @InjectMocks
-          Service service2;
+          Service service2 = new Service();
 
           @Before
           public void setUp() {
@@ -3475,24 +3475,6 @@ examples:
                   assertEquals(A.getNumber(), -1);
               }
           }
-      }
-    language: java
----
-type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.mockito.NoInitializationForInjectMock
-examples:
-- description: ''
-  sources:
-  - before: |
-      import org.mockito.InjectMocks;
-
-      class MyTest {
-          @InjectMocks
-          MyObject myObject = new MyObject("someField");
-      }
-    after: |
-      class MyTest {
-          MyObject myObject = new MyObject("someField");
       }
     language: java
 ---
