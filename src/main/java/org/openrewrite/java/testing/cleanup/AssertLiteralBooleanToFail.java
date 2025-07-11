@@ -40,7 +40,7 @@ public class AssertLiteralBooleanToFail {
     }
 
     @AfterTemplate
-    @UseImportPolicy(value = STATIC_IMPORT_ALWAYS)
+    @UseImportPolicy(STATIC_IMPORT_ALWAYS)
     void after(String message) {
         fail(message);
     }
