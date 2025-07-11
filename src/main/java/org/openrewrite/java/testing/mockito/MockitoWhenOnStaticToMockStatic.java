@@ -120,7 +120,8 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
             private @Nullable String getClassName(J.MethodInvocation whenArg) {
                 J.Identifier clazz = null;
-                if (whenArg.getSelect() instanceof J.Identifier) {
+                // Having a fieldType implies that something is a field rather than a class itself
+                if (whenArg.getSelect() instanceof J.Identifier && ((J.Identifier) whenArg.getSelect()).getFieldType() == null) {
                     clazz = (J.Identifier) whenArg.getSelect();
                 } else if (whenArg.getSelect() instanceof J.FieldAccess && ((J.FieldAccess) whenArg.getSelect()).getTarget() instanceof J.Identifier) {
                     clazz = (J.Identifier) ((J.FieldAccess) whenArg.getSelect()).getTarget();
