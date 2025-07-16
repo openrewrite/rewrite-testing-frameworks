@@ -61,10 +61,7 @@ preconditions:
   - org.openrewrite.java.search.DoesNotUseType:
       fullyQualifiedTypeName: org.testng..*
       includeImplicit: true
-  - org.openrewrite.gradle.search.DoesNotIncludeDependency:
-      groupId: org.testng
-      artifactId: testng
-  - org.openrewrite.maven.search.DoesNotIncludeDependency:
+  - org.openrewrite.java.dependencies.search.DoesNotIncludeDependency:
       groupId: org.testng
       artifactId: testng
 recipeList:
