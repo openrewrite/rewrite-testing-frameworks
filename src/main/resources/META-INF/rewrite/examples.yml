@@ -3293,6 +3293,141 @@ examples:
           }
       }
     language: java
+- description: ''
+  sources:
+  - before: |
+      plugins {
+          id 'java-library'
+      }
+      repositories {
+          mavenCentral()
+      }
+      dependencies {
+          testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+          testImplementation("org.mockito:mockito-all:1.10.19")
+          testImplementation("org.mockito:mockito-junit-jupiter:2.28.2")
+      }
+      test {
+          useJUnitPlatform()
+      }
+    after: |
+      plugins {
+          id 'java-library'
+      }
+      repositories {
+          mavenCentral()
+      }
+      dependencies {
+          testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+          testImplementation("org.mockito:mockito-core:3.12.4")
+          testImplementation("org.mockito:mockito-junit-jupiter:3.12.4")
+      }
+      test {
+          useJUnitPlatform()
+      }
+    path: build.gradle
+    language: groovy
+  - before: |
+      import org.junit.jupiter.api.BeforeEach;
+      import org.junit.jupiter.api.Test;
+      import org.mockito.Mock;
+
+      import static org.mockito.Matchers.anyListOf;
+      import static org.mockito.Matchers.anyObject;
+      import static org.mockito.Matchers.anyString;
+      import static org.mockito.Mockito.when;
+
+      class MyTest {
+          @Mock
+          Object objectMock;
+
+          private A subject;
+
+          @BeforeEach
+          void setup() {
+              subject = new A();
+          }
+
+          @Test
+          void someTest() {
+              when(subject.someMethod(anyObject(), anyString(), anyListOf(String.class))).thenReturn(false);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.BeforeEach;
+      import org.junit.jupiter.api.Test;
+      import org.mockito.Mock;
+
+      import static org.mockito.ArgumentMatchers.anyList;
+      import static org.mockito.ArgumentMatchers.any;
+      import static org.mockito.ArgumentMatchers.anyString;
+      import static org.mockito.Mockito.when;
+
+      class MyTest {
+          @Mock
+          Object objectMock;
+
+          private A subject;
+
+          @BeforeEach
+          void setup() {
+              subject = new A();
+          }
+
+          @Test
+          void someTest() {
+              when(subject.someMethod(any(), anyString(), anyList())).thenReturn(false);
+          }
+      }
+    language: java
+  - before: |
+      <project>
+        <groupId>org.example</groupId>
+        <artifactId>some-project</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>5.11.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-all</artifactId>
+                <version>1.10.19</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>2.28.2</version>
+            </dependency>
+        </dependencies>
+      </project>
+    after: |
+      <project>
+        <groupId>org.example</groupId>
+        <artifactId>some-project</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>5.11.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>3.12.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>3.12.4</version>
+            </dependency>
+        </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.Mockito1to4Migration
