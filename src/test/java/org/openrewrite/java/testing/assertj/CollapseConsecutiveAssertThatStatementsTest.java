@@ -15,10 +15,10 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -54,9 +54,6 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                       assertThat(listA).hasSize(3);
                       assertThat(listA).containsExactly("a", "b", "c");
                   }
-                  private int[] notification() {
-                      return new int[]{1, 2, 3};
-                  }
               }
               """,
             """
@@ -71,9 +68,6 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                               .isNotNull()
                               .hasSize(3)
                               .containsExactly("a", "b", "c");
-                  }
-                  private int[] notification() {
-                      return new int[]{1, 2, 3};
                   }
               }
               """
@@ -104,10 +98,6 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                       assertThat(listB).isNotNull();
                       assertThat(listB).hasSize(3);
                   }
-
-                  private int[] notification() {
-                      return new int[]{1, 2, 3};
-                  }
               }
               """,
             """
@@ -129,10 +119,6 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                       assertThat(listB)
                               .isNotNull()
                               .hasSize(3);
-                  }
-
-                  private int[] notification() {
-                      return new int[]{1, 2, 3};
                   }
               }
               """
@@ -160,10 +146,6 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                       assertThat(listB).isNotNull();
                       assertThat(listB).hasSize(3);
                   }
-
-                  private int[] notification() {
-                      return new int[]{1, 2, 3};
-                  }
               }
               """,
             """
@@ -183,17 +165,13 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                               .isNotNull()
                               .hasSize(3);
                   }
-
-                  private int[] notification() {
-                      return new int[]{1, 2, 3};
-                  }
               }
               """
           )
         );
     }
 
-    @Disabled("Not yet implemented")
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/605")
     @Test
     void collapseAssertThatsOnInteger() {
         //language=java
@@ -224,6 +202,59 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/605")
+    @Test
+    void collapseAssertThatsOnOtherPrimitiveTypes() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void test() {
+                      String s = "hello";
+                      assertThat(s).isNotNull();
+                      assertThat(s).isEqualTo("hello");
+                      assertThat(s).hasSize(5);
+
+                      Long l = 100L;
+                      assertThat(l).isNotNull();
+                      assertThat(l).isGreaterThan(50L);
+
+                      Boolean b = true;
+                      assertThat(b).isNotNull();
+                      assertThat(b).isTrue();
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void test() {
+                      String s = "hello";
+                      assertThat(s)
+                              .isNotNull()
+                              .isEqualTo("hello")
+                              .hasSize(5);
+
+                      Long l = 100L;
+                      assertThat(l)
+                              .isNotNull()
+                              .isGreaterThan(50L);
+
+                      Boolean b = true;
+                      assertThat(b)
+                              .isNotNull()
+                              .isTrue();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void ignoreIfAssertThatOnDifferentVariables() {
         //language=java
@@ -240,10 +271,6 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                       List<String> listB = Arrays.asList("a", "b", "c");
                       assertThat(listA).isNotNull();
                       assertThat(listB).containsExactly("a", "b", "c");
-                  }
-
-                  private int[] notification() {
-                      return new int[]{1, 2, 3};
                   }
               }
               """
@@ -294,9 +321,6 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                           .hasSize(3);
                       assertThat(listA).containsExactly("a", "b", "c");
                   }
-                  private int[] notification() {
-                      return new int[]{1, 2, 3};
-                  }
               }
               """
           )
@@ -319,9 +343,6 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                       assertThat(listA).isNotNull();
                       int x=3;
                       assertThat(listA).hasSize(x);
-                  }
-                  private int[] notification() {
-                      return new int[]{1, 2, 3};
                   }
               }
               """
