@@ -24,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class AssertLiteralBooleanToFailTest implements RewriteTest {
+class AssertLiteralBooleanToFailRecipeTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
@@ -48,6 +48,8 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
                   void test() {
                       assertFalse(true, "assert false true");
                       assertTrue(false, "assert true false");
+                      assertFalse(true);
+                      assertTrue(false);
                   }
               }
               """,
@@ -58,6 +60,8 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
                   void test() {
                       fail("assert false true");
                       fail("assert true false");
+                      fail();
+                      fail();
                   }
               }
               """
@@ -78,6 +82,8 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
                   void test() {
                       Assertions.assertFalse(true, "assert false true");
                       Assertions.assertTrue(false, "assert true false");
+                      Assertions.assertFalse(true);
+                      Assertions.assertTrue(false);
                   }
               }
               """,
@@ -88,6 +94,8 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
                   void test() {
                       fail("assert false true");
                       fail("assert true false");
+                      fail();
+                      fail();
                   }
               }
               """
