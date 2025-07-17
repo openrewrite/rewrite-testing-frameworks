@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -235,6 +236,36 @@ class CategoryToTagTest implements RewriteTest {
             """
               package b;
 
+              import org.junit.jupiter.api.Tag;
+
+              @Tag("FastTests")
+              public class B {
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/305")
+    @Test
+    void fullyQualifiedClass() {
+        rewriteRun(
+          java(
+            """
+              package a;
+
+              public interface FastTests {}
+              """
+          ),
+          java(
+            """
+              import org.junit.experimental.categories.Category;
+
+              @Category(a.FastTests.class)
+              public class B {
+              }
+              """,
+            """
               import org.junit.jupiter.api.Tag;
 
               @Tag("FastTests")
