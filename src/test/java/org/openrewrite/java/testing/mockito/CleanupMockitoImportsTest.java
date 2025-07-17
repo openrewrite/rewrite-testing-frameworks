@@ -319,7 +319,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
               import org.mockito.kotlin.whenever
               class Foo {
                 @Mock
-                private lateinit var foo: Foo;
+                private lateinit var foo: Foo
                 fun foo() : String {
                     return "foo"
                 }
