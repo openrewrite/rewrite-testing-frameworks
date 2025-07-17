@@ -127,7 +127,9 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                                     }
                                 }
 
-                                return TypeUtils.isOfType(assertThatFq.getType(), assertionFq.getType());
+                                if (assertThatFq != null && assertionFq != null) {
+                                    return TypeUtils.isOfType(assertThatFq.getType(), assertionFq.getType());
+                                }
                             }
                             return false;
                         }
