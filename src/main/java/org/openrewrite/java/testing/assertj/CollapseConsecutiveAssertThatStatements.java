@@ -105,7 +105,33 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                         if (!(assertThatArgument instanceof MethodCall)) {
                             JavaType assertThatType = assertThat.getType();
                             JavaType assertionType = assertion.getType();
-                            return TypeUtils.isOfType(assertThatType, assertionType);
+
+                            // Check if both types are the same or if the assertion type is assignable to assertThat type
+                            // This handles cases where assertion methods return the same type (for fluent chaining)
+                            // but avoids collapsing when methods like extracting() change the assertion type
+                            if (assertThatType != null && assertionType != null) {
+                                // First check for exact type match
+                                if (TypeUtils.isOfType(assertThatType, assertionType)) {
+                                    return true;
+                                }
+
+                                // For generic types like AbstractIntegerAssert<?>, we need to check the raw types
+                                JavaType.Parameterized assertThatFq = TypeUtils.asParameterized(assertThatType);
+                                JavaType.Parameterized assertionFq = TypeUtils.asParameterized(assertionType);
+
+                                // If assertionType is a generic wildcard, try to get its bound
+                                if (assertionFq == null && assertionType instanceof JavaType.GenericTypeVariable) {
+                                    JavaType.GenericTypeVariable genericType = (JavaType.GenericTypeVariable) assertionType;
+                                    if (!genericType.getBounds().isEmpty()) {
+                                        assertionFq = TypeUtils.asParameterized(genericType.getBounds().get(0));
+                                    }
+                                }
+
+                                if (assertThatFq != null && assertionFq != null) {
+                                    return TypeUtils.isOfType(assertThatFq.getType(), assertionFq.getType());
+                                }
+                            }
+                            return false;
                         }
                     }
                 }
@@ -117,7 +143,7 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                 Space originalPrefix = consecutiveAssertThatStatement.get(0).getPrefix();
                 String continuationIndent = originalPrefix.getIndent().contains("\t") ? "\t\t" : "        ";
                 Space indentedNewline = Space.format(originalPrefix.getLastWhitespace().replaceAll("^\\s+\n", "\n") +
-                                                     continuationIndent);
+                        continuationIndent);
                 J.MethodInvocation collapsed = null;
                 for (Statement st : consecutiveAssertThatStatement) {
                     J.MethodInvocation assertion = (J.MethodInvocation) st;
