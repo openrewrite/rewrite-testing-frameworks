@@ -40,6 +40,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               "powermock-core-1",
               "powermock-api-mockito-1",
               "powermock-api-support-1",
+              "powermock-module-junit4",
               "testng-7"))
           .typeValidationOptions(TypeValidation.builder()
             .cursorAcyclic(false)
@@ -881,6 +882,108 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                 }
             }
             """
+          )
+        );
+    }
+
+    @Test
+    void powerMockitoUnused() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+            import org.powermock.api.mockito.PowerMockito;
+
+            public class MyTest {}
+            """,
+            """
+            public class MyTest {}
+            """
+          )
+        );
+    }
+
+    @Test
+    void whenNewUnused() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+            import static org.powermock.api.mockito.PowerMockito.whenNew;
+
+            public class MyTest {}
+            """,
+            """
+            public class MyTest {}
+            """
+          )
+        );
+    }
+
+    @Test
+    void whenNewStarUnused() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+            import static org.powermock.api.mockito.PowerMockito.*;
+
+            public class MyTest {}
+            """,
+            """
+            public class MyTest {}
+            """
+          )
+        );
+    }
+
+    @Test
+    void removeUnusedPrepareForTestAnnotation() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              public class MyTest {}
+              """,
+            """
+              public class MyTest {}
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeUnusedPowerMockRunnerAnnotation() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              public class MyTest {}
+              """,
+            """
+              public class MyTest {}
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeUnusedPowerMockito() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.powermock.api.mockito.PowerMockito;
+
+              public class MyTest {}
+              """,
+            """
+              public class MyTest {}
+              """
           )
         );
     }
