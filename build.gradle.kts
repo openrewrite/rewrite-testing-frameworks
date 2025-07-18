@@ -29,7 +29,6 @@ recipeDependencies {
     parserClasspath("org.powermock:powermock-api-mockito:1.6.5")
     parserClasspath("org.powermock:powermock-api-support:1.6.5")
     parserClasspath("org.powermock:powermock-core:1.6.5")
-    parserClasspath("org.powermock:powermock-module-junit4:1.6.5")
     parserClasspath("org.springframework:spring-test:6.1.+")
     parserClasspath("org.testng:testng:7.+")
     parserClasspath("org.testcontainers:testcontainers:1.20.6")
