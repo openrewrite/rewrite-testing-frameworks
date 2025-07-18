@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2025 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ public class CleanupPowerMockImports extends Recipe {
                 JavaSourceFile sf = (JavaSourceFile) tree;
                 for (J.Import _import : sf.getImports()) {
                     if (_import.getPackageName().startsWith("org.powermock")) {
-                            maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
+                        maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
                     }
                 }
             }
