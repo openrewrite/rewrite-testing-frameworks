@@ -43,6 +43,7 @@ recipeList:
       fullyQualifiedTargetTypeName: org.mockito.Mockito
   - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
   - org.openrewrite.java.testing.mockito.PowerMockitoWhenNewToMockito
+  - org.openrewrite.java.testing.mockito.CleanupPowerMockImports
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
       artifactId: powermock-api-mockito*
