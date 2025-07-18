@@ -57,6 +57,9 @@ preconditions:
   - org.openrewrite.java.search.DoesNotUseType:
       fullyQualifiedTypeName: org.testng..*
       includeImplicit: true
+  - org.openrewrite.java.dependencies.search.DoesNotIncludeDependency:
+      groupId: org.testng
+      artifactId: testng
 recipeList:
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
