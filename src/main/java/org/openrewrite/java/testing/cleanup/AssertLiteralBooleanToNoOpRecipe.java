@@ -19,7 +19,6 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
@@ -49,17 +48,6 @@ public class AssertLiteralBooleanToNoOpRecipe extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaVisitor<ExecutionContext>() {
-
-            JavaParser.Builder<?, ?> javaParser = null;
-
-            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5");
-                }
-                return javaParser;
-            }
-
             @Override
             public  J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
