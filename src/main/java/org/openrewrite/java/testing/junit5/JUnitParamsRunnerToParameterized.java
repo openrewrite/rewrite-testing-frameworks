@@ -272,8 +272,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                     return null;
                 }
                 anno = maybeReplaceTestAnnotation(new Cursor(getCursor(), anno), paramTestName);
-                anno = maybeReplaceParametersAnnotation(new Cursor(getCursor(), anno), method.getSimpleName());
-                return anno;
+                return maybeReplaceParametersAnnotation(new Cursor(getCursor(), anno), method.getSimpleName());
             });
             m = m.withLeadingAnnotations(annotations);
 

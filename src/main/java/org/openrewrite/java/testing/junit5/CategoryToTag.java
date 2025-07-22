@@ -64,8 +64,7 @@ public class CategoryToTag extends Recipe {
                 maybeRemoveImport("org.junit.experimental.categories.Category");
                 maybeAddImport(tagType);
             }
-            cd = maybeAutoFormat(classDecl, cd, cd.getName(), ctx, getCursor().getParentTreeCursor());
-            return cd;
+            return maybeAutoFormat(classDecl, cd, cd.getName(), ctx, getCursor().getParentTreeCursor());
         }
 
         @Override
@@ -80,8 +79,7 @@ public class CategoryToTag extends Recipe {
                 maybeRemoveImport("org.junit.experimental.categories.Category");
                 maybeAddImport(tagType);
             }
-            m = maybeAutoFormat(method, m, m.getName(), ctx, getCursor().getParentTreeCursor());
-            return m;
+            return maybeAutoFormat(method, m, m.getName(), ctx, getCursor().getParentTreeCursor());
         }
 
         private Stream<J.Annotation> categoryAnnotationToTagAnnotations(J.Annotation maybeCategory) {
