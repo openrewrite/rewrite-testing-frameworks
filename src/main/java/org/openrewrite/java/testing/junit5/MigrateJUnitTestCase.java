@@ -91,7 +91,8 @@ public class MigrateJUnitTestCase extends Recipe {
                             // setUp and tearDown will be invoked via Before and After annotations
                             if ("setUp".equals(name) || "tearDown".equals(name)) {
                                 return null;
-                            } else if ("setName".equals(name)) {
+                            }
+                            if ("setName".equals(name)) {
                                 mi = mi.withPrefix(mi.getPrefix().withComments(ListUtils.concat(mi.getPrefix().getComments(), new TextComment(false, "", "", Markers.EMPTY))));
                             }
                         }
@@ -152,9 +153,8 @@ public class MigrateJUnitTestCase extends Recipe {
             List<J.Modifier> modifiers = ListUtils.map(md.getModifiers(), modifier -> {
                 if (modifier.getType() == J.Modifier.Type.Protected) {
                     return modifier.withType(J.Modifier.Type.Public);
-                } else {
-                    return modifier;
                 }
+                return modifier;
             });
             return md.withModifiers(modifiers);
         }

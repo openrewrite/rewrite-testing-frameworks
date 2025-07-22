@@ -52,7 +52,8 @@ public class UseAssertSame extends Recipe {
                 J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
                 if (!ASSERT_TRUE_MATCHER.matches(mi) && !ASSERT_FALSE_MATCHER.matches(mi)) {
                     return mi;
-                } else if (mi.getMethodType() == null) {
+                }
+                if (mi.getMethodType() == null) {
                     return mi;
                 }
 

@@ -63,8 +63,7 @@ public class MockUtilsToStatic extends Recipe {
         @Override
         public J visitCompilationUnit(J.CompilationUnit compilationUnit, ExecutionContext ctx) {
             J.CompilationUnit cu = (J.CompilationUnit) super.visitCompilationUnit(compilationUnit, ctx);
-            cu = (J.CompilationUnit) changeMethodTargetToStatic.getVisitor().visitNonNull(cu, ctx);
-            return cu;
+            return (J.CompilationUnit) changeMethodTargetToStatic.getVisitor().visitNonNull(cu, ctx);
         }
 
         @Override

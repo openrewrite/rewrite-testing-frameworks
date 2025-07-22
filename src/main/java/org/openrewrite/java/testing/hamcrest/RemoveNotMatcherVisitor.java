@@ -32,11 +32,11 @@ class RemoveNotMatcherVisitor extends JavaIsoVisitor<ExecutionContext> {
         Object msg = ctx.getMessage(mi.toString());
         if (msg == null) {
             return true;
-        } else if (msg instanceof Boolean) {
-            return (Boolean) msg;
-        } else {
-            throw new InvalidParameterException();
         }
+        if (msg instanceof Boolean) {
+            return (Boolean) msg;
+        }
+        throw new InvalidParameterException();
     }
 
     @Override
@@ -67,10 +67,9 @@ class RemoveNotMatcherVisitor extends JavaIsoVisitor<ExecutionContext> {
             ctx.putMessage(result.toString(), !logicalContext); // FIXME Do not store on the use execution context
 
             return result;
-        } else {
-            if (ctx.pollMessage(mi.toString()) == null) {
-                ctx.putMessage(mi.toString(), true); // FIXME Do not store on the use execution context
-            }
+        }
+        if (ctx.pollMessage(mi.toString()) == null) {
+            ctx.putMessage(mi.toString(), true); // FIXME Do not store on the use execution context
         }
         return super.visitMethodInvocation(mi, ctx);
     }

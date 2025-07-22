@@ -110,6 +110,23 @@ class GradleUseJunitJupiterTest implements RewriteTest {
     }
 
     @Test
+    void dslAlreadyExistsClosure() {
+        rewriteRun(
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java'
+              }
+              test {
+                  useJUnitPlatform { }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void tasksWithTypeTest() {
         rewriteRun(
           //language=groovy

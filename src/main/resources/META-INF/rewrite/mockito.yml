@@ -170,14 +170,15 @@ recipeList:
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
   - org.openrewrite.java.testing.mockito.RemoveInitMocksIfRunnersSpecified
   - org.openrewrite.java.testing.mockito.ReplacePowerMockito
-  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
-      groupId: org.mockito
-      artifactId: "*"
-      newVersion: 3.x
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.mockito
       oldArtifactId: mockito-all
       newArtifactId: mockito-core
+      newVersion: 3.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.mockito
+      artifactId: "*"
+      newVersion: 3.x
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: net.bytebuddy
       artifactId: byte-buddy*

@@ -74,8 +74,7 @@ public class UpdateTestAnnotation extends Recipe {
                     c = c.withClasses(ListUtils.map(c.getClasses(), clazz -> (J.ClassDeclaration) visit(clazz, ctx)));
                     // take one more pass over the imports now that we've had a chance to add warnings to all
                     // uses of @Test through the rest of the source file
-                    c = c.withImports(ListUtils.map(c.getImports(), anImport -> (J.Import) visit(anImport, ctx)));
-                    return c;
+                    return c.withImports(ListUtils.map(c.getImports(), anImport -> (J.Import) visit(anImport, ctx)));
                 }
 
                 @Override

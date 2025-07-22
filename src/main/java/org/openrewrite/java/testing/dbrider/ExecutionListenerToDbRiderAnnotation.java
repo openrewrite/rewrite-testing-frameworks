@@ -179,7 +179,8 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
                                 return null;
                             }
                             return assignment.withAssignment(newValue);
-                        } else if (arg instanceof J.NewArray) {
+                        }
+                        if (arg instanceof J.NewArray) {
                             return getMigratedListeners();
                         }
                         if (arg instanceof J.FieldAccess && isTypeReference(arg, DBRIDER_TEST_EXECUTION_LISTENER)) {

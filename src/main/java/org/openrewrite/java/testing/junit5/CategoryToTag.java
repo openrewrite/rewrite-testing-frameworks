@@ -64,8 +64,7 @@ public class CategoryToTag extends Recipe {
                 maybeRemoveImport("org.junit.experimental.categories.Category");
                 maybeAddImport(tagType);
             }
-            cd = maybeAutoFormat(classDecl, cd, cd.getName(), ctx, getCursor().getParentTreeCursor());
-            return cd;
+            return maybeAutoFormat(classDecl, cd, cd.getName(), ctx, getCursor().getParentTreeCursor());
         }
 
         @Override
@@ -80,8 +79,7 @@ public class CategoryToTag extends Recipe {
                 maybeRemoveImport("org.junit.experimental.categories.Category");
                 maybeAddImport(tagType);
             }
-            m = maybeAutoFormat(method, m, m.getName(), ctx, getCursor().getParentTreeCursor());
-            return m;
+            return maybeAutoFormat(method, m, m.getName(), ctx, getCursor().getParentTreeCursor());
         }
 
         private Stream<J.Annotation> categoryAnnotationToTagAnnotations(J.Annotation maybeCategory) {
@@ -131,19 +129,18 @@ public class CategoryToTag extends Recipe {
                     maybeRemoveImport(TypeUtils.asFullyQualified(category.getTarget().getType()));
                     return tagAnnotation;
                 });
-            } else {
-                return Stream.of(maybeCategory);
             }
+            return Stream.of(maybeCategory);
         }
 
         private static String convertToTagName(J.FieldAccess category) {
             if (category.getTarget() instanceof J.Identifier) {
                 return ((J.Identifier) category.getTarget()).getSimpleName();
-            } else if (category.getTarget() instanceof J.FieldAccess) {
-                return ((J.FieldAccess) category.getTarget()).getSimpleName();
-            } else {
-                return category.getTarget().toString();
             }
+            if (category.getTarget() instanceof J.FieldAccess) {
+                return ((J.FieldAccess) category.getTarget()).getSimpleName();
+            }
+            return category.getTarget().toString();
         }
     }
 }
