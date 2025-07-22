@@ -30,7 +30,7 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
-          .recipe(new AssertLiteralBooleanToFailRecipe());
+          .recipe(new AssertLiteralBooleanToFailRecipes());
     }
 
     @DocumentExample
@@ -48,6 +48,8 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
                   void test() {
                       assertFalse(true, "message");
                       assertTrue(false, "message");
+                      assertFalse(true);
+                      assertTrue(false);
                   }
               }
               """,
@@ -58,6 +60,8 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
                   void test() {
                       fail("message");
                       fail("message");
+                      fail();
+                      fail();
                   }
               }
               """
