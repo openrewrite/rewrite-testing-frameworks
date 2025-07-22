@@ -17,11 +17,10 @@ package org.openrewrite.java.testing.cleanup;
 
 import com.google.errorprone.refaster.annotation.AfterTemplate;
 import com.google.errorprone.refaster.annotation.BeforeTemplate;
-import com.google.errorprone.refaster.annotation.UseImportPolicy;
 import org.openrewrite.java.template.RecipeDescriptor;
 
-import static com.google.errorprone.refaster.ImportPolicy.STATIC_IMPORT_ALWAYS;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @RecipeDescriptor(
         name = "Remove JUnit `assertTrue(true)` and `assertFalse(false)`",
