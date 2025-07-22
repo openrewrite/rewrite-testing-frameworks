@@ -355,9 +355,6 @@ examples:
               assertThat(listA).hasSize(3);
               assertThat(listA).containsExactly("a", "b", "c");
           }
-          private int[] notification() {
-              return new int[]{1, 2, 3};
-          }
       }
     after: |
       import java.util.Arrays;
@@ -371,9 +368,6 @@ examples:
                       .isNotNull()
                       .hasSize(3)
                       .containsExactly("a", "b", "c");
-          }
-          private int[] notification() {
-              return new int[]{1, 2, 3};
           }
       }
     language: java
