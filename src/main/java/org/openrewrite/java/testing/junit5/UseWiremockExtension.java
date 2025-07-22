@@ -71,27 +71,27 @@ public class UseWiremockExtension extends Recipe {
                             .dependsOn(
                                     //language=java
                                     "package com.github.tomakehurst.wiremock.junit5;" +
-                                    "import com.github.tomakehurst.wiremock.core.Options;" +
-                                    "public class WireMockExtension {" +
-                                    "  public native static Builder newInstance();" +
-                                    "  public static class Builder {" +
-                                    "    public native Builder options(Options options);" +
-                                    "    public native Builder failOnUnmatchedRequests(boolean failOnUnmatched);" +
-                                    "    public native WireMockExtension build();" +
-                                    "  }" +
-                                    "}",
+                                            "import com.github.tomakehurst.wiremock.core.Options;" +
+                                            "public class WireMockExtension {" +
+                                            "  public native static Builder newInstance();" +
+                                            "  public static class Builder {" +
+                                            "    public native Builder options(Options options);" +
+                                            "    public native Builder failOnUnmatchedRequests(boolean failOnUnmatched);" +
+                                            "    public native WireMockExtension build();" +
+                                            "  }" +
+                                            "}",
                                     //language=java
                                     "package com.github.tomakehurst.wiremock.core;" +
-                                    "public class WireMockConfiguration implements Options {" +
-                                    "  public static native WireMockConfiguration options();" +
-                                    "  public native WireMockConfiguration port(int portNumber);" +
-                                    "  public native WireMockConfiguration dynamicPort();" +
-                                    "  public native WireMockConfiguration httpsPort(Integer httpsPort);" +
-                                    "  public native WireMockConfiguration dynamicHttpsPort();" +
-                                    "}",
+                                            "public class WireMockConfiguration implements Options {" +
+                                            "  public static native WireMockConfiguration options();" +
+                                            "  public native WireMockConfiguration port(int portNumber);" +
+                                            "  public native WireMockConfiguration dynamicPort();" +
+                                            "  public native WireMockConfiguration httpsPort(Integer httpsPort);" +
+                                            "  public native WireMockConfiguration dynamicHttpsPort();" +
+                                            "}",
                                     //language=java
                                     "package com.github.tomakehurst.wiremock.core;" +
-                                    "public interface Options {}");
+                                            "public interface Options {}");
 
                     if (arg instanceof J.Empty) {
                         String newWiremockExtension = "WireMockExtension.newInstance().build()";
@@ -100,57 +100,53 @@ public class UseWiremockExtension extends Recipe {
                                 .javaParser(wiremockParser)
                                 .build()
                                 .apply(getCursor(), n.getCoordinates().replace());
-                    } else {
-                        JavaType.Class optsType = JavaType.ShallowClass.build("com.github.tomakehurst.wiremock.core.Options");
-                        if (TypeUtils.isAssignableTo(optsType, arg.getType())) {
-                            String newWiremockExtension = "WireMockExtension.newInstance()" +
-                                                          ".options(#{any(com.github.tomakehurst.wiremock.core.Options)})";
-                            if (n.getArguments().size() > 1) {
-                                newWiremockExtension += ".failOnUnmatchedRequests(#{any(boolean)})";
-                                return JavaTemplate.builder(newWiremockExtension + ".build()")
-                                        .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
-                                        .javaParser(wiremockParser)
-                                        .build()
-                                        .apply(
-                                                updateCursor(n),
-                                                n.getCoordinates().replace(),
-                                                arg,
-                                                n.getArguments().get(1)
-                                        );
-                            } else {
-                                return JavaTemplate.builder(newWiremockExtension + ".build()")
-                                        .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
-                                        .javaParser(wiremockParser)
-                                        .build()
-                                        .apply(updateCursor(n), n.getCoordinates().replace(), arg);
-                            }
-                        } else {
-                            maybeAddImport("com.github.tomakehurst.wiremock.core.WireMockConfiguration");
-
-                            String newWiremockExtension = "WireMockExtension.newInstance().options(WireMockConfiguration.options().port(#{any(int)})";
-                            if (n.getArguments().size() > 1) {
-                                newWiremockExtension += ".httpsPort(#{any(java.lang.Integer)})";
-                                return JavaTemplate.builder(newWiremockExtension + ").build()")
-                                        .imports("com.github.tomakehurst.wiremock.core.WireMockConfiguration")
-                                        .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
-                                        .javaParser(wiremockParser)
-                                        .build()
-                                        .apply(
-                                                updateCursor(n),
-                                                n.getCoordinates().replace(),
-                                                arg,
-                                                n.getArguments().get(1)
-                                        );
-                            } else {
-                                return JavaTemplate.builder(newWiremockExtension + ").build()")
-                                        .imports("com.github.tomakehurst.wiremock.core.WireMockConfiguration")
-                                        .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
-                                        .javaParser(wiremockParser)
-                                        .build()
-                                        .apply(updateCursor(n), n.getCoordinates().replace(), arg);
-                            }
-                        }
                     }
+                    JavaType.Class optsType = JavaType.ShallowClass.build("com.github.tomakehurst.wiremock.core.Options");
+                    if (TypeUtils.isAssignableTo(optsType, arg.getType())) {
+                        String newWiremockExtension = "WireMockExtension.newInstance()" +
+                                ".options(#{any(com.github.tomakehurst.wiremock.core.Options)})";
+                        if (n.getArguments().size() > 1) {
+                            newWiremockExtension += ".failOnUnmatchedRequests(#{any(boolean)})";
+                            return JavaTemplate.builder(newWiremockExtension + ".build()")
+                                    .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
+                                    .javaParser(wiremockParser)
+                                    .build()
+                                    .apply(
+                                            updateCursor(n),
+                                            n.getCoordinates().replace(),
+                                            arg,
+                                            n.getArguments().get(1)
+                                    );
+                        }
+                        return JavaTemplate.builder(newWiremockExtension + ".build()")
+                                .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
+                                .javaParser(wiremockParser)
+                                .build()
+                                .apply(updateCursor(n), n.getCoordinates().replace(), arg);
+                    }
+                    maybeAddImport("com.github.tomakehurst.wiremock.core.WireMockConfiguration");
+
+                    String newWiremockExtension = "WireMockExtension.newInstance().options(WireMockConfiguration.options().port(#{any(int)})";
+                    if (n.getArguments().size() > 1) {
+                        newWiremockExtension += ".httpsPort(#{any(java.lang.Integer)})";
+                        return JavaTemplate.builder(newWiremockExtension + ").build()")
+                                .imports("com.github.tomakehurst.wiremock.core.WireMockConfiguration")
+                                .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
+                                .javaParser(wiremockParser)
+                                .build()
+                                .apply(
+                                        updateCursor(n),
+                                        n.getCoordinates().replace(),
+                                        arg,
+                                        n.getArguments().get(1)
+                                );
+                    }
+                    return JavaTemplate.builder(newWiremockExtension + ").build()")
+                            .imports("com.github.tomakehurst.wiremock.core.WireMockConfiguration")
+                            .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
+                            .javaParser(wiremockParser)
+                            .build()
+                            .apply(updateCursor(n), n.getCoordinates().replace(), arg);
                 }
 
                 return n;

@@ -292,10 +292,9 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                 }
                 if (parameterizedTestArgument == null) {
                     return parameterizedTestTemplate.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace());
-                } else {
-                    return parameterizedTestTemplateWithName.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(),
-                            parameterizedTestArgument);
                 }
+                return parameterizedTestTemplateWithName.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(),
+                        parameterizedTestArgument);
             }
             return anno.getValue();
         }
@@ -305,11 +304,10 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                 String initMethodName = junitParamsDefaultInitMethodName(methodName);
                 if (initMethods.contains(initMethodName)) {
                     return methodSourceTemplate.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(), "\"" + initMethodName + "\"");
-                } else {
-                    String annotationArg = getAnnotationArgumentValueForMethodTemplate(anno.getValue());
-                    if (annotationArg != null) {
-                        return methodSourceTemplate.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(), annotationArg);
-                    }
+                }
+                String annotationArg = getAnnotationArgumentValueForMethodTemplate(anno.getValue());
+                if (annotationArg != null) {
+                    return methodSourceTemplate.apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(), annotationArg);
                 }
             }
             return anno.getValue();
