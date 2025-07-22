@@ -129,7 +129,8 @@ public class AssertionsArgumentOrder extends Recipe {
                 mi = maybeAutoFormat(mi, mi.withArguments(ListUtils.map(mi.getArguments(), arg -> {
                     if (arg.equals(actual)) {
                         return expected;
-                    } else if (arg.equals(expected)) {
+                    }
+                    if (arg.equals(expected)) {
                         return actual;
                     }
                     return arg;

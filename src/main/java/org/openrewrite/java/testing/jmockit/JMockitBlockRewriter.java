@@ -446,7 +446,8 @@ class JMockitBlockRewriter {
     private static @Nullable String getVariableNameFromAssignment(J.Assignment assignment) {
         if (assignment.getVariable() instanceof J.Identifier) {
             return ((J.Identifier) assignment.getVariable()).getSimpleName();
-        } else if (assignment.getVariable() instanceof J.FieldAccess) {
+        }
+        if (assignment.getVariable() instanceof J.FieldAccess) {
             J.FieldAccess fieldAccess = (J.FieldAccess) assignment.getVariable();
             if (fieldAccess.getTarget() instanceof J.Identifier) {
                 return fieldAccess.getSimpleName();

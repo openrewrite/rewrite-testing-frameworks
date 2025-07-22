@@ -131,19 +131,18 @@ public class CategoryToTag extends Recipe {
                     maybeRemoveImport(TypeUtils.asFullyQualified(category.getTarget().getType()));
                     return tagAnnotation;
                 });
-            } else {
-                return Stream.of(maybeCategory);
             }
+            return Stream.of(maybeCategory);
         }
 
         private static String convertToTagName(J.FieldAccess category) {
             if (category.getTarget() instanceof J.Identifier) {
                 return ((J.Identifier) category.getTarget()).getSimpleName();
-            } else if (category.getTarget() instanceof J.FieldAccess) {
-                return ((J.FieldAccess) category.getTarget()).getSimpleName();
-            } else {
-                return category.getTarget().toString();
             }
+            if (category.getTarget() instanceof J.FieldAccess) {
+                return ((J.FieldAccess) category.getTarget()).getSimpleName();
+            }
+            return category.getTarget().toString();
         }
     }
 }
