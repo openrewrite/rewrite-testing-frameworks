@@ -45,8 +45,8 @@ class AssertLiteralBooleanRemovedTest implements RewriteTest {
 
               class Test {
                   void test() {
-                      assertFalse(false, "assert false true");
-                      assertTrue(true, "assert true false");
+                      assertFalse(false, "message");
+                      assertTrue(true, "message");
                       assertFalse(false);
                       assertTrue(true);
                   }
@@ -72,14 +72,16 @@ class AssertLiteralBooleanRemovedTest implements RewriteTest {
 
               class Test {
                   void test() {
-                      Assertions.assertFalse(false, "assert false true");
-                      Assertions.assertTrue(true, "assert true false");
+                      Assertions.assertFalse(false, "message");
+                      Assertions.assertTrue(true, "message");
                       Assertions.assertFalse(false);
                       Assertions.assertTrue(true);
                   }
               }
               """,
             """
+              import org.junit.jupiter.api.Assertions;
+
               class Test {
                   void test() {
                   }

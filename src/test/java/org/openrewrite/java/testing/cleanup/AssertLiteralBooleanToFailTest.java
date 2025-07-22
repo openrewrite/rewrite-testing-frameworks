@@ -46,8 +46,8 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
 
               public class Test {
                   void test() {
-                      assertFalse(true, "assert false true");
-                      assertTrue(false, "assert true false");
+                      assertFalse(true, "message");
+                      assertTrue(false, "message");
                   }
               }
               """,
@@ -56,8 +56,8 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
 
               public class Test {
                   void test() {
-                      fail("assert false true");
-                      fail("assert true false");
+                      fail("message");
+                      fail("message");
                   }
               }
               """
@@ -76,8 +76,8 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
 
               public class Test {
                   void test() {
-                      Assertions.assertFalse(true, "assert false true");
-                      Assertions.assertTrue(false, "assert true false");
+                      Assertions.assertFalse(true, "message");
+                      Assertions.assertTrue(false, "message");
                   }
               }
               """,
@@ -86,8 +86,8 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
 
               public class Test {
                   void test() {
-                      fail("assert false true");
-                      fail("assert true false");
+                      fail("message");
+                      fail("message");
                   }
               }
               """
