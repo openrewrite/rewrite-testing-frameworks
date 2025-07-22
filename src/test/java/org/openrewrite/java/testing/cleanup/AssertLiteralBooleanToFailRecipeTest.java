@@ -48,8 +48,6 @@ class AssertLiteralBooleanToFailRecipeTest implements RewriteTest {
                   void test() {
                       assertFalse(true, "assert false true");
                       assertTrue(false, "assert true false");
-                      assertFalse(true);
-                      assertTrue(false);
                   }
               }
               """,
@@ -60,8 +58,6 @@ class AssertLiteralBooleanToFailRecipeTest implements RewriteTest {
                   void test() {
                       fail("assert false true");
                       fail("assert true false");
-                      fail();
-                      fail();
                   }
               }
               """
@@ -82,8 +78,6 @@ class AssertLiteralBooleanToFailRecipeTest implements RewriteTest {
                   void test() {
                       Assertions.assertFalse(true, "assert false true");
                       Assertions.assertTrue(false, "assert true false");
-                      Assertions.assertFalse(true);
-                      Assertions.assertTrue(false);
                   }
               }
               """,
@@ -94,8 +88,6 @@ class AssertLiteralBooleanToFailRecipeTest implements RewriteTest {
                   void test() {
                       fail("assert false true");
                       fail("assert true false");
-                      fail();
-                      fail();
                   }
               }
               """

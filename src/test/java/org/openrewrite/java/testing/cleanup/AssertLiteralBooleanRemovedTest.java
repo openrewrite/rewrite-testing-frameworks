@@ -24,13 +24,13 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class AssertLiteralBooleanToNoOpRecipeTest implements RewriteTest {
+class AssertLiteralBooleanRemovedTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
-          .recipe(new AssertLiteralBooleanToNoOpRecipe());
+          .recipe(new AssertLiteralBooleanRemovedRecipe());
     }
 
     @DocumentExample
@@ -43,7 +43,7 @@ class AssertLiteralBooleanToNoOpRecipeTest implements RewriteTest {
               import static org.junit.jupiter.api.Assertions.assertFalse;
               import static org.junit.jupiter.api.Assertions.assertTrue;
 
-              public class Test {
+              class Test {
                   void test() {
                       assertFalse(false, "assert false true");
                       assertTrue(true, "assert true false");
@@ -53,7 +53,7 @@ class AssertLiteralBooleanToNoOpRecipeTest implements RewriteTest {
               }
               """,
             """
-              public class Test {
+              class Test {
                   void test() {
                   }
               }
@@ -70,7 +70,7 @@ class AssertLiteralBooleanToNoOpRecipeTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
 
-              public class Test {
+              class Test {
                   void test() {
                       Assertions.assertFalse(false, "assert false true");
                       Assertions.assertTrue(true, "assert true false");
@@ -80,7 +80,7 @@ class AssertLiteralBooleanToNoOpRecipeTest implements RewriteTest {
               }
               """,
             """
-              public class Test {
+              class Test {
                   void test() {
                   }
               }
@@ -98,7 +98,7 @@ class AssertLiteralBooleanToNoOpRecipeTest implements RewriteTest {
               import static org.junit.jupiter.api.Assertions.assertFalse;
               import static org.junit.jupiter.api.Assertions.assertTrue;
 
-              public class Test {
+              class Test {
                   void test(boolean a, Object b) {
                       assertTrue(a, "message");
                       assertFalse(b.equals("foo"), "message");
