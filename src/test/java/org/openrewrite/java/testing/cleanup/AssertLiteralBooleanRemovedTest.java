@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2025 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,19 +24,18 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class AssertLiteralBooleanToFailTest implements RewriteTest {
+class AssertLiteralBooleanRemovedTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
-          .recipe(new AssertLiteralBooleanToFailRecipes());
+          .recipe(new AssertLiteralBooleanRemovedRecipe());
     }
 
     @DocumentExample
-    @SuppressWarnings("SimplifiableAssertion")
     @Test
-    void assertWithStaticImportsWithMessage() {
+    void assertWithStaticImports() {
         //language=java
         rewriteRun(
           java(
@@ -44,20 +43,18 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
               import static org.junit.jupiter.api.Assertions.assertFalse;
               import static org.junit.jupiter.api.Assertions.assertTrue;
 
-              public class Test {
+              class Test {
                   void test() {
-                      assertFalse(true, "message");
-                      assertTrue(false, "message");
+                      assertFalse(false, "message");
+                      assertTrue(true, "message");
+                      assertFalse(false);
+                      assertTrue(true);
                   }
               }
               """,
             """
-              import static org.junit.jupiter.api.Assertions.fail;
-
-              public class Test {
+              class Test {
                   void test() {
-                      fail("message");
-                      fail("message");
                   }
               }
               """
@@ -65,37 +62,6 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
         );
     }
 
-    @Test
-    void assertWithStaticImportsNoMessage() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import static org.junit.jupiter.api.Assertions.assertFalse;
-              import static org.junit.jupiter.api.Assertions.assertTrue;
-
-              public class Test {
-                  void test() {
-                      assertFalse(true);
-                      assertTrue(false);
-                  }
-              }
-              """,
-            """
-              import static org.junit.jupiter.api.Assertions.fail;
-
-              public class Test {
-                  void test() {
-                      fail();
-                      fail();
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @SuppressWarnings("SimplifiableAssertion")
     @Test
     void assertWithAssertionsImport() {
         //language=java
@@ -104,20 +70,18 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
 
-              public class Test {
+              class Test {
                   void test() {
-                      Assertions.assertFalse(true, "message");
-                      Assertions.assertTrue(false, "message");
+                      Assertions.assertFalse(false, "message");
+                      Assertions.assertTrue(true, "message");
+                      Assertions.assertFalse(false);
+                      Assertions.assertTrue(true);
                   }
               }
               """,
             """
-              import static org.junit.jupiter.api.Assertions.fail;
-
-              public class Test {
+              class Test {
                   void test() {
-                      fail("message");
-                      fail("message");
                   }
               }
               """
@@ -134,7 +98,7 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
               import static org.junit.jupiter.api.Assertions.assertFalse;
               import static org.junit.jupiter.api.Assertions.assertTrue;
 
-              public class Test {
+              class Test {
                   void test(boolean a, Object b) {
                       assertTrue(a, "message");
                       assertFalse(b.equals("foo"), "message");
