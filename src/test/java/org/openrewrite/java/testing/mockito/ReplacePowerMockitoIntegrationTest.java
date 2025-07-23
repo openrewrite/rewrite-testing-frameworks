@@ -886,101 +886,23 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         );
     }
 
-    @Test
-    void powerMockitoUnused() {
+    @ParameterizedTest
+    @ValueSource(strings = {
+      "import org.powermock.api.mockito.PowerMockito;",
+      "import static org.powermock.api.mockito.PowerMockito.whenNew;",
+      "import static org.powermock.api.mockito.PowerMockito.*;",
+      "import org.powermock.core.classloader.annotations.PrepareForTest;",
+      "import org.powermock.modules.junit4.PowerMockRunner;"
+    })
+    void removeUnusedPowerMockImports(String importStatement) {
         //language=java
         rewriteRun(
           java(
             """
-              import org.powermock.api.mockito.PowerMockito;
+              %s
 
               class MyTest {}
-              """,
-            """
-              class MyTest {}
-              """
-          )
-        );
-    }
-
-    @Test
-    void whenNewUnused() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import static org.powermock.api.mockito.PowerMockito.whenNew;
-
-              class MyTest {}
-              """,
-            """
-              class MyTest {}
-              """
-          )
-        );
-    }
-
-    @Test
-    void whenNewStarUnused() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import static org.powermock.api.mockito.PowerMockito.*;
-
-              class MyTest {}
-              """,
-            """
-              class MyTest {}
-              """
-          )
-        );
-    }
-
-    @Test
-    void removeUnusedPrepareForTestAnnotation() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.powermock.core.classloader.annotations.PrepareForTest;
-
-              class MyTest {}
-              """,
-            """
-              class MyTest {}
-              """
-          )
-        );
-    }
-
-    @Test
-    void removeUnusedPowerMockRunnerAnnotation() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.powermock.modules.junit4.PowerMockRunner;
-
-              class MyTest {}
-              """,
-            """
-              class MyTest {}
-              """
-          )
-        );
-    }
-
-    @Test
-    void removeUnusedPowerMockito() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.powermock.api.mockito.PowerMockito;
-
-              class MyTest {}
-              """,
+              """.formatted(importStatement),
             """
               class MyTest {}
               """
