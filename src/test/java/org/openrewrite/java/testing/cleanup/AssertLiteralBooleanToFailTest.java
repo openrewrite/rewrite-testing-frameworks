@@ -36,7 +36,7 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
     @DocumentExample
     @SuppressWarnings("SimplifiableAssertion")
     @Test
-    void assertWithStaticImports() {
+    void assertWithStaticImportsWithMessage() {
         //language=java
         rewriteRun(
           java(
@@ -48,8 +48,6 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
                   void test() {
                       assertFalse(true, "message");
                       assertTrue(false, "message");
-                      assertFalse(true);
-                      assertTrue(false);
                   }
               }
               """,
@@ -60,6 +58,34 @@ class AssertLiteralBooleanToFailTest implements RewriteTest {
                   void test() {
                       fail("message");
                       fail("message");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertWithStaticImportsNoMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertFalse;
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              public class Test {
+                  void test() {
+                      assertFalse(true);
+                      assertTrue(false);
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              public class Test {
+                  void test() {
                       fail();
                       fail();
                   }
