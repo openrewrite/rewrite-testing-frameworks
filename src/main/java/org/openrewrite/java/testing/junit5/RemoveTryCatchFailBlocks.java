@@ -111,7 +111,8 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             }
             if (isException(failCallArgument)) {
                 return replaceWithAssertDoesNotThrowWithoutStringExpression(ctx, try_);
-            } else if (failCallArgument instanceof J.Binary) {
+            }
+            if (failCallArgument instanceof J.Binary) {
                 J.Binary binaryArg = (J.Binary) failCallArgument;
                 Expression left = binaryArg.getLeft();
                 Expression right = binaryArg.getRight();
