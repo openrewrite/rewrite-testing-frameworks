@@ -80,8 +80,6 @@ class AssertLiteralBooleanRemovedTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Assertions;
-
               class Test {
                   void test() {
                   }
