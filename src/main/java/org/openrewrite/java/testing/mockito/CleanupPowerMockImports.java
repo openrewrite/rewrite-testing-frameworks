@@ -25,9 +25,6 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 
-/**
- * Removes unused "org.mockito" imports.
- */
 public class CleanupPowerMockImports extends Recipe {
 
     @Override

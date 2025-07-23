@@ -71,7 +71,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               @PrepareForTest(value = {Calendar.class, Currency.class})
-              public class StaticMethodTest {
+              class StaticMethodTest {
 
                   private Calendar calendarMock;
 
@@ -104,7 +104,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
-              public class StaticMethodTest {
+              class StaticMethodTest {
 
                   private MockedStatic<Currency> mockedCurrency;
 
@@ -149,7 +149,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
               package org.powermock.modules.junit4;
 
-              public class PowerMockRunner {}
+              class PowerMockRunner {}
               """
           ),
           java(
@@ -166,7 +166,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
 
-              public class StaticMethodTest {
+              class StaticMethodTest {
 
                   private MockedStatic<Currency> mockedCurrency;
 
@@ -233,7 +233,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               @RunWith(PowerMockRunner.class)
               @PowerMockIgnore({"org.apache.*", "com.sun.*", "javax.*"})
               @PrepareForTest(value = {Calendar.class, Currency.class})
-              public class StaticMethodTest {
+              class StaticMethodTest {
 
                   private Calendar calendarMock = mock(Calendar.class);
 
@@ -265,7 +265,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
-              public class StaticMethodTest {
+              class StaticMethodTest {
 
                   private MockedStatic<Currency> mockedCurrency;
 
@@ -319,7 +319,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               @PrepareForTest(value = {Calendar.class})
-              public class StaticMethodTest {
+              class StaticMethodTest {
 
                   private Calendar calendarMock;
 
@@ -348,7 +348,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
-              public class StaticMethodTest {
+              class StaticMethodTest {
 
                   private MockedStatic<Calendar> mockedCalendar;
 
@@ -395,7 +395,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               @PrepareForTest(value = {Calendar.class})
-              public class StaticMethodTest {
+              class StaticMethodTest {
 
                   private Calendar calendarMock;
 
@@ -426,7 +426,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
-              public class StaticMethodTest {
+              class StaticMethodTest {
 
                   private MockedStatic<Calendar> mockedCalendar;
 
@@ -464,7 +464,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
               package foo;
               public class StringFilter {
-                   public static String[] splitFilterStringValues(String filterValue) {
+                   static String[] splitFilterStringValues(String filterValue) {
                      if (filterValue.equals("")) {
                        return new String[0];
                      } else {
@@ -483,7 +483,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               @PrepareForTest(value = {StringFilter.class})
-              public class MyTest {
+              class MyTest {
                   @Test
                   public void testStaticMock() {
                       mockStatic(StringFilter.class);
@@ -500,7 +500,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
-              public class MyTest {
+              class MyTest {
 
                   private MockedStatic<StringFilter> mockedStringFilter;
 
@@ -538,7 +538,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
-              public class MyTest {
+              class MyTest {
 
                 private Calendar cut;
 
@@ -574,7 +574,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               @PrepareForTest({Calendar.class})
-              public class MyTest {
+              class MyTest {
 
                   @Test
                   public void testCalendarDynamic() throws Exception {
@@ -595,7 +595,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
-              public class MyTest {
+              class MyTest {
 
                   private MockedStatic<Calendar> mockedCalendar;
 
@@ -630,7 +630,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.powermock.api.mockito.PowerMockito;
               import java.util.Calendar;
 
-              public class MyTest {
+              class MyTest {
 
                   private Calendar calendarMock;
 
@@ -648,7 +648,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.mockito.Mockito;
               import java.util.Calendar;
 
-              public class MyTest {
+              class MyTest {
 
                   private Calendar calendarMock;
 
@@ -677,14 +677,14 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
-              public class MyTest {
+              class MyTest {
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
                       }
                   }
                   @Test
-                  public final void testNumbers() throws Exception {
+                  void testNumbers() throws Exception {
                       Generator mock = mock(Generator.class);
                       PowerMockito.whenNew(Generator.class).withNoArguments().thenReturn(mock);
 
@@ -708,7 +708,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
-              public class MyTest {
+              class MyTest {
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
@@ -716,7 +716,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   }
 
                   @Test
-                  public final void testNumbers() throws Exception {
+                  void testNumbers() throws Exception {
                       try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
 
                           Generator gen = new Generator();
@@ -747,7 +747,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
-              public class MyTest {
+              class MyTest {
                   static class Generator1 {
                       public int getLuckyNumber() {
                         return 436;
@@ -760,7 +760,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   }
 
                   @Test
-                  public final void testNumbers() throws Exception {
+                  void testNumbers() throws Exception {
                       Generator1 mock1 = mock(Generator1.class);
                       PowerMockito.whenNew(Generator1.class).withNoArguments().thenReturn(mock1);
 
@@ -788,7 +788,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
-              public class MyTest {
+              class MyTest {
                   static class Generator1 {
                       public int getLuckyNumber() {
                         return 436;
@@ -801,7 +801,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   }
 
                   @Test
-                  public final void testNumbers() throws Exception {
+                  void testNumbers() throws Exception {
                       try (MockedConstruction<Generator2> mockGenerator2 = Mockito.mockConstruction(Generator2.class)) {
                           try (MockedConstruction<Generator1> mockGenerator1 = Mockito.mockConstruction(Generator1.class)) {
 
@@ -836,15 +836,15 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
-              public class MyTest2 {
-                  public static class SomeTexts {
+              class MyTest2 {
+                  static class SomeTexts {
                       String text;
                       public SomeTexts(String text) { this.text = text; }
                       public String getText() { return text; }
                   }
 
                   @Test
-                  public final void testWords() throws Exception {
+                  void testWords() throws Exception {
                       SomeTexts mock = PowerMockito.mock(SomeTexts.class);
                       PowerMockito.whenNew(SomeTexts.class).METHODCALL.thenReturn(mock);
 
@@ -863,15 +863,15 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
-              public class MyTest2 {
-                  public static class SomeTexts {
+              class MyTest2 {
+                  static class SomeTexts {
                       String text;
                       public SomeTexts(String text) { this.text = text; }
                       public String getText() { return text; }
                   }
 
                   @Test
-                  public final void testWords() throws Exception {
+                  void testWords() throws Exception {
                       try (MockedConstruction<SomeTexts> mockSomeTexts = Mockito.mockConstruction(SomeTexts.class)) {
 
                           SomeTexts st = new SomeTexts("Have a nice day!");
@@ -894,10 +894,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
               import org.powermock.api.mockito.PowerMockito;
 
-              public class MyTest {}
+              class MyTest {}
               """,
             """
-              public class MyTest {}
+              class MyTest {}
               """
           )
         );
@@ -911,10 +911,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
               import static org.powermock.api.mockito.PowerMockito.whenNew;
 
-              public class MyTest {}
+              class MyTest {}
               """,
             """
-              public class MyTest {}
+              class MyTest {}
               """
           )
         );
@@ -928,10 +928,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
               import static org.powermock.api.mockito.PowerMockito.*;
 
-              public class MyTest {}
+              class MyTest {}
               """,
             """
-              public class MyTest {}
+              class MyTest {}
               """
           )
         );
@@ -945,10 +945,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
               import org.powermock.core.classloader.annotations.PrepareForTest;
 
-              public class MyTest {}
+              class MyTest {}
               """,
             """
-              public class MyTest {}
+              class MyTest {}
               """
           )
         );
@@ -962,10 +962,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
               import org.powermock.modules.junit4.PowerMockRunner;
 
-              public class MyTest {}
+              class MyTest {}
               """,
             """
-              public class MyTest {}
+              class MyTest {}
               """
           )
         );
@@ -979,10 +979,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
               import org.powermock.api.mockito.PowerMockito;
 
-              public class MyTest {}
+              class MyTest {}
               """,
             """
-              public class MyTest {}
+              class MyTest {}
               """
           )
         );
