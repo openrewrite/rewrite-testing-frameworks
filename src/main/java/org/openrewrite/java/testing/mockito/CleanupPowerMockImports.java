@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -26,7 +25,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 
 public class CleanupPowerMockImports extends Recipe {
-
     @Override
     public String getDisplayName() {
         return "Cleanup PowerMock imports";
@@ -41,22 +39,19 @@ public class CleanupPowerMockImports extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 new UsesType<>("org.powermock..*", false),
-                new CleanupPowerMockImportsVisitor());
-    }
-
-    private static class CleanupPowerMockImportsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        @Override
-        public @Nullable J preVisit(J tree, ExecutionContext ctx) {
-            stopAfterPreVisit();
-            if (tree instanceof JavaSourceFile) {
-                JavaSourceFile sf = (JavaSourceFile) tree;
-                for (J.Import _import : sf.getImports()) {
-                    if (_import.getPackageName().startsWith("org.powermock")) {
-                        maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
+                new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J preVisit(J tree, ExecutionContext ctx) {
+                        stopAfterPreVisit();
+                        if (tree instanceof JavaSourceFile) {
+                            for (J.Import _import : ((JavaSourceFile) tree).getImports()) {
+                                if (_import.getPackageName().startsWith("org.powermock")) {
+                                    maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
+                                }
+                            }
+                        }
+                        return tree;
                     }
-                }
-            }
-            return tree;
-        }
+                });
     }
 }
