@@ -987,7 +987,31 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipe
+recipeName: org.openrewrite.java.testing.cleanup.AssertLiteralBooleanRemovedRecipe
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.junit.jupiter.api.Assertions.assertFalse;
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      class Test {
+          void test() {
+              assertFalse(false, "message");
+              assertTrue(true, "message");
+              assertFalse(false);
+              assertTrue(true);
+          }
+      }
+    after: |
+      class Test {
+          void test() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipes
 examples:
 - description: ''
   sources:
@@ -997,8 +1021,8 @@ examples:
 
       public class Test {
           void test() {
-              assertFalse(true, "assert false true");
-              assertTrue(false, "assert true false");
+              assertFalse(true, "message");
+              assertTrue(false, "message");
           }
       }
     after: |
@@ -1006,8 +1030,8 @@ examples:
 
       public class Test {
           void test() {
-              fail("assert false true");
-              fail("assert true false");
+              fail("message");
+              fail("message");
           }
       }
     language: java
@@ -2518,25 +2542,6 @@ examples:
           }
       }
     language: java
-- description: ''
-  sources:
-  - before: |
-      import org.junit.jupiter.api.Assertions;
-
-      public class Test {
-          void method() {
-              Assertions.assertTrue(true);
-          }
-      }
-    after: |
-      import static org.junit.jupiter.api.Assertions.assertTrue;
-
-      public class Test {
-          void method() {
-              assertTrue(true);
-          }
-      }
-    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.JUnitParamsRunnerToParameterized
@@ -2856,6 +2861,29 @@ examples:
 
       @ExtendWith(MockitoExtension.class)
       public class MyTest {
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.StaticImports
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Assertions;
+
+      public class Test {
+          void method() {
+              Assertions.assertTrue(true);
+          }
+      }
+    after: |
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      public class Test {
+          void method() {
+              assertTrue(true);
+          }
       }
     language: java
 ---
@@ -3791,7 +3819,7 @@ examples:
       import org.testng.annotations.Test;
 
       @PrepareForTest(value = {Calendar.class, Currency.class})
-      public class StaticMethodTest {
+      class StaticMethodTest {
 
           private Calendar calendarMock;
 
@@ -3823,7 +3851,7 @@ examples:
       import org.testng.annotations.BeforeMethod;
       import org.testng.annotations.Test;
 
-      public class StaticMethodTest {
+      class StaticMethodTest {
 
           private MockedStatic<Currency> mockedCurrency;
 
