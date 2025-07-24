@@ -33,7 +33,7 @@ public class VerifyZeroToNoMoreInteractions extends ScanningRecipe<AtomicBoolean
 
     @Override
     public String getDisplayName() {
-        return "Replace `verifyZeroInteractions()` to `verifyNoMoreInteractions()";
+        return "Replace `verifyZeroInteractions()` with `verifyNoMoreInteractions()`";
     }
 
     @Override

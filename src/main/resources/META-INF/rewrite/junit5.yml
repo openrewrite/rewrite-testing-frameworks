@@ -24,6 +24,7 @@ tags:
   - junit
 recipeList:
   - org.openrewrite.java.testing.junit5.JUnit4to5Migration
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5
   - org.openrewrite.java.testing.junit5.StaticImports
   - org.openrewrite.java.testing.junit5.CleanupAssertions
   - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipes
@@ -35,6 +36,8 @@ recipeList:
   - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
   - org.openrewrite.java.testing.junit5.LifecycleNonPrivate
   - org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
+  - org.openrewrite.java.testing.junit5.AssertTrueInstanceofToAssertInstanceOf
+  - org.openrewrite.java.testing.junit5.UseAssertSame
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.StaticImports
@@ -59,6 +62,7 @@ preconditions:
       fullyQualifiedTypeName: org.testng..*
       includeImplicit: true
 recipeList:
+  - org.openrewrite.java.testing.junit5.EnvironmentVariables
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
   - org.openrewrite.java.testing.junit5.ThrowingRunnableToExecutable
@@ -97,6 +101,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
   - org.openrewrite.java.testing.junit5.EnclosedToNested
   - org.openrewrite.java.testing.junit5.AddMissingNested
+  - org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
   - org.openrewrite.java.testing.junit5.UseXMLUnitLegacy
