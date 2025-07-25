@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -478,68 +479,6 @@ class JUnit5MigrationTest implements RewriteTest {
     }
 
     @Test
-    void noChangesIfTestNgIncluded() {
-        rewriteRun(
-          spec -> spec.beforeRecipe(withToolingApi()),
-          //language=groovy
-          buildGradle(
-            """
-              plugins {
-                  id 'java-library'
-              }
-              repositories {
-                  mavenCentral()
-              }
-              dependencies {
-                  testImplementation 'junit:junit:4.12'
-                  testImplementation 'org.testng:testng:7.8.0'
-              }
-              tasks.withType(Test).configureEach {
-                  useJUnitPlatform()
-              }
-              """
-          ),
-          //language=xml
-          pomXml(
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>testcontainer-migrate</artifactId>
-                  <version>0.0.1</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>junit</groupId>
-                          <artifactId>junit</artifactId>
-                          <version>4.12</version>
-                          <scope>test</scope>
-                      </dependency>
-                      <dependency>
-                          <groupId>org.testng</groupId>
-                          <artifactId>testng</artifactId>
-                          <version>7.8.0</version>
-                      </dependency>
-                  </dependencies>
-              </project>
-              """
-          ),
-          //language=java
-          java(
-            """
-              import org.junit.Ignore;
-              import org.testng.annotations.Test;
-
-              class ExampleClass {
-                  @Ignore
-                  @Test
-                  public void testMethod() {}
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void bumpSurefireOnOlderMavenVersions() {
         rewriteRun(
           spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin"),
@@ -672,5 +611,112 @@ class JUnit5MigrationTest implements RewriteTest {
             )
           )
         );
+    }
+
+    @Nested
+    class TestngExclude {
+        @Test
+        void noChangesIfTestNgGradleDependencyIncluded() {
+            rewriteRun(
+              spec -> spec.beforeRecipe(withToolingApi()),
+              mavenProject("project",
+                //language=groovy
+                buildGradle(
+                  """
+                    plugins {
+                        id 'java-library'
+                    }
+                    repositories {
+                        mavenCentral()
+                    }
+                    dependencies {
+                        testImplementation 'junit:junit:4.12'
+                        testImplementation 'org.testng:testng:7.8.0'
+                    }
+                    tasks.withType(Test).configureEach {
+                        useJUnitPlatform()
+                    }
+                    """
+                ),
+                srcTestJava(
+                  //language=java
+                  java(
+                    """
+                      import org.junit.Ignore;
+
+                      class ExampleClass {
+                          @Ignore
+                          public void testMethod() {}
+                      }
+                      """
+                  )
+                )
+              )
+            );
+        }
+
+        @Test
+        void noChangesIfTestNgMavenDependencyIncluded() {
+            rewriteRun(
+              mavenProject("project",
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>dev.ted</groupId>
+                        <artifactId>testcontainer-migrate</artifactId>
+                        <version>0.0.1</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>junit</groupId>
+                                <artifactId>junit</artifactId>
+                                <version>4.12</version>
+                                <scope>test</scope>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.testng</groupId>
+                                <artifactId>testng</artifactId>
+                                <version>7.8.0</version>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """
+                ),
+                srcTestJava(
+                  //language=java
+                  java(
+                    """
+                      import org.junit.Ignore;
+
+                      class ExampleClass {
+                          @Ignore
+                          public void testMethod() {}
+                      }
+                      """
+                  )
+                )
+              )
+            );
+        }
+
+        @Test
+        void noChangesIfTestNgCassIncluded() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.junit.Ignore;
+                  import org.testng.annotations.Test;
+
+                  class ExampleClass {
+                      @Ignore
+                      @Test
+                      public void testMethod() {}
+                  }
+                  """
+              )
+            );
+        }
     }
 }
