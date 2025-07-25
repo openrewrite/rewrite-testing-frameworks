@@ -63,7 +63,7 @@ preconditions:
       includeImplicit: true
   - org.openrewrite.java.dependencies.search.DoesNotIncludeDependency:
       groupId: org.testng
-      artifactId: testng
+      artifactId: testng*
 recipeList:
   - org.openrewrite.java.testing.junit5.EnvironmentVariables
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
