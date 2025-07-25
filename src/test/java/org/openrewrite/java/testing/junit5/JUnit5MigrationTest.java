@@ -41,7 +41,7 @@ class JUnit5MigrationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "testng"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()
@@ -703,6 +703,9 @@ class JUnit5MigrationTest implements RewriteTest {
         @Test
         void noChangesIfTestNgCassIncluded() {
             rewriteRun(
+              spec -> spec
+                .parser(JavaParser.fromJavaVersion()
+                  .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "testng")),
               //language=java
               java(
                 """
