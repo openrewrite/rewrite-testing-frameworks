@@ -108,8 +108,8 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               class MyTest {
                   void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
-                      // Comment nor whitespace below duplicated
                       assertThat(listA)
+                              // Comment nor whitespace below duplicated
                               .isNotNull()
                               .hasSize(3)
                               .containsExactly("a", "b", "c");
@@ -407,6 +407,50 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
                       assertThat(abc.c)
                               .isNotNull()
                               .isNotNull();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveCommentsWhenCollapsingAssertions() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.Arrays;
+              import java.util.List;
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void test() {
+                      List<String> listA = Arrays.asList("a", "b", "c");
+                      // Check not null
+                      assertThat(listA).isNotNull();
+                      // Check size is 3
+                      assertThat(listA).hasSize(3);
+                      // Check exact contents
+                      assertThat(listA).containsExactly("a", "b", "c");
+                  }
+              }
+              """,
+            """
+              import java.util.Arrays;
+              import java.util.List;
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void test() {
+                      List<String> listA = Arrays.asList("a", "b", "c");
+                      assertThat(listA)
+                              // Check not null
+                              .isNotNull()
+                              // Check size is 3
+                              .hasSize(3)
+                              // Check exact contents
+                              .containsExactly("a", "b", "c");
                   }
               }
               """

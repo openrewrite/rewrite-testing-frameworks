@@ -15,7 +15,11 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.SemanticallyEqual;
@@ -26,7 +30,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-@Incubating(since = "2.17.0")
+import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
+
 public class CollapseConsecutiveAssertThatStatements extends Recipe {
     private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
 
@@ -141,20 +147,20 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
             private J.MethodInvocation getCollapsedAssertThat(List<Statement> consecutiveAssertThatStatement) {
                 assert !consecutiveAssertThatStatement.isEmpty();
                 Space originalPrefix = consecutiveAssertThatStatement.get(0).getPrefix();
-                String continuationIndent = originalPrefix.getIndent().contains("\t") ? "\t\t" : "        ";
-                Space indentedNewline = Space.format(originalPrefix.getLastWhitespace().replaceAll("^\\s+\n", "\n") +
-                        continuationIndent);
+                String originalIndent = originalPrefix.getLastWhitespace().replaceAll("^\\s+\n", "\n");
+                String chainedIndent = originalIndent + (originalIndent.contains("\t") ? "\t\t" : "        ");
                 J.MethodInvocation collapsed = null;
                 for (Statement st : consecutiveAssertThatStatement) {
                     J.MethodInvocation assertion = (J.MethodInvocation) st;
                     J.MethodInvocation assertThat = (J.MethodInvocation) assertion.getSelect();
                     assert assertThat != null;
                     J.MethodInvocation newSelect = collapsed == null ? assertThat : collapsed;
+
                     collapsed = assertion.getPadding().withSelect(JRightPadded
                             .build((Expression) newSelect.withPrefix(Space.EMPTY))
-                            .withAfter(indentedNewline));
+                            .withAfter(Space.build(chainedIndent, ListUtils.map(st.getPrefix().getComments(), c -> c.withSuffix(chainedIndent)))));
                 }
-                return collapsed.withPrefix(originalPrefix);
+                return requireNonNull(collapsed).withPrefix(originalPrefix.withComments(emptyList()));
             }
         });
     }
