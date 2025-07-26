@@ -27,6 +27,9 @@ recipeList:
       newVersion: 1.21.x
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImages
   - org.openrewrite.java.testing.testcontainers.GetHostMigration
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.DockerComposeContainer
+      newFullyQualifiedTypeName: org.testcontainers.containers.ComposeContainer
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.GetHostMigration

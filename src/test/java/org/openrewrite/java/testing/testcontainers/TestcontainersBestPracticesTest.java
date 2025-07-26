@@ -106,4 +106,30 @@ class TestcontainersBestPracticesTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void composeContainer() {
+        rewriteRun(
+          java(
+            """
+              import org.testcontainers.containers.DockerComposeContainer;
+
+              class A {
+                  void foo(String bar) {
+                      DockerComposeContainer compose = new DockerComposeContainer();
+                  }
+              }
+              """,
+            """
+              import org.testcontainers.containers.ComposeContainer;
+
+              class A {
+                  void foo(String bar) {
+                      ComposeContainer compose = new ComposeContainer();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
