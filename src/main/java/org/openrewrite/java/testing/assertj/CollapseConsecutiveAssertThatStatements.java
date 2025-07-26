@@ -147,9 +147,8 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
             private J.MethodInvocation getCollapsedAssertThat(List<Statement> consecutiveAssertThatStatement) {
                 assert !consecutiveAssertThatStatement.isEmpty();
                 Space originalPrefix = consecutiveAssertThatStatement.get(0).getPrefix();
-                String continuationIndent = originalPrefix.getIndent().contains("\t") ? "\t\t" : "        ";
-                Space indentedNewline = Space.format(
-                        originalPrefix.getLastWhitespace().replaceAll("^\\s+\n", "\n") + continuationIndent);
+                String originalIndent = originalPrefix.getLastWhitespace().replaceAll("^\\s+\n", "\n");
+                String chainedIndent = originalIndent + (originalIndent.contains("\t") ? "\t\t" : "        ");
                 J.MethodInvocation collapsed = null;
                 for (Statement st : consecutiveAssertThatStatement) {
                     J.MethodInvocation assertion = (J.MethodInvocation) st;
@@ -159,8 +158,7 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
 
                     collapsed = assertion.getPadding().withSelect(JRightPadded
                             .build((Expression) newSelect.withPrefix(Space.EMPTY))
-                            .withAfter(indentedNewline.withComments(ListUtils.map(st.getPrefix().getComments(),
-                                    c -> c.withSuffix(indentedNewline.getLastWhitespace())))));
+                            .withAfter(Space.build(chainedIndent, ListUtils.map(st.getPrefix().getComments(), c -> c.withSuffix(chainedIndent)))));
                 }
                 return requireNonNull(collapsed).withPrefix(originalPrefix.withComments(emptyList()));
             }
