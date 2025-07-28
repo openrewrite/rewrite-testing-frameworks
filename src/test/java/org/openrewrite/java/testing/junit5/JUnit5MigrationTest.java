@@ -56,40 +56,42 @@ class JUnit5MigrationTest implements RewriteTest {
           spec -> spec
             .parser(JavaParser.fromJavaVersion()
               .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3")),
-          //language=java
-          java(
-            """
-              import org.junit.Assert;
-              import org.junit.Test;
-
-              import static java.util.Arrays.asList;
-              import static org.hamcrest.Matchers.containsInAnyOrder;
-
-              public class SampleTest {
-                  @SuppressWarnings("ALL")
-                  @Test
-                  public void filterShouldRemoveUnusedConfig() {
-                      Assert.assertThat(asList("1", "2", "3"),
-                              containsInAnyOrder("3", "2", "1"));
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              import static java.util.Arrays.asList;
-              import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.hamcrest.Matchers.containsInAnyOrder;
-
-              public class SampleTest {
-                  @SuppressWarnings("ALL")
-                  @Test
-                  public void filterShouldRemoveUnusedConfig() {
-                      assertThat(asList("1", "2", "3"),
-                              containsInAnyOrder("3", "2", "1"));
-                  }
-              }
+          mavenProject("project",
+            //language=java
+            java(
               """
+                import org.junit.Assert;
+                import org.junit.Test;
+
+                import static java.util.Arrays.asList;
+                import static org.hamcrest.Matchers.containsInAnyOrder;
+
+                public class SampleTest {
+                    @SuppressWarnings("ALL")
+                    @Test
+                    public void filterShouldRemoveUnusedConfig() {
+                        Assert.assertThat(asList("1", "2", "3"),
+                                containsInAnyOrder("3", "2", "1"));
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+
+                import static java.util.Arrays.asList;
+                import static org.hamcrest.MatcherAssert.assertThat;
+                import static org.hamcrest.Matchers.containsInAnyOrder;
+
+                public class SampleTest {
+                    @SuppressWarnings("ALL")
+                    @Test
+                    public void filterShouldRemoveUnusedConfig() {
+                        assertThat(asList("1", "2", "3"),
+                                containsInAnyOrder("3", "2", "1"));
+                    }
+                }
+                """
+            )
           )
         );
     }
@@ -98,26 +100,28 @@ class JUnit5MigrationTest implements RewriteTest {
     @Test
     void classReference() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.Test;
-
-              public class Sample {
-                  void method() {
-                      Class<Test> c = Test.class;
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              public class Sample {
-                  void method() {
-                      Class<Test> c = Test.class;
-                  }
-              }
+          mavenProject("project",
+            //language=java
+            java(
               """
+                import org.junit.Test;
+
+                public class Sample {
+                    void method() {
+                        Class<Test> c = Test.class;
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+
+                public class Sample {
+                    void method() {
+                        Class<Test> c = Test.class;
+                    }
+                }
+                """
+            )
           )
         );
     }
@@ -126,34 +130,36 @@ class JUnit5MigrationTest implements RewriteTest {
     @Test
     void upgradeMavenPluginVersions() {
         rewriteRun(
-          pomXml(
-            //language=xml
-            """
-              <project>
+          mavenProject("project",
+            pomXml(
+              //language=xml
+              """
+                <project>
                   <modelVersion>4.0.0</modelVersion>
                   <groupId>com.example.jackson</groupId>
                   <artifactId>test-plugins</artifactId>
                   <version>1.0.0</version>
                   <build>
-                      <plugins>
-                          <plugin>
-                              <groupId>org.apache.maven.plugins</groupId>
-                              <artifactId>maven-surefire-plugin</artifactId>
-                              <version>2.20.1</version>
-                          </plugin>
-                          <plugin>
-                              <groupId>org.apache.maven.plugins</groupId>
-                              <artifactId>maven-failsafe-plugin</artifactId>
-                              <version>2.20.1</version>
-                          </plugin>
-                      </plugins>
+                    <plugins>
+                      <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.20.1</version>
+                      </plugin>
+                      <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>2.20.1</version>
+                      </plugin>
+                    </plugins>
                   </build>
-              </project>
-              """,
-            spec -> spec.after(actual -> {
-                assertThat(Pattern.compile("<version>3\\.(.*)</version>").matcher(actual).results().toList()).hasSize(2);
-                return actual;
-            })
+                </project>
+                """,
+              spec -> spec.after(actual -> {
+                  assertThat(Pattern.compile("<version>3\\.(.*)</version>").matcher(actual).results().toList()).hasSize(2);
+                  return actual;
+              })
+            )
           )
         );
     }
@@ -164,65 +170,67 @@ class JUnit5MigrationTest implements RewriteTest {
         // In practice, this would probably just break it, I assume.
         //language=xml
         rewriteRun(
-          pomXml(
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <parent>
-                      <groupId>org.springframework.boot</groupId>
-                      <artifactId>spring-boot-starter-parent</artifactId>
-                      <version>3.2.1</version>
-                      <relativePath/> <!-- lookup parent from repository -->
-                  </parent>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>needs-exclusion</artifactId>
-                  <version>0.0.1</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.springframework.boot</groupId>
-                          <artifactId>spring-boot-starter</artifactId>
-                      </dependency>
-                      <dependency>
-                          <groupId>com.typesafe.play</groupId>
-                          <artifactId>play-test_2.13</artifactId>
-                          <version>2.9.6</version>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-              </project>
-              """,
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <parent>
-                      <groupId>org.springframework.boot</groupId>
-                      <artifactId>spring-boot-starter-parent</artifactId>
-                      <version>3.2.1</version>
-                      <relativePath/> <!-- lookup parent from repository -->
-                  </parent>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>needs-exclusion</artifactId>
-                  <version>0.0.1</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.springframework.boot</groupId>
-                          <artifactId>spring-boot-starter</artifactId>
-                      </dependency>
-                      <dependency>
-                          <groupId>com.typesafe.play</groupId>
-                          <artifactId>play-test_2.13</artifactId>
-                          <version>2.9.6</version>
-                          <scope>test</scope>
-                          <exclusions>
-                              <exclusion>
-                                  <groupId>junit</groupId>
-                                  <artifactId>junit</artifactId>
-                              </exclusion>
-                          </exclusions>
-                      </dependency>
-                  </dependencies>
-              </project>
+          mavenProject("project",
+            pomXml(
               """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-parent</artifactId>
+                        <version>3.2.1</version>
+                        <relativePath/> <!-- lookup parent from repository -->
+                    </parent>
+                    <groupId>dev.ted</groupId>
+                    <artifactId>needs-exclusion</artifactId>
+                    <version>0.0.1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-starter</artifactId>
+                        </dependency>
+                        <dependency>
+                            <groupId>com.typesafe.play</groupId>
+                            <artifactId>play-test_2.13</artifactId>
+                            <version>2.9.6</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-parent</artifactId>
+                        <version>3.2.1</version>
+                        <relativePath/> <!-- lookup parent from repository -->
+                    </parent>
+                    <groupId>dev.ted</groupId>
+                    <artifactId>needs-exclusion</artifactId>
+                    <version>0.0.1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-starter</artifactId>
+                        </dependency>
+                        <dependency>
+                            <groupId>com.typesafe.play</groupId>
+                            <artifactId>play-test_2.13</artifactId>
+                            <version>2.9.6</version>
+                            <scope>test</scope>
+                            <exclusions>
+                                <exclusion>
+                                    <groupId>junit</groupId>
+                                    <artifactId>junit</artifactId>
+                                </exclusion>
+                            </exclusions>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
           )
         );
     }
@@ -232,23 +240,25 @@ class JUnit5MigrationTest implements RewriteTest {
     void dontExcludeJunit4DependencyFromTestcontainers() {
         //language=xml
         rewriteRun(
-          pomXml(
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example.jackson</groupId>
-                  <artifactId>test-plugins</artifactId>
-                  <version>1.0.0</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.testcontainers</groupId>
-                          <artifactId>testcontainers</artifactId>
-                          <version>1.18.3</version>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-              </project>
+          mavenProject("project",
+            pomXml(
               """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example.jackson</groupId>
+                    <artifactId>test-plugins</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.testcontainers</groupId>
+                            <artifactId>testcontainers</artifactId>
+                            <version>1.18.3</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
           )
         );
     }
@@ -258,23 +268,25 @@ class JUnit5MigrationTest implements RewriteTest {
     void dontExcludeJunit4DependencyFromTestcontainersJupiter() {
         //language=xml
         rewriteRun(
-          pomXml(
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example.jackson</groupId>
-                  <artifactId>test-plugins</artifactId>
-                  <version>1.0.0</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.testcontainers</groupId>
-                          <artifactId>junit-jupiter</artifactId>
-                          <version>1.18.3</version>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-              </project>
+          mavenProject("project",
+            pomXml(
               """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example.jackson</groupId>
+                    <artifactId>test-plugins</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.testcontainers</groupId>
+                            <artifactId>junit-jupiter</artifactId>
+                            <version>1.18.3</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
           )
         );
     }
@@ -283,43 +295,45 @@ class JUnit5MigrationTest implements RewriteTest {
     @Test
     void dontExcludeJunit4DependencyFromSpringBootTestcontainers() {
         rewriteRun(
-          //language=xml
-          pomXml(
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <parent>
-                      <groupId>org.springframework.boot</groupId>
-                      <artifactId>spring-boot-starter-parent</artifactId>
-                      <version>3.2.1</version>
-                      <relativePath/> <!-- lookup parent from repository -->
-                  </parent>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>testcontainer-migrate</artifactId>
-                  <version>0.0.1</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.springframework.boot</groupId>
-                          <artifactId>spring-boot-starter</artifactId>
-                      </dependency>
-                      <dependency>
-                          <groupId>org.springframework.boot</groupId>
-                          <artifactId>spring-boot-starter-test</artifactId>
-                          <scope>test</scope>
-                      </dependency>
-                      <dependency>
-                          <groupId>org.springframework.boot</groupId>
-                          <artifactId>spring-boot-testcontainers</artifactId>
-                          <scope>test</scope>
-                      </dependency>
-                      <dependency>
-                          <groupId>org.testcontainers</groupId>
-                          <artifactId>junit-jupiter</artifactId>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-              </project>
+          mavenProject("project",
+            //language=xml
+            pomXml(
               """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-parent</artifactId>
+                        <version>3.2.1</version>
+                        <relativePath/> <!-- lookup parent from repository -->
+                    </parent>
+                    <groupId>dev.ted</groupId>
+                    <artifactId>testcontainer-migrate</artifactId>
+                    <version>0.0.1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-starter</artifactId>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-starter-test</artifactId>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-testcontainers</artifactId>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.testcontainers</groupId>
+                            <artifactId>junit-jupiter</artifactId>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
           )
         );
     }
@@ -330,26 +344,28 @@ class JUnit5MigrationTest implements RewriteTest {
     @Test
     void assertEqualsWithArrayArgumentToAssertArrayEquals() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.Assert;
-
-              class MyTest {
-                  void test() {
-                       Assert.assertEquals(new Object[1], new Object[1]);
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Assertions;
-
-              class MyTest {
-                  void test() {
-                       Assertions.assertArrayEquals(new Object[1], new Object[1]);
-                  }
-              }
+          mavenProject("project",
+            //language=java
+            java(
               """
+                import org.junit.Assert;
+
+                class MyTest {
+                    void test() {
+                         Assert.assertEquals(new Object[1], new Object[1]);
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Assertions;
+
+                class MyTest {
+                    void test() {
+                         Assertions.assertArrayEquals(new Object[1], new Object[1]);
+                    }
+                }
+                """
+            )
           )
         );
     }
@@ -359,78 +375,82 @@ class JUnit5MigrationTest implements RewriteTest {
     void migrateInheritedTestBeforeAfterAnnotations() {
         //language=java
         rewriteRun(
-          java(
-            """
-              import org.junit.After;
-              import org.junit.Before;
-              import org.junit.Test;
-
-              public class AbstractTest {
-                  @Before
-                  public void before() {
-                  }
-
-                  @After
-                  public void after() {
-                  }
-
-                  @Test
-                  public void test() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.AfterEach;
-              import org.junit.jupiter.api.BeforeEach;
-              import org.junit.jupiter.api.Test;
-
-              public class AbstractTest {
-                  @BeforeEach
-                  public void before() {
-                  }
-
-                  @AfterEach
-                  public void after() {
-                  }
-
-                  @Test
-                  public void test() {
-                  }
-              }
+          mavenProject("project",
+            java(
               """
+                import org.junit.After;
+                import org.junit.Before;
+                import org.junit.Test;
+
+                public class AbstractTest {
+                    @Before
+                    public void before() {
+                    }
+
+                    @After
+                    public void after() {
+                    }
+
+                    @Test
+                    public void test() {
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.AfterEach;
+                import org.junit.jupiter.api.BeforeEach;
+                import org.junit.jupiter.api.Test;
+
+                public class AbstractTest {
+                    @BeforeEach
+                    public void before() {
+                    }
+
+                    @AfterEach
+                    public void after() {
+                    }
+
+                    @Test
+                    public void test() {
+                    }
+                }
+                """
+            )
           ),
-          java(
-            """
-              public class A extends AbstractTest {
-                  public void before() {
-                  }
-
-                  public void after() {
-                  }
-
-                  public void test() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.AfterEach;
-              import org.junit.jupiter.api.BeforeEach;
-              import org.junit.jupiter.api.Test;
-
-              public class A extends AbstractTest {
-                  @BeforeEach
-                  public void before() {
-                  }
-
-                  @AfterEach
-                  public void after() {
-                  }
-
-                  @Test
-                  public void test() {
-                  }
-              }
+          mavenProject("project",
+            java(
               """
+                public class A extends AbstractTest {
+                    public void before() {
+                    }
+
+                    public void after() {
+                    }
+
+                    public void test() {
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.AfterEach;
+                import org.junit.jupiter.api.BeforeEach;
+                import org.junit.jupiter.api.Test;
+
+                public class A extends AbstractTest {
+                    @BeforeEach
+                    public void before() {
+                    }
+
+                    @AfterEach
+                    public void after() {
+                    }
+
+                    @Test
+                    public void test() {
+                    }
+                }
+                """
+            )
           )
         );
     }
@@ -439,41 +459,45 @@ class JUnit5MigrationTest implements RewriteTest {
     void noJunitDependencyIfApiAlreadyPresent() {
         rewriteRun(
           spec -> spec.beforeRecipe(withToolingApi()),
-          //language=groovy
-          buildGradle(
-            """
-              plugins {
-                  id 'java-library'
-              }
-              repositories {
-                  mavenCentral()
-              }
-              dependencies {
-                  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
-              }
-              tasks.withType(Test).configureEach {
-                  useJUnitPlatform()
-              }
+          mavenProject("project",
+            //language=groovy
+            buildGradle(
               """
+                plugins {
+                    id 'java-library'
+                }
+                repositories {
+                    mavenCentral()
+                }
+                dependencies {
+                    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+                }
+                tasks.withType(Test).configureEach {
+                    useJUnitPlatform()
+                }
+                """
+            )
           ),
-          //language=xml
-          pomXml(
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>testcontainer-migrate</artifactId>
-                  <version>0.0.1</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.junit.jupiter</groupId>
-                          <artifactId>junit-jupiter-api</artifactId>
-                          <version>5.7.2</version>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-              </project>
+          mavenProject("project",
+            //language=xml
+            pomXml(
               """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>dev.ted</groupId>
+                    <artifactId>testcontainer-migrate</artifactId>
+                    <version>0.0.1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter-api</artifactId>
+                            <version>5.7.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
           )
         );
     }
@@ -482,42 +506,44 @@ class JUnit5MigrationTest implements RewriteTest {
     void bumpSurefireOnOlderMavenVersions() {
         rewriteRun(
           spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin"),
-          pomXml(
-            //language=xml
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>testcontainer-migrate</artifactId>
-                  <version>0.0.1</version>
-              </project>
-              """,
-            //language=xml
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>testcontainer-migrate</artifactId>
-                  <version>0.0.1</version>
-                  <build>
-                      <plugins>
-                          <plugin>
-                              <groupId>org.apache.maven.plugins</groupId>
-                              <artifactId>maven-surefire-plugin</artifactId>
-                              <version>3.2.5</version>
-                              <dependencies>
-                                  <dependency>
-                                      <groupId>org.junit.platform</groupId>
-                                      <artifactId>junit-platform-surefire-provider</artifactId>
-                                      <version>1.1.0</version>
-                                  </dependency>
-                              </dependencies>
-                          </plugin>
-                      </plugins>
-                  </build>
-              </project>
-              """,
-            spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.4"))
+          mavenProject("project",
+            pomXml(
+              //language=xml
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>dev.ted</groupId>
+                    <artifactId>testcontainer-migrate</artifactId>
+                    <version>0.0.1</version>
+                </project>
+                """,
+              //language=xml
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>dev.ted</groupId>
+                    <artifactId>testcontainer-migrate</artifactId>
+                    <version>0.0.1</version>
+                    <build>
+                        <plugins>
+                            <plugin>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-surefire-plugin</artifactId>
+                                <version>3.2.5</version>
+                                <dependencies>
+                                    <dependency>
+                                        <groupId>org.junit.platform</groupId>
+                                        <artifactId>junit-platform-surefire-provider</artifactId>
+                                        <version>1.1.0</version>
+                                    </dependency>
+                                </dependencies>
+                            </plugin>
+                        </plugins>
+                    </build>
+                </project>
+                """,
+              spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.4"))
+            )
           )
         );
     }
@@ -655,6 +681,37 @@ class JUnit5MigrationTest implements RewriteTest {
             );
         }
 
+//        @Test
+//        void blah() {
+//            rewriteRun(
+//              spec -> spec.recipe(new DoesNotUseType("org.testng..*", true)),
+//              //language=xml
+//              pomXml(
+//                """
+//                  <project>
+//                    <modelVersion>4.0.0</modelVersion>
+//                    <groupId>dev.ted</groupId>
+//                    <artifactId>testcontainer-migrate</artifactId>
+//                    <version>0.0.1</version>
+//                    <dependencies>
+//                      <dependency>
+//                        <groupId>junit</groupId>
+//                        <artifactId>junit</artifactId>
+//                        <version>4.12</version>
+//                        <scope>test</scope>
+//                      </dependency>
+//                      <dependency>
+//                        <groupId>org.testng</groupId>
+//                        <artifactId>testng</artifactId>
+//                        <version>7.8.0</version>
+//                      </dependency>
+//                    </dependencies>
+//                  </project>
+//                """
+//              )
+//            );
+//        }
+
         @Test
         void noChangesIfTestNgMavenDependencyIncluded() {
             rewriteRun(
@@ -706,18 +763,20 @@ class JUnit5MigrationTest implements RewriteTest {
               spec -> spec
                 .parser(JavaParser.fromJavaVersion()
                   .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "testng")),
-              //language=java
-              java(
-                """
-                  import org.junit.Ignore;
-                  import org.testng.annotations.Test;
-
-                  class ExampleClass {
-                      @Ignore
-                      @Test
-                      public void testMethod() {}
-                  }
+              mavenProject("project",
+                //language=java
+                java(
                   """
+                    import org.junit.Ignore;
+                    import org.testng.annotations.Test;
+
+                    class ExampleClass {
+                        @Ignore
+                        @Test
+                        public void testMethod() {}
+                    }
+                    """
+                )
               )
             );
         }

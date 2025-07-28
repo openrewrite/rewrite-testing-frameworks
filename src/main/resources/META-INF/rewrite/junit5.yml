@@ -58,12 +58,7 @@ tags:
   - testing
   - junit
 preconditions:
-  - org.openrewrite.java.search.DoesNotUseType:
-      fullyQualifiedTypeName: org.testng..*
-      includeImplicit: true
-  - org.openrewrite.java.dependencies.search.DoesNotIncludeDependency:
-      groupId: org.testng
-      artifactId: testng*
+  - org.openrewrite.java.testing.junit5.TestNgGuard
 recipeList:
   - org.openrewrite.java.testing.junit5.EnvironmentVariables
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
