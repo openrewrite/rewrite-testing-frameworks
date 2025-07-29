@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.testng;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.TreeVisitingPrinter;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -52,16 +53,23 @@ class TestNgToAssertJTest implements RewriteTest {
               }
               """,
             """
+              import org.assertj.core.api.Assertions;
+
               import static org.assertj.core.api.Assertions.fail;
 
               class Test {
                   void test() {
-                      fail("foo");
+                      Assertions.fail("foo");
                       fail("foo", new IllegalStateException());
-                      fail();
+                      Assertions.fail();
                   }
               }
-              """
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                String s = TreeVisitingPrinter.printTree(cu);
+                System.out.println(s);
+                System.out.println(s);
+            })
           )
         );
     }

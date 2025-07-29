@@ -127,8 +127,8 @@ public class TestNgGuard extends ScanningRecipe<TestNgGuard.Accumulator> {
             @Override
             public Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
                 assert tree != null;
-                boolean isLooseDesirable = acc.getLooseDesirables().contains((SourceFile) tree);
-                boolean isLooseUndesirable = acc.getLooseUndesirables().contains((SourceFile) tree);
+                boolean isLooseDesirable = acc.looseDesirables.contains((SourceFile) tree);
+                boolean isLooseUndesirable = acc.looseUndesirables.contains((SourceFile) tree);
                 Optional<JavaProject> maybeJp = tree.getMarkers().findFirst(JavaProject.class);
                 if (!maybeJp.isPresent()) {
                     // if has TestNG or didn't scan
@@ -138,10 +138,10 @@ public class TestNgGuard extends ScanningRecipe<TestNgGuard.Accumulator> {
                     return SearchResult.found(tree);
                 }
                 JavaProject jp = maybeJp.get();
-                boolean noTestNgDep = acc.getProjectsWithoutTestNgDependency().contains(jp);
-                boolean noTestNgUsage = acc.getProjectsWithoutTestNgTypeUsage().contains(jp);
-                boolean testNgDep = acc.getProjectsWithTestNgDependency().contains(jp);
-                boolean testNgUsage = acc.getProjectsWithTestNgTypeUsage().contains(jp);
+                boolean noTestNgDep = acc.projectsWithoutTestNgDependency.contains(jp);
+                boolean noTestNgUsage = acc.projectsWithoutTestNgTypeUsage.contains(jp);
+                boolean testNgDep = acc.projectsWithTestNgDependency.contains(jp);
+                boolean testNgUsage = acc.projectsWithTestNgTypeUsage.contains(jp);
                 // if any TestNG, break
                 if (testNgUsage || testNgDep) {
                     return tree;
@@ -150,8 +150,8 @@ public class TestNgGuard extends ScanningRecipe<TestNgGuard.Accumulator> {
                 if (!noTestNgDep && !noTestNgUsage) {
                     return tree;
                 }
-                boolean depFreeOrVacuous = noTestNgDep || acc.getProjectsWithoutTestNgDependency().isEmpty();
-                boolean usageFreeOrVacuous = noTestNgUsage || acc.getProjectsWithoutTestNgTypeUsage().isEmpty();
+                boolean depFreeOrVacuous = noTestNgDep || acc.projectsWithoutTestNgDependency.isEmpty();
+                boolean usageFreeOrVacuous = noTestNgUsage || acc.projectsWithoutTestNgTypeUsage.isEmpty();
                 if (depFreeOrVacuous && usageFreeOrVacuous) {
                     return SearchResult.found(tree);
                 }
