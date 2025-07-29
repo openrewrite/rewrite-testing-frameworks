@@ -25,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.*;
-import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class TestNgGuardTest implements RewriteTest {
