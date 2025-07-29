@@ -270,4 +270,123 @@ class TestNgGuardTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void whenTestNgLooseFilesDoesNotMark() {
+        rewriteRun(
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.3'
+                  testImplementation 'org.testng:testng:7.8.0'
+              }
+              """
+          ),
+          //language=xml
+          pomXml(
+            """
+              <project>
+                  <groupId>com.example</groupId>
+                  <artifactId>project-maven</artifactId>
+                  <version>0.0.1</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.junit.jupiter</groupId>
+                          <artifactId>junit-jupiter-api</artifactId>
+                          <version>5.13.3</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.testng</groupId>
+                          <artifactId>testng</artifactId>
+                          <version>7.8.0</version>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.testng.annotations.Test;
+
+              class ExampleClassTest {
+                  @Test
+                  public void testMethod() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenNoTestNgLooseFilesMarks() {
+        rewriteRun(
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.3'
+              }
+              """,
+            spec -> spec.after(actual ->
+              assertThat(actual)
+                .startsWith(GradleMarker)
+                .actual()
+            )
+          ),
+          //language=xml
+          pomXml(
+            """
+              <project>
+                  <groupId>com.example</groupId>
+                  <artifactId>project-maven</artifactId>
+                  <version>0.0.1</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.junit.jupiter</groupId>
+                          <artifactId>junit-jupiter-api</artifactId>
+                          <version>5.13.3</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """,
+            spec -> spec.after(actual ->
+              assertThat(actual)
+                .startsWith(MavenMarker)
+                .actual()
+            )
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class ExampleClassTest {
+                  @Test
+                  public void testMethod() {}
+              }
+              """,
+            spec -> spec.after(actual ->
+              assertThat(actual)
+                .startsWith(JavaMarker)
+                .actual()
+            )
+          )
+        );
+    }
 }

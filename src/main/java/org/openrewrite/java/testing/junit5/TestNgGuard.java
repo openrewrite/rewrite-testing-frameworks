@@ -45,11 +45,20 @@ public class TestNgGuard extends ScanningRecipe<TestNgGuard.Accumulator> {
         Set<JavaProject> projectsWithoutTestNgTypeUsage;
         Set<JavaProject> projectsWithTestNgDependency;
         Set<JavaProject> projectsWithTestNgTypeUsage;
+        Set<SourceFile> looseUndesirables;
+        Set<SourceFile> looseDesirables;
     }
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
-        return new Accumulator(new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>());
+        return new Accumulator(
+            new HashSet<>(),
+            new HashSet<>(),
+            new HashSet<>(),
+            new HashSet<>(),
+            new HashSet<>(),
+            new HashSet<>()
+        );
     }
 
     @Override
@@ -67,18 +76,36 @@ public class TestNgGuard extends ScanningRecipe<TestNgGuard.Accumulator> {
                 SourceFile s = (SourceFile) tree;
                 if (dnid.isAcceptable(s, ctx)) {
                     Tree after = dnid.visit(tree, ctx);
+                    Optional<JavaProject> maybeProject = tree.getMarkers().findFirst(JavaProject.class);
                     if (after != tree) {
-                        tree.getMarkers().findFirst(JavaProject.class).ifPresent(acc.projectsWithoutTestNgDependency::add);
+                        if (maybeProject.isPresent()) {
+                            acc.projectsWithoutTestNgDependency.add(maybeProject.get());
+                        } else {
+                            acc.looseDesirables.add(s);
+                        }
                     } else {
-                        tree.getMarkers().findFirst(JavaProject.class).ifPresent(acc.projectsWithTestNgDependency::add);
+                        if (maybeProject.isPresent()) {
+                            acc.projectsWithTestNgDependency.add(maybeProject.get());
+                        } else {
+                            acc.looseUndesirables.add(s);
+                        }
                     }
                 } else if (ut.isAcceptable(s, ctx)) {
                     Tree after = ut.visit(tree, ctx);
+                    Optional<JavaProject> maybeProject = tree.getMarkers().findFirst(JavaProject.class);
                     // Note: Uses `UsesType` for inverted checking because `DoesNotUseType` will mark non Java-code files as well
                     if (after == tree) {
-                        tree.getMarkers().findFirst(JavaProject.class).ifPresent(acc.projectsWithoutTestNgTypeUsage::add);
+                        if (maybeProject.isPresent()) {
+                            acc.projectsWithoutTestNgTypeUsage.add(maybeProject.get());
+                        } else {
+                            acc.looseDesirables.add(s);
+                        }
                     } else {
-                        tree.getMarkers().findFirst(JavaProject.class).ifPresent(acc.projectsWithTestNgTypeUsage::add);
+                        if (maybeProject.isPresent()) {
+                            acc.projectsWithTestNgTypeUsage.add(maybeProject.get());
+                        } else {
+                            acc.looseUndesirables.add(s);
+                        }
                     }
                 }
                 return tree;
@@ -100,9 +127,15 @@ public class TestNgGuard extends ScanningRecipe<TestNgGuard.Accumulator> {
             @Override
             public Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
                 assert tree != null;
+                boolean isLooseDesirable = acc.getLooseDesirables().contains((SourceFile) tree);
+                boolean isLooseUndesirable = acc.getLooseUndesirables().contains((SourceFile) tree);
                 Optional<JavaProject> maybeJp = tree.getMarkers().findFirst(JavaProject.class);
                 if (!maybeJp.isPresent()) {
-                    return tree;
+                    // if has TestNG or didn't scan
+                    if (isLooseUndesirable || !isLooseDesirable) {
+                        return tree;
+                    }
+                    return SearchResult.found(tree);
                 }
                 JavaProject jp = maybeJp.get();
                 boolean noTestNgDep = acc.getProjectsWithoutTestNgDependency().contains(jp);
