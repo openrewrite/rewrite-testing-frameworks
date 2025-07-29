@@ -177,8 +177,8 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
         );
     }
 
-    @Issue("https://github.com/openrewrite/rewrite/issues/150")
     @Disabled
+    @Issue("https://github.com/openrewrite/rewrite/issues/150")
     @Test
     void convertsToPackageVisibility() {
         //language=java
@@ -209,8 +209,8 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/59")
+    @Test
     void retainPublicModifierOnOverriddenMethod() {
         //language=java
         rewriteRun(

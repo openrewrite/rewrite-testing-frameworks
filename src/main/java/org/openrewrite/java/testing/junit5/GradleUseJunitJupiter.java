@@ -114,7 +114,10 @@ public class GradleUseJunitJupiter extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, AtomicBoolean found) {
                 // Groovy gradle scripts being weakly type-attributed means we will miss likely-correct changes if we are too strict
-                if ("useJUnitPlatform".equals(m.getSimpleName()) && (m.getArguments().isEmpty() || m.getArguments().size() == 1 && m.getArguments().get(0) instanceof J.Empty)) {
+                if ("useJUnitPlatform".equals(m.getSimpleName()) &&
+                    (m.getArguments().isEmpty() ||
+                     m.getArguments().size() == 1 &&
+                     (m.getArguments().get(0) instanceof J.Empty || m.getArguments().get(0) instanceof J.Lambda))) {
                     found.set(true);
                     return m;
                 }

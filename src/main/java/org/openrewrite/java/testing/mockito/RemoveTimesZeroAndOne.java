@@ -36,7 +36,7 @@ public class RemoveTimesZeroAndOne extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Remove `Mockito.times(0)` and `Mockito.times(0)` from `Mockito.verify()` calls.";
+        return "Remove `Mockito.times(0)` and `Mockito.times(1)` from `Mockito.verify()` calls.";
     }
 
     private static final MethodMatcher verifyMatcher = new MethodMatcher("org.mockito.Mockito verify(..)", false);

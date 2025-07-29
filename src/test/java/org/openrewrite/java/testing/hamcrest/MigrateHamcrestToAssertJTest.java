@@ -56,8 +56,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
             .activateRecipes("org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ"));
     }
 
-    @Test
     @DocumentExample
+    @Test
     void isEqualTo() {
         //language=java
         rewriteRun(
@@ -117,7 +117,6 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
     }
 
     @Test
-    @DocumentExample
     void allOfStringMatchersAndConvert() {
         rewriteRun(
           //language=java
@@ -161,7 +160,6 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
     }
 
     @Test
-    @DocumentExample
     void convertAnyOfMatchersAfterSatisfiesAnyOfConversion() {
         rewriteRun(
           //language=java
@@ -214,8 +212,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
     @MethodSource("arrayReplacements")
+    @ParameterizedTest
     void arrayReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
@@ -272,8 +270,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
     @MethodSource("stringReplacements")
+    @ParameterizedTest
     void stringReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
@@ -311,8 +309,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
     @MethodSource("objectReplacements")
+    @ParameterizedTest
     void objectReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
@@ -359,8 +357,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
     @MethodSource("numberReplacements")
+    @ParameterizedTest
     void numberReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
@@ -400,8 +398,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
     @MethodSource("listReplacements")
+    @ParameterizedTest
     void listReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
@@ -437,8 +435,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
     @MethodSource("mapReplacements")
+    @ParameterizedTest
     void mapReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
@@ -486,8 +484,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
     @MethodSource("notReplacements")
+    @ParameterizedTest
     void notReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
@@ -638,8 +636,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
 
     @Nested
     class Issues {
-        @Test
         @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/468")
+        @Test
         void comparesEqualToBigDecimals() {
             //language=java
             rewriteRun(
@@ -685,8 +683,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         }
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/497")
+    @Test
     void isMatcherFromCore() {
         rewriteRun(
           //language=java
@@ -730,8 +728,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/519")
+    @Test
     void isEqualMatcherFromCore() {
         rewriteRun(
           //language=java
@@ -771,8 +769,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/538")
+    @Test
     void collectionMatchers() {
         //language=java
         rewriteRun(
@@ -804,6 +802,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/526")
     @ParameterizedTest
     @ValueSource(
       strings = {
@@ -811,7 +810,6 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         "java.time.Instant"
       }
     )
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/526")
     void greaterThanOrEqualToDate(String type) {
         rewriteRun(
           java(

@@ -23,6 +23,7 @@ recipeDependencies {
     parserClasspath("org.mockito:mockito-all:1.10.19")
     parserClasspath("org.mockito:mockito-core:3.+")
     parserClasspath("org.mockito:mockito-core:5.+")
+    parserClasspath("org.mockito:mockito-junit-jupiter:2.+")
     parserClasspath("org.mockito:mockito-junit-jupiter:3.+")
     parserClasspath("org.mockito:mockito-junit-jupiter:5.+")
     parserClasspath("org.powermock:powermock-api-mockito:1.6.5")
@@ -39,16 +40,16 @@ recipeDependencies {
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 dependencies {
-    implementation(platform("org.openrewrite:rewrite-bom:$rewriteVersion"))
+    implementation(platform("org.openrewrite:rewrite-bom:${rewriteVersion}"))
     implementation("org.openrewrite:rewrite-java")
     implementation("org.openrewrite:rewrite-gradle")
     implementation("org.openrewrite:rewrite-maven")
-    implementation("org.openrewrite.recipe:rewrite-java-dependencies:$rewriteVersion")
-    implementation("org.openrewrite.recipe:rewrite-static-analysis:$rewriteVersion")
+    implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
+    implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
-    runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:latest.release:recipes")
-    compileOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:${rewriteVersion}:recipes")
+    compileOnly("org.junit.jupiter:junit-jupiter-engine:5.13.3")
     compileOnly("org.assertj:assertj-core:3.+")
 
     compileOnly("org.projectlombok:lombok:latest.release")
@@ -58,7 +59,7 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-groovy")
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-kotlin")
-    testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
+    testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
 
     annotationProcessor("org.openrewrite:rewrite-templating:${rewriteVersion}")
     implementation("org.openrewrite:rewrite-templating:${rewriteVersion}")
@@ -78,7 +79,7 @@ dependencies {
     }
     testRuntimeOnly("org.easymock:easymock:latest.release")
     testRuntimeOnly("org.jboss.arquillian.junit:arquillian-junit-core:latest.release")
-    testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:latest.release")
+    testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testRuntimeOnly("org.testcontainers:testcontainers:latest.release")
     testRuntimeOnly("org.testcontainers:nginx:latest.release")
     testRuntimeOnly("org.testng:testng:latest.release")

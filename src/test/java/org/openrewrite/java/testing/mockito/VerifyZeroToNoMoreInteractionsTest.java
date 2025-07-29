@@ -54,8 +54,8 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
           .recipe(new VerifyZeroToNoMoreInteractions());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void shouldReplaceToNoMoreInteractions() {
         //language=java
         rewriteRun(

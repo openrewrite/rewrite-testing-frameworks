@@ -251,8 +251,8 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/504")
+    @Test
     void stringVariableArgument() {
         //language=java
         rewriteRun(

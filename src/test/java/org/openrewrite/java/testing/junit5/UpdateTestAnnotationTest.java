@@ -311,8 +311,8 @@ class UpdateTestAnnotationTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/450")
+    @Test
     void annotationWithTimeout() {
         //language=java
         rewriteRun(
@@ -584,8 +584,65 @@ class UpdateTestAnnotationTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/754")
     @Test
+    void preserveThrowsClauseForOtherExceptions() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import java.io.IOException;
+
+              public class MyTest {
+
+                  @Test(expected = IllegalArgumentException.class)
+                  public void testWithMultipleThrows() throws IOException, Exception {
+                      foo();
+                      bar();
+                  }
+
+                  void foo() throws IOException {
+                      // might throw IOException
+                  }
+
+                  void bar() throws IllegalArgumentException {
+                      throw new IllegalArgumentException("boom");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.io.IOException;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  @Test
+                  public void testWithMultipleThrows() throws IOException, Exception {
+                      assertThrows(IllegalArgumentException.class, () -> {
+                          foo();
+                          bar();
+                      });
+                  }
+
+                  void foo() throws IOException {
+                      // might throw IOException
+                  }
+
+                  void bar() throws IllegalArgumentException {
+                      throw new IllegalArgumentException("boom");
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/563")
+    @Test
     void removeThrowsCheckedException() {
         //language=java
         rewriteRun(

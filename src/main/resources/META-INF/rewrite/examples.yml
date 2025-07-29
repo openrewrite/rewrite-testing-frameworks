@@ -355,9 +355,6 @@ examples:
               assertThat(listA).hasSize(3);
               assertThat(listA).containsExactly("a", "b", "c");
           }
-          private int[] notification() {
-              return new int[]{1, 2, 3};
-          }
       }
     after: |
       import java.util.Arrays;
@@ -371,9 +368,6 @@ examples:
                       .isNotNull()
                       .hasSize(3)
                       .containsExactly("a", "b", "c");
-          }
-          private int[] notification() {
-              return new int[]{1, 2, 3};
           }
       }
     language: java
@@ -993,7 +987,31 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipe
+recipeName: org.openrewrite.java.testing.cleanup.AssertLiteralBooleanRemovedRecipe
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.junit.jupiter.api.Assertions.assertFalse;
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      class Test {
+          void test() {
+              assertFalse(false, "message");
+              assertTrue(true, "message");
+              assertFalse(false);
+              assertTrue(true);
+          }
+      }
+    after: |
+      class Test {
+          void test() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipes
 examples:
 - description: ''
   sources:
@@ -1003,8 +1021,8 @@ examples:
 
       public class Test {
           void test() {
-              assertFalse(true, "assert false true");
-              assertTrue(false, "assert true false");
+              assertFalse(true, "message");
+              assertTrue(false, "message");
           }
       }
     after: |
@@ -1012,8 +1030,8 @@ examples:
 
       public class Test {
           void test() {
-              fail("assert false true");
-              fail("assert true false");
+              fail("message");
+              fail("message");
           }
       }
     language: java
@@ -1462,7 +1480,7 @@ examples:
           private Dependency dependency2;
 
           @InjectMocks
-          Service service2;
+          Service service2 = new Service();
 
           @Before
           public void setUp() {
@@ -1880,78 +1898,6 @@ examples:
               assertThat(theBiscuit).isEqualTo(myBiscuit);
               assertThat(theBiscuit.getChocolateChipCount()).as("chocolate chips").isEqualTo(10);
               assertThat(theBiscuit.getHazelnutCount()).as("hazelnuts").isEqualTo(3);
-          }
-      }
-    language: java
-- description: ''
-  sources:
-  - before: |
-      import org.junit.jupiter.api.Test;
-
-      import static org.hamcrest.MatcherAssert.assertThat;
-      import static org.hamcrest.Matchers.allOf;
-      import static org.hamcrest.Matchers.equalTo;
-      import static org.hamcrest.Matchers.hasLength;
-
-      class ATest {
-          @Test
-          void test() {
-              String str1 = "Hello world!";
-              String str2 = "Hello world!";
-              assertThat(str1, allOf(equalTo(str2), hasLength(12)));
-          }
-      }
-    after: |
-      import org.junit.jupiter.api.Test;
-
-      import static org.assertj.core.api.Assertions.assertThat;
-
-      class ATest {
-          @Test
-          void test() {
-              String str1 = "Hello world!";
-              String str2 = "Hello world!";
-              assertThat(str1)
-                      .satisfies(
-                              arg -> assertThat(arg).isEqualTo(str2),
-                              arg -> assertThat(arg).hasSize(12)
-                      );
-          }
-      }
-    language: java
-- description: ''
-  sources:
-  - before: |
-      import org.junit.jupiter.api.Test;
-
-      import static org.hamcrest.MatcherAssert.assertThat;
-      import static org.hamcrest.Matchers.anyOf;
-      import static org.hamcrest.Matchers.equalTo;
-      import static org.hamcrest.Matchers.hasLength;
-
-      class ATest {
-          @Test
-          void test() {
-              String str1 = "Hello world!";
-              String str2 = "Hello world!";
-              assertThat(str1, anyOf(equalTo(str2), hasLength(12)));
-          }
-      }
-    after: |
-      import org.junit.jupiter.api.Test;
-
-      import static org.assertj.core.api.Assertions.assertThat;
-
-      class ATest {
-          @Test
-          void test() {
-              String str1 = "Hello world!";
-              String str2 = "Hello world!";
-              assertThat(str1)
-                      .satisfiesAnyOf(
-                              arg -> assertThat(arg).isEqualTo(str2),
-                              arg -> assertThat(arg).hasSize(12)
-                      );
           }
       }
     language: java
@@ -2596,25 +2542,6 @@ examples:
           }
       }
     language: java
-- description: ''
-  sources:
-  - before: |
-      import org.junit.jupiter.api.Assertions;
-
-      public class Test {
-          void method() {
-              Assertions.assertTrue(true);
-          }
-      }
-    after: |
-      import static org.junit.jupiter.api.Assertions.assertTrue;
-
-      public class Test {
-          void method() {
-              assertTrue(true);
-          }
-      }
-    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.JUnitParamsRunnerToParameterized
@@ -2938,6 +2865,29 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.StaticImports
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Assertions;
+
+      public class Test {
+          void method() {
+              Assertions.assertTrue(true);
+          }
+      }
+    after: |
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      public class Test {
+          void method() {
+              assertTrue(true);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.TemporaryFolderToTempDir
 examples:
 - description: ''
@@ -3246,6 +3196,41 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.CloseUnclosedStaticMocks
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static org.mockito.Mockito.mockStatic;
+
+      class TestClass {
+          @Test
+          void test() {
+              mockStatic(A.class);
+              assertEquals(A.getNumber(), 42);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import org.mockito.MockedStatic;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static org.mockito.Mockito.mockStatic;
+
+      class TestClass {
+          @Test
+          void test() {
+              try (MockedStatic<A> mockedStaticA = mockStatic(A.class)) {
+                  assertEquals(A.getNumber(), 42);
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockUtilsToStatic
 examples:
 - description: ''
@@ -3330,6 +3315,141 @@ examples:
           }
       }
     language: java
+- description: ''
+  sources:
+  - before: |
+      plugins {
+          id 'java-library'
+      }
+      repositories {
+          mavenCentral()
+      }
+      dependencies {
+          testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+          testImplementation("org.mockito:mockito-all:1.10.19")
+          testImplementation("org.mockito:mockito-junit-jupiter:2.28.2")
+      }
+      test {
+          useJUnitPlatform()
+      }
+    after: |
+      plugins {
+          id 'java-library'
+      }
+      repositories {
+          mavenCentral()
+      }
+      dependencies {
+          testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+          testImplementation("org.mockito:mockito-core:3.12.4")
+          testImplementation("org.mockito:mockito-junit-jupiter:3.12.4")
+      }
+      test {
+          useJUnitPlatform()
+      }
+    path: build.gradle
+    language: groovy
+  - before: |
+      import org.junit.jupiter.api.BeforeEach;
+      import org.junit.jupiter.api.Test;
+      import org.mockito.Mock;
+
+      import static org.mockito.Matchers.anyListOf;
+      import static org.mockito.Matchers.anyObject;
+      import static org.mockito.Matchers.anyString;
+      import static org.mockito.Mockito.when;
+
+      class MyTest {
+          @Mock
+          Object objectMock;
+
+          private A subject;
+
+          @BeforeEach
+          void setup() {
+              subject = new A();
+          }
+
+          @Test
+          void someTest() {
+              when(subject.someMethod(anyObject(), anyString(), anyListOf(String.class))).thenReturn(false);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.BeforeEach;
+      import org.junit.jupiter.api.Test;
+      import org.mockito.Mock;
+
+      import static org.mockito.ArgumentMatchers.anyList;
+      import static org.mockito.ArgumentMatchers.any;
+      import static org.mockito.ArgumentMatchers.anyString;
+      import static org.mockito.Mockito.when;
+
+      class MyTest {
+          @Mock
+          Object objectMock;
+
+          private A subject;
+
+          @BeforeEach
+          void setup() {
+              subject = new A();
+          }
+
+          @Test
+          void someTest() {
+              when(subject.someMethod(any(), anyString(), anyList())).thenReturn(false);
+          }
+      }
+    language: java
+  - before: |
+      <project>
+        <groupId>org.example</groupId>
+        <artifactId>some-project</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>5.11.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-all</artifactId>
+                <version>1.10.19</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>2.28.2</version>
+            </dependency>
+        </dependencies>
+      </project>
+    after: |
+      <project>
+        <groupId>org.example</groupId>
+        <artifactId>some-project</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>5.11.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>3.12.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>3.12.4</version>
+            </dependency>
+        </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.Mockito1to4Migration
@@ -3512,36 +3632,6 @@ examples:
                   assertEquals(A.getNumber(), -1);
               }
           }
-      }
-    language: java
----
-type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.mockito.NoInitializationForInjectMock
-examples:
-- description: ''
-  sources:
-  - before: |
-      class MyObject {
-          private String someField;
-
-          public MyObject(String someField) {
-              this.someField = someField;
-          }
-      }
-    language: java
-  - before: |
-      import org.mockito.InjectMocks;
-
-      class MyTest {
-          @InjectMocks
-          MyObject myObject = new MyObject("someField");
-      }
-    after: |
-      import org.mockito.InjectMocks;
-
-      class MyTest {
-          @InjectMocks
-          MyObject myObject;
       }
     language: java
 ---
@@ -3729,7 +3819,7 @@ examples:
       import org.testng.annotations.Test;
 
       @PrepareForTest(value = {Calendar.class, Currency.class})
-      public class StaticMethodTest {
+      class StaticMethodTest {
 
           private Calendar calendarMock;
 
@@ -3761,7 +3851,7 @@ examples:
       import org.testng.annotations.BeforeMethod;
       import org.testng.annotations.Test;
 
-      public class StaticMethodTest {
+      class StaticMethodTest {
 
           private MockedStatic<Currency> mockedCurrency;
 

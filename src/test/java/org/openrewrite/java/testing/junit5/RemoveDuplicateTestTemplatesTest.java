@@ -34,9 +34,9 @@ class RemoveDuplicateTestTemplatesTest implements RewriteTest {
           .recipe(new RemoveDuplicateTestTemplates());
     }
 
+    @DocumentExample
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/314")
     @Test
-    @DocumentExample
     void removeDuplicate() {
         //language=java
         rewriteRun(

@@ -35,8 +35,8 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
           .recipe(new HamcrestIsMatcherToAssertJ());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void isMatcher() {
         rewriteRun(
           //language=java

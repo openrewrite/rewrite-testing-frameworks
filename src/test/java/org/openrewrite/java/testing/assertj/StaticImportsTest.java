@@ -80,9 +80,9 @@ class StaticImportsTest implements RewriteTest {
         );
     }
 
+    @Disabled("Requires changes in AssertJ to adopt `assertThatClass` and `assertThatInterface`")
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/664")
     @Test
-    @Disabled("Requires changes in AssertJ to adopt `assertThatClass` and `assertThatInterface`")
     void assertionsForClassTypes() {
         //language=java
         rewriteRun(

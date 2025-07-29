@@ -48,8 +48,8 @@ class AddJupiterDependenciesTest implements RewriteTest {
     }
 
     @DocumentExample
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/585")
+    @Test
     void addToTestScope() {
         rewriteRun(
           mavenProject("project",
@@ -75,8 +75,8 @@ class AddJupiterDependenciesTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/585")
+    @Test
     void addToCompileScope() {
         rewriteRun(
           mavenProject("project",

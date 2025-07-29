@@ -35,8 +35,8 @@ class LifecycleNonPrivateTest implements RewriteTest {
           .recipe(new LifecycleNonPrivate());
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
+    @Test
     void beforeEachPrivate() {
         //language=java
         rewriteRun(
@@ -67,8 +67,8 @@ class LifecycleNonPrivateTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
+    @Test
     void afterAllPrivate() {
         //language=java
         rewriteRun(
@@ -99,8 +99,8 @@ class LifecycleNonPrivateTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/241")
+    @Test
     void beforeEachAfterAllUnchanged() {
         //language=java
         rewriteRun(

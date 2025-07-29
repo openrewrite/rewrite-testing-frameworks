@@ -27,6 +27,7 @@ import org.openrewrite.test.RewriteTest;
 import java.util.List;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class TestsShouldIncludeAssertionsTest implements RewriteTest {
 
@@ -208,8 +209,8 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
         );
     }
 
-    @SuppressWarnings("CodeBlock2Expr")
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/201")
+    @SuppressWarnings("CodeBlock2Expr")
     @Test
     void usesAdditionalAssertion() {
         rewriteRun(
@@ -431,6 +432,24 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
               public class AaTest {
                   @Test
                   public void methodTest() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainKotlinBody() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              class FooTest {
+                  @Test
+                  fun `backtick test method name`() {
+                      println("Not an assertion")
                   }
               }
               """

@@ -33,20 +33,30 @@ recipeList:
   - org.openrewrite.java.testing.testng.TestNgToAssertj
   - org.openrewrite.java.testing.assertj.AdoptAssertJDurationAssertions
   - org.openrewrite.java.testing.assertj.IsEqualToIgnoringMillisToIsCloseToRecipe
-  - org.openrewrite.java.testing.assertj.StaticImports
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
+
   - tech.picnic.errorprone.refasterrules.AssertJBigDecimalRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJBigIntegerRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJBooleanRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJByteRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJCharSequenceRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJComparableRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJDoubleRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJEnumerableRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJDurationRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJFloatRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJInstantRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJIntegerRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJIterableRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJIteratorRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJLongRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJMapRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJNumberRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJObjectRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJOptionalRulesRecipes
+  - tech.picnic.errorprone.refasterrules.AssertJPathRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJPrimitiveRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJShortRulesRecipes
@@ -54,6 +64,7 @@ recipeList:
   - tech.picnic.errorprone.refasterrules.AssertJThrowingCallableRulesRecipes
 
   - org.openrewrite.java.testing.assertj.CollapseConsecutiveAssertThatStatements
+  - org.openrewrite.java.testing.assertj.StaticImports
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -383,6 +394,7 @@ recipeList:
       assertToReplace: isSameAs
       dedicatedAssertion: containsSame
       requiredType: java.util.Optional
+    # Iterator assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: hasNext
       assertToReplace: isTrue
@@ -404,7 +416,6 @@ recipeList:
       assertToReplace: isTrue
       dedicatedAssertion: isEqualTo
       requiredType: java.lang.Object
-
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions

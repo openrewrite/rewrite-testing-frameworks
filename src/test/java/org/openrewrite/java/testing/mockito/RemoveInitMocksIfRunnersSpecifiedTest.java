@@ -32,8 +32,8 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
           .recipe(new RemoveInitMocksIfRunnersSpecified());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void removeInitMocksInJUnit5() {
         rewriteRun(
           //language=java

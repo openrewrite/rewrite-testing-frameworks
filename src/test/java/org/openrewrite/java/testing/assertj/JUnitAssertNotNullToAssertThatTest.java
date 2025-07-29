@@ -243,8 +243,8 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/491")
+    @Test
     void importAddedForCustomArguments() {
         //language=java
         rewriteRun(

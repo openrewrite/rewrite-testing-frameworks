@@ -27,21 +27,42 @@ import static org.junit.jupiter.api.Assertions.*;
         name = "Replace JUnit `assertTrue(false, \"reason\")` and `assertFalse(true, \"reason\")` with `fail(\"reason\")`",
         description = "Using fail is more direct and clear."
 )
+@SuppressWarnings({"DataFlowIssue", "SimplifiableAssertion"})
 public class AssertLiteralBooleanToFail {
 
-    @BeforeTemplate
-    void assertFalseBefore(String message) {
-        assertFalse(true, message);
+    static class WithMessage {
+        @BeforeTemplate
+        void assertFalseBefore(String message) {
+            assertFalse(true, message);
+        }
+
+        @BeforeTemplate
+        void assertTrueBefore(String message) {
+            assertTrue(false, message);
+        }
+
+        @AfterTemplate
+        @UseImportPolicy(STATIC_IMPORT_ALWAYS)
+        void after(String message) {
+            fail(message);
+        }
     }
 
-    @BeforeTemplate
-    void assertTrueBefore(String message) {
-        assertTrue(false, message);
-    }
+    static class WithoutMessage {
+        @BeforeTemplate
+        void assertFalseBefore() {
+            assertFalse(true);
+        }
 
-    @AfterTemplate
-    @UseImportPolicy(value = STATIC_IMPORT_ALWAYS)
-    void after(String message) {
-        fail(message);
+        @BeforeTemplate
+        void assertTrueBefore() {
+            assertTrue(false);
+        }
+
+        @AfterTemplate
+        @UseImportPolicy(STATIC_IMPORT_ALWAYS)
+        void after() {
+            fail();
+        }
     }
 }

@@ -62,8 +62,8 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
         );
     }
 
-    @Test
     @Disabled(".as(reason) is not yet supported")
+    @Test
     void stringIsEmptyDescribedAs() {
         rewriteRun(
           spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty", "java.lang.String")),

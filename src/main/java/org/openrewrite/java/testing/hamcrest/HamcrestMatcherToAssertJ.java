@@ -152,11 +152,10 @@ public class HamcrestMatcherToAssertJ extends Recipe {
                 String str = type instanceof JavaType.Primitive || type.toString().startsWith("java.") ?
                         type.toString().replaceAll("<.*>", "") : "java.lang.Object";
                 return String.format("#{anyArray(%s)}", str);
-            } else {
-                String str = type instanceof JavaType.Primitive || type.toString().startsWith("java.") ?
-                        type.toString().replaceAll("<.*>", "") : "java.lang.Object";
-                return String.format("#{any(%s)}", str);
             }
+            String str = type instanceof JavaType.Primitive || type.toString().startsWith("java.") ?
+                    type.toString().replaceAll("<.*>", "") : "java.lang.Object";
+            return String.format("#{any(%s)}", str);
         }
     }
 }

@@ -34,8 +34,8 @@ class JUnitAssertInstanceOfToAssertThatTest implements RewriteTest {
           .recipe(new JUnitAssertInstanceOfToAssertThat());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void convertsIsInstanceOf() {
         rewriteRun(
           // language=java

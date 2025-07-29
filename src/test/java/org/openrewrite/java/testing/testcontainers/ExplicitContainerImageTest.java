@@ -23,8 +23,8 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 class ExplicitContainerImageTest implements RewriteTest {
-    @Test
     @DocumentExample
+    @Test
     void explicitContainerImage() {
         rewriteRun(
           spec -> spec

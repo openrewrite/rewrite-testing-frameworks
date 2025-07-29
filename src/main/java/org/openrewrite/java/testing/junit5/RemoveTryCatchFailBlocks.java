@@ -93,8 +93,8 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             }
             J.MethodInvocation failCall = (J.MethodInvocation) statement;
             if (!ASSERT_FAIL_NO_ARG.matches(failCall) &&
-                !ASSERT_FAIL_STRING_ARG.matches(failCall) &&
-                !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)) {
+                    !ASSERT_FAIL_STRING_ARG.matches(failCall) &&
+                    !ASSERT_FAIL_THROWABLE_ARG.matches(failCall)) {
                 return try_;
             }
 
@@ -102,13 +102,17 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             Expression failCallArgument = failCall.getArguments().get(0);
             if (failCallArgument instanceof J.Empty) {
                 return replaceWithAssertDoesNotThrowWithoutStringExpression(ctx, try_);
-            } else if (failCallArgument instanceof J.MethodInvocation && GET_MESSAGE_MATCHER.matches(failCallArgument)) {
+            }
+            if (failCallArgument instanceof J.MethodInvocation && GET_MESSAGE_MATCHER.matches(failCallArgument)) {
                 return replaceWithAssertDoesNotThrowWithoutStringExpression(ctx, try_);
-            } else if (failCallArgument instanceof J.Literal) {
+            }
+            if (failCallArgument instanceof J.Literal) {
                 return replaceWithAssertDoesNotThrowWithStringExpression(ctx, try_, failCallArgument);
-            } else if (isException(failCallArgument)) {
+            }
+            if (isException(failCallArgument)) {
                 return replaceWithAssertDoesNotThrowWithoutStringExpression(ctx, try_);
-            } else if (failCallArgument instanceof J.Binary) {
+            }
+            if (failCallArgument instanceof J.Binary) {
                 J.Binary binaryArg = (J.Binary) failCallArgument;
                 Expression left = binaryArg.getLeft();
                 Expression right = binaryArg.getRight();

@@ -71,8 +71,8 @@ class AssertionsArgumentOrderTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/636")
+    @Test
     void junit4AssertEqualsHavingStringArg() {
         rewriteRun(
           //language=java
@@ -111,8 +111,8 @@ class AssertionsArgumentOrderTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/636")
+    @Test
     void junit4AssertEqualsHavingPrimitiveArg() {
         rewriteRun(
           //language=java
@@ -196,8 +196,8 @@ class AssertionsArgumentOrderTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/636")
+    @Test
     void junitAssertNullAndAssertNotNull() {
         rewriteRun(
           //language=java
@@ -291,8 +291,8 @@ class AssertionsArgumentOrderTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/636")
+    @Test
     void junit4AssertSameNotSame() {
         rewriteRun(
           //language=java
@@ -380,8 +380,8 @@ class AssertionsArgumentOrderTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/636")
+    @Test
     void junitAssertArrayEquals() {
         rewriteRun(
           //language=java

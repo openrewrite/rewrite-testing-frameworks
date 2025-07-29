@@ -111,7 +111,8 @@ class SetupStatementsRewriter {
                         spies);
             }
             return isNotMockIdentifier(methodInvocation.getName(), spies);
-        } else if (expectationStatement instanceof J.Assignment) {
+        }
+        if (expectationStatement instanceof J.Assignment) {
             // an assignment to a jmockit reserved field is not a setup statement
             JavaType variableType = getVariableTypeFromAssignment((J.Assignment) expectationStatement);
             return !TypeUtils.isAssignableTo("mockit.Invocations", variableType);

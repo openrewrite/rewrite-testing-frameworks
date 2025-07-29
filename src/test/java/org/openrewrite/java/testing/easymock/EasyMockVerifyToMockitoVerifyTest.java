@@ -31,8 +31,8 @@ class EasyMockVerifyToMockitoVerifyTest implements RewriteTest {
           .recipe(new EasyMockVerifyToMockitoVerify());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void replaceEasyMockVerifyByMockitoVerify() {
         //language=java
         rewriteRun(

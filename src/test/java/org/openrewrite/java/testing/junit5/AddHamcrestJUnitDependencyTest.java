@@ -77,8 +77,8 @@ class AddHamcrestJUnitDependencyTest implements RewriteTest {
 
     }
 
-    @Test
     @DocumentExample
+    @Test
     void shouldAddWhenUsingAssertThat() {
         rewriteRun(
           //language=java

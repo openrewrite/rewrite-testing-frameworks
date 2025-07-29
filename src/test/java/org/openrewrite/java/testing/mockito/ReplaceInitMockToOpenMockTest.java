@@ -32,8 +32,8 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
           .recipe(new ReplaceInitMockToOpenMock());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void replaceInitMocksToOpenMocks() {
         rewriteRun(
           //language=java

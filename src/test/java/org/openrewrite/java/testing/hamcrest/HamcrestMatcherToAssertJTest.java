@@ -215,8 +215,8 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
 
     @Nested
     class TwoArguments {
-        @Test
         @DocumentExample
+        @Test
         void equalToString() {
             rewriteRun(
               spec -> spec.recipe(new HamcrestMatcherToAssertJ("equalTo", "isEqualTo", null)),

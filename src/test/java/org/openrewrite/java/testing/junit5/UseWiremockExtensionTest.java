@@ -25,8 +25,8 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings("JUnitMalformedDeclaration")
 @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/170")
+@SuppressWarnings("JUnitMalformedDeclaration")
 class UseWiremockExtensionTest implements RewriteTest {
 
     @Override

@@ -28,12 +28,27 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     //language=java
     public static final SourceSpecs CLASS_A = java(
       """
-      public class A {
-          public static Integer getNumber() {
-              return 42;
-         }
-      }
-      """,
+        public class A {
+            public static Integer getNumber() {
+                return 42;
+            }
+        }
+        """,
+      SourceSpec::skip
+    );
+
+    //language=java
+    public static final SourceSpecs CLASS_B = java(
+      """
+        public class B {
+            public static String getString() {
+                return "";
+            }
+            public String getStringNonStatic() {
+                return "non-static";
+            }
+        }
+        """,
       SourceSpec::skip
     );
 
@@ -80,6 +95,95 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                       try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
                           mockA1.when(() -> A.getNumber()).thenReturn(-1);
                           assertEquals(A.getNumber(), -1);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldOptForUsageOfMockedStatic_WhenAlreadyScopedInside() {
+        //language=java
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          CLASS_A,
+          CLASS_B,
+          java(
+            """
+              import org.mockito.MockedStatic;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA = mockStatic(A.class)) {
+                          try (MockedStatic<B> mockB = mockStatic(B.class)) {
+                              when(A.getNumber()).thenReturn(-1);
+                              when(B.getString()).thenReturn("hi there");
+                              assertEquals(A.getNumber(), -1);
+                              assertEquals(B.getString(), "hi there");
+                          }
+                      }
+                  }
+              }
+              """,
+            """
+              import org.mockito.MockedStatic;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA = mockStatic(A.class)) {
+                          try (MockedStatic<B> mockB = mockStatic(B.class)) {
+                              mockA.when(() -> A.getNumber()).thenReturn(-1);
+                              mockB.when(() -> B.getString()).thenReturn("hi there");
+                              assertEquals(A.getNumber(), -1);
+                              assertEquals(B.getString(), "hi there");
+                          }
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotConvertIfScopeOfChangeWouldHaveToBeBroadened() {
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          CLASS_B,
+          //language=java
+          java(
+            """
+              import org.mockito.MockedConstruction;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void method() {
+                      // Would have to be changed starting here
+                      try (MockedConstruction<B> bMockConstruction = mockConstruction(B.class,
+                          (mock, context) -> {
+                              // Rather than just here
+                              when(mock.getString()).thenReturn("first");
+                          }
+                      )) {
+                          // Nothing here
+                      }
+                      // Doesn't require a change
+                      try (MockedConstruction<B> bMockConstruction = mockConstruction(B.class,
+                          (mock, context) -> {
+                              when(mock.getStringNonStatic()).thenReturn("second");
+                          }
+                      )) {
+                          // Nothing here
                       }
                   }
               }

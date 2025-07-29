@@ -16,22 +16,15 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
@@ -100,6 +93,10 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     if (whenArg != null) {
                         String className = getClassName(whenArg);
                         if (className != null) {
+                            Optional<String> nameOfWrappingMockedStatic = tryGetMatchedWrappingResourceName(getCursor(), className);
+                            if (nameOfWrappingMockedStatic.isPresent()) {
+                                return reuseMockedStatic(block, (J.MethodInvocation) statement, nameOfWrappingMockedStatic.get(), whenArg, ctx);
+                            }
                             restInTry.set(true);
                             return tryWithMockedStatic(block, statements, index, (J.MethodInvocation) statement, className, whenArg, ctx);
                         }
@@ -123,7 +120,8 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
             private @Nullable String getClassName(J.MethodInvocation whenArg) {
                 J.Identifier clazz = null;
-                if (whenArg.getSelect() instanceof J.Identifier) {
+                // Having a fieldType implies that something is a field rather than a class itself
+                if (whenArg.getSelect() instanceof J.Identifier && ((J.Identifier) whenArg.getSelect()).getFieldType() == null) {
                     clazz = (J.Identifier) whenArg.getSelect();
                 } else if (whenArg.getSelect() instanceof J.FieldAccess && ((J.FieldAccess) whenArg.getSelect()).getTarget() instanceof J.Identifier) {
                     clazz = (J.Identifier) ((J.FieldAccess) whenArg.getSelect()).getTarget();
@@ -155,7 +153,13 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         .withPrefix(statement.getPrefix());
             }
 
-            private List<Statement> mockedStatic(J.Block block, J.MethodInvocation statement,  String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
+            private Statement reuseMockedStatic(J.Block block, J.MethodInvocation statement, String variableName, J.MethodInvocation whenArg, ExecutionContext ctx) {
+                return javaTemplateMockStatic(String.format("%1$s.when(() -> #{any()}).thenReturn(#{any()});", variableName), ctx)
+                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, statement.getArguments().get(0))
+                        .getStatements().get(0);
+            }
+
+            private List<Statement> mockedStatic(J.Block block, J.MethodInvocation statement, String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
                 boolean staticSetup = isMethodDeclarationWithAnnotation(getCursor().firstEnclosing(J.MethodDeclaration.class), BEFORE_CLASS);
                 String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 Expression thenReturnArg = statement.getArguments().get(0);
@@ -225,6 +229,34 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         .build();
             }
         });
+    }
+
+    private static List<J.Try.Resource> getMatchingFilteredResources(@Nullable List<J.Try.Resource> resources, String className) {
+        if (resources != null) {
+            return resources.stream().filter(res -> {
+                J.VariableDeclarations vds = (J.VariableDeclarations) res.getVariableDeclarations();
+                return TypeUtils.isAssignableTo("org.mockito.MockedStatic<" + className + ">", vds.getTypeAsFullyQualified());
+            }).collect(Collectors.toList());
+        }
+        return Collections.emptyList();
+    }
+
+    private static Optional<String> tryGetMatchedWrappingResourceName(Cursor cursor, String className) {
+        try {
+            Cursor foundParentCursor = cursor.dropParentUntil(val -> {
+                if (val instanceof J.Try) {
+                    List<J.Try.Resource> filteredResources = getMatchingFilteredResources(((J.Try) val).getResources(), className);
+                    return !filteredResources.isEmpty();
+                }
+                return false;
+            });
+            return getMatchingFilteredResources(((J.Try) foundParentCursor.getValue()).getResources(), className)
+                    .stream()
+                    .findFirst()
+                    .map(res -> ((J.VariableDeclarations) res.getVariableDeclarations()).getVariables().get(0).getSimpleName());
+        } catch (IllegalStateException e) {
+            return Optional.empty();
+        }
     }
 
     private static boolean isMethodDeclarationWithAnnotation(@Nullable Statement statement, AnnotationMatcher... matchers) {

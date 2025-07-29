@@ -24,9 +24,11 @@ tags:
   - junit
 recipeList:
   - org.openrewrite.java.testing.junit5.JUnit4to5Migration
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5
   - org.openrewrite.java.testing.junit5.StaticImports
   - org.openrewrite.java.testing.junit5.CleanupAssertions
-  - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipe
+  - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipes
+  - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanRemovedRecipe
   - org.openrewrite.java.testing.cleanup.RemoveTestPrefix
   - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
   - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
@@ -34,6 +36,8 @@ recipeList:
   - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
   - org.openrewrite.java.testing.junit5.LifecycleNonPrivate
   - org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
+  - org.openrewrite.java.testing.junit5.AssertTrueInstanceofToAssertInstanceOf
+  - org.openrewrite.java.testing.junit5.UseAssertSame
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.StaticImports
@@ -58,6 +62,7 @@ preconditions:
       fullyQualifiedTypeName: org.testng..*
       includeImplicit: true
 recipeList:
+  - org.openrewrite.java.testing.junit5.EnvironmentVariables
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
   - org.openrewrite.java.testing.junit5.ThrowingRunnableToExecutable
@@ -96,27 +101,14 @@ recipeList:
   - org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
   - org.openrewrite.java.testing.junit5.EnclosedToNested
   - org.openrewrite.java.testing.junit5.AddMissingNested
+  - org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
   - org.openrewrite.java.testing.junit5.UseXMLUnitLegacy
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: junit
       artifactId: junit
-  - org.openrewrite.maven.ExcludeDependency:
-      groupId: junit
-      artifactId: junit
-  # Workaround for https://github.com/testcontainers/testcontainers-java/issues/970:
-  - org.openrewrite.maven.RemoveExclusion:
-      groupId: org.testcontainers
-      artifactId: '*'
-      exclusionGroupId: junit
-      exclusionArtifactId: junit
-  # Similar for https://github.com/openrewrite/rewrite-testing-frameworks/issues/477
-  - org.openrewrite.maven.RemoveExclusion:
-      groupId: org.springframework.boot
-      artifactId: spring-boot-testcontainers
-      exclusionGroupId: junit
-      exclusionArtifactId: junit
+  - org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
@@ -145,7 +137,19 @@ recipeList:
       newFullyQualifiedTypeName: org.jbehave.core.junit.JupiterStories
   - org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5
   - org.openrewrite.java.testing.dbrider.MigrateDbRiderSpringToDbRiderJUnit5
-
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
+displayName: Exclude JUnit 4, unless Testcontainers is used
+description: Excludes JUnit 4, as it ought not to be necessary in a JUnit 5 project, unless Testcontainers is used.
+preconditions:
+  - org.openrewrite.maven.search.DoesNotIncludeDependency:
+      groupId: org.testcontainers
+      artifactId: '*'
+recipeList:
+  - org.openrewrite.maven.ExcludeDependency:
+      groupId: junit
+      artifactId: junit
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseHamcrestAssertThat

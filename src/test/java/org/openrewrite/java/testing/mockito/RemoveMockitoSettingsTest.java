@@ -35,8 +35,8 @@ class RemoveMockitoSettingsTest implements RewriteTest {
           .recipeFromResources("org.openrewrite.java.testing.mockito.MockitoBestPractices");
     }
 
-    @Test
     @DocumentExample
+    @Test
     void removeMockitoSettings() {
         rewriteRun(
           //language=java

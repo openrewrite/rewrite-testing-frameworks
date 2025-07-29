@@ -38,9 +38,9 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
           .recipe(new AddParameterizedTestAnnotation());
     }
 
+    @DocumentExample
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/314")
     @Test
-    @DocumentExample
     void replaceTestWithParameterizedTest() {
         rewriteRun(
           //language=java

@@ -140,7 +140,8 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                         return mi;
                                     }
                                 }.visitNonNull(md, ctx, getCursor().getParentOrThrow());
-                            } else if (service(AnnotationService.class).matches(getCursor(), AFTER_EACH_MATCHER) && md.getBody() != null) {
+                            }
+                            if (service(AnnotationService.class).matches(getCursor(), AFTER_EACH_MATCHER) && md.getBody() != null) {
                                 for (Statement st : md.getBody().getStatements()) {
                                     if (st instanceof J.MethodInvocation &&
                                             ((J.MethodInvocation) st).getSelect() instanceof J.Identifier &&

@@ -31,8 +31,8 @@ class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
           .recipe(new ExecutionListenerToDbRiderAnnotation());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void replaceAnnotationIfOnlyDbRiderListenerMergedWithDefaults() {
         rewriteRun(
           //language=java

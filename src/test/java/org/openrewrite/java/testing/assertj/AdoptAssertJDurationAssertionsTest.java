@@ -36,8 +36,8 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"));
     }
 
-    @Test
     @DocumentExample
+    @Test
     void getSecondsToHasSeconds() {
         //language=java
         rewriteRun(
@@ -237,7 +237,6 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
     @CsvSource({
       "hasNanos(6000000L),hasSeconds(6)",
       "hasMillis(5000),hasSeconds(5)",
@@ -249,6 +248,7 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
       "hasHours(48),hasDays(2)",
       "hasHours(24 * 2),hasDays(2)",
     })
+    @ParameterizedTest
     void simplifyDurationAssertions(String before, String after) {
         //language=java
         String template = """

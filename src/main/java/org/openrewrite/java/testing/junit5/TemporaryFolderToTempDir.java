@@ -23,6 +23,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -34,7 +35,6 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
-import static org.openrewrite.java.trait.Traits.annotated;
 
 public class TemporaryFolderToTempDir extends Recipe {
 
@@ -89,7 +89,7 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
             return mv;
         }
         mv = mv.withTypeExpression(toFileIdentifier(mv.getTypeExpression()));
-        return (J.VariableDeclarations) annotated("@org.junit.*Rule")
+        return (J.VariableDeclarations) new Annotated.Matcher("@org.junit.*Rule")
                 .asVisitor(a -> JavaTemplate.builder("@TempDir")
                         .imports(TEMP_DIR)
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))

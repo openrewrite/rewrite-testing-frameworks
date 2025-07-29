@@ -506,8 +506,8 @@ class AssertToAssertionsTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/515")
+    @Test
     void verifyClassExtendsAssertMethodArgumentsOrderRetained() {
         //language=java
         rewriteRun(

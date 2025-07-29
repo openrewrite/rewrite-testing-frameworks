@@ -102,7 +102,8 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (TIME_UNIT_MATCHERS.matches(mi)) {
                             return simplifyTimeUnits(mi, ctx);
-                        } else if (IS_MATCHERS.stream().anyMatch(matcher -> matcher.matches(mi))) {
+                        }
+                        if (IS_MATCHERS.stream().anyMatch(matcher -> matcher.matches(mi))) {
                             return simplifyMultipleAssertions(mi, ctx);
                         }
                         return mi;
@@ -192,10 +193,9 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                         if (argValue % timeLength == 0) {
                             String newName = METHOD_MAP.get(name);
                             return getUnitInfo(newName, argValue / timeLength);
-                        } else {
-                            // returning name, newArg
-                            return Arrays.asList(name, argValue);
                         }
+                        // returning name, newArg
+                        return Arrays.asList(name, argValue);
                     }
 
                     private J.MethodInvocation applyTemplate(ExecutionContext ctx, J.MethodInvocation m, String template, Object... parameters) {

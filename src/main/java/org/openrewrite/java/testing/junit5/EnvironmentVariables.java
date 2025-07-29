@@ -21,12 +21,12 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
+import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.*;
 
 import static java.util.Comparator.comparing;
 import static org.openrewrite.java.testing.junit5.Junit4Utils.CLASS_RULE;
 import static org.openrewrite.java.testing.junit5.Junit4Utils.RULE;
-import static org.openrewrite.java.trait.Traits.annotated;
 
 /**
  * A recipe to replace JUnit 4's EnvironmentVariables rule from contrib with the JUnit 5-compatible
@@ -97,7 +97,7 @@ public class EnvironmentVariables extends Recipe {
             if (variableDecls.getType() == null || !TypeUtils.isAssignableTo(ENVIRONMENT_VARIABLES, variableDecls.getType())) {
                 return variableDecls;
             }
-            J.VariableDeclarations vd = (J.VariableDeclarations) annotated("@org.junit.*Rule").asVisitor(a ->
+            J.VariableDeclarations vd = (J.VariableDeclarations) new Annotated.Matcher("@org.junit.*Rule").asVisitor(a ->
                             (new JavaIsoVisitor<ExecutionContext>() {
                                 @Override
                                 public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {

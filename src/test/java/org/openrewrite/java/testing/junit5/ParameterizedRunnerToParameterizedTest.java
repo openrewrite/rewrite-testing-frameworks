@@ -387,8 +387,8 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
         );
     }
 
-    @SuppressWarnings("NewClassNamingConvention")
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/163")
+    @SuppressWarnings("NewClassNamingConvention")
     @Test
     void nestedRunners() {
         //language=java
@@ -530,8 +530,8 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/333")
+    @Test
     void parameterizedTestWithEmptyConstructor() {
         rewriteRun(
           //language=java

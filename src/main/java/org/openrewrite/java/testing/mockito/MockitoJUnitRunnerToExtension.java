@@ -24,6 +24,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.testing.junit5.RunnerToExtension;
+import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
@@ -31,8 +32,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.openrewrite.java.trait.Traits.annotated;
 
 public class MockitoJUnitRunnerToExtension extends Recipe {
     @Override
@@ -57,7 +56,7 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                 AtomicReference<Strictness> strictness = new AtomicReference<>();
-                annotated(runWith).<AtomicReference<Strictness>>asVisitor((a, s) -> a.getTree().acceptJava(new JavaIsoVisitor<AtomicReference<Strictness>>() {
+                new Annotated.Matcher(runWith).<AtomicReference<Strictness>>asVisitor((a, s) -> a.getTree().acceptJava(new JavaIsoVisitor<AtomicReference<Strictness>>() {
                     @Override
                     public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicReference<Strictness> strictness) {
                         for (Strictness strict : Strictness.values()) {

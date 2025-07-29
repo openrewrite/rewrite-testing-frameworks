@@ -35,8 +35,8 @@ class HamcrestOfMatchersToAssertJTest implements RewriteTest {
           .recipe(new HamcrestOfMatchersToAssertJ());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void allOfMigrate() {
         //language=java
         rewriteRun(
