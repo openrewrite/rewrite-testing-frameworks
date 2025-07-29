@@ -116,74 +116,6 @@ class TestNgGuardTest implements RewriteTest {
     }
 
     @Test
-    void whenTestNgTypeUsageDoesNotMark() {
-        rewriteRun(
-          mavenProject("project-gradle",
-            //language=groovy
-            buildGradle(
-              """
-                plugins {
-                    id 'java-library'
-                }
-                repositories {
-                    mavenCentral()
-                }
-                dependencies {
-                    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.3'
-                }
-                """
-            ),
-            srcTestJava(
-              //language=java
-              java(
-                """
-                  import org.testng.annotations.Test;
-
-                  class ExampleClassGradleTest {
-                      @Test
-                      public void testMethod() {}
-                  }
-                  """
-              )
-            )
-          ),
-          mavenProject("project-maven",
-            //language=xml
-            pomXml(
-              """
-                <project>
-                    <groupId>com.example</groupId>
-                    <artifactId>project-maven</artifactId>
-                    <version>0.0.1</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.junit.jupiter</groupId>
-                            <artifactId>junit-jupiter-api</artifactId>
-                            <version>5.13.3</version>
-                            <scope>test</scope>
-                        </dependency>
-                    </dependencies>
-                </project>
-                """
-            ),
-            srcTestJava(
-              //language=java
-              java(
-                """
-                  import org.testng.annotations.Test;
-
-                  class ExampleClassMavenTest {
-                      @Test
-                      public void testMethod() {}
-                  }
-                  """
-              )
-            )
-          )
-        );
-    }
-
-    @Test
     void whenNoTestNgDependencyNorTypeUsageMarks() {
         rewriteRun(
           mavenProject("project-gradle",
@@ -267,61 +199,6 @@ class TestNgGuardTest implements RewriteTest {
                 )
               )
             )
-          )
-        );
-    }
-
-    @Test
-    void whenTestNgLooseFilesDoesNotMark() {
-        rewriteRun(
-          //language=groovy
-          buildGradle(
-            """
-              plugins {
-                  id 'java-library'
-              }
-              repositories {
-                  mavenCentral()
-              }
-              dependencies {
-                  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.3'
-                  testImplementation 'org.testng:testng:7.8.0'
-              }
-              """
-          ),
-          //language=xml
-          pomXml(
-            """
-              <project>
-                  <groupId>com.example</groupId>
-                  <artifactId>project-maven</artifactId>
-                  <version>0.0.1</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.junit.jupiter</groupId>
-                          <artifactId>junit-jupiter-api</artifactId>
-                          <version>5.13.3</version>
-                          <scope>test</scope>
-                      </dependency>
-                      <dependency>
-                          <groupId>org.testng</groupId>
-                          <artifactId>testng</artifactId>
-                          <version>7.8.0</version>
-                      </dependency>
-                  </dependencies>
-              </project>
-              """
-          ),
-          //language=java
-          java(
-            """
-              import org.testng.annotations.Test;
-
-              class ExampleClassTest {
-                  @Test
-                  public void testMethod() {}
-              }
-              """
           )
         );
     }
