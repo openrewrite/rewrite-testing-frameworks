@@ -15,19 +15,20 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import lombok.Value;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.*;
-import org.openrewrite.java.dependencies.search.DoesNotIncludeDependency;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.ScanningRecipe;
+import org.openrewrite.Tree;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.dependencies.search.ModuleHasDependency;
 import org.openrewrite.java.marker.JavaProject;
-import org.openrewrite.java.search.UsesType;
 import org.openrewrite.marker.SearchResult;
 
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-public class TestNgGuard extends ScanningRecipe<TestNgGuard.Accumulator> {
+public class TestNgGuard extends ScanningRecipe<Set<JavaProject>> {
     @Override
     public String getDisplayName() {
         return "Find `TestNG`-free Maven / Gradle and Java files";
@@ -39,123 +40,23 @@ public class TestNgGuard extends ScanningRecipe<TestNgGuard.Accumulator> {
                 "that are part of a project that does not have TestNG dependencies nor usage of TestNG classes.";
     }
 
-    @Value
-    public static class Accumulator {
-        Set<JavaProject> projectsWithoutTestNgDependency;
-        Set<JavaProject> projectsWithoutTestNgTypeUsage;
-        Set<JavaProject> projectsWithTestNgDependency;
-        Set<JavaProject> projectsWithTestNgTypeUsage;
-        Set<SourceFile> looseUndesirables;
-        Set<SourceFile> looseDesirables;
+    @Override
+    public Set<JavaProject> getInitialValue(ExecutionContext ctx) {
+        return new HashSet<>();
     }
 
     @Override
-    public Accumulator getInitialValue(ExecutionContext ctx) {
-        return new Accumulator(
-            new HashSet<>(),
-            new HashSet<>(),
-            new HashSet<>(),
-            new HashSet<>(),
-            new HashSet<>(),
-            new HashSet<>()
-        );
+    public TreeVisitor<?, ExecutionContext> getScanner(Set<JavaProject> acc) {
+        return new ModuleHasDependency("org.testng", "testng*", null, null).getScanner(acc);
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
+    public TreeVisitor<?, ExecutionContext> getVisitor(Set<JavaProject> acc) {
         return new TreeVisitor<Tree, ExecutionContext>() {
-            private final TreeVisitor<?, ExecutionContext> ut = new UsesType<>("org.testng..*", true);
-            private final TreeVisitor<?, ExecutionContext> dnid = new DoesNotIncludeDependency("org.testng", "testng*", null, null, null).getVisitor();
-
             @Override
             public Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                assert tree != null;
-                if (!(tree instanceof SourceFile)) {
-                    return tree;
-                }
-                SourceFile s = (SourceFile) tree;
-                if (dnid.isAcceptable(s, ctx)) {
-                    Tree after = dnid.visit(tree, ctx);
-                    Optional<JavaProject> maybeProject = tree.getMarkers().findFirst(JavaProject.class);
-                    if (after != tree) {
-                        if (maybeProject.isPresent()) {
-                            acc.projectsWithoutTestNgDependency.add(maybeProject.get());
-                        } else {
-                            acc.looseDesirables.add(s);
-                        }
-                    } else {
-                        if (maybeProject.isPresent()) {
-                            acc.projectsWithTestNgDependency.add(maybeProject.get());
-                        } else {
-                            acc.looseUndesirables.add(s);
-                        }
-                    }
-                } else if (ut.isAcceptable(s, ctx)) {
-                    Tree after = ut.visit(tree, ctx);
-                    Optional<JavaProject> maybeProject = tree.getMarkers().findFirst(JavaProject.class);
-                    // Note: Uses `UsesType` for inverted checking because `DoesNotUseType` will mark non Java-code files as well
-                    if (after == tree) {
-                        if (maybeProject.isPresent()) {
-                            acc.projectsWithoutTestNgTypeUsage.add(maybeProject.get());
-                        } else {
-                            acc.looseDesirables.add(s);
-                        }
-                    } else {
-                        if (maybeProject.isPresent()) {
-                            acc.projectsWithTestNgTypeUsage.add(maybeProject.get());
-                        } else {
-                            acc.looseUndesirables.add(s);
-                        }
-                    }
-                }
-                return tree;
-            }
-        };
-    }
-
-    @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
-        return new TreeVisitor<Tree, ExecutionContext>() {
-            private final TreeVisitor<?, ExecutionContext> ut = new UsesType<>("org.testng..*", true);
-            private final TreeVisitor<?, ExecutionContext> dnid = new DoesNotIncludeDependency("org.testng", "testng*", null, null, null).getVisitor();
-
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                return ut.isAcceptable(sourceFile, ctx) || dnid.isAcceptable(sourceFile, ctx);
-            }
-
-            @Override
-            public Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                assert tree != null;
-                boolean isLooseDesirable = acc.looseDesirables.contains((SourceFile) tree);
-                boolean isLooseUndesirable = acc.looseUndesirables.contains((SourceFile) tree);
                 Optional<JavaProject> maybeJp = tree.getMarkers().findFirst(JavaProject.class);
-                if (!maybeJp.isPresent()) {
-                    // if has TestNG or didn't scan
-                    if (isLooseUndesirable || !isLooseDesirable) {
-                        return tree;
-                    }
-                    return SearchResult.found(tree);
-                }
-                JavaProject jp = maybeJp.get();
-                boolean noTestNgDep = acc.projectsWithoutTestNgDependency.contains(jp);
-                boolean noTestNgUsage = acc.projectsWithoutTestNgTypeUsage.contains(jp);
-                boolean testNgDep = acc.projectsWithTestNgDependency.contains(jp);
-                boolean testNgUsage = acc.projectsWithTestNgTypeUsage.contains(jp);
-                // if any TestNG, break
-                if (testNgUsage || testNgDep) {
-                    return tree;
-                }
-                // if not a scanned project
-                if (!noTestNgDep && !noTestNgUsage) {
-                    return tree;
-                }
-                boolean depFreeOrVacuous = noTestNgDep || acc.projectsWithoutTestNgDependency.isEmpty();
-                boolean usageFreeOrVacuous = noTestNgUsage || acc.projectsWithoutTestNgTypeUsage.isEmpty();
-                if (depFreeOrVacuous && usageFreeOrVacuous) {
-                    return SearchResult.found(tree);
-                }
-                return tree;
+                return maybeJp.isPresent() && acc.contains(maybeJp.get()) ? tree : SearchResult.found(tree);
             }
         };
     }

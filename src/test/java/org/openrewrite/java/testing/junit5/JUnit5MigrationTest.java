@@ -700,29 +700,5 @@ class JUnit5MigrationTest implements RewriteTest {
               )
             );
         }
-
-        @Test
-        void noChangesIfTestNgCassIncluded() {
-            rewriteRun(
-              spec -> spec
-                .parser(JavaParser.fromJavaVersion()
-                  .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "testng")),
-              mavenProject("project",
-                //language=java
-                java(
-                  """
-                    import org.junit.Ignore;
-                    import org.testng.annotations.Test;
-
-                    class ExampleClass {
-                        @Ignore
-                        @Test
-                        public void testMethod() {}
-                    }
-                    """
-                )
-              )
-            );
-        }
     }
 }
