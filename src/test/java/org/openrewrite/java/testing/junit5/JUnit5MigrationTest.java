@@ -168,9 +168,9 @@ class JUnit5MigrationTest implements RewriteTest {
     void excludeJunit4Dependency() {
         // Just using play-test_2.13 as an example because it appears to still depend on junit.
         // In practice, this would probably just break it, I assume.
-        //language=xml
         rewriteRun(
           mavenProject("project",
+            //language=xml
             pomXml(
               """
                 <project>
@@ -238,9 +238,9 @@ class JUnit5MigrationTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
     @Test
     void dontExcludeJunit4DependencyFromTestcontainers() {
-        //language=xml
         rewriteRun(
           mavenProject("project",
+            //language=xml
             pomXml(
               """
                 <project>
@@ -266,9 +266,9 @@ class JUnit5MigrationTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
     @Test
     void dontExcludeJunit4DependencyFromTestcontainersJupiter() {
-        //language=xml
         rewriteRun(
           mavenProject("project",
+            //language=xml
             pomXml(
               """
                 <project>
@@ -373,9 +373,9 @@ class JUnit5MigrationTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/443")
     @Test
     void migrateInheritedTestBeforeAfterAnnotations() {
-        //language=java
         rewriteRun(
           mavenProject("project",
+            //language=java
             java(
               """
                 import org.junit.After;
@@ -418,6 +418,7 @@ class JUnit5MigrationTest implements RewriteTest {
             )
           ),
           mavenProject("project",
+            //language=java
             java(
               """
                 public class A extends AbstractTest {
@@ -559,8 +560,8 @@ class JUnit5MigrationTest implements RewriteTest {
               .build()
               .activateRecipes("org.openrewrite.java.testing.junit5.UseMockitoExtension")),
           mavenProject("sample",
-            //language=java
             srcMainJava(
+              //language=java
               java(
                 """
                   import org.junit.runner.RunWith;
@@ -680,37 +681,6 @@ class JUnit5MigrationTest implements RewriteTest {
               )
             );
         }
-
-//        @Test
-//        void blah() {
-//            rewriteRun(
-//              spec -> spec.recipe(new DoesNotUseType("org.testng..*", true)),
-//              //language=xml
-//              pomXml(
-//                """
-//                  <project>
-//                    <modelVersion>4.0.0</modelVersion>
-//                    <groupId>dev.ted</groupId>
-//                    <artifactId>testcontainer-migrate</artifactId>
-//                    <version>0.0.1</version>
-//                    <dependencies>
-//                      <dependency>
-//                        <groupId>junit</groupId>
-//                        <artifactId>junit</artifactId>
-//                        <version>4.12</version>
-//                        <scope>test</scope>
-//                      </dependency>
-//                      <dependency>
-//                        <groupId>org.testng</groupId>
-//                        <artifactId>testng</artifactId>
-//                        <version>7.8.0</version>
-//                      </dependency>
-//                    </dependencies>
-//                  </project>
-//                """
-//              )
-//            );
-//        }
 
         @Test
         void noChangesIfTestNgMavenDependencyIncluded() {
