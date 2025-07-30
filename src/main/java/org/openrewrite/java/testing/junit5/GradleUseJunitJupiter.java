@@ -137,7 +137,7 @@ public class GradleUseJunitJupiter extends Recipe {
                         .map(JavaType.Method::getDeclaringType)
                         .flatMap(declaringType -> declaringType.getMethods()
                                 .stream()
-                                .filter(method1 -> method1.getName().equals("useJUnitPlatform"))
+                                .filter(method1 -> "useJUnitPlatform".equals(method1.getName()))
                                 .findFirst())
                         .orElse(null);
                 return m.withName(m.getName().withSimpleName("useJUnitPlatform"))

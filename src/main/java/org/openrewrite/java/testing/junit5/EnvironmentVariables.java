@@ -141,7 +141,7 @@ public class EnvironmentVariables extends Recipe {
         public @Nullable JavaType visitType(@Nullable JavaType type, @NonNull ExecutionContext ctx) {
             if (type instanceof JavaType.FullyQualified) {
                 String fullyQualifiedName = ((JavaType.FullyQualified) type).getFullyQualifiedName();
-                if (fullyQualifiedName.equals(ENVIRONMENT_VARIABLES)) {
+                if (ENVIRONMENT_VARIABLES.equals(fullyQualifiedName)) {
                     return JavaType.buildType(ENVIRONMENT_VARIABLES_STUB);
                 }
             }

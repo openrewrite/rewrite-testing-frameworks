@@ -250,7 +250,7 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
 
         private static boolean isTypeReference(Expression expression, String type) {
             return expression.getType() instanceof JavaType.Parameterized &&
-                   ((JavaType.Parameterized) expression.getType()).getFullyQualifiedName().equals("java.lang.Class") &&
+                   "java.lang.Class".equals(((JavaType.Parameterized) expression.getType()).getFullyQualifiedName()) &&
                    ((JavaType.Parameterized) expression.getType()).getTypeParameters().size() == 1 &&
                    ((JavaType.Parameterized) expression.getType()).getTypeParameters().get(0) instanceof JavaType.Class &&
                    ((JavaType.Class) ((JavaType.Parameterized) expression.getType()).getTypeParameters().get(0)).getFullyQualifiedName().equals(type);

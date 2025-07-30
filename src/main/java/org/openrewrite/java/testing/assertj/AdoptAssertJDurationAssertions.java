@@ -180,11 +180,11 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
                     private List<Object> getUnitInfo(String name, int argValue) {
                         final int timeLength;
-                        if (name.equals("hasSeconds") || name.equals("hasMinutes")) {
+                        if ("hasSeconds".equals(name) || "hasMinutes".equals(name)) {
                             timeLength = 60;
-                        } else if (name.equals("hasNanos") || name.equals("hasMillis")) {
+                        } else if ("hasNanos".equals(name) || "hasMillis".equals(name)) {
                             timeLength = 1000;
-                        } else if (name.equals("hasHours")) {
+                        } else if ("hasHours".equals(name)) {
                             timeLength = 24;
                         } else {
                             return Arrays.asList(name, argValue);
