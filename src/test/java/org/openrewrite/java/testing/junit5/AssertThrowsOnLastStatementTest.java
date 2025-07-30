@@ -673,7 +673,7 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                       String b16 = getB();
                       String b18 = getB();
                       assertThrows(Exception.class, () ->
-                          testThing(b16, b17));
+                          testThing(b16, b18));
                   }
 
                   String getA() { return "A"; }

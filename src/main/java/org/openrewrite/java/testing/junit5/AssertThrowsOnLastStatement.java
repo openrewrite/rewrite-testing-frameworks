@@ -26,10 +26,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -187,10 +184,15 @@ public class AssertThrowsOnLastStatement extends Recipe {
                     name = name.replaceAll("^get", "");
                     name = name.replaceAll("^is", "");
                     name = StringUtils.uncapitalize(name);
-                    variableName = VariableNameUtils.generateVariableName(!name.isEmpty() ? name : "x", new Cursor(getCursor(), e), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                    variableName = VariableNameUtils.generateVariableName(!name.isEmpty() ? name : "x", getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
                 } else {
-                    variableName = VariableNameUtils.generateVariableName("x", new Cursor(getCursor(), e), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                    variableName = VariableNameUtils.generateVariableName("x", getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
                 }
+                return ensureUniqueVariableName(variableName, generatedVariableSuffixes);
+            }
+
+            private String ensureUniqueVariableName(String variableName, Map<String, Integer> generatedVariableSuffixes) {
+                Set<String> existingVariablesInScope = VariableNameUtils.findNamesInScope(getCursor());
                 Matcher matcher = NUMBER_SUFFIX_PATTERN.matcher(variableName);
                 if (matcher.matches()) {
                     String prefix = matcher.group(1);
@@ -200,6 +202,9 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 }
                 if (generatedVariableSuffixes.containsKey(variableName)) {
                     int suffix = generatedVariableSuffixes.get(variableName);
+                    while (existingVariablesInScope.contains(variableName + suffix)) {
+                        suffix++;
+                    }
                     generatedVariableSuffixes.put(variableName, suffix + 1);
                     variableName += suffix;
                 } else {
