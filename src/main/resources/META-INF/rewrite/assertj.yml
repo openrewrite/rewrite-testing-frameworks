@@ -490,6 +490,7 @@ recipeList:
   - org.openrewrite.java.testing.assertj.JUnitAssertTrueToAssertThat
   - org.openrewrite.java.testing.assertj.JUnitFailToAssertJFail
   - org.openrewrite.java.testing.assertj.JUnitAssertThrowsToAssertExceptionType
+  - org.openrewrite.java.testing.assertj.JUnitTryFailToAssertThatThrownBy
   - org.openrewrite.java.testing.assertj.JUnitAssertInstanceOfToAssertThat
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.assertj
