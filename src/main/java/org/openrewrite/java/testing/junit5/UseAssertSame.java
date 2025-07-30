@@ -88,7 +88,7 @@ public class UseAssertSame extends Recipe {
                 int parameterCount = assertTrue.getParameterTypes().size();
                 JavaType.FullyQualified assertions = assertTrue.getDeclaringType();
                 for (JavaType.Method method : assertions.getMethods()) {
-                    if (method.getName().equals("assertSame") && method.getParameterNames().size() == parameterCount + 1 &&
+                    if ("assertSame".equals(method.getName()) && method.getParameterNames().size() == parameterCount + 1 &&
                         assertTrue.getParameterTypes().get(parameterCount - 1).equals(method.getParameterTypes().get(parameterCount))) {
                         return method;
                     }
