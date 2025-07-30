@@ -122,6 +122,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         final Statement newLambdaStatement = extractExpressionArguments(lambdaStatement, variableAssignments, prefix);
                         J.MethodInvocation newAssertThrows = methodInvocation.withArguments(
                                 ListUtils.map(arguments, (argIdx, argument) -> {
+                                    // The second argument is the lambda which is tested.
                                     if (argIdx == 1) {
                                         // Only retain the last statement in the lambda block
                                         return lambda.withBody(body.withStatements(singletonList(newLambdaStatement)));
@@ -163,15 +164,12 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             maybeAddImport(aClass.getFullyQualifiedName(), false);
                         }
 
-                        JavaTemplate.Builder builder = JavaTemplate.builder("#{} #{} = #{any()};");
-                        J.VariableDeclarations varDecl = builder.build()
-                                .apply(new Cursor(getCursor(), lambdaStatement),
-                                        lambdaStatement.getCoordinates().replace(),
-                                        variableTypeShort, getVariableName(e, generatedVariableSuffixes), e);
-                        precedingVars.add(varDecl
-                                .withPrefix(varPrefix).withType(variableTypeFqn));
-                        return varDecl.getVariables().get(0).getName()
-                                .withPrefix(e.getPrefix()).withType(variableTypeFqn);
+                        Cursor c = new Cursor(getCursor(), lambdaStatement);
+                        J.VariableDeclarations varDecl = JavaTemplate.builder("#{} #{} = #{any()};")
+                                .build()
+                                .apply(c, lambdaStatement.getCoordinates().replace(), variableTypeShort, getVariableName(e, generatedVariableSuffixes), e);
+                        precedingVars.add(varDecl.withPrefix(varPrefix).withType(variableTypeFqn));
+                        return varDecl.getVariables().get(0).getName().withPrefix(e.getPrefix()).withType(variableTypeFqn);
                     }));
                 }
                 return lambdaStatement;
