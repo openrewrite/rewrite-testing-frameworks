@@ -28,9 +28,10 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.MethodCall;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+import static java.util.Collections.singleton;
 
 public class SimplifyMockitoVerifyWhenGiven extends Recipe {
 
@@ -53,7 +54,7 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-6068");
+        return singleton("RSPEC-6068");
     }
 
     @Override

@@ -24,8 +24,10 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
+import static java.util.Collections.replaceAll;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
 
 public class PowerMockitoMockStaticToMockito extends Recipe {
@@ -330,7 +332,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 arguments.remove(0);
                 J.Literal calledMethod = (J.Literal) arguments.get(0);
                 arguments.remove(0);
-                String stringOfArguments = arguments.stream().map(Object::toString).collect(Collectors.joining(","));
+                String stringOfArguments = arguments.stream().map(Object::toString).collect(joining(","));
                 method = JavaTemplate.builder("() -> #{}.#{}(#{})")
                         .contextSensitive()
                         .build()
@@ -453,7 +455,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             String testGroupsAsString = "";
             if (testGroups != null) {
                 testGroupsAsString = "(" +
-                                     testGroups.stream().map(Object::toString).collect(Collectors.joining(",")) +
+                                     testGroups.stream().map(Object::toString).collect(joining(",")) +
                                      ")";
             }
             return testGroupsAsString;
@@ -475,7 +477,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     .filter(methodInvocation -> !MOCKITO_STATIC_METHOD_MATCHER.matches(methodInvocation))
                     .filter(methodInvocation -> methodInvocation.getMethodType() != null)
                     .filter(methodInvocation -> methodInvocation.getMethodType().hasFlags(Flag.Static))
-                    .collect(Collectors.toList());
+                    .collect(toList());
             if (staticMethodInvocationsInArguments.size() == 1) {
                 J.MethodInvocation staticMI = staticMethodInvocationsInArguments.get(0);
                 Expression lambdaInvocation;
@@ -505,7 +507,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         lambdaInvocation = staticMI;
                     }
                 }
-                if (Collections.replaceAll(methodArguments, staticMI, lambdaInvocation)) {
+                if (replaceAll(methodArguments, staticMI, lambdaInvocation)) {
                     whenMethod = whenMethod.withSelect(mockedStaticClassField);
                     whenMethod = whenMethod.withArguments(methodArguments);
                 }

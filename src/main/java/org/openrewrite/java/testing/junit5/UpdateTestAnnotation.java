@@ -28,10 +28,11 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markup;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+
+import static java.util.Collections.emptyList;
 
 public class UpdateTestAnnotation extends Recipe {
 
@@ -199,7 +200,7 @@ public class UpdateTestAnnotation extends Recipe {
 
             // If all throws were removed, return empty list, otherwise keep the remaining ones
             if (filteredThrows.isEmpty() || filteredThrows.stream().allMatch(t -> t == null)) {
-                return method.withThrows(Collections.emptyList());
+                return method.withThrows(emptyList());
             }
 
             return method.withThrows(filteredThrows);

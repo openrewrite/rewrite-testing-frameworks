@@ -32,7 +32,12 @@ import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static java.util.Collections.singleton;
 
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
@@ -57,7 +62,7 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-S5786");
+        return singleton("RSPEC-S5786");
     }
 
     @Override

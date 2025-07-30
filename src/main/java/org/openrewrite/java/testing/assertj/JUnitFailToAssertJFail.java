@@ -25,8 +25,9 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.Collections;
 import java.util.List;
+
+import static java.util.Collections.nCopies;
 
 public class JUnitFailToAssertJFail extends Recipe {
 
@@ -76,7 +77,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                     }
                 } else {
                     // fail(String, Throwable)
-                    String anyArgs = String.join(",", Collections.nCopies(args.size(), "#{any()}"));
+                    String anyArgs = String.join(",", nCopies(args.size(), "#{any()}"));
                     mi = JavaTemplate.builder(ASSERTJ + ".fail(" + anyArgs + ");")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
@@ -102,7 +103,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                     maybeRemoveImport(JUNIT + ".fail");
 
                     List<Expression> arguments = mi.getArguments();
-                    String anyArgs = String.join(",", Collections.nCopies(arguments.size(), "#{any()}"));
+                    String anyArgs = String.join(",", nCopies(arguments.size(), "#{any()}"));
                     return JavaTemplate.builder("fail(" + anyArgs + ");")
                             .staticImports(ASSERTJ + ".fail")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))

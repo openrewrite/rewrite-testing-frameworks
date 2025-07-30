@@ -31,9 +31,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
 
 public class TemporaryFolderToTempDir extends Recipe {
@@ -156,7 +156,7 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
         if (mi.getSelect() == null) {
             return mi;
         }
-        List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
+        List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(toList());
         if (args.isEmpty()) {
             J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
             return JavaTemplate.builder("File.createTempFile(\"junit\", null, #{any(java.io.File)})")
@@ -256,7 +256,7 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
 
     private J.MethodInvocation toNewFolder(J.MethodInvocation mi, ExecutionContext ctx) {
         J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
-        List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
+        List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(toList());
         if (args.isEmpty()) {
             return JavaTemplate.builder("newFolder(#{any(java.io.File)}, \"junit\")")
                     .imports("java.io.File")
@@ -297,7 +297,7 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
 
     private J.MethodInvocation toNewFile(J.MethodInvocation mi, ExecutionContext ctx) {
         J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
-        List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(Collectors.toList());
+        List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(toList());
         if (args.size() != 1) {
             return mi; // unexpected
         }

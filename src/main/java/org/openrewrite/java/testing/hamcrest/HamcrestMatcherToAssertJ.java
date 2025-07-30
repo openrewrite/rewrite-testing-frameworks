@@ -31,7 +31,8 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.joining;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -143,7 +144,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             return methodArguments.stream()
                     .filter(a -> !(a instanceof J.Empty))
                     .map(a -> typeToIndicator(a.getType()))
-                    .collect(Collectors.joining(", "));
+                    .collect(joining(", "));
         }
 
         private String typeToIndicator(JavaType type) {

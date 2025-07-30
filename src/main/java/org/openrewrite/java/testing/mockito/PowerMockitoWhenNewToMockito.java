@@ -24,11 +24,11 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toSet;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 
@@ -102,7 +102,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                                 .build()
                                 .apply(getCursor(), method.getCoordinates().replaceBody());
                         J.Try try_ = (J.Try) appliedTemplate.getBody().getStatements().get(0);
-                        retM = appliedTemplate.withBody(appliedTemplate.getBody().withStatements(Collections.singletonList(try_.withBody(retM.getBody()))));
+                        retM = appliedTemplate.withBody(appliedTemplate.getBody().withStatements(singletonList(try_.withBody(retM.getBody()))));
                     }
                     return autoFormat(retM, ctx);
                 }
@@ -110,7 +110,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
             }
 
             private JavaIsoVisitor<ExecutionContext> removeMockUsagesVisitor(List<J.FieldAccess> mockArguments, J.MethodDeclaration inMethod) {
-                Set<String> mockedClassNames = mockArguments.stream().map(fa -> ((J.Identifier) fa.getTarget()).getSimpleName()).collect(Collectors.toSet());
+                Set<String> mockedClassNames = mockArguments.stream().map(fa -> ((J.Identifier) fa.getTarget()).getSimpleName()).collect(toSet());
                 return new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
