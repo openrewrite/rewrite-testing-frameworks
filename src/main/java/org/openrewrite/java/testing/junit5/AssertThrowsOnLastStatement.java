@@ -30,12 +30,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 
 public class AssertThrowsOnLastStatement extends Recipe {
+
+    private static final Pattern NUMBER_SUFFIX_PATTERN = Pattern.compile("^(.+?)(\\d+)$");
 
     @Override
     public String getDisplayName() {
@@ -187,13 +191,11 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 } else {
                     variableName = VariableNameUtils.generateVariableName("x", new Cursor(getCursor(), e), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
                 }
-                if (variableName.matches(".*\\d+$")) {
-                    int lastIndex = variableName.length() - 1;
-                    while (lastIndex >= 0 && Character.isDigit(variableName.charAt(lastIndex))) {
-                        lastIndex--;
-                    }
-                    String prefix = variableName.substring(0, lastIndex + 1);
-                    generatedVariableSuffixes.putIfAbsent(prefix, Integer.parseInt(variableName.substring(lastIndex + 1)));
+                Matcher matcher = NUMBER_SUFFIX_PATTERN.matcher(variableName);
+                if (matcher.matches()) {
+                    String prefix = matcher.group(1);
+                    int suffix = Integer.parseInt(matcher.group(2));
+                    generatedVariableSuffixes.putIfAbsent(prefix, suffix);
                     variableName = prefix;
                 }
                 if (generatedVariableSuffixes.containsKey(variableName)) {
