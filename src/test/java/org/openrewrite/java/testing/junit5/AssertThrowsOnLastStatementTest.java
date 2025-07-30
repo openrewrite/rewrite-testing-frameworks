@@ -644,6 +644,7 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                       getA();
                       String b = getB();
                       String b1 = getB();
+                      String b17 = getB();
                       assertThrows(Exception.class, () -> {
                           testThing(getB(), getB());
                       });
@@ -668,8 +669,9 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                       getA();
                       String b = getB();
                       String b1 = getB();
-                      String b16 = getB();
                       String b17 = getB();
+                      String b16 = getB();
+                      String b18 = getB();
                       assertThrows(Exception.class, () ->
                           testThing(b16, b17));
                   }
