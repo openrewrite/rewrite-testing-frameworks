@@ -28,9 +28,9 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
-import java.util.Collections;
 import java.util.List;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 
@@ -115,7 +115,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                     // move all the statements from the body into before the method invocation, except last one
                     return ListUtils.map(lambdaStatements, (idx, lambdaStatement) -> {
                         if (idx < lambdaStatements.size() - 1) {
-                            return lambdaStatement.withPrefix(methodStatement.getPrefix().withComments(Collections.emptyList()));
+                            return lambdaStatement.withPrefix(methodStatement.getPrefix().withComments(emptyList()));
                         }
 
                         J.MethodInvocation newAssertThrows = methodInvocation.withArguments(

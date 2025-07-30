@@ -30,7 +30,12 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+import static java.util.Collections.singleton;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -71,7 +76,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-S5838");
+        return singleton("RSPEC-S5838");
     }
 
     @Override

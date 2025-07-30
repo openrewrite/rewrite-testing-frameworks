@@ -25,12 +25,12 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.util.Collections;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
 
 public class CategoryToTag extends Recipe {
@@ -60,7 +60,7 @@ public class CategoryToTag extends Recipe {
             if (!categoryAnnotations.isEmpty()) {
                 cd = cd.withLeadingAnnotations(cd.getLeadingAnnotations().stream()
                         .flatMap(this::categoryAnnotationToTagAnnotations)
-                        .collect(Collectors.toList()));
+                        .collect(toList()));
                 maybeRemoveImport("org.junit.experimental.categories.Category");
                 maybeAddImport(tagType);
             }
@@ -74,7 +74,7 @@ public class CategoryToTag extends Recipe {
             if (!categoryAnnotations.isEmpty()) {
                 m = m.withLeadingAnnotations(m.getLeadingAnnotations().stream()
                         .flatMap(this::categoryAnnotationToTagAnnotations)
-                        .collect(Collectors.toList()));
+                        .collect(toList()));
 
                 maybeRemoveImport("org.junit.experimental.categories.Category");
                 maybeAddImport(tagType);
@@ -108,7 +108,7 @@ public class CategoryToTag extends Recipe {
                             Markers.EMPTY,
                             new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), tagType.getClassName(), tagType, null),
                             JContainer.build(Space.EMPTY,
-                                    Collections.singletonList(
+                                    singletonList(
                                             new JRightPadded<>(
                                                     new J.Literal(
                                                             randomId(),

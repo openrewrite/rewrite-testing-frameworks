@@ -26,8 +26,9 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodDeclaration;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Set;
+
+import static java.util.Collections.singleton;
 
 public class RemoveEmptyTests extends Recipe {
 
@@ -48,7 +49,7 @@ public class RemoveEmptyTests extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-S1186");
+        return singleton("RSPEC-S1186");
     }
 
     @Override

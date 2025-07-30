@@ -30,7 +30,9 @@ import org.openrewrite.java.tree.JavaType;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -98,10 +100,10 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
             String actual = typeToIndicator(actualArgument.getType());
             List<Expression> originalArguments = ((J.MethodInvocation) matcherArgument).getArguments().stream()
                     .filter(a -> !(a instanceof J.Empty))
-                    .collect(Collectors.toList());
+                    .collect(toList());
             String argumentsTemplate = originalArguments.stream()
                     .map(a -> typeToIndicator(a.getType()))
-                    .collect(Collectors.joining(", "));
+                    .collect(joining(", "));
             JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).%s(%s)",
                             actual, assertion, argumentsTemplate))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
@@ -130,10 +132,10 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
             String actual = typeToIndicator(actualArgument.getType());
             List<Expression> originalArguments = ((J.MethodInvocation) matcherArgument).getArguments().stream()
                     .filter(a -> !(a instanceof J.Empty))
-                    .collect(Collectors.toList());
+                    .collect(toList());
             String argumentsTemplate = originalArguments.stream()
                     .map(a -> typeToIndicator(a.getType()))
-                    .collect(Collectors.joining(", "));
+                    .collect(joining(", "));
             JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).as(#{any(String)}).%s(%s)",
                             actual, assertion, argumentsTemplate))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))

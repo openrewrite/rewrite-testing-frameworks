@@ -26,8 +26,8 @@ import org.openrewrite.marker.Markers;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.*;
 import static org.openrewrite.Tree.randomId;
 
 public class ParameterizedRunnerToParameterized extends Recipe {
@@ -175,13 +175,13 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             this.parameterizedTestMethodParameters = parameterizedTestMethodParameters.stream()
                     .map(mp -> mp.withPrefix(Space.EMPTY).withComments(new ArrayList<>()))
                     .map(Statement.class::cast)
-                    .collect(Collectors.toList());
+                    .collect(toList());
 
             initStatementParamString = parameterizedTestMethodParameters.stream()
                     .filter(J.VariableDeclarations.class::isInstance)
                     .map(J.VariableDeclarations.class::cast)
                     .map(v -> v.getVariables().get(0).getSimpleName())
-                    .collect(Collectors.joining(", "));
+                    .collect(joining(", "));
 
             // build @ParameterizedTest(#{}) template
             this.parameterizedTestAnnotationParameters = parameterizedTestAnnotationParameters;
@@ -379,7 +379,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                                 }
                                 return it.getVariable() instanceof J.Identifier ? ((J.Identifier) it.getVariable()).getSimpleName() : null;
                             })
-                            .collect(Collectors.toSet());
+                            .collect(toSet());
                     getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("INIT_VARS", fieldNames);
 
                     // Remove any potential super call

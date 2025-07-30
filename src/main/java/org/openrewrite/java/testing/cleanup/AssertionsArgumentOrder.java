@@ -28,7 +28,12 @@ import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+
+import static java.util.Collections.singleton;
 
 public class AssertionsArgumentOrder extends Recipe {
 
@@ -90,7 +95,7 @@ public class AssertionsArgumentOrder extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-S3415");
+        return singleton("RSPEC-S3415");
     }
 
     @Override

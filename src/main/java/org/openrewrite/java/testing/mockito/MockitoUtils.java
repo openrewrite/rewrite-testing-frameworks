@@ -26,7 +26,8 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 public class MockitoUtils {
     public static J.ClassDeclaration maybeAddMethodWithAnnotation(
@@ -47,7 +48,7 @@ public class MockitoUtils {
 
         J.MethodDeclaration firstTestMethod = getFirstTestMethod(
                 classDecl.getBody().getStatements().stream().filter(J.MethodDeclaration.class::isInstance)
-                        .map(J.MethodDeclaration.class::cast).collect(Collectors.toList()));
+                        .map(J.MethodDeclaration.class::cast).collect(toList()));
 
         visitor.maybeAddImport(importToAdd);
         String tplStr = methodAnnotationToAdd + methodAnnotationParameters +

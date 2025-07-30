@@ -27,8 +27,9 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.testing.junit5.RunnerToExtension;
 import org.openrewrite.java.tree.J;
 
-import java.util.Collections;
 import java.util.Comparator;
+
+import static java.util.Collections.singletonList;
 
 /**
  * @deprecated Use MockitoJUnitRunnerToExtension instead.
@@ -62,7 +63,7 @@ public class MockitoJUnitRunnerSilentToExtension extends Recipe {
                                     .classpathFromResources(ctx, "mockito-junit-jupiter-3.12", "mockito-core-3.12"))
                             .build();
                     cd = maybeAutoFormat(cd, template.apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))), ctx);
-                    doAfterVisit(new RunnerToExtension(Collections.singletonList("org.mockito.junit.MockitoJUnitRunner$Silent"),
+                    doAfterVisit(new RunnerToExtension(singletonList("org.mockito.junit.MockitoJUnitRunner$Silent"),
                             "org.mockito.junit.jupiter.MockitoExtension").getVisitor());
                     maybeRemoveImport("org.mockito.junit.MockitoJUnitRunner");
                     maybeAddImport("org.mockito.quality.Strictness");

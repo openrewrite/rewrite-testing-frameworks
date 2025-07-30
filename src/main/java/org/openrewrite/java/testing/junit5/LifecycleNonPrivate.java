@@ -30,7 +30,8 @@ import org.openrewrite.java.tree.J.Modifier.Type;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 public class LifecycleNonPrivate extends Recipe {
 
@@ -61,7 +62,7 @@ public class LifecycleNonPrivate extends Recipe {
 
     private static class LifecycleNonPrivateVisitor extends JavaIsoVisitor<ExecutionContext> {
         final List<AnnotationMatcher> lifeCycleAnnotationMatchers = ANNOTATION_TYPES.stream()
-                .map(annoFqn -> "@" + annoFqn).map(AnnotationMatcher::new).collect(Collectors.toList());
+                .map(annoFqn -> "@" + annoFqn).map(AnnotationMatcher::new).collect(toList());
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(MethodDeclaration method, ExecutionContext ctx) {

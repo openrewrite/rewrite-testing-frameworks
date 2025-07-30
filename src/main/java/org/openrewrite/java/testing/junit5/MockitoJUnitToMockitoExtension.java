@@ -34,7 +34,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * Replaces JUnit 4 MockitoJUnit rules with JUnit MockitoExtension.
@@ -174,7 +175,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
             if ((mockitoRuleInvocation != null || mockitoTestRuleInvocation != null) && m.getBody() != null) {
                 final List<Statement> filteredStatements = m.getBody().getStatements().stream()
                         .filter(it -> !isTargetMethodInvocation(it))
-                        .collect(Collectors.toList());
+                        .collect(toList());
 
                 m = m.withBody((J.Block) new AutoFormatVisitor<ExecutionContext>()
                         .visit(m.getBody().withStatements(filteredStatements), ctx, getCursor()));

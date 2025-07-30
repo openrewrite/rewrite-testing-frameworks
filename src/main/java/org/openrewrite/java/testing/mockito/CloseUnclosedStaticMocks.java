@@ -30,9 +30,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toSet;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
@@ -88,7 +88,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
                 Set<String> tryWithResourceVars =
                         vd.getVariables().stream()
                                 .map(J.VariableDeclarations.NamedVariable::getSimpleName)
-                                .collect(Collectors.toSet());
+                                .collect(toSet());
                 getCursor()
                         .dropParentUntil(J.MethodDeclaration.class::isInstance)
                         .computeMessageIfAbsent("tryWithResourceVars", k -> new HashSet<>())
