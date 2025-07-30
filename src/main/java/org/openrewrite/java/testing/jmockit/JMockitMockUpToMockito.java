@@ -26,10 +26,8 @@ import org.openrewrite.staticanalysis.VariableReferences;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.*;
 import static org.openrewrite.java.testing.jmockit.JMockitUtils.MOCKITO_ALL_IMPORT;
 import static org.openrewrite.java.testing.jmockit.JMockitUtils.getJavaParser;
 import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
@@ -89,7 +87,7 @@ public class JMockitMockUpToMockito extends Recipe {
                     .stream()
                     .filter(J.MethodDeclaration.class::isInstance)
                     .map(J.MethodDeclaration.class::cast)
-                    .collect(Collectors.toSet());
+                    .collect(toSet());
             if (mds.isEmpty()) {
                 return super.visitClassDeclaration(classDecl, ctx);
             }
@@ -390,7 +388,7 @@ public class JMockitMockUpToMockito extends Recipe {
                    m.getParameterTypes()
                            .stream()
                            .map(this::getMatcher)
-                           .collect(Collectors.joining(", ")) +
+                           .collect(joining(", ")) +
                    ")).thenCallRealMethod();";
         }
 
@@ -420,7 +418,7 @@ public class JMockitMockUpToMockito extends Recipe {
                                 .map(J.VariableDeclarations.class::cast)
                                 .map(J.VariableDeclarations::getType)
                                 .map(this::getMatcher)
-                                .collect(Collectors.joining(", "))
+                                .collect(joining(", "))
                         )
                         .append(")).thenAnswer(invocation -> {")
                         .append(getAnswerBody(m))
@@ -473,7 +471,7 @@ public class JMockitMockUpToMockito extends Recipe {
                                     .map(J.VariableDeclarations.class::cast)
                                     .map(J.VariableDeclarations::getType)
                                     .map(this::getMatcher)
-                                    .collect(Collectors.joining(", "))
+                                    .collect(joining(", "))
                             )
                             .append(");"));
 

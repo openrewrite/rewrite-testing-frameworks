@@ -30,7 +30,12 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+
+import static java.util.Collections.singleton;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -64,7 +69,7 @@ public class AddMissingNested extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-S5790");
+        return singleton("RSPEC-S5790");
     }
 
     @Override

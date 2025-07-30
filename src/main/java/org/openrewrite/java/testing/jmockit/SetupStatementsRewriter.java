@@ -22,7 +22,12 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static java.util.Collections.singletonList;
 
 class SetupStatementsRewriter {
 
@@ -78,7 +83,7 @@ class SetupStatementsRewriter {
 
             // the new expectations block has the setup statements removed
             J.Block newExpectationsBlock = expectationsBlock.withStatements(newExpectationsBlockStatements);
-            nc = nc.withBody(nc.getBody().withStatements(Collections.singletonList(newExpectationsBlock)));
+            nc = nc.withBody(nc.getBody().withStatements(singletonList(newExpectationsBlock)));
 
             rewriteBodyStatement(nc, nc.getCoordinates().replace());
         }

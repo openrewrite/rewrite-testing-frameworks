@@ -27,10 +27,10 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 
 public class CollapseConsecutiveAssertThatStatements extends Recipe {
@@ -93,7 +93,7 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                     currentGroup = new ArrayList<>();
                     currentActual = null;
                     // The current statement should not be grouped with any other statement
-                    groupedStatements.add(Collections.singletonList(statement));
+                    groupedStatements.add(singletonList(statement));
                 }
                 if (!currentGroup.isEmpty()) {
                     // Conclude the last group

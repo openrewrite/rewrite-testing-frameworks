@@ -30,7 +30,8 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.joining;
 
 public class HamcrestOfMatchersToAssertJ extends Recipe {
     @Override
@@ -89,7 +90,7 @@ public class HamcrestOfMatchersToAssertJ extends Recipe {
             template.append(allOfMatcherMatches ? ".satisfies(\n" : ".satisfiesAnyOf(\n");
             template.append(anyOfArguments.stream()
                     .map(arg -> "arg -> assertThat(arg, #{any()})")
-                    .collect(Collectors.joining(",\n")));
+                    .collect(joining(",\n")));
             parameters.addAll(anyOfArguments);
             template.append("\n);");
 

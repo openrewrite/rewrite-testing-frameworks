@@ -27,7 +27,6 @@ import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -105,7 +104,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 List<NameTree> thrown = m.getThrows();
                 if (thrown != null && !thrown.isEmpty()) {
                     assert m.getBody() != null;
-                    return m.withBody(m.getBody().withPrefix(thrown.get(0).getPrefix())).withThrows(Collections.emptyList());
+                    return m.withBody(m.getBody().withPrefix(thrown.get(0).getPrefix())).withThrows(emptyList());
                 }
             }
             return m;
@@ -195,7 +194,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
          */
         private List<Statement> findSuccessorStatements(Cursor cursor) {
             if (cursor.firstEnclosing(J.MethodDeclaration.class) == null) {
-                return Collections.emptyList();
+                return emptyList();
             }
             List<Statement> successorStatements = new ArrayList<>();
             Cursor cursorJustBeforeBlock = getCursor();

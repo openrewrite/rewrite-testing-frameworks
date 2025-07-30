@@ -25,8 +25,9 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaCoordinates;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
 
 public class AddParameterizedTestAnnotation extends Recipe {
     private static final AnnotationMatcher TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.Test");
@@ -41,7 +42,7 @@ public class AddParameterizedTestAnnotation extends Recipe {
             "EnumSource",
             "CsvFileSource",
             "ArgumentsSource"
-    ).map(annotation -> new AnnotationMatcher("@org.junit.jupiter.params.provider." + annotation)).collect(Collectors.toList());
+    ).map(annotation -> new AnnotationMatcher("@org.junit.jupiter.params.provider." + annotation)).collect(toList());
 
     @Override
     public String getDisplayName() {

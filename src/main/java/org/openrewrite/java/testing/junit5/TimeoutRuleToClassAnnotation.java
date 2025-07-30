@@ -100,7 +100,7 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                     }
                 } else if (MILLIS_SECONDS_MATCHER.matches(ex)) {
                     String simpleName = ((J.MethodInvocation) ex).getSimpleName();
-                    String units = simpleName.equals("millis") ? "MILLISECONDS" : "SECONDS";
+                    String units = "millis".equals(simpleName) ? "MILLISECONDS" : "SECONDS";
                     template = "@Timeout(value = #{any(long)}, unit = TimeUnit." + units + ")";
                     params = new Object[]{((J.MethodInvocation) ex).getArguments().get(0)};
                 } else {

@@ -110,7 +110,7 @@ class JMockitBlockRewriter {
                 if (select instanceof J.Identifier) {
                     J.Identifier mockObj = (J.Identifier) select;
                     // ensure it's not a returns statement, we add that later to related statements
-                    if (!invocation.getName().getSimpleName().equals("returns")) {
+                    if (!"returns".equals(invocation.getName().getSimpleName())) {
                         methodInvocationIdx++;
                         methodInvocationsToRewrite.add(new ArrayList<>());
                     }

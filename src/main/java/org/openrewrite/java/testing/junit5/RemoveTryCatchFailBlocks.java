@@ -23,11 +23,12 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
+
+import static java.util.Collections.singleton;
 
 public class RemoveTryCatchFailBlocks extends Recipe {
     private static final MethodMatcher ASSERT_FAIL_NO_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail()");
@@ -48,7 +49,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-S3658");
+        return singleton("RSPEC-S3658");
     }
 
     @Override
