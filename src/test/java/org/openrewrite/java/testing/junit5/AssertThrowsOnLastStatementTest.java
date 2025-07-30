@@ -626,9 +626,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
         );
     }
 
-    @Disabled("Creates duplicate variables `b`")
     @Test
-    void duplicateVariableNames() {
+    void variableNameAlreadyExists() {
         //language=java
         rewriteRun(
           java(
@@ -639,10 +638,14 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
               class MyTest {
 
+                  String b2,b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15;
+
                   @Test
                   void test() {
+                      getA();
+                      String b = getB();
+                      String b1 = getB();
                       assertThrows(Exception.class, () -> {
-                          getA();
                           testThing(getB(), getB());
                       });
                   }
@@ -659,13 +662,17 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
               class MyTest {
 
+                  String b2,b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15;
+
                   @Test
                   void test() {
                       getA();
                       String b = getB();
                       String b1 = getB();
+                      String b16 = getB();
+                      String b17 = getB();
                       assertThrows(Exception.class, () ->
-                          testThing(b, c));
+                          testThing(b16, b17));
                   }
 
                   String getA() { return "A"; }
@@ -677,7 +684,58 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
         );
     }
 
-    @Disabled("Not implemented yet")
+    @Test
+    void duplicateVariableNames() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          getA();
+                          testThing(getB(), getB(), getB(), getB());
+                      });
+                  }
+
+                  String getA() { return "A"; }
+                  String getB() { return "B"; }
+                  void testThing(String one, String two, String three, String four) {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      getA();
+                      String b = getB();
+                      String b1 = getB();
+                      String b2 = getB();
+                      String b3 = getB();
+                      assertThrows(Exception.class, () ->
+                          testThing(b, b1, b2, b3));
+                  }
+
+                  String getA() { return "A"; }
+                  String getB() { return "B"; }
+                  void testThing(String one, String two, String three, String four) {}
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void lambdaWithSingleStatementStillExtractsVariable() {
         //language=java

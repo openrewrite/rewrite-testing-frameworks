@@ -18,16 +18,15 @@ package org.openrewrite.java.testing.junit5;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.VariableNameUtils;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -105,9 +104,6 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                     J.Block body = (J.Block) lambda.getBody();
                     List<Statement> lambdaStatements = body.getStatements();
-                    if (lambdaStatements.size() <= 1) {
-                        return methodStatement;
-                    }
 
                     // TODO Check to see if last line in lambda does not use a non-final variable
 
@@ -145,6 +141,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
             private Statement extractExpressionArguments(Statement lambdaStatement, List<Statement> precedingVars, Space varPrefix) {
                 if (lambdaStatement instanceof J.MethodInvocation) {
                     J.MethodInvocation mi = (J.MethodInvocation) lambdaStatement;
+                    Map<String, Integer> generatedVariableSuffixes = new HashMap<>();
                     return mi.withArguments(ListUtils.map(mi.getArguments(), e -> {
                         if (e instanceof J.Identifier || e instanceof J.Literal || e instanceof J.Empty || e == null) {
                             return e;
@@ -166,7 +163,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         J.VariableDeclarations varDecl = builder.build()
                                 .apply(new Cursor(getCursor(), lambdaStatement),
                                         lambdaStatement.getCoordinates().replace(),
-                                        variableTypeShort, getVariableName(e), e);
+                                        variableTypeShort, getVariableName(e, generatedVariableSuffixes), e);
                         precedingVars.add(varDecl
                                 .withPrefix(varPrefix).withType(variableTypeFqn));
                         return varDecl.getVariables().get(0).getName()
@@ -176,15 +173,34 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 return lambdaStatement;
             }
 
-            private String getVariableName(Expression e) {
+            private String getVariableName(Expression e, Map<String, Integer> generatedVariableSuffixes) {
+                String variableName;
                 if (e instanceof J.MethodInvocation) {
                     String name = ((J.MethodInvocation) e).getSimpleName();
                     name = name.replaceAll("^get", "");
                     name = name.replaceAll("^is", "");
                     name = StringUtils.uncapitalize(name);
-                    return VariableNameUtils.generateVariableName(!name.isEmpty() ? name : "x", new Cursor(getCursor(), e), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                    variableName = VariableNameUtils.generateVariableName(!name.isEmpty() ? name : "x", new Cursor(getCursor(), e), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                } else {
+                    variableName = VariableNameUtils.generateVariableName("x", new Cursor(getCursor(), e), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
                 }
-                return VariableNameUtils.generateVariableName("x", new Cursor(getCursor(), e), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                if (variableName.matches(".*\\d+$")) {
+                    int lastIndex = variableName.length() - 1;
+                    while (lastIndex >= 0 && Character.isDigit(variableName.charAt(lastIndex))) {
+                        lastIndex--;
+                    }
+                    String prefix = variableName.substring(0, lastIndex + 1);
+                    generatedVariableSuffixes.putIfAbsent(prefix, Integer.parseInt(variableName.substring(lastIndex + 1)));
+                    variableName = prefix;
+                }
+                if (generatedVariableSuffixes.containsKey(variableName)) {
+                    int suffix = generatedVariableSuffixes.get(variableName);
+                    generatedVariableSuffixes.put(variableName, suffix + 1);
+                    variableName += suffix;
+                } else {
+                    generatedVariableSuffixes.put(variableName, 1);
+                }
+                return variableName;
             }
         });
     }
