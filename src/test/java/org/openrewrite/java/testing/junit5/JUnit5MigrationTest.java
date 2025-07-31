@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -51,11 +52,11 @@ class JUnit5MigrationTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/145")
     @Test
     void assertThatReceiver() {
-        //language=java
         rewriteRun(
           spec -> spec
             .parser(JavaParser.fromJavaVersion()
               .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3")),
+          //language=java
           java(
             """
               import org.junit.Assert;
@@ -129,24 +130,24 @@ class JUnit5MigrationTest implements RewriteTest {
             //language=xml
             """
               <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example.jackson</groupId>
-                  <artifactId>test-plugins</artifactId>
-                  <version>1.0.0</version>
-                  <build>
-                      <plugins>
-                          <plugin>
-                              <groupId>org.apache.maven.plugins</groupId>
-                              <artifactId>maven-surefire-plugin</artifactId>
-                              <version>2.20.1</version>
-                          </plugin>
-                          <plugin>
-                              <groupId>org.apache.maven.plugins</groupId>
-                              <artifactId>maven-failsafe-plugin</artifactId>
-                              <version>2.20.1</version>
-                          </plugin>
-                      </plugins>
-                  </build>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example.jackson</groupId>
+                <artifactId>test-plugins</artifactId>
+                <version>1.0.0</version>
+                <build>
+                  <plugins>
+                    <plugin>
+                      <groupId>org.apache.maven.plugins</groupId>
+                      <artifactId>maven-surefire-plugin</artifactId>
+                      <version>2.20.1</version>
+                    </plugin>
+                    <plugin>
+                      <groupId>org.apache.maven.plugins</groupId>
+                      <artifactId>maven-failsafe-plugin</artifactId>
+                      <version>2.20.1</version>
+                    </plugin>
+                  </plugins>
+                </build>
               </project>
               """,
             spec -> spec.after(actual -> {
@@ -161,8 +162,8 @@ class JUnit5MigrationTest implements RewriteTest {
     void excludeJunit4Dependency() {
         // Just using play-test_2.13 as an example because it appears to still depend on junit.
         // In practice, this would probably just break it, I assume.
-        //language=xml
         rewriteRun(
+          //language=xml
           pomXml(
             """
               <project>
@@ -229,8 +230,8 @@ class JUnit5MigrationTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
     @Test
     void dontExcludeJunit4DependencyFromTestcontainers() {
-        //language=xml
         rewriteRun(
+          //language=xml
           pomXml(
             """
               <project>
@@ -255,8 +256,8 @@ class JUnit5MigrationTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
     @Test
     void dontExcludeJunit4DependencyFromTestcontainersJupiter() {
-        //language=xml
         rewriteRun(
+          //language=xml
           pomXml(
             """
               <project>
@@ -356,8 +357,8 @@ class JUnit5MigrationTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/443")
     @Test
     void migrateInheritedTestBeforeAfterAnnotations() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.After;
@@ -398,6 +399,7 @@ class JUnit5MigrationTest implements RewriteTest {
               }
               """
           ),
+          //language=java
           java(
             """
               public class A extends AbstractTest {
@@ -532,8 +534,8 @@ class JUnit5MigrationTest implements RewriteTest {
               .build()
               .activateRecipes("org.openrewrite.java.testing.junit5.UseMockitoExtension")),
           mavenProject("sample",
-            //language=java
             srcMainJava(
+              //language=java
               java(
                 """
                   import org.junit.runner.RunWith;
@@ -610,5 +612,93 @@ class JUnit5MigrationTest implements RewriteTest {
             )
           )
         );
+    }
+
+    @Nested
+    class TestngExclude {
+        @Test
+        void noChangesIfTestNgGradleDependencyIncluded() {
+            rewriteRun(
+              spec -> spec.beforeRecipe(withToolingApi()),
+              mavenProject("project",
+                //language=groovy
+                buildGradle(
+                  """
+                    plugins {
+                        id 'java-library'
+                    }
+                    repositories {
+                        mavenCentral()
+                    }
+                    dependencies {
+                        testImplementation 'junit:junit:4.12'
+                        testImplementation 'org.testng:testng:7.8.0'
+                    }
+                    tasks.withType(Test).configureEach {
+                        useJUnitPlatform()
+                    }
+                    """
+                ),
+                srcTestJava(
+                  //language=java
+                  java(
+                    """
+                      import org.junit.Ignore;
+
+                      class ExampleClass {
+                          @Ignore
+                          public void testMethod() {}
+                      }
+                      """
+                  )
+                )
+              )
+            );
+        }
+
+        @Test
+        void noChangesIfTestNgMavenDependencyIncluded() {
+            rewriteRun(
+              mavenProject("project",
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>dev.ted</groupId>
+                        <artifactId>testcontainer-migrate</artifactId>
+                        <version>0.0.1</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>junit</groupId>
+                                <artifactId>junit</artifactId>
+                                <version>4.12</version>
+                                <scope>test</scope>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.testng</groupId>
+                                <artifactId>testng</artifactId>
+                                <version>7.8.0</version>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """
+                ),
+                srcTestJava(
+                  //language=java
+                  java(
+                    """
+                      import org.junit.Ignore;
+
+                      class ExampleClass {
+                          @Ignore
+                          public void testMethod() {}
+                      }
+                      """
+                  )
+                )
+              )
+            );
+        }
     }
 }
