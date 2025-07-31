@@ -58,7 +58,10 @@ tags:
   - testing
   - junit
 preconditions:
-  - org.openrewrite.java.testing.junit5.TestNgGuard
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.testng
+      artifactIdPattern: testng*
+      invertMarking: true
 recipeList:
   - org.openrewrite.java.testing.junit5.EnvironmentVariables
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
