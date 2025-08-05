@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.mockito;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -35,38 +36,7 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
           .recipe(new MockitoJUnitRunnerToExtension());
     }
 
-    @CsvSource({
-      "MockitoJUnitRunner.Silent.class,Strictness.LENIENT",
-      "MockitoJUnitRunner.class,Strictness.WARN"
-    })
-    @ParameterizedTest
-    void mockitoRunnerToExtension(String runnerName, String strictness) {
-        //language=java
-        rewriteRun(
-          java(
-                  """
-              import org.junit.runner.RunWith;
-              import org.mockito.junit.MockitoJUnitRunner;
-
-              @RunWith(%s)
-              public class ExternalAPIServiceTest {
-              }
-              """.formatted(runnerName),
-                  """
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.junit.jupiter.MockitoExtension;
-              import org.mockito.junit.jupiter.MockitoSettings;
-              import org.mockito.quality.Strictness;
-
-              @MockitoSettings(strictness = %s)
-              @ExtendWith(MockitoExtension.class)
-              public class ExternalAPIServiceTest {
-              }
-              """.formatted(strictness)
-          )
-        );
-    }
-
+    @DocumentExample
     @Test
     void strictMockitoRunnerToExtension() {
         //language=java
@@ -88,6 +58,38 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
               public class ExternalAPIServiceTest {
               }
               """
+          )
+        );
+    }
+
+    @CsvSource({
+      "MockitoJUnitRunner.Silent.class,Strictness.LENIENT",
+      "MockitoJUnitRunner.class,Strictness.WARN"
+    })
+    @ParameterizedTest
+    void mockitoRunnerToExtension(String runnerName, String strictness) {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.runner.RunWith;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              @RunWith(%s)
+              public class ExternalAPIServiceTest {
+              }
+              """.formatted(runnerName),
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.jupiter.MockitoSettings;
+              import org.mockito.quality.Strictness;
+
+              @MockitoSettings(strictness = %s)
+              @ExtendWith(MockitoExtension.class)
+              public class ExternalAPIServiceTest {
+              }
+              """.formatted(strictness)
           )
         );
     }
