@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.mockito;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -40,7 +39,6 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
       "MockitoJUnitRunner.Silent.class,Strictness.LENIENT",
       "MockitoJUnitRunner.class,Strictness.WARN"
     })
-    @DocumentExample
     @ParameterizedTest
     void mockitoRunnerToExtension(String runnerName, String strictness) {
         //language=java
