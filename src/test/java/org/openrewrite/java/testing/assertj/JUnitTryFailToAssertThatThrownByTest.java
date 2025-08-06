@@ -29,9 +29,9 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-            .parser(JavaParser.fromJavaVersion()
-                .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "assertj-core-3"))
-            .recipe(new JUnitTryFailToAssertThatThrownBy());
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "assertj-core-3"))
+          .recipe(new JUnitTryFailToAssertThatThrownBy());
     }
 
     @DocumentExample
@@ -39,44 +39,44 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     void simpleTryCatchFailBlock() {
         //language=java
         rewriteRun(
-            java(
-                """
-                import org.junit.jupiter.api.Test;
-                import static org.junit.jupiter.api.Assertions.fail;
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
 
-                class MyTest {
-                    @Test
-                    void testExceptionIsThrown() {
-                        try {
-                            someMethodThatShouldThrow();
-                            fail("Expected IllegalArgumentException to be thrown");
-                        } catch (IllegalArgumentException e) {
-                            // Expected exception
-                        }
-                    }
+              class MyTest {
+                  @Test
+                  void testExceptionIsThrown() {
+                      try {
+                          someMethodThatShouldThrow();
+                          fail("Expected IllegalArgumentException to be thrown");
+                      } catch (IllegalArgumentException e) {
+                          // Expected exception
+                      }
+                  }
 
-                    void someMethodThatShouldThrow() {
-                        throw new IllegalArgumentException("Invalid argument");
-                    }
-                }
-                """,
-                """
-                import org.junit.jupiter.api.Test;
+                  void someMethodThatShouldThrow() {
+                      throw new IllegalArgumentException("Invalid argument");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
 
-                import static org.assertj.core.api.Assertions.assertThatThrownBy;
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-                class MyTest {
-                    @Test
-                    void testExceptionIsThrown() {
-                        assertThatThrownBy(() -> someMethodThatShouldThrow()).isInstanceOf(IllegalArgumentException.class);
-                    }
+              class MyTest {
+                  @Test
+                  void testExceptionIsThrown() {
+                      assertThatThrownBy(() -> someMethodThatShouldThrow()).isInstanceOf(IllegalArgumentException.class);
+                  }
 
-                    void someMethodThatShouldThrow() {
-                        throw new IllegalArgumentException("Invalid argument");
-                    }
-                }
-                """
-            )
+                  void someMethodThatShouldThrow() {
+                      throw new IllegalArgumentException("Invalid argument");
+                  }
+              }
+              """
+          )
         );
     }
 
@@ -84,57 +84,57 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     void tryCatchWithMessageAssertion() {
         //language=java
         rewriteRun(
-            java(
-                """
-                import org.junit.jupiter.api.Test;
-                import static org.junit.jupiter.api.Assertions.fail;
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
 
-                class MyTest {
-                    @Test
-                    void testExceptionWithMessage() {
-                        try {
-                            service.process(null);
-                            fail("Should have thrown NullPointerException");
-                        } catch (NullPointerException e) {
-                            assertEquals("Input cannot be null", e.getMessage());
-                        }
-                    }
+              class MyTest {
+                  @Test
+                  void testExceptionWithMessage() {
+                      try {
+                          service.process(null);
+                          fail("Should have thrown NullPointerException");
+                      } catch (NullPointerException e) {
+                          assertEquals("Input cannot be null", e.getMessage());
+                      }
+                  }
 
-                    Service service = new Service();
+                  Service service = new Service();
 
-                    class Service {
-                        void process(String input) {
-                            if (input == null) {
-                                throw new NullPointerException("Input cannot be null");
-                            }
-                        }
-                    }
-                }
-                """,
-                """
-                import org.junit.jupiter.api.Test;
+                  class Service {
+                      void process(String input) {
+                          if (input == null) {
+                              throw new NullPointerException("Input cannot be null");
+                          }
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
 
-                import static org.assertj.core.api.Assertions.assertThatThrownBy;
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-                class MyTest {
-                    @Test
-                    void testExceptionWithMessage() {
-                        assertThatThrownBy(() -> service.process(null)).isInstanceOf(NullPointerException.class).hasMessage("Input cannot be null");
-                    }
+              class MyTest {
+                  @Test
+                  void testExceptionWithMessage() {
+                      assertThatThrownBy(() -> service.process(null)).isInstanceOf(NullPointerException.class).hasMessage("Input cannot be null");
+                  }
 
-                    Service service = new Service();
+                  Service service = new Service();
 
-                    class Service {
-                        void process(String input) {
-                            if (input == null) {
-                                throw new NullPointerException("Input cannot be null");
-                            }
-                        }
-                    }
-                }
-                """
-            )
+                  class Service {
+                      void process(String input) {
+                          if (input == null) {
+                              throw new NullPointerException("Input cannot be null");
+                          }
+                      }
+                  }
+              }
+              """
+          )
         );
     }
 
@@ -142,50 +142,50 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     void multipleStatementsInTryBlock() {
         //language=java
         rewriteRun(
-            java(
-                """
-                import org.junit.jupiter.api.Test;
-                import static org.junit.jupiter.api.Assertions.fail;
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
 
-                class MyTest {
-                    @Test
-                    void testComplexException() {
-                        try {
-                            String input = prepareInput();
-                            validateInput(input);
-                            processInput(input);
-                            fail("Expected exception");
-                        } catch (IllegalStateException e) {
-                            // Expected
-                        }
-                    }
+              class MyTest {
+                  @Test
+                  void testComplexException() {
+                      try {
+                          String input = prepareInput();
+                          validateInput(input);
+                          processInput(input);
+                          fail("Expected exception");
+                      } catch (IllegalStateException e) {
+                          // Expected
+                      }
+                  }
 
-                    String prepareInput() { return "test"; }
-                    void validateInput(String s) { }
-                    void processInput(String s) { throw new IllegalStateException(); }
-                }
-                """,
-                """
-                import org.junit.jupiter.api.Test;
+                  String prepareInput() { return "test"; }
+                  void validateInput(String s) { }
+                  void processInput(String s) { throw new IllegalStateException(); }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
 
-                import static org.assertj.core.api.Assertions.assertThatThrownBy;
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-                class MyTest {
-                    @Test
-                    void testComplexException() {
-                        assertThatThrownBy(() -> {
-                            String input = prepareInput();
-                            validateInput(input);
-                            processInput(input);
-                        }).isInstanceOf(IllegalStateException.class);
-                    }
+              class MyTest {
+                  @Test
+                  void testComplexException() {
+                      assertThatThrownBy(() -> {
+                          String input = prepareInput();
+                          validateInput(input);
+                          processInput(input);
+                      }).isInstanceOf(IllegalStateException.class);
+                  }
 
-                    String prepareInput() { return "test"; }
-                    void validateInput(String s) { }
-                    void processInput(String s) { throw new IllegalStateException(); }
-                }
-                """
-            )
+                  String prepareInput() { return "test"; }
+                  void validateInput(String s) { }
+                  void processInput(String s) { throw new IllegalStateException(); }
+              }
+              """
+          )
         );
     }
 
@@ -193,46 +193,46 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     void junit4FailMethod() {
         //language=java
         rewriteRun(
-            spec -> spec.parser(JavaParser.fromJavaVersion()
-                .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "assertj-core-3")),
-            java(
-                """
-                import org.junit.Test;
-                import static org.junit.Assert.fail;
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "assertj-core-3")),
+          java(
+            """
+              import org.junit.Test;
+              import static org.junit.Assert.fail;
 
-                public class MyTest {
-                    @Test
-                    public void testException() {
-                        try {
-                            doSomething();
-                            fail();
-                        } catch (RuntimeException e) {
-                            // Expected
-                        }
-                    }
+              public class MyTest {
+                  @Test
+                  public void testException() {
+                      try {
+                          doSomething();
+                          fail();
+                      } catch (RuntimeException e) {
+                          // Expected
+                      }
+                  }
 
-                    void doSomething() {
-                        throw new RuntimeException();
-                    }
-                }
-                """,
-                """
-                import org.junit.Test;
+                  void doSomething() {
+                      throw new RuntimeException();
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
 
-                import static org.assertj.core.api.Assertions.assertThatThrownBy;
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-                public class MyTest {
-                    @Test
-                    public void testException() {
-                        assertThatThrownBy(() -> doSomething()).isInstanceOf(RuntimeException.class);
-                    }
+              public class MyTest {
+                  @Test
+                  public void testException() {
+                      assertThatThrownBy(() -> doSomething()).isInstanceOf(RuntimeException.class);
+                  }
 
-                    void doSomething() {
-                        throw new RuntimeException();
-                    }
-                }
-                """
-            )
+                  void doSomething() {
+                      throw new RuntimeException();
+                  }
+              }
+              """
+          )
         );
     }
 
@@ -240,26 +240,26 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     void doNotChangeIfNotEndingWithFail() {
         //language=java
         rewriteRun(
-            java(
-                """
-                import org.junit.jupiter.api.Test;
-                import static org.junit.jupiter.api.Assertions.fail;
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
 
-                class MyTest {
-                    @Test
-                    void testException() {
-                        try {
-                            doSomething();
-                            System.out.println("No exception thrown");
-                        } catch (RuntimeException e) {
-                            fail("Unexpected exception");
-                        }
-                    }
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          doSomething();
+                          System.out.println("No exception thrown");
+                      } catch (RuntimeException e) {
+                          fail("Unexpected exception");
+                      }
+                  }
 
-                    void doSomething() { }
-                }
-                """
-            )
+                  void doSomething() { }
+              }
+              """
+          )
         );
     }
 
@@ -267,28 +267,28 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     void doNotChangeIfMultipleCatchBlocks() {
         //language=java
         rewriteRun(
-            java(
-                """
-                import org.junit.jupiter.api.Test;
-                import static org.junit.jupiter.api.Assertions.fail;
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
 
-                class MyTest {
-                    @Test
-                    void testException() {
-                        try {
-                            doSomething();
-                            fail();
-                        } catch (IllegalArgumentException e) {
-                            // Handle IAE
-                        } catch (RuntimeException e) {
-                            // Handle other runtime exceptions
-                        }
-                    }
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          doSomething();
+                          fail();
+                      } catch (IllegalArgumentException e) {
+                          // Handle IAE
+                      } catch (RuntimeException e) {
+                          // Handle other runtime exceptions
+                      }
+                  }
 
-                    void doSomething() { }
-                }
-                """
-            )
+                  void doSomething() { }
+              }
+              """
+          )
         );
     }
 
@@ -296,29 +296,29 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     void doNotChangeIfHasFinally() {
         //language=java
         rewriteRun(
-            java(
-                """
-                import org.junit.jupiter.api.Test;
-                import static org.junit.jupiter.api.Assertions.fail;
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
 
-                class MyTest {
-                    @Test
-                    void testException() {
-                        try {
-                            doSomething();
-                            fail();
-                        } catch (RuntimeException e) {
-                            // Expected
-                        } finally {
-                            cleanup();
-                        }
-                    }
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          doSomething();
+                          fail();
+                      } catch (RuntimeException e) {
+                          // Expected
+                      } finally {
+                          cleanup();
+                      }
+                  }
 
-                    void doSomething() { }
-                    void cleanup() { }
-                }
-                """
-            )
+                  void doSomething() { }
+                  void cleanup() { }
+              }
+              """
+          )
         );
     }
 
@@ -326,28 +326,28 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     void doNotChangeIfCatchHasMultipleStatements() {
         //language=java
         rewriteRun(
-            java(
-                """
-                import org.junit.jupiter.api.Test;
-                import static org.junit.jupiter.api.Assertions.fail;
-                import static org.junit.jupiter.api.Assertions.assertEquals;
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
 
-                class MyTest {
-                    @Test
-                    void testException() {
-                        try {
-                            doSomething();
-                            fail();
-                        } catch (RuntimeException e) {
-                            System.out.println("Got exception: " + e);
-                            assertEquals("error", e.getMessage());
-                        }
-                    }
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          doSomething();
+                          fail();
+                      } catch (RuntimeException e) {
+                          System.out.println("Got exception: " + e);
+                          assertEquals("error", e.getMessage());
+                      }
+                  }
 
-                    void doSomething() { }
-                }
-                """
-            )
+                  void doSomething() { }
+              }
+              """
+          )
         );
     }
 
@@ -355,52 +355,52 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     void singleStatementLambda() {
         //language=java
         rewriteRun(
-            java(
-                """
-                import org.junit.jupiter.api.Test;
-                import static org.junit.jupiter.api.Assertions.fail;
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
 
-                class MyTest {
-                    @Test
-                    void testException() {
-                        try {
-                            service.doWork();
-                            fail();
-                        } catch (Exception e) {
-                            // Expected
-                        }
-                    }
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          service.doWork();
+                          fail();
+                      } catch (Exception e) {
+                          // Expected
+                      }
+                  }
 
-                    Service service = new Service();
+                  Service service = new Service();
 
-                    class Service {
-                        void doWork() throws Exception {
-                            throw new Exception();
-                        }
-                    }
-                }
-                """,
-                """
-                import org.junit.jupiter.api.Test;
+                  class Service {
+                      void doWork() throws Exception {
+                          throw new Exception();
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
 
-                import static org.assertj.core.api.Assertions.assertThatThrownBy;
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-                class MyTest {
-                    @Test
-                    void testException() {
-                        assertThatThrownBy(() -> service.doWork()).isInstanceOf(Exception.class);
-                    }
+              class MyTest {
+                  @Test
+                  void testException() {
+                      assertThatThrownBy(() -> service.doWork()).isInstanceOf(Exception.class);
+                  }
 
-                    Service service = new Service();
+                  Service service = new Service();
 
-                    class Service {
-                        void doWork() throws Exception {
-                            throw new Exception();
-                        }
-                    }
-                }
-                """
-            )
+                  class Service {
+                      void doWork() throws Exception {
+                          throw new Exception();
+                      }
+                  }
+              }
+              """
+          )
         );
     }
 }

@@ -18,15 +18,11 @@ package org.openrewrite.java.testing.assertj;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Statement;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +44,7 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
     @Override
     public String getDescription() {
         return "Replace try-catch blocks where the try block ends with a `fail()` statement and the catch block optionally " +
-               "contains assertions, with AssertJ's `assertThatThrownBy()`.";
+                "contains assertions, with AssertJ's `assertThatThrownBy()`.";
     }
 
     @Override
@@ -110,8 +106,8 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
                     // Check if the single statement is something we don't recognize
                     Statement stmt = catchBlock.getBody().getStatements().get(0);
                     if (!(stmt instanceof J.MethodInvocation &&
-                          (ASSERT_EQUALS_MATCHER.matches((J.MethodInvocation)stmt) ||
-                           JUNIT4_ASSERT_EQUALS_MATCHER.matches((J.MethodInvocation)stmt)))) {
+                            (ASSERT_EQUALS_MATCHER.matches((J.MethodInvocation) stmt) ||
+                                    JUNIT4_ASSERT_EQUALS_MATCHER.matches((J.MethodInvocation) stmt)))) {
                         return try_;
                     }
                 }
@@ -138,25 +134,19 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
                     maybeAddImport(exceptionFqType.getFullyQualifiedName());
                 }
 
-                // Convert statements to an array for template arguments
-                Object[] templateArgs = lambdaStatements.toArray();
-
-                J.MethodInvocation assertThatThrownBy = JavaTemplate.builder(template)
+                return JavaTemplate.builder(template)
                         .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThatThrownBy")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
-                        .apply(getCursor(), try_.getCoordinates().replace(), templateArgs);
-
-                return assertThatThrownBy;
+                        .<J.MethodInvocation>apply(getCursor(), try_.getCoordinates().replace(), lambdaStatements.toArray());
             }
 
             private boolean isFailMethod(J.MethodInvocation method) {
                 return FAIL_MATCHER.matches(method) ||
-                       JUNIT4_FAIL_MATCHER.matches(method) ||
-                       JUNIT_FAIL_MATCHER.matches(method);
+                        JUNIT4_FAIL_MATCHER.matches(method) ||
+                        JUNIT_FAIL_MATCHER.matches(method);
             }
-
 
             private List<String> extractAssertions(J.Try.Catch catchBlock, ExecutionContext ctx) {
                 List<String> assertions = new ArrayList<>();
