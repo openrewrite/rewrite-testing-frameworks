@@ -56,7 +56,8 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
         Expression target = fieldAccess.getTarget();
         if (target instanceof J.FieldAccess) {
             return ((J.FieldAccess) target).getSimpleName();
-        } else if (target instanceof J.Identifier) {
+        }
+        if (target instanceof J.Identifier) {
             return ((J.Identifier) target).getSimpleName();
         }
         return fieldAccess.getSimpleName();
