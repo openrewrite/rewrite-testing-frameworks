@@ -20,6 +20,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -705,6 +706,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -785,6 +787,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -885,6 +888,71 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/785")
+    @Test
+    void whenNewWithFieldAccess() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.powermock.api.mockito.PowerMockito;
+              import static org.powermock.api.mockito.PowerMockito.*;
+
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class MyTest {
+                  static class Generator {
+                      public int getLuckyNumber() {
+                        return 436;
+                      }
+                  }
+                  @Test
+                  void testNumbers() throws Exception {
+                      Generator mock = mock(MyTest.Generator.class);
+                      PowerMockito.whenNew(MyTest.Generator.class).withAnyArguments().thenReturn(mock);
+
+                      Generator gen = new Generator();
+                      when(gen.getLuckyNumber()).thenReturn(504);
+
+                      assertEquals(504, gen.getLuckyNumber());
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.mock;
+
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class MyTest {
+                  static class Generator {
+                      public int getLuckyNumber() {
+                        return 436;
+                      }
+                  }
+
+                  @Test
+                  void testNumbers() throws Exception {
+                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
+
+                          Generator gen = new Generator();
+                          when(gen.getLuckyNumber()).thenReturn(504);
+
+                          assertEquals(504, gen.getLuckyNumber());
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
 
     @ParameterizedTest
     @ValueSource(strings = {
