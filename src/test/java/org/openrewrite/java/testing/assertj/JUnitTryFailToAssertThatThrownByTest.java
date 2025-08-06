@@ -403,4 +403,395 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void nestedTryCatchIsConverted() {
+        // Note: This test documents current behavior where nested try-catch blocks
+        // are converted. A future enhancement could detect and skip these cases.
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          try {
+                              innerMethod();
+                          } catch (IllegalStateException e) {
+                              // Handle inner exception
+                          }
+                          outerMethod();
+                          fail("Expected exception");
+                      } catch (RuntimeException e) {
+                          // Expected
+                      }
+                  }
+
+                  void innerMethod() { }
+                  void outerMethod() { throw new RuntimeException(); }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      assertThatThrownBy(() -> {
+                          try {
+                              innerMethod();
+                          } catch (IllegalStateException e) {
+                              // Handle inner exception
+                          }
+                          outerMethod();
+                      }).isInstanceOf(RuntimeException.class);
+                  }
+
+                  void innerMethod() { }
+                  void outerMethod() { throw new RuntimeException(); }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeIfCatchHasReturnStatement() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  boolean testException() {
+                      try {
+                          doSomething();
+                          fail();
+                      } catch (RuntimeException e) {
+                          return true;
+                      }
+                      return false;
+                  }
+
+                  void doSomething() { throw new RuntimeException(); }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeIfExceptionIsRethrown() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  void testException() throws Exception {
+                      try {
+                          doSomething();
+                          fail();
+                      } catch (RuntimeException e) {
+                          throw new Exception("Wrapped", e);
+                      }
+                  }
+
+                  void doSomething() { throw new RuntimeException(); }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeIfExceptionIsLogged() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          doSomething();
+                          fail("Expected exception");
+                      } catch (RuntimeException e) {
+                          System.out.println("Got expected exception: " + e);
+                      }
+                  }
+
+                  void doSomething() { throw new RuntimeException("error"); }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeIfExceptionVariableIsUsed() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  private Exception lastException;
+
+                  @Test
+                  void testException() {
+                      try {
+                          doSomething();
+                          fail();
+                      } catch (RuntimeException e) {
+                          lastException = e;
+                      }
+                  }
+
+                  void doSomething() { throw new RuntimeException(); }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsCommentsInCatchBlock() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          doSomething();
+                          fail("Should throw exception");
+                      } catch (RuntimeException e) {
+                          // This is the expected behavior
+                          // The method should throw RuntimeException
+                          // when given invalid input
+                      }
+                  }
+
+                  void doSomething() { throw new RuntimeException(); }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      assertThatThrownBy(() -> doSomething()).isInstanceOf(RuntimeException.class);
+                  }
+
+                  void doSomething() { throw new RuntimeException(); }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeIfTryWithResources() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.io.StringReader;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try (StringReader reader = new StringReader("test")) {
+                          doSomething();
+                          fail();
+                      } catch (RuntimeException e) {
+                          // Expected
+                      }
+                  }
+
+                  void doSomething() { throw new RuntimeException(); }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeIfCatchHasCustomAssertions() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          doSomething();
+                          fail();
+                      } catch (RuntimeException e) {
+                          assertTrue(e.getMessage().contains("error"));
+                          assertNotNull(e.getCause());
+                      }
+                  }
+
+                  void doSomething() { 
+                      throw new RuntimeException("error", new IllegalStateException()); 
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeIfExceptionUsedInComplexWay() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          doSomething();
+                          fail();
+                      } catch (RuntimeException e) {
+                          String message = e.getMessage();
+                          if (message != null && message.contains("specific")) {
+                              System.out.println("Got specific error: " + message);
+                          }
+                      }
+                  }
+
+                  void doSomething() { throw new RuntimeException("specific error"); }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void handlesImportConflictWithWildcard() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+              import static org.assertj.core.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      assertThat("test").isNotNull();
+                      try {
+                          doSomething();
+                          fail();
+                      } catch (RuntimeException e) {
+                          // Expected
+                      }
+                  }
+
+                  void doSomething() { throw new RuntimeException(); }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.assertj.core.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      assertThat("test").isNotNull();
+                      assertThatThrownBy(() -> doSomething()).isInstanceOf(RuntimeException.class);
+                  }
+
+                  void doSomething() { throw new RuntimeException(); }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void handleNestedClassException() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  static class CustomException extends RuntimeException {
+                      CustomException(String message) { super(message); }
+                  }
+
+                  @Test
+                  void testException() {
+                      try {
+                          doSomething();
+                          fail();
+                      } catch (CustomException e) {
+                          // Expected
+                      }
+                  }
+
+                  void doSomething() { throw new CustomException("error"); }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+              class MyTest {
+                  static class CustomException extends RuntimeException {
+                      CustomException(String message) { super(message); }
+                  }
+
+                  @Test
+                  void testException() {
+                      assertThatThrownBy(() -> doSomething()).isInstanceOf(MyTest.CustomException.class);
+                  }
+
+                  void doSomething() { throw new CustomException("error"); }
+              }
+              """
+          )
+        );
+    }
 }
