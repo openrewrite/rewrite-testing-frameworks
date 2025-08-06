@@ -286,45 +286,16 @@ class CleanupMockitoImportsTest implements RewriteTest {
     }
 
     @Test
-    void handleKotlinImportsCorrectly() {
-        rewriteRun(
-          //language=kotlin
-          kotlin(
-            """
-              import org.mockito.kotlin.times
-              class Foo {
-                fun bar() {
-                  org.mockito.Mockito.mock(Foo::class.java)
-                }
-              }
-              """,
-            """
-              class Foo {
-                fun bar() {
-                  org.mockito.Mockito.mock(Foo::class.java)
-                }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void handleKotlinWhenever() {
+    void doNotRemoveMockitoImportsForKotlin() {
         rewriteRun(
           //language=kotlin
           kotlin(
             """
               import org.mockito.Mock
-              import org.mockito.kotlin.whenever
+              import org.mockito.kotlin.times
               class Foo {
-                @Mock
-                private lateinit var foo: Foo
-                fun foo() : String {
-                    return "foo"
-                }
-                fun baz() {
-                  whenever(foo.foo()).thenReturn("bar")
+                fun bar() {
+                  org.mockito.Mockito.mock(Foo::class.java)
                 }
               }
               """

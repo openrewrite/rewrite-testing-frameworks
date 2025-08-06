@@ -15,26 +15,28 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.VariableNameUtils;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
-import java.util.List;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 
 public class AssertThrowsOnLastStatement extends Recipe {
+
+    private static final Pattern NUMBER_SUFFIX_PATTERN = Pattern.compile("^(.+?)(\\d+)$");
 
     @Override
     public String getDisplayName() {
@@ -44,8 +46,8 @@ public class AssertThrowsOnLastStatement extends Recipe {
     @Override
     public String getDescription() {
         return "Applies JUnit 5 `assertThrows` on last statement in lambda block only. " +
-               "In rare cases may cause compilation errors if the lambda uses effectively non final variables. " +
-               "In some cases, tests might fail if earlier statements in the lambda block throw exceptions.";
+                "In rare cases may cause compilation errors if the lambda uses effectively non final variables. " +
+                "In some cases, tests might fail if earlier statements in the lambda block throw exceptions.";
     }
 
     @Override
@@ -106,36 +108,107 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                     J.Block body = (J.Block) lambda.getBody();
                     List<Statement> lambdaStatements = body.getStatements();
-                    if (lambdaStatements.size() <= 1) {
-                        return methodStatement;
-                    }
 
                     // TODO Check to see if last line in lambda does not use a non-final variable
 
                     // move all the statements from the body into before the method invocation, except last one
-                    return ListUtils.map(lambdaStatements, (idx, lambdaStatement) -> {
+                    return ListUtils.flatMap(lambdaStatements, (idx, lambdaStatement) -> {
                         if (idx < lambdaStatements.size() - 1) {
                             return lambdaStatement.withPrefix(methodStatement.getPrefix().withComments(emptyList()));
                         }
 
+                        List<Statement> variableAssignments = new ArrayList<>();
+                        Space prefix = methodStatement.getPrefix().withComments(emptyList());
+                        final Statement newLambdaStatement = extractExpressionArguments(lambdaStatement, variableAssignments, prefix);
                         J.MethodInvocation newAssertThrows = methodInvocation.withArguments(
                                 ListUtils.map(arguments, (argIdx, argument) -> {
+                                    // The second argument is the lambda which is tested.
                                     if (argIdx == 1) {
                                         // Only retain the last statement in the lambda block
-                                        return lambda.withBody(body.withStatements(singletonList(lambdaStatement)));
+                                        return lambda.withBody(body.withStatements(singletonList(newLambdaStatement)));
                                     }
                                     return argument;
                                 })
                         );
 
                         if (assertThrowsWithVarDec == null) {
-                            return newAssertThrows;
+                            variableAssignments.add(newAssertThrows);
+                            return variableAssignments;
                         }
 
                         J.VariableDeclarations.NamedVariable newAssertThrowsVar = assertThrowsVar.withInitializer(newAssertThrows);
-                        return assertThrowsWithVarDec.withVariables(singletonList(newAssertThrowsVar));
+                        variableAssignments.add(assertThrowsWithVarDec.withVariables(singletonList(newAssertThrowsVar)));
+                        return variableAssignments;
                     });
                 })));
+            }
+
+            private Statement extractExpressionArguments(Statement lambdaStatement, List<Statement> precedingVars, Space varPrefix) {
+                if (lambdaStatement instanceof J.MethodInvocation) {
+                    J.MethodInvocation mi = (J.MethodInvocation) lambdaStatement;
+                    Map<String, Integer> generatedVariableSuffixes = new HashMap<>();
+                    return mi.withArguments(ListUtils.map(mi.getArguments(), e -> {
+                        if (e instanceof J.Identifier || e instanceof J.Literal || e instanceof J.Empty || e == null) {
+                            return e;
+                        }
+
+                        Object variableTypeShort = "Object";
+                        JavaType variableTypeFqn = null;
+                        if (e.getType() instanceof JavaType.Primitive) {
+                            variableTypeShort = e.getType().toString();
+                            variableTypeFqn = e.getType();
+                        } else if (e.getType() instanceof JavaType.FullyQualified) {
+                            JavaType.FullyQualified aClass = (JavaType.FullyQualified) e.getType();
+                            variableTypeShort = aClass.getClassName();
+                            variableTypeFqn = aClass;
+                            maybeAddImport(aClass.getFullyQualifiedName(), false);
+                        }
+
+                        Cursor c = new Cursor(getCursor(), lambdaStatement);
+                        J.VariableDeclarations varDecl = JavaTemplate.builder("#{} #{} = #{any()};")
+                                .build()
+                                .apply(c, lambdaStatement.getCoordinates().replace(), variableTypeShort, getVariableName(e, generatedVariableSuffixes), e);
+                        precedingVars.add(varDecl.withPrefix(varPrefix).withType(variableTypeFqn));
+                        return varDecl.getVariables().get(0).getName().withPrefix(e.getPrefix()).withType(variableTypeFqn);
+                    }));
+                }
+                return lambdaStatement;
+            }
+
+            private String getVariableName(Expression e, Map<String, Integer> generatedVariableSuffixes) {
+                String variableName;
+                if (e instanceof J.MethodInvocation) {
+                    String name = ((J.MethodInvocation) e).getSimpleName();
+                    name = name.replaceAll("^get", "");
+                    name = name.replaceAll("^is", "");
+                    name = StringUtils.uncapitalize(name);
+                    variableName = VariableNameUtils.generateVariableName(!name.isEmpty() ? name : "x", getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                } else {
+                    variableName = VariableNameUtils.generateVariableName("x", getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                }
+                return ensureUniqueVariableName(variableName, generatedVariableSuffixes);
+            }
+
+            private String ensureUniqueVariableName(String variableName, Map<String, Integer> generatedVariableSuffixes) {
+                Set<String> existingVariablesInScope = VariableNameUtils.findNamesInScope(getCursor());
+                Matcher matcher = NUMBER_SUFFIX_PATTERN.matcher(variableName);
+                if (matcher.matches()) {
+                    String prefix = matcher.group(1);
+                    int suffix = Integer.parseInt(matcher.group(2));
+                    generatedVariableSuffixes.putIfAbsent(prefix, suffix);
+                    variableName = prefix;
+                }
+                if (generatedVariableSuffixes.containsKey(variableName)) {
+                    int suffix = generatedVariableSuffixes.get(variableName);
+                    while (existingVariablesInScope.contains(variableName + suffix)) {
+                        suffix++;
+                    }
+                    generatedVariableSuffixes.put(variableName, suffix + 1);
+                    variableName += suffix;
+                } else {
+                    generatedVariableSuffixes.put(variableName, 1);
+                }
+                return variableName;
             }
         });
     }

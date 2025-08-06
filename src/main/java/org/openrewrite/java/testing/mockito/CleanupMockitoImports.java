@@ -25,14 +25,12 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Removes unused "org.mockito" imports.
- */
 public class CleanupMockitoImports extends Recipe {
 
     @Override
@@ -48,7 +46,10 @@ public class CleanupMockitoImports extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                new UsesType<>("org.mockito.*", false),
+                Preconditions.and(
+                    new UsesType<>("org.mockito.*", false),
+                    Preconditions.not(new KotlinFileChecker<>())
+                ),
                 new CleanupMockitoImportsVisitor());
     }
 
@@ -84,7 +85,6 @@ public class CleanupMockitoImports extends Recipe {
                 "verifyNoMoreInteractions",
                 "verifyZeroInteractions",
                 "when",
-                "whenever", // org.mockito.kotlin
                 "will",
                 "willAnswer",
                 "willCallRealMethod",
@@ -107,8 +107,7 @@ public class CleanupMockitoImports extends Recipe {
 
                 for (J.Import _import : sf.getImports()) {
                     if (_import.getPackageName().startsWith("org.mockito")) {
-                        boolean isMockitoKotlinImport = _import.getPackageName().startsWith("org.mockito.kotlin");
-                        if (_import.isStatic() || isMockitoKotlinImport) {
+                        if (_import.isStatic()) {
                             String staticName = _import.getQualid().getSimpleName();
                             if (mockitoMethodsUsed.contains(staticName)) {
                                 continue;
@@ -116,11 +115,7 @@ public class CleanupMockitoImports extends Recipe {
                             if ("*".equals(staticName)) {
                                 maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
                             } else if (!unknownTypeMethodInvocationNames.contains(staticName)) {
-                                String fullyQualifiedName = _import.getPackageName();
-                                if (!isMockitoKotlinImport) {
-                                    fullyQualifiedName += "." + _import.getClassName();
-                                }
-                                fullyQualifiedName += "." + staticName;
+                                String fullyQualifiedName = _import.getPackageName() + "." + _import.getClassName() + "." + staticName;
                                 maybeRemoveImport(fullyQualifiedName);
                             }
                         } else if (qualifiedMethodInvocationNames.isEmpty()) {
