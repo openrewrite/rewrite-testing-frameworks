@@ -24,3 +24,5 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.cleanup.TestsShouldIncludeAssertions
   - org.openrewrite.java.testing.cleanup.RemoveTestPrefix
+  - org.openrewrite.java.testing.cleanup.RemoveVisibleForTestingAnnotationWhenUsedInProduction
+  - org.openrewrite.java.testing.cleanup.SimplifyTestThrows
