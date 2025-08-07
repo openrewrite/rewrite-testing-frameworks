@@ -27,6 +27,16 @@ tags:
   - testing
   - assertj
 recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.assertj.core.annotations.Beta
+      newFullyQualifiedTypeName: org.assertj.core.annotation.Beta
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.assertj.core.util.CanIgnoreReturnValue
+      newFullyQualifiedTypeName: org.assertj.core.annotation.CanIgnoreReturnValue
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.assertj.core.util.CheckReturnValue
+      newFullyQualifiedTypeName: org.assertj.core.annotation.CheckReturnValue
+
   - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
   - org.openrewrite.java.testing.assertj.FestToAssertj
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
