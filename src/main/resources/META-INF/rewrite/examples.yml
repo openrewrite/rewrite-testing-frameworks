@@ -3603,6 +3603,27 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.MockitoJUnitRunnerToExtension
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.runner.RunWith;
+      import org.mockito.junit.MockitoJUnitRunner;
+
+      @RunWith(MockitoJUnitRunner.Strict.class)
+      public class ExternalAPIServiceTest {
+      }
+    after: |
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.junit.jupiter.MockitoExtension;
+
+      @ExtendWith(MockitoExtension.class)
+      public class ExternalAPIServiceTest {
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockitoWhenOnStaticToMockStatic
 examples:
 - description: ''
