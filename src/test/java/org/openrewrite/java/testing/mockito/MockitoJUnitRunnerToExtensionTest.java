@@ -32,7 +32,11 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "mockito-core-3.12"))
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "junit-jupiter-api-5",
+              "mockito-core-3.12",
+              "mockito-junit-jupiter-3.12"))
           .recipe(new MockitoJUnitRunnerToExtension());
     }
 
@@ -104,6 +108,103 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
               import org.junit.runners.Parameterized;
 
               @RunWith(Parameterized.class)
+              public class ExternalAPIServiceTest {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mockitoRunnerWithExtension() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.Strict.class)
+              public class ExternalAPIServiceTest {
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              public class ExternalAPIServiceTest {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mockitoRunnerWithHigherExtensionStrictness() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.jupiter.MockitoSettings;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import org.mockito.quality.Strictness;
+
+              @MockitoSettings(strictness = Strictness.STRICT_STUBS)
+              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
+              public class ExternalAPIServiceTest {
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.jupiter.MockitoSettings;
+              import org.mockito.quality.Strictness;
+
+
+              @ExtendWith(MockitoExtension.class)
+              @MockitoSettings(strictness = Strictness.WARN)
+              public class ExternalAPIServiceTest {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mockitoRunnerWithLowerExtensionStrictness() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.junit.runner.RunWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.jupiter.MockitoSettings;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import org.mockito.quality.Strictness;
+
+              @MockitoSettings(strictness = Strictness.LENIENT)
+              @ExtendWith(MockitoExtension.class)
+              @RunWith(MockitoJUnitRunner.class)
+              public class ExternalAPIServiceTest {
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.jupiter.MockitoSettings;
+              import org.mockito.quality.Strictness;
+
+              @MockitoSettings(strictness = Strictness.LENIENT)
+              @ExtendWith(MockitoExtension.class)
               public class ExternalAPIServiceTest {
               }
               """

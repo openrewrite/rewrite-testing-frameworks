@@ -30,6 +30,7 @@ recipeList:
   - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipes
   - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanRemovedRecipe
   - org.openrewrite.java.testing.cleanup.RemoveTestPrefix
+  - org.openrewrite.java.testing.cleanup.SimplifyTestThrows
   - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
   - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
   - org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates

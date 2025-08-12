@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import org.jetbrains.annotations.Contract;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -64,8 +65,8 @@ public class SimplifyTestThrows extends Recipe {
 
                         // reject invalid methods
                         if (TypeUtils.isOverride(m.getMethodType()) ||
-                            !hasJUnit5MethodAnnotation(method) ||
-                            throwsNothingOrException(method)) {
+                            !hasJUnit5MethodAnnotation(m) ||
+                            throwsNothingOrExceptionOrThrowable(m.getThrows())) {
                             return m;
                         }
 
@@ -91,12 +92,14 @@ public class SimplifyTestThrows extends Recipe {
                     /**
                      * @return true if the method has no throws clause or only throws Exception
                      */
-                    private boolean throwsNothingOrException(J.MethodDeclaration method) {
-                        @Nullable List<NameTree> th = method.getThrows();
+                    @Contract("null -> true")
+                    private boolean throwsNothingOrExceptionOrThrowable(@Nullable List<NameTree> th) {
                         if (th == null || th.isEmpty()) {
                             return true;
                         }
-                        return th.size() == 1 && TypeUtils.isOfClassType(th.get(0).getType(), FQN_JAVA_LANG_EXCEPTION);
+                        return th.size() == 1 &&
+                                (TypeUtils.isOfClassType(th.get(0).getType(), FQN_JAVA_LANG_EXCEPTION) ||
+                                        TypeUtils.isOfClassType(th.get(0).getType(), "java.lang.Throwable"));
                     }
 
                     private boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
