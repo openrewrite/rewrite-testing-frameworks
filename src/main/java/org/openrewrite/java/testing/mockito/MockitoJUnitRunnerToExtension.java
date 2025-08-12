@@ -64,8 +64,8 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-                Strictness runnerStrictness = getStrictness(cd, true);
-                Strictness extensionStrictness = getStrictness(cd, false);
+                Strictness runnerStrictness = getStrictness(cd, runWith);
+                Strictness extensionStrictness = getStrictness(cd, mockitoSettings);
 
                 if (runnerStrictness == null) { // class doesn't have MockitoJunitRunner
                     return cd;
@@ -83,8 +83,8 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                 return cd;
             }
 
-            private @Nullable Strictness getStrictness(J.ClassDeclaration cd, boolean isRunner) {
-                return new Annotated.Matcher(isRunner ? runWith : mockitoSettings).<AtomicReference<@Nullable Strictness>>asVisitor(
+            private @Nullable Strictness getStrictness(J.ClassDeclaration cd, String signature) {
+                return new Annotated.Matcher(signature).<AtomicReference<@Nullable Strictness>>asVisitor(
                     (a, s) -> a.getTree().acceptJava(new JavaIsoVisitor<AtomicReference<Strictness>>() {
                         @Override
                         public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicReference<Strictness> strictness) {
@@ -109,7 +109,10 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                             flag.set(true);
                             return a.getTree();
                         }).reduce(cd, new AtomicBoolean(false)).get();
-                List<String> obsoleteRunners = Arrays.asList("org.mockito.junit.MockitoJUnitRunner.Silent", "org.mockito.junit.MockitoJUnitRunner.Strict", "org.mockito.junit.MockitoJUnitRunner");
+                List<String> obsoleteRunners = Arrays.asList(
+                        "org.mockito.junit.MockitoJUnitRunner.Silent",
+                        "org.mockito.junit.MockitoJUnitRunner.Strict",
+                        "org.mockito.junit.MockitoJUnitRunner");
                 if (hasMockitoExtensions) {
                     doAfterVisit(new RemoveObsoleteRunners(obsoleteRunners).getVisitor());
                 } else {
