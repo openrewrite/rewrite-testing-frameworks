@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -82,9 +83,8 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                 return cd;
             }
 
-            private Strictness getStrictness(J.ClassDeclaration cd, boolean isRunner) {
-                AtomicReference<Strictness> strictness = new AtomicReference<>();
-                new Annotated.Matcher(isRunner ? runWith : mockitoSettings).<AtomicReference<Strictness>>asVisitor(
+            private @Nullable Strictness getStrictness(J.ClassDeclaration cd, boolean isRunner) {
+                return new Annotated.Matcher(isRunner ? runWith : mockitoSettings).<AtomicReference<@Nullable Strictness>>asVisitor(
                     (a, s) -> a.getTree().acceptJava(new JavaIsoVisitor<AtomicReference<Strictness>>() {
                         @Override
                         public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicReference<Strictness> strictness) {
@@ -100,9 +100,7 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                             }
                             return fieldAccess;
                         }
-                }, s)).visit(cd, strictness);
-
-                return strictness.get();
+                }, s)).reduce(cd, new AtomicReference<>()).get();
             }
 
             private void registerAfterVisit(J.ClassDeclaration cd) {
