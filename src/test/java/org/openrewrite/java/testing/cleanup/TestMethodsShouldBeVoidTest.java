@@ -24,6 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
+@SuppressWarnings("JUnitMalformedDeclaration")
 class TestMethodsShouldBeVoidTest implements RewriteTest {
 
     @Override
