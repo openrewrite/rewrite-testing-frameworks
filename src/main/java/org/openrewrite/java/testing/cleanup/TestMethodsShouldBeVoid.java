@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Recipe;
@@ -95,13 +96,11 @@ public class TestMethodsShouldBeVoid extends Recipe {
                 return false;
             }
 
-            private J.Block removeReturnStatements(J.Block block) {
+            private J.@Nullable Block removeReturnStatements(J.@Nullable Block block) {
                 if (block == null) {
                     return null;
                 }
-
-                RemoveReturnsVisitor visitor = new RemoveReturnsVisitor();
-                return (J.Block) visitor.visitBlock(block, new InMemoryExecutionContext());
+                return new RemoveReturnsVisitor().visitBlock(block, new InMemoryExecutionContext());
             }
         };
     }
