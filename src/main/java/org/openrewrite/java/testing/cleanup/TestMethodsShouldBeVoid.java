@@ -26,8 +26,6 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.Objects;
-
 import static java.util.Objects.requireNonNull;
 
 public class TestMethodsShouldBeVoid extends Recipe {
