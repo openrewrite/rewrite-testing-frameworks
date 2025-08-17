@@ -37,7 +37,7 @@ public class TestMethodsShouldBeVoid extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@TestTemplate` " +
+        return "Test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestTemplate` " +
                 "should have `void` return type. Non-void return types can cause test discovery issues, " +
                 "and warnings as of JUnit 5.13+. This recipe changes the return type to `void` and removes `return` statements.";
     }
@@ -80,9 +80,8 @@ public class TestMethodsShouldBeVoid extends Recipe {
             private boolean hasTestAnnotation(J.MethodDeclaration method) {
                 for (J.Annotation annotation : method.getLeadingAnnotations()) {
                     if (TypeUtils.isOfClassType(annotation.getType(), "org.junit.Test") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.Test") ||
                             TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.RepeatedTest") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.TestFactory") ||
+                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.Test") ||
                             TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.TestTemplate") ||
                             TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.params.ParameterizedTest")) {
                         return true;
