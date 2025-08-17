@@ -26,6 +26,10 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
+
 public class TestMethodsShouldBeVoid extends Recipe {
 
     @Override
@@ -37,7 +41,7 @@ public class TestMethodsShouldBeVoid extends Recipe {
     public String getDescription() {
         return "Test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@TestTemplate` " +
                 "should have `void` return type. Non-void return types can cause test discovery issues, " +
-                "especially in JUnit 5.13+. This recipe changes the return type to `void` and removes `return` statements.";
+                "and warnings as of JUnit 5.13+. This recipe changes the return type to `void` and removes `return` statements.";
     }
 
     @Override
@@ -72,24 +76,7 @@ public class TestMethodsShouldBeVoid extends Recipe {
                 }
 
                 // Remove return statements that are not in nested classes or lambdas
-                return m.withBody((J.Block) new JavaVisitor<ExecutionContext>() {
-                    @Override
-                    public J visitLambda(J.Lambda lambda, ExecutionContext ctx1) {
-                        return lambda; // Retain nested returns
-                    }
-
-                    @Override
-                    public J visitNewClass(J.NewClass newClass, ExecutionContext ctx1) {
-                        return newClass; // Retain nested returns
-                    }
-
-                    @Override
-                    public @Nullable J visitReturn(J.Return retrn, ExecutionContext ctx1) {
-                        return retrn.getExpression() instanceof Statement ?
-                                retrn.getExpression().withPrefix(retrn.getPrefix()) :
-                                null; // Remove return statements that are not statements we need to retain
-                    }
-                }.visitBlock(m.getBody(), ctx));
+                return m.withBody((J.Block) new RemoveDirectReturns().visitBlock(requireNonNull(m.getBody()), ctx));
             }
 
             private boolean hasTestAnnotation(J.MethodDeclaration method) {
@@ -106,5 +93,26 @@ public class TestMethodsShouldBeVoid extends Recipe {
                 return false;
             }
         };
+    }
+
+    private static class RemoveDirectReturns extends JavaVisitor<ExecutionContext> {
+        @Override
+        public J visitLambda(J.Lambda lambda, ExecutionContext ctx) {
+            return lambda; // Retain nested returns
+        }
+
+        @Override
+        public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+            return newClass; // Retain nested returns
+        }
+
+        @Override
+        public @Nullable J visitReturn(J.Return retrn, ExecutionContext ctx) {
+            return retrn.getExpression() instanceof Statement ?
+                    // Retain any side effects from expressions in return statements
+                    retrn.getExpression().withPrefix(retrn.getPrefix()) :
+                    // Remove any other return statements
+                    null;
+        }
     }
 }
