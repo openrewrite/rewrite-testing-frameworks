@@ -17,18 +17,14 @@ package org.openrewrite.java.testing.cleanup;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Recipe;
-import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class TestMethodsShouldBeVoid extends Recipe {
 
@@ -51,22 +47,22 @@ public class TestMethodsShouldBeVoid extends Recipe {
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
-                // Check if method has a test annotation
-                if (!hasTestAnnotation(m)) {
+                // Check if method has a test annotation & body
+                if (!hasTestAnnotation(m) || m.getBody() == null) {
                     return m;
                 }
 
                 // Check if return type is already void
                 JavaType.Primitive voidType = JavaType.Primitive.Void;
-                if (m.getReturnTypeExpression() != null && TypeUtils.isOfType(m.getReturnTypeExpression().getType(), voidType)) {
+                if (m.getReturnTypeExpression() == null || TypeUtils.isOfType(m.getReturnTypeExpression().getType(), voidType)) {
                     return m;
                 }
 
                 // Change return type to void
                 m = m.withReturnTypeExpression(new J.Primitive(
-                        m.getReturnTypeExpression() != null ? m.getReturnTypeExpression().getId() : Tree.randomId(),
-                        m.getReturnTypeExpression() != null ? m.getReturnTypeExpression().getPrefix() : Space.EMPTY,
-                        m.getReturnTypeExpression() != null ? m.getReturnTypeExpression().getMarkers() : org.openrewrite.marker.Markers.EMPTY,
+                        m.getReturnTypeExpression().getId(),
+                        m.getReturnTypeExpression().getPrefix(),
+                        m.getReturnTypeExpression().getMarkers(),
                         JavaType.Primitive.Void
                 ));
 
@@ -76,83 +72,39 @@ public class TestMethodsShouldBeVoid extends Recipe {
                 }
 
                 // Remove return statements that are not in nested classes or lambdas
-                m = m.withBody(removeReturnStatements(m.getBody()));
+                return m.withBody((J.Block) new JavaVisitor<ExecutionContext>() {
+                    @Override
+                    public J visitLambda(J.Lambda lambda, ExecutionContext ctx1) {
+                        return lambda; // Retain nested returns
+                    }
 
-                return m;
+                    @Override
+                    public J visitNewClass(J.NewClass newClass, ExecutionContext ctx1) {
+                        return newClass; // Retain nested returns
+                    }
+
+                    @Override
+                    public @Nullable J visitReturn(J.Return retrn, ExecutionContext ctx1) {
+                        return retrn.getExpression() instanceof Statement ?
+                                retrn.getExpression().withPrefix(retrn.getPrefix()) :
+                                null; // Remove return statements that are not statements we need to retain
+                    }
+                }.visitBlock(m.getBody(), ctx));
             }
 
             private boolean hasTestAnnotation(J.MethodDeclaration method) {
                 for (J.Annotation annotation : method.getLeadingAnnotations()) {
-                    if (TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.Test") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
+                    if (TypeUtils.isOfClassType(annotation.getType(), "org.junit.Test") ||
+                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.Test") ||
                             TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.RepeatedTest") ||
                             TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.TestFactory") ||
                             TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.TestTemplate") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.Test") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.testng.annotations.Test")) {
+                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.params.ParameterizedTest")) {
                         return true;
                     }
                 }
                 return false;
             }
-
-            private J.@Nullable Block removeReturnStatements(J.@Nullable Block block) {
-                if (block == null) {
-                    return null;
-                }
-                return new RemoveReturnsVisitor().visitBlock(block, new InMemoryExecutionContext());
-            }
         };
-    }
-
-    private static class RemoveReturnsVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private int nestedLevel = 0;
-
-        @Override
-        public J.Lambda visitLambda(J.Lambda lambda, ExecutionContext ctx) {
-            nestedLevel++;
-            J.Lambda result = super.visitLambda(lambda, ctx);
-            nestedLevel--;
-            return result;
-        }
-
-        @Override
-        public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
-            if (newClass.getBody() != null) {
-                nestedLevel++;
-                J.NewClass result = super.visitNewClass(newClass, ctx);
-                nestedLevel--;
-                return result;
-            }
-            return super.visitNewClass(newClass, ctx);
-        }
-
-        @Override
-        public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
-            J.Block b = super.visitBlock(block, ctx);
-            if (nestedLevel == 0) {
-                // Process the statements to remove returns at the top level
-                List<org.openrewrite.java.tree.Statement> newStatements = new ArrayList<>();
-                for (org.openrewrite.java.tree.Statement statement : b.getStatements()) {
-                    if (statement instanceof J.Return) {
-                        J.Return return_ = (J.Return) statement;
-                        // If the return has an expression that's not a literal, keep it as a statement
-                        if (return_.getExpression() != null && !(return_.getExpression() instanceof J.Literal)) {
-                            org.openrewrite.java.tree.Expression expr = return_.getExpression();
-                            // Check if the expression is already a statement (e.g., method invocation)
-                            if (expr instanceof org.openrewrite.java.tree.Statement) {
-                                newStatements.add(((org.openrewrite.java.tree.Statement) expr).withPrefix(statement.getPrefix()));
-                            }
-                            // Otherwise, we can't simply convert it - just remove the return
-                        }
-                        // Otherwise, don't add anything (removes "return;" or "return literal;")
-                    } else {
-                        newStatements.add(statement);
-                    }
-                }
-                return b.withStatements(newStatements);
-            }
-            return b;
-        }
     }
 }
