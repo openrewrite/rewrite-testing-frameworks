@@ -32,11 +32,14 @@ import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
+
 @SuppressWarnings("SimplifyStreamApiCallChains")
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class TestsShouldIncludeAssertions extends Recipe {
-    private static final List<String> TEST_ANNOTATIONS = Collections.singletonList("org.junit.jupiter.api.Test");
+    private static final List<String> TEST_ANNOTATIONS = singletonList("org.junit.jupiter.api.Test");
 
     private static final List<String> DEFAULT_ASSERTIONS = Arrays.asList(
             "com.github.tomakehurst.wiremock.client.WireMock",
@@ -76,7 +79,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-S2699");
+        return singleton("RSPEC-S2699");
     }
 
     @Override

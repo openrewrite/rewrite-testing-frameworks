@@ -30,7 +30,9 @@ recipeList:
   - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipes
   - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanRemovedRecipe
   - org.openrewrite.java.testing.cleanup.RemoveTestPrefix
+  - org.openrewrite.java.testing.cleanup.SimplifyTestThrows
   - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
+  - org.openrewrite.java.testing.cleanup.TestMethodsShouldBeVoid
   - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
   - org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
   - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
@@ -58,9 +60,10 @@ tags:
   - testing
   - junit
 preconditions:
-  - org.openrewrite.java.search.DoesNotUseType:
-      fullyQualifiedTypeName: org.testng..*
-      includeImplicit: true
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.testng
+      artifactIdPattern: testng*
+      invertMarking: true
 recipeList:
   - org.openrewrite.java.testing.junit5.EnvironmentVariables
   - org.openrewrite.java.testing.junit5.UseWiremockExtension

@@ -22,10 +22,14 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 import static org.openrewrite.java.tree.Flag.Static;
@@ -236,9 +240,9 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             return resources.stream().filter(res -> {
                 J.VariableDeclarations vds = (J.VariableDeclarations) res.getVariableDeclarations();
                 return TypeUtils.isAssignableTo("org.mockito.MockedStatic<" + className + ">", vds.getTypeAsFullyQualified());
-            }).collect(Collectors.toList());
+            }).collect(toList());
         }
-        return Collections.emptyList();
+        return emptyList();
     }
 
     private static Optional<String> tryGetMatchedWrappingResourceName(Cursor cursor, String className) {

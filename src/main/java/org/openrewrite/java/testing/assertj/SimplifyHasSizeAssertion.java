@@ -26,7 +26,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
 
 public class SimplifyHasSizeAssertion extends Recipe {
 
@@ -78,7 +78,7 @@ public class SimplifyHasSizeAssertion extends Recipe {
                     private J.MethodInvocation updateMethodInvocation(J.MethodInvocation mi, Expression argument) {
                         return mi.withMethodType(mi.getMethodType().withName(HAS_SAME_SIZE_AS))
                                 .withName(mi.getName().withSimpleName(HAS_SAME_SIZE_AS))
-                                .withArguments(Collections.singletonList(argument));
+                                .withArguments(singletonList(argument));
                     }
                 });
     }

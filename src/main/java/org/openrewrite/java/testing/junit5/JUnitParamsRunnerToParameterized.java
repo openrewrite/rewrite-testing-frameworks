@@ -27,9 +27,9 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.joining;
 
 /**
  * Converts Pragmatists JUnitParamsRunner tests to their JUnit 5 ParameterizedTest and associated MethodSource equivalent
@@ -329,7 +329,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             if (annotationArgumentValue != null) {
                 String[] methodRefs = annotationArgumentValue.split(",");
                 if (methodRefs.length > 1) {
-                    String methods = Arrays.stream(methodRefs).map(mref -> "\"" + mref + "\"").collect(Collectors.joining(", "));
+                    String methods = Arrays.stream(methodRefs).map(mref -> "\"" + mref + "\"").collect(joining(", "));
                     annotationArgumentValue = "{" + methods + "}";
                 } else {
                     annotationArgumentValue = "\"" + annotationArgumentValue + "\"";

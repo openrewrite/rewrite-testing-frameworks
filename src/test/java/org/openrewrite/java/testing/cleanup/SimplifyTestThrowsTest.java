@@ -115,4 +115,23 @@ class SimplifyTestThrowsTest implements RewriteTest {
           )
         );
     }
+
+
+    @Test
+    void retainThrowable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class ATest {
+                  @Test
+                  void throwsMultiple() throws Throwable {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

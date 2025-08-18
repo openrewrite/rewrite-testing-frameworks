@@ -24,6 +24,8 @@ import org.openrewrite.java.tree.*;
 
 import java.util.*;
 
+import static java.util.Collections.singletonList;
+
 class ArgumentMatchersRewriter {
 
     private static final Set<String> JMOCKIT_ARGUMENT_MATCHERS = new HashSet<>();
@@ -224,10 +226,10 @@ class ArgumentMatchersRewriter {
         }
         JavaType.Parameterized newParameterType = ((JavaType.Parameterized) invocationArgument.getMethodType()
                 .getParameterTypes().get(0))
-                .withTypeParameters(Collections.singletonList(classArgument.getType()));
+                .withTypeParameters(singletonList(classArgument.getType()));
         JavaType.Method newMethodType = invocationArgument.getMethodType()
                 .withReturnType(classArgument.getType())
-                .withParameterTypes(Collections.singletonList(newParameterType));
+                .withParameterTypes(singletonList(newParameterType));
         return invocationArgument.withMethodType(newMethodType);
     }
 
