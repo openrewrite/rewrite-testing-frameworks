@@ -61,55 +61,28 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
 
                 // Check if the try block ends with a fail() call
                 List<Statement> tryStatements = try_.getBody().getStatements();
-                if (tryStatements.isEmpty()) {
-                    return try_;
-                }
-
-                Statement lastStatement = tryStatements.get(tryStatements.size() - 1);
-                if (!(lastStatement instanceof J.MethodInvocation)) {
-                    return try_;
-                }
-
-                J.MethodInvocation lastMethodCall = (J.MethodInvocation) lastStatement;
-                if (!isFailMethod(lastMethodCall)) {
+                if (tryStatements.isEmpty() || !isFailMethod(tryStatements.get(tryStatements.size() - 1))) {
                     return try_;
                 }
 
                 // Get the catch block
                 J.Try.Catch catchBlock = try_.getCatches().get(0);
 
-                JavaType catchType = catchBlock.getParameter().getTree().getType();
-                if (catchType == null) {
-                    return try_;
-                }
-
                 // Extract the exception type
-                JavaType.FullyQualified exceptionFqType = TypeUtils.asFullyQualified(catchType);
+                JavaType.FullyQualified exceptionFqType = TypeUtils.asFullyQualified(catchBlock.getParameter().getTree().getType());
                 if (exceptionFqType == null) {
                     return try_;
                 }
                 String exceptionType = exceptionFqType.getClassName();
 
                 // Extract assertions from catch block
-                List<String> assertions = extractAssertions(catchBlock, ctx);
+                List<String> assertions = extractAssertions(catchBlock);
 
                 // Only convert if:
                 // - Catch block is empty (just a comment), or
-                // - Catch block has exactly one statement that we can convert to an assertion
-                int catchStatements = catchBlock.getBody().getStatements().size();
-                if (catchStatements > 1) {
+                // - We can convert all statements in the catch block to assertions
+                if (assertions.size() != catchBlock.getBody().getStatements().size()) {
                     return try_;
-                }
-
-                // If there's one statement but we couldn't extract an assertion from it, don't convert
-                if (catchStatements == 1 && assertions.isEmpty()) {
-                    // Check if the single statement is something we don't recognize
-                    Statement stmt = catchBlock.getBody().getStatements().get(0);
-                    if (!(stmt instanceof J.MethodInvocation &&
-                            (ASSERT_EQUALS_MATCHER.matches((J.MethodInvocation) stmt) ||
-                                    JUNIT4_ASSERT_EQUALS_MATCHER.matches((J.MethodInvocation) stmt)))) {
-                        return try_;
-                    }
                 }
 
                 // Build the lambda body from try block statements (excluding the fail() call)
@@ -118,7 +91,6 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
                 // Generate the assertThatThrownBy code
                 String template = buildTemplate(lambdaStatements, exceptionType, assertions);
 
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThatThrownBy");
                 maybeRemoveImport("org.junit.jupiter.api.Assertions.fail");
                 maybeRemoveImport("org.junit.Assert.fail");
                 maybeRemoveImport("junit.framework.Assert.fail");
@@ -128,6 +100,8 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
                     maybeRemoveImport("org.junit.jupiter.api.Assertions.assertEquals");
                     maybeRemoveImport("org.junit.Assert.assertEquals");
                 }
+
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThatThrownBy");
 
                 // Add import for the exception type if needed
                 if (!exceptionFqType.getFullyQualifiedName().startsWith("java.lang.")) {
@@ -142,20 +116,23 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
                         .<J.MethodInvocation>apply(getCursor(), try_.getCoordinates().replace(), lambdaStatements.toArray());
             }
 
-            private boolean isFailMethod(J.MethodInvocation method) {
-                return FAIL_MATCHER.matches(method) ||
-                        JUNIT4_FAIL_MATCHER.matches(method) ||
-                        JUNIT_FAIL_MATCHER.matches(method);
+            private boolean isFailMethod(Statement method) {
+                if (method instanceof Expression) {
+                    return FAIL_MATCHER.matches((Expression) method) ||
+                            JUNIT4_FAIL_MATCHER.matches((Expression) method) ||
+                            JUNIT_FAIL_MATCHER.matches((Expression) method);
+                }
+                return false;
             }
 
-            private List<String> extractAssertions(J.Try.Catch catchBlock, ExecutionContext ctx) {
+            private List<String> extractAssertions(J.Try.Catch catchBlock) {
                 List<String> assertions = new ArrayList<>();
                 for (Statement statement : catchBlock.getBody().getStatements()) {
                     if (statement instanceof J.MethodInvocation) {
                         J.MethodInvocation mi = (J.MethodInvocation) statement;
                         if (ASSERT_EQUALS_MATCHER.matches(mi) || JUNIT4_ASSERT_EQUALS_MATCHER.matches(mi)) {
                             // Handle assertEquals for exception message
-                            if (mi.getArguments().size() >= 2) {
+                            if (2 <= mi.getArguments().size()) {
                                 Expression arg1 = mi.getArguments().get(0);
                                 Expression arg2 = mi.getArguments().get(1);
 
