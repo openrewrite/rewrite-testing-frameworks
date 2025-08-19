@@ -51,3 +51,6 @@ recipeList:
       groupId: org.apache.maven.plugins
       artifactId: maven-surefire-plugin
       newVersion: 3.x
+  - org.openrewrite.java.RemoveAnnotationAttribute:
+      annotationType: org.junit.jupiter.params.provider.CsvFileSource
+      attributeName: lineSeparator
