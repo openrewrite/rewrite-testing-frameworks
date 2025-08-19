@@ -19,9 +19,8 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.ChangeMethodName;
 import org.openrewrite.java.ChangeMethodTargetToStatic;
-import org.openrewrite.java.tree.J;
+import org.openrewrite.java.dependencies.FindDependency;
 import org.openrewrite.java.tree.JavaSourceFile;
-import org.openrewrite.xml.tree.Xml;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -43,19 +42,12 @@ public class AnyToNullable extends ScanningRecipe<AtomicBoolean> {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(AtomicBoolean acc) {
-        org.openrewrite.maven.search.FindDependency mavenFindDependency =
-                new org.openrewrite.maven.search.FindDependency("org.mockito", "mockito-all", null, null);
-        org.openrewrite.gradle.search.FindDependency gradleFindDependency =
-                new org.openrewrite.gradle.search.FindDependency("org.mockito", "mockito-all", null);
+        FindDependency findDependency = new FindDependency("org.mockito", "mockito-all", null, null, null);
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                if (!acc.get()) {
-                    if (tree instanceof Xml.Document && tree != mavenFindDependency.getVisitor().visit(tree, ctx)) {
-                        acc.set(true);
-                    } else if (tree instanceof J && tree != gradleFindDependency.getVisitor().visit(tree, ctx)) {
-                        acc.set(true);
-                    }
+                if (!acc.get() && tree != findDependency.getVisitor().visit(tree, ctx)) {
+                    acc.set(true);
                 }
                 return tree;
             }

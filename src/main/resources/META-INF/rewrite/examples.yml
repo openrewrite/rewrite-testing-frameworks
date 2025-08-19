@@ -1385,6 +1385,32 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.TestMethodsShouldBeVoid
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      class ATest {
+          @Test
+          int testMethod() {
+              int i = 42;
+              return i;
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      class ATest {
+          @Test
+          void testMethod() {
+              int i = 42;
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.datafaker.JavaFakerToDataFaker
 examples:
 - description: ''

@@ -73,7 +73,7 @@ class AnyToNullableTest implements RewriteTest {
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.any;
-              
+
               class MyTest {
                    void test() {
                       Example example = mock(Example.class);
@@ -85,7 +85,7 @@ class AnyToNullableTest implements RewriteTest {
               import static org.mockito.ArgumentMatchers.nullable;
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
-                            
+
               class MyTest {
                    void test() {
                       Example example = mock(Example.class);
@@ -135,7 +135,7 @@ class AnyToNullableTest implements RewriteTest {
               import static org.mockito.Mockito.mock;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.any;
-              
+
               class MyTest {
                    void test() {
                       Example example = mock(Example.class);

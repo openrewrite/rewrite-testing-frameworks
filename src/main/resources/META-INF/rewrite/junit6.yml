@@ -1,0 +1,56 @@
+#
+# Copyright 2025 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit6.JUnit5to6Migration
+displayName: JUnit 6 migration from JUnit 5.x
+description: Migrates JUnit 5.x tests to JUnit 6.x.
+tags:
+  - testing
+  - junit
+  - jupiter
+preconditions:
+  - org.openrewrite.java.search.DoesNotUseType:
+      fullyQualifiedTypeName: org.testng..*
+      includeImplicit: true
+  - org.openrewrite.java.search.HasMinimumJavaVersion:
+      version: 17
+recipeList:
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.junit.platform
+      artifactId: junit-platform-jfr
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.junit.platform
+      artifactId: junit-platform-runner
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.junit.platform
+      artifactId: junit-platform-suite-commons
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit.jupiter
+      artifactId: junit-jupiter*
+      newVersion: 6.x
+  - org.openrewrite.maven.UpgradePluginVersion:
+      groupId: org.apache.maven.plugins
+      artifactId: maven-failsafe-plugin
+      newVersion: 3.x
+  - org.openrewrite.maven.UpgradePluginVersion:
+      groupId: org.apache.maven.plugins
+      artifactId: maven-surefire-plugin
+      newVersion: 3.x
+  - org.openrewrite.java.RemoveAnnotationAttribute:
+      annotationType: org.junit.jupiter.params.provider.CsvFileSource
+      attributeName: lineSeparator
