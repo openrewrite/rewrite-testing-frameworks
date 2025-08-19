@@ -300,23 +300,6 @@ examples:
 - description: ''
   sources:
   - before: |
-      import static org.assertj.core.api.Assertions.assertThat;
-      class Test {
-          void test() {
-              assertThat("test").isEqualTo("");
-          }
-      }
-    after: |
-      import static org.assertj.core.api.Assertions.assertThat;
-      class Test {
-          void test() {
-              assertThat("test").isEmpty();
-          }
-      }
-    language: java
-- description: ''
-  sources:
-  - before: |
       import static org.testng.Assert.fail;
 
       class Test {
@@ -334,6 +317,23 @@ examples:
               fail("foo");
               fail("foo", new IllegalStateException());
               fail();
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+      class Test {
+          void test() {
+              assertThat("test").isEqualTo("");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+      class Test {
+          void test() {
+              assertThat("test").isEmpty();
           }
       }
     language: java
@@ -812,6 +812,47 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.JUnitTryFailToAssertThatThrownBy
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import static org.junit.jupiter.api.Assertions.fail;
+
+      class MyTest {
+          @Test
+          void testExceptionIsThrown() {
+              try {
+                  someMethodThatShouldThrow();
+                  fail("Expected IllegalArgumentException to be thrown");
+              } catch (IllegalArgumentException e) {
+                  // Expected exception
+              }
+          }
+
+          void someMethodThatShouldThrow() {
+              throw new IllegalArgumentException("Invalid argument");
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+      class MyTest {
+          @Test
+          void testExceptionIsThrown() {
+              assertThatThrownBy(() -> someMethodThatShouldThrow()).isInstanceOf(IllegalArgumentException.class);
+          }
+
+          void someMethodThatShouldThrow() {
+              throw new IllegalArgumentException("Invalid argument");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion
 examples:
 - description: ''
@@ -1241,6 +1282,32 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.TestMethodsShouldBeVoid
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      class ATest {
+          @Test
+          int testMethod() {
+              int i = 42;
+              return i;
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      class ATest {
+          @Test
+          void testMethod() {
+              int i = 42;
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.TestsShouldIncludeAssertions
 examples:
 - description: ''
@@ -1339,32 +1406,6 @@ examples:
               @Test
               void anotherTestMethod() {
               }
-          }
-      }
-    language: java
----
-type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.cleanup.TestMethodsShouldBeVoid
-examples:
-- description: ''
-  sources:
-  - before: |
-      import org.junit.jupiter.api.Test;
-
-      class ATest {
-          @Test
-          int testMethod() {
-              int i = 42;
-              return i;
-          }
-      }
-    after: |
-      import org.junit.jupiter.api.Test;
-
-      class ATest {
-          @Test
-          void testMethod() {
-              int i = 42;
           }
       }
     language: java
@@ -3289,61 +3330,6 @@ examples:
 - description: ''
   sources:
   - before: |
-      package mockito.example;
-
-      import java.util.List;
-      import java.util.Map;
-      import java.util.Set;
-
-      import static org.mockito.ArgumentMatchers.anyListOf;
-      import static org.mockito.ArgumentMatchers.anySetOf;
-      import static org.mockito.ArgumentMatchers.anyMapOf;
-      import static org.mockito.Mockito.mock;
-      import static org.mockito.Mockito.when;
-
-      public class MockitoVarargMatcherTest {
-          public static class Foo {
-              public boolean addList(List<String> strings) { return true; }
-              public boolean addSet(Set<String> strings) { return true; }
-              public boolean addMap(Map<String, String> stringStringMap) { return true; }
-          }
-          public void usesVarargMatcher() {
-              Foo mockFoo = mock(Foo.class);
-              when(mockFoo.addList(anyListOf(String.class))).thenReturn(true);
-              when(mockFoo.addSet(anySetOf(String.class))).thenReturn(true);
-              when(mockFoo.addMap(anyMapOf(String.class, String.class))).thenReturn(true);
-          }
-      }
-    after: |
-      package mockito.example;
-
-      import java.util.List;
-      import java.util.Map;
-      import java.util.Set;
-
-      import static org.mockito.ArgumentMatchers.anyList;
-      import static org.mockito.ArgumentMatchers.anySet;
-      import static org.mockito.ArgumentMatchers.anyMap;
-      import static org.mockito.Mockito.mock;
-      import static org.mockito.Mockito.when;
-
-      public class MockitoVarargMatcherTest {
-          public static class Foo {
-              public boolean addList(List<String> strings) { return true; }
-              public boolean addSet(Set<String> strings) { return true; }
-              public boolean addMap(Map<String, String> stringStringMap) { return true; }
-          }
-          public void usesVarargMatcher() {
-              Foo mockFoo = mock(Foo.class);
-              when(mockFoo.addList(anyList())).thenReturn(true);
-              when(mockFoo.addSet(anySet())).thenReturn(true);
-              when(mockFoo.addMap(anyMap())).thenReturn(true);
-          }
-      }
-    language: java
-- description: ''
-  sources:
-  - before: |
       plugins {
           id 'java-library'
       }
@@ -3476,6 +3462,61 @@ examples:
       </project>
     path: pom.xml
     language: xml
+- description: ''
+  sources:
+  - before: |
+      package mockito.example;
+
+      import java.util.List;
+      import java.util.Map;
+      import java.util.Set;
+
+      import static org.mockito.ArgumentMatchers.anyListOf;
+      import static org.mockito.ArgumentMatchers.anySetOf;
+      import static org.mockito.ArgumentMatchers.anyMapOf;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      public class MockitoVarargMatcherTest {
+          public static class Foo {
+              public boolean addList(List<String> strings) { return true; }
+              public boolean addSet(Set<String> strings) { return true; }
+              public boolean addMap(Map<String, String> stringStringMap) { return true; }
+          }
+          public void usesVarargMatcher() {
+              Foo mockFoo = mock(Foo.class);
+              when(mockFoo.addList(anyListOf(String.class))).thenReturn(true);
+              when(mockFoo.addSet(anySetOf(String.class))).thenReturn(true);
+              when(mockFoo.addMap(anyMapOf(String.class, String.class))).thenReturn(true);
+          }
+      }
+    after: |
+      package mockito.example;
+
+      import java.util.List;
+      import java.util.Map;
+      import java.util.Set;
+
+      import static org.mockito.ArgumentMatchers.anyList;
+      import static org.mockito.ArgumentMatchers.anySet;
+      import static org.mockito.ArgumentMatchers.anyMap;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      public class MockitoVarargMatcherTest {
+          public static class Foo {
+              public boolean addList(List<String> strings) { return true; }
+              public boolean addSet(Set<String> strings) { return true; }
+              public boolean addMap(Map<String, String> stringStringMap) { return true; }
+          }
+          public void usesVarargMatcher() {
+              Foo mockFoo = mock(Foo.class);
+              when(mockFoo.addList(anyList())).thenReturn(true);
+              when(mockFoo.addSet(anySet())).thenReturn(true);
+              when(mockFoo.addMap(anyMap())).thenReturn(true);
+          }
+      }
+    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.Mockito1to4Migration
