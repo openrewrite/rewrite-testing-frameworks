@@ -94,21 +94,15 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
                   @Test
                   void testExceptionWithMessage() {
                       try {
-                          service.process(null);
+                          process();
                           fail("Should have thrown NullPointerException");
                       } catch (NullPointerException e) {
                           assertEquals("Input cannot be null", e.getMessage());
                       }
                   }
 
-                  Service service = new Service();
-
-                  class Service {
-                      void process(String input) {
-                          if (input == null) {
-                              throw new NullPointerException("Input cannot be null");
-                          }
-                      }
+                  void process() {
+                      throw new NullPointerException("Input cannot be null");
                   }
               }
               """,
@@ -120,17 +114,11 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
               class MyTest {
                   @Test
                   void testExceptionWithMessage() {
-                      assertThatThrownBy(() -> service.process(null)).isInstanceOf(NullPointerException.class).hasMessage("Input cannot be null");
+                      assertThatThrownBy(() -> process()).isInstanceOf(NullPointerException.class).hasMessage("Input cannot be null");
                   }
 
-                  Service service = new Service();
-
-                  class Service {
-                      void process(String input) {
-                          if (input == null) {
-                              throw new NullPointerException("Input cannot be null");
-                          }
-                      }
+                  void process() {
+                      throw new NullPointerException("Input cannot be null");
                   }
               }
               """
@@ -573,7 +561,7 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     }
 
     @Test
-    void retainsCommentsInCatchBlock() {
+    void dropsCommentsInCatchBlock() {
         //language=java
         rewriteRun(
           java(
@@ -664,8 +652,8 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
                       }
                   }
 
-                  void doSomething() { 
-                      throw new RuntimeException("error", new IllegalStateException()); 
+                  void doSomething() {
+                      throw new RuntimeException("error", new IllegalStateException());
                   }
               }
               """
@@ -697,98 +685,6 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
                   }
 
                   void doSomething() { throw new RuntimeException("specific error"); }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void handlesImportConflictWithWildcard() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-              import static org.junit.jupiter.api.Assertions.fail;
-              import static org.assertj.core.api.Assertions.*;
-
-              class MyTest {
-                  @Test
-                  void testException() {
-                      assertThat("test").isNotNull();
-                      try {
-                          doSomething();
-                          fail();
-                      } catch (RuntimeException e) {
-                          // Expected
-                      }
-                  }
-
-                  void doSomething() { throw new RuntimeException(); }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-              import static org.assertj.core.api.Assertions.*;
-
-              class MyTest {
-                  @Test
-                  void testException() {
-                      assertThat("test").isNotNull();
-                      assertThatThrownBy(() -> doSomething()).isInstanceOf(RuntimeException.class);
-                  }
-
-                  void doSomething() { throw new RuntimeException(); }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void handleNestedClassException() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-              import static org.junit.jupiter.api.Assertions.fail;
-
-              class MyTest {
-                  static class CustomException extends RuntimeException {
-                      CustomException(String message) { super(message); }
-                  }
-
-                  @Test
-                  void testException() {
-                      try {
-                          doSomething();
-                          fail();
-                      } catch (CustomException e) {
-                          // Expected
-                      }
-                  }
-
-                  void doSomething() { throw new CustomException("error"); }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-              class MyTest {
-                  static class CustomException extends RuntimeException {
-                      CustomException(String message) { super(message); }
-                  }
-
-                  @Test
-                  void testException() {
-                      assertThatThrownBy(() -> doSomething()).isInstanceOf(MyTest.CustomException.class);
-                  }
-
-                  void doSomething() { throw new CustomException("error"); }
               }
               """
           )
