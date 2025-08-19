@@ -302,4 +302,56 @@ class CleanupMockitoImportsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void kotlinPreserveStarImports() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              package mockito.example
+
+              import java.util.List
+              import org.mockito.Mockito.*
+
+              class MockitoArgumentMatchersTest {
+                  class Foo {
+                      fun bool(str: String, i: Int, obj: Any?): Boolean = false
+                  }
+
+                  fun usesMatchers() {
+                      val mockFoo = mock(Foo::class.java)
+                      `when`(mockFoo.bool(anyString(), anyInt(), any(Any::class.java))).thenReturn(true)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void kotlinPreserveStarImportsRemoveMe() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              package mockito.example
+
+              import org.mockito.Mockito.*
+              import org.mockito.Mockito.anyInt
+              import org.mockito.Mockito.anyLong
+              import org.mockito.Mockito.any
+
+              class MockitoArgumentMatchersTest {
+                  fun usesMatchers() {
+                      val x = anyString()
+                      val y = anyInt()
+                      val y = anyLong()
+                      val z = any(Any::class.java)
+                  }
+              }
+              """
+          )
+        );
+    }
 }
