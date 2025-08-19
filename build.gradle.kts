@@ -36,6 +36,7 @@ recipeDependencies {
     parserClasspath("org.easytesting:fest-assert-core:2.+")
     parserClasspath("uk.org.webcompere:system-stubs-core:2.1.8")
     parserClasspath("uk.org.webcompere:system-stubs-jupiter:2.1.8")
+    parserClasspath("com.google.errorprone:error_prone_core:2.+")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
@@ -88,4 +89,8 @@ dependencies {
 tasks.test {
     // The `TestNgToAssertJTest` tests require a lot of memory for the `JavaTemplate` caching
     maxHeapSize = "1g"
+}
+
+tasks.withType<JavaCompile> {
+    options.compilerArgs.add("-Arewrite.javaParserClasspathFrom=resources")
 }
