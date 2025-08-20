@@ -213,7 +213,7 @@ class MinimumJreConditionsTest implements RewriteTest {
         }
 
         @Test
-        void testWithMinimumJava21() {
+        void withMinimumJava21() {
             rewriteRun(
               spec -> spec.recipe(new MinimumJreConditions("21")),
               java(
