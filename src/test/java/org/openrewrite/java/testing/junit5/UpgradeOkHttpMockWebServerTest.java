@@ -87,7 +87,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                     <dependency>
                       <groupId>com.squareup.okhttp3</groupId>
                       <artifactId>mockwebserver3-junit5</artifactId>
-                      <version>5.0.0-alpha.11</version>
+                      <version>5.1.0</version>
                     </dependency>
                   </dependencies>
                 </project>
