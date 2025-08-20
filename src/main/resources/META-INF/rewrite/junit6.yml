@@ -54,3 +54,5 @@ recipeList:
   - org.openrewrite.java.RemoveAnnotationAttribute:
       annotationType: org.junit.jupiter.params.provider.CsvFileSource
       attributeName: lineSeparator
+  - org.openrewrite.java.testing.junit6.MinimumJreConditions:
+      javaVersion: 17
