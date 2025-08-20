@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -663,46 +664,7 @@ class MinimumJreConditionsTest implements RewriteTest {
         }
     }
 
-    @Test
-    void doNotRemoveNonTestMethods() {
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.condition.EnabledOnJre;
-              import org.junit.jupiter.api.condition.JRE;
-
-              class MyTest {
-                  @EnabledOnJre(JRE.JAVA_8)
-                  void notATest() {
-                      System.out.println("Not a test");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void handleOtherJreValue() {
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-              import org.junit.jupiter.api.condition.EnabledOnJre;
-              import org.junit.jupiter.api.condition.JRE;
-
-              class MyTest {
-                  @Test
-                  @EnabledOnJre(JRE.OTHER)
-                  void testOnOther() {
-                      System.out.println("Other JRE");
-                  }
-              }
-              """
-          )
-        );
-    }
-
+    @DocumentExample
     @Test
     void handleTestClassWithMixedConditions() {
         rewriteRun(
@@ -781,6 +743,46 @@ class MinimumJreConditionsTest implements RewriteTest {
                   @Test
                   void testAlways() {
                       System.out.println("Always");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotRemoveNonTestMethods() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @EnabledOnJre(JRE.JAVA_8)
+                  void notATest() {
+                      System.out.println("Not a test");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void handleOtherJreValue() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  @EnabledOnJre(JRE.OTHER)
+                  void testOnOther() {
+                      System.out.println("Other JRE");
                   }
               }
               """

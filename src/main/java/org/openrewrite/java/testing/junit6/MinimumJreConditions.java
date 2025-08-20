@@ -33,10 +33,11 @@ import org.openrewrite.java.tree.Space;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -62,14 +63,15 @@ public class MinimumJreConditions extends Recipe {
 
     @Override
     public String getDescription() {
-        return "This recipe will:\n" + "  - Remove tests that are only active on JREs that are below the specified version.\n" + "  - Adjust ranges to use minimum the specified version.";
+        return "This recipe will:\n" + " - Remove tests that are only active on JREs that are below the specified version.\n" + " - Adjust ranges to use minimum the specified version.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
+
             @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            public  J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
                 boolean isUnitTest = false;
                 Optional<List<String>> enabledOnJre = Optional.empty();
@@ -90,10 +92,9 @@ public class MinimumJreConditions extends Recipe {
                                 if (initializer == null) {
                                     return emptyList();
                                 }
-                                return initializer.stream().map(Objects::toString).collect(Collectors.toList());
-                            } else {
-                                return singletonList(e.toString());
+                                return initializer.stream().map(Objects::toString).collect(toList());
                             }
+                            return singletonList(e.toString());
                         });
                         prefix = ann.getPrefix();
                     }
@@ -105,10 +106,9 @@ public class MinimumJreConditions extends Recipe {
                                 if (initializer == null) {
                                     return emptyList();
                                 }
-                                return initializer.stream().map(Objects::toString).collect(Collectors.toList());
-                            } else {
-                                return singletonList(e.toString());
+                                return initializer.stream().map(Objects::toString).collect(toList());
                             }
+                            return singletonList(e.toString());
                         });
                         prefix = ann.getPrefix();
                     }
@@ -145,7 +145,7 @@ public class MinimumJreConditions extends Recipe {
                         RemoveAnnotation removeAnnotation = new RemoveAnnotation("@" + ENABLED_ON_JRE);
                         m = removeAnnotation.getVisitor().visitMethodDeclaration(m, ctx);
                     } else if (enabledOnJre.get().stream().anyMatch(v -> compareVersions(v, javaVersion) < 0)) {
-                        AddOrUpdateAnnotationAttribute updatedVersions = new AddOrUpdateAnnotationAttribute(ENABLED_ON_JRE, "versions", enabledOnJre.get().stream().filter(v -> compareVersions(v, javaVersion) >= 0).collect(Collectors.joining(", ")), null, false, false);
+                        AddOrUpdateAnnotationAttribute updatedVersions = new AddOrUpdateAnnotationAttribute(ENABLED_ON_JRE, "versions", enabledOnJre.get().stream().filter(v -> compareVersions(v, javaVersion) >= 0).collect(joining(", ")), null, false, false);
                         m = (J.MethodDeclaration) updatedVersions.getVisitor().visit(m, ctx, getCursor().getParent());
                     }
                 }
@@ -156,7 +156,7 @@ public class MinimumJreConditions extends Recipe {
                         m = removeAnnotation.getVisitor().visitMethodDeclaration(m, ctx);
                     } else if (disabledOnJre.get().stream().anyMatch(v -> compareVersions(v, javaVersion) < 0)) {
                         // Update the annotation to only include JRE versions that are greater than or equal to the specified version
-                        AddOrUpdateAnnotationAttribute updatedVersions = new AddOrUpdateAnnotationAttribute(DISABLED_ON_JRE, "versions", disabledOnJre.get().stream().filter(v -> compareVersions(v, javaVersion) >= 0).collect(Collectors.joining(", ")), null, false, false);
+                        AddOrUpdateAnnotationAttribute updatedVersions = new AddOrUpdateAnnotationAttribute(DISABLED_ON_JRE, "versions", disabledOnJre.get().stream().filter(v -> compareVersions(v, javaVersion) >= 0).collect(joining(", ")), null, false, false);
                         m = (J.MethodDeclaration) updatedVersions.getVisitor().visit(m, ctx, getCursor().getParent());
                     }
                 }
@@ -241,7 +241,8 @@ public class MinimumJreConditions extends Recipe {
         }
         if (version.startsWith("JAVA_")) {
             return version.substring(5);
-        } else if (version.equals("OTHER")) {
+        }
+        if ("OTHER".equals(version)) {
             return String.valueOf(Integer.MAX_VALUE);
         }
         return version;
