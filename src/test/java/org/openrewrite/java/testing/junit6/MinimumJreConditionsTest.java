@@ -18,7 +18,7 @@ package org.openrewrite.java.testing.junit6;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -39,8 +39,17 @@ class MinimumJreConditionsTest implements RewriteTest {
 
     @Nested
     class EnabledOnJreTests {
-        @CsvSource({"JRE.JAVA_8", "value = JRE.JAVA_8", "versions = { 8 }", "JRE.JAVA_11", "value = JRE.JAVA_11", "versions = { 11 }", "JAVA_8", "JAVA_11"})
         @ParameterizedTest
+        @ValueSource(strings = {
+          "JAVA_11",
+          "JAVA_8",
+          "JRE.JAVA_11",
+          "JRE.JAVA_8",
+          "value = JRE.JAVA_11",
+          "value = JRE.JAVA_8",
+          "versions = { 11 }",
+          "versions = { 8 }"
+        })
         void removeTestEnabledOnOlderJre(String jre) {
             rewriteRun(
               java(
@@ -83,8 +92,14 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource({"JRE.JAVA_17", "value = JRE.JAVA_17", "versions = 17", "versions = { 17 }", "JAVA_17"})
         @ParameterizedTest
+        @ValueSource(strings = {
+          "JAVA_17",
+          "JRE.JAVA_17",
+          "value = JRE.JAVA_17",
+          "versions = 17",
+          "versions = { 17 }"
+        })
         void removeAnnotationEnabledOnJava17(String jre) {
             rewriteRun(
               java(
@@ -188,8 +203,14 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource({"JRE.JAVA_21", "value = JRE.JAVA_21", "versions = 21", "versions = { 21 }", "JAVA_21"})
         @ParameterizedTest
+        @ValueSource(strings = {
+          "JAVA_21",
+          "JRE.JAVA_21",
+          "value = JRE.JAVA_21",
+          "versions = 21",
+          "versions = { 21 }"
+        })
         void keepTestEnabledOnNewerJre(String jre) {
             rewriteRun(
               java(
@@ -256,8 +277,17 @@ class MinimumJreConditionsTest implements RewriteTest {
 
     @Nested
     class DisabledOnJreTests {
-        @CsvSource({"JRE.JAVA_8", "value = JRE.JAVA_8", "versions = { 8 }", "JRE.JAVA_11", "value = JRE.JAVA_11", "versions = { 11 }", "JAVA_8", "JAVA_11"})
         @ParameterizedTest
+        @ValueSource(strings = {
+          "JAVA_11",
+          "JAVA_8",
+          "JRE.JAVA_11",
+          "JRE.JAVA_8",
+          "value = JRE.JAVA_11",
+          "value = JRE.JAVA_8",
+          "versions = { 11 }",
+          "versions = { 8 }"
+        })
         void removeAnnotationDisabledOnOlderJre(String jre) {
             rewriteRun(
               java(
@@ -332,8 +362,14 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource({"JRE.JAVA_17", "value = JRE.JAVA_17", "versions = 17", "versions = { 17 }", "JAVA_17"})
         @ParameterizedTest
+        @ValueSource(strings = {
+          "JRE.JAVA_17",
+          "value = JRE.JAVA_17",
+          "versions = 17",
+          "versions = { 17 }",
+          "JAVA_17"
+        })
         void keepDisabledOnSameJRE(String jre) {
             rewriteRun(
               java(
@@ -356,8 +392,14 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource({"JRE.JAVA_21", "value = JRE.JAVA_21", "versions = 21", "versions = { 21 }", "JAVA_21"})
         @ParameterizedTest
+        @ValueSource(strings = {
+          "JRE.JAVA_21",
+          "value = JRE.JAVA_21",
+          "versions = 21",
+          "versions = { 21 }",
+          "JAVA_21"
+        })
         void keepDisabledOnNewerJre(String jre) {
             rewriteRun(
               java(
@@ -383,11 +425,11 @@ class MinimumJreConditionsTest implements RewriteTest {
 
     @Nested
     class EnabledForJreRange {
-        @CsvSource(value = {
-            "min = JRE.JAVA_8, max = JRE.JAVA_11",
-            "minVersion = 8, maxVersion = 11"
-        }, delimiter = ';')
         @ParameterizedTest
+        @ValueSource(strings = {
+          "min = JRE.JAVA_8, max = JRE.JAVA_11",
+          "minVersion = 8, maxVersion = 11"
+        })
         void removeTestEnabledForRangeEndingBeforeMinimum(String range) {
             rewriteRun(
               java(
@@ -416,11 +458,11 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource(value = {
-            "min = JRE.JAVA_17, max = JRE.JAVA_21",
-            "minVersion = 17, maxVersion = 21"
-        }, delimiter = ';')
         @ParameterizedTest
+        @ValueSource(strings = {
+          "min = JRE.JAVA_17, max = JRE.JAVA_21",
+          "minVersion = 17, maxVersion = 21"
+        })
         void keepEnabledForRangeStartingAtMinimum(String range) {
             rewriteRun(
               java(
@@ -441,8 +483,11 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource(value = {"min = JRE.JAVA_21", "minVersion = 21"}, delimiter = ';')
         @ParameterizedTest
+        @ValueSource(strings = {
+          "min = JRE.JAVA_21",
+          "minVersion = 21"
+        })
         void keepEnabledForRangeAfterMinimum(String range) {
             rewriteRun(
               java(
@@ -463,8 +508,11 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource(value = {"min = JRE.JAVA_11", "minVersion = 11"}, delimiter = ';')
         @ParameterizedTest
+        @ValueSource(strings = {
+          "min = JRE.JAVA_11",
+          "minVersion = 11"
+        })
         void handleRangeWithOnlyMin(String range) {
             rewriteRun(
               java(
@@ -485,8 +533,11 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource(value = {"max = JRE.JAVA_11", "maxVersion = 11"}, delimiter = ';')
         @ParameterizedTest
+        @ValueSource(strings = {
+          "max = JRE.JAVA_11",
+          "maxVersion = 11"
+        })
         void handleRangeWithOnlyMax(String range) {
             rewriteRun(
               java(
@@ -515,11 +566,11 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource(value = {
-            "min = JRE.JAVA_8, max = JRE.JAVA_16",
-            "minVersion = 8, maxVersion = 16"
-        }, delimiter = ';')
         @ParameterizedTest
+        @ValueSource(strings = {
+          "min = JRE.JAVA_8, max = JRE.JAVA_16",
+          "minVersion = 8, maxVersion = 16"
+        })
         void handleEnabledForRangeEndingAt16(String range) {
             rewriteRun(
               java(
@@ -548,11 +599,11 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource(value = {
-            "min = JRE.JAVA_11, max = JRE.JAVA_21",
-            "minVersion = 11, maxVersion = 21"
-        }, delimiter = ';')
         @ParameterizedTest
+        @ValueSource(strings = {
+          "min = JRE.JAVA_11, max = JRE.JAVA_21",
+          "minVersion = 11, maxVersion = 21"
+        })
         void handleEnabledForRangeStartingBefore17EndingAfter(String range) {
             rewriteRun(
               java(
@@ -576,11 +627,11 @@ class MinimumJreConditionsTest implements RewriteTest {
 
     @Nested
     class DisabledForJreRange {
-        @CsvSource(value = {
-            "min = JRE.JAVA_8, max = JRE.JAVA_11",
-            "minVersion = 8, maxVersion = 11"
-        }, delimiter = ';')
         @ParameterizedTest
+        @ValueSource(strings = {
+          "min = JRE.JAVA_8, max = JRE.JAVA_11",
+          "minVersion = 8, maxVersion = 11"
+        })
         void removeAnnotationDisabledForRangeEndingBeforeMinimum(String range) {
             rewriteRun(
               java(
@@ -613,11 +664,11 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource(value = {
-            "min = JRE.JAVA_17, max = JRE.JAVA_21",
-            "minVersion = 17, maxVersion = 21"
-        }, delimiter = ';')
         @ParameterizedTest
+        @ValueSource(strings = {
+          "min = JRE.JAVA_17, max = JRE.JAVA_21",
+          "minVersion = 17, maxVersion = 21"
+        })
         void keepDisabledForRangeStartingAtMinimum(String range) {
             rewriteRun(
               java(
@@ -638,11 +689,11 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource(value = {
-            "min = JRE.JAVA_11, max = JRE.JAVA_21",
-            "minVersion = 11, maxVersion = 21"
-        }, delimiter = ';')
         @ParameterizedTest
+        @ValueSource(strings = {
+          "min = JRE.JAVA_11, max = JRE.JAVA_21",
+          "minVersion = 11, maxVersion = 21"
+        })
         void handleDisabledForRangeStartingBefore17(String range) {
             rewriteRun(
               java(

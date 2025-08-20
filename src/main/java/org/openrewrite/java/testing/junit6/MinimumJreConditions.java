@@ -71,7 +71,7 @@ public class MinimumJreConditions extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
-            public  J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
                 boolean isUnitTest = false;
                 Optional<List<String>> enabledOnJre = Optional.empty();
