@@ -38,7 +38,7 @@ class MinimumJreConditionsTest implements RewriteTest {
 
     @Nested
     class EnabledOnJreTests {
-        @CsvSource({"JRE.JAVA_8", "value = JRE.JAVA_8", "versions = { 8 }", "JRE.JAVA_11", "value = JRE.JAVA_11", "versions = { 11 }"})
+        @CsvSource({"JRE.JAVA_8", "value = JRE.JAVA_8", "versions = { 8 }", "JRE.JAVA_11", "value = JRE.JAVA_11", "versions = { 11 }", "JAVA_8", "JAVA_11"})
         @ParameterizedTest
         void removeTestEnabledOnOlderJre(String jre) {
             rewriteRun(
@@ -47,6 +47,8 @@ class MinimumJreConditionsTest implements RewriteTest {
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.EnabledOnJre;
                   import org.junit.jupiter.api.condition.JRE;
+
+                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
@@ -66,6 +68,8 @@ class MinimumJreConditionsTest implements RewriteTest {
                   import org.junit.jupiter.api.condition.EnabledOnJre;
                   import org.junit.jupiter.api.condition.JRE;
 
+                  import static org.junit.jupiter.api.condition.JRE.*;
+
                   class MyTest {
 
                       @Test
@@ -78,7 +82,7 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource({"JRE.JAVA_17", "value = JRE.JAVA_17", "versions = 17", "versions = { 17 }"})
+        @CsvSource({"JRE.JAVA_17", "value = JRE.JAVA_17", "versions = 17", "versions = { 17 }", "JAVA_17"})
         @ParameterizedTest
         void removeAnnotationEnabledOnJava17(String jre) {
             rewriteRun(
@@ -87,6 +91,8 @@ class MinimumJreConditionsTest implements RewriteTest {
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.EnabledOnJre;
                   import org.junit.jupiter.api.condition.JRE;
+
+                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
@@ -100,6 +106,8 @@ class MinimumJreConditionsTest implements RewriteTest {
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.EnabledOnJre;
                   import org.junit.jupiter.api.condition.JRE;
+
+                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
@@ -179,7 +187,7 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource({"JRE.JAVA_21", "value = JRE.JAVA_21", "versions = 21", "versions = { 21 }"})
+        @CsvSource({"JRE.JAVA_21", "value = JRE.JAVA_21", "versions = 21", "versions = { 21 }", "JAVA_21"})
         @ParameterizedTest
         void keepTestEnabledOnNewerJre(String jre) {
             rewriteRun(
@@ -188,6 +196,8 @@ class MinimumJreConditionsTest implements RewriteTest {
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.EnabledOnJre;
                   import org.junit.jupiter.api.condition.JRE;
+
+                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
@@ -245,7 +255,7 @@ class MinimumJreConditionsTest implements RewriteTest {
 
     @Nested
     class DisabledOnJreTests {
-        @CsvSource({"JRE.JAVA_8", "value = JRE.JAVA_8", "versions = { 8 }", "JRE.JAVA_11", "value = JRE.JAVA_11", "versions = { 11 }"})
+        @CsvSource({"JRE.JAVA_8", "value = JRE.JAVA_8", "versions = { 8 }", "JRE.JAVA_11", "value = JRE.JAVA_11", "versions = { 11 }", "JAVA_8", "JAVA_11"})
         @ParameterizedTest
         void removeAnnotationDisabledOnOlderJre(String jre) {
             rewriteRun(
@@ -254,6 +264,8 @@ class MinimumJreConditionsTest implements RewriteTest {
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.DisabledOnJre;
                   import org.junit.jupiter.api.condition.JRE;
+
+                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
@@ -267,6 +279,8 @@ class MinimumJreConditionsTest implements RewriteTest {
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.DisabledOnJre;
                   import org.junit.jupiter.api.condition.JRE;
+
+                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
@@ -288,6 +302,8 @@ class MinimumJreConditionsTest implements RewriteTest {
                   import org.junit.jupiter.api.condition.DisabledOnJre;
                   import org.junit.jupiter.api.condition.JRE;
 
+                  import static org.junit.jupiter.api.condition.JRE.*;
+
                   class MyTest {
                       @Test
                       @DisabledOnJre(versions = { 8, 17, 21 })
@@ -301,6 +317,8 @@ class MinimumJreConditionsTest implements RewriteTest {
                   import org.junit.jupiter.api.condition.DisabledOnJre;
                   import org.junit.jupiter.api.condition.JRE;
 
+                  import static org.junit.jupiter.api.condition.JRE.*;
+
                   class MyTest {
                       @Test
                       @DisabledOnJre(versions = {17, 21})
@@ -313,7 +331,7 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource({"JRE.JAVA_17", "value = JRE.JAVA_17", "versions = 17", "versions = { 17 }"})
+        @CsvSource({"JRE.JAVA_17", "value = JRE.JAVA_17", "versions = 17", "versions = { 17 }", "JAVA_17"})
         @ParameterizedTest
         void keepDisabledOnSameJRE(String jre) {
             rewriteRun(
@@ -322,6 +340,8 @@ class MinimumJreConditionsTest implements RewriteTest {
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.DisabledOnJre;
                   import org.junit.jupiter.api.condition.JRE;
+
+                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
@@ -335,7 +355,7 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource({"JRE.JAVA_21", "value = JRE.JAVA_21", "versions = 21", "versions = { 21 }"})
+        @CsvSource({"JRE.JAVA_21", "value = JRE.JAVA_21", "versions = 21", "versions = { 21 }", "JAVA_21"})
         @ParameterizedTest
         void keepDisabledOnNewerJre(String jre) {
             rewriteRun(
@@ -344,6 +364,8 @@ class MinimumJreConditionsTest implements RewriteTest {
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.DisabledOnJre;
                   import org.junit.jupiter.api.condition.JRE;
+
+                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
