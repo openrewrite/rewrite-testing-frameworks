@@ -30,6 +30,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -47,11 +48,17 @@ public class MinimumJreConditions extends Recipe {
     private static final String DISABLED_ON_JRE = "org.junit.jupiter.api.condition.DisabledOnJre";
     private static final String ENABLED_FOR_JRE_RANGE = "org.junit.jupiter.api.condition.EnabledForJreRange";
     private static final String DISABLED_FOR_JRE_RANGE = "org.junit.jupiter.api.condition.DisabledForJreRange";
-    private static final Annotated.Matcher TEST_ANNOTATION_MATCHER = new Annotated.Matcher("@org.junit.jupiter.api.Test");
     private static final Annotated.Matcher ENABLED_JRE_MATCHER = new Annotated.Matcher("@" + ENABLED_ON_JRE);
     private static final Annotated.Matcher DISABLED_JRE_MATCHER = new Annotated.Matcher("@" + DISABLED_ON_JRE);
     private static final Annotated.Matcher ENABLED_JRE_RANGE_MATCHER = new Annotated.Matcher("@" + ENABLED_FOR_JRE_RANGE);
     private static final Annotated.Matcher DISABLED_JRE_RANGE_MATCHER = new Annotated.Matcher("@" + DISABLED_FOR_JRE_RANGE);
+    private static final List<Annotated.Matcher> TEST_ANNOTATION_MATCHERS = Arrays.asList(
+            new Annotated.Matcher("@org.junit.jupiter.api.Test"),
+            new Annotated.Matcher("@org.junit.jupiter.api.TestFactory"),
+            new Annotated.Matcher("@org.junit.jupiter.api.TestTemplate"),
+            new Annotated.Matcher("@org.junit.jupiter.api.RepeatedTest"),
+            new Annotated.Matcher("@org.junit.jupiter.params.ParameterizedTest")
+    );
 
     @Option(displayName = "JRE version", description = "The minimum JRE version to use for test conditions.", example = "17")
     String javaVersion;
@@ -71,6 +78,24 @@ public class MinimumJreConditions extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
+                if (cu != c) {
+                    maybeRemoveImport("org.junit.jupiter.api.Test");
+                    maybeRemoveImport("org.junit.jupiter.api.TestFactory");
+                    maybeRemoveImport("org.junit.jupiter.api.TestTemplate");
+                    maybeRemoveImport("org.junit.jupiter.api.RepeatedTest");
+                    maybeRemoveImport("org.junit.jupiter.params.ParameterizedTest");
+                    maybeRemoveImport(ENABLED_ON_JRE);
+                    maybeRemoveImport(DISABLED_ON_JRE);
+                    maybeRemoveImport(ENABLED_FOR_JRE_RANGE);
+                    maybeRemoveImport(DISABLED_FOR_JRE_RANGE);
+                    maybeRemoveImport("org.junit.jupiter.api.condition.JRE");
+                }
+                return c;
+            }
+
+            @Override
             public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
                 boolean isUnitTest = false;
@@ -81,7 +106,7 @@ public class MinimumJreConditions extends Recipe {
                 Space prefix = Space.EMPTY;
                 for (J.Annotation ann : method.getLeadingAnnotations()) {
                     Cursor annotationCursor = new Cursor(getCursor(), ann);
-                    if (TEST_ANNOTATION_MATCHER.get(annotationCursor).isPresent()) {
+                    if (TEST_ANNOTATION_MATCHERS.stream().anyMatch(matcher -> matcher.get(annotationCursor).isPresent())) {
                         isUnitTest = true;
                     }
                     Optional<Annotated> annotated = ENABLED_JRE_MATCHER.get(annotationCursor);
@@ -140,11 +165,7 @@ public class MinimumJreConditions extends Recipe {
                         // Remove the test method if it is enabled on a JRE version lower than the specified version
                         return null;
                     }
-                    if (enabledOnJre.get().stream().filter(v -> compareVersions(v, javaVersion) >= 0).allMatch(v -> compareVersions(v, javaVersion) == 0)) {
-                        // Remove the annotation if it is enabled on the same JRE version
-                        RemoveAnnotation removeAnnotation = new RemoveAnnotation("@" + ENABLED_ON_JRE);
-                        m = removeAnnotation.getVisitor().visitMethodDeclaration(m, ctx);
-                    } else if (enabledOnJre.get().stream().anyMatch(v -> compareVersions(v, javaVersion) < 0)) {
+                    if (enabledOnJre.get().stream().anyMatch(v -> compareVersions(v, javaVersion) < 0)) {
                         AddOrUpdateAnnotationAttribute updatedVersions = new AddOrUpdateAnnotationAttribute(ENABLED_ON_JRE, "versions", enabledOnJre.get().stream().filter(v -> compareVersions(v, javaVersion) >= 0).collect(joining(", ")), null, false, false);
                         m = (J.MethodDeclaration) updatedVersions.getVisitor().visit(m, ctx, getCursor().getParent());
                     }
@@ -183,7 +204,20 @@ public class MinimumJreConditions extends Recipe {
                 Space finalPrefix = prefix;
                 return m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), ann -> {
                     if (ENABLED_JRE_MATCHER.get(ann, getCursor().getParent()).isPresent() || DISABLED_JRE_MATCHER.get(ann, getCursor().getParent()).isPresent() || ENABLED_JRE_RANGE_MATCHER.get(ann, getCursor().getParent()).isPresent() || DISABLED_JRE_RANGE_MATCHER.get(ann, getCursor().getParent()).isPresent()) {
-                        ann = ann.withPrefix(finalPrefix);
+                        ann = ann
+                                .withArguments(ListUtils.map(ann.getArguments(), arg -> {
+                                    if (arg instanceof J.Assignment) {
+                                        J.Assignment ass = (J.Assignment) arg;
+                                        if (ass.getAssignment() instanceof J.NewArray) {
+                                            List<Expression> initializer = ((J.NewArray) ass.getAssignment()).getInitializer();
+                                            if (initializer != null && initializer.size() == 1 && !(initializer.get(0) instanceof J.Empty)) {
+                                                return ass.withAssignment(initializer.get(0).withPrefix(ass.getAssignment().getPrefix()));
+                                            }
+                                        }
+                                    }
+                                    return arg;
+                                }))
+                                .withPrefix(finalPrefix);
                     }
                     return ann;
                 }));

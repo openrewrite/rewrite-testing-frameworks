@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit6;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -48,6 +49,7 @@ class MinimumJreConditionsTest implements RewriteTest {
           "value = JRE.JAVA_11",
           "value = JRE.JAVA_8",
           "versions = { 11 }",
+          "versions = { 8, 11 }",
           "versions = { 8 }"
         })
         void removeTestEnabledOnOlderJre(String jre) {
@@ -75,10 +77,6 @@ class MinimumJreConditionsTest implements RewriteTest {
                   """.formatted(jre),
                 """
                   import org.junit.jupiter.api.Test;
-                  import org.junit.jupiter.api.condition.EnabledOnJre;
-                  import org.junit.jupiter.api.condition.JRE;
-
-                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
 
@@ -98,9 +96,12 @@ class MinimumJreConditionsTest implements RewriteTest {
           "JRE.JAVA_17",
           "value = JRE.JAVA_17",
           "versions = 17",
-          "versions = { 17 }"
+          "JRE.JAVA_21",
+          "value = JRE.JAVA_21",
+          "versions = 21",
+          "JAVA_21"
         })
-        void removeAnnotationEnabledOnJava17(String jre) {
+        void keepAnnotationEnabledOnCurrentOrNewerJre(String jre) {
             rewriteRun(
               java(
                 """
@@ -117,21 +118,43 @@ class MinimumJreConditionsTest implements RewriteTest {
                           System.out.println("Java 17");
                       }
                   }
+                  """.formatted(jre)
+              )
+            );
+        }
+
+        @ParameterizedTest
+        @CsvSource({
+          "versions = { 17 },versions = 17",
+          "versions = { 21 },versions = 21",
+        })
+        void unwrapSingleValueArray(String jre, String afterJre) {
+            rewriteRun(
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.condition.EnabledOnJre;
+
+                  class MyTest {
+                      @Test
+                      @EnabledOnJre(%s)
+                      void notOnThisJava() {
+                          System.out.println("Not this Java");
+                      }
+                  }
                   """.formatted(jre),
                 """
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.EnabledOnJre;
-                  import org.junit.jupiter.api.condition.JRE;
-
-                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
-                      void testOnJava17() {
-                          System.out.println("Java 17");
+                      @EnabledOnJre(%s)
+                      void notOnThisJava() {
+                          System.out.println("Not this Java");
                       }
                   }
-                  """
+                  """.formatted(afterJre)
               )
             );
         }
@@ -143,7 +166,6 @@ class MinimumJreConditionsTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.EnabledOnJre;
-                  import org.junit.jupiter.api.condition.JRE;
 
                   class MyTest {
                       @Test
@@ -156,7 +178,6 @@ class MinimumJreConditionsTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.EnabledOnJre;
-                  import org.junit.jupiter.api.condition.JRE;
 
                   class MyTest {
                       @Test
@@ -171,13 +192,12 @@ class MinimumJreConditionsTest implements RewriteTest {
         }
 
         @Test
-        void dropAnnotationIfOnlyCurrentJreRemains() {
+        void filterAnnotationVersionsToBeCurrentOrHigher() {
             rewriteRun(
               java(
                 """
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.EnabledOnJre;
-                  import org.junit.jupiter.api.condition.JRE;
 
                   class MyTest {
                       @Test
@@ -190,45 +210,15 @@ class MinimumJreConditionsTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.EnabledOnJre;
-                  import org.junit.jupiter.api.condition.JRE;
 
                   class MyTest {
                       @Test
+                      @EnabledOnJre(versions = 17)
                       void testOnJavaSomeJaveVersions() {
                           System.out.println("Java 17");
                       }
                   }
                   """
-              )
-            );
-        }
-
-        @ParameterizedTest
-        @ValueSource(strings = {
-          "JAVA_21",
-          "JRE.JAVA_21",
-          "value = JRE.JAVA_21",
-          "versions = 21",
-          "versions = { 21 }"
-        })
-        void keepTestEnabledOnNewerJre(String jre) {
-            rewriteRun(
-              java(
-                """
-                  import org.junit.jupiter.api.Test;
-                  import org.junit.jupiter.api.condition.EnabledOnJre;
-                  import org.junit.jupiter.api.condition.JRE;
-
-                  import static org.junit.jupiter.api.condition.JRE.*;
-
-                  class MyTest {
-                      @Test
-                      @EnabledOnJre(%s)
-                      void testOnlyOnJava21() {
-                          System.out.println("Java 21");
-                      }
-                  }
-                  """.formatted(jre)
               )
             );
         }
@@ -265,6 +255,7 @@ class MinimumJreConditionsTest implements RewriteTest {
                   class MyTest {
 
                       @Test
+                      @EnabledOnJre(JRE.JAVA_21)
                       void testOnJava21() {
                           System.out.println("Java 21");
                       }
@@ -286,6 +277,7 @@ class MinimumJreConditionsTest implements RewriteTest {
           "value = JRE.JAVA_11",
           "value = JRE.JAVA_8",
           "versions = { 11 }",
+          "versions = { 8, 11 }",
           "versions = { 8 }"
         })
         void removeAnnotationDisabledOnOlderJre(String jre) {
@@ -308,10 +300,6 @@ class MinimumJreConditionsTest implements RewriteTest {
                   """.formatted(jre),
                 """
                   import org.junit.jupiter.api.Test;
-                  import org.junit.jupiter.api.condition.DisabledOnJre;
-                  import org.junit.jupiter.api.condition.JRE;
-
-                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
@@ -331,9 +319,6 @@ class MinimumJreConditionsTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.DisabledOnJre;
-                  import org.junit.jupiter.api.condition.JRE;
-
-                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
@@ -346,9 +331,6 @@ class MinimumJreConditionsTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.DisabledOnJre;
-                  import org.junit.jupiter.api.condition.JRE;
-
-                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
@@ -367,10 +349,13 @@ class MinimumJreConditionsTest implements RewriteTest {
           "JRE.JAVA_17",
           "value = JRE.JAVA_17",
           "versions = 17",
-          "versions = { 17 }",
-          "JAVA_17"
+          "JAVA_17",
+          "JRE.JAVA_21",
+          "value = JRE.JAVA_21",
+          "versions = 21",
+          "JAVA_21"
         })
-        void keepDisabledOnSameJRE(String jre) {
+        void keepDisabledOnCurrentOrNewerJRE(String jre) {
             rewriteRun(
               java(
                 """
@@ -393,31 +378,37 @@ class MinimumJreConditionsTest implements RewriteTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-          "JRE.JAVA_21",
-          "value = JRE.JAVA_21",
-          "versions = 21",
-          "versions = { 21 }",
-          "JAVA_21"
+        @CsvSource({
+          "versions = { 17 },versions = 17",
+          "versions = { 21 },versions = 21",
         })
-        void keepDisabledOnNewerJre(String jre) {
+        void unwrapSingleValueArray(String jre, String afterJre) {
             rewriteRun(
               java(
                 """
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.DisabledOnJre;
-                  import org.junit.jupiter.api.condition.JRE;
-
-                  import static org.junit.jupiter.api.condition.JRE.*;
 
                   class MyTest {
                       @Test
                       @DisabledOnJre(%s)
-                      void testNotOnJava21() {
-                          System.out.println("Not Java 21");
+                      void notOnThisJava() {
+                          System.out.println("Not this Java");
                       }
                   }
-                  """.formatted(jre)
+                  """.formatted(jre),
+                """
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.condition.DisabledOnJre;
+
+                  class MyTest {
+                      @Test
+                      @DisabledOnJre(%s)
+                      void notOnThisJava() {
+                          System.out.println("Not this Java");
+                      }
+                  }
+                  """.formatted(afterJre)
               )
             );
         }
@@ -447,10 +438,6 @@ class MinimumJreConditionsTest implements RewriteTest {
                   }
                   """.formatted(range),
                 """
-                  import org.junit.jupiter.api.Test;
-                  import org.junit.jupiter.api.condition.EnabledForJreRange;
-                  import org.junit.jupiter.api.condition.JRE;
-
                   class MyTest {
                   }
                   """
@@ -555,10 +542,6 @@ class MinimumJreConditionsTest implements RewriteTest {
                   }
                   """.formatted(range),
                 """
-                  import org.junit.jupiter.api.Test;
-                  import org.junit.jupiter.api.condition.EnabledForJreRange;
-                  import org.junit.jupiter.api.condition.JRE;
-
                   class MyTest {
                   }
                   """
@@ -588,10 +571,6 @@ class MinimumJreConditionsTest implements RewriteTest {
                   }
                   """.formatted(range),
                 """
-                  import org.junit.jupiter.api.Test;
-                  import org.junit.jupiter.api.condition.EnabledForJreRange;
-                  import org.junit.jupiter.api.condition.JRE;
-
                   class MyTest {
                   }
                   """
@@ -650,8 +629,6 @@ class MinimumJreConditionsTest implements RewriteTest {
                   """.formatted(range),
                 """
                   import org.junit.jupiter.api.Test;
-                  import org.junit.jupiter.api.condition.DisabledForJreRange;
-                  import org.junit.jupiter.api.condition.JRE;
 
                   class MyTest {
                       @Test
@@ -768,9 +745,6 @@ class MinimumJreConditionsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.condition.EnabledOnJre;
-              import org.junit.jupiter.api.condition.DisabledOnJre;
-              import org.junit.jupiter.api.condition.EnabledForJreRange;
-              import org.junit.jupiter.api.condition.DisabledForJreRange;
               import org.junit.jupiter.api.condition.JRE;
 
               class MyTest {
