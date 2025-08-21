@@ -56,15 +56,7 @@ public class CsvSourceToValueSource extends Recipe {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
             // Check if method has exactly one parameter
-            if (m.getParameters().size() != 1) {
-                return m;
-            }
-
-            // Check if there's only one non-receiver parameter
-            long paramCount = m.getParameters().stream()
-                    .filter(p -> p instanceof J.VariableDeclarations)
-                    .count();
-            if (paramCount != 1) {
+            if (m.getParameters().size() != 1 || m.getParameters().get(0) instanceof J.Empty) {
                 return m;
             }
 
