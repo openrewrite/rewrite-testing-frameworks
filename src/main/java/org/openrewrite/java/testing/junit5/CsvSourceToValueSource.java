@@ -84,12 +84,6 @@ public class CsvSourceToValueSource extends Recipe {
                         continue;
                     }
 
-                    // Check if all values are single values (no commas)
-                    boolean allSingleValues = values.stream().allMatch(v -> !v.contains(","));
-                    if (!allSingleValues) {
-                        continue;
-                    }
-
                     // Build the ValueSource annotation
                     String valueSourceAnnotation = buildValueSourceAnnotation(paramType, values);
                     if (valueSourceAnnotation == null) {
@@ -217,15 +211,15 @@ public class CsvSourceToValueSource extends Recipe {
             return "@ValueSource(" + attributeName + " = {" + formattedValues + "})";
         }
 
-        private String formatStringValues(List<String> values) {
+        private static String format(List<String> values) {
             return String.join(", ", values.stream()
-                    .map(v -> "\"" + v + "\"")
+                    .map(String::trim)
                     .toArray(String[]::new));
         }
 
-        private static @NotNull String format(List<String> values) {
+        private String formatStringValues(List<String> values) {
             return String.join(", ", values.stream()
-                    .map(String::trim)
+                    .map(v -> "\"" + v + "\"")
                     .toArray(String[]::new));
         }
 

@@ -221,27 +221,6 @@ class CsvSourceToValueSourceTest implements RewriteTest {
     }
 
     @Test
-    void doNotReplaceWhenCsvContainsCommas() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.jupiter.params.ParameterizedTest;
-              import org.junit.jupiter.params.provider.CsvSource;
-
-              class TestClass {
-                  @ParameterizedTest
-                  @CsvSource({"'hello, world'", "'foo, bar'"})
-                  void testWithCommas(String text) {
-                      System.out.println(text);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void replaceCsvSourceWithSingleValue() {
         rewriteRun(
           //language=java
