@@ -49,179 +49,180 @@ public class CsvSourceToValueSource extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.params.provider.CsvSource", false), new CsvSourceVisitor());
+        return Preconditions.check(
+                new UsesType<>("org.junit.jupiter.params.provider.CsvSource", false),
+                new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                        J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+
+                        // Check if method has exactly one parameter
+                        if (m.getParameters().size() != 1 || m.getParameters().get(0) instanceof J.Empty) {
+                            return m;
+                        }
+
+                        // Find @CsvSource annotation
+                        for (J.Annotation annotation : m.getLeadingAnnotations()) {
+                            Optional<Annotated> annotated = new Annotated.Matcher(CSV_SOURCE_MATCHER).get(annotation, getCursor());
+                            if (annotated.isPresent() && annotation.getArguments() != null && annotation.getArguments().size() == 1) {
+                                // Get the parameter type
+                                String paramType = getParameterType((J.VariableDeclarations) m.getParameters().get(0));
+                                if (paramType == null) {
+                                    return m;
+                                }
+
+                                Optional<Literal> valueAttribute = annotated.get().getDefaultAttribute("value");
+                                if (!valueAttribute.isPresent()) {
+                                    return m;
+                                }
+                                List<String> values = valueAttribute.get().getStrings();
+                                // Extract values from CsvSource
+                                if (values.isEmpty()) {
+                                    return m;
+                                }
+
+                                // Build the ValueSource annotation
+                                String valueSourceAnnotationTemplate = buildValueSourceAnnotation(paramType, values);
+                                if (valueSourceAnnotationTemplate == null) {
+                                    return m;
+                                }
+
+                                // Replace the annotation
+                                maybeRemoveImport("org.junit.jupiter.params.provider.CsvSource");
+                                maybeAddImport("org.junit.jupiter.params.provider.ValueSource");
+                                return JavaTemplate.builder(valueSourceAnnotationTemplate)
+                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5"))
+                                        .imports("org.junit.jupiter.params.provider.ValueSource")
+                                        .build()
+                                        .apply(getCursor(), annotation.getCoordinates().replace());
+                            }
+                        }
+
+                        return m;
+                    }
+
+                    private @Nullable String buildValueSourceAnnotation(String paramType, List<String> values) {
+                        String attributeName;
+                        String formattedValues;
+
+                        switch (paramType) {
+                            case "String":
+                                attributeName = "strings";
+                                formattedValues = formatStringValues(values);
+                                break;
+                            case "int":
+                            case "Integer":
+                                attributeName = "ints";
+                                formattedValues = format(values);
+                                break;
+                            case "long":
+                            case "Long":
+                                attributeName = "longs";
+                                formattedValues = formatLongValues(values);
+                                break;
+                            case "double":
+                            case "Double":
+                                attributeName = "doubles";
+                                formattedValues = format(values);
+                                break;
+                            case "float":
+                            case "Float":
+                                attributeName = "floats";
+                                formattedValues = formatFloatValues(values);
+                                break;
+                            case "boolean":
+                            case "Boolean":
+                                attributeName = "booleans";
+                                formattedValues = format(values);
+                                break;
+                            case "char":
+                            case "Character":
+                                attributeName = "chars";
+                                formattedValues = formatCharValues(values);
+                                break;
+                            case "byte":
+                            case "Byte":
+                                attributeName = "bytes";
+                                formattedValues = format(values);
+                                break;
+                            case "short":
+                            case "Short":
+                                attributeName = "shorts";
+                                formattedValues = format(values);
+                                break;
+                            default:
+                                return null;
+                        }
+
+                        if (values.size() == 1) {
+                            return "@ValueSource(" + attributeName + " = " + formattedValues + ")";
+                        }
+                        return "@ValueSource(" + attributeName + " = {" + formattedValues + "})";
+                    }
+
+                    private String format(List<String> values) {
+                        return String.join(", ", values.stream()
+                                .map(String::trim)
+                                .toArray(String[]::new));
+                    }
+
+                    private String formatStringValues(List<String> values) {
+                        return String.join(", ", values.stream()
+                                .map(v -> "\"" + v + "\"")
+                                .toArray(String[]::new));
+                    }
+
+                    private String formatLongValues(List<String> values) {
+                        return String.join(", ", values.stream()
+                                .map(v -> v.trim().endsWith("L") || v.trim().endsWith("l") ? v.trim() : v.trim() + "L")
+                                .toArray(String[]::new));
+                    }
+
+                    private String formatFloatValues(List<String> values) {
+                        return String.join(", ", values.stream()
+                                .map(v -> v.trim().endsWith("f") || v.trim().endsWith("F") ? v.trim() : v.trim() + "f")
+                                .toArray(String[]::new));
+                    }
+
+                    private String formatCharValues(List<String> values) {
+                        return String.join(", ", values.stream()
+                                .map(v -> "'" + v.trim() + "'")
+                                .toArray(String[]::new));
+                    }
+
+                    private @Nullable String getParameterType(J.VariableDeclarations param) {
+                        if (param.getType() == null) {
+                            return null;
+                        }
+                        if (param.getTypeAsFullyQualified() != null) {
+                            // Boxed primitive types
+                            return param.getTypeAsFullyQualified().getClassName();
+                        }
+                        if (param.getType() instanceof Primitive) {
+                            Primitive primitive = (Primitive) param.getType();
+                            switch (primitive) {
+                                case Boolean:
+                                    return "boolean";
+                                case Byte:
+                                    return "byte";
+                                case Char:
+                                    return "char";
+                                case Double:
+                                    return "double";
+                                case Float:
+                                    return "float";
+                                case Int:
+                                    return "int";
+                                case Long:
+                                    return "long";
+                                case Short:
+                                    return "short";
+                            }
+                        }
+
+                        return null;
+                    }
+                });
     }
 
-    private static class CsvSourceVisitor extends JavaIsoVisitor<ExecutionContext> {
-        @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-            J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-
-            // Check if method has exactly one parameter
-            if (m.getParameters().size() != 1 || m.getParameters().get(0) instanceof J.Empty) {
-                return m;
-            }
-
-            // Find @CsvSource annotation
-            for (J.Annotation annotation : m.getLeadingAnnotations()) {
-                Optional<Annotated> annotated = new Annotated.Matcher(CSV_SOURCE_MATCHER).get(annotation, getCursor());
-                if (annotated.isPresent() && annotation.getArguments() != null && annotation.getArguments().size() == 1) {
-                    // Get the parameter type
-                    String paramType = getParameterType((J.VariableDeclarations) m.getParameters().get(0));
-                    if (paramType == null) {
-                        return m;
-                    }
-
-                    Optional<Literal> valueAttribute = annotated.get().getDefaultAttribute("value");
-                    if (!valueAttribute.isPresent()) {
-                        return m;
-                    }
-                    List<String> values = valueAttribute.get().getStrings();
-                    // Extract values from CsvSource
-                    if (values.isEmpty()) {
-                        return m;
-                    }
-
-                    // Build the ValueSource annotation
-                    String valueSourceAnnotationTemplate = buildValueSourceAnnotation(paramType, values);
-                    if (valueSourceAnnotationTemplate == null) {
-                        return m;
-                    }
-
-                    // Replace the annotation
-                    maybeRemoveImport("org.junit.jupiter.params.provider.CsvSource");
-                    maybeAddImport("org.junit.jupiter.params.provider.ValueSource");
-                    return JavaTemplate.builder(valueSourceAnnotationTemplate)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5"))
-                            .imports("org.junit.jupiter.params.provider.ValueSource")
-                            .build()
-                            .apply(getCursor(), annotation.getCoordinates().replace());
-                }
-            }
-
-            return m;
-        }
-
-        private @Nullable String buildValueSourceAnnotation(String paramType, List<String> values) {
-            String attributeName;
-            String formattedValues;
-
-            switch (paramType) {
-                case "String":
-                    attributeName = "strings";
-                    formattedValues = formatStringValues(values);
-                    break;
-                case "int":
-                case "Integer":
-                    attributeName = "ints";
-                    formattedValues = format(values);
-                    break;
-                case "long":
-                case "Long":
-                    attributeName = "longs";
-                    formattedValues = formatLongValues(values);
-                    break;
-                case "double":
-                case "Double":
-                    attributeName = "doubles";
-                    formattedValues = format(values);
-                    break;
-                case "float":
-                case "Float":
-                    attributeName = "floats";
-                    formattedValues = formatFloatValues(values);
-                    break;
-                case "boolean":
-                case "Boolean":
-                    attributeName = "booleans";
-                    formattedValues = format(values);
-                    break;
-                case "char":
-                case "Character":
-                    attributeName = "chars";
-                    formattedValues = formatCharValues(values);
-                    break;
-                case "byte":
-                case "Byte":
-                    attributeName = "bytes";
-                    formattedValues = format(values);
-                    break;
-                case "short":
-                case "Short":
-                    attributeName = "shorts";
-                    formattedValues = format(values);
-                    break;
-                default:
-                    return null;
-            }
-
-            if (values.size() == 1) {
-                return "@ValueSource(" + attributeName + " = " + formattedValues + ")";
-            }
-            return "@ValueSource(" + attributeName + " = {" + formattedValues + "})";
-        }
-
-        private static String format(List<String> values) {
-            return String.join(", ", values.stream()
-                    .map(String::trim)
-                    .toArray(String[]::new));
-        }
-
-        private String formatStringValues(List<String> values) {
-            return String.join(", ", values.stream()
-                    .map(v -> "\"" + v + "\"")
-                    .toArray(String[]::new));
-        }
-
-        private String formatLongValues(List<String> values) {
-            return String.join(", ", values.stream()
-                    .map(v -> v.trim().endsWith("L") || v.trim().endsWith("l") ? v.trim() : v.trim() + "L")
-                    .toArray(String[]::new));
-        }
-
-        private String formatFloatValues(List<String> values) {
-            return String.join(", ", values.stream()
-                    .map(v -> v.trim().endsWith("f") || v.trim().endsWith("F") ? v.trim() : v.trim() + "f")
-                    .toArray(String[]::new));
-        }
-
-        private String formatCharValues(List<String> values) {
-            return String.join(", ", values.stream()
-                    .map(v -> "'" + v.trim() + "'")
-                    .toArray(String[]::new));
-        }
-
-        private @Nullable String getParameterType(J.VariableDeclarations param) {
-            if (param.getType() == null) {
-                return null;
-            }
-            if (param.getTypeAsFullyQualified() != null) {
-                // Boxed primitive types
-                return param.getTypeAsFullyQualified().getClassName();
-            }
-            if (param.getType() instanceof Primitive) {
-                Primitive primitive = (Primitive) param.getType();
-                switch (primitive) {
-                    case Boolean:
-                        return "boolean";
-                    case Byte:
-                        return "byte";
-                    case Char:
-                        return "char";
-                    case Double:
-                        return "double";
-                    case Float:
-                        return "float";
-                    case Int:
-                        return "int";
-                    case Long:
-                        return "long";
-                    case Short:
-                        return "short";
-                }
-            }
-
-            return null;
-        }
-    }
 }
