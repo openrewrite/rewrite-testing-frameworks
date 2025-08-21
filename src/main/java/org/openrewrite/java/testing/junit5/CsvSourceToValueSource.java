@@ -32,7 +32,7 @@ import org.openrewrite.java.tree.J;
 import java.util.List;
 import java.util.Optional;
 
-import static org.openrewrite.java.tree.JavaType.*;
+import static org.openrewrite.java.tree.JavaType.Primitive;
 
 public class CsvSourceToValueSource extends Recipe {
     private static final AnnotationMatcher CSV_SOURCE_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.CsvSource");
