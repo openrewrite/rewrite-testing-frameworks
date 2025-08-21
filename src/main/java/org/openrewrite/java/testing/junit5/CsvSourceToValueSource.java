@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -54,7 +55,7 @@ public class CsvSourceToValueSource extends Recipe {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
             // Check if method has exactly one parameter
-            if (m.getParameters() == null || m.getParameters().size() != 1) {
+            if (m.getParameters().size() != 1) {
                 return m;
             }
 
@@ -78,7 +79,7 @@ public class CsvSourceToValueSource extends Recipe {
 
                     // Extract values from CsvSource
                     List<String> values = extractCsvValues(annotation);
-                    if (values == null || values.isEmpty()) {
+                    if (values.isEmpty()) {
                         continue;
                     }
 
@@ -156,7 +157,7 @@ public class CsvSourceToValueSource extends Recipe {
             }
         }
 
-        private String buildValueSourceAnnotation(String paramType, List<String> values) {
+        private @Nullable String buildValueSourceAnnotation(String paramType, List<String> values) {
             String attributeName;
             String formattedValues;
 
@@ -211,9 +212,8 @@ public class CsvSourceToValueSource extends Recipe {
 
             if (values.size() == 1) {
                 return "@ValueSource(" + attributeName + " = " + formattedValues + ")";
-            } else {
-                return "@ValueSource(" + attributeName + " = {" + formattedValues + "})";
             }
+            return "@ValueSource(" + attributeName + " = {" + formattedValues + "})";
         }
 
         private String formatStringValues(List<String> values) {
@@ -236,7 +236,7 @@ public class CsvSourceToValueSource extends Recipe {
 
         private String formatDoubleValues(List<String> values) {
             return String.join(", ", values.stream()
-                    .map(v -> v.trim().endsWith("d") || v.trim().endsWith("D") ? v.trim() : v.trim())
+                    .map(String::trim)
                     .toArray(String[]::new));
         }
 
@@ -270,7 +270,7 @@ public class CsvSourceToValueSource extends Recipe {
                     .toArray(String[]::new));
         }
 
-        private String getParameterType(J.VariableDeclarations param) {
+        private @Nullable String getParameterType(J.VariableDeclarations param) {
             if (param.getType() == null) {
                 return null;
             }
