@@ -91,15 +91,13 @@ public class CsvSourceToValueSource extends Recipe {
                     }
 
                     // Replace the annotation
-                    JavaCoordinates coordinates = annotation.getCoordinates().replace();
-                    m = JavaTemplate.builder(valueSourceAnnotation)
+                    maybeRemoveImport("org.junit.jupiter.params.provider.CsvSource");
+                    maybeAddImport("org.junit.jupiter.params.provider.ValueSource");
+                    return JavaTemplate.builder(valueSourceAnnotation)
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5"))
                             .imports("org.junit.jupiter.params.provider.ValueSource")
                             .build()
-                            .apply(getCursor(), coordinates);
-
-                    maybeAddImport("org.junit.jupiter.params.provider.ValueSource");
-                    maybeRemoveImport("org.junit.jupiter.params.provider.CsvSource");
+                            .apply(getCursor(), annotation.getCoordinates().replace());
                 }
             }
 
