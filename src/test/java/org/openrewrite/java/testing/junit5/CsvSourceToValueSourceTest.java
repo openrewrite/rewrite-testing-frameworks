@@ -68,6 +68,47 @@ class CsvSourceToValueSourceTest implements RewriteTest {
     }
 
     @Test
+    void retainNewlines() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource({
+                    "apple",
+                    "banana",
+                    "cherry"
+                  })
+                  void testWithStrings(String fruit) {
+                      System.out.println(fruit);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.ValueSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @ValueSource(strings = {
+                    "apple",
+                    "banana",
+                    "cherry"
+                  })
+                  void testWithStrings(String fruit) {
+                      System.out.println(fruit);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void replaceCsvSourceWithValueSourceForIntegers() {
         rewriteRun(
           //language=java
