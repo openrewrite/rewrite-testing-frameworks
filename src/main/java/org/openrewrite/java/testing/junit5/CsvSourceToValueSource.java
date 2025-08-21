@@ -211,8 +211,7 @@ public class CsvSourceToValueSource extends Recipe {
 
             if (values.size() == 1) {
                 return "@ValueSource(" + attributeName + " = " + formattedValues + ")";
-            } else {
-                return "@ValueSource(" + attributeName + " = {" + formattedValues + "})";
+            return "@ValueSource(" + attributeName + " = {" + formattedValues + "})";
             }
         }
 
