@@ -123,11 +123,11 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @ParameterizedTest
         @CsvSource({
           "versions = { 17 },versions = 17",
           "versions = { 21 },versions = 21",
         })
+        @ParameterizedTest
         void unwrapSingleValueArray(String jre, String afterJre) {
             rewriteRun(
               java(
@@ -377,11 +377,11 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @ParameterizedTest
         @CsvSource({
           "versions = { 17 },versions = 17",
           "versions = { 21 },versions = 21",
         })
+        @ParameterizedTest
         void unwrapSingleValueArray(String jre, String afterJre) {
             rewriteRun(
               java(
