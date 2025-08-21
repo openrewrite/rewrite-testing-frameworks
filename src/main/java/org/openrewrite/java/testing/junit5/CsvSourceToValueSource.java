@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -169,7 +170,7 @@ public class CsvSourceToValueSource extends Recipe {
                 case "int":
                 case "Integer":
                     attributeName = "ints";
-                    formattedValues = formatNumericValues(values);
+                    formattedValues = format(values);
                     break;
                 case "long":
                 case "Long":
@@ -179,7 +180,7 @@ public class CsvSourceToValueSource extends Recipe {
                 case "double":
                 case "Double":
                     attributeName = "doubles";
-                    formattedValues = formatDoubleValues(values);
+                    formattedValues = format(values);
                     break;
                 case "float":
                 case "Float":
@@ -189,7 +190,7 @@ public class CsvSourceToValueSource extends Recipe {
                 case "boolean":
                 case "Boolean":
                     attributeName = "booleans";
-                    formattedValues = formatBooleanValues(values);
+                    formattedValues = format(values);
                     break;
                 case "char":
                 case "Character":
@@ -199,12 +200,12 @@ public class CsvSourceToValueSource extends Recipe {
                 case "byte":
                 case "Byte":
                     attributeName = "bytes";
-                    formattedValues = formatByteValues(values);
+                    formattedValues = format(values);
                     break;
                 case "short":
                 case "Short":
                     attributeName = "shorts";
-                    formattedValues = formatShortValues(values);
+                    formattedValues = format(values);
                     break;
                 default:
                     return null;
@@ -222,7 +223,7 @@ public class CsvSourceToValueSource extends Recipe {
                     .toArray(String[]::new));
         }
 
-        private String formatNumericValues(List<String> values) {
+        private static @NotNull String format(List<String> values) {
             return String.join(", ", values.stream()
                     .map(String::trim)
                     .toArray(String[]::new));
@@ -234,39 +235,15 @@ public class CsvSourceToValueSource extends Recipe {
                     .toArray(String[]::new));
         }
 
-        private String formatDoubleValues(List<String> values) {
-            return String.join(", ", values.stream()
-                    .map(String::trim)
-                    .toArray(String[]::new));
-        }
-
         private String formatFloatValues(List<String> values) {
             return String.join(", ", values.stream()
                     .map(v -> v.trim().endsWith("f") || v.trim().endsWith("F") ? v.trim() : v.trim() + "f")
                     .toArray(String[]::new));
         }
 
-        private String formatBooleanValues(List<String> values) {
-            return String.join(", ", values.stream()
-                    .map(String::trim)
-                    .toArray(String[]::new));
-        }
-
         private String formatCharValues(List<String> values) {
             return String.join(", ", values.stream()
                     .map(v -> "'" + v.trim() + "'")
-                    .toArray(String[]::new));
-        }
-
-        private String formatByteValues(List<String> values) {
-            return String.join(", ", values.stream()
-                    .map(String::trim)
-                    .toArray(String[]::new));
-        }
-
-        private String formatShortValues(List<String> values) {
-            return String.join(", ", values.stream()
-                    .map(String::trim)
                     .toArray(String[]::new));
         }
 
