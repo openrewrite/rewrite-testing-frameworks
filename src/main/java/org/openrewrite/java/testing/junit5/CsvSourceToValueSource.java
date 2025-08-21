@@ -65,7 +65,7 @@ public class CsvSourceToValueSource extends Recipe {
             // Find @CsvSource annotation
             for (J.Annotation annotation : m.getLeadingAnnotations()) {
                 Optional<Annotated> annotated = new Annotated.Matcher(CSV_SOURCE_MATCHER).get(annotation, getCursor());
-                if (annotated.isPresent()) {
+                if (annotated.isPresent() && annotation.getArguments() != null && annotation.getArguments().size() == 1) {
                     // Get the parameter type
                     String paramType = getParameterType((J.VariableDeclarations) m.getParameters().get(0));
                     if (paramType == null) {
@@ -83,15 +83,15 @@ public class CsvSourceToValueSource extends Recipe {
                     }
 
                     // Build the ValueSource annotation
-                    String valueSourceAnnotation = buildValueSourceAnnotation(paramType, values);
-                    if (valueSourceAnnotation == null) {
+                    String valueSourceAnnotationTemplate = buildValueSourceAnnotation(paramType, values);
+                    if (valueSourceAnnotationTemplate == null) {
                         return m;
                     }
 
                     // Replace the annotation
                     maybeRemoveImport("org.junit.jupiter.params.provider.CsvSource");
                     maybeAddImport("org.junit.jupiter.params.provider.ValueSource");
-                    return JavaTemplate.builder(valueSourceAnnotation)
+                    return JavaTemplate.builder(valueSourceAnnotationTemplate)
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5"))
                             .imports("org.junit.jupiter.params.provider.ValueSource")
                             .build()

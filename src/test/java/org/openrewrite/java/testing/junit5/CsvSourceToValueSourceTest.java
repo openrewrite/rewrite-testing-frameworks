@@ -221,6 +221,27 @@ class CsvSourceToValueSourceTest implements RewriteTest {
     }
 
     @Test
+    void doNotReplaceWhenAdditionalAruguments() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource(value = {"apple", "banana", "N/A"}, nullValues = "N/A")
+                  void testWithMultipleParams(String fruit) {
+                      System.out.println(fruit);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void replaceCsvSourceWithSingleValue() {
         rewriteRun(
           //language=java
