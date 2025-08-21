@@ -25,10 +25,14 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.trait.Annotated;
+import org.openrewrite.java.trait.Literal;
 import org.openrewrite.java.tree.J;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
+import static org.openrewrite.java.tree.JavaType.*;
 
 public class CsvSourceToValueSource extends Recipe {
     private static final AnnotationMatcher CSV_SOURCE_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.CsvSource");
@@ -60,24 +64,28 @@ public class CsvSourceToValueSource extends Recipe {
 
             // Find @CsvSource annotation
             for (J.Annotation annotation : m.getLeadingAnnotations()) {
-                if (CSV_SOURCE_MATCHER.matches(annotation)) {
+                Optional<Annotated> annotated = new Annotated.Matcher(CSV_SOURCE_MATCHER).get(annotation, getCursor());
+                if (annotated.isPresent()) {
                     // Get the parameter type
-                    J.VariableDeclarations param = (J.VariableDeclarations) m.getParameters().get(0);
-                    String paramType = getParameterType(param);
+                    String paramType = getParameterType((J.VariableDeclarations) m.getParameters().get(0));
                     if (paramType == null) {
-                        continue;
+                        return m;
                     }
 
+                    Optional<Literal> valueAttribute = annotated.get().getDefaultAttribute("value");
+                    if (!valueAttribute.isPresent()) {
+                        return m;
+                    }
+                    List<String> values = valueAttribute.get().getStrings();
                     // Extract values from CsvSource
-                    List<String> values = extractCsvValues(annotation);
                     if (values.isEmpty()) {
-                        continue;
+                        return m;
                     }
 
                     // Build the ValueSource annotation
                     String valueSourceAnnotation = buildValueSourceAnnotation(paramType, values);
                     if (valueSourceAnnotation == null) {
-                        continue;
+                        return m;
                     }
 
                     // Replace the annotation
@@ -92,52 +100,6 @@ public class CsvSourceToValueSource extends Recipe {
             }
 
             return m;
-        }
-
-        private List<String> extractCsvValues(J.Annotation annotation) {
-            List<String> values = new ArrayList<>();
-            if (annotation.getArguments() != null) {
-                for (org.openrewrite.java.tree.Expression arg : annotation.getArguments()) {
-                    if (arg instanceof J.Assignment) {
-                        J.Assignment assignment = (J.Assignment) arg;
-                        if (assignment.getVariable() instanceof J.Identifier) {
-                            J.Identifier id = (J.Identifier) assignment.getVariable();
-                            if ("value".equals(id.getSimpleName())) {
-                                extractValuesFromExpression(assignment.getAssignment(), values);
-                            }
-                        }
-                    } else if (arg instanceof J.NewArray) {
-                        extractValuesFromExpression(arg, values);
-                    } else if (arg instanceof J.Literal) {
-                        J.Literal literal = (J.Literal) arg;
-                        if (literal.getValue() instanceof String) {
-                            values.add((String) literal.getValue());
-                        }
-                    }
-                }
-            }
-            return values;
-        }
-
-        private void extractValuesFromExpression(org.openrewrite.java.tree.Expression expr, List<String> values) {
-            if (expr instanceof J.NewArray) {
-                J.NewArray array = (J.NewArray) expr;
-                if (array.getInitializer() != null) {
-                    for (org.openrewrite.java.tree.Expression element : array.getInitializer()) {
-                        if (element instanceof J.Literal) {
-                            J.Literal literal = (J.Literal) element;
-                            if (literal.getValue() instanceof String) {
-                                values.add((String) literal.getValue());
-                            }
-                        }
-                    }
-                }
-            } else if (expr instanceof J.Literal) {
-                J.Literal literal = (J.Literal) expr;
-                if (literal.getValue() instanceof String) {
-                    values.add((String) literal.getValue());
-                }
-            }
         }
 
         private @Nullable String buildValueSourceAnnotation(String paramType, List<String> values) {
@@ -233,9 +195,12 @@ public class CsvSourceToValueSource extends Recipe {
             if (param.getType() == null) {
                 return null;
             }
-
-            if (param.getType() instanceof org.openrewrite.java.tree.JavaType.Primitive) {
-                org.openrewrite.java.tree.JavaType.Primitive primitive = (org.openrewrite.java.tree.JavaType.Primitive) param.getType();
+            if (param.getTypeAsFullyQualified() != null) {
+                // Boxed primitive types
+                return param.getTypeAsFullyQualified().getClassName();
+            }
+            if (param.getType() instanceof Primitive) {
+                Primitive primitive = (Primitive) param.getType();
                 switch (primitive) {
                     case Boolean:
                         return "boolean";
@@ -253,11 +218,7 @@ public class CsvSourceToValueSource extends Recipe {
                         return "long";
                     case Short:
                         return "short";
-                    default:
-                        return null;
                 }
-            } else if (param.getTypeAsFullyQualified() != null) {
-                return param.getTypeAsFullyQualified().getClassName();
             }
 
             return null;
