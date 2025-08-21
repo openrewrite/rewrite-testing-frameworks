@@ -139,20 +139,12 @@ public class MinimumJreConditions extends Recipe {
                     }
                     annotated = ENABLED_JRE_RANGE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        enabledOnJreRange = ENABLED_JRE_RANGE_MATCHER.get(annotationCursor).map(a -> {
-                            String min = getAttribute(a, "min").map(Objects::toString).orElse(getAttribute(a, "minVersion").map(Objects::toString).orElse(null));
-                            String max = getAttribute(a, "max").map(Objects::toString).orElse(getAttribute(a, "maxVersion").map(Objects::toString).orElse(null));
-                            return new Range(min, max);
-                        });
+                        enabledOnJreRange = ENABLED_JRE_RANGE_MATCHER.get(annotationCursor).map(Range::new);
                         prefix = ann.getPrefix();
                     }
                     annotated = DISABLED_JRE_RANGE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        disabledOnJreRange = DISABLED_JRE_RANGE_MATCHER.get(annotationCursor).map(a -> {
-                            String min = getAttribute(a, "min").map(Objects::toString).orElse(getAttribute(a, "minVersion").map(Objects::toString).orElse(null));
-                            String max = getAttribute(a, "max").map(Objects::toString).orElse(getAttribute(a, "maxVersion").map(Objects::toString).orElse(null));
-                            return new Range(min, max);
-                        });
+                        disabledOnJreRange = DISABLED_JRE_RANGE_MATCHER.get(annotationCursor).map(Range::new);
                         prefix = ann.getPrefix();
                     }
                 }
@@ -187,7 +179,7 @@ public class MinimumJreConditions extends Recipe {
                         return null;
                     }
                     if (compareVersions(enabledOnJreRange.map(Range::getMin).get(), javaVersion) < 0) {
-                        //TODO update the range to start at the specified version and convert to a @EnabledOnJre annotation if the range is now a single version
+                        //TODO update the range to start at the specified version. Keep the formatting correct (static imported enum, just enum or the int version)
                     }
                 }
                 if (disabledOnJreRange.isPresent()) {
@@ -195,9 +187,8 @@ public class MinimumJreConditions extends Recipe {
                         // Remove the annotation if it is disabled on a JRE range that ends before the specified version
                         RemoveAnnotation removeAnnotation = new RemoveAnnotation("@" + DISABLED_FOR_JRE_RANGE);
                         m = removeAnnotation.getVisitor().visitMethodDeclaration(m, ctx);
-                    }
-                    if (compareVersions(disabledOnJreRange.map(Range::getMin).get(), javaVersion) < 0) {
-                        //TODO update the range to start at the specified version and convert to a @DisabledOnJre annotation if the range is now a single version
+                    } else if (compareVersions(disabledOnJreRange.map(Range::getMin).get(), javaVersion) < 0) {
+                        //TODO update the range to start at the specified version. Keep the formatting correct (static imported enum, just enum or the int version)
                     }
                 }
 
@@ -225,7 +216,7 @@ public class MinimumJreConditions extends Recipe {
         };
     }
 
-    public Optional<Expression> getDefaultAttribute(Annotated annotated) {
+    private Optional<Expression> getDefaultAttribute(Annotated annotated) {
         if (annotated.getTree().getArguments() == null) {
             return Optional.empty();
         }
@@ -238,7 +229,7 @@ public class MinimumJreConditions extends Recipe {
         return getAttribute(annotated, "value");
     }
 
-    public Optional<Expression> getAttribute(Annotated annotated, String attribute) {
+    private static Optional<Expression> getAttribute(Annotated annotated, String attribute) {
         if (annotated.getTree().getArguments() == null) {
             return Optional.empty();
         }
@@ -289,11 +280,49 @@ public class MinimumJreConditions extends Recipe {
         private final String min;
 
         @Nullable
+        private final RangeNotation minNotation;
+
+        @Nullable
         private final String max;
 
-        public Range(@Nullable String min, @Nullable String max) {
+        @Nullable
+        private final RangeNotation maxNotation;
+
+        public Range(Annotated annotated) {
+            Optional<String> minAttribute = getAttribute(annotated, "min").map(Objects::toString);
+            Optional<String> minVersionAttribute = getAttribute(annotated, "minVersion").map(Objects::toString);
+            Optional<String> maxAttribute = getAttribute(annotated, "max").map(Objects::toString);
+            Optional<String> maxVersionAttribute = getAttribute(annotated, "maxVersion").map(Objects::toString);
+            String min = minAttribute.orElse(minVersionAttribute.orElse(null));
+            String max = maxAttribute.orElse(maxVersionAttribute.orElse(null));
             this.min = min == null ? String.valueOf(Integer.MIN_VALUE) : min;
             this.max = max == null ? String.valueOf(Integer.MAX_VALUE) : max;
+            if (minAttribute.isPresent()) {
+                if (minAttribute.get().startsWith("JRE.")) {
+                    this.minNotation = RangeNotation.JRE;
+                } else {
+                    this.minNotation = RangeNotation.STATIC_JRE;
+                }
+            } else if (minVersionAttribute.isPresent()) {
+                this.minNotation = RangeNotation.VERSION;
+            } else {
+                this.minNotation = null;
+            }
+            if (maxAttribute.isPresent()) {
+                if (maxAttribute.get().startsWith("JRE.")) {
+                    this.maxNotation = RangeNotation.JRE;
+                } else {
+                    this.maxNotation = RangeNotation.STATIC_JRE;
+                }
+            } else if (maxVersionAttribute.isPresent()) {
+                this.maxNotation = RangeNotation.VERSION;
+            } else {
+                this.maxNotation = null;
+            }
         }
+    }
+
+    private enum RangeNotation {
+        JRE, STATIC_JRE, VERSION
     }
 }
