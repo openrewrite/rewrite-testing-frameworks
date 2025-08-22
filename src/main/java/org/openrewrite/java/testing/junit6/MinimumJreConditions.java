@@ -97,10 +97,10 @@ public class MinimumJreConditions extends Recipe {
             public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
                 boolean isUnitTest = false;
-                Optional<List<String>> enabledOnJre = Optional.empty();
-                Optional<List<String>> disabledOnJre = Optional.empty();
-                Optional<Range> enabledOnJreRange = Optional.empty();
-                Optional<Range> disabledOnJreRange = Optional.empty();
+                List<String> enabledOnJre = null;
+                List<String> disabledOnJre = null;
+                Range enabledOnJreRange = null;
+                Range disabledOnJreRange = null;
                 Space prefix = Space.EMPTY;
 
                 // First assemble all annotations to see if this is a unit test impacted with JRE conditional annotations
@@ -111,89 +111,75 @@ public class MinimumJreConditions extends Recipe {
                     }
                     Optional<Annotated> annotated = ENABLED_JRE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        enabledOnJre = annotated.map(a -> getDefaultAttribute(a).orElse(getAttribute(a, "versions").orElse(null))).map(e -> {
-                            if (e instanceof J.NewArray) {
-                                List<Expression> initializer = ((J.NewArray) e).getInitializer();
-                                if (initializer == null) {
-                                    return emptyList();
-                                }
-                                return initializer.stream().map(Objects::toString).collect(toList());
-                            }
-                            return singletonList(e.toString());
-                        });
+                        enabledOnJre = annotated
+                                .map(a -> getDefaultAttribute(a).orElse(getAttribute(a, "versions").orElse(null)))
+                                .map(this::extractVersionsFromAnnotationArgument)
+                                .orElse(null);
                         prefix = ann.getPrefix();
                     }
                     annotated = DISABLED_JRE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        disabledOnJre = DISABLED_JRE_MATCHER.get(annotationCursor).map(a -> getDefaultAttribute(a).orElse(getAttribute(a, "versions").orElse(null))).map(e -> {
-                            if (e instanceof J.NewArray) {
-                                List<Expression> initializer = ((J.NewArray) e).getInitializer();
-                                if (initializer == null) {
-                                    return emptyList();
-                                }
-                                return initializer.stream().map(Objects::toString).collect(toList());
-                            }
-                            return singletonList(e.toString());
-                        });
+                        disabledOnJre = DISABLED_JRE_MATCHER.get(annotationCursor)
+                                .map(a -> getDefaultAttribute(a).orElse(getAttribute(a, "versions").orElse(null)))
+                                .map(this::extractVersionsFromAnnotationArgument)
+                                .orElse(null);
                         prefix = ann.getPrefix();
                     }
                     annotated = ENABLED_JRE_RANGE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        enabledOnJreRange = ENABLED_JRE_RANGE_MATCHER.get(annotationCursor).map(Range::new);
+                        enabledOnJreRange = ENABLED_JRE_RANGE_MATCHER.get(annotationCursor).map(Range::new).orElse(null);
                         prefix = ann.getPrefix();
                     }
                     annotated = DISABLED_JRE_RANGE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        disabledOnJreRange = DISABLED_JRE_RANGE_MATCHER.get(annotationCursor).map(Range::new);
+                        disabledOnJreRange = DISABLED_JRE_RANGE_MATCHER.get(annotationCursor).map(Range::new).orElse(null);
                         prefix = ann.getPrefix();
                     }
                 }
 
                 // Only act upon unit tests that have JRE conditions
-                if (!isUnitTest || !(enabledOnJre.isPresent() || disabledOnJre.isPresent() || enabledOnJreRange.isPresent() || disabledOnJreRange.isPresent())) {
+                if (!isUnitTest || (enabledOnJre == null && disabledOnJre == null && enabledOnJreRange == null && disabledOnJreRange == null)) {
                     return m;
                 }
 
                 // Now transform the annotations to the correct results
-                if (enabledOnJre.isPresent()) {
-                    if (enabledOnJre.get().stream().allMatch(v -> compareVersions(v, javaVersion) < 0)) {
+                if (enabledOnJre != null) {
+                    if (enabledOnJre.stream().allMatch(v -> compareVersions(v, javaVersion) < 0)) {
                         // Remove the test method if it is enabled on a JRE version lower than the specified version
                         maybeRemoveImport(JRE_IMPORT);
                         return null;
                     }
                     m = updateAnnotationVersions(m, enabledOnJre, ENABLED_ON_JRE, ctx);
                 }
-                if (disabledOnJre.isPresent()) {
-                    if (disabledOnJre.get().stream().allMatch(v -> compareVersions(v, javaVersion) < 0)) {
+                if (disabledOnJre != null) {
+                    if (disabledOnJre.stream().allMatch(v -> compareVersions(v, javaVersion) < 0)) {
                         m = removeAnnotation(m, DISABLED_ON_JRE, ctx);
                     } else {
                         m = updateAnnotationVersions(m, disabledOnJre, DISABLED_ON_JRE, ctx);
                     }
                 }
-                if (enabledOnJreRange.isPresent()) {
-                    Range range = enabledOnJreRange.get();
-                    if (compareVersions(range.getMax(), javaVersion) < 0) {
+                if (enabledOnJreRange != null) {
+                    if (compareVersions(enabledOnJreRange.getMax(), javaVersion) < 0) {
                         // Remove the test method if it is enabled on a JRE range that ends before the specified version
                         maybeRemoveImport(JRE_IMPORT);
                         return null;
                     }
-                    if (compareVersions(range.getMin(), javaVersion) <= 0 && range.getMaxNotation() == null) {
+                    if (compareVersions(enabledOnJreRange.getMin(), javaVersion) <= 0 && enabledOnJreRange.getMaxNotation() == null) {
                         // The test is enabled for all versions from `javaVersion till end -> remove annotation
                         m = removeAnnotation(m, ENABLED_FOR_JRE_RANGE, ctx);
                     } else {
-                        m = updateRangeStart(m, ENABLED_FOR_JRE_RANGE, range, ctx);
+                        m = updateRangeStart(m, ENABLED_FOR_JRE_RANGE, enabledOnJreRange, ctx);
                     }
                 }
-                if (disabledOnJreRange.isPresent()) {
-                    Range range = disabledOnJreRange.get();
-                    if (compareVersions(range.getMax(), javaVersion) < 0) {
+                if (disabledOnJreRange != null) {
+                    if (compareVersions(disabledOnJreRange.getMax(), javaVersion) < 0) {
                         m = removeAnnotation(m, DISABLED_FOR_JRE_RANGE, ctx);
-                    } else if (compareVersions(range.getMin(), javaVersion) <= 0 && range.getMaxNotation() == null) {
+                    } else if (compareVersions(disabledOnJreRange.getMin(), javaVersion) <= 0 && disabledOnJreRange.getMaxNotation() == null) {
                         // The test is disabled for all versions from `javaVersion` till end -> remove test
                         maybeRemoveImport(JRE_IMPORT);
                         return null;
                     } else {
-                        m = updateRangeStart(m, DISABLED_FOR_JRE_RANGE, range, ctx);
+                        m = updateRangeStart(m, DISABLED_FOR_JRE_RANGE, disabledOnJreRange, ctx);
                     }
                 }
 
@@ -212,11 +198,11 @@ public class MinimumJreConditions extends Recipe {
                 return removeAnnotation.getVisitor().visitMethodDeclaration(m, ctx);
             }
 
-            private J.MethodDeclaration updateAnnotationVersions(J.MethodDeclaration m, Optional<List<String>> versions, String annotationType, ExecutionContext ctx) {
-                if (versions.isPresent() && versions.get().stream().anyMatch(v -> compareVersions(v, javaVersion) < 0)) {
+            private J.MethodDeclaration updateAnnotationVersions(J.MethodDeclaration m, List<String> versions, String annotationType, ExecutionContext ctx) {
+                if (versions.stream().anyMatch(v -> compareVersions(v, javaVersion) < 0)) {
                     // Update the annotation to only include JRE versions that are greater than or equal to the specified version
-                    AddOrUpdateAnnotationAttribute updatedVersions = new AddOrUpdateAnnotationAttribute(annotationType, "versions", versions.get().stream().filter(v -> compareVersions(v, javaVersion) >= 0).collect(joining(", ")), null, false, false);
-                    m = (J.MethodDeclaration) updatedVersions.getVisitor().visit(m, ctx, getCursor().getParent());
+                    AddOrUpdateAnnotationAttribute updatedVersions = new AddOrUpdateAnnotationAttribute(annotationType, "versions", versions.stream().filter(v -> compareVersions(v, javaVersion) >= 0).collect(joining(", ")), null, false, false);
+                    m = (J.MethodDeclaration) updatedVersions.getVisitor().visitNonNull(m, ctx, getCursor().getParent());
                 }
                 return m;
             }
@@ -224,21 +210,18 @@ public class MinimumJreConditions extends Recipe {
             // Return a method declaration with a new range only if the start is below requested java version.
             // If the start version would be equal to the end version, then no updated method is returned as this is handled in a later phase
             private J.MethodDeclaration updateRangeStart(J.MethodDeclaration m, String annotationtype, Range range, ExecutionContext ctx) {
-                if (compareVersions(range.getMin(), javaVersion) <= 0) {
-                    if (compareVersions(range.getMax(), javaVersion) != 0) {
-                        // Update the range to start at the specified version
-                        String attributeName = range.getMinNotation() == RangeNotation.VERSION ? "minVersion" : "min";
-                        RemoveAnnotationAttribute updatedRange = new RemoveAnnotationAttribute(annotationtype, attributeName);
-                        m = (J.MethodDeclaration) updatedRange.getVisitor().visit(m, ctx, getCursor().getParent());
-                    }
+                if (compareVersions(range.getMin(), javaVersion) <= 0 && compareVersions(range.getMax(), javaVersion) != 0) {
+                    // Update the range to start at the specified version
+                    String attributeName = range.getMinNotation() == RangeNotation.VERSION ? "minVersion" : "min";
+                    RemoveAnnotationAttribute updatedRange = new RemoveAnnotationAttribute(annotationtype, attributeName);
+                    m = (J.MethodDeclaration) updatedRange.getVisitor().visitNonNull(m, ctx, getCursor().getParent());
                 }
                 return m;
             }
 
             // If the range is resulting in a single version after updating (current max is the new min), then we can replace the range annotation with a single version annotation.
-            private void replaceSingleVersionRangeWithEquivalentAnnotation(Optional<Range> optionalRange, String rangeAnnotationType, String singleVersionAnnotationType) {
-                if (optionalRange.isPresent()) {
-                    Range range = optionalRange.get();
+            private void replaceSingleVersionRangeWithEquivalentAnnotation(@Nullable Range range, String rangeAnnotationType, String singleVersionAnnotationType) {
+                if (range != null) {
                     if (compareVersions(range.getMax(), javaVersion) == 0) {
                         doAfterVisit(new ChangeType(rangeAnnotationType, singleVersionAnnotationType, false).getVisitor());
                         doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "min").getVisitor());
@@ -272,6 +255,17 @@ public class MinimumJreConditions extends Recipe {
                     }
                     return ann;
                 }));
+            }
+
+            private List<String> extractVersionsFromAnnotationArgument(Expression expression) {
+                if (expression instanceof J.NewArray) {
+                    List<Expression> initializer = ((J.NewArray) expression).getInitializer();
+                    if (initializer == null) {
+                        return emptyList();
+                    }
+                    return initializer.stream().map(Objects::toString).collect(toList());
+                }
+                return singletonList(expression.toString());
             }
         };
     }
@@ -338,12 +332,11 @@ public class MinimumJreConditions extends Recipe {
             return version;
         }
         switch (notation) {
-            case VERSION:
-                return version;
             case JRE:
                 return "JRE.JAVA_" + version;
             case STATIC_JRE:
                 return "JAVA_" + version;
+            case VERSION:
             default:
                 return version;
         }
@@ -371,28 +364,12 @@ public class MinimumJreConditions extends Recipe {
             String max = maxAttribute.orElse(maxVersionAttribute.orElse(null));
             this.min = min == null ? "0" : min;
             this.max = max == null ? String.valueOf(Integer.MAX_VALUE) : max;
-            if (minAttribute.isPresent()) {
-                if (minAttribute.get().startsWith("JRE.")) {
-                    this.minNotation = RangeNotation.JRE;
-                } else {
-                    this.minNotation = RangeNotation.STATIC_JRE;
-                }
-            } else if (minVersionAttribute.isPresent()) {
-                this.minNotation = RangeNotation.VERSION;
-            } else {
-                this.minNotation = null;
-            }
-            if (maxAttribute.isPresent()) {
-                if (maxAttribute.get().startsWith("JRE.")) {
-                    this.maxNotation = RangeNotation.JRE;
-                } else {
-                    this.maxNotation = RangeNotation.STATIC_JRE;
-                }
-            } else if (maxVersionAttribute.isPresent()) {
-                this.maxNotation = RangeNotation.VERSION;
-            } else {
-                this.maxNotation = null;
-            }
+            this.minNotation = minAttribute
+                    .map(it -> it.startsWith("JRE.") ? RangeNotation.JRE : RangeNotation.STATIC_JRE)
+                    .orElse(minVersionAttribute.map(__ -> RangeNotation.VERSION).orElse(null));
+            this.maxNotation = maxAttribute
+                    .map(it -> it.startsWith("JRE.") ? RangeNotation.JRE : RangeNotation.STATIC_JRE)
+                    .orElse(maxVersionAttribute.map(__ -> RangeNotation.VERSION).orElse(null));
         }
 
         private RangeNotation getNotation() {
