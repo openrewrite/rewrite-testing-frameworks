@@ -31,6 +31,7 @@ import org.openrewrite.java.trait.Literal;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -62,6 +63,13 @@ public class CsvSourceToValueSource extends Recipe {
 
                         // Check if method has exactly one parameter
                         if (m.getParameters().size() != 1 || m.getParameters().get(0) instanceof J.Empty) {
+                            return m;
+                        }
+
+                        // Check if parameter is ArgumentsAccessor or uses @AggregateWith or similar meta annotations
+                        J.VariableDeclarations param = (J.VariableDeclarations) m.getParameters().get(0);
+                        if (TypeUtils.isAssignableTo("org.junit.jupiter.params.aggregator.ArgumentsAccessor", param.getType()) ||
+                                !param.getLeadingAnnotations().isEmpty()) {
                             return m;
                         }
 

@@ -380,4 +380,78 @@ class CsvSourceToValueSourceTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void doNotReplaceWhenArgumentsAccessorIsUsed() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.aggregator.ArgumentsAccessor;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource({"apple, 1", "banana, 2", "cherry, 3"})
+                  void testWithArgumentsAccessor(ArgumentsAccessor args) {
+                      String fruit = args.getString(0);
+                      int count = args.getInteger(1);
+                      System.out.println(fruit + ": " + count);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotReplaceWhenAggregateWithIsUsed() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.aggregator.AggregateWith;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource({"John, Doe", "Jane, Smith"})
+                  void testWithAggregator(@AggregateWith(PersonAggregator.class) Person person) {
+                      System.out.println(person);
+                  }
+
+                  static class Person {}
+                  static class PersonAggregator {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotReplaceProperCsvWithMultipleColumns() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource({
+                      "apple, 1, red",
+                      "banana, 2, yellow",
+                      "cherry, 3, red"
+                  })
+                  void testWithProperCsv(String fruit, int count, String color) {
+                      System.out.println(fruit + ": " + count + " (" + color + ")");
+                  }
+              }
+              """
+          )
+        );
+    }
 }
