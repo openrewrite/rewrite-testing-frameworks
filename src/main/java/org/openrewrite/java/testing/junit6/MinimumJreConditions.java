@@ -224,10 +224,11 @@ public class MinimumJreConditions extends Recipe {
                 return m;
             }
 
+            // If the range is resulting in a single version after updating (current max is the new min), then we can replace the range annotation with a single version annotation.
             private void replaceSingleVersionRangeWithEquivalentAnnotation(Optional<Range> optionalRange, String rangeAnnotationType, String singleVersionAnnotationType) {
                 if (optionalRange.isPresent()) {
                     Range range = optionalRange.get();
-                    if (compareVersions(range.getMin(), javaVersion) < 0 && compareVersions(range.getMax(), javaVersion) == 0) {
+                    if (compareVersions(range.getMax(), javaVersion) == 0) {
                         doAfterVisit(new ChangeType(rangeAnnotationType, singleVersionAnnotationType, false).getVisitor());
                         doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "min").getVisitor());
                         doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "minVersion").getVisitor());
