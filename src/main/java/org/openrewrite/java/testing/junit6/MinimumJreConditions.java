@@ -176,7 +176,8 @@ public class MinimumJreConditions extends Recipe {
                         // Remove the test method if it is enabled on a JRE range that ends before the specified version
                         maybeRemoveImport(JRE_IMPORT);
                         return null;
-                    } else if (compareVersions(range.getMin(), javaVersion) <= 0 && range.getMaxNotation() == null) {
+                    }
+                    if (compareVersions(range.getMin(), javaVersion) <= 0 && range.getMaxNotation() == null) {
                         // The test is enabled for all versions from `javaVersion till end -> remove annotation
                         m = removeAnnotation(m, ENABLED_FOR_JRE_RANGE, ctx);
                     } else {
