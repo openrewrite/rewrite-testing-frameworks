@@ -781,7 +781,7 @@ class MinimumJreConditionsTest implements RewriteTest {
                       @Test
                       @EnabledForJreRange(minVersion = 11, maxVersion = 17)
                       void testOnJava11To21() {
-                          System.out.println("Java 11-21");
+                          System.out.println("Java 11-17");
                       }
                   }
                   """,
@@ -793,7 +793,7 @@ class MinimumJreConditionsTest implements RewriteTest {
                       @Test
                       @EnabledOnJre(versions = 17)
                       void testOnJava11To21() {
-                          System.out.println("Java 11-21");
+                          System.out.println("Java 11-17");
                       }
                   }
                   """
@@ -814,7 +814,7 @@ class MinimumJreConditionsTest implements RewriteTest {
                       @Test
                       @EnabledForJreRange(min = JRE.JAVA_11, max = JRE.JAVA_17)
                       void testOnJava11To21() {
-                          System.out.println("Java 11-21");
+                          System.out.println("Java 11-17");
                       }
                   }
                   """,
@@ -827,7 +827,7 @@ class MinimumJreConditionsTest implements RewriteTest {
                       @Test
                       @EnabledOnJre(JRE.JAVA_17)
                       void testOnJava11To21() {
-                          System.out.println("Java 11-21");
+                          System.out.println("Java 11-17");
                       }
                   }
                   """
@@ -976,8 +976,8 @@ class MinimumJreConditionsTest implements RewriteTest {
               class MyTest {
                   @Test
                   @DisabledForJreRange(minVersion = 11, maxVersion = 17)
-                  void testNotOnJava11To21() {
-                      System.out.println("Not Java 11-21");
+                  void testNotOnJava11To17() {
+                      System.out.println("Not Java 11-17");
                   }
               }
               """,
@@ -988,8 +988,8 @@ class MinimumJreConditionsTest implements RewriteTest {
               class MyTest {
                   @Test
                   @DisabledOnJre(versions = 17)
-                  void testNotOnJava11To21() {
-                      System.out.println("Not Java 11-21");
+                  void testNotOnJava11To17() {
+                      System.out.println("Not Java 11-17");
                   }
               }
               """
@@ -1009,8 +1009,8 @@ class MinimumJreConditionsTest implements RewriteTest {
               class MyTest {
                   @Test
                   @DisabledForJreRange(min = JRE.JAVA_11, max = JRE.JAVA_17)
-                  void testNotOnJava11To21() {
-                      System.out.println("Not Java 11-21");
+                  void testNotOnJava11To17() {
+                      System.out.println("Not Java 11-17");
                   }
               }
               """,
@@ -1022,8 +1022,8 @@ class MinimumJreConditionsTest implements RewriteTest {
               class MyTest {
                   @Test
                   @DisabledOnJre(JRE.JAVA_17)
-                  void testNotOnJava11To21() {
-                      System.out.println("Not Java 11-21");
+                  void testNotOnJava11To17() {
+                      System.out.println("Not Java 11-17");
                   }
               }
               """
@@ -1051,7 +1051,7 @@ class MinimumJreConditionsTest implements RewriteTest {
     }
 
     @Test
-    void handleOtherJreValue() {
+    void tolerateOtherJreValue() {
         rewriteRun(
           java(
             """
