@@ -515,7 +515,6 @@ class MinimumJreConditionsTest implements RewriteTest {
                 """
                   import org.junit.jupiter.api.Test;
                   import org.junit.jupiter.api.condition.EnabledForJreRange;
-                  import org.junit.jupiter.api.condition.JRE;
 
                   class MyTest {
                       @Test
