@@ -881,72 +881,6 @@ class MinimumJreConditionsTest implements RewriteTest {
         }
     }
 
-    @Test
-    void convertRangeEndingOnCurrentVersionToDisabledAnnotation() {
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-              import org.junit.jupiter.api.condition.DisabledForJreRange;
-
-              class MyTest {
-                  @Test
-                  @DisabledForJreRange(minVersion = 11, maxVersion = 17)
-                  void testNotOnJava11To21() {
-                      System.out.println("Not Java 11-21");
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-              import org.junit.jupiter.api.condition.DisabledOnJre;
-
-              class MyTest {
-                  @Test
-                  @DisabledOnJre(versions = 17)
-                  void testNotOnJava11To21() {
-                      System.out.println("Not Java 11-21");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void convertRangeEndingOnCurrentVersionToDisabledAnnotationWithJREImport() {
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-              import org.junit.jupiter.api.condition.DisabledForJreRange;
-              import org.junit.jupiter.api.condition.JRE;
-
-              class MyTest {
-                  @Test
-                  @DisabledForJreRange(min = JRE.JAVA_11, max = JRE.JAVA_17)
-                  void testNotOnJava11To21() {
-                      System.out.println("Not Java 11-21");
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-              import org.junit.jupiter.api.condition.DisabledOnJre;
-              import org.junit.jupiter.api.condition.JRE;
-
-              class MyTest {
-                  @Test
-                  @DisabledOnJre(JRE.JAVA_17)
-                  void testNotOnJava11To21() {
-                      System.out.println("Not Java 11-21");
-                  }
-              }
-              """
-          )
-        );
-    }
-
     @DocumentExample
     @Test
     void handleTestClassWithMixedConditions() {
@@ -1023,6 +957,72 @@ class MinimumJreConditionsTest implements RewriteTest {
                   @Test
                   void testAlways() {
                       System.out.println("Always");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void convertRangeEndingOnCurrentVersionToDisabledAnnotation() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.DisabledForJreRange;
+
+              class MyTest {
+                  @Test
+                  @DisabledForJreRange(minVersion = 11, maxVersion = 17)
+                  void testNotOnJava11To21() {
+                      System.out.println("Not Java 11-21");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.DisabledOnJre;
+
+              class MyTest {
+                  @Test
+                  @DisabledOnJre(versions = 17)
+                  void testNotOnJava11To21() {
+                      System.out.println("Not Java 11-21");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void convertRangeEndingOnCurrentVersionToDisabledAnnotationWithJREImport() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.DisabledForJreRange;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  @DisabledForJreRange(min = JRE.JAVA_11, max = JRE.JAVA_17)
+                  void testNotOnJava11To21() {
+                      System.out.println("Not Java 11-21");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.DisabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  @DisabledOnJre(JRE.JAVA_17)
+                  void testNotOnJava11To21() {
+                      System.out.println("Not Java 11-21");
                   }
               }
               """
