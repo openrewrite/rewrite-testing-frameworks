@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.junit6;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -207,12 +206,12 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource({
-          "versions = { 17 },versions = 17",
-          "versions = { 21 },versions = 21",
-        })
         @ParameterizedTest
-        void unwrapSingleValueArray(String jre, String afterJre) {
+        @ValueSource(strings = {
+          "versions = { 17 }",
+          "versions = { 21 }",
+        })
+        void doNotUnwrapSingleValueArrayIfNotTouched(String jre) {
             rewriteRun(
               java(
                 """
@@ -226,19 +225,7 @@ class MinimumJreConditionsTest implements RewriteTest {
                           System.out.println("Not this Java");
                       }
                   }
-                  """.formatted(jre),
-                """
-                  import org.junit.jupiter.api.Test;
-                  import org.junit.jupiter.api.condition.EnabledOnJre;
-
-                  class MyTest {
-                      @Test
-                      @EnabledOnJre(%s)
-                      void notOnThisJava() {
-                          System.out.println("Not this Java");
-                      }
-                  }
-                  """.formatted(afterJre)
+                  """.formatted(jre)
               )
             );
         }
@@ -461,12 +448,8 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @CsvSource({
-          "versions = { 17 },versions = 17",
-          "versions = { 21 },versions = 21",
-        })
-        @ParameterizedTest
-        void unwrapSingleValueArray(String jre, String afterJre) {
+        @Test
+        void doNotUnwrapIfNotTouched() {
             rewriteRun(
               java(
                 """
@@ -475,24 +458,12 @@ class MinimumJreConditionsTest implements RewriteTest {
 
                   class MyTest {
                       @Test
-                      @DisabledOnJre(%s)
+                      @DisabledOnJre(versions = { 17 })
                       void notOnThisJava() {
                           System.out.println("Not this Java");
                       }
                   }
-                  """.formatted(jre),
-                """
-                  import org.junit.jupiter.api.Test;
-                  import org.junit.jupiter.api.condition.DisabledOnJre;
-
-                  class MyTest {
-                      @Test
-                      @DisabledOnJre(%s)
-                      void notOnThisJava() {
-                          System.out.println("Not this Java");
-                      }
-                  }
-                  """.formatted(afterJre)
+                  """
               )
             );
         }

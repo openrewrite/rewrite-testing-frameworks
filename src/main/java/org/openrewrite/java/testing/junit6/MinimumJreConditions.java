@@ -191,7 +191,10 @@ public class MinimumJreConditions extends Recipe {
                 replaceSingleVersionRangeWithEquivalentAnnotation(enabledOnJreRange, ENABLED_FOR_JRE_RANGE, ENABLED_ON_JRE);
                 replaceSingleVersionRangeWithEquivalentAnnotation(disabledOnJreRange, DISABLED_FOR_JRE_RANGE, DISABLED_ON_JRE);
 
-                return simplifySingleValueAnnotationAttributeArrays(m, prefix);
+                if (m != method) {
+                    return simplifySingleValueAnnotationAttributeArrays(m, prefix);
+                }
+                return method;
             }
 
             private J.MethodDeclaration removeDisabledAnnotation(J.MethodDeclaration m, String annotationType, ExecutionContext ctx) {
