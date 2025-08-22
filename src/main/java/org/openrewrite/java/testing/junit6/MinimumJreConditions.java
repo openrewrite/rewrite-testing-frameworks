@@ -111,28 +111,26 @@ public class MinimumJreConditions extends Recipe {
                     }
                     Optional<Annotated> annotated = ENABLED_JRE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        enabledOnJre = annotated
-                                .map(a -> getDefaultAttribute(a).orElse(getAttribute(a, "versions").orElse(null)))
+                        enabledOnJre = annotated.map(a -> getDefaultAttribute(a).orElse(getAttribute(a, "versions").orElse(null)))
                                 .map(this::extractVersionsFromAnnotationArgument)
                                 .orElse(null);
                         prefix = ann.getPrefix();
                     }
                     annotated = DISABLED_JRE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        disabledOnJre = DISABLED_JRE_MATCHER.get(annotationCursor)
-                                .map(a -> getDefaultAttribute(a).orElse(getAttribute(a, "versions").orElse(null)))
+                        disabledOnJre = annotated.map(a -> getDefaultAttribute(a).orElse(getAttribute(a, "versions").orElse(null)))
                                 .map(this::extractVersionsFromAnnotationArgument)
                                 .orElse(null);
                         prefix = ann.getPrefix();
                     }
                     annotated = ENABLED_JRE_RANGE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        enabledOnJreRange = ENABLED_JRE_RANGE_MATCHER.get(annotationCursor).map(Range::new).orElse(null);
+                        enabledOnJreRange = annotated.map(Range::new).orElse(null);
                         prefix = ann.getPrefix();
                     }
                     annotated = DISABLED_JRE_RANGE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        disabledOnJreRange = DISABLED_JRE_RANGE_MATCHER.get(annotationCursor).map(Range::new).orElse(null);
+                        disabledOnJreRange = annotated.map(Range::new).orElse(null);
                         prefix = ann.getPrefix();
                     }
                 }
