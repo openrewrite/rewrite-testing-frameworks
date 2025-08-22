@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2025 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.trait.Annotated;
+import org.openrewrite.java.trait.Literal;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
@@ -111,15 +112,15 @@ public class MinimumJreConditions extends Recipe {
                     }
                     Optional<Annotated> annotated = ENABLED_JRE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        enabledOnJre = annotated.map(a -> getDefaultAttribute(a).orElseGet(() -> getAttribute(a, "versions").orElse(null)))
-                                .map(this::extractVersionsFromAnnotationArgument)
+                        enabledOnJre = annotated.map(a -> getDefaultAttribute(a).map(this::extractVersionsFromAnnotationArgument)
+                                        .orElseGet(() -> a.getAttribute("versions").map(Literal::getStrings).orElse(null)))
                                 .orElse(null);
                         prefix = ann.getPrefix();
                     }
                     annotated = DISABLED_JRE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        disabledOnJre = annotated.map(a -> getDefaultAttribute(a).orElseGet(() -> getAttribute(a, "versions").orElse(null)))
-                                .map(this::extractVersionsFromAnnotationArgument)
+                        disabledOnJre = annotated.map(a -> getDefaultAttribute(a).map(this::extractVersionsFromAnnotationArgument)
+                                        .orElseGet(() -> a.getAttribute("versions").map(Literal::getStrings).orElse(null)))
                                 .orElse(null);
                         prefix = ann.getPrefix();
                     }
