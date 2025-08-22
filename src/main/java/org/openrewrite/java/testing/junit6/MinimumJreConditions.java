@@ -219,23 +219,25 @@ public class MinimumJreConditions extends Recipe {
 
             // If the range is resulting in a single version after updating (current max is the new min), then we can replace the range annotation with a single version annotation.
             private void replaceSingleVersionRangeWithEquivalentAnnotation(@Nullable Range range, String rangeAnnotationType, String singleVersionAnnotationType) {
-                if (range != null) {
-                    if (compareVersions(range.getMax(), javaVersion) == 0) {
-                        doAfterVisit(new ChangeType(rangeAnnotationType, singleVersionAnnotationType, false).getVisitor());
-                        doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "min").getVisitor());
-                        doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "minVersion").getVisitor());
-                        doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "max").getVisitor());
-                        doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "maxVersion").getVisitor());
-                        String attributeName = range.getNotation() == RangeNotation.VERSION ? "versions" : "value";
-                        String newValue = formatJreValue(javaVersion, range.getNotation());
-                        doAfterVisit(new AddOrUpdateAnnotationAttribute(singleVersionAnnotationType, attributeName, newValue, null, false, false).getVisitor());
-                    }
+                if (range != null && compareVersions(range.getMax(), javaVersion) == 0) {
+                    doAfterVisit(new ChangeType(rangeAnnotationType, singleVersionAnnotationType, false).getVisitor());
+                    doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "min").getVisitor());
+                    doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "minVersion").getVisitor());
+                    doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "max").getVisitor());
+                    doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "maxVersion").getVisitor());
+                    String attributeName = range.getNotation() == RangeNotation.VERSION ? "versions" : "value";
+                    String newValue = formatJreValue(javaVersion, range.getNotation());
+                    doAfterVisit(new AddOrUpdateAnnotationAttribute(singleVersionAnnotationType, attributeName, newValue, null, false, false).getVisitor());
                 }
             }
 
             private J.MethodDeclaration simplifySingleValueAnnotationAttributeArrays(J.MethodDeclaration m, Space prefix) {
                 return m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), ann -> {
-                    if (ENABLED_JRE_MATCHER.get(ann, getCursor().getParent()).isPresent() || DISABLED_JRE_MATCHER.get(ann, getCursor().getParent()).isPresent() || ENABLED_JRE_RANGE_MATCHER.get(ann, getCursor().getParent()).isPresent() || DISABLED_JRE_RANGE_MATCHER.get(ann, getCursor().getParent()).isPresent()) {
+                    Cursor parentCursor = getCursor().getParent();
+                    if (ENABLED_JRE_MATCHER.get(ann, parentCursor).isPresent() ||
+                            DISABLED_JRE_MATCHER.get(ann, parentCursor).isPresent() ||
+                            ENABLED_JRE_RANGE_MATCHER.get(ann, parentCursor).isPresent() ||
+                            DISABLED_JRE_RANGE_MATCHER.get(ann, parentCursor).isPresent()) {
                         ann = ann
                                 .withArguments(ListUtils.map(ann.getArguments(), arg -> {
                                     if (arg instanceof J.Assignment) {
@@ -268,7 +270,7 @@ public class MinimumJreConditions extends Recipe {
         };
     }
 
-    private Optional<Expression> getDefaultAttribute(Annotated annotated) {
+    private static Optional<Expression> getDefaultAttribute(Annotated annotated) {
         if (annotated.getTree().getArguments() == null) {
             return Optional.empty();
         }
@@ -277,7 +279,6 @@ public class MinimumJreConditions extends Recipe {
                 return Optional.of(argument);
             }
         }
-
         return getAttribute(annotated, "value");
     }
 
@@ -288,11 +289,9 @@ public class MinimumJreConditions extends Recipe {
         for (Expression argument : annotated.getTree().getArguments()) {
             if (argument instanceof J.Assignment) {
                 J.Assignment assignment = (J.Assignment) argument;
-                if (assignment.getVariable() instanceof J.Identifier) {
-                    J.Identifier identifier = (J.Identifier) assignment.getVariable();
-                    if (identifier.getSimpleName().equals(attribute)) {
-                        return Optional.of(assignment.getAssignment());
-                    }
+                if (assignment.getVariable() instanceof J.Identifier &&
+                        ((J.Identifier) assignment.getVariable()).getSimpleName().equals(attribute)) {
+                    return Optional.of(assignment.getAssignment());
                 }
             }
         }
