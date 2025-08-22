@@ -111,14 +111,14 @@ public class MinimumJreConditions extends Recipe {
                     }
                     Optional<Annotated> annotated = ENABLED_JRE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        enabledOnJre = annotated.map(a -> getDefaultAttribute(a).orElse(getAttribute(a, "versions").orElse(null)))
+                        enabledOnJre = annotated.map(a -> getDefaultAttribute(a).orElseGet(() -> getAttribute(a, "versions").orElse(null)))
                                 .map(this::extractVersionsFromAnnotationArgument)
                                 .orElse(null);
                         prefix = ann.getPrefix();
                     }
                     annotated = DISABLED_JRE_MATCHER.get(annotationCursor);
                     if (annotated.isPresent()) {
-                        disabledOnJre = annotated.map(a -> getDefaultAttribute(a).orElse(getAttribute(a, "versions").orElse(null)))
+                        disabledOnJre = annotated.map(a -> getDefaultAttribute(a).orElseGet(() -> getAttribute(a, "versions").orElse(null)))
                                 .map(this::extractVersionsFromAnnotationArgument)
                                 .orElse(null);
                         prefix = ann.getPrefix();
