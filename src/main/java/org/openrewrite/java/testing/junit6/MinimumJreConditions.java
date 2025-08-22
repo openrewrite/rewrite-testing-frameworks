@@ -85,7 +85,6 @@ public class MinimumJreConditions extends Recipe {
                     maybeRemoveImport("org.junit.jupiter.api.TestTemplate");
                     maybeRemoveImport("org.junit.jupiter.api.RepeatedTest");
                     maybeRemoveImport("org.junit.jupiter.params.ParameterizedTest");
-                    maybeRemoveImport(JRE_IMPORT);
                     maybeRemoveImport(ENABLED_ON_JRE);
                     maybeRemoveImport(DISABLED_ON_JRE);
                     maybeRemoveImport(ENABLED_FOR_JRE_RANGE);
@@ -159,6 +158,7 @@ public class MinimumJreConditions extends Recipe {
                 if (enabledOnJre.isPresent()) {
                     if (enabledOnJre.get().stream().allMatch(v -> compareVersions(v, javaVersion) < 0)) {
                         // Remove the test method if it is enabled on a JRE version lower than the specified version
+                        maybeRemoveImport(JRE_IMPORT);
                         return null;
                     }
                     m = updateAnnotationVersions(m, enabledOnJre, ENABLED_ON_JRE, ctx);
@@ -174,6 +174,7 @@ public class MinimumJreConditions extends Recipe {
                     Range range = enabledOnJreRange.get();
                     if (compareVersions(range.getMax(), javaVersion) < 0) {
                         // Remove the test method if it is enabled on a JRE range that ends before the specified version
+                        maybeRemoveImport(JRE_IMPORT);
                         return null;
                     }
                     m = updateRangeStart(m, ENABLED_FOR_JRE_RANGE, range, ctx);
@@ -194,7 +195,9 @@ public class MinimumJreConditions extends Recipe {
             }
 
             private J.MethodDeclaration removeDisabledAnnotation(J.MethodDeclaration m, String annotationType, ExecutionContext ctx) {
-                return new RemoveAnnotation("@" + annotationType).getVisitor().visitMethodDeclaration(m, ctx);
+                RemoveAnnotation removeAnnotation = new RemoveAnnotation("@" + annotationType);
+                maybeRemoveImport(JRE_IMPORT);
+                return removeAnnotation.getVisitor().visitMethodDeclaration(m, ctx);
             }
 
             private J.MethodDeclaration updateAnnotationVersions(J.MethodDeclaration m, Optional<List<String>> versions, String annotationType, ExecutionContext ctx) {
