@@ -393,7 +393,7 @@ class CsvSourceToValueSourceTest implements RewriteTest {
 
               class TestClass {
                   @ParameterizedTest
-                  @CsvSource({"apple, 1", "banana, 2", "cherry, 3"})
+                  @CsvSource("apple, 1")
                   void testWithArgumentsAccessor(ArgumentsAccessor args) {
                       String fruit = args.getString(0);
                       int count = args.getInteger(1);
@@ -417,7 +417,7 @@ class CsvSourceToValueSourceTest implements RewriteTest {
 
               class TestClass {
                   @ParameterizedTest
-                  @CsvSource({"John, Doe", "Jane, Smith"})
+                  @CsvSource("John, Doe")
                   void testWithAggregator(@AggregateWith(PersonAggregator.class) Person person) {
                       System.out.println(person);
                   }
