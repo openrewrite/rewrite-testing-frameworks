@@ -20,6 +20,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -27,7 +28,9 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.trait.Literal;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Space;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +39,7 @@ import static org.openrewrite.java.tree.JavaType.Primitive;
 
 public class CsvSourceToValueSource extends Recipe {
     private static final AnnotationMatcher CSV_SOURCE_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.CsvSource");
+    private static final AnnotationMatcher VALUE_SOURCE_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.ValueSource");
 
     @Override
     public String getDisplayName() {
@@ -71,6 +75,26 @@ public class CsvSourceToValueSource extends Recipe {
                                     return m;
                                 }
 
+                                // For Strings, merely swap out the annotation
+                                if ("String".equals(paramType)) {
+                                    maybeRemoveImport("org.junit.jupiter.params.provider.CsvSource");
+                                    maybeAddImport("org.junit.jupiter.params.provider.ValueSource");
+                                    Expression templateArg = annotation.getArguments().get(0) instanceof J.Assignment ?
+                                            ((J.Assignment) annotation.getArguments().get(0)).getAssignment() :
+                                            annotation.getArguments().get(0);
+                                    J.MethodDeclaration updated = JavaTemplate.builder("@ValueSource(strings = {})")
+                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5"))
+                                            .imports("org.junit.jupiter.params.provider.ValueSource")
+                                            .build()
+                                            .apply(getCursor(), annotation.getCoordinates().replace());
+                                    // Retain formatting by swapping in the original argument
+                                    return updated.withLeadingAnnotations(ListUtils.map(updated.getLeadingAnnotations(), ann ->
+                                            VALUE_SOURCE_MATCHER.matches(ann) ?
+                                                    ann.withArguments(ListUtils.map(ann.getArguments(),
+                                                            arg -> ((J.Assignment) arg).withAssignment(templateArg.withPrefix(Space.SINGLE_SPACE)))) :
+                                                    ann));
+                                }
+
                                 Optional<Literal> valueAttribute = annotated.get().getDefaultAttribute("value");
                                 if (!valueAttribute.isPresent()) {
                                     return m;
@@ -81,7 +105,7 @@ public class CsvSourceToValueSource extends Recipe {
                                     return m;
                                 }
 
-                                // Build the ValueSource annotation
+                                // Build a new ValueSource annotation
                                 String valueSourceAnnotationTemplate = buildValueSourceAnnotation(paramType, values);
                                 if (valueSourceAnnotationTemplate == null) {
                                     return m;
@@ -106,10 +130,6 @@ public class CsvSourceToValueSource extends Recipe {
                         String formattedValues;
 
                         switch (paramType) {
-                            case "String":
-                                attributeName = "strings";
-                                formattedValues = formatStringValues(values);
-                                break;
                             case "int":
                             case "Integer":
                                 attributeName = "ints";
@@ -163,12 +183,6 @@ public class CsvSourceToValueSource extends Recipe {
                     private String format(List<String> values) {
                         return String.join(", ", values.stream()
                                 .map(String::trim)
-                                .toArray(String[]::new));
-                    }
-
-                    private String formatStringValues(List<String> values) {
-                        return String.join(", ", values.stream()
-                                .map(v -> "\"" + v + "\"")
                                 .toArray(String[]::new));
                     }
 
