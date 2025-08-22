@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit6;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -500,12 +501,8 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
-        @ParameterizedTest
-        @ValueSource(strings = {
-          "min = JRE.JAVA_17, max = JRE.JAVA_21",
-          "minVersion = 17, maxVersion = 21"
-        })
-        void keepEnabledForRangeStartingAtMinimum(String range) {
+        @Test
+        void keepEnabledForRangeStartingAtMinimum() {
             rewriteRun(
               java(
                 """
@@ -515,12 +512,59 @@ class MinimumJreConditionsTest implements RewriteTest {
 
                   class MyTest {
                       @Test
-                      @EnabledForJreRange(%s)
+                      @EnabledForJreRange(minVersion = 17, maxVersion = 21)
                       void testOnJava17To21() {
                           System.out.println("Java 17-21");
                       }
                   }
-                  """.formatted(range)
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.condition.EnabledForJreRange;
+                  import org.junit.jupiter.api.condition.JRE;
+
+                  class MyTest {
+                      @Test
+                      @EnabledForJreRange(maxVersion = 21)
+                      void testOnJava17To21() {
+                          System.out.println("Java 17-21");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void keepEnabledForRangeStartingAtMinimumWithJREImport() {
+            rewriteRun(
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.condition.EnabledForJreRange;
+                  import org.junit.jupiter.api.condition.JRE;
+
+                  class MyTest {
+                      @Test
+                      @EnabledForJreRange(min = JRE.JAVA_17, max = JRE.JAVA_21)
+                      void testOnJava17To21() {
+                          System.out.println("Java 17-21");
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.condition.EnabledForJreRange;
+                  import org.junit.jupiter.api.condition.JRE;
+
+                  class MyTest {
+                      @Test
+                      @EnabledForJreRange(max = JRE.JAVA_21)
+                      void testOnJava17To21() {
+                          System.out.println("Java 17-21");
+                      }
+                  }
+                  """
               )
             );
         }
@@ -569,12 +613,9 @@ class MinimumJreConditionsTest implements RewriteTest {
                   """,
                 """
                   import org.junit.jupiter.api.Test;
-                  import org.junit.jupiter.api.condition.EnabledForJreRange;
-                  import org.junit.jupiter.api.condition.JRE;
 
                   class MyTest {
                       @Test
-                      @EnabledForJreRange(min = JRE.JAVA_17)
                       void testOnJava11AndLater() {
                           System.out.println("Java 11+");
                       }
@@ -602,11 +643,9 @@ class MinimumJreConditionsTest implements RewriteTest {
                   """,
                 """
                   import org.junit.jupiter.api.Test;
-                  import org.junit.jupiter.api.condition.EnabledForJreRange;
 
                   class MyTest {
                       @Test
-                      @EnabledForJreRange(minVersion = 17)
                       void testOnJava11AndLater() {
                           System.out.println("Java 11+");
                       }
@@ -696,7 +735,7 @@ class MinimumJreConditionsTest implements RewriteTest {
 
                   class MyTest {
                       @Test
-                      @EnabledForJreRange(minVersion = 17, maxVersion = 21)
+                      @EnabledForJreRange(maxVersion = 21)
                       void testOnJava11To21() {
                           System.out.println("Java 11-21");
                       }
@@ -730,7 +769,7 @@ class MinimumJreConditionsTest implements RewriteTest {
 
                   class MyTest {
                       @Test
-                      @EnabledForJreRange(min = JRE.JAVA_17, max = JRE.JAVA_21)
+                      @EnabledForJreRange(max = JRE.JAVA_21)
                       void testOnJava11To21() {
                           System.out.println("Java 11-21");
                       }
@@ -844,12 +883,12 @@ class MinimumJreConditionsTest implements RewriteTest {
             );
         }
 
+        @CsvSource(value = {
+          "min = JRE.JAVA_17, max = JRE.JAVA_21;max = JRE.JAVA_21",
+          "minVersion = 17, maxVersion = 21;maxVersion = 21"
+        }, delimiter = ';')
         @ParameterizedTest
-        @ValueSource(strings = {
-          "min = JRE.JAVA_17, max = JRE.JAVA_21",
-          "minVersion = 17, maxVersion = 21"
-        })
-        void keepDisabledForRangeStartingAtMinimum(String range) {
+        void keepDisabledForRangeStartingAtMinimum(String range, String afterRange) {
             rewriteRun(
               java(
                 """
@@ -864,7 +903,20 @@ class MinimumJreConditionsTest implements RewriteTest {
                           System.out.println("Not Java 17-21");
                       }
                   }
-                  """.formatted(range)
+                  """.formatted(range),
+                """
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.condition.DisabledForJreRange;
+                  import org.junit.jupiter.api.condition.JRE;
+
+                  class MyTest {
+                      @Test
+                      @DisabledForJreRange(%s)
+                      void testNotOnJava17To21() {
+                          System.out.println("Not Java 17-21");
+                      }
+                  }
+                  """.formatted(afterRange)
               )
             );
         }
@@ -891,7 +943,7 @@ class MinimumJreConditionsTest implements RewriteTest {
 
                   class MyTest {
                       @Test
-                      @DisabledForJreRange(minVersion = 17, maxVersion = 21)
+                      @DisabledForJreRange(maxVersion = 21)
                       void testNotOnJava11To21() {
                           System.out.println("Not Java 11-21");
                       }
@@ -925,9 +977,65 @@ class MinimumJreConditionsTest implements RewriteTest {
 
                   class MyTest {
                       @Test
-                      @DisabledForJreRange(min = JRE.JAVA_17, max = JRE.JAVA_21)
+                      @DisabledForJreRange(max = JRE.JAVA_21)
                       void testNotOnJava11To21() {
                           System.out.println("Not Java 11-21");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void handleRangeWithOnlyMinWithJREImport() {
+            rewriteRun(
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.condition.DisabledForJreRange;
+                  import org.junit.jupiter.api.condition.JRE;
+
+                  class MyTest {
+                      @Test
+                      @DisabledForJreRange(min = JRE.JAVA_11)
+                      void testOnJava11AndLater() {
+                          System.out.println("Java 11+");
+                      }
+                  }
+                  """,
+                """
+
+                  class MyTest {
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void handleRangeWithOnlyMin() {
+            rewriteRun(
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.condition.EnabledForJreRange;
+
+                  class MyTest {
+                      @Test
+                      @EnabledForJreRange(minVersion = 11)
+                      void testOnJava11AndLater() {
+                          System.out.println("Java 11+");
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  class MyTest {
+                      @Test
+                      void testOnJava11AndLater() {
+                          System.out.println("Java 11+");
                       }
                   }
                   """
