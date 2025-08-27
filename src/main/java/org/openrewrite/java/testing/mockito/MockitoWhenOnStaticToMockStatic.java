@@ -296,7 +296,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
     }
 
 
-    //TODO see if we can replace this with LivenessAnalysis from `rewrite-program-analysis`
     @Value
     private static class VariableUtil {
 
