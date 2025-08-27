@@ -496,6 +496,43 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     }
 
     @Test
+    void shouldNotRefactorMockito_WhenStaticMockIsAssigned() {
+        //language=java
+        rewriteRun(
+          CLASS_A,
+          java(
+            """
+              import org.junit.BeforeClass;
+              import org.junit.AfterClass;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+              import static org.junit.Assert.assertEquals;
+
+              class Test {
+                  private MockedStatic<A> mockA1;
+
+                  @BeforeClass
+                  public static void setUp() {
+                      mockA1 = mockStatic(A.class);
+                  }
+
+                  @AfterClass
+                  public static void tearDown() {
+                      mockA1.close();
+                  }
+
+                  void test() {
+                      when(A.getNumber()).thenReturn(-1);
+                      assertEquals(A.getNumber(), -1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void shouldNotRefactorMockito_WhenMockIsAssigned() {
         //language=java
         rewriteRun(
