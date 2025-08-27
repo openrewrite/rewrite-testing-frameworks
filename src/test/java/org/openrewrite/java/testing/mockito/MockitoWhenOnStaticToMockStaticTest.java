@@ -527,6 +527,33 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                       assertEquals(A.getNumber(), -1);
                   }
               }
+              """,
+            """
+              import org.junit.BeforeClass;
+              import org.junit.AfterClass;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+              import static org.junit.Assert.assertEquals;
+
+              class Test {
+                  private MockedStatic<A> mockA1;
+
+                  @BeforeClass
+                  public static void setUp() {
+                      mockA1 = mockStatic(A.class);
+                  }
+
+                  @AfterClass
+                  public static void tearDown() {
+                      mockA1.close();
+                  }
+
+                  void test() {
+                      mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      assertEquals(A.getNumber(), -1);
+                  }
+              }
               """
           )
         );
