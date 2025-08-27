@@ -496,7 +496,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     }
 
     @Test
-    void shouldNotRefactorMockito_WhenStaticMockIsAssigned() {
+    void shouldUseLambda_WhenStaticMockIsAssignedAlready() {
         //language=java
         rewriteRun(
           CLASS_A,
@@ -510,16 +510,22 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               import static org.junit.Assert.assertEquals;
 
               class Test {
+                  private MockedStatic<String> mockedString;
                   private MockedStatic<A> mockA1;
+                  private MockedStatic<Boolean> mockedBoolean;
 
                   @BeforeClass
                   public static void setUp() {
                       mockA1 = mockStatic(A.class);
+                      mockedString = mockStatic(String.class);
+                      mockedBoolean = mockStatic(Boolean.class);
                   }
 
                   @AfterClass
                   public static void tearDown() {
                       mockA1.close();
+                      mockedString.close();
+                      mockedBoolean.close();
                   }
 
                   void test() {
@@ -537,16 +543,22 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               import static org.junit.Assert.assertEquals;
 
               class Test {
+                  private MockedStatic<String> mockedString;
                   private MockedStatic<A> mockA1;
+                  private MockedStatic<Boolean> mockedBoolean;
 
                   @BeforeClass
                   public static void setUp() {
                       mockA1 = mockStatic(A.class);
+                      mockedString = mockStatic(String.class);
+                      mockedBoolean = mockStatic(Boolean.class);
                   }
 
                   @AfterClass
                   public static void tearDown() {
                       mockA1.close();
+                      mockedString.close();
+                      mockedBoolean.close();
                   }
 
                   void test() {
