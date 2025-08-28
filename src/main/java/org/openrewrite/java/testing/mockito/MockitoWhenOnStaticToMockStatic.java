@@ -280,9 +280,9 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             throw new IllegalStateException("A JavaSourceFile is required in the cursor path.");
         }
 
-        Set<J.VariableDeclarations.NamedVariable> namedVariables = new JavaIsoVisitor<Set<J.VariableDeclarations.NamedVariable>>() {
+        Set<J.Identifier> namedVariables = new JavaIsoVisitor<Set<J.Identifier>>() {
             @Override
-            public J.Block visitBlock(J.Block block, Set<J.VariableDeclarations.NamedVariable> variables) {
+            public J.Block visitBlock(J.Block block, Set<J.Identifier> variables) {
                 if (scope.isScopeInPath(block)) {
                     return super.visitBlock(block, variables);
                 }
@@ -290,15 +290,13 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             }
 
             @Override
-            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<J.VariableDeclarations.NamedVariable> js) {
-                js.add(variable);
+            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<J.Identifier> js) {
+                js.add(variable.getName());
                 return super.visitVariable(variable, js);
             }
-        }.reduce(compilationUnit, new HashSet<>());
+        }.reduce(compilationUnit, new LinkedHashSet<>());
 
-        return namedVariables
-                .stream()
-                .map(J.VariableDeclarations.NamedVariable::getName)
+        return namedVariables.stream()
                 .filter(identifier -> {
                     if (MOCKED_STATIC.matches(identifier) && identifier.getType() instanceof JavaType.Parameterized) {
                         JavaType.Parameterized parameterizedType = (JavaType.Parameterized) identifier.getType();
