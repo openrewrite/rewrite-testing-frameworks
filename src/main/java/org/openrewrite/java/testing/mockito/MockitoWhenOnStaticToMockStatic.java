@@ -37,10 +37,14 @@ import static org.openrewrite.java.tree.Flag.Static;
 
 public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
-    private static final AnnotationMatcher BEFORE = new AnnotationMatcher("org.junit.Before");
-    private static final AnnotationMatcher BEFORE_CLASS = new AnnotationMatcher("org.junit.BeforeClass");
-    private static final AnnotationMatcher AFTER = new AnnotationMatcher("org.junit.After");
-    private static final AnnotationMatcher AFTER_CLASS = new AnnotationMatcher("org.junit.AfterClass");
+    private static final AnnotationMatcher JUNIT_ANNOTATION = new AnnotationMatcher("org.junit.*");
+    private static final AnnotationMatcher TESTNG_ANNOTATION = new AnnotationMatcher("org.testng.annotations.*");
+
+    private static final AnnotationMatcher BEFORE = new AnnotationMatcher("org..Before*");
+    private static final AnnotationMatcher BEFORE_CLASS = new AnnotationMatcher("org..BeforeClass");
+    private static final AnnotationMatcher AFTER = new AnnotationMatcher("org..After*");
+    private static final AnnotationMatcher AFTER_CLASS = new AnnotationMatcher("org..AfterClass");
+
     private static final MethodMatcher MOCKITO_WHEN = new MethodMatcher("org.mockito.Mockito when(..)");
     private static final TypeMatcher MOCKED_STATIC = new TypeMatcher("org.mockito.MockedStatic");
 
@@ -54,7 +58,8 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
     @Override
     public String getDescription() {
         return "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic as Mockito4 no longer allows this. " +
-                "When `@Before` or `@BeforeClass` is used, a `close` method is added to either the `@After` or `@AfterClass` method. " +
+                "For JUnit: When `@Before` or `@BeforeClass` is used, a `close` call is added to either the `@After` or `@AfterClass` method. " +
+                "For TestNG: When `@BeforeMethod` or `@BeforeClass` is used, a `close` call is added to either the `@AfterMethod` or `@AfterClass` method. " +
                 "This change moves away from implicit bytecode manipulation for static method stubbing, making mocking behavior more explicit and scoped to avoid unintended side effects.";
     }
 
@@ -191,19 +196,32 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                 .apply(updateCursor(classDecl), classDecl.getBody().getCoordinates().firstStatement());
 
                         if (classDecl.getBody().getStatements().stream().noneMatch(it -> isMethodDeclarationWithAnnotation(it, AFTER, AFTER_CLASS))) {
-                            Optional<Statement> beforeMethod = after.getBody().getStatements().stream()
-                                    .filter(it -> isMethodDeclarationWithAnnotation(it, BEFORE, BEFORE_CLASS))
+                            Optional<Statement> beforeMethodJunit = after.getBody().getStatements().stream()
+                                    .filter(it -> isMethodDeclarationWithAnnotation(it, JUNIT_ANNOTATION))
                                     .findFirst();
-                            if (beforeMethod.isPresent()) {
+                            Optional<Statement> beforeMethodTestng = after.getBody().getStatements().stream()
+                                    .filter(it -> isMethodDeclarationWithAnnotation(it, TESTNG_ANNOTATION))
+                                    .findFirst();
+                            if (beforeMethodJunit.isPresent()) {
                                 maybeAddImport("org.junit.AfterClass");
                                 maybeAddImport("org.junit.After");
                                 after = JavaTemplate.builder(String.format(
                                                 "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@After public"
                                         ))
-                                        .imports(staticSetup ? "org.junit.AfterClass" : "org.junit.After")
+                                        .imports("org.junit.AfterClass", "org.junit.After")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-4"))
                                         .build()
-                                        .apply(updateCursor(after), beforeMethod.get().getCoordinates().after());
+                                        .apply(updateCursor(after), beforeMethodJunit.get().getCoordinates().after());
+                            } else if (beforeMethodTestng.isPresent()) {
+                                maybeAddImport("org.testng.annotations.AfterClass");
+                                maybeAddImport("org.testng.annotations.AfterMethod");
+                                after = JavaTemplate.builder(String.format(
+                                                "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@AfterMethod public"
+                                        ))
+                                        .imports("org.testng.annotations.AfterClass", "org.testng.annotations.AfterMethod")
+                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testng"))
+                                        .build()
+                                        .apply(updateCursor(after), beforeMethodTestng.get().getCoordinates().after());
                             }
                         }
 
