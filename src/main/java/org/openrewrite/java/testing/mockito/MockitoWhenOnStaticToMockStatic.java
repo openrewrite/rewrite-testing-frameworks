@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
@@ -41,6 +42,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
     private static final AnnotationMatcher AFTER = new AnnotationMatcher("org.junit.After");
     private static final AnnotationMatcher AFTER_CLASS = new AnnotationMatcher("org.junit.AfterClass");
     private static final MethodMatcher MOCKITO_WHEN = new MethodMatcher("org.mockito.Mockito when(..)");
+    private static final TypeMatcher MOCKED_STATIC = new TypeMatcher("org.mockito.MockedStatic");
 
     private int varCounter = 0;
 
@@ -101,6 +103,10 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                             if (nameOfWrappingMockedStatic.isPresent()) {
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, nameOfWrappingMockedStatic.get(), whenArg, ctx);
                             }
+                            J.Identifier staticMockedVariable = findMockedStaticVariable(getCursor(), className);
+                            if (staticMockedVariable != null) {
+                                return reuseMockedStatic(block, (J.MethodInvocation) statement, staticMockedVariable, whenArg, ctx);
+                            }
                             restInTry.set(true);
                             return tryWithMockedStatic(block, statements, index, (J.MethodInvocation) statement, className, whenArg, ctx);
                         }
@@ -157,9 +163,10 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         .withPrefix(statement.getPrefix());
             }
 
-            private Statement reuseMockedStatic(J.Block block, J.MethodInvocation statement, String variableName, J.MethodInvocation whenArg, ExecutionContext ctx) {
-                return javaTemplateMockStatic(String.format("%1$s.when(() -> #{any()}).thenReturn(#{any()});", variableName), ctx)
-                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, statement.getArguments().get(0))
+            private Statement reuseMockedStatic(J.Block block, J.MethodInvocation statement, Object variable, J.MethodInvocation whenArg, ExecutionContext ctx) {
+                String mockedStaticVariableTemplate = variable instanceof J ? "#{any()}" : "#{}";
+                return javaTemplateMockStatic(mockedStaticVariableTemplate + ".when(() -> #{any()}).thenReturn(#{any()});", ctx)
+                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), variable, whenArg, statement.getArguments().get(0))
                         .getStatements().get(0);
             }
 
@@ -178,7 +185,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration after = JavaTemplate.builder(
-                                String.format("private%s MockedStatic<%s> %s;", staticSetup ? " static" : "", className, variableName))
+                                        String.format("private%s MockedStatic<%s> %s;", staticSetup ? " static" : "", className, variableName))
                                 .contextSensitive()
                                 .build()
                                 .apply(updateCursor(classDecl), classDecl.getBody().getCoordinates().firstStatement());
@@ -191,7 +198,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                 maybeAddImport("org.junit.AfterClass");
                                 maybeAddImport("org.junit.After");
                                 after = JavaTemplate.builder(String.format(
-                                            "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@After public"
+                                                "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@After public"
                                         ))
                                         .imports(staticSetup ? "org.junit.AfterClass" : "org.junit.After")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-4"))
@@ -269,5 +276,35 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     .anyMatch(it -> Arrays.stream(matchers).anyMatch(m -> m.matches(it)));
         }
         return false;
+    }
+
+    private static J.@Nullable Identifier findMockedStaticVariable(Cursor scope, String className) {
+        JavaSourceFile compilationUnit = scope.firstEnclosing(JavaSourceFile.class);
+        if (compilationUnit == null) {
+            return null;
+        }
+
+        return new JavaIsoVisitor<AtomicReference<J.Identifier>>() {
+            @Override
+            public J.Block visitBlock(J.Block block, AtomicReference<J.Identifier> mockedStaticVar) {
+                if (scope.isScopeInPath(block)) {
+                    return super.visitBlock(block, mockedStaticVar);
+                }
+                return block;
+            }
+
+            @Override
+            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, AtomicReference<J.Identifier> mockedStaticVar) {
+                J.Identifier identifier = variable.getName();
+                if (MOCKED_STATIC.matches(identifier) && identifier.getType() instanceof JavaType.Parameterized) {
+                    JavaType.Parameterized parameterizedType = (JavaType.Parameterized) identifier.getType();
+                    if (parameterizedType.getTypeParameters().size() == 1 && TypeUtils.isAssignableTo(className, parameterizedType.getTypeParameters().get(0))) {
+                        mockedStaticVar.set(identifier);
+                    }
+                }
+
+                return super.visitVariable(variable, mockedStaticVar);
+            }
+        }.reduce(compilationUnit, new AtomicReference<>()).get();
     }
 }
