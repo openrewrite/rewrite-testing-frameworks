@@ -27,8 +27,9 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new MockitoWhenOnStaticToMockStatic())
-          .parser((JavaParser.Builder<? extends JavaParser, ?>) JavaParser.fromJavaVersion()
+        spec
+          .recipe(new MockitoWhenOnStaticToMockStatic())
+          .parser((JavaParser.Builder<?, ?>) JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
               "mockito-core-3.12",
@@ -53,7 +54,10 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                     }
                 }
                 """
-            ));
+            ))
+          // Known limitation with: /*~~(Identifier type is missing or malformed)~~>*/A
+          .afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build())
+        ;
     }
 
     @DocumentExample
@@ -61,7 +65,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldRefactorMockito_When() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
               import static org.junit.Assert.assertEquals;
@@ -99,7 +102,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldOptForUsageOfMockedStatic_WhenAlreadyScopedInside() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
               import org.mockito.MockedStatic;
@@ -146,7 +148,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     @Test
     void doNotConvertIfScopeOfChangeWouldHaveToBeBroadened() {
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           //language=java
           java(
             """
@@ -185,7 +186,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldHandleMultipleStaticMocksAndNestedStatements() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
               import static org.junit.Assert.assertEquals;
@@ -253,7 +253,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldHandleStaticMocksInBefore() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
               import org.junit.Before;
@@ -307,7 +306,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldHandleStaticMocksInBeforeWithExistingAfter() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
               import org.junit.Before;
@@ -368,7 +366,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldHandleStaticMocksInBeforeClas() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
               import org.junit.BeforeClass;
@@ -422,7 +419,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldHandleStaticMocksInBeforeClasWithExistingAfterClass() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
               import org.junit.BeforeClass;
@@ -601,7 +597,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldRefactor_whenStaticMockIsAssignedInAnotherBlock() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
               import org.junit.BeforeClass;
