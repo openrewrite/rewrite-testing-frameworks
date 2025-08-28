@@ -190,7 +190,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration after = JavaTemplate.builder(
-                                        String.format("private%s MockedStatic<%s> %s;", staticSetup ? " static" : "", className, variableName))
+                                String.format("private%s MockedStatic<%s> %s;", staticSetup ? " static" : "", className, variableName))
                                 .contextSensitive()
                                 .build()
                                 .apply(updateCursor(classDecl), classDecl.getBody().getCoordinates().firstStatement());
@@ -203,7 +203,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                 maybeAddImport("org.junit.AfterClass");
                                 maybeAddImport("org.junit.After");
                                 after = JavaTemplate.builder(String.format(
-                                                "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@After public"
+                                            "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@After public"
                                         ))
                                         .imports(staticSetup ? "org.junit.AfterClass" : "org.junit.After")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-4"))
