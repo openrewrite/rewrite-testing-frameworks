@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -35,7 +36,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
               "mockito-core-3.12",
-              "mockito-junit-jupiter-3.12"
+              "mockito-junit-jupiter-3.12",
+              "testng"
             )
             //language=java
             .dependsOn(
@@ -251,315 +253,622 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         );
     }
 
-    @Test
-    void shouldHandleStaticMocksInBefore() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.Before;
 
-              import static org.mockito.Mockito.*;
-              import static org.junit.Assert.assertEquals;
 
-              class Test {
-                  @Before
-                  public void setUp() {
-                      when(A.getNumber()).thenReturn(-1);
+    @Nested
+    class UsingJunit {
+        @Test
+        void handlesStaticMocks_inBefore() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Before;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.junit.Assert.assertEquals;
+
+                  class Test {
+                      @Before
+                      public void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
                   }
+                  """,
+                """
+                  import org.junit.After;
+                  import org.junit.Before;
+                  import org.mockito.MockedStatic;
 
-                  void test1() {
-                      assertEquals(A.getNumber(), -1);
+                  import static org.mockito.Mockito.*;
+                  import static org.junit.Assert.assertEquals;
+
+                  class Test {
+                      private MockedStatic<A> mockA1;
+
+                      @Before
+                      public void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @After
+                      public void tearDown() {
+                          mockA1.close();
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
                   }
-              }
-              """,
-            """
-              import org.junit.After;
-              import org.junit.Before;
-              import org.mockito.MockedStatic;
+                  """
+              )
+            );
+        }
 
-              import static org.mockito.Mockito.*;
-              import static org.junit.Assert.assertEquals;
+        @Test
+        void handlesStaticMocks_inBefore_withExistingAfter() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Before;
+                  import org.junit.After;
 
-              class Test {
-                  private MockedStatic<A> mockA1;
+                  import static org.mockito.Mockito.*;
+                  import static org.junit.Assert.assertEquals;
 
-                  @Before
-                  public void setUp() {
-                      mockA1 = mockStatic(A.class);
-                      mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                  class Test {
+                      @Before
+                      public void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      @After
+                      public void tearDown() {
+                          System.out.println("some statement");
+                      }
+
+                      void test() {
+                          assertEquals(A.getNumber(), -1);
+                      }
                   }
+                  """,
+                """
+                  import org.junit.Before;
+                  import org.mockito.MockedStatic;
+                  import org.junit.After;
 
-                  @After
-                  public void tearDown() {
-                      mockA1.close();
-                  }
+                  import static org.mockito.Mockito.*;
+                  import static org.junit.Assert.assertEquals;
 
-                  void test1() {
-                      assertEquals(A.getNumber(), -1);
+                  class Test {
+                      private MockedStatic<A> mockA1;
+
+                      @Before
+                      public void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @After
+                      public void tearDown() {
+                          System.out.println("some statement");
+                          mockA1.close();
+                      }
+
+                      void test() {
+                          assertEquals(A.getNumber(), -1);
+                      }
                   }
-              }
-              """
-          )
-        );
+                  """
+              )
+            );
+        }
+
+        @Test
+        void handlesStaticMocks_InBeforeClass() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.BeforeClass;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.junit.Assert.assertEquals;
+
+                  class Test {
+                      @BeforeClass
+                      public static void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.AfterClass;
+                  import org.junit.BeforeClass;
+                  import org.mockito.MockedStatic;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.junit.Assert.assertEquals;
+
+                  class Test {
+                      private static MockedStatic<A> mockA1;
+
+                      @BeforeClass
+                      public static void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          mockA1.close();
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void handlesStaticMocks_inBeforeClass_withExistingAfterClass() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.BeforeClass;
+                  import org.junit.AfterClass;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.junit.Assert.assertEquals;
+
+                  class Test {
+                      @BeforeClass
+                      public static void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          System.out.println("some statement");
+                      }
+
+                      void test() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.BeforeClass;
+                  import org.mockito.MockedStatic;
+                  import org.junit.AfterClass;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.junit.Assert.assertEquals;
+
+                  class Test {
+                      private static MockedStatic<A> mockA1;
+
+                      @BeforeClass
+                      public static void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          System.out.println("some statement");
+                          mockA1.close();
+                      }
+
+                      void test() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void usesLambda_whenStaticMockIsAssignedAlready() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.AfterClass;
+                  import org.junit.BeforeClass;
+                  import org.mockito.MockedStatic;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.junit.Assert.assertEquals;
+
+                  class Test {
+                      private MockedStatic<String> mockedString;
+                      private MockedStatic<A> mockA1;
+                      private MockedStatic<Boolean> mockedBoolean;
+
+                      @BeforeClass
+                      public static void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockedString = mockStatic(String.class);
+                          mockedBoolean = mockStatic(Boolean.class);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          mockA1.close();
+                          mockedString.close();
+                          mockedBoolean.close();
+                      }
+
+                      void test() {
+                          when(A.getNumber()).thenReturn(-1);
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.AfterClass;
+                  import org.junit.BeforeClass;
+                  import org.mockito.MockedStatic;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.junit.Assert.assertEquals;
+
+                  class Test {
+                      private MockedStatic<String> mockedString;
+                      private MockedStatic<A> mockA1;
+                      private MockedStatic<Boolean> mockedBoolean;
+
+                      @BeforeClass
+                      public static void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockedString = mockStatic(String.class);
+                          mockedBoolean = mockStatic(Boolean.class);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          mockA1.close();
+                          mockedString.close();
+                          mockedBoolean.close();
+                      }
+
+                      void test() {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+    }
+
+    @Nested
+    class UsingTestng {
+        @Test
+        void handlesStaticMocks_inBeforeMethod() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.testng.annotations.BeforeMethod;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      @BeforeMethod
+                      public void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """,
+                """
+                  import org.mockito.MockedStatic;
+                  import org.testng.annotations.AfterMethod;
+                  import org.testng.annotations.BeforeMethod;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      private MockedStatic<A> mockA1;
+
+                      @BeforeMethod
+                      public void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterMethod
+                      public void tearDown() {
+                          mockA1.close();
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void handlesStaticMocks_inBeforeMethod_withExistingAfter() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.testng.annotations.AfterMethod;
+                  import org.testng.annotations.BeforeMethod;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      @BeforeMethod
+                      public void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterMethod
+                      public void tearDown() {
+                          System.out.println("some statement");
+                      }
+
+                      void test() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """,
+                """
+                  import org.mockito.MockedStatic;
+                  import org.testng.annotations.AfterMethod;
+                  import org.testng.annotations.BeforeMethod;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      private MockedStatic<A> mockA1;
+
+                      @BeforeMethod
+                      public void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterMethod
+                      public void tearDown() {
+                          System.out.println("some statement");
+                          mockA1.close();
+                      }
+
+                      void test() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void handlesStaticMocks_inBeforeClass() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.testng.annotations.BeforeClass;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      @BeforeClass
+                      public static void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """,
+                """
+                  import org.mockito.MockedStatic;
+                  import org.testng.annotations.AfterClass;
+                  import org.testng.annotations.BeforeClass;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      private static MockedStatic<A> mockA1;
+
+                      @BeforeClass
+                      public static void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          mockA1.close();
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void handlesStaticMocks_inBeforeClass_withExistingAfterClass() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.testng.annotations.AfterClass;
+                  import org.testng.annotations.BeforeClass;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      @BeforeClass
+                      public static void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          System.out.println("some statement");
+                      }
+
+                      void test() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """,
+                """
+                  import org.mockito.MockedStatic;
+                  import org.testng.annotations.AfterClass;
+                  import org.testng.annotations.BeforeClass;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      private static MockedStatic<A> mockA1;
+
+                      @BeforeClass
+                      public static void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          System.out.println("some statement");
+                          mockA1.close();
+                      }
+
+                      void test() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void usesLambda_whenStaticMockIsAssignedAlready() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.mockito.MockedStatic;
+                  import org.testng.annotations.AfterClass;
+                  import org.testng.annotations.BeforeClass;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      private MockedStatic<String> mockedString;
+                      private MockedStatic<A> mockA1;
+                      private MockedStatic<Boolean> mockedBoolean;
+
+                      @BeforeClass
+                      public static void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockedString = mockStatic(String.class);
+                          mockedBoolean = mockStatic(Boolean.class);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          mockA1.close();
+                          mockedString.close();
+                          mockedBoolean.close();
+                      }
+
+                      void test() {
+                          when(A.getNumber()).thenReturn(-1);
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """,
+                """
+                  import org.mockito.MockedStatic;
+                  import org.testng.annotations.AfterClass;
+                  import org.testng.annotations.BeforeClass;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      private MockedStatic<String> mockedString;
+                      private MockedStatic<A> mockA1;
+                      private MockedStatic<Boolean> mockedBoolean;
+
+                      @BeforeClass
+                      public static void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockedString = mockStatic(String.class);
+                          mockedBoolean = mockStatic(Boolean.class);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          mockA1.close();
+                          mockedString.close();
+                          mockedBoolean.close();
+                      }
+
+                      void test() {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 
     @Test
-    void shouldHandleStaticMocksInBeforeWithExistingAfter() {
+    void usesLambda_whenStaticMockIsAssignedAlready_inSameBlock() {
         //language=java
         rewriteRun(
           java(
             """
-              import org.junit.Before;
-              import org.junit.After;
-
-              import static org.mockito.Mockito.*;
-              import static org.junit.Assert.assertEquals;
-
-              class Test {
-                  @Before
-                  public void setUp() {
-                      when(A.getNumber()).thenReturn(-1);
-                  }
-
-                  @After
-                  public void tearDown() {
-                      System.out.println("some statement");
-                  }
-
-                  void test() {
-                      assertEquals(A.getNumber(), -1);
-                  }
-              }
-              """,
-            """
-              import org.junit.Before;
-              import org.mockito.MockedStatic;
-              import org.junit.After;
-
-              import static org.mockito.Mockito.*;
-              import static org.junit.Assert.assertEquals;
-
-              class Test {
-                  private MockedStatic<A> mockA1;
-
-                  @Before
-                  public void setUp() {
-                      mockA1 = mockStatic(A.class);
-                      mockA1.when(() -> A.getNumber()).thenReturn(-1);
-                  }
-
-                  @After
-                  public void tearDown() {
-                      System.out.println("some statement");
-                      mockA1.close();
-                  }
-
-                  void test() {
-                      assertEquals(A.getNumber(), -1);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void shouldHandleStaticMocksInBeforeClas() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.BeforeClass;
-
-              import static org.mockito.Mockito.*;
-              import static org.junit.Assert.assertEquals;
-
-              class Test {
-                  @BeforeClass
-                  public static void setUp() {
-                      when(A.getNumber()).thenReturn(-1);
-                  }
-
-                  void test1() {
-                      assertEquals(A.getNumber(), -1);
-                  }
-              }
-              """,
-            """
-              import org.junit.AfterClass;
-              import org.junit.BeforeClass;
-              import org.mockito.MockedStatic;
-
-              import static org.mockito.Mockito.*;
-              import static org.junit.Assert.assertEquals;
-
-              class Test {
-                  private static MockedStatic<A> mockA1;
-
-                  @BeforeClass
-                  public static void setUp() {
-                      mockA1 = mockStatic(A.class);
-                      mockA1.when(() -> A.getNumber()).thenReturn(-1);
-                  }
-
-                  @AfterClass
-                  public static void tearDown() {
-                      mockA1.close();
-                  }
-
-                  void test1() {
-                      assertEquals(A.getNumber(), -1);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void shouldHandleStaticMocksInBeforeClasWithExistingAfterClass() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.BeforeClass;
-              import org.junit.AfterClass;
-
-              import static org.mockito.Mockito.*;
-              import static org.junit.Assert.assertEquals;
-
-              class Test {
-                  @BeforeClass
-                  public static void setUp() {
-                      when(A.getNumber()).thenReturn(-1);
-                  }
-
-                  @AfterClass
-                  public static void tearDown() {
-                      System.out.println("some statement");
-                  }
-
-                  void test() {
-                      assertEquals(A.getNumber(), -1);
-                  }
-              }
-              """,
-            """
-              import org.junit.BeforeClass;
-              import org.mockito.MockedStatic;
-              import org.junit.AfterClass;
-
-              import static org.mockito.Mockito.*;
-              import static org.junit.Assert.assertEquals;
-
-              class Test {
-                  private static MockedStatic<A> mockA1;
-
-                  @BeforeClass
-                  public static void setUp() {
-                      mockA1 = mockStatic(A.class);
-                      mockA1.when(() -> A.getNumber()).thenReturn(-1);
-                  }
-
-                  @AfterClass
-                  public static void tearDown() {
-                      System.out.println("some statement");
-                      mockA1.close();
-                  }
-
-                  void test() {
-                      assertEquals(A.getNumber(), -1);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void shouldUseLambda_whenStaticMockIsAssignedAlready() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.BeforeClass;
-              import org.junit.AfterClass;
-              import org.mockito.MockedStatic;
-
-              import static org.mockito.Mockito.*;
-              import static org.junit.Assert.assertEquals;
-
-              class Test {
-                  private MockedStatic<String> mockedString;
-                  private MockedStatic<A> mockA1;
-                  private MockedStatic<Boolean> mockedBoolean;
-
-                  @BeforeClass
-                  public static void setUp() {
-                      mockA1 = mockStatic(A.class);
-                      mockedString = mockStatic(String.class);
-                      mockedBoolean = mockStatic(Boolean.class);
-                  }
-
-                  @AfterClass
-                  public static void tearDown() {
-                      mockA1.close();
-                      mockedString.close();
-                      mockedBoolean.close();
-                  }
-
-                  void test() {
-                      when(A.getNumber()).thenReturn(-1);
-                      assertEquals(A.getNumber(), -1);
-                  }
-              }
-              """,
-            """
-              import org.junit.BeforeClass;
-              import org.junit.AfterClass;
-              import org.mockito.MockedStatic;
-
-              import static org.mockito.Mockito.*;
-              import static org.junit.Assert.assertEquals;
-
-              class Test {
-                  private MockedStatic<String> mockedString;
-                  private MockedStatic<A> mockA1;
-                  private MockedStatic<Boolean> mockedBoolean;
-
-                  @BeforeClass
-                  public static void setUp() {
-                      mockA1 = mockStatic(A.class);
-                      mockedString = mockStatic(String.class);
-                      mockedBoolean = mockStatic(Boolean.class);
-                  }
-
-                  @AfterClass
-                  public static void tearDown() {
-                      mockA1.close();
-                      mockedString.close();
-                      mockedBoolean.close();
-                  }
-
-                  void test() {
-                      mockA1.when(() -> A.getNumber()).thenReturn(-1);
-                      assertEquals(A.getNumber(), -1);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void shouldUseLambda_whenStaticMockIsAssignedAlreadyInSameBlock() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.BeforeClass;
-              import org.junit.AfterClass;
               import org.mockito.MockedStatic;
 
               import static org.mockito.Mockito.*;
@@ -575,8 +884,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.BeforeClass;
-              import org.junit.AfterClass;
               import org.mockito.MockedStatic;
 
               import static org.mockito.Mockito.*;
@@ -596,13 +903,11 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     }
 
     @Test
-    void shouldRefactor_whenStaticMockIsAssignedInAnotherBlock() {
+    void refactors_whenStaticMockIsAssignedInAnotherBlock() {
         //language=java
         rewriteRun(
           java(
             """
-              import org.junit.BeforeClass;
-              import org.junit.AfterClass;
               import org.mockito.MockedStatic;
 
               import static org.mockito.Mockito.*;
@@ -623,8 +928,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.BeforeClass;
-              import org.junit.AfterClass;
               import org.mockito.MockedStatic;
 
               import static org.mockito.Mockito.*;
