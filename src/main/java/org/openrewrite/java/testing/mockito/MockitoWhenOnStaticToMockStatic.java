@@ -15,18 +15,15 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.testing.utils.VariableUtil;
 import org.openrewrite.java.tree.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.emptyList;
@@ -103,9 +100,9 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                             if (nameOfWrappingMockedStatic.isPresent()) {
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, nameOfWrappingMockedStatic.get(), whenArg, ctx);
                             }
-                            Optional<J.Identifier> nameOfDeclaredMockedStatic = tryGetMatchedWrappingVariableName(getCursor(), className);
-                            if (nameOfDeclaredMockedStatic.isPresent()) {
-                                return reuseMockedStatic(block, (J.MethodInvocation) statement, nameOfDeclaredMockedStatic.get(), whenArg, ctx);
+                            J.Identifier staticMockedVariable = findMockedStaticVariable(getCursor(), className);
+                            if (staticMockedVariable != null) {
+                                return reuseMockedStatic(block, (J.MethodInvocation) statement, staticMockedVariable, whenArg, ctx);
                             }
                             restInTry.set(true);
                             return tryWithMockedStatic(block, statements, index, (J.MethodInvocation) statement, className, whenArg, ctx);
@@ -252,20 +249,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
         return emptyList();
     }
 
-    private static Optional<J.Identifier> tryGetMatchedWrappingVariableName(Cursor cursor, String className) {
-        return VariableUtil.findVariablesInScope(cursor).stream()
-                .filter(identifier -> {
-                    if (MOCKED_STATIC.matches(identifier) && identifier.getType() instanceof JavaType.Parameterized) {
-                        JavaType.Parameterized parameterizedType = (JavaType.Parameterized) identifier.getType();
-                        if (parameterizedType.getTypeParameters().size() == 1) {
-                            return TypeUtils.isAssignableTo(className, parameterizedType.getTypeParameters().get(0));
-                        }
-                    }
-                    return false;
-                })
-                .findFirst();
-    }
-
     private static Optional<String> tryGetMatchedWrappingResourceName(Cursor cursor, String className) {
         try {
             Cursor foundParentCursor = cursor.dropParentUntil(val -> {
@@ -290,5 +273,49 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     .anyMatch(it -> Arrays.stream(matchers).anyMatch(m -> m.matches(it)));
         }
         return false;
+    }
+
+    private static J.@Nullable Identifier findMockedStaticVariable(Cursor scope, String className) {
+        JavaSourceFile compilationUnit = scope.firstEnclosing(JavaSourceFile.class);
+        if (compilationUnit == null) {
+            throw new IllegalStateException("A JavaSourceFile is required in the cursor path.");
+        }
+
+        Set<J.VariableDeclarations> names = new HashSet<>();
+        MockedStaticGathererVisitor variableScopeVisitor = new MockedStaticGathererVisitor(scope);
+        variableScopeVisitor.visit(compilationUnit, names);
+        return names.stream()
+                .flatMap(variable -> variable.getVariables().stream())
+                .map(J.VariableDeclarations.NamedVariable::getName)
+                .filter(identifier -> {
+                    if (MOCKED_STATIC.matches(identifier) && identifier.getType() instanceof JavaType.Parameterized) {
+                        JavaType.Parameterized parameterizedType = (JavaType.Parameterized) identifier.getType();
+                        if (parameterizedType.getTypeParameters().size() == 1) {
+                            return TypeUtils.isAssignableTo(className, parameterizedType.getTypeParameters().get(0));
+                        }
+                    }
+                    return false;
+                })
+                .findFirst()
+                .orElse(null);
+    }
+
+    @RequiredArgsConstructor
+    private static final class MockedStaticGathererVisitor extends JavaIsoVisitor<Set<J.VariableDeclarations>> {
+        private final Cursor scope;
+
+        @Override
+        public J.Block visitBlock(J.Block block, Set<J.VariableDeclarations> variables) {
+            if (scope.isScopeInPath(block)) {
+                return super.visitBlock(block, variables);
+            }
+            return block;
+        }
+
+        @Override
+        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, Set<J.VariableDeclarations> js) {
+            js.add(multiVariable);
+            return super.visitVariableDeclarations(multiVariable, js);
+        }
     }
 }

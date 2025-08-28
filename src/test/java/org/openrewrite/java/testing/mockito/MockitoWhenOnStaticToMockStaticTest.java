@@ -496,7 +496,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     }
 
     @Test
-    void shouldUseLambda_WhenStaticMockIsAssignedAlready() {
+    void shouldUseLambda_whenStaticMockIsAssignedAlready() {
         //language=java
         rewriteRun(
           CLASS_A,
@@ -564,6 +564,107 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   void test() {
                       mockA1.when(() -> A.getNumber()).thenReturn(-1);
                       assertEquals(A.getNumber(), -1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldUseLambda_whenStaticMockIsAssignedAlreadyInSameBlock() {
+        //language=java
+        rewriteRun(
+          CLASS_A,
+          java(
+            """
+              import org.junit.BeforeClass;
+              import org.junit.AfterClass;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+              import static org.junit.Assert.assertEquals;
+
+              class Test {
+                  void test() {
+                      MockedStatic<A> mockA1 = mockStatic(A.class);
+                      when(A.getNumber()).thenReturn(-1);
+                      assertEquals(A.getNumber(), -1);
+                      mockA1.close();
+                  }
+              }
+              """,
+            """
+              import org.junit.BeforeClass;
+              import org.junit.AfterClass;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+              import static org.junit.Assert.assertEquals;
+
+              class Test {
+                  void test() {
+                      MockedStatic<A> mockA1 = mockStatic(A.class);
+                      mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      assertEquals(A.getNumber(), -1);
+                      mockA1.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRefactor_whenStaticMockIsAssignedInAnotherBlock() {
+        //language=java
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          CLASS_A,
+          java(
+            """
+              import org.junit.BeforeClass;
+              import org.junit.AfterClass;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+              import static org.junit.Assert.assertEquals;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenReturn(-1);
+                      assertEquals(A.getNumber(), -1);
+                  }
+
+                  void anotherTest() {
+                      MockedStatic<A> mockA1 = mockStatic(A.class);
+                      mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      assertEquals(A.getNumber(), -1);
+                      mockA1.close();
+                  }
+              }
+              """,
+            """
+              import org.junit.BeforeClass;
+              import org.junit.AfterClass;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+              import static org.junit.Assert.assertEquals;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+
+                  void anotherTest() {
+                      MockedStatic<A> mockA1 = mockStatic(A.class);
+                      mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      assertEquals(A.getNumber(), -1);
+                      mockA1.close();
                   }
               }
               """
