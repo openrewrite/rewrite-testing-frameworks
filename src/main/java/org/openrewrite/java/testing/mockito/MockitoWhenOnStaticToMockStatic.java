@@ -163,15 +163,10 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         .withPrefix(statement.getPrefix());
             }
 
-            private Statement reuseMockedStatic(J.Block block, J.MethodInvocation statement, J.Identifier variable, J.MethodInvocation whenArg, ExecutionContext ctx) {
-                return javaTemplateMockStatic("#{any()}.when(() -> #{any()}).thenReturn(#{any()});", ctx)
+            private Statement reuseMockedStatic(J.Block block, J.MethodInvocation statement, Object variable, J.MethodInvocation whenArg, ExecutionContext ctx) {
+                String mockedStaticVariableTemplate = variable instanceof J ? "#{any()}" : "#{}";
+                return javaTemplateMockStatic(mockedStaticVariableTemplate + ".when(() -> #{any()}).thenReturn(#{any()});", ctx)
                         .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), variable, whenArg, statement.getArguments().get(0))
-                        .getStatements().get(0);
-            }
-
-            private Statement reuseMockedStatic(J.Block block, J.MethodInvocation statement, String variableName, J.MethodInvocation whenArg, ExecutionContext ctx) {
-                return javaTemplateMockStatic(String.format("%1$s.when(() -> #{any()}).thenReturn(#{any()});", variableName), ctx)
-                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, statement.getArguments().get(0))
                         .getStatements().get(0);
             }
 
