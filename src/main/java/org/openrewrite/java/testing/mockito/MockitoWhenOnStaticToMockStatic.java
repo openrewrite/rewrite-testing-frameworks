@@ -280,7 +280,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             throw new IllegalStateException("A JavaSourceFile is required in the cursor path.");
         }
 
-        return new JavaIsoVisitor<Set<J.VariableDeclarations>>() {
+        Set<J.VariableDeclarations> variableDeclarations = new JavaIsoVisitor<Set<J.VariableDeclarations>>() {
             @Override
             public J.Block visitBlock(J.Block block, Set<J.VariableDeclarations> variables) {
                 if (scope.isScopeInPath(block)) {
@@ -294,7 +294,10 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 js.add(multiVariable);
                 return super.visitVariableDeclarations(multiVariable, js);
             }
-        }.reduce(compilationUnit, new HashSet<>()).stream()
+        }.reduce(compilationUnit, new HashSet<>());
+
+        return variableDeclarations
+                .stream()
                 .flatMap(variable -> variable.getVariables().stream())
                 .map(J.VariableDeclarations.NamedVariable::getName)
                 .filter(identifier -> {
