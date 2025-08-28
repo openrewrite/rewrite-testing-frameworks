@@ -263,8 +263,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     if (MOCKED_STATIC.matches(identifier) && identifier.getType() instanceof JavaType.Parameterized) {
                         JavaType.Parameterized parameterizedType = (JavaType.Parameterized) identifier.getType();
                         if (parameterizedType.getTypeParameters().size() == 1) {
-                            JavaType mockedClass = parameterizedType.getTypeParameters().get(0);
-                            return TypeUtils.isAssignableTo(className, mockedClass);
+                            return TypeUtils.isAssignableTo(className, parameterizedType.getTypeParameters().get(0));
                         }
                     }
                     return false;
