@@ -424,6 +424,73 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             );
         }
 
+        // Similar situations:
+        // Existing `@Before` and `@AfterClass`
+        @Test
+        void usingBothBeforeClassAndAfter_attachesToWrongMethod() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.junit.After;
+                  import org.junit.BeforeClass;
+
+                  import static org.junit.Assert.assertEquals;
+                  import static org.mockito.Mockito.*;
+
+                  class Test {
+                      @BeforeClass
+                      public static void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      @After
+                      public void blah() {
+                          System.out.println("some statement");
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.After;
+                  import org.junit.AfterClass;
+                  import org.junit.BeforeClass;
+                  import org.mockito.MockedStatic;
+
+                  import static org.junit.Assert.assertEquals;
+                  import static org.mockito.Mockito.*;
+
+                  class Test {
+                      private static MockedStatic<A> mockA1;
+
+                      @BeforeClass
+                      public static void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          mockA1.close();
+                      }
+
+                      @After
+                      public void blah() {
+                          System.out.println("some statement");
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
         @Test
         void handlesStaticMocks_inBeforeClass_withExistingAfterClass() {
             //language=java
@@ -728,6 +795,74 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             );
         }
 
+        // Similar situations:
+        // Existing `@BeforeParameterizedClassInvocation` and `@AfterEach`
+        // Existing `@BeforeEach` and `@AfterAll` or `@AfterParameterizedClassInvocation`
+        @Test
+        void usingBothBeforeAllAndAfterEach_attachesCloseToWrongMethod() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.junit.jupiter.api.AfterEach;
+                  import org.junit.jupiter.api.BeforeAll;
+
+                  import static org.junit.jupiter.api.Assertions.assertEquals;
+                  import static org.mockito.Mockito.*;
+
+                  class Test {
+                      @BeforeAll
+                      public static void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterEach
+                      public void blah() {
+                          System.out.println("some statement");
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.AfterAll;
+                  import org.junit.jupiter.api.AfterEach;
+                  import org.junit.jupiter.api.BeforeAll;
+                  import org.mockito.MockedStatic;
+
+                  import static org.junit.jupiter.api.Assertions.assertEquals;
+                  import static org.mockito.Mockito.*;
+
+                  class Test {
+                      private static MockedStatic<A> mockA1;
+
+                      @BeforeAll
+                      public static void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterAll
+                      public static void tearDown() {
+                          mockA1.close();
+                      }
+
+                      @AfterEach
+                      public void blah() {
+                          System.out.println("some statement");
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
         @Test
         void handlesStaticMocks_inBeforeClass_withExistingAfterClass() {
             //language=java
@@ -1021,6 +1156,74 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                       @AfterClass
                       public static void tearDown() {
                           mockA1.close();
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        // Similar situations:
+        // Existing `@BeforeMethod` and `@AfterClass`
+        // Possibly something including `@BeforeTest`/`@AfterTest`, `@BeforeSuite`/`@AfterSuite`, `@BeforeGroups`/`@AfterGroups`
+        @Test
+        void usingBothBeforeClassAndAfterMethod_assignsToWrongMethod() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.testng.annotations.AfterMethod;
+                  import org.testng.annotations.BeforeClass;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      @BeforeClass
+                      public static void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterMethod
+                      public void blah() {
+                          System.out.println("some statement");
+                      }
+
+                      void test1() {
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """,
+                """
+                  import org.mockito.MockedStatic;
+                  import org.testng.annotations.AfterClass;
+                  import org.testng.annotations.AfterMethod;
+                  import org.testng.annotations.BeforeClass;
+
+                  import static org.mockito.Mockito.*;
+                  import static org.testng.Assert.assertEquals;
+
+                  class Test {
+                      private static MockedStatic<A> mockA1;
+
+                      @BeforeClass
+                      public static void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @AfterClass
+                      public static void tearDown() {
+                          mockA1.close();
+                      }
+
+                      @AfterMethod
+                      public void blah() {
+                          System.out.println("some statement");
                       }
 
                       void test1() {
