@@ -25,41 +25,34 @@ import static org.openrewrite.java.Assertions.java;
 
 class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
-    //language=java
-    public static final SourceSpecs CLASS_A = java(
-      """
-        public class A {
-            public static Integer getNumber() {
-                return 42;
-            }
-        }
-        """,
-      SourceSpec::skip
-    );
-
-    //language=java
-    public static final SourceSpecs CLASS_B = java(
-      """
-        public class B {
-            public static String getString() {
-                return "";
-            }
-            public String getStringNonStatic() {
-                return "non-static";
-            }
-        }
-        """,
-      SourceSpec::skip
-    );
-
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new MockitoWhenOnStaticToMockStatic())
-          .parser(JavaParser.fromJavaVersion()
+          .parser((JavaParser.Builder<? extends JavaParser, ?>) JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
               "mockito-core-3.12",
               "mockito-junit-jupiter-3.12"
+            )
+            //language=java
+            .dependsOn(
+              """
+                public class A {
+                    public static Integer getNumber() {
+                        return 42;
+                    }
+                }
+                """,
+              """
+                public class B {
+                    public static String getString() {
+                        return "";
+                    }
+                    public String getStringNonStatic() {
+                        return "non-static";
+                    }
+                }
+                """
             ));
     }
 
@@ -69,7 +62,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
           java(
             """
               import static org.junit.Assert.assertEquals;
@@ -108,8 +100,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
-          CLASS_B,
           java(
             """
               import org.mockito.MockedStatic;
@@ -157,7 +147,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void doNotConvertIfScopeOfChangeWouldHaveToBeBroadened() {
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_B,
           //language=java
           java(
             """
@@ -197,7 +186,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
           java(
             """
               import static org.junit.Assert.assertEquals;
@@ -266,7 +254,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
           java(
             """
               import org.junit.Before;
@@ -321,7 +308,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
           java(
             """
               import org.junit.Before;
@@ -383,7 +369,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
           java(
             """
               import org.junit.BeforeClass;
@@ -438,7 +423,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
           java(
             """
               import org.junit.BeforeClass;
@@ -499,7 +483,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldUseLambda_whenStaticMockIsAssignedAlready() {
         //language=java
         rewriteRun(
-          CLASS_A,
           java(
             """
               import org.junit.BeforeClass;
@@ -575,7 +558,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldUseLambda_whenStaticMockIsAssignedAlreadyInSameBlock() {
         //language=java
         rewriteRun(
-          CLASS_A,
           java(
             """
               import org.junit.BeforeClass;
@@ -620,7 +602,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          CLASS_A,
           java(
             """
               import org.junit.BeforeClass;
@@ -676,7 +657,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     void shouldNotRefactorMockito_WhenMockIsAssigned() {
         //language=java
         rewriteRun(
-          CLASS_A,
           java(
             """
               import org.junit.Before;
