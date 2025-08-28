@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
@@ -182,7 +181,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration after = JavaTemplate.builder(
-                                String.format("private%s MockedStatic<%s> %s;", staticSetup ? " static" : "", className, variableName))
+                                        String.format("private%s MockedStatic<%s> %s;", staticSetup ? " static" : "", className, variableName))
                                 .contextSensitive()
                                 .build()
                                 .apply(updateCursor(classDecl), classDecl.getBody().getCoordinates().firstStatement());
@@ -195,7 +194,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                 maybeAddImport("org.junit.AfterClass");
                                 maybeAddImport("org.junit.After");
                                 after = JavaTemplate.builder(String.format(
-                                            "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@After public"
+                                                "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@After public"
                                         ))
                                         .imports(staticSetup ? "org.junit.AfterClass" : "org.junit.After")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-4"))
@@ -281,10 +280,21 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             throw new IllegalStateException("A JavaSourceFile is required in the cursor path.");
         }
 
-        Set<J.VariableDeclarations> names = new HashSet<>();
-        MockedStaticGathererVisitor variableScopeVisitor = new MockedStaticGathererVisitor(scope);
-        variableScopeVisitor.visit(compilationUnit, names);
-        return names.stream()
+        return new JavaIsoVisitor<Set<J.VariableDeclarations>>() {
+            @Override
+            public J.Block visitBlock(J.Block block, Set<J.VariableDeclarations> variables) {
+                if (scope.isScopeInPath(block)) {
+                    return super.visitBlock(block, variables);
+                }
+                return block;
+            }
+
+            @Override
+            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, Set<J.VariableDeclarations> js) {
+                js.add(multiVariable);
+                return super.visitVariableDeclarations(multiVariable, js);
+            }
+        }.reduce(compilationUnit, new HashSet<>()).stream()
                 .flatMap(variable -> variable.getVariables().stream())
                 .map(J.VariableDeclarations.NamedVariable::getName)
                 .filter(identifier -> {
@@ -298,24 +308,5 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 })
                 .findFirst()
                 .orElse(null);
-    }
-
-    @RequiredArgsConstructor
-    private static final class MockedStaticGathererVisitor extends JavaIsoVisitor<Set<J.VariableDeclarations>> {
-        private final Cursor scope;
-
-        @Override
-        public J.Block visitBlock(J.Block block, Set<J.VariableDeclarations> variables) {
-            if (scope.isScopeInPath(block)) {
-                return super.visitBlock(block, variables);
-            }
-            return block;
-        }
-
-        @Override
-        public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, Set<J.VariableDeclarations> js) {
-            js.add(multiVariable);
-            return super.visitVariableDeclarations(multiVariable, js);
-        }
     }
 }
