@@ -22,8 +22,12 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
@@ -280,33 +284,27 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             return null;
         }
 
-        Set<J.Identifier> namedVariables = new JavaIsoVisitor<Set<J.Identifier>>() {
+        return new JavaIsoVisitor<AtomicReference<J.Identifier>>() {
             @Override
-            public J.Block visitBlock(J.Block block, Set<J.Identifier> variables) {
+            public J.Block visitBlock(J.Block block, AtomicReference<J.Identifier> mockedStaticVar) {
                 if (scope.isScopeInPath(block)) {
-                    return super.visitBlock(block, variables);
+                    return super.visitBlock(block, mockedStaticVar);
                 }
                 return block;
             }
 
             @Override
-            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<J.Identifier> js) {
-                js.add(variable.getName());
-                return super.visitVariable(variable, js);
-            }
-        }.reduce(compilationUnit, new LinkedHashSet<>());
-
-        return namedVariables.stream()
-                .filter(identifier -> {
-                    if (MOCKED_STATIC.matches(identifier) && identifier.getType() instanceof JavaType.Parameterized) {
-                        JavaType.Parameterized parameterizedType = (JavaType.Parameterized) identifier.getType();
-                        if (parameterizedType.getTypeParameters().size() == 1) {
-                            return TypeUtils.isAssignableTo(className, parameterizedType.getTypeParameters().get(0));
-                        }
+            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, AtomicReference<J.Identifier> mockedStaticVar) {
+                J.Identifier identifier = variable.getName();
+                if (MOCKED_STATIC.matches(identifier) && identifier.getType() instanceof JavaType.Parameterized) {
+                    JavaType.Parameterized parameterizedType = (JavaType.Parameterized) identifier.getType();
+                    if (parameterizedType.getTypeParameters().size() == 1 && TypeUtils.isAssignableTo(className, parameterizedType.getTypeParameters().get(0))) {
+                        mockedStaticVar.set(identifier);
                     }
-                    return false;
-                })
-                .findFirst()
-                .orElse(null);
+                }
+
+                return super.visitVariable(variable, mockedStaticVar);
+            }
+        }.reduce(compilationUnit, new AtomicReference<>()).get();
     }
 }
