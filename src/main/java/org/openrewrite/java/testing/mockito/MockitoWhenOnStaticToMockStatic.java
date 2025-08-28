@@ -277,7 +277,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
     private static J.@Nullable Identifier findMockedStaticVariable(Cursor scope, String className) {
         JavaSourceFile compilationUnit = scope.firstEnclosing(JavaSourceFile.class);
         if (compilationUnit == null) {
-            throw new IllegalStateException("A JavaSourceFile is required in the cursor path.");
+            return null;
         }
 
         Set<J.Identifier> namedVariables = new JavaIsoVisitor<Set<J.Identifier>>() {
