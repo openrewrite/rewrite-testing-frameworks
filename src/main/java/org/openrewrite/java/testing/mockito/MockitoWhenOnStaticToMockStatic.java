@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
@@ -45,7 +46,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
     private static final AnnotationMatcher BEFORE_CLASS = new AnnotationMatcher("org..BeforeClass");
     private static final AnnotationMatcher BEFORE_ALL = new AnnotationMatcher("org..BeforeAll");
     private static final AnnotationMatcher BEFORE_PARAM_CLASS_INV = new AnnotationMatcher("org..BeforeParameterizedClassInvocation");
-    private static final AnnotationMatcher AFTER = new AnnotationMatcher("org..After*");
 
     private static final MethodMatcher MOCKITO_WHEN = new MethodMatcher("org.mockito.Mockito when(..)");
     private static final TypeMatcher MOCKED_STATIC = new TypeMatcher("org.mockito.MockedStatic");
@@ -60,10 +60,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
     @Override
     public String getDescription() {
         return "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic as Mockito4 no longer allows this. " +
-                "For JUnit 4: When `@Before` or `@BeforeClass` is used, a `close` call is added to either the `@After` or `@AfterClass` method. " +
-                "For JUnit 5: When `@BeforeEach`, `@BeforeAll` or `@BeforeParameterizedClassInvocation` is used, " +
-                "a `close` call is added to a corresponding `@AfterEach`, `@AfterAll` or `@AfterParameterizedClassInvocation` method. " +
-                "For TestNG: When `@BeforeMethod` or `@BeforeClass` is used, a `close` call is added to either the `@AfterMethod` or `@AfterClass` method. " +
+                "For JUnit 4/5 & TestNG: When `@Before*` is used, a `close` call is added to the corresponding `@After*` method. " +
                 "This change moves away from implicit bytecode manipulation for static method stubbing, making mocking behavior more explicit and scoped to avoid unintended side effects.";
     }
 
@@ -72,7 +69,8 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
         return Preconditions.check(new UsesMethod<>(MOCKITO_WHEN), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
-                List<Statement> newStatements = isMethodDeclarationWithAnnotation(getCursor().firstEnclosing(J.MethodDeclaration.class), BEFORE) ?
+                J.MethodDeclaration containingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
+                List<Statement> newStatements = isMethodDeclarationWithAnnotation(containingMethod, BEFORE) ?
                         maybeStatementsToMockedStatic(block, block.getStatements(), ctx) :
                         maybeWrapStatementsInTryWithResourcesMockedStatic(block, block.getStatements(), ctx);
 
@@ -180,8 +178,12 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             }
 
             private List<Statement> mockedStatic(J.Block block, J.MethodInvocation statement, String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
-                boolean staticSetup = isMethodDeclarationWithAnnotation(getCursor().firstEnclosing(J.MethodDeclaration.class), BEFORE_CLASS, BEFORE_ALL, BEFORE_PARAM_CLASS_INV);
+                J.MethodDeclaration containingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
+                boolean staticSetup = isMethodDeclarationWithAnnotation(containingMethod, BEFORE_CLASS, BEFORE_ALL, BEFORE_PARAM_CLASS_INV);
                 String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
+                // We know it will have a matching `@Before*` annotation based on callers
+                String matchedAnnotation = requireNonNull(getAnnotationFqn(tryGetMatchedAnnotationOnMethodDeclaration(containingMethod, BEFORE).get()));
+                String correspondingAfterFqn = requireNonNull(getCorrespondingAfterAnnotation(matchedAnnotation));
                 Expression thenReturnArg = statement.getArguments().get(0);
 
                 List<Statement> statements = javaTemplateMockStatic(String.format(
@@ -193,61 +195,32 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                        J.ClassDeclaration after = JavaTemplate.builder(
-                                        String.format("private%s MockedStatic<%s> %s;", staticSetup ? " static" : "", className, variableName))
+                        J.ClassDeclaration after = JavaTemplate
+                                .builder(String.format("private%s MockedStatic<%s> %s;", staticSetup ? " static" : "", className, variableName))
                                 .contextSensitive()
                                 .build()
                                 .apply(updateCursor(classDecl), classDecl.getBody().getCoordinates().firstStatement());
 
-                        if (classDecl.getBody().getStatements().stream().noneMatch(it -> isMethodDeclarationWithAnnotation(it, AFTER))) {
-                            Optional<Statement> beforeMethodJunit4 = after.getBody().getStatements().stream()
-                                    .filter(it -> isMethodDeclarationWithAnnotation(it, JUNIT_4_ANNOTATION))
+                        List<Statement> afterStatements = after.getBody().getStatements();
+                        AnnotationMatcher specificBeforeMatcher = new AnnotationMatcher(matchedAnnotation);
+                        if (classDecl.getBody().getStatements().stream().noneMatch(it -> isMethodDeclarationWithAnnotation(it, new AnnotationMatcher(correspondingAfterFqn)))) {
+                            String safeAfterMethodName = getSafeAfterMethodName("tearDown", afterStatements);
+                            Optional<Statement> beforeMethodJunit4 = afterStatements.stream()
+                                    .filter(it -> isMethodDeclarationWithAllAnnotations(it, JUNIT_4_ANNOTATION, specificBeforeMatcher))
                                     .findFirst();
-                            Optional<Statement> beforeMethodJunit5 = after.getBody().getStatements().stream()
-                                    .filter(it -> isMethodDeclarationWithAnnotation(it, JUNIT_5_ANNOTATION))
+                            Optional<Statement> beforeMethodJunit5 = afterStatements.stream()
+                                    .filter(it -> isMethodDeclarationWithAllAnnotations(it, JUNIT_5_ANNOTATION, specificBeforeMatcher))
                                     .findFirst();
-                            Optional<Statement> beforeMethodTestng = after.getBody().getStatements().stream()
-                                    .filter(it -> isMethodDeclarationWithAnnotation(it, TESTNG_ANNOTATION))
+                            Optional<Statement> beforeMethodTestng = afterStatements.stream()
+                                    .filter(it -> isMethodDeclarationWithAllAnnotations(it, TESTNG_ANNOTATION, specificBeforeMatcher))
                                     .findFirst();
+                            String template = String.format("@%1$s public%2$s void %3$s() {}", getSimpleName(correspondingAfterFqn), staticSetup ? " static" : "", safeAfterMethodName);
                             if (beforeMethodJunit4.isPresent()) {
-                                maybeAddImport("org.junit.AfterClass");
-                                maybeAddImport("org.junit.After");
-                                after = JavaTemplate.builder(String.format(
-                                                "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@After public"
-                                        ))
-                                        .imports("org.junit.AfterClass", "org.junit.After")
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-4"))
-                                        .build()
-                                        .apply(updateCursor(after), beforeMethodJunit4.get().getCoordinates().after());
+                                after = writeAfterMethod(after, beforeMethodJunit4.get(), ctx, template, correspondingAfterFqn, "junit-4");
                             } else if (beforeMethodJunit5.isPresent()) {
-                                boolean staticForParameterized = isMethodDeclarationWithAnnotation(getCursor().firstEnclosing(J.MethodDeclaration.class), BEFORE_PARAM_CLASS_INV);
-                                maybeAddImport("org.junit.jupiter.api.AfterParameterizedClassInvocation");
-                                maybeAddImport("org.junit.jupiter.api.AfterAll");
-                                maybeAddImport("org.junit.jupiter.api.AfterEach");
-                                String annotatedQualifiers = staticSetup ?
-                                        (staticForParameterized ?
-                                                "@AfterParameterizedClassInvocation public static" :
-                                                "@AfterAll public static") :
-                                        "@AfterEach public";
-                                after = JavaTemplate.builder(String.format("%s void tearDown() {}", annotatedQualifiers))
-                                        .imports(
-                                                "org.junit.jupiter.api.AfterParameterizedClassInvocation",
-                                                "org.junit.jupiter.api.AfterAll",
-                                                "org.junit.jupiter.api.AfterEach"
-                                        )
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                                        .build()
-                                        .apply(updateCursor(after), beforeMethodJunit5.get().getCoordinates().after());
+                                after = writeAfterMethod(after, beforeMethodJunit5.get(), ctx, template, correspondingAfterFqn, "junit-jupiter-api-5");
                             } else if (beforeMethodTestng.isPresent()) {
-                                maybeAddImport("org.testng.annotations.AfterClass");
-                                maybeAddImport("org.testng.annotations.AfterMethod");
-                                after = JavaTemplate.builder(String.format(
-                                                "%s void tearDown() {}", staticSetup ? "@AfterClass public static" : "@AfterMethod public"
-                                        ))
-                                        .imports("org.testng.annotations.AfterClass", "org.testng.annotations.AfterMethod")
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testng"))
-                                        .build()
-                                        .apply(updateCursor(after), beforeMethodTestng.get().getCoordinates().after());
+                                after = writeAfterMethod(after, beforeMethodTestng.get(), ctx, template, correspondingAfterFqn, "testng");
                             }
                         }
 
@@ -255,17 +228,24 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         return maybeAutoFormat(classDecl, cd, ctx);
                     }
 
+                    private J.ClassDeclaration writeAfterMethod(J.ClassDeclaration after, Statement beforeMethod, ExecutionContext ctx, String template, String importClass, String... classpaths) {
+                        maybeAddImport(importClass);
+                        return JavaTemplate.builder(template)
+                                .imports(importClass)
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, classpaths))
+                                .build()
+                                .apply(updateCursor(after), beforeMethod.getCoordinates().after());
+                    }
+
                     @Override
                     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
                         J.MethodDeclaration md = super.visitMethodDeclaration(methodDecl, ctx);
-
-                        if (isMethodDeclarationWithAnnotation(md, AFTER)) {
+                        if (isMethodDeclarationWithAnnotation(md, new AnnotationMatcher(correspondingAfterFqn))) {
                             return JavaTemplate.builder(variableName + ".close();")
                                     .contextSensitive()
                                     .build()
                                     .apply(getCursor(), md.getBody().getCoordinates().lastStatement());
                         }
-
                         return md;
                     }
                 });
@@ -320,6 +300,86 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     .anyMatch(it -> Arrays.stream(matchers).anyMatch(m -> m.matches(it)));
         }
         return false;
+    }
+
+    private static boolean isMethodDeclarationWithAllAnnotations(@Nullable Statement statement, AnnotationMatcher... matchers) {
+        if (statement instanceof J.MethodDeclaration) {
+            return ((J.MethodDeclaration) statement).getLeadingAnnotations().stream()
+                    .anyMatch(it -> Arrays.stream(matchers).allMatch(m -> m.matches(it)));
+        }
+        return false;
+    }
+
+    private static Optional<J.Annotation> tryGetMatchedAnnotationOnMethodDeclaration(@Nullable Statement statement, AnnotationMatcher... matchers) {
+        if (statement instanceof J.MethodDeclaration) {
+            return ((J.MethodDeclaration) statement).getLeadingAnnotations().stream()
+                    .filter(it -> Arrays.stream(matchers).anyMatch(m -> m.matches(it)))
+                    .findFirst();
+        }
+        return Optional.empty();
+    }
+
+    private static String getSafeAfterMethodName(String baseName, List<Statement> existingStatements) {
+        List<String> existingSimilarMethods = existingStatements.stream()
+                .filter(it -> it instanceof J.MethodDeclaration)
+                .map(it -> ((J.MethodDeclaration) it).getSimpleName())
+                .filter(s -> s.matches("^" + baseName + "([0-9]+)?$"))
+                .collect(toList());
+        if (existingSimilarMethods.isEmpty()) {
+            return baseName;
+        }
+        String newName = baseName;
+        int count = 0;
+        while (existingSimilarMethods.contains(newName)) {
+            newName = baseName + (count += 1);
+        }
+        return newName;
+    }
+
+    private static @Nullable String getSimpleName(@Nullable String fqn) {
+        if (fqn == null) {
+            return null;
+        }
+        return fqn.substring(fqn.lastIndexOf('.') + 1);
+    }
+
+    private static @Nullable String getAnnotationFqn(J.Annotation annotation) {
+        JavaType annotationType = annotation.getType();
+        if (annotationType != null) {
+            return annotationType.toString();
+        }
+        return null;
+    }
+
+    private static @Nullable String getCorrespondingAfterAnnotation(@Nullable String annotationFqn) {
+        if (annotationFqn != null) {
+            switch (annotationFqn) {
+                // JUnit 4
+                case "org.junit.Before":
+                    return "org.junit.After";
+                case "org.junit.BeforeClass":
+                    return "org.junit.AfterClass";
+                // JUnit 5
+                case "org.junit.jupiter.api.BeforeEach":
+                    return "org.junit.jupiter.api.AfterEach";
+                case "org.junit.jupiter.api.BeforeAll":
+                    return "org.junit.jupiter.api.AfterAll";
+                case "org.junit.jupiter.api.BeforeParameterizedClassInvocation":
+                    return "org.junit.jupiter.api.AfterParameterizedClassInvocation";
+                // TestNG
+                case "org.testng.annotations.BeforeMethod":
+                    return "org.testng.annotations.AfterMethod";
+                case "org.testng.annotations.BeforeClass":
+                    return "org.testng.annotations.AfterClass";
+                case "org.testng.annotations.BeforeSuite":
+                    return "org.testng.annotations.AfterSuite";
+                case "org.testng.annotations.BeforeGroups":
+                    return "org.testng.annotations.AfterGroups";
+                case "org.testng.annotations.BeforeTest":
+                    return "org.testng.annotations.AfterTest";
+            }
+        }
+        return null;
     }
 
     private static J.@Nullable Identifier findMockedStaticVariable(Cursor scope, String className) {
