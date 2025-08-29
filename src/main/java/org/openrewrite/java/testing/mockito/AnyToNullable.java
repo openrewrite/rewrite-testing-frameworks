@@ -63,8 +63,7 @@ public class AnyToNullable extends ScanningRecipe<AtomicBoolean> {
                     stopAfterPreVisit();
                     doAfterVisit(new ChangeMethodName(
                             "org.mockito.Mockito any(java.lang.Class)", "nullable", null, null).getVisitor());
-                    doAfterVisit(new ChangeMethodTargetToStatic(
-                            "org.mockito.Mockito nullable(java.lang.Class)", "org.mockito.ArgumentMatchers", null, null).getVisitor());
+                    doAfterVisit(new ChangeMethodTargetToStatic("org.mockito.Mockito nullable(java.lang.Class)", "org.mockito.ArgumentMatchers", null, null, false).getVisitor());
                     doAfterVisit(new AnyStringToNullable().getVisitor());
                 }
                 return super.preVisit(tree, ctx);
