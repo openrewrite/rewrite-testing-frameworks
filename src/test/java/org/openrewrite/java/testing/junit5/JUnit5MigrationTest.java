@@ -480,6 +480,60 @@ class JUnit5MigrationTest implements RewriteTest {
     }
 
     @Test
+    void removeJunitVintageEngineFromGradleBuild() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation 'junit:junit:4.12'
+                  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.7.2'
+              }
+              """,
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+              }
+              tasks.withType(Test).configureEach {
+                  useJUnitPlatform()
+              }
+              """
+          ),
+          srcTestJava(java("""
+                import org.junit.Test;
+
+                public class MyTest {
+                    @Test
+                    public void hello() {
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Test;
+
+                public class MyTest {
+                    @Test
+                    public void hello() {
+                    }
+                }
+                """
+            ))
+        );
+    }
+
+    @Test
     void bumpSurefireOnOlderMavenVersions() {
         rewriteRun(
           spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin"),
