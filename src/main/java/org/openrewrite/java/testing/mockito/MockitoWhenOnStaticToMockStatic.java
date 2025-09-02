@@ -181,7 +181,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 // We know it will have a matching `@Before*` annotation based on callers
                 String matchedAnnotation = requireNonNull(tryGetMatchedAnnotationOnMethodDeclaration(containingMethod, BEFORE));
-                String correspondingAfterFqn = requireNonNull(getCorrespondingAfterAnnotation(matchedAnnotation));
+                String correspondingAfterFqn = matchedAnnotation.replace(".Before", ".After");
                 Expression thenReturnArg = statement.getArguments().get(0);
 
                 List<Statement> statements = javaTemplateMockStatic(String.format(
@@ -212,7 +212,8 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                             Optional<Statement> beforeMethodTestng = afterStatements.stream()
                                     .filter(it -> isMethodDeclarationWithAllAnnotations(it, TESTNG_ANNOTATION, specificBeforeMatcher))
                                     .findFirst();
-                            String template = String.format("@%1$s public%2$s void %3$s() {}", getClassName(correspondingAfterFqn), staticSetup ? " static" : "", safeAfterMethodName);
+                            String afterAnnotationName = correspondingAfterFqn.substring(correspondingAfterFqn.lastIndexOf('.') + 1);
+                            String template = String.format("@%1$s public%2$s void %3$s() {}", afterAnnotationName, staticSetup ? " static" : "", safeAfterMethodName);
                             if (beforeMethodJunit4.isPresent()) {
                                 after = writeAfterMethod(after, beforeMethodJunit4.get(), ctx, template, correspondingAfterFqn, "junit-4");
                             } else if (beforeMethodJunit5.isPresent()) {
@@ -331,20 +332,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     return baseName + (suffix + 1);
                 })
                 .orElse(baseName);
-    }
-
-    private static @Nullable String getClassName(@Nullable String fqn) {
-        if (fqn == null) {
-            return null;
-        }
-        return fqn.substring(fqn.lastIndexOf('.') + 1);
-    }
-
-    private static @Nullable String getCorrespondingAfterAnnotation(@Nullable String annotationFqn) {
-        if (annotationFqn != null) {
-            return annotationFqn.replace(".Before", ".After");
-        }
-        return null;
     }
 
     private static J.@Nullable Identifier findMockedStaticVariable(Cursor scope, String className) {
