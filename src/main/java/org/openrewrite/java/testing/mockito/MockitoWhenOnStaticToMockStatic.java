@@ -22,10 +22,7 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -37,7 +34,6 @@ import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 import static org.openrewrite.java.tree.Flag.Static;
 
 public class MockitoWhenOnStaticToMockStatic extends Recipe {
-
     private static final AnnotationMatcher JUNIT_4_ANNOTATION = new AnnotationMatcher("org.junit.*");
     private static final AnnotationMatcher JUNIT_5_ANNOTATION = new AnnotationMatcher("org.junit.jupiter.api.*");
     private static final AnnotationMatcher TESTNG_ANNOTATION = new AnnotationMatcher("org.testng.annotations.*");
@@ -49,6 +45,8 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     private static final MethodMatcher MOCKITO_WHEN = new MethodMatcher("org.mockito.Mockito when(..)");
     private static final TypeMatcher MOCKED_STATIC = new TypeMatcher("org.mockito.MockedStatic");
+
+    private static final String DEFAULT_AFTER_METHOD = "tearDown";
 
     private int varCounter = 0;
 
@@ -83,7 +81,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 for (Statement statement : statements) {
                     J.MethodInvocation whenArg = getWhenArg(statement);
                     if (whenArg != null) {
-                        String className = getClassName(whenArg);
+                        String className = getClassNameFromInvocation(whenArg);
                         if (className != null) {
                             list.addAll(mockedStatic(m, (J.MethodInvocation) statement, className, whenArg, ctx));
                         }
@@ -104,7 +102,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
                     J.MethodInvocation whenArg = getWhenArg(statement);
                     if (whenArg != null) {
-                        String className = getClassName(whenArg);
+                        String className = getClassNameFromInvocation(whenArg);
                         if (className != null) {
                             Optional<String> nameOfWrappingMockedStatic = tryGetMatchedWrappingResourceName(getCursor(), className);
                             if (nameOfWrappingMockedStatic.isPresent()) {
@@ -135,7 +133,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 return null;
             }
 
-            private @Nullable String getClassName(J.MethodInvocation whenArg) {
+            private @Nullable String getClassNameFromInvocation(J.MethodInvocation whenArg) {
                 J.Identifier clazz = null;
                 // Having a fieldType implies that something is a field rather than a class itself
                 if (whenArg.getSelect() instanceof J.Identifier && ((J.Identifier) whenArg.getSelect()).getFieldType() == null) {
@@ -182,7 +180,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 boolean staticSetup = isMethodDeclarationWithAnnotation(containingMethod, BEFORE_CLASS, BEFORE_ALL, BEFORE_PARAM_CLASS_INV);
                 String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 // We know it will have a matching `@Before*` annotation based on callers
-                String matchedAnnotation = requireNonNull(getAnnotationFqn(tryGetMatchedAnnotationOnMethodDeclaration(containingMethod, BEFORE).get()));
+                String matchedAnnotation = requireNonNull(tryGetMatchedAnnotationOnMethodDeclaration(containingMethod, BEFORE));
                 String correspondingAfterFqn = requireNonNull(getCorrespondingAfterAnnotation(matchedAnnotation));
                 Expression thenReturnArg = statement.getArguments().get(0);
 
@@ -204,7 +202,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         List<Statement> afterStatements = after.getBody().getStatements();
                         AnnotationMatcher specificBeforeMatcher = new AnnotationMatcher(matchedAnnotation);
                         if (classDecl.getBody().getStatements().stream().noneMatch(it -> isMethodDeclarationWithAnnotation(it, new AnnotationMatcher(correspondingAfterFqn)))) {
-                            String safeAfterMethodName = getSafeAfterMethodName("tearDown", afterStatements);
+                            String safeAfterMethodName = getSafeAfterMethodName(DEFAULT_AFTER_METHOD, afterStatements);
                             Optional<Statement> beforeMethodJunit4 = afterStatements.stream()
                                     .filter(it -> isMethodDeclarationWithAllAnnotations(it, JUNIT_4_ANNOTATION, specificBeforeMatcher))
                                     .findFirst();
@@ -214,7 +212,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                             Optional<Statement> beforeMethodTestng = afterStatements.stream()
                                     .filter(it -> isMethodDeclarationWithAllAnnotations(it, TESTNG_ANNOTATION, specificBeforeMatcher))
                                     .findFirst();
-                            String template = String.format("@%1$s public%2$s void %3$s() {}", getSimpleName(correspondingAfterFqn), staticSetup ? " static" : "", safeAfterMethodName);
+                            String template = String.format("@%1$s public%2$s void %3$s() {}", getClassName(correspondingAfterFqn), staticSetup ? " static" : "", safeAfterMethodName);
                             if (beforeMethodJunit4.isPresent()) {
                                 after = writeAfterMethod(after, beforeMethodJunit4.get(), ctx, template, correspondingAfterFqn, "junit-4");
                             } else if (beforeMethodJunit5.isPresent()) {
@@ -310,74 +308,41 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
         return false;
     }
 
-    private static Optional<J.Annotation> tryGetMatchedAnnotationOnMethodDeclaration(@Nullable Statement statement, AnnotationMatcher... matchers) {
-        if (statement instanceof J.MethodDeclaration) {
-            return ((J.MethodDeclaration) statement).getLeadingAnnotations().stream()
+    private static @Nullable String tryGetMatchedAnnotationOnMethodDeclaration(J.@Nullable MethodDeclaration methodDecl, AnnotationMatcher... matchers) {
+        if (methodDecl != null) {
+            return methodDecl.getLeadingAnnotations().stream()
                     .filter(it -> Arrays.stream(matchers).anyMatch(m -> m.matches(it)))
-                    .findFirst();
+                    .findFirst()
+                    .map(J.Annotation::getType)
+                    .map(Object::toString)
+                    .orElse(null);
         }
-        return Optional.empty();
+        return null;
     }
 
     private static String getSafeAfterMethodName(String baseName, List<Statement> existingStatements) {
-        List<String> existingSimilarMethods = existingStatements.stream()
+        return existingStatements.stream()
                 .filter(it -> it instanceof J.MethodDeclaration)
                 .map(it -> ((J.MethodDeclaration) it).getSimpleName())
-                .filter(s -> s.matches("^" + baseName + "([0-9]+)?$"))
-                .collect(toList());
-        if (existingSimilarMethods.isEmpty()) {
-            return baseName;
-        }
-        String newName = baseName;
-        int count = 0;
-        while (existingSimilarMethods.contains(newName)) {
-            newName = baseName + (count += 1);
-        }
-        return newName;
+                .filter(s -> s.matches("^" + baseName + "(\\d+)?$"))
+                .max(Comparator.comparingInt(s -> s.equals(baseName) ? 0 : Integer.parseInt(s.substring(baseName.length()))))
+                .map(last -> {
+                    int suffix = last.equals(baseName) ? 0 : Integer.parseInt(last.substring(baseName.length()));
+                    return baseName + (suffix + 1);
+                })
+                .orElse(baseName);
     }
 
-    private static @Nullable String getSimpleName(@Nullable String fqn) {
+    private static @Nullable String getClassName(@Nullable String fqn) {
         if (fqn == null) {
             return null;
         }
         return fqn.substring(fqn.lastIndexOf('.') + 1);
     }
 
-    private static @Nullable String getAnnotationFqn(J.Annotation annotation) {
-        JavaType annotationType = annotation.getType();
-        if (annotationType != null) {
-            return annotationType.toString();
-        }
-        return null;
-    }
-
     private static @Nullable String getCorrespondingAfterAnnotation(@Nullable String annotationFqn) {
         if (annotationFqn != null) {
-            switch (annotationFqn) {
-                // JUnit 4
-                case "org.junit.Before":
-                    return "org.junit.After";
-                case "org.junit.BeforeClass":
-                    return "org.junit.AfterClass";
-                // JUnit 5
-                case "org.junit.jupiter.api.BeforeEach":
-                    return "org.junit.jupiter.api.AfterEach";
-                case "org.junit.jupiter.api.BeforeAll":
-                    return "org.junit.jupiter.api.AfterAll";
-                case "org.junit.jupiter.api.BeforeParameterizedClassInvocation":
-                    return "org.junit.jupiter.api.AfterParameterizedClassInvocation";
-                // TestNG
-                case "org.testng.annotations.BeforeMethod":
-                    return "org.testng.annotations.AfterMethod";
-                case "org.testng.annotations.BeforeClass":
-                    return "org.testng.annotations.AfterClass";
-                case "org.testng.annotations.BeforeSuite":
-                    return "org.testng.annotations.AfterSuite";
-                case "org.testng.annotations.BeforeGroups":
-                    return "org.testng.annotations.AfterGroups";
-                case "org.testng.annotations.BeforeTest":
-                    return "org.testng.annotations.AfterTest";
-            }
+            return annotationFqn.replace(".Before", ".After");
         }
         return null;
     }
