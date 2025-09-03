@@ -280,8 +280,9 @@ class SimplifyRedundantAssertJChainsTest implements RewriteTest {
               class Test {
                   void test(Object obj, Object other) {
                       assertThat(obj).isNotNull().isEqualTo(other);
-                      assertThat(obj).isNotNull().isNotEqualTo(other);
                       assertThat(obj).isNotNull().isSameAs(other);
+
+                      assertThat(obj).isNotNull().isNotEqualTo(other);
                       assertThat(obj).isNotNull().isNotSameAs(other);
                       assertThat(obj).isNotNull().isInstanceOf(String.class);
                       assertThat(obj).isNotNull().hasSameClassAs(other);
@@ -294,9 +295,10 @@ class SimplifyRedundantAssertJChainsTest implements RewriteTest {
 
               class Test {
                   void test(Object obj, Object other) {
-                      assertThat(obj).isEqualTo(other);
+                      assertThat(obj).isNotNull().isEqualTo(other);
+                      assertThat(obj).isNotNull().isSameAs(other);
+
                       assertThat(obj).isNotEqualTo(other);
-                      assertThat(obj).isSameAs(other);
                       assertThat(obj).isNotSameAs(other);
                       assertThat(obj).isInstanceOf(String.class);
                       assertThat(obj).hasSameClassAs(other);
