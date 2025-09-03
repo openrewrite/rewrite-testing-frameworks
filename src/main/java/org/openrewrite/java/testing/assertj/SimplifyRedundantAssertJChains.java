@@ -39,11 +39,6 @@ public class SimplifyRedundantAssertJChains extends Recipe {
         return "Removes redundant AssertJ assertions when chained methods already provide the same or stronger guarantees.";
     }
 
-    @Override
-    public Set<String> getTags() {
-        return Collections.singleton("testing");
-    }
-
     // Matcher for isNotNull() method - use wildcard to match any AbstractAssert subclass
     private static final MethodMatcher isNotNullMatcher = new MethodMatcher("org.assertj.core.api..* isNotNull()");
 
@@ -91,16 +86,15 @@ public class SimplifyRedundantAssertJChains extends Recipe {
             new MethodMatcher("org.assertj.core.api..* canRead()"),
             new MethodMatcher("org.assertj.core.api..* canWrite()")
     };
+    // Matcher for isNotEmpty() preceded by isNotEmpty()
+    private static final MethodMatcher isNotEmptyMatcher = new MethodMatcher("org.assertj.core.api..* isNotEmpty()");
+    private static final MethodMatcher containsMatcher = new MethodMatcher("org.assertj.core.api..* contains*(..)");
+    // Matcher for isPresent() preceded by another assertion
+    private static final MethodMatcher isPresentMatcher = new MethodMatcher("org.assertj.core.api..* isPresent()");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesMethod<>(isNotNullMatcher), new JavaIsoVisitor<ExecutionContext>() {
-            // Matcher for isNotEmpty() preceded by isNotEmpty()
-            private final MethodMatcher isNotEmptyMatcher = new MethodMatcher("org.assertj.core.api..* isNotEmpty()");
-            private final MethodMatcher containsMatcher = new MethodMatcher("org.assertj.core.api..* contains*(..)");
-            // Matcher for isPresent() preceded by another assertion
-            private final MethodMatcher isPresentMatcher = new MethodMatcher("org.assertj.core.api..* isPresent()");
-
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);

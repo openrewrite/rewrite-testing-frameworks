@@ -34,8 +34,8 @@ class SimplifyRedundantAssertJChainsTest implements RewriteTest {
           .recipe(new SimplifyRedundantAssertJChains());
     }
 
-    @Test
     @DocumentExample
+    @Test
     void simplifyStringAssertions() {
         rewriteRun(
           //language=java
