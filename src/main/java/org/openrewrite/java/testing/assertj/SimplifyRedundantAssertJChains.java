@@ -24,9 +24,6 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 
-import java.util.Collections;
-import java.util.Set;
-
 public class SimplifyRedundantAssertJChains extends Recipe {
 
     @Override
