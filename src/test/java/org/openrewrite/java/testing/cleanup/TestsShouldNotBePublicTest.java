@@ -188,15 +188,25 @@ class TestsShouldNotBePublicTest implements RewriteTest {
     }
 
     @Test
-    void ignoreOverriddenMethod() {
+    void ignoreOverriddenMethod_parentClassIsAbstract() {
         //language=java
         rewriteRun(
           java(
             """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
 
               abstract class AbstractTest {
                   public abstract void testMethod();
+
+                  protected void beforeEach1() {
+                      /* whatever */
+                  }
+
+                  protected void afterEach1() {
+                      /* whatever */
+                  }
               }
 
               class BTest extends AbstractTest {
@@ -205,12 +215,72 @@ class TestsShouldNotBePublicTest implements RewriteTest {
                   @Override
                   public void testMethod() {
                   }
+
+                  @BeforeEach
+                  public void beforeEach1() {
+                      super.beforeEach1();
+                  }
+
+                  @AfterEach
+                  public void afterEach1() {
+                      super.afterEach1();
+                  }
+
+
               }
               """
           )
         );
     }
 
+    @Test
+    void ignoreOverriddenMethod_parentClassIsNotAbstract() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class NotAbstractBase {
+                  protected void testMethod() {
+                      /* whatever */
+                  }
+
+                  protected void beforeEach1() {
+                      /* whatever */
+                  }
+
+                  protected void afterEach1() {
+                      /* whatever */
+                  }
+              }
+
+              class BTest extends NotAbstractBase {
+
+                  @Test
+                  @Override
+                  public void testMethod() {
+                      super.testMethod();
+                  }
+
+                  @BeforeEach
+                  public void beforeEach1() {
+                      super.beforeEach1();
+                  }
+
+                  @AfterEach
+                  public void afterEach1() {
+                      super.afterEach1();
+                  }
+
+
+              }
+              """
+          )
+        );
+    }
     @Test
     void ignorePublicClassWithPublicVariables() {
         //language=java
