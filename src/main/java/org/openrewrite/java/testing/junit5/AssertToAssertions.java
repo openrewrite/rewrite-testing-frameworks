@@ -96,6 +96,9 @@ public class AssertToAssertions extends Recipe {
                     return m;
                 }
             }
+            if ("fail".equals(m.getSimpleName())) {
+                return m;
+            }
 
             if (TypeUtils.isString(firstArg.getType())) {
                 // Move the first arg to be the last argument

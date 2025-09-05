@@ -26,6 +26,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import java.util.regex.Pattern;
 
@@ -754,5 +755,55 @@ class JUnit5MigrationTest implements RewriteTest {
               )
             );
         }
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/804")
+    @Test
+    void dontSwapArgumentsForFailWithMissingTypeInformationInJavadoc() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.Assert;
+              import org.junit.Test;
+
+              public class ReproductionTest {
+
+                  public static void fail(String param1, String param2, String param3) {
+                      // No-op
+                  }
+
+                  /**
+                   * Method documentation with a broken link to {@link #fail(String, String,
+                   * Integer)} (the types in the parameter list don't match).
+                   */
+                  @Test
+                  public void test() {
+                      Assert.assertEquals(42, Integer.parseInt("2a", 16));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+
+              public class ReproductionTest {
+
+                  public static void fail(String param1, String param2, String param3) {
+                      // No-op
+                  }
+
+                  /**
+                   * Method documentation with a broken link to {@link #fail(String, String,
+                   * Integer)} (the types in the parameter list don't match).
+                   */
+                  @Test
+                  public void test() {
+                      Assertions.assertEquals(42, Integer.parseInt("2a", 16));
+                  }
+              }
+              """
+          )
+        );
     }
 }
