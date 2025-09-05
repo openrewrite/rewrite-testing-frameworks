@@ -961,6 +961,47 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifyRedundantAssertJChains
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test(String str) {
+              assertThat(str).isNotNull().isNotEmpty();
+              assertThat(str).isNotNull().isEmpty();
+              assertThat(str).isNotNull().isBlank();
+              assertThat(str).isNotNull().isNotBlank();
+              assertThat(str).isNotNull().hasSize(5);
+              assertThat(str).isNotNull().contains("test");
+              assertThat(str).isNotNull().startsWith("pre");
+              assertThat(str).isNotNull().endsWith("fix");
+              assertThat(str).isNotNull().matches(".*pattern.*");
+              assertThat(str).isNotNull().isEqualToIgnoringCase("TEST");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test(String str) {
+              assertThat(str).isNotEmpty();
+              assertThat(str).isEmpty();
+              assertThat(str).isBlank();
+              assertThat(str).isNotBlank();
+              assertThat(str).hasSize(5);
+              assertThat(str).contains("test");
+              assertThat(str).startsWith("pre");
+              assertThat(str).endsWith("fix");
+              assertThat(str).matches(".*pattern.*");
+              assertThat(str).isEqualToIgnoringCase("TEST");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.StaticImports
 examples:
 - description: ''
