@@ -104,21 +104,17 @@ class AssertJBestPracticesTest implements RewriteTest {
     @Test
     void hamcrestToCollapsedAssertions() {
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "junit-jupiter-api-5", "hamcrest-3")),
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "hamcrest-3")),
           //language=java
           java(
             """
-              import org.junit.jupiter.api.Test;
-
               import java.util.List;
 
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.*;
 
-              public class BiscuitTest {
-                  @Test
-                  public void biscuits() {
+              class BiscuitTest {
+                  void biscuits() {
                       List<String> biscuits = List.of("Ginger", "Chocolate", "Oatmeal");
                       assertThat(biscuits, is(not(nullValue())));
                       assertThat(biscuits, hasSize(3));
@@ -127,19 +123,17 @@ class AssertJBestPracticesTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Test;
-
               import java.util.List;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
               class BiscuitTest {
-                  @Test
                   void biscuits() {
                       List<String> biscuits = List.of("Ginger", "Chocolate", "Oatmeal");
+                      assertThat(biscuits).isNotNull();
                       assertThat(biscuits)
-                          .hasSize(3)
-                          .contains("Chocolate");
+                              .hasSize(3)
+                              .contains("Chocolate");
                   }
               }
               """
