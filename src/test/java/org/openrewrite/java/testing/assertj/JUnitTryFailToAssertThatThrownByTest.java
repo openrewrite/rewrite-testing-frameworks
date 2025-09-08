@@ -178,6 +178,51 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
     }
 
     @Test
+    void assertjFailMethod() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.assertj.core.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  void testExceptionIsThrown() {
+                      try {
+                          someMethodThatShouldThrow();
+                          fail("Expected IllegalArgumentException to be thrown");
+                      } catch (IllegalArgumentException e) {
+                          // Expected exception
+                      }
+                  }
+
+                  void someMethodThatShouldThrow() {
+                      throw new IllegalArgumentException("Invalid argument");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+              class MyTest {
+                  @Test
+                  void testExceptionIsThrown() {
+                      assertThatThrownBy(() -> someMethodThatShouldThrow()).isInstanceOf(IllegalArgumentException.class);
+                  }
+
+                  void someMethodThatShouldThrow() {
+                      throw new IllegalArgumentException("Invalid argument");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void junit4FailMethod() {
         //language=java
         rewriteRun(

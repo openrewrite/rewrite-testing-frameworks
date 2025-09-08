@@ -29,9 +29,11 @@ import java.util.List;
 
 public class JUnitTryFailToAssertThatThrownBy extends Recipe {
 
-    private static final MethodMatcher FAIL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions fail(..)");
+    private static final MethodMatcher ASSERTJ_FAIL_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions fail(..)");
+    private static final MethodMatcher JUPITER_FAIL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions fail(..)");
     private static final MethodMatcher JUNIT4_FAIL_MATCHER = new MethodMatcher("org.junit.Assert fail(..)");
     private static final MethodMatcher JUNIT_FAIL_MATCHER = new MethodMatcher("junit.framework.Assert fail(..)");
+
     private static final MethodMatcher ASSERT_EQUALS_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertEquals(..)");
     private static final MethodMatcher JUNIT4_ASSERT_EQUALS_MATCHER = new MethodMatcher("org.junit.Assert assertEquals(..)");
     private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()", true);
@@ -91,6 +93,7 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
                 // Generate the assertThatThrownBy code
                 String template = buildTemplate(lambdaStatements, exceptionType, assertions);
 
+                maybeRemoveImport("org.assertj.core.api.Assertions.fail");
                 maybeRemoveImport("org.junit.jupiter.api.Assertions.fail");
                 maybeRemoveImport("org.junit.Assert.fail");
                 maybeRemoveImport("junit.framework.Assert.fail");
@@ -118,7 +121,8 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
 
             private boolean isFailMethod(Statement method) {
                 if (method instanceof Expression) {
-                    return FAIL_MATCHER.matches((Expression) method) ||
+                    return ASSERTJ_FAIL_MATCHER.matches((Expression) method) ||
+                            JUPITER_FAIL_MATCHER.matches((Expression) method) ||
                             JUNIT4_FAIL_MATCHER.matches((Expression) method) ||
                             JUNIT_FAIL_MATCHER.matches((Expression) method);
                 }
