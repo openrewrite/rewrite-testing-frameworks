@@ -681,167 +681,168 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               )
             );
         }
-    }
 
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/497")
-    @Test
-    void isMatcherFromCore() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.hamcrest.core.Is.is;
+        @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/497")
+        @Test
+        void isMatcherFromCore() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.core.Is.is;
 
-              import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.Test;
 
-              class DebugTest {
+                  class DebugTest {
+                      class Foo {
+                          int i = 8;
+                      }
+
+                      @Test
+                      void ba() {
+                          assertThat(System.out, is(System.out));
+                          assertThat(new Foo(), is(new Foo()));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class DebugTest {
+                      class Foo {
+                          int i = 8;
+                      }
+
+                      @Test
+                      void ba() {
+                          assertThat(System.out).isEqualTo(System.out);
+                          assertThat(new Foo()).isEqualTo(new Foo());
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+
+        @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/519")
+        @Test
+        void isEqualMatcherFromCore() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.core.IsEqual.equalTo;
+                  import static org.hamcrest.core.IsNot.not;
+                  import static org.hamcrest.core.IsSame.sameInstance;
+
+                  import org.junit.jupiter.api.Test;
+
+                  class DebugTest {
+                      @Test
+                      void ba() {
+                          assertThat(System.out, equalTo(System.out));
+                          assertThat(System.out, not(System.out));
+                          assertThat(System.out, sameInstance(System.out));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class DebugTest {
+                      @Test
+                      void ba() {
+                          assertThat(System.out).isEqualTo(System.out);
+                          assertThat(System.out).isNotEqualTo(System.out);
+                          assertThat(System.out).isSameAs(System.out);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/538")
+        @Test
+        void collectionMatchers() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import java.util.List;
+
+                  import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+                  import static org.hamcrest.MatcherAssert.assertThat;
+
                   class Foo {
-                      int i = 8;
+                      void bar(List<String> list) {
+                          assertThat(list, hasSize(12));
+                      }
                   }
+                  """,
+                """
+                  import java.util.List;
 
-                  @Test
-                  void ba() {
-                      assertThat(System.out, is(System.out));
-                      assertThat(new Foo(), is(new Foo()));
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
+                  import static org.assertj.core.api.Assertions.assertThat;
 
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class DebugTest {
                   class Foo {
-                      int i = 8;
+                      void bar(List<String> list) {
+                          assertThat(list).hasSize(12);
+                      }
                   }
+                  """
+              )
+            );
+        }
 
-                  @Test
-                  void ba() {
-                      assertThat(System.out).isEqualTo(System.out);
-                      assertThat(new Foo()).isEqualTo(new Foo());
+        @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/526")
+        @ParameterizedTest
+        @ValueSource(
+          strings = {
+            "java.util.Date",
+            "java.time.Instant"
+          }
+        )
+        void greaterThanOrEqualToDate(String type) {
+            rewriteRun(
+              java(
+                """
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.greaterThan;
+                  import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+                  import static org.hamcrest.Matchers.lessThan;
+                  import static org.hamcrest.Matchers.lessThanOrEqualTo;
+
+                  class Foo {
+                      void bar(%1$s type) {
+                          assertThat(type, lessThan(type));
+                          assertThat(type, lessThanOrEqualTo(type));
+                          assertThat(type, greaterThan(type));
+                          assertThat(type, greaterThanOrEqualTo(type));
+                      }
                   }
-              }
-              """
-          )
-        );
-    }
+                  """.formatted(type),
+                """
+                  import static org.assertj.core.api.Assertions.assertThat;
 
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/519")
-    @Test
-    void isEqualMatcherFromCore() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.hamcrest.core.IsEqual.equalTo;
-              import static org.hamcrest.core.IsNot.not;
-              import static org.hamcrest.core.IsSame.sameInstance;
-
-              import org.junit.jupiter.api.Test;
-
-              class DebugTest {
-                  @Test
-                  void ba() {
-                      assertThat(System.out, equalTo(System.out));
-                      assertThat(System.out, not(System.out));
-                      assertThat(System.out, sameInstance(System.out));
+                  class Foo {
+                      void bar(%1$s type) {
+                          assertThat(type).isBefore(type);
+                          assertThat(type).isBeforeOrEqualTo(type);
+                          assertThat(type).isAfter(type);
+                          assertThat(type).isAfterOrEqualTo(type);
+                      }
                   }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class DebugTest {
-                  @Test
-                  void ba() {
-                      assertThat(System.out).isEqualTo(System.out);
-                      assertThat(System.out).isNotEqualTo(System.out);
-                      assertThat(System.out).isSameAs(System.out);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/538")
-    @Test
-    void collectionMatchers() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.util.List;
-
-              import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-              import static org.hamcrest.MatcherAssert.assertThat;
-
-              class Foo {
-                  void bar(List<String> list) {
-                      assertThat(list, hasSize(12));
-                  }
-              }
-              """,
-            """
-              import java.util.List;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Foo {
-                  void bar(List<String> list) {
-                      assertThat(list).hasSize(12);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/526")
-    @ParameterizedTest
-    @ValueSource(
-      strings = {
-        "java.util.Date",
-        "java.time.Instant"
-      }
-    )
-    void greaterThanOrEqualToDate(String type) {
-        rewriteRun(
-          java(
-            """
-              import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.hamcrest.Matchers.greaterThan;
-              import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-              import static org.hamcrest.Matchers.lessThan;
-              import static org.hamcrest.Matchers.lessThanOrEqualTo;
-
-              class Foo {
-                  void bar(%1$s type) {
-                      assertThat(type, lessThan(type));
-                      assertThat(type, lessThanOrEqualTo(type));
-                      assertThat(type, greaterThan(type));
-                      assertThat(type, greaterThanOrEqualTo(type));
-                  }
-              }
-              """.formatted(type),
-            """
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Foo {
-                  void bar(%1$s type) {
-                      assertThat(type).isBefore(type);
-                      assertThat(type).isBeforeOrEqualTo(type);
-                      assertThat(type).isAfter(type);
-                      assertThat(type).isAfterOrEqualTo(type);
-                  }
-              }
-              """.formatted(type)
-          )
-        );
+                  """.formatted(type)
+              )
+            );
+        }
     }
 }

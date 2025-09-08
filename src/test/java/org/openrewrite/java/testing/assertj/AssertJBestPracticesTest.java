@@ -101,6 +101,90 @@ class AssertJBestPracticesTest implements RewriteTest {
         );
     }
 
+    @Test
+    void hamcrestToCollapsedAssertions() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "junit-jupiter-api-5", "hamcrest-3")),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.util.List;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.*;
+
+              public class BiscuitTest {
+                  @Test
+                  public void biscuits() {
+                      List<String> biscuits = List.of("Ginger", "Chocolate", "Oatmeal");
+                      assertThat(biscuits, is(not(nullValue())));
+                      assertThat(biscuits, hasSize(3));
+                      assertThat(biscuits, hasItem("Chocolate"));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class BiscuitTest {
+                  @Test
+                  void biscuits() {
+                      List<String> biscuits = List.of("Ginger", "Chocolate", "Oatmeal");
+                      assertThat(biscuits)
+                          .hasSize(3)
+                          .contains("Chocolate");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertjCollapsedAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class BiscuitTest {
+                  void biscuits() {
+                      List<String> biscuits = List.of("Ginger", "Chocolate", "Oatmeal");
+                      assertThat(biscuits).isNotNull();
+                      assertThat(biscuits).hasSize(3);
+                      assertThat(biscuits).contains("Chocolate");
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class BiscuitTest {
+                  void biscuits() {
+                      List<String> biscuits = List.of("Ginger", "Chocolate", "Oatmeal");
+                      assertThat(biscuits)
+                              .hasSize(3)
+                              .contains("Chocolate");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+
     /**
      * Chained AssertJ assertions should be simplified to the corresponding dedicated assertion, as
      * per <a
