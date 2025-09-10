@@ -757,29 +757,34 @@ class JUnit5MigrationTest implements RewriteTest {
         }
     }
 
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/804")
+    /**
+     * The bug this test is reproducing is likely not specific to the JUnit5 upgrade, it's just where it was first
+     * encountered and isolated. It would probably be reproducible using other recipes that reorder method parameters,
+     * provided that a Javadoc link refers to an affected method, and the link has a newline in between the parameters.
+     * If that proves to be true, this test should be generalized and moved to the tests of {@code rewrite-java}.
+     */
+    @Issue("https://github.com/openrewrite/rewrite/issues/6001")
     @Test
-    void dontSwapArgumentsForFailWithMissingTypeInformationInJavadoc() {
+    void correctlyHandleALineBreakInAJavadocLinkThatReferencesAMethodWhoseParametersGetReordered() {
         rewriteRun(
           spec -> spec.typeValidationOptions(TypeValidation.none()),
+          //language=java
           java(
             """
               import org.junit.Assert;
               import org.junit.Test;
 
-              public class ReproductionTest {
-
-                  public static void fail(String param1, String param2, String param3) {
-                      // No-op
-                  }
+              public class UltimateQuestionTest {
 
                   /**
-                   * Method documentation with a broken link to {@link #fail(String, String,
-                   * Integer)} (the types in the parameter list don't match).
+                   * Checks that <i>The Answer to the Ultimate Question of Life, the Universe, and Everything</i>
+                   * is indeed {@code 42}. The test relies on JUnit's {@link Assert#assertEquals(String, long,
+                   * long)} method to verify this.
                    */
                   @Test
-                  public void test() {
-                      Assert.assertEquals(42, Integer.parseInt("2a", 16));
+                  public void testUltimateAnswer() {
+                      int answerToTheUltimateQuestion = 2 * 3 * 7;
+                      Assert.assertEquals("The Ultimate Answer", 42, answerToTheUltimateQuestion);
                   }
               }
               """,
@@ -787,19 +792,17 @@ class JUnit5MigrationTest implements RewriteTest {
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
 
-              public class ReproductionTest {
-
-                  public static void fail(String param1, String param2, String param3) {
-                      // No-op
-                  }
+              public class UltimateQuestionTest {
 
                   /**
-                   * Method documentation with a broken link to {@link #fail(String, String,
-                   * Integer)} (the types in the parameter list don't match).
+                   * Checks that <i>The Answer to the Ultimate Question of Life, the Universe, and Everything</i>
+                   * is indeed {@code 42}. The test relies on JUnit's {@link Assertions#assertEquals(long, long,
+                   * String)} method to verify this.
                    */
                   @Test
-                  public void test() {
-                      Assertions.assertEquals(42, Integer.parseInt("2a", 16));
+                  public void testUltimateAnswer() {
+                      int answerToTheUltimateQuestion = 2 * 3 * 7;
+                      Assertions.assertEquals(42, answerToTheUltimateQuestion, "The Ultimate Answer");
                   }
               }
               """
