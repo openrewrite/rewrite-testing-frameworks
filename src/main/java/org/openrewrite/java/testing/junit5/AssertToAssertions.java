@@ -27,11 +27,10 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
 
 public class AssertToAssertions extends Recipe {
 
@@ -95,31 +94,37 @@ public class AssertToAssertions extends Recipe {
             }
             if (TypeUtils.isString(firstArg.getType())) {
                 // Move the first arg to be the last argument
-
                 List<JRightPadded<Expression>> newArgs = new ArrayList<>(args);
-                List<Space> prefixes = args.stream().map(JRightPadded::getElement).map(Expression::getPrefix).collect(Collectors.toList());
-                List<Space> afters = args.stream().map(JRightPadded::getAfter).collect(Collectors.toList());
                 JRightPadded<Expression> first = newArgs.remove(0);
-                JRightPadded<Expression> lastArg = args.get(args.size() - 1);
-                newArgs.add(first);
-                newArgs = ListUtils.map(newArgs, (i, arg) -> {
-                    if (i == args.size()-1) {
-                        if (!afters.get(i).getComments().isEmpty()) {
-                            return arg
-                                    .withElement(arg.getElement().withPrefix(afters.get(i).withComments(ListUtils.mapLast(afters.get(i).getComments(), c -> c.withSuffix(arg.getElement().getPrefix().getWhitespace())))))
-                                    .withAfter(arg.getAfter().withWhitespace(afters.get(i).getComments().get(afters.get(i).getComments().size() -1).getSuffix()));
-                        } else {
-                            return arg
-                                    .withElement(arg.getElement().withPrefix(prefixes.get(i)))
-                                    .withAfter(arg.getAfter().withWhitespace(afters.get(i).getWhitespace()));
-                        }
-                    } else {
-                        if (!arg.getAfter().getComments().isEmpty()) {
-                            return arg.withAfter(Space.EMPTY);
-                        }
-                    }
-                    return arg.withElement(arg.getElement().withPrefix(prefixes.get(i))).withAfter(Space.EMPTY);
-                });
+
+                // Adjust spacing and comments after shifting the first argument to the end
+                List<Space> prefixes = args.stream().map(JRightPadded::getElement).map(Expression::getPrefix).collect(toList());
+                List<Space> afters = args.stream().map(JRightPadded::getAfter).collect(toList());
+                newArgs = ListUtils.map(
+                        newArgs,
+                        (i, arg) ->
+                            arg.withElement(arg.getElement().withPrefix(prefixes.get(i))).withAfter(Space.EMPTY));
+                if (!afters.get(afters.size() - 1).getComments().isEmpty()) {
+                    newArgs.add(first
+                        .withElement(first.getElement()
+                            .withPrefix(afters.get(afters.size() - 1)
+                                .withComments(ListUtils.mapLast(
+                                    afters.get(afters.size() - 1).getComments(),
+                                    c -> c.withSuffix(first.getElement().getPrefix().getWhitespace()))
+                                )
+                            )
+                        )
+                        .withAfter(first.getAfter()
+                            .withWhitespace(afters.get(afters.size() - 1).getComments().get(afters.get(afters.size() - 1).getComments().size() -1).getSuffix())
+                        )
+                    );
+                } else {
+                    newArgs.add(
+                        first
+                            .withElement(first.getElement().withPrefix(prefixes.get(prefixes.size() - 1)))
+                            .withAfter(first.getAfter().withWhitespace(afters.get(afters.size() - 1).getWhitespace()))
+                    );
+                }
 
                 m = m.getPadding().withArguments(
                         m.getPadding().getArguments().getPadding().withElements(newArgs)
