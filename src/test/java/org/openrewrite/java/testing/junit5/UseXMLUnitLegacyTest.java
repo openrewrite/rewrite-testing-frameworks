@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.regex.Pattern;
+
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.maven.Assertions.pomXml;
 
@@ -50,7 +52,7 @@ class UseXMLUnitLegacyTest implements RewriteTest {
                   </dependencies>
                 </project>
                 """,
-              """
+              spec -> spec.after(after -> """
                 <project>
                   <modelVersion>4.0.0</modelVersion>
                   <groupId>com.example</groupId>
@@ -60,11 +62,11 @@ class UseXMLUnitLegacyTest implements RewriteTest {
                     <dependency>
                       <groupId>org.xmlunit</groupId>
                       <artifactId>xmlunit-legacy</artifactId>
-                      <version>2.10.3</version>
+                      <version>%s</version>
                     </dependency>
                   </dependencies>
                 </project>
-                """
+                """.formatted(Pattern.compile("<version>(2.10.+)</version>").matcher(after).results().findFirst().orElseThrow().group(1)))
             )
           )
         );
