@@ -29,6 +29,7 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 
@@ -51,10 +52,6 @@ public class AssertToAssertions extends Recipe {
 
     public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final JavaType ASSERTION_TYPE = JavaType.buildType("org.junit.Assert");
-
-        private static final List<String> JUNIT_ASSERT_METHOD_NAMES = Arrays.asList(
-                "assertArrayEquals", "assertEquals", "assertFalse", "assertNotEquals", "assertNotNull", "assertNotSame",
-                "assertNull", "assertSame", "assertThrows", "assertTrue", "fail");
 
         @Override
         public @Nullable J preVisit(J tree, ExecutionContext ctx) {
@@ -96,32 +93,33 @@ public class AssertToAssertions extends Recipe {
                     return m;
                 }
             }
-            if ("fail".equals(m.getSimpleName())) {
-                return m;
-            }
-
             if (TypeUtils.isString(firstArg.getType())) {
                 // Move the first arg to be the last argument
 
                 List<JRightPadded<Expression>> newArgs = new ArrayList<>(args);
+                List<Space> prefixes = args.stream().map(JRightPadded::getElement).map(Expression::getPrefix).collect(Collectors.toList());
+                List<Space> afters = args.stream().map(JRightPadded::getAfter).collect(Collectors.toList());
                 JRightPadded<Expression> first = newArgs.remove(0);
                 JRightPadded<Expression> lastArg = args.get(args.size() - 1);
-                boolean lastArgComments = !lastArg.getAfter().getComments().isEmpty();
-
-                newArgs = ListUtils.mapFirst(newArgs, e -> e.withElement(e.getElement().withPrefix(first.getElement().getPrefix())));
-                newArgs = ListUtils.mapLast(newArgs, e -> e.withAfter(Space.EMPTY));
-                newArgs.add(first
-                        .withElement(first.getElement()
-                                .withPrefix(lastArgComments ?
-                                        lastArg.getAfter().withComments(ListUtils.mapLast(
-                                                lastArg.getAfter().getComments(),
-                                                c -> c.withSuffix(lastArg.getElement().getPrefix().getWhitespace()))
-                                        ) :
-                                        lastArg.getElement().getPrefix()
-                                )
-                        )
-                        .withAfter(lastArgComments ? Space.build(lastArg.getAfter().getLastWhitespace(), emptyList()) : lastArg.getAfter())
-                );
+                newArgs.add(first);
+                newArgs = ListUtils.map(newArgs, (i, arg) -> {
+                    if (i == args.size()-1) {
+                        if (!afters.get(i).getComments().isEmpty()) {
+                            return arg
+                                    .withElement(arg.getElement().withPrefix(afters.get(i).withComments(ListUtils.mapLast(afters.get(i).getComments(), c -> c.withSuffix(arg.getElement().getPrefix().getWhitespace())))))
+                                    .withAfter(arg.getAfter().withWhitespace(afters.get(i).getComments().get(afters.get(i).getComments().size() -1).getSuffix()));
+                        } else {
+                            return arg
+                                    .withElement(arg.getElement().withPrefix(prefixes.get(i)))
+                                    .withAfter(arg.getAfter().withWhitespace(afters.get(i).getWhitespace()));
+                        }
+                    } else {
+                        if (!arg.getAfter().getComments().isEmpty()) {
+                            return arg.withAfter(Space.EMPTY);
+                        }
+                    }
+                    return arg.withElement(arg.getElement().withPrefix(prefixes.get(i))).withAfter(Space.EMPTY);
+                });
 
                 m = m.getPadding().withArguments(
                         m.getPadding().getArguments().getPadding().withElements(newArgs)
@@ -134,9 +132,6 @@ public class AssertToAssertions extends Recipe {
         private static boolean isJunitAssertMethod(J.MethodInvocation method) {
             if (method.getMethodType() != null && TypeUtils.isOfType(ASSERTION_TYPE, method.getMethodType().getDeclaringType())) {
                 return !"assertThat".equals(method.getSimpleName());
-            }
-            if (method.getMethodType() == null && JUNIT_ASSERT_METHOD_NAMES.contains(method.getSimpleName())) {
-                return true;
             }
             if (!(method.getSelect() instanceof J.Identifier)) {
                 return false;
