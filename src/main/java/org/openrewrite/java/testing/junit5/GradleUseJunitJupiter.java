@@ -18,20 +18,20 @@ package org.openrewrite.java.testing.junit5;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.gradle.GradleParser;
 import org.openrewrite.gradle.IsBuildGradle;
 import org.openrewrite.gradle.marker.GradleProject;
 import org.openrewrite.groovy.GroovyIsoVisitor;
+import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.groovy.tree.G;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.tree.ParseError;
 
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -115,9 +115,9 @@ public class GradleUseJunitJupiter extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, AtomicBoolean found) {
                 // Groovy gradle scripts being weakly type-attributed means we will miss likely-correct changes if we are too strict
                 if ("useJUnitPlatform".equals(m.getSimpleName()) &&
-                    (m.getArguments().isEmpty() ||
-                     m.getArguments().size() == 1 &&
-                     (m.getArguments().get(0) instanceof J.Empty || m.getArguments().get(0) instanceof J.Lambda))) {
+                        (m.getArguments().isEmpty() ||
+                                m.getArguments().size() == 1 &&
+                                        (m.getArguments().get(0) instanceof J.Empty || m.getArguments().get(0) instanceof J.Lambda))) {
                     found.set(true);
                     return m;
                 }
@@ -240,17 +240,50 @@ public class GradleUseJunitJupiter extends Recipe {
     }
 
     private static Optional<J.MethodInvocation> createTaskUseJUnitPlatform(ExecutionContext ctx, boolean forEachInvocation) {
-        return GradleParser.builder()
+        String snippet = "plugins {\n" +
+                "    id 'java'\n" +
+                "}\n" +
+                "tasks.withType(Test)" + (forEachInvocation ? ".configureEach" : "") + " {\n" +
+                "    useJUnitPlatform()\n" +
+                "}";
+        Optional<SourceFile> parsed = GradleParser.builder()
+                .buildscriptClasspath(new ArrayList<>())
                 .build()
-                .parse(ctx,
-                        "plugins {\n" +
-                                "    id 'java'\n" +
-                                "}\n" +
-                                "tasks.withType(Test)" + (forEachInvocation ? ".configureEach" : "") + " {\n" +
-                                "    useJUnitPlatform()\n" +
-                                "}")
+                .parse(ctx, snippet)
+                .findFirst();
+        // If the Gradle parser fails try the Groovy parser as a fallback where we print the error from the Gradle parser as a marker so that users are not blocked
+        if (parsed.isPresent() && parsed.get() instanceof ParseError) {
+            ParseError error = (ParseError) parsed.get();
+            Optional<ParseExceptionResult> parseExceptionResult = error.getMarkers().findFirst(ParseExceptionResult.class);
+            if (parseExceptionResult.isPresent()) {
+                ParseExceptionResult gradleParsingError = parseExceptionResult.get();
+                parsed = GroovyParser.builder()
+                        .build()
+                        .parse(ctx, snippet)
+                        .findFirst();
+                if (parsed.isPresent() && parsed.get() instanceof G.CompilationUnit) {
+                    // Attach the Gradle parsing error as a marker to the Groovy parsed result so that we can see what went wrong in the Gradle parser
+                    // but still get the desired LST structure from the Groovy parser
+                    parsed = parsed.map(it -> it.withMarkers(it.getMarkers().add(gradleParsingError)));
+                }
+                if (parsed.isPresent() && parsed.get() instanceof ParseError) {
+                    error = (ParseError) parsed.get();
+                    parseExceptionResult = error.getMarkers().findFirst(ParseExceptionResult.class);
+                    if (parseExceptionResult.isPresent()) {
+                        //For debugging purposes we want to know if both parsers failed what the errors were even if this means the recipe will fail
+                        throw new IllegalArgumentException("An error in both gradleParser and GroovyParser happened." +
+                                "\nGradleParser error: " + gradleParsingError.getExceptionType() + " - " + gradleParsingError.getMessage() +
+                                "\nGroovyParser error:" + parseExceptionResult.get().getExceptionType() + " - " + parseExceptionResult.get().getMessage()
+                        );
+                    }
+                }
+            }
+        }
+
+        // This is the happy path where we successfully parsed the snippet and can extract the useJUnitPlatform() method invocation
+        return parsed
+                .filter(G.CompilationUnit.class::isInstance)// This should always be true but we code this defensively to not break unexpectedly
                 .map(G.CompilationUnit.class::cast)
-                .findFirst()
                 .map(it -> (J.MethodInvocation) it.getStatements().get(1));
     }
 }
