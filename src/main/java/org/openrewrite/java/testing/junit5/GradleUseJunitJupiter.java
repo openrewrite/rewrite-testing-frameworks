@@ -247,7 +247,6 @@ public class GradleUseJunitJupiter extends Recipe {
                 "    useJUnitPlatform()\n" +
                 "}";
         Optional<SourceFile> parsed = GradleParser.builder()
-                .buildscriptClasspath(new ArrayList<>())
                 .build()
                 .parse(ctx, snippet)
                 .findFirst();
