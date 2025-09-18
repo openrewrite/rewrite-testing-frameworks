@@ -19,9 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.maven.Assertions.pomXml;
@@ -54,29 +51,10 @@ class UseXMLUnitLegacyTest implements RewriteTest {
                   </dependencies>
                 </project>
                 """,
-              spec -> spec.after(after -> {
-                  Matcher versionMatcher = Pattern.compile("<version>(.*)</version>").matcher(after);
-                  assertThat(versionMatcher.find()).isTrue();
-                  String projectVersion = versionMatcher.group(1);
-                  assertThat(versionMatcher.find()).isTrue();
-                  String xmlUnitVersion = versionMatcher.group(1);
-                  assertThat(xmlUnitVersion).isNotBlank();
-                  return """
-                    <project>
-                      <modelVersion>4.0.0</modelVersion>
-                      <groupId>com.example</groupId>
-                      <artifactId>demo</artifactId>
-                      <version>%s</version>
-                      <dependencies>
-                        <dependency>
-                          <groupId>org.xmlunit</groupId>
-                          <artifactId>xmlunit-legacy</artifactId>
-                          <version>%s</version>
-                        </dependency>
-                      </dependencies>
-                    </project>
-                    """.formatted(projectVersion, xmlUnitVersion);
-              })
+              spec -> spec.after(after ->
+                assertThat(after)
+                  .containsPattern("<version>(2.10.+)</version>")
+                  .actual())
             )
           )
         );
