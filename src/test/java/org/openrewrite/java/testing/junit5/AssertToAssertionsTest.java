@@ -551,4 +551,180 @@ class AssertToAssertionsTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/804")
+    @Test
+    void dontSwapArgumentsForFailWithMissingTypeInformationInJavadoc() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          //language=java
+          java(
+            """
+              import org.junit.Assert;
+
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              public class UltimateQuestionTest {
+
+                  private static final int THE_ANSWER = 42;
+
+                  // The broken `#fail` link in the Javadoc below is referencing a non-existent overload of the
+                  // method intentionally. It should not get modified by the JUnit5 upgrade recipe, since it's
+                  // clearly pointing to a method in this class (albeit with an incorrect parameter list).
+                  /**
+                   * Checks that <i>The Answer to the Ultimate Question of Life, the Universe, and Everything</i>
+                   * is indeed {@value THE_ANSWER} using our own {@link #fail(String, Throwable, Logger)} method.
+                   */
+                  public void testUltimateAnswer() {
+                      int answerToTheUltimateQuestion = 2 * 3 * 7;
+                      if (answerToTheUltimateQuestion != THE_ANSWER) {
+                          Logger logger = Logger.getLogger("UltimateQuestionTest.testUltimateAnswer");
+                          Exception failure = new ArithmeticException("Calculated " + answerToTheUltimateQuestion);
+                          fail("The Ultimate Answer is not " + THE_ANSWER, failure, logger);
+                      }
+                  }
+
+                  /**
+                   * Fails a test with the given message and logs the cause.
+                   *
+                   * @param message Message for the {@link AssertionError}
+                   * @param cause The cause of the test failure
+                   * @param logger The logger to use
+                   * @see Assert#fail(String)
+                   */
+                  private static void fail(String message, Exception cause, Logger logger) {
+                      logger.log(Level.FINE, message, cause);
+                      Assert.fail(message + ": " + cause.getMessage());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              public class UltimateQuestionTest {
+
+                  private static final int THE_ANSWER = 42;
+
+                  // The broken `#fail` link in the Javadoc below is referencing a non-existent overload of the
+                  // method intentionally. It should not get modified by the JUnit5 upgrade recipe, since it's
+                  // clearly pointing to a method in this class (albeit with an incorrect parameter list).
+                  /**
+                   * Checks that <i>The Answer to the Ultimate Question of Life, the Universe, and Everything</i>
+                   * is indeed {@value THE_ANSWER} using our own {@link #fail(String, Throwable, Logger)} method.
+                   */
+                  public void testUltimateAnswer() {
+                      int answerToTheUltimateQuestion = 2 * 3 * 7;
+                      if (answerToTheUltimateQuestion != THE_ANSWER) {
+                          Logger logger = Logger.getLogger("UltimateQuestionTest.testUltimateAnswer");
+                          Exception failure = new ArithmeticException("Calculated " + answerToTheUltimateQuestion);
+                          fail("The Ultimate Answer is not " + THE_ANSWER, failure, logger);
+                      }
+                  }
+
+                  /**
+                   * Fails a test with the given message and logs the cause.
+                   *
+                   * @param message Message for the {@link AssertionError}
+                   * @param cause The cause of the test failure
+                   * @param logger The logger to use
+                   * @see Assertions#fail(String)
+                   */
+                  private static void fail(String message, Exception cause, Logger logger) {
+                      logger.log(Level.FINE, message, cause);
+                      Assertions.fail(message + ": " + cause.getMessage());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/804")
+    @Test
+    void onlyModifyBrokenJavadocLinksThatAreReferencingAJunitAssertMethod() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          //language=java
+          java(
+            """
+              import org.junit.Assert;
+
+              public class UltimateQuestionTest {
+
+                  private static final int THE_ANSWER = 42;
+
+                  // The broken `#assertEquals` link in the Javadoc below is referencing a non-existent overload
+                  // of the method intentionally. It should not get modified by the JUnit5 upgrade recipe, since
+                  // it's clearly pointing to a method in this class (albeit with an incorrect parameter list).
+                  /**
+                   * Checks that <i>The Answer to the Ultimate Question of Life, the Universe, and Everything</i>
+                   * is indeed {@value THE_ANSWER} using our own {@link #assertEquals(String, int, int)} method.
+                   */
+                  public void testUltimateAnswer() {
+                      int answerToTheUltimateQuestion = 2 * 3 * 7;
+                      assertEquals("The Ultimate Answer", THE_ANSWER, answerToTheUltimateQuestion);
+                  }
+
+                  // The broken `#assertEquals` link in the Javadoc below is referencing a non-existent overload
+                  // of the method intentionally. It should become valid after running the JUnit5 upgrade recipe,
+                  // because the missing overload was added there.
+                  /**
+                   * Asserts that {@code expected == actual} for each item in {@code actuals} using JUnit's
+                   * {@link Assert#assertEquals(String, int, int)} method.
+                   *
+                   * @param message Message for the {@link AssertionError} if the assertion fails
+                   * @param expected Expected value
+                   * @param actuals Actual values
+                   */
+                  private static void assertEquals(String message, int expected, int... actuals) {
+                      for (int actual : actuals) {
+                          Assert.assertEquals(message, expected, actual);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+
+              public class UltimateQuestionTest {
+
+                  private static final int THE_ANSWER = 42;
+
+                  // The broken `#assertEquals` link in the Javadoc below is referencing a non-existent overload
+                  // of the method intentionally. It should not get modified by the JUnit5 upgrade recipe, since
+                  // it's clearly pointing to a method in this class (albeit with an incorrect parameter list).
+                  /**
+                   * Checks that <i>The Answer to the Ultimate Question of Life, the Universe, and Everything</i>
+                   * is indeed {@value THE_ANSWER} using our own {@link #assertEquals(String, int, int)} method.
+                   */
+                  public void testUltimateAnswer() {
+                      int answerToTheUltimateQuestion = 2 * 3 * 7;
+                      assertEquals("The Ultimate Answer", THE_ANSWER, answerToTheUltimateQuestion);
+                  }
+
+                  // The broken `#assertEquals` link in the Javadoc below is referencing a non-existent overload
+                  // of the method intentionally. It should become valid after running the JUnit5 upgrade recipe,
+                  // because the missing overload was added there.
+                  /**
+                   * Asserts that {@code expected == actual} for each item in {@code actuals} using JUnit's
+                   * {@link Assertions#assertEquals(int, int, String)} method.
+                   *
+                   * @param message Message for the {@link AssertionError} if the assertion fails
+                   * @param expected Expected value
+                   * @param actuals Actual values
+                   */
+                  private static void assertEquals(String message, int expected, int... actuals) {
+                      for (int actual : actuals) {
+                          Assertions.assertEquals(expected, actual, message);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }
