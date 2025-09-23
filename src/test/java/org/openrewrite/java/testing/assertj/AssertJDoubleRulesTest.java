@@ -40,6 +40,7 @@ class AssertJDoubleRulesTest implements RewriteTest {
 
                       class A {
                           public void test(double d) {
+                              Assertions.assertThat(d).isEqualTo(0);
                               Assertions.assertThat(d).isEqualTo(0.0);
                               Assertions.assertThat(d).isEqualTo(0d);
                           }
@@ -50,6 +51,7 @@ class AssertJDoubleRulesTest implements RewriteTest {
 
                       class A {
                           public void test(double d) {
+                              Assertions.assertThat(d).isZero();
                               Assertions.assertThat(d).isZero();
                               Assertions.assertThat(d).isZero();
                           }
@@ -69,7 +71,9 @@ class AssertJDoubleRulesTest implements RewriteTest {
 
                       class A {
                           public void test(double d) {
+                              Assertions.assertThat(d).isNotEqualTo(0);
                               Assertions.assertThat(d).isNotEqualTo(0.0);
+                              Assertions.assertThat(d).isNotEqualTo(0d);
                           }
                       }
                       """,
@@ -78,6 +82,8 @@ class AssertJDoubleRulesTest implements RewriteTest {
 
                       class A {
                           public void test(double d) {
+                              Assertions.assertThat(d).isNotZero();
+                              Assertions.assertThat(d).isNotZero();
                               Assertions.assertThat(d).isNotZero();
                           }
                       }
@@ -99,6 +105,7 @@ class AssertJDoubleRulesTest implements RewriteTest {
               class A {
                   public void test(double d, double expected) {
                       Assertions.assertThat(d).isEqualTo(expected, offset(0.0));
+                      Assertions.assertThat(d).isEqualTo(expected, offset(0d));
                       Assertions.assertThat(d).isEqualTo(expected, offset(1.0));
                   }
               }
@@ -110,6 +117,7 @@ class AssertJDoubleRulesTest implements RewriteTest {
 
               class A {
                   public void test(double d, double expected) {
+                      Assertions.assertThat(d).isEqualTo(expected);
                       Assertions.assertThat(d).isEqualTo(expected);
                       Assertions.assertThat(d).isCloseTo(expected, offset(1.0));
                   }
@@ -133,7 +141,10 @@ class AssertJDoubleRulesTest implements RewriteTest {
               class A {
                   public void test(double d, double expected) {
                       Assertions.assertThat(d).isCloseTo(expected, offset(0.0));
+                      Assertions.assertThat(d).isCloseTo(expected, offset(0d));
                       Assertions.assertThat(d).isCloseTo(expected, withPercentage(0));
+                      Assertions.assertThat(d).isCloseTo(expected, withPercentage(0.0));
+                      Assertions.assertThat(d).isCloseTo(expected, withPercentage(0d));
                   }
               }
               """,
@@ -142,6 +153,9 @@ class AssertJDoubleRulesTest implements RewriteTest {
 
               class A {
                   public void test(double d, double expected) {
+                      Assertions.assertThat(d).isEqualTo(expected);
+                      Assertions.assertThat(d).isEqualTo(expected);
+                      Assertions.assertThat(d).isEqualTo(expected);
                       Assertions.assertThat(d).isEqualTo(expected);
                       Assertions.assertThat(d).isEqualTo(expected);
                   }
@@ -165,7 +179,10 @@ class AssertJDoubleRulesTest implements RewriteTest {
               class A {
                   public void test(double d, double expected) {
                       Assertions.assertThat(d).isNotCloseTo(expected, offset(0.0));
+                      Assertions.assertThat(d).isNotCloseTo(expected, offset(0d));
                       Assertions.assertThat(d).isNotCloseTo(expected, withPercentage(0));
+                      Assertions.assertThat(d).isNotCloseTo(expected, withPercentage(0.0));
+                      Assertions.assertThat(d).isNotCloseTo(expected, withPercentage(0d));
                   }
               }
               """,
@@ -174,6 +191,9 @@ class AssertJDoubleRulesTest implements RewriteTest {
 
               class A {
                   public void test(double d, double expected) {
+                      Assertions.assertThat(d).isNotEqualTo(expected);
+                      Assertions.assertThat(d).isNotEqualTo(expected);
+                      Assertions.assertThat(d).isNotEqualTo(expected);
                       Assertions.assertThat(d).isNotEqualTo(expected);
                       Assertions.assertThat(d).isNotEqualTo(expected);
                   }
@@ -193,7 +213,9 @@ class AssertJDoubleRulesTest implements RewriteTest {
 
               class A {
                   public void test(double d) {
+                      Assertions.assertThat(d).isEqualTo(1);
                       Assertions.assertThat(d).isEqualTo(1.0);
+                      Assertions.assertThat(d).isEqualTo(1d);
                   }
               }
               """,
@@ -202,6 +224,8 @@ class AssertJDoubleRulesTest implements RewriteTest {
 
               class A {
                   public void test(double d) {
+                      Assertions.assertThat(d).isOne();
+                      Assertions.assertThat(d).isOne();
                       Assertions.assertThat(d).isOne();
                   }
               }
