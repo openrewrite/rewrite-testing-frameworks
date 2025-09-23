@@ -40,7 +40,10 @@ class AssertJFloatRulesTest implements RewriteTest {
 
                       class A {
                           public void test(float f) {
+                              Assertions.assertThat(f).isEqualTo(0);
+                              Assertions.assertThat(f).isEqualTo(0f);
                               Assertions.assertThat(f).isEqualTo(0.0f);
+                              Assertions.assertThat(f).isEqualTo(0F);
                               Assertions.assertThat(f).isEqualTo(0.0F);
                           }
                       }
@@ -50,6 +53,9 @@ class AssertJFloatRulesTest implements RewriteTest {
 
                       class A {
                           public void test(float f) {
+                              Assertions.assertThat(f).isZero();
+                              Assertions.assertThat(f).isZero();
+                              Assertions.assertThat(f).isZero();
                               Assertions.assertThat(f).isZero();
                               Assertions.assertThat(f).isZero();
                           }
@@ -69,6 +75,8 @@ class AssertJFloatRulesTest implements RewriteTest {
 
                       class A {
                           public void test(float f) {
+                              Assertions.assertThat(f).isNotEqualTo(0);
+                              Assertions.assertThat(f).isNotEqualTo(0f);
                               Assertions.assertThat(f).isNotEqualTo(0.0f);
                           }
                       }
@@ -78,6 +86,8 @@ class AssertJFloatRulesTest implements RewriteTest {
 
                       class A {
                           public void test(float f) {
+                              Assertions.assertThat(f).isNotZero();
+                              Assertions.assertThat(f).isNotZero();
                               Assertions.assertThat(f).isNotZero();
                           }
                       }
@@ -98,6 +108,7 @@ class AssertJFloatRulesTest implements RewriteTest {
 
               class A {
                   public void test(float f, float expected) {
+                      Assertions.assertThat(f).isEqualTo(expected, offset(0f));
                       Assertions.assertThat(f).isEqualTo(expected, offset(0.0f));
                       Assertions.assertThat(f).isEqualTo(expected, offset(1.0f));
                   }
@@ -110,6 +121,7 @@ class AssertJFloatRulesTest implements RewriteTest {
 
               class A {
                   public void test(float f, float expected) {
+                      Assertions.assertThat(f).isEqualTo(expected);
                       Assertions.assertThat(f).isEqualTo(expected);
                       Assertions.assertThat(f).isCloseTo(expected, offset(1.0f));
                   }
@@ -166,6 +178,8 @@ class AssertJFloatRulesTest implements RewriteTest {
                   public void test(float f, float expected) {
                       Assertions.assertThat(f).isNotCloseTo(expected, offset(0.0f));
                       Assertions.assertThat(f).isNotCloseTo(expected, withPercentage(0));
+                      Assertions.assertThat(f).isNotCloseTo(expected, withPercentage(0.0));
+                      Assertions.assertThat(f).isNotCloseTo(expected, withPercentage(0d));
                   }
               }
               """,
@@ -174,6 +188,8 @@ class AssertJFloatRulesTest implements RewriteTest {
 
               class A {
                   public void test(float f, float expected) {
+                      Assertions.assertThat(f).isNotEqualTo(expected);
+                      Assertions.assertThat(f).isNotEqualTo(expected);
                       Assertions.assertThat(f).isNotEqualTo(expected);
                       Assertions.assertThat(f).isNotEqualTo(expected);
                   }
@@ -193,6 +209,8 @@ class AssertJFloatRulesTest implements RewriteTest {
 
               class A {
                   public void test(float f) {
+                      Assertions.assertThat(f).isEqualTo(1);
+                      Assertions.assertThat(f).isEqualTo(1f);
                       Assertions.assertThat(f).isEqualTo(1.0f);
                   }
               }
@@ -202,6 +220,8 @@ class AssertJFloatRulesTest implements RewriteTest {
 
               class A {
                   public void test(float f) {
+                      Assertions.assertThat(f).isOne();
+                      Assertions.assertThat(f).isOne();
                       Assertions.assertThat(f).isOne();
                   }
               }
