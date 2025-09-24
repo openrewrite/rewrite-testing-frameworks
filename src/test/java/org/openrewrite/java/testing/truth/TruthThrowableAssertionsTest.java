@@ -30,7 +30,7 @@ class TruthThrowableAssertionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new TruthThrowableAssertions())
                 .parser(JavaParser.fromJavaVersion()
-                        .classpathFromResources(new InMemoryExecutionContext(), "truth", "assertj-core-3"));
+                        .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"));
     }
 
     @DocumentExample

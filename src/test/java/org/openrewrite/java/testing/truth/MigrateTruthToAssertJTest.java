@@ -40,7 +40,7 @@ class MigrateTruthToAssertJTest implements RewriteTest {
                     }
                 })
                 .parser(JavaParser.fromJavaVersion()
-                        .classpathFromResources(new InMemoryExecutionContext(), "truth", "assertj-core-3"));
+                        .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"));
     }
 
     @DocumentExample
