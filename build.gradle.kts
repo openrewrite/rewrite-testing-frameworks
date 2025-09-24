@@ -37,6 +37,9 @@ recipeDependencies {
     parserClasspath("uk.org.webcompere:system-stubs-core:2.1.8")
     parserClasspath("uk.org.webcompere:system-stubs-jupiter:2.1.8")
     parserClasspath("com.google.errorprone:error_prone_core:2.+")
+
+    testParserClasspath("org.powermock:powermock-module-junit4:1.6.5")
+    testParserClasspath("com.github.database-rider:rider-spring:1.18.0")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
