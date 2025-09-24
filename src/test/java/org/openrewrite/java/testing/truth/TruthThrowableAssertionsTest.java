@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.truth;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -29,7 +30,7 @@ class TruthThrowableAssertionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new TruthThrowableAssertions())
                 .parser(JavaParser.fromJavaVersion()
-                        .classpathFromResources("truth", "assertj-core-3"));
+                        .classpathFromResources(new InMemoryExecutionContext(), "truth", "assertj-core-3"));
     }
 
     @DocumentExample
