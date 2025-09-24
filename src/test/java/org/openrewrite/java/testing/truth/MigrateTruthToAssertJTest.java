@@ -344,4 +344,262 @@ class MigrateTruthToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void numericAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
+
+              class Test {
+                  void test() {
+                      int intValue = 42;
+                      long longValue = 100L;
+                      double doubleValue = 3.14;
+                      float floatValue = 2.5f;
+
+                      assertThat(intValue).isEqualTo(42);
+                      assertThat(longValue).isGreaterThan(50L);
+                      assertThat(doubleValue).isLessThan(4.0);
+                      assertThat(floatValue).isNotEqualTo(3.0f);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      int intValue = 42;
+                      long longValue = 100L;
+                      double doubleValue = 3.14;
+                      float floatValue = 2.5f;
+
+                      assertThat(intValue).isEqualTo(42);
+                      assertThat(longValue).isGreaterThan(50L);
+                      assertThat(doubleValue).isLessThan(4.0);
+                      assertThat(floatValue).isNotEqualTo(3.0f);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void booleanAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
+
+              class Test {
+                  void test() {
+                      boolean flag = true;
+                      Boolean boxedFlag = Boolean.FALSE;
+
+                      assertThat(flag).isTrue();
+                      assertThat(boxedFlag).isFalse();
+                      assertThat(flag).isEqualTo(true);
+                      assertThat(boxedFlag).isNotNull();
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      boolean flag = true;
+                      Boolean boxedFlag = Boolean.FALSE;
+
+                      assertThat(flag).isTrue();
+                      assertThat(boxedFlag).isFalse();
+                      assertThat(flag).isEqualTo(true);
+                      assertThat(boxedFlag).isNotNull();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void primitiveArrayAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
+
+              class Test {
+                  void test() {
+                      int[] intArray = {1, 2, 3};
+                      long[] longArray = {10L, 20L};
+                      double[] doubleArray = {1.0, 2.0, 3.0};
+                      boolean[] boolArray = {true, false, true};
+
+                      assertThat(intArray).isNotNull();
+                      assertThat(longArray).isNotEmpty();
+                      assertThat(doubleArray).isEqualTo(new double[]{1.0, 2.0, 3.0});
+                      assertThat(boolArray).isNotNull();
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      int[] intArray = {1, 2, 3};
+                      long[] longArray = {10L, 20L};
+                      double[] doubleArray = {1.0, 2.0, 3.0};
+                      boolean[] boolArray = {true, false, true};
+
+                      assertThat(intArray).isNotNull();
+                      assertThat(longArray).isNotEmpty();
+                      assertThat(doubleArray).isEqualTo(new double[]{1.0, 2.0, 3.0});
+                      assertThat(boolArray).isNotNull();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void truth8OptionalAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth8.assertThat;
+              import java.util.Optional;
+              import java.util.OptionalInt;
+              import java.util.OptionalLong;
+              import java.util.OptionalDouble;
+
+              class Test {
+                  void test() {
+                      Optional<String> optional = Optional.of("value");
+                      OptionalInt optInt = OptionalInt.of(42);
+                      OptionalLong optLong = OptionalLong.of(100L);
+                      OptionalDouble optDouble = OptionalDouble.of(3.14);
+
+                      assertThat(optional).isPresent();
+                      assertThat(optional).hasValue("value");
+                      assertThat(optInt).hasValue(42);
+                      assertThat(optLong).hasValue(100L);
+                      assertThat(optDouble).isPresent();
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import java.util.Optional;
+              import java.util.OptionalInt;
+              import java.util.OptionalLong;
+              import java.util.OptionalDouble;
+
+              class Test {
+                  void test() {
+                      Optional<String> optional = Optional.of("value");
+                      OptionalInt optInt = OptionalInt.of(42);
+                      OptionalLong optLong = OptionalLong.of(100L);
+                      OptionalDouble optDouble = OptionalDouble.of(3.14);
+
+                      assertThat(optional).isPresent();
+                      assertThat(optional).contains("value");
+                      assertThat(optInt).hasValue(42);
+                      assertThat(optLong).hasValue(100L);
+                      assertThat(optDouble).isPresent();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void classAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
+
+              class Test {
+                  void test() {
+                      Class<?> stringClass = String.class;
+                      Class<?> numberClass = Number.class;
+
+                      assertThat(stringClass).isEqualTo(String.class);
+                      assertThat(numberClass).isNotEqualTo(String.class);
+                      assertThat(Integer.class.getSuperclass()).isEqualTo(Number.class);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      Class<?> stringClass = String.class;
+                      Class<?> numberClass = Number.class;
+
+                      assertThat(stringClass).isEqualTo(String.class);
+                      assertThat(numberClass).isNotEqualTo(String.class);
+                      assertThat(Integer.class.getSuperclass()).isEqualTo(Number.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void bigDecimalAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
+              import java.math.BigDecimal;
+
+              class Test {
+                  void test() {
+                      BigDecimal value1 = new BigDecimal("10.00");
+                      BigDecimal value2 = new BigDecimal("10.0");
+                      BigDecimal value3 = new BigDecimal("20.5");
+
+                      assertThat(value1).isEqualTo(new BigDecimal("10.00"));
+                      assertThat(value1).isNotEqualTo(value3);
+                      assertThat(value3).isGreaterThan(value1);
+                      assertThat(value1).isLessThan(value3);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import java.math.BigDecimal;
+
+              class Test {
+                  void test() {
+                      BigDecimal value1 = new BigDecimal("10.00");
+                      BigDecimal value2 = new BigDecimal("10.0");
+                      BigDecimal value3 = new BigDecimal("20.5");
+
+                      assertThat(value1).isEqualTo(new BigDecimal("10.00"));
+                      assertThat(value1).isNotEqualTo(value3);
+                      assertThat(value3).isGreaterThan(value1);
+                      assertThat(value1).isLessThan(value3);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
