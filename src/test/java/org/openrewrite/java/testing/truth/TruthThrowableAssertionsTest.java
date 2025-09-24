@@ -29,134 +29,134 @@ class TruthThrowableAssertionsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new TruthThrowableAssertions())
-                .parser(JavaParser.fromJavaVersion()
-                        .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"));
     }
 
     @DocumentExample
     @Test
     void hasMessageThatContains() {
         rewriteRun(
-                //language=java
-                java(
-                        """
-                                import static com.google.common.truth.Truth.assertThat;
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        Exception e = new IllegalArgumentException("Invalid argument provided");
-                                        assertThat(e).hasMessageThat().contains("Invalid");
-                                    }
-                                }
-                                """,
-                        """
-                                import static com.google.common.truth.Truth.assertThat;
+              class Test {
+                  void test() {
+                      Exception e = new IllegalArgumentException("Invalid argument provided");
+                      assertThat(e).hasMessageThat().contains("Invalid");
+                  }
+              }
+              """,
+            """
+              import static com.google.common.truth.Truth.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        Exception e = new IllegalArgumentException("Invalid argument provided");
-                                        assertThat(e).hasMessageContaining("Invalid");
-                                    }
-                                }
-                                """
-                )
+              class Test {
+                  void test() {
+                      Exception e = new IllegalArgumentException("Invalid argument provided");
+                      assertThat(e).hasMessageContaining("Invalid");
+                  }
+              }
+              """
+          )
         );
     }
 
     @Test
     void hasMessageThatIsEqualTo() {
         rewriteRun(
-                //language=java
-                java(
-                        """
-                                import static com.google.common.truth.Truth.assertThat;
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        Exception e = new RuntimeException("Error occurred");
-                                        assertThat(e).hasMessageThat().isEqualTo("Error occurred");
-                                    }
-                                }
-                                """,
-                        """
-                                import static com.google.common.truth.Truth.assertThat;
+              class Test {
+                  void test() {
+                      Exception e = new RuntimeException("Error occurred");
+                      assertThat(e).hasMessageThat().isEqualTo("Error occurred");
+                  }
+              }
+              """,
+            """
+              import static com.google.common.truth.Truth.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        Exception e = new RuntimeException("Error occurred");
-                                        assertThat(e).hasMessage("Error occurred");
-                                    }
-                                }
-                                """
-                )
+              class Test {
+                  void test() {
+                      Exception e = new RuntimeException("Error occurred");
+                      assertThat(e).hasMessage("Error occurred");
+                  }
+              }
+              """
+          )
         );
     }
 
     @Test
     void hasCauseThatIsInstanceOf() {
         rewriteRun(
-                //language=java
-                java(
-                        """
-                                import static com.google.common.truth.Truth.assertThat;
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        Exception cause = new IllegalStateException("Bad state");
-                                        Exception e = new RuntimeException("Wrapper", cause);
-                                        assertThat(e).hasCauseThat().isInstanceOf(IllegalStateException.class);
-                                    }
-                                }
-                                """,
-                        """
-                                import static com.google.common.truth.Truth.assertThat;
+              class Test {
+                  void test() {
+                      Exception cause = new IllegalStateException("Bad state");
+                      Exception e = new RuntimeException("Wrapper", cause);
+                      assertThat(e).hasCauseThat().isInstanceOf(IllegalStateException.class);
+                  }
+              }
+              """,
+            """
+              import static com.google.common.truth.Truth.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        Exception cause = new IllegalStateException("Bad state");
-                                        Exception e = new RuntimeException("Wrapper", cause);
-                                        assertThat(e).hasCauseInstanceOf(IllegalStateException.class);
-                                    }
-                                }
-                                """
-                )
+              class Test {
+                  void test() {
+                      Exception cause = new IllegalStateException("Bad state");
+                      Exception e = new RuntimeException("Wrapper", cause);
+                      assertThat(e).hasCauseInstanceOf(IllegalStateException.class);
+                  }
+              }
+              """
+          )
         );
     }
 
     @Test
     void multipleThrowableAssertions() {
         rewriteRun(
-                //language=java
-                java(
-                        """
-                                import static com.google.common.truth.Truth.assertThat;
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        Exception cause = new IllegalStateException("Inner error");
-                                        Exception e = new RuntimeException("Outer error", cause);
+              class Test {
+                  void test() {
+                      Exception cause = new IllegalStateException("Inner error");
+                      Exception e = new RuntimeException("Outer error", cause);
 
-                                        assertThat(e).hasMessageThat().contains("Outer");
-                                        assertThat(e).hasMessageThat().isEqualTo("Outer error");
-                                        assertThat(e).hasCauseThat().isInstanceOf(IllegalStateException.class);
-                                    }
-                                }
-                                """,
-                        """
-                                import static com.google.common.truth.Truth.assertThat;
+                      assertThat(e).hasMessageThat().contains("Outer");
+                      assertThat(e).hasMessageThat().isEqualTo("Outer error");
+                      assertThat(e).hasCauseThat().isInstanceOf(IllegalStateException.class);
+                  }
+              }
+              """,
+            """
+              import static com.google.common.truth.Truth.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        Exception cause = new IllegalStateException("Inner error");
-                                        Exception e = new RuntimeException("Outer error", cause);
+              class Test {
+                  void test() {
+                      Exception cause = new IllegalStateException("Inner error");
+                      Exception e = new RuntimeException("Outer error", cause);
 
-                                        assertThat(e).hasMessageContaining("Outer");
-                                        assertThat(e).hasMessage("Outer error");
-                                        assertThat(e).hasCauseInstanceOf(IllegalStateException.class);
-                                    }
-                                }
-                                """
-                )
+                      assertThat(e).hasMessageContaining("Outer");
+                      assertThat(e).hasMessage("Outer error");
+                      assertThat(e).hasCauseInstanceOf(IllegalStateException.class);
+                  }
+              }
+              """
+          )
         );
     }
 }

@@ -29,132 +29,132 @@ class TruthAssertWithMessageToAssertJTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new TruthAssertWithMessageToAssertJ())
-                .parser(JavaParser.fromJavaVersion()
-                        .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"));
     }
 
     @DocumentExample
     @Test
     void simpleMessage() {
         rewriteRun(
-                //language=java
-                java(
-                        """
-                                import static com.google.common.truth.Truth.assertWithMessage;
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertWithMessage;
 
-                                class Test {
-                                    void test() {
-                                        String actual = "hello";
-                                        assertWithMessage("Expected greeting").that(actual).isEqualTo("hello");
-                                    }
-                                }
-                                """,
-                        """
-                                import static org.assertj.core.api.Assertions.assertThat;
+              class Test {
+                  void test() {
+                      String actual = "hello";
+                      assertWithMessage("Expected greeting").that(actual).isEqualTo("hello");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        String actual = "hello";
-                                        assertThat(actual).as("Expected greeting").isEqualTo("hello");
-                                    }
-                                }
-                                """
-                )
+              class Test {
+                  void test() {
+                      String actual = "hello";
+                      assertThat(actual).as("Expected greeting").isEqualTo("hello");
+                  }
+              }
+              """
+          )
         );
     }
 
     @Test
     void formattedMessage() {
         rewriteRun(
-                //language=java
-                java(
-                        """
-                                import static com.google.common.truth.Truth.assertWithMessage;
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertWithMessage;
 
-                                class Test {
-                                    void test() {
-                                        int value = 42;
-                                        assertWithMessage("Value %d is wrong", value).that(value).isEqualTo(42);
-                                    }
-                                }
-                                """,
-                        """
-                                import static org.assertj.core.api.Assertions.assertThat;
+              class Test {
+                  void test() {
+                      int value = 42;
+                      assertWithMessage("Value %d is wrong", value).that(value).isEqualTo(42);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        int value = 42;
-                                        assertThat(value).as(String.format("Value %d is wrong", value)).isEqualTo(42);
-                                    }
-                                }
-                                """
-                )
+              class Test {
+                  void test() {
+                      int value = 42;
+                      assertThat(value).as(String.format("Value %d is wrong", value)).isEqualTo(42);
+                  }
+              }
+              """
+          )
         );
     }
 
     @Test
     void multipleFormattedArguments() {
         rewriteRun(
-                //language=java
-                java(
-                        """
-                                import static com.google.common.truth.Truth.assertWithMessage;
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertWithMessage;
 
-                                class Test {
-                                    void test() {
-                                        String name = "John";
-                                        int age = 30;
-                                        assertWithMessage("Person %s with age %d", name, age).that(name).isNotNull();
-                                    }
-                                }
-                                """,
-                        """
-                                import static org.assertj.core.api.Assertions.assertThat;
+              class Test {
+                  void test() {
+                      String name = "John";
+                      int age = 30;
+                      assertWithMessage("Person %s with age %d", name, age).that(name).isNotNull();
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        String name = "John";
-                                        int age = 30;
-                                        assertThat(name).as(String.format("Person %s with age %d", name, age)).isNotNull();
-                                    }
-                                }
-                                """
-                )
+              class Test {
+                  void test() {
+                      String name = "John";
+                      int age = 30;
+                      assertThat(name).as(String.format("Person %s with age %d", name, age)).isNotNull();
+                  }
+              }
+              """
+          )
         );
     }
 
     @Test
     void chainedAssertions() {
         rewriteRun(
-                //language=java
-                java(
-                        """
-                                import static com.google.common.truth.Truth.assertWithMessage;
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertWithMessage;
 
-                                class Test {
-                                    void test() {
-                                        String text = "hello world";
-                                        assertWithMessage("Text validation").that(text)
-                                                .contains("hello");
-                                        assertWithMessage("Text length").that(text)
-                                                .hasLength(11);
-                                    }
-                                }
-                                """,
-                        """
-                                import static org.assertj.core.api.Assertions.assertThat;
+              class Test {
+                  void test() {
+                      String text = "hello world";
+                      assertWithMessage("Text validation").that(text)
+                              .contains("hello");
+                      assertWithMessage("Text length").that(text)
+                              .hasLength(11);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
 
-                                class Test {
-                                    void test() {
-                                        String text = "hello world";
-                                        assertThat(text).as("Text validation")
-                                                .contains("hello");
-                                        assertThat(text).as("Text length")
-                                                .hasSize(11);
-                                    }
-                                }
-                                """
-                )
+              class Test {
+                  void test() {
+                      String text = "hello world";
+                      assertThat(text).as("Text validation")
+                              .contains("hello");
+                      assertThat(text).as("Text length")
+                              .hasSize(11);
+                  }
+              }
+              """
+          )
         );
     }
 }

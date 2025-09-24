@@ -61,7 +61,7 @@ public class TruthThrowableAssertions extends Recipe {
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                         .build()
                                         .apply(getCursor(), mi.getCoordinates().replace(),
-                                               select.getSelect(), mi.getArguments().get(0));
+                                                select.getSelect(), mi.getArguments().get(0));
                             }
                         }
 
@@ -73,7 +73,7 @@ public class TruthThrowableAssertions extends Recipe {
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                         .build()
                                         .apply(getCursor(), mi.getCoordinates().replace(),
-                                               select.getSelect(), mi.getArguments().get(0));
+                                                select.getSelect(), mi.getArguments().get(0));
                             }
                         }
 
@@ -85,7 +85,7 @@ public class TruthThrowableAssertions extends Recipe {
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                         .build()
                                         .apply(getCursor(), mi.getCoordinates().replace(),
-                                               select.getSelect(), mi.getArguments().get(0));
+                                                select.getSelect(), mi.getArguments().get(0));
                             }
                         }
 
