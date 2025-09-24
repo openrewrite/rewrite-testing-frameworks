@@ -1,0 +1,134 @@
+#
+# Copyright 2024 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.truth.MigrateTruthToAssertJ
+displayName: Migrate Google Truth to AssertJ
+description: Migrate Google Truth assertions to AssertJ assertions.
+tags:
+  - testing
+  - truth
+  - assertj
+recipeList:
+  # Add AssertJ dependency if Truth is being used
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.assertj
+      artifactId: assertj-core
+      version: 3.x
+      onlyIfUsing: com.google.common.truth.*
+      acceptTransitive: true
+
+  # Change Truth imports to AssertJ
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.Truth
+      newFullyQualifiedTypeName: org.assertj.core.api.Assertions
+
+  # Basic assertThat conversions are handled by type change above
+
+  # Convert Truth-specific method names to AssertJ equivalents
+  # String assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractStringAssert containsMatch(..)"
+      newMethodName: matches
+      matchOverrides: false
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractStringAssert doesNotContainMatch(..)"
+      newMethodName: doesNotMatch
+      matchOverrides: false
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractCharSequenceAssert hasLength(int)"
+      newMethodName: hasSize
+      matchOverrides: false
+
+  # Comparable assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractComparableAssert isAtLeast(..)"
+      newMethodName: isGreaterThanOrEqualTo
+      matchOverrides: false
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractComparableAssert isAtMost(..)"
+      newMethodName: isLessThanOrEqualTo
+      matchOverrides: false
+
+  # Object assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractObjectAssert isSameInstanceAs(..)"
+      newMethodName: isSameAs
+      matchOverrides: false
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractObjectAssert isNotSameInstanceAs(..)"
+      newMethodName: isNotSameAs
+      matchOverrides: false
+
+  # Collection/Iterable assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractIterableAssert containsExactlyElementsIn(..)"
+      newMethodName: containsExactlyElementsOf
+      matchOverrides: false
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractIterableAssert containsAnyIn(..)"
+      newMethodName: containsAnyElementsOf
+      matchOverrides: false
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractIterableAssert containsNoneIn(..)"
+      newMethodName: doesNotContainAnyElementsOf
+      matchOverrides: false
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractIterableAssert containsAllIn(..)"
+      newMethodName: containsAll
+      matchOverrides: false
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractIterableAssert containsAllOf(..)"
+      newMethodName: contains
+      matchOverrides: false
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractIterableAssert containsNoneOf(..)"
+      newMethodName: doesNotContain
+      matchOverrides: false
+
+  # Optional assertions (Java 8)
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractOptionalAssert hasValue(..)"
+      newMethodName: contains
+      matchOverrides: false
+
+  # Map assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractMapAssert containsEntries(..)"
+      newMethodName: contains
+      matchOverrides: false
+
+  # Array assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractObjectArrayAssert asList()"
+      newMethodName: containsExactly
+      matchOverrides: false
+
+  # Handle Truth's assert_() static method
+  - org.openrewrite.java.testing.truth.TruthAssertToAssertThat
+
+  # Handle assertWithMessage conversions
+  - org.openrewrite.java.testing.truth.TruthAssertWithMessageToAssertJ
+
+  # Handle Throwable subject's hasMessageThat() chains
+  - org.openrewrite.java.testing.truth.TruthThrowableAssertions
+
+  # Handle custom subjects and assertAbout
+  - org.openrewrite.java.testing.truth.TruthCustomSubjectsToAssertJ
+
+  # Clean up any remaining Truth imports
+  - org.openrewrite.java.RemoveUnusedImports
