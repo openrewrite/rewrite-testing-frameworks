@@ -50,9 +50,8 @@ public class TruthCustomSubjectsToAssertJ extends Recipe {
                     // Truth's assertAbout() is used for custom subjects
                     // AssertJ uses a different pattern with custom assertion classes
                     // This requires manual migration to create custom AssertJ assertion classes
-                    return mi.withMarkers(mi.getMarkers().addIfAbsent(new SearchResult(
-                            getCursor().getParentOrThrow().getValue(),
-                            "Truth's assertAbout() with custom subjects requires manual migration to AssertJ custom assertions")));
+                    return SearchResult.found(mi,
+                            "Truth's assertAbout() with custom subjects requires manual migration to AssertJ custom assertions");
                 }
 
                 return mi;

@@ -48,9 +48,8 @@ public class TruthAssertToAssertThat extends Recipe {
                 if (ASSERT_MATCHER.matches(mi)) {
                     // Truth's assert_() returns a StandardSubjectBuilder which is used differently
                     // For now, we'll mark this as needing manual review
-                    return mi.withMarkers(mi.getMarkers().addIfAbsent(new org.openrewrite.marker.SearchResult(
-                            getCursor().getParentOrThrow().getValue(),
-                            "Truth's assert_() requires manual review for migration to AssertJ")));
+                    return org.openrewrite.marker.SearchResult.found(mi,
+                            "Truth's assert_() requires manual review for migration to AssertJ");
                 }
 
                 return mi;
