@@ -30,7 +30,7 @@ class TruthAssertWithMessageToAssertJTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new TruthAssertWithMessageToAssertJ())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "guava", "junit-4", "truth"));
+            .classpathFromResources(new InMemoryExecutionContext(), "guava", "truth"));
     }
 
     @DocumentExample
