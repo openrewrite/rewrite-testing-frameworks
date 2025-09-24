@@ -31,8 +31,8 @@ public class TruthThrowableAssertions extends Recipe {
     private static final MethodMatcher HAS_MESSAGE_THAT = new MethodMatcher("com.google.common.truth.ThrowableSubject hasMessageThat()");
     private static final MethodMatcher HAS_CAUSE_THAT = new MethodMatcher("com.google.common.truth.ThrowableSubject hasCauseThat()");
     private static final MethodMatcher CONTAINS = new MethodMatcher("com.google.common.truth.StringSubject contains(..)");
-    private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("com.google.common.truth.StringSubject isEqualTo(..)");
-    private static final MethodMatcher IS_INSTANCE_OF = new MethodMatcher("com.google.common.truth.ThrowableSubject isInstanceOf(..)");
+    private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("com.google.common.truth.Subject isEqualTo(..)");
+    private static final MethodMatcher IS_INSTANCE_OF = new MethodMatcher("com.google.common.truth.Subject isInstanceOf(..)");
 
     @Override
     public String getDisplayName() {
