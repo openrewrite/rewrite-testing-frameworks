@@ -35,3 +35,11 @@ packageName: org.openrewrite.java.testing.mockito
 tags:
   - testing
 ---
+type: specs.openrewrite.org/v1beta/category
+name: Google Truth
+packageName: org.openrewrite.java.testing.truth
+description: Migrate Google Truth assertions to other assertion libraries.
+tags:
+  - testing
+  - truth
+---
