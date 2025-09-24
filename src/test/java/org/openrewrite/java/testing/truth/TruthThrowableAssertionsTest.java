@@ -28,7 +28,8 @@ class TruthThrowableAssertionsTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new TruthThrowableAssertions())
+        spec
+          .recipeFromResource("/META-INF/rewrite/truth.yml", "org.openrewrite.java.testing.truth.MigrateTruthToAssertJ")
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "guava", "junit-4", "jspecify", "truth"));
     }

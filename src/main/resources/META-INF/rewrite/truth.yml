@@ -32,6 +32,16 @@ recipeList:
       onlyIfUsing: com.google.common.truth.*
       acceptTransitive: true
 
+  # Handle Truth's assert_() static method
+  - org.openrewrite.java.testing.truth.TruthAssertToAssertThat
+  # Handle assertWithMessage conversions
+  - org.openrewrite.java.testing.truth.TruthAssertWithMessageToAssertJ
+  # Handle Throwable subject's hasMessageThat() chains
+  - org.openrewrite.java.testing.truth.TruthThrowableAssertions
+  # Handle custom subjects and assertAbout
+  - org.openrewrite.java.testing.truth.TruthCustomSubjectsToAssertJ
+
+
   # Convert Truth-specific method names to AssertJ equivalents
   # String assertions
   - org.openrewrite.java.ChangeMethodName:
@@ -118,18 +128,6 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.google.common.truth.ObjectArraySubject
       newFullyQualifiedTypeName: org.assertj.core.api.AbstractObjectArrayAssert
-
-  # Handle Truth's assert_() static method
-  - org.openrewrite.java.testing.truth.TruthAssertToAssertThat
-
-  # Handle assertWithMessage conversions
-  - org.openrewrite.java.testing.truth.TruthAssertWithMessageToAssertJ
-
-  # Handle Throwable subject's hasMessageThat() chains
-  - org.openrewrite.java.testing.truth.TruthThrowableAssertions
-
-  # Handle custom subjects and assertAbout
-  - org.openrewrite.java.testing.truth.TruthCustomSubjectsToAssertJ
 
   # Clean up any remaining Truth imports
   - org.openrewrite.java.RemoveUnusedImports
