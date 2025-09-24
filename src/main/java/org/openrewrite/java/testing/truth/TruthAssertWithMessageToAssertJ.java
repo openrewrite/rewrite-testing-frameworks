@@ -27,7 +27,10 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
+import java.util.Collections;
 import java.util.List;
+
+import static java.util.Collections.nCopies;
 
 public class TruthAssertWithMessageToAssertJ extends Recipe {
 
@@ -62,8 +65,9 @@ public class TruthAssertWithMessageToAssertJ extends Recipe {
                         if (!actualArgs.isEmpty()) {
                             Expression actual = actualArgs.get(0);
 
-                            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
                             maybeRemoveImport("com.google.common.truth.Truth");
+                            maybeRemoveImport("com.google.common.truth.Truth.assertWithMessage");
+                            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
                             if (messageArgs.size() == 1) {
                                 // Simple message
@@ -75,20 +79,14 @@ public class TruthAssertWithMessageToAssertJ extends Recipe {
                                         .apply(getCursor(), mi.getCoordinates().replace(), actual, message);
                             }
                             if (messageArgs.size() > 1) {
+                                // Formatted message - needs to be combined
                                 Object[] formatArgs = new Object[messageArgs.size() + 1];
                                 formatArgs[0] = actual;
-                                formatArgs[1] = messageArgs.get(0);
-                                for (int i = 1; i < messageArgs.size(); i++) {
+                                for (int i = 0; i < messageArgs.size(); i++) {
                                     formatArgs[i + 1] = messageArgs.get(i);
                                 }
-                                String template = "assertThat(#{any()}).as(String.format(#{any()}";
-                                for (int i = 1; i < messageArgs.size(); i++) {
-                                    template += ", #{any()}";
-                                }
-                                template += "))";
-
-                                // Formatted message - needs to be combined
-                                return JavaTemplate.builder(template)
+                                String anyAny = String.join(", ", nCopies(messageArgs.size(), "#{any()}"));
+                                return JavaTemplate.builder("assertThat(#{any()}).as(String.format(" + anyAny + "))")
                                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                         .build()
