@@ -37,15 +37,12 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.StringSubject containsMatch(..)"
       newMethodName: matches
-      matchOverrides: false
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.StringSubject doesNotContainMatch(..)"
       newMethodName: doesNotMatch
-      matchOverrides: false
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.StringSubject hasLength(int)"
       newMethodName: hasSize
-      matchOverrides: false
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.google.common.truth.StringSubject
       newFullyQualifiedTypeName: org.assertj.core.api.AbstractStringAssert
@@ -54,11 +51,9 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.ComparableSubject isAtLeast(..)"
       newMethodName: isGreaterThanOrEqualTo
-      matchOverrides: false
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.ComparableSubject isAtMost(..)"
       newMethodName: isLessThanOrEqualTo
-      matchOverrides: false
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.google.common.truth.ComparableSubject
       newFullyQualifiedTypeName: org.assertj.core.api.AbstractComparableAssert
@@ -67,11 +62,9 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.Subject isSameInstanceAs(..)"
       newMethodName: isSameAs
-      matchOverrides: false
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.Subject isNotSameInstanceAs(..)"
       newMethodName: isNotSameAs
-      matchOverrides: false
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.google.common.truth.Subject
       newFullyQualifiedTypeName: org.assertj.core.api.AbstractObjectAssert
@@ -80,27 +73,21 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.IterableSubject containsExactlyElementsIn(..)"
       newMethodName: containsExactlyElementsOf
-      matchOverrides: false
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.IterableSubject containsAnyIn(..)"
       newMethodName: containsAnyElementsOf
-      matchOverrides: false
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.IterableSubject containsNoneIn(..)"
       newMethodName: doesNotContainAnyElementsOf
-      matchOverrides: false
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.IterableSubject containsAllIn(..)"
       newMethodName: containsAll
-      matchOverrides: false
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.IterableSubject containsAllOf(..)"
       newMethodName: contains
-      matchOverrides: false
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.IterableSubject containsNoneOf(..)"
       newMethodName: doesNotContain
-      matchOverrides: false
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.google.common.truth.IterableSubject
       newFullyQualifiedTypeName: org.assertj.core.api.AbstractIterableAssert
@@ -109,7 +96,6 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.OptionalSubject hasValue(..)"
       newMethodName: contains
-      matchOverrides: false
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.google.common.truth.OptionalSubject
       newFullyQualifiedTypeName: org.assertj.core.api.AbstractOptionalAssert
@@ -121,7 +107,6 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "org.assertj.core.api.AbstractMapAssert containsEntries(..)"
       newMethodName: contains
-      matchOverrides: false
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.google.common.truth.MapSubject
       newFullyQualifiedTypeName: org.assertj.core.api.AbstractMapAssert
@@ -130,15 +115,9 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "com.google.common.truth.ObjectArraySubject asList()"
       newMethodName: containsExactly
-      matchOverrides: false
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.google.common.truth.ObjectArraySubject
       newFullyQualifiedTypeName: org.assertj.core.api.AbstractObjectArrayAssert
-
-  # Now change Truth imports to AssertJ
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: com.google.common.truth.Truth
-      newFullyQualifiedTypeName: org.assertj.core.api.Assertions
 
   # Handle Truth's assert_() static method
   - org.openrewrite.java.testing.truth.TruthAssertToAssertThat
@@ -154,3 +133,8 @@ recipeList:
 
   # Clean up any remaining Truth imports
   - org.openrewrite.java.RemoveUnusedImports
+
+  # Now change Truth imports to AssertJ
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.Truth
+      newFullyQualifiedTypeName: org.assertj.core.api.Assertions

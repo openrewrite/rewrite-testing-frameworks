@@ -309,4 +309,39 @@ class MigrateTruthToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void chainedRecipes() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertWithMessage;
+
+              class Test {
+                  void test() {
+                      String text = "hello world";
+                      assertWithMessage("Text validation").that(text)
+                              .contains("hello");
+                      assertWithMessage("Text length").that(text)
+                              .hasLength(11);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      String text = "hello world";
+                      assertThat(text).as("Text validation")
+                              .contains("hello");
+                      assertThat(text).as("Text length")
+                              .hasSize(11);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
