@@ -76,23 +76,13 @@ public class TruthAssertWithMessageToAssertJ extends Recipe {
                             }
                             if (messageArgs.size() > 1) {
                                 // Formatted message - needs to be combined
-                                Object[] formatArgs = new Object[messageArgs.size() + 1];
-                                formatArgs[0] = actual;
-                                formatArgs[1] = messageArgs.get(0);
-                                for (int i = 1; i < messageArgs.size(); i++) {
-                                    formatArgs[i + 1] = messageArgs.get(i);
-                                }
-                                String template = "assertThat(#{any()}).as(String.format(#{any()}";
-                                for (int i = 1; i < messageArgs.size(); i++) {
-                                    template += ", #{any()}";
-                                }
-                                template += "))";
-
-                                return JavaTemplate.builder(template)
+                                return JavaTemplate.builder("assertThat(#{any()}).as(String.format(#{any()}, #{}))")
                                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                         .build()
-                                        .apply(getCursor(), mi.getCoordinates().replace(), formatArgs);
+                                        .apply(getCursor(), mi.getCoordinates().replace(),
+                                                actual, messageArgs.get(0),
+                                                messageArgs.subList(1, messageArgs.size()).toArray());
                             }
                         }
                     }
