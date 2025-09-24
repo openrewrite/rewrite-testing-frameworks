@@ -31,7 +31,7 @@ class MigrateTruthToAssertJTest implements RewriteTest {
         spec
           .recipeFromResource("/META-INF/rewrite/truth.yml", "org.openrewrite.java.testing.truth.MigrateTruthToAssertJ")
           .parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "truth"));
+          .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "truth"));
     }
 
     @DocumentExample
