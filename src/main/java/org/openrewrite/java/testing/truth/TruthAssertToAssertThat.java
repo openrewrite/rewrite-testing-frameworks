@@ -23,6 +23,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.marker.SearchResult;
 
 public class TruthAssertToAssertThat extends Recipe {
 
@@ -48,8 +49,7 @@ public class TruthAssertToAssertThat extends Recipe {
                 if (ASSERT_MATCHER.matches(mi)) {
                     // Truth's assert_() returns a StandardSubjectBuilder which is used differently
                     // For now, we'll mark this as needing manual review
-                    return org.openrewrite.marker.SearchResult.found(mi,
-                            "Truth's assert_() requires manual review for migration to AssertJ");
+                    return SearchResult.found(mi, "Truth's assert_() requires manual review for migration to AssertJ");
                 }
 
                 return mi;
