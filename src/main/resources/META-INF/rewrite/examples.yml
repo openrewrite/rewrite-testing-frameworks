@@ -185,6 +185,7 @@ examples:
 
       class A {
           public void test(double d) {
+              Assertions.assertThat(d).isEqualTo(0);
               Assertions.assertThat(d).isEqualTo(0.0);
               Assertions.assertThat(d).isEqualTo(0d);
           }
@@ -194,6 +195,7 @@ examples:
 
       class A {
           public void test(double d) {
+              Assertions.assertThat(d).isZero();
               Assertions.assertThat(d).isZero();
               Assertions.assertThat(d).isZero();
           }
@@ -210,7 +212,10 @@ examples:
 
       class A {
           public void test(float f) {
+              Assertions.assertThat(f).isEqualTo(0);
+              Assertions.assertThat(f).isEqualTo(0f);
               Assertions.assertThat(f).isEqualTo(0.0f);
+              Assertions.assertThat(f).isEqualTo(0F);
               Assertions.assertThat(f).isEqualTo(0.0F);
           }
       }
@@ -219,6 +224,9 @@ examples:
 
       class A {
           public void test(float f) {
+              Assertions.assertThat(f).isZero();
+              Assertions.assertThat(f).isZero();
+              Assertions.assertThat(f).isZero();
               Assertions.assertThat(f).isZero();
               Assertions.assertThat(f).isZero();
           }
@@ -300,23 +308,6 @@ examples:
 - description: ''
   sources:
   - before: |
-      import static org.assertj.core.api.Assertions.assertThat;
-      class Test {
-          void test() {
-              assertThat("test").isEqualTo("");
-          }
-      }
-    after: |
-      import static org.assertj.core.api.Assertions.assertThat;
-      class Test {
-          void test() {
-              assertThat("test").isEmpty();
-          }
-      }
-    language: java
-- description: ''
-  sources:
-  - before: |
       import static org.testng.Assert.fail;
 
       class Test {
@@ -334,6 +325,23 @@ examples:
               fail("foo");
               fail("foo", new IllegalStateException());
               fail();
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+      class Test {
+          void test() {
+              assertThat("test").isEqualTo("");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+      class Test {
+          void test() {
+              assertThat("test").isEmpty();
           }
       }
     language: java
@@ -3481,61 +3489,6 @@ examples:
 - description: ''
   sources:
   - before: |
-      package mockito.example;
-
-      import java.util.List;
-      import java.util.Map;
-      import java.util.Set;
-
-      import static org.mockito.ArgumentMatchers.anyListOf;
-      import static org.mockito.ArgumentMatchers.anySetOf;
-      import static org.mockito.ArgumentMatchers.anyMapOf;
-      import static org.mockito.Mockito.mock;
-      import static org.mockito.Mockito.when;
-
-      public class MockitoVarargMatcherTest {
-          public static class Foo {
-              public boolean addList(List<String> strings) { return true; }
-              public boolean addSet(Set<String> strings) { return true; }
-              public boolean addMap(Map<String, String> stringStringMap) { return true; }
-          }
-          public void usesVarargMatcher() {
-              Foo mockFoo = mock(Foo.class);
-              when(mockFoo.addList(anyListOf(String.class))).thenReturn(true);
-              when(mockFoo.addSet(anySetOf(String.class))).thenReturn(true);
-              when(mockFoo.addMap(anyMapOf(String.class, String.class))).thenReturn(true);
-          }
-      }
-    after: |
-      package mockito.example;
-
-      import java.util.List;
-      import java.util.Map;
-      import java.util.Set;
-
-      import static org.mockito.ArgumentMatchers.anyList;
-      import static org.mockito.ArgumentMatchers.anySet;
-      import static org.mockito.ArgumentMatchers.anyMap;
-      import static org.mockito.Mockito.mock;
-      import static org.mockito.Mockito.when;
-
-      public class MockitoVarargMatcherTest {
-          public static class Foo {
-              public boolean addList(List<String> strings) { return true; }
-              public boolean addSet(Set<String> strings) { return true; }
-              public boolean addMap(Map<String, String> stringStringMap) { return true; }
-          }
-          public void usesVarargMatcher() {
-              Foo mockFoo = mock(Foo.class);
-              when(mockFoo.addList(anyList())).thenReturn(true);
-              when(mockFoo.addSet(anySet())).thenReturn(true);
-              when(mockFoo.addMap(anyMap())).thenReturn(true);
-          }
-      }
-    language: java
-- description: ''
-  sources:
-  - before: |
       plugins {
           id 'java-library'
       }
@@ -3668,6 +3621,61 @@ examples:
       </project>
     path: pom.xml
     language: xml
+- description: ''
+  sources:
+  - before: |
+      package mockito.example;
+
+      import java.util.List;
+      import java.util.Map;
+      import java.util.Set;
+
+      import static org.mockito.ArgumentMatchers.anyListOf;
+      import static org.mockito.ArgumentMatchers.anySetOf;
+      import static org.mockito.ArgumentMatchers.anyMapOf;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      public class MockitoVarargMatcherTest {
+          public static class Foo {
+              public boolean addList(List<String> strings) { return true; }
+              public boolean addSet(Set<String> strings) { return true; }
+              public boolean addMap(Map<String, String> stringStringMap) { return true; }
+          }
+          public void usesVarargMatcher() {
+              Foo mockFoo = mock(Foo.class);
+              when(mockFoo.addList(anyListOf(String.class))).thenReturn(true);
+              when(mockFoo.addSet(anySetOf(String.class))).thenReturn(true);
+              when(mockFoo.addMap(anyMapOf(String.class, String.class))).thenReturn(true);
+          }
+      }
+    after: |
+      package mockito.example;
+
+      import java.util.List;
+      import java.util.Map;
+      import java.util.Set;
+
+      import static org.mockito.ArgumentMatchers.anyList;
+      import static org.mockito.ArgumentMatchers.anySet;
+      import static org.mockito.ArgumentMatchers.anyMap;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      public class MockitoVarargMatcherTest {
+          public static class Foo {
+              public boolean addList(List<String> strings) { return true; }
+              public boolean addSet(Set<String> strings) { return true; }
+              public boolean addMap(Map<String, String> stringStringMap) { return true; }
+          }
+          public void usesVarargMatcher() {
+              Foo mockFoo = mock(Foo.class);
+              when(mockFoo.addList(anyList())).thenReturn(true);
+              when(mockFoo.addSet(anySet())).thenReturn(true);
+              when(mockFoo.addMap(anyMap())).thenReturn(true);
+          }
+      }
+    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.Mockito1to4Migration
@@ -4232,6 +4240,87 @@ examples:
       class Foo {
           String method(ContainerState container) {
               return container.getHost();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.truth.MigrateTruthToAssertJ
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static com.google.common.truth.Truth.assertThat;
+
+      class Test {
+          void test() {
+              String actual = "hello";
+              assertThat(actual).isEqualTo("hello");
+              assertThat(actual).isNotEqualTo("world");
+              assertThat(actual).isNotNull();
+              assertThat(actual).contains("ell");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test() {
+              String actual = "hello";
+              assertThat(actual).isEqualTo("hello");
+              assertThat(actual).isNotEqualTo("world");
+              assertThat(actual).isNotNull();
+              assertThat(actual).contains("ell");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.truth.TruthAssertWithMessageToAssertJ
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static com.google.common.truth.Truth.assertWithMessage;
+
+      class Test {
+          void test() {
+              String actual = "hello";
+              assertWithMessage("Expected greeting").that(actual).isEqualTo("hello");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test() {
+              String actual = "hello";
+              assertThat(actual).as("Expected greeting").isEqualTo("hello");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.truth.TruthThrowableAssertions
+examples:
+- description: ''
+  sources:
+  - before: |
+      import static com.google.common.truth.Truth.assertThat;
+
+      class Test {
+          void test() {
+              Exception e = new IllegalArgumentException("Invalid argument provided");
+              assertThat(e).hasMessageThat().contains("Invalid");
+          }
+      }
+    after: |
+      import static com.google.common.truth.Truth.assertThat;
+
+      class Test {
+          void test() {
+              Exception e = new IllegalArgumentException("Invalid argument provided");
+              assertThat(e).hasMessageContaining("Invalid");
           }
       }
     language: java

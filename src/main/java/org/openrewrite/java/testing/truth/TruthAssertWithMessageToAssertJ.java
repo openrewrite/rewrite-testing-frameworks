@@ -73,15 +73,16 @@ public class TruthAssertWithMessageToAssertJ extends Recipe {
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                         .build()
                                         .apply(getCursor(), mi.getCoordinates().replace(), actual, message);
-                            } else if (messageArgs.size() > 1) {
+                            }
+                            if (messageArgs.size() > 1) {
                                 // Formatted message - needs to be combined
                                 return JavaTemplate.builder("assertThat(#{any()}).as(String.format(#{any()}, #{}))")
                                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                         .build()
                                         .apply(getCursor(), mi.getCoordinates().replace(),
-                                               actual, messageArgs.get(0),
-                                               messageArgs.subList(1, messageArgs.size()).toArray());
+                                                actual, messageArgs.get(0),
+                                                messageArgs.subList(1, messageArgs.size()).toArray());
                             }
                         }
                     }

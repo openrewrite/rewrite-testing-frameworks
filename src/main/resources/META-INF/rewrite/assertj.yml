@@ -38,6 +38,7 @@ recipeList:
       newFullyQualifiedTypeName: org.assertj.core.annotation.CheckReturnValue
 
   - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
+  - org.openrewrite.java.testing.truth.MigrateTruthToAssertJ
   - org.openrewrite.java.testing.assertj.FestToAssertj
   - org.openrewrite.java.testing.assertj.JUnitToAssertj
   - org.openrewrite.java.testing.testng.TestNgToAssertj
