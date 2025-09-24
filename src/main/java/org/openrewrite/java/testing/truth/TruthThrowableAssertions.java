@@ -28,6 +28,7 @@ import org.openrewrite.java.tree.J;
 
 public class TruthThrowableAssertions extends Recipe {
 
+    private static final MethodMatcher ASSERT_THAT = new MethodMatcher("com.google.common.truth.Truth assertThat(..)");
     private static final MethodMatcher HAS_MESSAGE_THAT = new MethodMatcher("com.google.common.truth.ThrowableSubject hasMessageThat()");
     private static final MethodMatcher HAS_CAUSE_THAT = new MethodMatcher("com.google.common.truth.ThrowableSubject hasCauseThat()");
     private static final MethodMatcher CONTAINS = new MethodMatcher("com.google.common.truth.StringSubject contains(..)");
@@ -57,11 +58,20 @@ public class TruthThrowableAssertions extends Recipe {
                         if (CONTAINS.matches(mi) && mi.getSelect() instanceof J.MethodInvocation) {
                             J.MethodInvocation select = (J.MethodInvocation) mi.getSelect();
                             if (HAS_MESSAGE_THAT.matches(select)) {
-                                return JavaTemplate.builder("#{any(org.assertj.core.api.AbstractThrowableAssert)}.hasMessageContaining(#{any()})")
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                        .build()
-                                        .apply(getCursor(), mi.getCoordinates().replace(),
-                                                select.getSelect(), mi.getArguments().get(0));
+                                if (ASSERT_THAT.matches(select.getSelect())) {
+                                    J.MethodInvocation assertThat = (J.MethodInvocation) select.getSelect();
+                                    maybeRemoveImport("com.google.common.truth.Truth");
+                                    maybeRemoveImport("com.google.common.truth.Truth.assertThat");
+                                    maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+                                    return JavaTemplate.builder("assertThat(#{any()}).hasMessageContaining(#{any()})")
+                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                            .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                            .build()
+                                            .apply(getCursor(),
+                                                    mi.getCoordinates().replace(),
+                                                    assertThat.getArguments().get(0),
+                                                    mi.getArguments().get(0));
+                                }
                             }
                         }
 
@@ -69,11 +79,20 @@ public class TruthThrowableAssertions extends Recipe {
                         if (IS_EQUAL_TO.matches(mi) && mi.getSelect() instanceof J.MethodInvocation) {
                             J.MethodInvocation select = (J.MethodInvocation) mi.getSelect();
                             if (HAS_MESSAGE_THAT.matches(select)) {
-                                return JavaTemplate.builder("#{any(org.assertj.core.api.AbstractThrowableAssert)}.hasMessage(#{any()})")
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                        .build()
-                                        .apply(getCursor(), mi.getCoordinates().replace(),
-                                                select.getSelect(), mi.getArguments().get(0));
+                                if (ASSERT_THAT.matches(select.getSelect())) {
+                                    J.MethodInvocation assertThat = (J.MethodInvocation) select.getSelect();
+                                    maybeRemoveImport("com.google.common.truth.Truth");
+                                    maybeRemoveImport("com.google.common.truth.Truth.assertThat");
+                                    maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+                                    return JavaTemplate.builder("assertThat(#{any()}).hasMessage(#{any()})")
+                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                            .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                            .build()
+                                            .apply(getCursor(),
+                                                    mi.getCoordinates().replace(),
+                                                    assertThat.getArguments().get(0),
+                                                    mi.getArguments().get(0));
+                                }
                             }
                         }
 
@@ -81,11 +100,20 @@ public class TruthThrowableAssertions extends Recipe {
                         if (IS_INSTANCE_OF.matches(mi) && mi.getSelect() instanceof J.MethodInvocation) {
                             J.MethodInvocation select = (J.MethodInvocation) mi.getSelect();
                             if (HAS_CAUSE_THAT.matches(select)) {
-                                return JavaTemplate.builder("#{any(org.assertj.core.api.AbstractThrowableAssert)}.hasCauseInstanceOf(#{any()})")
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                        .build()
-                                        .apply(getCursor(), mi.getCoordinates().replace(),
-                                                select.getSelect(), mi.getArguments().get(0));
+                                if (ASSERT_THAT.matches(select.getSelect())) {
+                                    J.MethodInvocation assertThat = (J.MethodInvocation) select.getSelect();
+                                    maybeRemoveImport("com.google.common.truth.Truth");
+                                    maybeRemoveImport("com.google.common.truth.Truth.assertThat");
+                                    maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+                                    return JavaTemplate.builder("assertThat(#{any()}).hasCauseInstanceOf(#{any()})")
+                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                            .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                            .build()
+                                            .apply(getCursor(),
+                                                    mi.getCoordinates().replace(),
+                                                    assertThat.getArguments().get(0),
+                                                    mi.getArguments().get(0));
+                                }
                             }
                         }
 

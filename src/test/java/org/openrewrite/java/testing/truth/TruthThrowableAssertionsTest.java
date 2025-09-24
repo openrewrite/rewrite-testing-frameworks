@@ -50,7 +50,7 @@ class TruthThrowableAssertionsTest implements RewriteTest {
               }
               """,
             """
-              import static com.google.common.truth.Truth.assertThat;
+              import static org.assertj.core.api.Assertions.assertThat;
 
               class Test {
                   void test() {
@@ -79,7 +79,7 @@ class TruthThrowableAssertionsTest implements RewriteTest {
               }
               """,
             """
-              import static com.google.common.truth.Truth.assertThat;
+              import static org.assertj.core.api.Assertions.assertThat;
 
               class Test {
                   void test() {
@@ -109,7 +109,7 @@ class TruthThrowableAssertionsTest implements RewriteTest {
               }
               """,
             """
-              import static com.google.common.truth.Truth.assertThat;
+              import static org.assertj.core.api.Assertions.assertThat;
 
               class Test {
                   void test() {
@@ -143,7 +143,7 @@ class TruthThrowableAssertionsTest implements RewriteTest {
               }
               """,
             """
-              import static com.google.common.truth.Truth.assertThat;
+              import static org.assertj.core.api.Assertions.assertThat;
 
               class Test {
                   void test() {
