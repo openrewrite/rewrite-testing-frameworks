@@ -39,7 +39,6 @@ recipeDependencies {
     parserClasspath("com.google.errorprone:error_prone_core:2.+")
 
     testParserClasspath("com.google.guava:guava:33.5.0-jre")
-    testParserClasspath("org.jspecify:jspecify:1.0.0")
     testParserClasspath("com.github.database-rider:rider-spring:1.18.0")
     testParserClasspath("com.google.truth:truth:1.4.5")
     testParserClasspath("org.powermock:powermock-module-junit4:1.6.5")
