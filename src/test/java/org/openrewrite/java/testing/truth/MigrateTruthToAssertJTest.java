@@ -28,26 +28,16 @@ class MigrateTruthToAssertJTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new org.openrewrite.Recipe() {
-              @Override
-              public String getDisplayName() {
-                  return "Migrate Truth to AssertJ";
-              }
-
-              @Override
-              public String getDescription() {
-                  return "Migrate Google Truth assertions to AssertJ.";
-              }
-          })
+        spec
+          .recipeFromResource("/META-INF/rewrite/truth.yml", "org.openrewrite.java.testing.truth.MigrateTruthToAssertJ")
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"));
+          .classpathFromResources(new InMemoryExecutionContext(), "truth"));
     }
 
     @DocumentExample
     @Test
     void basicAssertThatConversion() {
         rewriteRun(
-          spec -> spec.recipeFromResources("META-INF/rewrite/truth.yml", "org.openrewrite.java.testing.truth.MigrateTruthToAssertJ"),
           //language=java
           java(
             """
@@ -83,7 +73,6 @@ class MigrateTruthToAssertJTest implements RewriteTest {
     @Test
     void stringAssertions() {
         rewriteRun(
-          spec -> spec.recipeFromResources("META-INF/rewrite/truth.yml", "org.openrewrite.java.testing.truth.MigrateTruthToAssertJ"),
           //language=java
           java(
             """
@@ -121,7 +110,6 @@ class MigrateTruthToAssertJTest implements RewriteTest {
     @Test
     void comparableAssertions() {
         rewriteRun(
-          spec -> spec.recipeFromResources("META-INF/rewrite/truth.yml", "org.openrewrite.java.testing.truth.MigrateTruthToAssertJ"),
           //language=java
           java(
             """
@@ -157,7 +145,6 @@ class MigrateTruthToAssertJTest implements RewriteTest {
     @Test
     void objectAssertions() {
         rewriteRun(
-          spec -> spec.recipeFromResources("META-INF/rewrite/truth.yml", "org.openrewrite.java.testing.truth.MigrateTruthToAssertJ"),
           //language=java
           java(
             """
@@ -197,7 +184,6 @@ class MigrateTruthToAssertJTest implements RewriteTest {
     @Test
     void collectionAssertions() {
         rewriteRun(
-          spec -> spec.recipeFromResources("META-INF/rewrite/truth.yml", "org.openrewrite.java.testing.truth.MigrateTruthToAssertJ"),
           //language=java
           java(
             """
@@ -243,7 +229,6 @@ class MigrateTruthToAssertJTest implements RewriteTest {
     @Test
     void optionalAssertions() {
         rewriteRun(
-          spec -> spec.recipeFromResources("META-INF/rewrite/truth.yml", "org.openrewrite.java.testing.truth.MigrateTruthToAssertJ"),
           //language=java
           java(
             """
@@ -283,7 +268,6 @@ class MigrateTruthToAssertJTest implements RewriteTest {
     @Test
     void mapAssertions() {
         rewriteRun(
-          spec -> spec.recipeFromResources("META-INF/rewrite/truth.yml", "org.openrewrite.java.testing.truth.MigrateTruthToAssertJ"),
           //language=java
           java(
             """

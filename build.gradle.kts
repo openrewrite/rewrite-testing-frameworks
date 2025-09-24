@@ -40,6 +40,7 @@ recipeDependencies {
 
     testParserClasspath("org.powermock:powermock-module-junit4:1.6.5")
     testParserClasspath("com.github.database-rider:rider-spring:1.18.0")
+    testParserClasspath("com.google.truth:truth:1.4.5")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
