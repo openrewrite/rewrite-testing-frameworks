@@ -22,7 +22,9 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.srcTestJava;
 
 class MigrateTruthToAssertJTest implements RewriteTest {
 
@@ -601,5 +603,46 @@ class MigrateTruthToAssertJTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Test
+    void addDependency_assertj_core() {
+        rewriteRun(
+          buildGradle(
+            """
+              plugins {
+                  id 'java'
+              }
+              """,
+            """
+              plugins {
+                  id 'java'
+              }
+              dependencies {
+                  testImplementation 'org.assertj:assertj-core:3.27.6'
+              }
+              """),
+          //language=java
+          srcTestJava(java(
+            """
+              import com.google.common.truth.Truth;
+
+              class Test {
+                  void test() {
+                      Truth.assertThat(true).isTrue();
+                  }
+              }
+              """,
+            """
+              import org.assertj.core.api.Assertions;
+
+              class Test {
+                  void test() {
+                      Assertions.assertThat(true).isTrue();
+                  }
+              }
+              """
+          )
+        ));
     }
 }
