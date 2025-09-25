@@ -54,67 +54,58 @@ public class TruthThrowableAssertions extends Recipe {
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
 
+                        if (!(mi.getSelect() instanceof J.MethodInvocation)) {
+                            return mi;
+                        }
+                        J.MethodInvocation hasMethod = (J.MethodInvocation) mi.getSelect();
+                        if (!ASSERT_THAT.matches(hasMethod.getSelect())) {
+                            return mi;
+                        }
+                        J.MethodInvocation assertThat = (J.MethodInvocation) hasMethod.getSelect();
+
                         // Handle hasMessageThat().contains(text)
-                        if (CONTAINS.matches(mi) && mi.getSelect() instanceof J.MethodInvocation) {
-                            J.MethodInvocation select = (J.MethodInvocation) mi.getSelect();
-                            if (HAS_MESSAGE_THAT.matches(select)) {
-                                if (ASSERT_THAT.matches(select.getSelect())) {
-                                    J.MethodInvocation assertThat = (J.MethodInvocation) select.getSelect();
-                                    maybeRemoveImport("com.google.common.truth.Truth");
-                                    maybeRemoveImport("com.google.common.truth.Truth.assertThat");
-                                    maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-                                    return JavaTemplate.builder("assertThat(#{any()}).hasMessageContaining(#{any()})")
-                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                            .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                            .build()
-                                            .apply(getCursor(),
-                                                    mi.getCoordinates().replace(),
-                                                    assertThat.getArguments().get(0),
-                                                    mi.getArguments().get(0));
-                                }
-                            }
+                        if (CONTAINS.matches(mi) && HAS_MESSAGE_THAT.matches(hasMethod)) {
+                            maybeRemoveImport("com.google.common.truth.Truth");
+                            maybeRemoveImport("com.google.common.truth.Truth.assertThat");
+                            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+                            return JavaTemplate.builder("assertThat(#{any()}).hasMessageContaining(#{any()})")
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                    .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                    .build()
+                                    .apply(getCursor(),
+                                            mi.getCoordinates().replace(),
+                                            assertThat.getArguments().get(0),
+                                            mi.getArguments().get(0));
                         }
 
                         // Handle hasMessageThat().isEqualTo(text)
-                        if (IS_EQUAL_TO.matches(mi) && mi.getSelect() instanceof J.MethodInvocation) {
-                            J.MethodInvocation select = (J.MethodInvocation) mi.getSelect();
-                            if (HAS_MESSAGE_THAT.matches(select)) {
-                                if (ASSERT_THAT.matches(select.getSelect())) {
-                                    J.MethodInvocation assertThat = (J.MethodInvocation) select.getSelect();
-                                    maybeRemoveImport("com.google.common.truth.Truth");
-                                    maybeRemoveImport("com.google.common.truth.Truth.assertThat");
-                                    maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-                                    return JavaTemplate.builder("assertThat(#{any()}).hasMessage(#{any()})")
-                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                            .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                            .build()
-                                            .apply(getCursor(),
-                                                    mi.getCoordinates().replace(),
-                                                    assertThat.getArguments().get(0),
-                                                    mi.getArguments().get(0));
-                                }
-                            }
+                        if (IS_EQUAL_TO.matches(mi) && HAS_MESSAGE_THAT.matches(hasMethod)) {
+                            maybeRemoveImport("com.google.common.truth.Truth");
+                            maybeRemoveImport("com.google.common.truth.Truth.assertThat");
+                            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+                            return JavaTemplate.builder("assertThat(#{any()}).hasMessage(#{any()})")
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                    .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                    .build()
+                                    .apply(getCursor(),
+                                            mi.getCoordinates().replace(),
+                                            assertThat.getArguments().get(0),
+                                            mi.getArguments().get(0));
                         }
 
                         // Handle hasCauseThat().isInstanceOf(type)
-                        if (IS_INSTANCE_OF.matches(mi) && mi.getSelect() instanceof J.MethodInvocation) {
-                            J.MethodInvocation select = (J.MethodInvocation) mi.getSelect();
-                            if (HAS_CAUSE_THAT.matches(select)) {
-                                if (ASSERT_THAT.matches(select.getSelect())) {
-                                    J.MethodInvocation assertThat = (J.MethodInvocation) select.getSelect();
-                                    maybeRemoveImport("com.google.common.truth.Truth");
-                                    maybeRemoveImport("com.google.common.truth.Truth.assertThat");
-                                    maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-                                    return JavaTemplate.builder("assertThat(#{any()}).hasCauseInstanceOf(#{any()})")
-                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                            .staticImports("org.assertj.core.api.Assertions.assertThat")
-                                            .build()
-                                            .apply(getCursor(),
-                                                    mi.getCoordinates().replace(),
-                                                    assertThat.getArguments().get(0),
-                                                    mi.getArguments().get(0));
-                                }
-                            }
+                        if (IS_INSTANCE_OF.matches(mi) && HAS_CAUSE_THAT.matches(hasMethod)) {
+                            maybeRemoveImport("com.google.common.truth.Truth");
+                            maybeRemoveImport("com.google.common.truth.Truth.assertThat");
+                            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+                            return JavaTemplate.builder("assertThat(#{any()}).hasCauseInstanceOf(#{any()})")
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                    .staticImports("org.assertj.core.api.Assertions.assertThat")
+                                    .build()
+                                    .apply(getCursor(),
+                                            mi.getCoordinates().replace(),
+                                            assertThat.getArguments().get(0),
+                                            mi.getArguments().get(0));
                         }
 
                         return mi;
