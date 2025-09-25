@@ -4274,6 +4274,27 @@ examples:
           }
       }
     language: java
+- description: ''
+  sources:
+  - before: |
+      import static com.google.common.truth.Truth.assertThat;
+
+      class Test {
+          void test() {
+              Exception e = new IllegalArgumentException("Invalid argument provided");
+              assertThat(e).hasMessageThat().contains("Invalid");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test() {
+              Exception e = new IllegalArgumentException("Invalid argument provided");
+              assertThat(e).hasMessageContaining("Invalid");
+          }
+      }
+    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.truth.TruthAssertWithMessageToAssertJ
@@ -4296,31 +4317,6 @@ examples:
           void test() {
               String actual = "hello";
               assertThat(actual).as("Expected greeting").isEqualTo("hello");
-          }
-      }
-    language: java
----
-type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.truth.TruthThrowableAssertions
-examples:
-- description: ''
-  sources:
-  - before: |
-      import static com.google.common.truth.Truth.assertThat;
-
-      class Test {
-          void test() {
-              Exception e = new IllegalArgumentException("Invalid argument provided");
-              assertThat(e).hasMessageThat().contains("Invalid");
-          }
-      }
-    after: |
-      import static com.google.common.truth.Truth.assertThat;
-
-      class Test {
-          void test() {
-              Exception e = new IllegalArgumentException("Invalid argument provided");
-              assertThat(e).hasMessageContaining("Invalid");
           }
       }
     language: java

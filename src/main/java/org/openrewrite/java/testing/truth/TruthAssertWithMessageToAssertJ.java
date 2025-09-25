@@ -27,7 +27,6 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.nCopies;
