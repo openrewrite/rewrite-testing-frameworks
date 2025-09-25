@@ -140,6 +140,7 @@ recipeList:
       oldFullyQualifiedTypeName: org.jbehave.core.junit.JUnitStories
       newFullyQualifiedTypeName: org.jbehave.core.junit.JupiterStories
   - org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5
+  - org.openrewrite.java.testing.byteman.BytemanJUnit4ToBytemanJUnit5
   - org.openrewrite.java.testing.dbrider.MigrateDbRiderSpringToDbRiderJUnit5
 ---
 type: specs.openrewrite.org/v1beta/recipe

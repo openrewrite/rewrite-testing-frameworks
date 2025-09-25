@@ -31,6 +31,6 @@ recipeList:
       newArtifactId: byteman-bmunit5
       newVersion: x
   - org.openrewrite.java.ReplaceAnnotation:
-      annotationPatternToReplace: '@RunWith(BMUnitRunner.class)'
-      annotationTemplateToInsert: '@WithByteman'
-      classpathResourceName: annotations
+      annotationPatternToReplace: '@org.junit.runner.RunWith(org.jboss.byteman.contrib.bmunit.BMUnitRunner.class)'
+      annotationTemplateToInsert: '@org.jboss.byteman.contrib.bmunit.WithByteman'
+      classpathResourceName: byteman-bmunit5
