@@ -44,10 +44,10 @@ class BytemanJUnit4ToBytemanJUnit5Test implements RewriteTest {
           //language=java
           java(
             """
+              import org.jboss.byteman.contrib.bmunit.BMRule;
+              import org.jboss.byteman.contrib.bmunit.BMUnitRunner;
               import org.junit.Test;
               import org.junit.runner.RunWith;
-              import org.jboss.byteman.contrib.bmunit.BMUnitRunner;
-              import org.jboss.byteman.contrib.bmunit.BMRule;
 
               @RunWith(BMUnitRunner.class)
               public class BytemanTest {
@@ -64,9 +64,9 @@ class BytemanJUnit4ToBytemanJUnit5Test implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
-              import org.jboss.byteman.contrib.bmunit.WithByteman;
               import org.jboss.byteman.contrib.bmunit.BMRule;
+              import org.jboss.byteman.contrib.bmunit.WithByteman;
+              import org.junit.Test;
 
               @WithByteman
               public class BytemanTest {
