@@ -28,10 +28,19 @@ name: AssertJ
 packageName: org.openrewrite.java.testing.assertj
 tags:
   - testing
+  - assertj
 ---
 type: specs.openrewrite.org/v1beta/category
 name: Mockito
 packageName: org.openrewrite.java.testing.mockito
 tags:
   - testing
+  - mockito
+---
+type: specs.openrewrite.org/v1beta/category
+name: Google Truth
+packageName: org.openrewrite.java.testing.truth
+tags:
+  - testing
+  - truth
 ---

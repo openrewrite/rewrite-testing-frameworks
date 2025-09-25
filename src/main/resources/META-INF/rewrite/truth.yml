@@ -1,0 +1,223 @@
+#
+# Copyright 2024 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.truth.MigrateTruthToAssertJ
+displayName: Migrate Google Truth to AssertJ
+description: Migrate Google Truth assertions to AssertJ assertions.
+tags:
+  - testing
+  - truth
+  - assertj
+recipeList:
+  # Add AssertJ dependency if Truth is being used
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.assertj
+      artifactId: assertj-core
+      version: 3.x
+      onlyIfUsing: com.google.common.truth.*
+      acceptTransitive: true
+
+  # Handle Truth's assert_() static method
+  - org.openrewrite.java.testing.truth.TruthAssertToAssertThat
+  # Handle assertWithMessage conversions
+  - org.openrewrite.java.testing.truth.TruthAssertWithMessageToAssertJ
+  # Handle Throwable subject's hasMessageThat() chains
+  - org.openrewrite.java.testing.truth.TruthThrowableAssertions
+  # Handle custom subjects and assertAbout
+  - org.openrewrite.java.testing.truth.TruthCustomSubjectsToAssertJ
+
+  # Generic hasLength mappings that work without full type resolution
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth..* hasLength(int)"
+      newMethodName: hasSize
+
+  # Convert Truth-specific method names to AssertJ equivalents
+  # String assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.StringSubject containsMatch(..)"
+      newMethodName: matches
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.StringSubject doesNotContainMatch(..)"
+      newMethodName: doesNotMatch
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.StringSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractStringAssert
+
+  # Comparable assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.ComparableSubject isAtLeast(..)"
+      newMethodName: isGreaterThanOrEqualTo
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.ComparableSubject isAtMost(..)"
+      newMethodName: isLessThanOrEqualTo
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.ComparableSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractComparableAssert
+
+  # Object assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.Subject isSameInstanceAs(..)"
+      newMethodName: isSameAs
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.Subject isNotSameInstanceAs(..)"
+      newMethodName: isNotSameAs
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.Subject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractObjectAssert
+
+  # Collection/Iterable assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.IterableSubject containsExactlyElementsIn(..)"
+      newMethodName: containsExactlyElementsOf
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.IterableSubject containsAnyIn(..)"
+      newMethodName: containsAnyElementsOf
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.IterableSubject containsNoneIn(..)"
+      newMethodName: doesNotContainAnyElementsOf
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.IterableSubject containsAllIn(..)"
+      newMethodName: containsAll
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.IterableSubject containsAllOf(..)"
+      newMethodName: contains
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.IterableSubject containsNoneOf(..)"
+      newMethodName: doesNotContain
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.IterableSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractIterableAssert
+
+  # Optional assertions (Java 8)
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.OptionalSubject hasValue(..)"
+      newMethodName: contains
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.OptionalSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractOptionalAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.GuavaOptionalSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractOptionalAssert
+
+  # Map assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.assertj.core.api.AbstractMapAssert containsEntries(..)"
+      newMethodName: contains
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.MapSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractMapAssert
+
+  # Array assertions
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "com.google.common.truth.ObjectArraySubject asList()"
+      newMethodName: containsExactly
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.ObjectArraySubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractObjectArrayAssert
+
+  # Boolean assertions
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.BooleanSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractBooleanAssert
+
+  # Numeric subject types
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.IntegerSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractIntegerAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.LongSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractLongAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.DoubleSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractDoubleAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.FloatSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractFloatAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.BigDecimalSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractBigDecimalAssert
+
+  # Primitive array subjects
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.PrimitiveBooleanArraySubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractBooleanArrayAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.PrimitiveIntArraySubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractIntArrayAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.PrimitiveLongArraySubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractLongArrayAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.PrimitiveDoubleArraySubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractDoubleArrayAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.PrimitiveFloatArraySubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractFloatArrayAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.PrimitiveByteArraySubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractByteArrayAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.PrimitiveCharArraySubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractCharArrayAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.PrimitiveShortArraySubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractShortArrayAssert
+
+  # Truth8 (Java 8+) types
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.Truth8
+      newFullyQualifiedTypeName: org.assertj.core.api.Assertions
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.OptionalIntSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractOptionalIntAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.OptionalLongSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractOptionalLongAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.OptionalDoubleSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractOptionalDoubleAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.StreamSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.ListAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.IntStreamSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractIntArrayAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.LongStreamSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractLongArrayAssert
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.PathSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractPathAssert
+
+  # Class subject
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.ClassSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractClassAssert
+
+  # Throwable subject
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.ThrowableSubject
+      newFullyQualifiedTypeName: org.assertj.core.api.AbstractThrowableAssert
+
+  # Clean up any remaining Truth imports
+  - org.openrewrite.java.RemoveUnusedImports
+
+  # Now change Truth imports to AssertJ
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.google.common.truth.Truth
+      newFullyQualifiedTypeName: org.assertj.core.api.Assertions
