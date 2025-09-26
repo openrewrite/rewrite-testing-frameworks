@@ -2754,60 +2754,6 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.junit5.MigrateJUnit514Deprecations
-examples:
-- description: ''
-  sources:
-  - before: |
-      import org.junit.platform.engine.reporting.OutputDirectoryProvider;
-
-      public class TestClass {
-          private OutputDirectoryProvider provider;
-
-          public void useProvider(OutputDirectoryProvider p) {
-              this.provider = p;
-          }
-      }
-    after: |
-      import org.junit.platform.commons.support.OutputDirectoryCreator;
-
-      public class TestClass {
-          private OutputDirectoryCreator provider;
-
-          public void useProvider(OutputDirectoryCreator p) {
-              this.provider = p;
-          }
-      }
-    language: java
----
-type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.junit5.MigrateJUnit514MethodChanges
-examples:
-- description: ''
-  sources:
-  - before: |
-      import org.junit.platform.engine.discovery.DiscoverySelectors;
-      import java.util.Set;
-
-      public class TestClass {
-          public void selectResource() {
-              Set<String> paths = Set.of("/test.xml");
-              DiscoverySelectors.selectClasspathResource(paths);
-          }
-      }
-    after: |
-      import org.junit.platform.engine.discovery.DiscoverySelectors;
-      import java.util.Set;
-
-      public class TestClass {
-          public void selectResource() {
-              Set<String> paths = Set.of("/test.xml");
-              DiscoverySelectors.selectClasspathResourceByName(paths);
-          }
-      }
-    language: java
----
-type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.MigrateJUnitTestCase
 examples:
 - description: ''
@@ -3298,69 +3244,25 @@ examples:
   sources:
   - before: |
       import org.junit.platform.engine.reporting.OutputDirectoryProvider;
-      import org.junit.jupiter.api.extension.MediaType;
-      import org.junit.jupiter.params.support.ParameterInfo;
 
-      public class TestConfig {
+      public class TestClass {
           private OutputDirectoryProvider provider;
-          private MediaType mediaType = MediaType.APPLICATION_JSON_UTF_8;
-          private ParameterInfo info;
+
+          public void useProvider(OutputDirectoryProvider p) {
+              this.provider = p;
+          }
       }
     after: |
-      import org.junit.platform.commons.support.OutputDirectoryCreator;
-      import org.junit.jupiter.api.MediaType;
-      import org.junit.jupiter.params.ParameterInfo;
+      import org.junit.platform.engine.OutputDirectoryCreator;
 
-      public class TestConfig {
+      public class TestClass {
           private OutputDirectoryCreator provider;
-          private MediaType mediaType = MediaType.APPLICATION_JSON;
-          private ParameterInfo info;
+
+          public void useProvider(OutputDirectoryCreator p) {
+              this.provider = p;
+          }
       }
     language: java
-  - before: |
-      <project>
-        <modelVersion>4.0.0</modelVersion>
-        <groupId>com.example</groupId>
-        <artifactId>test-project</artifactId>
-        <version>1.0.0</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.10.0</version>
-            <scope>test</scope>
-          </dependency>
-          <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-commons</artifactId>
-            <version>1.10.0</version>
-            <scope>test</scope>
-          </dependency>
-        </dependencies>
-      </project>
-    after: |
-      <project>
-        <modelVersion>4.0.0</modelVersion>
-        <groupId>com.example</groupId>
-        <artifactId>test-project</artifactId>
-        <version>1.0.0</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.14.0</version>
-            <scope>test</scope>
-          </dependency>
-          <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-commons</artifactId>
-            <version>1.14.0</version>
-            <scope>test</scope>
-          </dependency>
-        </dependencies>
-      </project>
-    path: pom.xml
-    language: xml
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UseAssertSame

@@ -23,7 +23,7 @@ tags:
   - testing
   - junit
 recipeList:
-  - org.openrewrite.java.testing.junit5.JUnit4to5Migration
+  - org.openrewrite.java.testing.junit5.UpgradeToJUnit514
   - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5
   - org.openrewrite.java.testing.junit5.StaticImports
   - org.openrewrite.java.testing.junit5.CleanupAssertions
@@ -141,7 +141,6 @@ recipeList:
       newFullyQualifiedTypeName: org.jbehave.core.junit.JupiterStories
   - org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5
   - org.openrewrite.java.testing.dbrider.MigrateDbRiderSpringToDbRiderJUnit5
-  - org.openrewrite.java.testing.junit5.UpgradeToJUnit514
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
@@ -343,6 +342,7 @@ tags:
   - testing
   - junit
 recipeList:
+  - org.openrewrite.java.testing.junit5.JUnit4to5Migration
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.junit
       artifactId: junit-bom
