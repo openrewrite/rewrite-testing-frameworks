@@ -62,8 +62,8 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     private static final String TEMP_DIR = "org.junit.jupiter.api.io.TempDir";
     private static final AnnotationMatcher CLASS_RULE = new AnnotationMatcher("@org.junit.ClassRule");
     private static final AnnotationMatcher RULE = new AnnotationMatcher("@org.junit.Rule");
-    private static final MethodMatcher NEW_TEMPORARY_FOLDER = new MethodMatcher(TEMPORARY_FOLDER + "<constructor>()");
-    private static final MethodMatcher NEW_TEMPORARY_FOLDER_WITH_ARG = new MethodMatcher(TEMPORARY_FOLDER + "<constructor>(java.io.File)");
+    private static final MethodMatcher NEW_TEMPORARY_FOLDER = new MethodMatcher(TEMPORARY_FOLDER + " <init>()");
+    private static final MethodMatcher NEW_TEMPORARY_FOLDER_WITH_ARG = new MethodMatcher(TEMPORARY_FOLDER + " <init>(java.io.File)");
 
     @Override
     public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
