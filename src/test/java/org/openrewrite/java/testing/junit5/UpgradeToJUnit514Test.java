@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2025 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,99 +17,44 @@ package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
-import org.openrewrite.config.Environment;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.maven.Assertions.pomXml;
 
 class UpgradeToJUnit514Test implements RewriteTest {
-
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .typeValidationOptions(TypeValidation.none())
-          .recipe(Environment.builder()
-            .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
-            .build()
-            .activateRecipes("org.openrewrite.java.testing.junit5.UpgradeToJUnit514"));
+          .recipeFromResources("org.openrewrite.java.testing.junit5.UpgradeToJUnit514");
     }
 
     @DocumentExample
     @Test
-    void upgradeJUnitDependenciesAndMigrateCode() {
+    void migrateOutputDirectoryProvider() {
         rewriteRun(
-          //language=xml
-          pomXml(
-            """
-              <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>com.example</groupId>
-                <artifactId>test-project</artifactId>
-                <version>1.0.0</version>
-                <dependencies>
-                  <dependency>
-                    <groupId>org.junit.jupiter</groupId>
-                    <artifactId>junit-jupiter-engine</artifactId>
-                    <version>5.10.0</version>
-                    <scope>test</scope>
-                  </dependency>
-                  <dependency>
-                    <groupId>org.junit.platform</groupId>
-                    <artifactId>junit-platform-commons</artifactId>
-                    <version>1.10.0</version>
-                    <scope>test</scope>
-                  </dependency>
-                </dependencies>
-              </project>
-              """,
-            """
-              <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>com.example</groupId>
-                <artifactId>test-project</artifactId>
-                <version>1.0.0</version>
-                <dependencies>
-                  <dependency>
-                    <groupId>org.junit.jupiter</groupId>
-                    <artifactId>junit-jupiter-engine</artifactId>
-                    <version>5.14.0</version>
-                    <scope>test</scope>
-                  </dependency>
-                  <dependency>
-                    <groupId>org.junit.platform</groupId>
-                    <artifactId>junit-platform-commons</artifactId>
-                    <version>1.14.0</version>
-                    <scope>test</scope>
-                  </dependency>
-                </dependencies>
-              </project>
-              """
-          ),
           //language=java
           java(
             """
-              import org.junit.platform.commons.support.OutputDirectoryProvider;
-              import org.junit.jupiter.api.extension.MediaType;
-              import org.junit.jupiter.params.support.ParameterInfo;
+              import org.junit.platform.engine.reporting.OutputDirectoryProvider;
 
-              public class TestConfig {
+              public class TestClass {
                   private OutputDirectoryProvider provider;
-                  private MediaType mediaType = MediaType.APPLICATION_JSON_UTF_8;
-                  private ParameterInfo info;
+
+                  public void useProvider(OutputDirectoryProvider p) {
+                      this.provider = p;
+                  }
               }
               """,
             """
-              import org.junit.platform.commons.support.OutputDirectoryCreator;
-              import org.junit.jupiter.api.MediaType;
-              import org.junit.jupiter.params.ParameterInfo;
+              import org.junit.platform.engine.OutputDirectoryCreator;
 
-              public class TestConfig {
+              public class TestClass {
                   private OutputDirectoryCreator provider;
-                  private MediaType mediaType = MediaType.APPLICATION_JSON;
-                  private ParameterInfo info;
+
+                  public void useProvider(OutputDirectoryCreator p) {
+                      this.provider = p;
+                  }
               }
               """
           )
@@ -117,61 +62,93 @@ class UpgradeToJUnit514Test implements RewriteTest {
     }
 
     @Test
-    void upgradeMavenBom() {
+    void migratePlatformResource() {
         rewriteRun(
-          //language=xml
-          pomXml(
+          //language=java
+          java(
             """
-              <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>com.example</groupId>
-                <artifactId>test-project</artifactId>
-                <version>1.0.0</version>
-                <dependencyManagement>
-                  <dependencies>
-                    <dependency>
-                      <groupId>org.junit</groupId>
-                      <artifactId>junit-bom</artifactId>
-                      <version>5.10.0</version>
-                      <type>pom</type>
-                      <scope>import</scope>
-                    </dependency>
-                  </dependencies>
-                </dependencyManagement>
-                <dependencies>
-                  <dependency>
-                    <groupId>org.junit.jupiter</groupId>
-                    <artifactId>junit-jupiter-engine</artifactId>
-                    <scope>test</scope>
-                  </dependency>
-                </dependencies>
-              </project>
+              import org.junit.platform.commons.support.Resource;
+
+              public class TestClass {
+                  private Resource resource;
+
+                  public Resource getResource() {
+                      return resource;
+                  }
+              }
               """,
             """
-              <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>com.example</groupId>
-                <artifactId>test-project</artifactId>
-                <version>1.0.0</version>
-                <dependencyManagement>
-                  <dependencies>
-                    <dependency>
-                      <groupId>org.junit</groupId>
-                      <artifactId>junit-bom</artifactId>
-                      <version>5.14.0</version>
-                      <type>pom</type>
-                      <scope>import</scope>
-                    </dependency>
-                  </dependencies>
-                </dependencyManagement>
-                <dependencies>
-                  <dependency>
-                    <groupId>org.junit.jupiter</groupId>
-                    <artifactId>junit-jupiter-engine</artifactId>
-                    <scope>test</scope>
-                  </dependency>
-                </dependencies>
-              </project>
+              import org.junit.platform.commons.io.Resource;
+
+              public class TestClass {
+                  private Resource resource;
+
+                  public Resource getResource() {
+                      return resource;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void migrateJupiterMediaType() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.extension.MediaType;
+
+              public class TestClass {
+                  private MediaType mediaType = MediaType.APPLICATION_JSON;
+
+                  public void setMediaType(MediaType type) {
+                      this.mediaType = type;
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.MediaType;
+
+              public class TestClass {
+                  private MediaType mediaType = MediaType.APPLICATION_JSON;
+
+                  public void setMediaType(MediaType type) {
+                      this.mediaType = type;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void migrateParameterInfo() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.support.ParameterInfo;
+
+              public class TestClass {
+                  private ParameterInfo info;
+
+                  public ParameterInfo getInfo() {
+                      return info;
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterInfo;
+
+              public class TestClass {
+                  private ParameterInfo info;
+
+                  public ParameterInfo getInfo() {
+                      return info;
+                  }
+              }
               """
           )
         );
