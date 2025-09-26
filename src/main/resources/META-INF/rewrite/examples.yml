@@ -3238,6 +3238,33 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.UpgradeToJUnit514
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.platform.engine.reporting.OutputDirectoryProvider;
+
+      public class TestClass {
+          private OutputDirectoryProvider provider;
+
+          public void useProvider(OutputDirectoryProvider p) {
+              this.provider = p;
+          }
+      }
+    after: |
+      import org.junit.platform.engine.OutputDirectoryCreator;
+
+      public class TestClass {
+          private OutputDirectoryCreator provider;
+
+          public void useProvider(OutputDirectoryCreator p) {
+              this.provider = p;
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UseAssertSame
 examples:
 - description: ''

@@ -42,8 +42,8 @@ public class AddJupiterDependencies extends ScanningRecipe<AddDependency.Accumul
     @Override
     public String getDescription() {
         return "Adds JUnit Jupiter dependencies to a Maven or Gradle project. " +
-               "Junit Jupiter can be added either with the artifact junit-jupiter, or both of junit-jupiter-api and junit-jupiter-engine. " +
-               "This adds \"junit-jupiter\" dependency unless \"junit-jupiter-api\" or \"junit-jupiter-engine\" are already present.";
+               "JUnit Jupiter can be added either with the artifact `junit-jupiter`, or both of `junit-jupiter-api` and `junit-jupiter-engine`. " +
+               "This adds `junit-jupiter` dependency unless `junit-jupiter-api` or `junit-jupiter-engine` are already present.";
     }
 
     @Override

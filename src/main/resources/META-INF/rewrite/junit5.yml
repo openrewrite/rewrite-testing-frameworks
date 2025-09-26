@@ -24,6 +24,7 @@ tags:
   - junit
 recipeList:
   - org.openrewrite.java.testing.junit5.JUnit4to5Migration
+  - org.openrewrite.java.testing.junit5.UpgradeToJUnit514
   - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5
   - org.openrewrite.java.testing.junit5.StaticImports
   - org.openrewrite.java.testing.junit5.CleanupAssertions
@@ -333,3 +334,54 @@ recipeList:
       groupId: org.junit.platform
       artifactId: junit-platform-surefire-provider
       version: 1.1.0
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.UpgradeToJUnit514
+displayName: Upgrade to JUnit 5.14
+description: Upgrades JUnit 5 to 5.14.x and migrates all deprecated APIs.
+tags:
+  - testing
+  - junit
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit
+      artifactId: junit-bom
+      newVersion: 5.14.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit.jupiter
+      artifactId: "*"
+      newVersion: 5.14.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit.platform
+      artifactId: "*"
+      newVersion: 1.14.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit.vintage
+      artifactId: "*"
+      newVersion: 5.14.x
+
+  # Class changes
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junit.platform.engine.reporting.OutputDirectoryProvider
+      newFullyQualifiedTypeName: org.junit.platform.engine.OutputDirectoryCreator
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junit.platform.commons.support.Resource
+      newFullyQualifiedTypeName: org.junit.platform.commons.io.Resource
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junit.jupiter.api.extension.MediaType
+      newFullyQualifiedTypeName: org.junit.jupiter.api.MediaType
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junit.jupiter.params.support.ParameterInfo
+      newFullyQualifiedTypeName: org.junit.jupiter.params.ParameterInfo
+
+  # Method changes
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.junit.platform.engine.discovery.DiscoverySelectors selectClasspathResource(java.util.Set)"
+      newMethodName: selectClasspathResourceByName
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.junit.platform.engine.discovery.ClasspathResourceSelector getClasspathResources()"
+      newMethodName: getResources
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "org.gradle.internal.impldep.org.junit.platform.engine.support.discovery.EngineDiscoveryRequestResolver.Builder addResourceContainerSelectorResolver(java.util.function.Predicate)"
+      newMethodName: addResourceContainerSelectorResolver

@@ -30,6 +30,7 @@ preconditions:
   - org.openrewrite.java.search.HasMinimumJavaVersion:
       version: 17
 recipeList:
+  - org.openrewrite.java.testing.junit5.UpgradeToJUnit514
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.junit.platform
       artifactId: junit-platform-jfr
