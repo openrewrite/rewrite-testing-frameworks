@@ -24,8 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
-import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.java.Assertions.srcTestJava;
+import static org.openrewrite.java.Assertions.*;
 
 class MigrateTruthToAssertJTest implements RewriteTest {
 
@@ -610,47 +609,50 @@ class MigrateTruthToAssertJTest implements RewriteTest {
     void addDependency() {
         rewriteRun(
           spec -> spec.beforeRecipe(withToolingApi()),
-          buildGradle(
-            """
-              plugins {
-                  id 'java'
-              }
-              repositories {
-                  mavenCentral()
-              }
-              """,
-            """
-              plugins {
-                  id 'java'
-              }
-              repositories {
-                  mavenCentral()
-              }
-              dependencies {
-                  testImplementation 'org.assertj:assertj-core:3.27.6'
-              }
-              """),
-          //language=java
-          srcTestJava(
-            java(
+          mavenProject("project",
+            buildGradle(
               """
-                import com.google.common.truth.Truth;
-
-                class Test {
-                    void test() {
-                        Truth.assertThat(true).isTrue();
-                    }
+                plugins {
+                    id 'java'
+                }
+                repositories {
+                    mavenCentral()
                 }
                 """,
               """
-                import org.assertj.core.api.Assertions;
-
-                class Test {
-                    void test() {
-                        Assertions.assertThat(true).isTrue();
-                    }
+                plugins {
+                    id 'java'
                 }
+                repositories {
+                    mavenCentral()
+                }
+
+                dependencies {
+                    testImplementation "org.assertj:assertj-core:3.27.6"
+                }
+                """),
+            //language=java
+            srcTestJava(
+              java(
                 """
+                  import com.google.common.truth.Truth;
+
+                  class Test {
+                      void test() {
+                          Truth.assertThat(true).isTrue();
+                      }
+                  }
+                  """,
+                """
+                  import org.assertj.core.api.Assertions;
+
+                  class Test {
+                      void test() {
+                          Assertions.assertThat(true).isTrue();
+                      }
+                  }
+                  """
+              )
             )
           )
         );
