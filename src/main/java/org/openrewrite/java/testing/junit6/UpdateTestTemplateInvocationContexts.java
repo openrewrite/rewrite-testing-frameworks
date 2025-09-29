@@ -22,19 +22,13 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
 
 public class UpdateTestTemplateInvocationContexts extends Recipe {
 
     private static final String TEST_TEMPLATE_PROVIDER = "org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider";
     private static final String TEST_TEMPLATE_CONTEXT = "org.junit.jupiter.api.extension.TestTemplateInvocationContext";
-    private static final MethodMatcher PROVIDE_CONTEXTS = new MethodMatcher(
-            TEST_TEMPLATE_PROVIDER + " provideTestTemplateInvocationContexts(..)"
-    );
 
     @Override
     public String getDisplayName() {
@@ -55,28 +49,29 @@ public class UpdateTestTemplateInvocationContexts extends Recipe {
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
 
-                if (PROVIDE_CONTEXTS.matches(md.getMethodType()) && md.getReturnTypeExpression() != null) {
-                    // Check if the return type is Stream<TestTemplateInvocationContext>
-                    JavaType returnType = md.getReturnTypeExpression().getType();
-                    if (returnType instanceof JavaType.Parameterized) {
-                        JavaType.Parameterized parameterized = (JavaType.Parameterized) returnType;
-                        if (TypeUtils.isOfClassType(parameterized, "java.util.stream.Stream") &&
-                            parameterized.getTypeParameters().size() == 1) {
+                // Check if this is the provideTestTemplateInvocationContexts method
+                if (md.getSimpleName().equals("provideTestTemplateInvocationContexts") &&
+                    md.getReturnTypeExpression() != null) {
 
-                            JavaType typeParam = parameterized.getTypeParameters().get(0);
-                            if (TypeUtils.isOfClassType(typeParam, TEST_TEMPLATE_CONTEXT) &&
-                                !(typeParam instanceof JavaType.GenericTypeVariable)) {
-                                // Use JavaTemplate to create the wildcard type
-                                if (md.getReturnTypeExpression() instanceof J.ParameterizedType) {
-                                    J.ParameterizedType returnTypeExpr = (J.ParameterizedType) md.getReturnTypeExpression();
-                                    JavaTemplate template = JavaTemplate.builder("Stream<? extends TestTemplateInvocationContext>")
-                                            .imports("java.util.stream.Stream", TEST_TEMPLATE_CONTEXT)
-                                            .javaParser(JavaParser.fromJavaVersion()
-                                                    .classpathFromResources(ctx, "junit-jupiter-api"))
-                                            .build();
-                                    md = md.withReturnTypeExpression(template.apply(getCursor(),
-                                            returnTypeExpr.getCoordinates().replace()));
-                                }
+                    // Check if return type needs updating
+                    if (md.getReturnTypeExpression() instanceof J.ParameterizedType) {
+                        J.ParameterizedType pt = (J.ParameterizedType) md.getReturnTypeExpression();
+
+                        // Check if it's Stream<TestTemplateInvocationContext> (without wildcard)
+                        if (pt.getClazz() != null &&
+                            pt.getClazz().toString().contains("Stream") &&
+                            pt.getTypeParameters() != null &&
+                            pt.getTypeParameters().size() == 1) {
+
+                            // Check if the type parameter is not already a wildcard
+                            if (!(pt.getTypeParameters().get(0) instanceof J.Wildcard)) {
+                                JavaTemplate template = JavaTemplate.builder("Stream<? extends TestTemplateInvocationContext>")
+                                        .imports("java.util.stream.Stream", TEST_TEMPLATE_CONTEXT)
+                                        .javaParser(JavaParser.fromJavaVersion()
+                                                .classpathFromResources(ctx, "junit-jupiter-api"))
+                                        .build();
+                                md = md.withReturnTypeExpression(template.apply(getCursor(),
+                                        pt.getCoordinates().replace()));
                             }
                         }
                     }

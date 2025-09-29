@@ -21,7 +21,6 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -31,9 +30,6 @@ import org.openrewrite.java.tree.TypeUtils;
 public class RemoveInterceptDynamicTest extends Recipe {
 
     private static final String INVOCATION_INTERCEPTOR = "org.junit.jupiter.api.extension.InvocationInterceptor";
-    private static final MethodMatcher INTERCEPT_DYNAMIC_TEST = new MethodMatcher(
-            INVOCATION_INTERCEPTOR + " interceptDynamicTest(..)"
-    );
 
     @Override
     public String getDisplayName() {
@@ -51,10 +47,11 @@ public class RemoveInterceptDynamicTest extends Recipe {
         return Preconditions.check(new UsesType<>(INVOCATION_INTERCEPTOR, false), new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
-            public  J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
 
-                if (INTERCEPT_DYNAMIC_TEST.matches(md.getMethodType())) {
+                // Check if method is named interceptDynamicTest
+                if (md.getSimpleName().equals("interceptDynamicTest")) {
                     // Check if this is implementing the interface method
                     J.ClassDeclaration enclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
                     if (enclosingClass != null && implementsInvocationInterceptor(enclosingClass)) {

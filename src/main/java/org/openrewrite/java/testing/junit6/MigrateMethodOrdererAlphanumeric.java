@@ -49,16 +49,17 @@ public class MigrateMethodOrdererAlphanumeric extends Recipe {
             @Override
             public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
                 J.FieldAccess fa = super.visitFieldAccess(fieldAccess, ctx);
-                if (TypeUtils.isOfClassType(fa.getType(), ALPHANUMERIC)) {
-                    maybeRemoveImport(ALPHANUMERIC);
-                    maybeAddImport(METHOD_NAME);
-                    return JavaTemplate.builder("MethodName")
-                            .contextSensitive()
-                            .imports(METHOD_NAME)
-                            .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "junit-jupiter-api"))
-                            .build()
-                            .apply(getCursor(), fa.getCoordinates().replace());
+                // Check if this is MethodOrderer.Alphanumeric
+                if (fa.getSimpleName().equals("Alphanumeric")) {
+                    if (fa.getTarget() instanceof J.FieldAccess) {
+                        J.FieldAccess target = (J.FieldAccess) fa.getTarget();
+                        if (target.getSimpleName().equals("MethodOrderer") ||
+                            TypeUtils.isOfClassType(target.getType(), METHOD_ORDERER)) {
+                            maybeRemoveImport(ALPHANUMERIC);
+                            maybeAddImport(METHOD_NAME);
+                            return fa.withName(fa.getName().withSimpleName("MethodName"));
+                        }
+                    }
                 }
                 return fa;
             }
@@ -66,19 +67,12 @@ public class MigrateMethodOrdererAlphanumeric extends Recipe {
             @Override
             public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
                 J.Identifier id = super.visitIdentifier(identifier, ctx);
-                if (TypeUtils.isOfClassType(id.getType(), ALPHANUMERIC)) {
-                    JavaType.FullyQualified fq = TypeUtils.asFullyQualified(id.getType());
-                    if (fq != null && ALPHANUMERIC.equals(fq.getFullyQualifiedName())) {
-                        maybeRemoveImport(ALPHANUMERIC);
-                        maybeAddImport(METHOD_NAME);
-                        return JavaTemplate.builder("MethodName")
-                                .contextSensitive()
-                                .imports(METHOD_NAME)
-                                .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api"))
-                                .build()
-                                .apply(getCursor(), id.getCoordinates().replace());
-                    }
+                // Check if this is just "Alphanumeric" with the right type
+                if (id.getSimpleName().equals("Alphanumeric") &&
+                    TypeUtils.isOfClassType(id.getType(), ALPHANUMERIC)) {
+                    maybeRemoveImport(ALPHANUMERIC);
+                    maybeAddImport(METHOD_NAME);
+                    return id.withSimpleName("MethodName");
                 }
                 return id;
             }
