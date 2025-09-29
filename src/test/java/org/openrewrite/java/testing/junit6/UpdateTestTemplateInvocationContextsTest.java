@@ -34,9 +34,8 @@ class UpdateTestTemplateInvocationContextsTest implements RewriteTest {
           .recipe(new UpdateTestTemplateInvocationContexts());
     }
 
-    // TODO: Fix the recipe implementation to handle this case properly
-    // @DocumentExample
-    // @Test
+    @DocumentExample
+    @Test
     void updateReturnTypeToWildcard() {
         rewriteRun(
           java(
@@ -88,8 +87,7 @@ class UpdateTestTemplateInvocationContextsTest implements RewriteTest {
         );
     }
 
-    // TODO: Fix the recipe implementation to handle this case properly
-    // @Test
+    @Test
     void updateMultipleProviders() {
         rewriteRun(
           java(
@@ -212,8 +210,7 @@ class UpdateTestTemplateInvocationContextsTest implements RewriteTest {
         );
     }
 
-    // TODO: Fix the recipe implementation to handle this case properly
-    // @Test
+    @Test
     void handleFullyQualifiedTypes() {
         rewriteRun(
           java(

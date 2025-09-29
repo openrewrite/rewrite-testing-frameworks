@@ -22,6 +22,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
@@ -29,6 +30,8 @@ public class UpdateTestTemplateInvocationContexts extends Recipe {
 
     private static final String TEST_TEMPLATE_PROVIDER = "org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider";
     private static final String TEST_TEMPLATE_CONTEXT = "org.junit.jupiter.api.extension.TestTemplateInvocationContext";
+    private static final MethodMatcher PROVIDE_CONTEXTS_MATCHER = new MethodMatcher(
+            TEST_TEMPLATE_PROVIDER + " provideTestTemplateInvocationContexts(..)", true);
 
     @Override
     public String getDisplayName() {
@@ -38,8 +41,8 @@ public class UpdateTestTemplateInvocationContexts extends Recipe {
     @Override
     public String getDescription() {
         return "JUnit 6 changed the return type of `provideTestTemplateInvocationContexts()` from " +
-               "`Stream<TestTemplateInvocationContext>` to `Stream<? extends TestTemplateInvocationContext>`. " +
-               "This recipe updates custom test template providers to use the new signature.";
+                "`Stream<TestTemplateInvocationContext>` to `Stream<? extends TestTemplateInvocationContext>`. " +
+                "This recipe updates custom test template providers to use the new signature.";
     }
 
     @Override
@@ -49,19 +52,17 @@ public class UpdateTestTemplateInvocationContexts extends Recipe {
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
 
-                // Check if this is the provideTestTemplateInvocationContexts method
-                if (md.getSimpleName().equals("provideTestTemplateInvocationContexts") &&
-                    md.getReturnTypeExpression() != null) {
-
+                // Use MethodMatcher to check if this is the provideTestTemplateInvocationContexts method
+                if (PROVIDE_CONTEXTS_MATCHER.matches(md.getMethodType()) && md.getReturnTypeExpression() != null) {
                     // Check if return type needs updating
                     if (md.getReturnTypeExpression() instanceof J.ParameterizedType) {
                         J.ParameterizedType pt = (J.ParameterizedType) md.getReturnTypeExpression();
 
                         // Check if it's Stream<TestTemplateInvocationContext> (without wildcard)
                         if (pt.getClazz() != null &&
-                            pt.getClazz().toString().contains("Stream") &&
-                            pt.getTypeParameters() != null &&
-                            pt.getTypeParameters().size() == 1) {
+                                pt.getClazz().toString().contains("Stream") &&
+                                pt.getTypeParameters() != null &&
+                                pt.getTypeParameters().size() == 1) {
 
                             // Check if the type parameter is not already a wildcard
                             if (!(pt.getTypeParameters().get(0) instanceof J.Wildcard)) {
