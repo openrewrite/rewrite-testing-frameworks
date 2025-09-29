@@ -20,14 +20,14 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeTree;
 import org.openrewrite.java.tree.TypeUtils;
-
-import java.util.Collections;
 
 public class UpdateTestTemplateInvocationContexts extends Recipe {
 
@@ -65,24 +65,18 @@ public class UpdateTestTemplateInvocationContexts extends Recipe {
                             parameterized.getTypeParameters().size() == 1) {
 
                             JavaType typeParam = parameterized.getTypeParameters().get(0);
-                            if (TypeUtils.isOfClassType(typeParam, TEST_TEMPLATE_CONTEXT)) {
-                                // Need to update to Stream<? extends TestTemplateInvocationContext>
-                                TypeTree returnTypeExpression = md.getReturnTypeExpression();
-                                if (returnTypeExpression instanceof J.ParameterizedType) {
-                                    J.ParameterizedType pt = (J.ParameterizedType) returnTypeExpression;
-                                    if (pt.getTypeParameters() != null && !pt.getTypeParameters().isEmpty()) {
-                                        // Create wildcard type
-                                        J.Wildcard wildcard = new J.Wildcard(
-                                                java.util.UUID.randomUUID(),
-                                                pt.getTypeParameters().get(0).getPrefix(),
-                                                pt.getTypeParameters().get(0).getMarkers(),
-                                                J.Wildcard.Bound.Extends,
-                                                pt.getTypeParameters().get(0).withPrefix(J.Space.SINGLE_SPACE)
-                                        );
-
-                                        J.ParameterizedType updatedPt = pt.withTypeParameters(Collections.singletonList(wildcard));
-                                        md = md.withReturnTypeExpression(updatedPt);
-                                    }
+                            if (TypeUtils.isOfClassType(typeParam, TEST_TEMPLATE_CONTEXT) &&
+                                !(typeParam instanceof JavaType.GenericTypeVariable)) {
+                                // Use JavaTemplate to create the wildcard type
+                                if (md.getReturnTypeExpression() instanceof J.ParameterizedType) {
+                                    J.ParameterizedType returnTypeExpr = (J.ParameterizedType) md.getReturnTypeExpression();
+                                    JavaTemplate template = JavaTemplate.builder("Stream<? extends TestTemplateInvocationContext>")
+                                            .imports("java.util.stream.Stream", TEST_TEMPLATE_CONTEXT)
+                                            .javaParser(JavaParser.fromJavaVersion()
+                                                    .classpathFromResources(ctx, "junit-jupiter-api"))
+                                            .build();
+                                    md = md.withReturnTypeExpression(template.apply(getCursor(),
+                                            returnTypeExpr.getCoordinates().replace()));
                                 }
                             }
                         }

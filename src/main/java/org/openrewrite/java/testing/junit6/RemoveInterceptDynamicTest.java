@@ -24,6 +24,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeTree;
 import org.openrewrite.java.tree.TypeUtils;
 
 public class RemoveInterceptDynamicTest extends Recipe {
@@ -65,7 +66,7 @@ public class RemoveInterceptDynamicTest extends Recipe {
 
             private boolean implementsInvocationInterceptor(J.ClassDeclaration classDecl) {
                 if (classDecl.getImplements() != null) {
-                    for (J.TypeTree impl : classDecl.getImplements()) {
+                    for (TypeTree impl : classDecl.getImplements()) {
                         if (TypeUtils.isOfClassType(impl.getType(), INVOCATION_INTERCEPTOR)) {
                             return true;
                         }
