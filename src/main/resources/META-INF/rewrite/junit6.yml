@@ -62,3 +62,13 @@ recipeList:
       newMethodName: computeIfAbsent
       matchOverrides: true
       ignoreDefinition: true
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.junit.jupiter
+      artifactId: junit-jupiter-migrationsupport
+  - org.openrewrite.java.testing.junit6.MigrateMethodOrdererAlphanumeric
+  - org.openrewrite.java.testing.junit6.RemoveInterceptDynamicTest
+  - org.openrewrite.java.testing.junit6.UpdateTestTemplateInvocationContexts
+  - org.openrewrite.properties.DeleteProperty:
+      propertyKey: junit.jupiter.tempdir.scope
+  - org.openrewrite.properties.DeleteProperty:
+      propertyKey: junit.jupiter.params.arguments.conversion.locale.format
