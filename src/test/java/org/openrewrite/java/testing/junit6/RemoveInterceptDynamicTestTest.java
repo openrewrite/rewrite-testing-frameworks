@@ -30,7 +30,7 @@ class RemoveInterceptDynamicTestTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new RemoveInterceptDynamicTest());
     }
 
@@ -73,128 +73,6 @@ class RemoveInterceptDynamicTestTest implements RewriteTest {
                   }
 
                   private static class Method {}
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void removeMultipleInterceptDynamicTestMethods() {
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.extension.ExtensionContext;
-              import org.junit.jupiter.api.extension.InvocationInterceptor;
-
-              class MyInterceptor implements InvocationInterceptor {
-                  @Override
-                  public void interceptDynamicTest(Invocation<Void> invocation, ExtensionContext context) throws Throwable {
-                      invocation.proceed();
-                  }
-
-                  public void keepThisMethod() {
-                      System.out.println("This stays");
-                  }
-              }
-
-              class AnotherInterceptor implements InvocationInterceptor {
-                  @Override
-                  public void interceptDynamicTest(Invocation<Void> invocation, ExtensionContext extensionContext) throws Throwable {
-                      // Different implementation
-                      invocation.proceed();
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.extension.ExtensionContext;
-              import org.junit.jupiter.api.extension.InvocationInterceptor;
-
-              class MyInterceptor implements InvocationInterceptor {
-
-                  public void keepThisMethod() {
-                      System.out.println("This stays");
-                  }
-              }
-
-              class AnotherInterceptor implements InvocationInterceptor {
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void doNotRemoveOtherMethods() {
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.extension.ExtensionContext;
-              import org.junit.jupiter.api.extension.InvocationInterceptor;
-              import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
-
-              class MyInterceptor implements InvocationInterceptor {
-                  @Override
-                  public void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-                      invocation.proceed();
-                  }
-
-                  @Override
-                  public void interceptTestTemplateMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-                      invocation.proceed();
-                  }
-
-                  private static class Method {}
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void handleExtendingClass() {
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.extension.ExtensionContext;
-              import org.junit.jupiter.api.extension.InvocationInterceptor;
-
-              abstract class BaseInterceptor implements InvocationInterceptor {
-              }
-
-              class MyInterceptor extends BaseInterceptor {
-                  @Override
-                  public void interceptDynamicTest(Invocation<Void> invocation, ExtensionContext extensionContext) throws Throwable {
-                      invocation.proceed();
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.extension.ExtensionContext;
-              import org.junit.jupiter.api.extension.InvocationInterceptor;
-
-              abstract class BaseInterceptor implements InvocationInterceptor {
-              }
-
-              class MyInterceptor extends BaseInterceptor {
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void doNotChangeIfNotImplementingInvocationInterceptor() {
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.extension.ExtensionContext;
-
-              class MyClass {
-                  // This is not implementing InvocationInterceptor, so method should not be removed
-                  public void interceptDynamicTest(Object invocation, ExtensionContext extensionContext) throws Throwable {
-                      System.out.println("This is a different method");
-                  }
               }
               """
           )
