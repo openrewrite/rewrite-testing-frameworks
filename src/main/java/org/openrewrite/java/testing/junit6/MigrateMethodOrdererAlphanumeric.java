@@ -35,31 +35,29 @@ public class MigrateMethodOrdererAlphanumeric extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Migrate MethodOrderer.Alphanumeric to MethodOrderer.MethodName";
+        return "Migrate `MethodOrderer.Alphanumeric` to `MethodOrderer.MethodName`";
     }
 
     @Override
     public String getDescription() {
-        return "JUnit 6 removed the `MethodOrderer.Alphanumeric` class. This recipe migrates usages to `MethodOrderer.MethodName` which provides similar functionality.";
+        return "JUnit 6 removed the `MethodOrderer.Alphanumeric` class. " +
+                "This recipe migrates usages to `MethodOrderer.MethodName` which provides similar functionality.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
+        // ChangeType has issues with nested classes, so we do this manually
         return Preconditions.check(new UsesType<>(ALPHANUMERIC, false), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
                 J.FieldAccess fa = super.visitFieldAccess(fieldAccess, ctx);
                 // Check if this is MethodOrderer.Alphanumeric
-                if (fa.getSimpleName().equals("Alphanumeric")) {
-                    if (fa.getTarget() instanceof J.FieldAccess) {
-                        J.FieldAccess target = (J.FieldAccess) fa.getTarget();
-                        if (target.getSimpleName().equals("MethodOrderer") ||
-                            TypeUtils.isOfClassType(target.getType(), METHOD_ORDERER)) {
-                            maybeRemoveImport(ALPHANUMERIC);
-                            maybeAddImport(METHOD_NAME);
-                            return fa.withName(fa.getName().withSimpleName("MethodName"));
-                        }
-                    }
+                if ("Alphanumeric".equals(fa.getSimpleName()) &&
+                        fa.getTarget() instanceof J.FieldAccess &&
+                        TypeUtils.isOfClassType(fa.getTarget().getType(), METHOD_ORDERER)) {
+                    maybeRemoveImport(ALPHANUMERIC);
+                    maybeAddImport(METHOD_NAME);
+                    return fa.withName(fa.getName().withSimpleName("MethodName"));
                 }
                 return fa;
             }
@@ -68,7 +66,7 @@ public class MigrateMethodOrdererAlphanumeric extends Recipe {
             public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
                 J.Identifier id = super.visitIdentifier(identifier, ctx);
                 // Check if this is just "Alphanumeric" with the right type
-                if (id.getSimpleName().equals("Alphanumeric") &&
+                if ("Alphanumeric".equals(id.getSimpleName()) &&
                     TypeUtils.isOfClassType(id.getType(), ALPHANUMERIC)) {
                     maybeRemoveImport(ALPHANUMERIC);
                     maybeAddImport(METHOD_NAME);
