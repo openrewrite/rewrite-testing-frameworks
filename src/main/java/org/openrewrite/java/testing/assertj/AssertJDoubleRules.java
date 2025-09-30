@@ -64,7 +64,12 @@ public class AssertJDoubleRules {
     @BeforeTemplate
     AbstractDoubleAssert<?> before(AbstractDoubleAssert<?> doubleAssert, double n) {
       return Refaster.anyOf(
-          doubleAssert.isCloseTo(n, offset(0.0)), doubleAssert.isCloseTo(n, withPercentage(0.0)));
+          doubleAssert.isCloseTo(n, offset(0.0)),
+          doubleAssert.isCloseTo(n, offset(0d)),
+          doubleAssert.isCloseTo(n, withPercentage(0)),
+          doubleAssert.isCloseTo(n, withPercentage(0.0)),
+          doubleAssert.isCloseTo(n, withPercentage(0d))
+      );
     }
 
     @AfterTemplate
@@ -82,7 +87,11 @@ public class AssertJDoubleRules {
     AbstractDoubleAssert<?> before(AbstractDoubleAssert<?> doubleAssert, double n) {
       return Refaster.anyOf(
           doubleAssert.isNotCloseTo(n, offset(0.0)),
-          doubleAssert.isNotCloseTo(n, withPercentage(0.0)));
+          doubleAssert.isNotCloseTo(n, offset(0d)),
+          doubleAssert.isNotCloseTo(n, withPercentage(0)),
+          doubleAssert.isNotCloseTo(n, withPercentage(0.0)),
+          doubleAssert.isNotCloseTo(n, withPercentage(0d))
+      );
     }
 
     @AfterTemplate
@@ -98,7 +107,11 @@ public class AssertJDoubleRules {
   static final class AbstractDoubleAssertIsZero {
     @BeforeTemplate
     AbstractDoubleAssert<?> before(AbstractDoubleAssert<?> doubleAssert) {
-      return doubleAssert.isEqualTo(0);
+      return Refaster.anyOf(
+          doubleAssert.isEqualTo(0),
+          doubleAssert.isEqualTo(0.0),
+          doubleAssert.isEqualTo(0d)
+      );
     }
 
     @AfterTemplate
@@ -114,7 +127,11 @@ public class AssertJDoubleRules {
   static final class AbstractDoubleAssertIsNotZero {
     @BeforeTemplate
     AbstractDoubleAssert<?> before(AbstractDoubleAssert<?> doubleAssert) {
-      return doubleAssert.isNotEqualTo(0);
+      return Refaster.anyOf(
+          doubleAssert.isNotEqualTo(0),
+          doubleAssert.isNotEqualTo(0.0),
+          doubleAssert.isNotEqualTo(0d)
+      );
     }
 
     @AfterTemplate
@@ -130,7 +147,11 @@ public class AssertJDoubleRules {
   static final class AbstractDoubleAssertIsOne {
     @BeforeTemplate
     AbstractDoubleAssert<?> before(AbstractDoubleAssert<?> doubleAssert) {
-      return doubleAssert.isEqualTo(1);
+      return Refaster.anyOf(
+          doubleAssert.isEqualTo(1),
+          doubleAssert.isEqualTo(1.0),
+          doubleAssert.isEqualTo(1d)
+      );
     }
 
     @AfterTemplate

@@ -64,7 +64,11 @@ public class AssertJFloatRules {
     @BeforeTemplate
     AbstractFloatAssert<?> before(AbstractFloatAssert<?> floatAssert, float n) {
       return Refaster.anyOf(
-          floatAssert.isCloseTo(n, offset(0f)), floatAssert.isCloseTo(n, withPercentage(0)));
+          floatAssert.isCloseTo(n, offset(0f)),
+          floatAssert.isCloseTo(n, withPercentage(0)),
+          floatAssert.isCloseTo(n, withPercentage(0.0)),
+          floatAssert.isCloseTo(n, withPercentage(0d))
+      );
     }
 
     @AfterTemplate
@@ -81,7 +85,11 @@ public class AssertJFloatRules {
     @BeforeTemplate
     AbstractFloatAssert<?> before(AbstractFloatAssert<?> floatAssert, float n) {
       return Refaster.anyOf(
-          floatAssert.isNotCloseTo(n, offset(0f)), floatAssert.isNotCloseTo(n, withPercentage(0)));
+          floatAssert.isNotCloseTo(n, offset(0f)),
+          floatAssert.isNotCloseTo(n, withPercentage(0)),
+          floatAssert.isNotCloseTo(n, withPercentage(0.0)),
+          floatAssert.isNotCloseTo(n, withPercentage(0d))
+      );
     }
 
     @AfterTemplate
@@ -97,7 +105,10 @@ public class AssertJFloatRules {
   static final class AbstractFloatAssertIsZero {
     @BeforeTemplate
     AbstractFloatAssert<?> before(AbstractFloatAssert<?> floatAssert) {
-      return floatAssert.isEqualTo(0);
+      return Refaster.anyOf(
+          floatAssert.isEqualTo(0),
+          floatAssert.isEqualTo(0f)
+      );
     }
 
     @AfterTemplate
@@ -113,7 +124,10 @@ public class AssertJFloatRules {
   static final class AbstractFloatAssertIsNotZero {
     @BeforeTemplate
     AbstractFloatAssert<?> before(AbstractFloatAssert<?> floatAssert) {
-      return floatAssert.isNotEqualTo(0);
+      return Refaster.anyOf(
+          floatAssert.isNotEqualTo(0),
+          floatAssert.isNotEqualTo(0f)
+      );
     }
 
     @AfterTemplate
@@ -129,7 +143,10 @@ public class AssertJFloatRules {
   static final class AbstractFloatAssertIsOne {
     @BeforeTemplate
     AbstractFloatAssert<?> before(AbstractFloatAssert<?> floatAssert) {
-      return floatAssert.isEqualTo(1);
+      return Refaster.anyOf(
+          floatAssert.isEqualTo(1),
+          floatAssert.isEqualTo(1f)
+      );
     }
 
     @AfterTemplate
