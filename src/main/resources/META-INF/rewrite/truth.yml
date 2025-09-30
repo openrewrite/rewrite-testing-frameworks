@@ -221,3 +221,7 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.google.common.truth.Truth
       newFullyQualifiedTypeName: org.assertj.core.api.Assertions
+
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: com.google.truth
+      artifactId: truth
