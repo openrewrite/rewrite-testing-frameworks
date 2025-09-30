@@ -3396,6 +3396,43 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit6.MigrateMethodOrdererAlphanumeric
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.MethodOrderer;
+      import org.junit.jupiter.api.TestMethodOrder;
+      import org.junit.jupiter.api.Test;
+
+      @TestMethodOrder(MethodOrderer.Alphanumeric.class)
+      class MyTest {
+          @Test
+          void test1() {
+          }
+
+          @Test
+          void test2() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.MethodOrderer;
+      import org.junit.jupiter.api.TestMethodOrder;
+      import org.junit.jupiter.api.Test;
+
+      @TestMethodOrder(MethodOrderer.MethodName.class)
+      class MyTest {
+          @Test
+          void test1() {
+          }
+
+          @Test
+          void test2() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit6.MinimumJreConditions
 examples:
 - description: ''
@@ -3473,6 +3510,47 @@ examples:
           void testAlways() {
               System.out.println("Always");
           }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit6.RemoveInterceptDynamicTest
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.junit.jupiter.api.extension.ExtensionContext;
+      import org.junit.jupiter.api.extension.InvocationInterceptor;
+      import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
+
+      class MyInterceptor implements InvocationInterceptor {
+          @Override
+          public void interceptDynamicTest(Invocation<Void> invocation, ExtensionContext extensionContext) throws Throwable {
+              System.out.println("Before dynamic test");
+              invocation.proceed();
+              System.out.println("After dynamic test");
+          }
+
+          @Override
+          public void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+              invocation.proceed();
+          }
+
+          private static class Method {}
+      }
+    after: |
+      import org.junit.jupiter.api.extension.ExtensionContext;
+      import org.junit.jupiter.api.extension.InvocationInterceptor;
+      import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
+
+      class MyInterceptor implements InvocationInterceptor {
+
+          @Override
+          public void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+              invocation.proceed();
+          }
+
+          private static class Method {}
       }
     language: java
 ---
