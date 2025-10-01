@@ -76,11 +76,10 @@ public class RemoveTimesZeroAndOne extends Recipe {
                                             .withArguments(mi.getArguments().subList(0, 1))
                                             .withMethodType(methodType)
                                             .withName(mi.getName().withType(methodType));
-                                } else {
-                                    // If parameter types are not available, just remove the second argument
-                                    // and let the type attribution be redone later
-                                    return mi.withArguments(mi.getArguments().subList(0, 1));
                                 }
+                                // If parameter types are not available, just remove the second argument
+                                // and let the type attribution be redone later
+                                return mi.withArguments(mi.getArguments().subList(0, 1));
                             }
                         }
                         return mi;
