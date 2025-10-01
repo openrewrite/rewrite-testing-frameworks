@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.jmockit;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.ShortenFullyQualifiedTypeReferences;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.SearchResult;
@@ -157,9 +158,7 @@ public class JMockitMockUpToMockito extends Recipe {
             }
             if (isTearDownMethod(md)) {
                 for (J.Identifier id : tearDownMocks.values()) {
-                    String type = TypeUtils.asFullyQualified(id.getFieldType().getType()).getFullyQualifiedName();
-                    md = JavaTemplate.builder("#{any(" + type + ")}.closeOnDemand();")
-                            .contextSensitive()
+                    md = JavaTemplate.builder("#{any()}.closeOnDemand();")
                             .javaParser(getJavaParser(ctx))
                             .imports(MOCKITO_STATIC_IMPORT, MOCKITO_CONSTRUCTION_IMPORT)
                             .staticImports(MOCKITO_ALL_IMPORT)
@@ -307,6 +306,7 @@ public class JMockitMockUpToMockito extends Recipe {
             maybeRemoveImport(JMOCKIT_MOCKUP_IMPORT);
 
             doAfterVisit(new LambdaBlockToExpression().getVisitor());
+            doAfterVisit(ShortenFullyQualifiedTypeReferences.modifyOnly(md));
             return maybeAutoFormat(methodDecl, md, ctx);
         }
 
@@ -335,7 +335,7 @@ public class JMockitMockUpToMockito extends Recipe {
                 String elem = TypeUtils.asArray(s).getElemType().toString();
                 return "nullable(" + elem + "[].class)";
             }
-            return "nullable(" + TypeUtils.asFullyQualified(s).getClassName() + ".class)";
+            return "nullable(" + TypeUtils.asFullyQualified(s).getFullyQualifiedName() + ".class)";
         }
 
         private String getAnswerBody(J.MethodDeclaration md) {
@@ -435,7 +435,6 @@ public class JMockitMockUpToMockito extends Recipe {
                     .forEach(m -> tpl.append("mockStatic").append(className).append(".when(() -> ")
                             .append(className).append(".").append(m.getName())
                             .append(getCallRealMethod(m))
-                            .append(");")
                     );
 
             return tpl.toString();

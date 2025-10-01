@@ -657,4 +657,71 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void mockUpStaticMethodWithCallRealMethodTest() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Mock;
+              import mockit.MockUp;
+              import static org.junit.Assert.assertEquals;
+              import org.junit.Test;
+
+              public class MockUpTest {
+                  @Test
+                  public void test() {
+                      new MockUp<MyClazz>() {
+                          @Mock
+                          public static String getValue(int param) {
+                              return "mocked";
+                          }
+                      };
+                      assertEquals("mocked", MyClazz.getValue(1));
+                  }
+
+                  public static class MyClazz {
+                      public static String getValue(int param) {
+                          return "real";
+                      }
+
+                      public static String getOther() {
+                          return "other";
+                      }
+                  }
+              }
+              """,
+            """
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.ArgumentMatchers.anyInt;
+              import static org.mockito.Mockito.mockStatic;
+
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+
+              public class MockUpTest {
+                  @Test
+                  public void test() {
+                      try (MockedStatic mockStaticMyClazz = mockStatic(MyClazz.class)) {
+                          mockStaticMyClazz.when(() -> MyClazz.getValue(anyInt())).thenAnswer(invocation -> "mocked");
+                          mockStaticMyClazz.when(() -> MyClazz.getOther()).thenCallRealMethod();
+                          assertEquals("mocked", MyClazz.getValue(1));
+                      }
+                  }
+
+                  public static class MyClazz {
+                      public static String getValue(int param) {
+                          return "real";
+                      }
+
+                      public static String getOther() {
+                          return "other";
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }

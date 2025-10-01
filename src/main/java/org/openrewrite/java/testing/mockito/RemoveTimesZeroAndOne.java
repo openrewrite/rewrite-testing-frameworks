@@ -66,13 +66,20 @@ public class RemoveTimesZeroAndOne extends Recipe {
                             J.MethodInvocation times = (J.MethodInvocation) mi.getArguments().get(1);
                             if (timesMatcher.matches(times) && J.Literal.isLiteralValue(times.getArguments().get(0), 1)) {
                                 maybeRemoveImport("org.mockito.Mockito.times");
-                                JavaType.Method methodType = mi.getMethodType()
-                                        .withParameterNames(mi.getMethodType().getParameterNames().subList(0, 1))
-                                        .withParameterTypes(mi.getMethodType().getParameterTypes().subList(0, 1));
-                                return mi
-                                        .withArguments(mi.getArguments().subList(0, 1))
-                                        .withMethodType(methodType)
-                                        .withName(mi.getName().withType(methodType));
+                                // Only update method type if parameter types are available
+                                JavaType.Method methodType = mi.getMethodType();
+                                if (!methodType.getParameterTypes().isEmpty()) {
+                                    methodType = methodType
+                                            .withParameterNames(methodType.getParameterNames().subList(0, 1))
+                                            .withParameterTypes(methodType.getParameterTypes().subList(0, 1));
+                                    return mi
+                                            .withArguments(mi.getArguments().subList(0, 1))
+                                            .withMethodType(methodType)
+                                            .withName(mi.getName().withType(methodType));
+                                }
+                                // If parameter types are not available, just remove the second argument
+                                // and let the type attribution be redone later
+                                return mi.withArguments(mi.getArguments().subList(0, 1));
                             }
                         }
                         return mi;

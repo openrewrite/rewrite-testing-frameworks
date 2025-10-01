@@ -1720,4 +1720,101 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void setupStatementVariableNameConflict() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test() {
+                      new Expectations() {{
+                          String s = "setup";
+                          myObject.toString();
+                          result = "foo";
+                      }};
+                      String s = "test";
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test() {
+                      {
+                          String s = "setup";
+                      }
+                      when(myObject.toString()).thenReturn("foo");
+                      String s = "test";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void emptyExpectationsBlockDoesNotCrash() {
+        // Regression test for issue #687 - empty Expectations block caused IndexOutOfBoundsException
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import org.junit.jupiter.api.Test;
+
+              class MyTest {
+                  @Mocked
+                  private MyInterface myMock;
+
+                  @Test
+                  void test() {
+                      new Expectations() {{}};
+                  }
+
+                  interface MyInterface {
+                      String doSomething();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+
+              class MyTest {
+                  @Mock
+                  private MyInterface myMock;
+
+                  @Test
+                  void test() {
+                  }
+
+                  interface MyInterface {
+                      String doSomething();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

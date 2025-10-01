@@ -21,7 +21,6 @@ import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
@@ -174,7 +173,12 @@ class JMockitBlockRewriter {
             return;
         }
         if (mockInvocationResults.getTimes() != null) {
-            rewriteVerify(invocation, mockInvocationResults.getTimes(), "times");
+            // Don't add times(1) since that's the default
+            if (!J.Literal.isLiteralValue(mockInvocationResults.getTimes(), 1)) {
+                rewriteVerify(invocation, mockInvocationResults.getTimes(), "times");
+            } else {
+                rewriteVerify(invocation, null, "");
+            }
         }
         if (mockInvocationResults.getMinTimes() != null) {
             rewriteVerify(invocation, mockInvocationResults.getMinTimes(), "atLeast");
@@ -185,10 +189,11 @@ class JMockitBlockRewriter {
     }
 
     private void removeBlock() {
-        methodBody = JavaTemplate.builder("")
-                .javaParser(JavaParser.fromJavaVersion())
-                .build()
-                .apply(new Cursor(visitor.getCursor(), methodBody), nextStatementCoordinates);
+        List<Statement> statements = new ArrayList<>(methodBody.getStatements());
+        if (bodyStatementIndex >= 0 && bodyStatementIndex < statements.size()) {
+            statements.remove(bodyStatementIndex);
+            methodBody = methodBody.withStatements(statements);
+        }
         setNextStatementCoordinates(0);
     }
 
@@ -224,32 +229,108 @@ class JMockitBlockRewriter {
             return;
         }
 
-        List<Object> templateParams = new ArrayList<>();
-        templateParams.add(invocation.getSelect());
-        if (times != null) {
-            templateParams.add(times);
+        // Build a template for verify() using placeholder types to avoid classpath dependencies
+        // We'll template something like: verify("", times(1)).toString();
+        // Then replace "" with the mock, 1 with the actual times, and toString() with the actual method invocation
+        StringBuilder templateBuilder = new StringBuilder();
+
+        if (isVerificationsInOrder()) {
+            templateBuilder.append("inOrder");
+            if (this.verificationsInOrderIdx > 0) {
+                templateBuilder.append(this.verificationsInOrderIdx);
+            }
+            templateBuilder.append(".");
         }
-        templateParams.add(invocation.getName().getSimpleName());
-        String verifyTemplate = getVerifyTemplate(invocation.getArguments(), verificationMode, templateParams);
+
+        templateBuilder.append("verify(\"\"");
+        if (!verificationMode.isEmpty()) {
+            templateBuilder.append(", ").append(verificationMode).append("(1)");
+        }
+        templateBuilder.append(").toString();");
+
         JavaCoordinates verifyCoordinates;
         if (this.blockType.isVerifications()) {
-            // for Verifications, replace the Verifications block
             verifyCoordinates = nextStatementCoordinates;
         } else {
-            // for Expectations put verify at the end of the method
             verifyCoordinates = methodBody.getCoordinates().lastStatement();
         }
-        rewriteTemplate(verifyTemplate, templateParams, verifyCoordinates);
-        if (this.rewriteFailed) {
+
+        // Apply template to add the verify wrapper
+        int numStatementsBefore = methodBody.getStatements().size();
+        methodBody = JavaTemplate.builder(templateBuilder.toString())
+                .javaParser(getJavaParser(ctx))
+                .staticImports(MOCKITO_ALL_IMPORT)
+                .imports(IN_ORDER_IMPORT_FQN)
+                .build()
+                .apply(new Cursor(visitor.getCursor(), methodBody), verifyCoordinates);
+
+        if (methodBody.getStatements().size() <= numStatementsBefore) {
+            this.rewriteFailed = true;
             return;
         }
 
-        if (this.blockType.isVerifications()) {
-            setNextStatementCoordinates(++numStatementsAdded); // for Expectations, verify statements added to end of method
+        // Find the newly added statement
+        int newStatementIdx = this.blockType.isVerifications() ?
+            bodyStatementIndex + numStatementsAdded :
+            methodBody.getStatements().size() - 1;
+
+        Statement newStatement = methodBody.getStatements().get(newStatementIdx);
+        if (!(newStatement instanceof J.MethodInvocation)) {
+            this.rewriteFailed = true;
+            return;
         }
 
-        // do this last making sure rewrite worked and specify onlyifReferenced=false because framework cannot find the
-        // static reference to verify when another static mockit reference is added
+        // newStatement is something like: verify("").toString() or verify("", times(1)).toString()
+        // We need to replace "" with the actual mock, 1 with the actual times, and toString() with the actual method invocation
+        J.MethodInvocation toStringCall = (J.MethodInvocation) newStatement;
+
+        // Get the verify() call
+        Expression selectExpr = toStringCall.getSelect();
+        if (!(selectExpr instanceof J.MethodInvocation)) {
+            this.rewriteFailed = true;
+            return;
+        }
+
+        J.MethodInvocation verifyCall = (J.MethodInvocation) selectExpr;
+
+        // Replace the placeholders in verify()'s arguments
+        // First argument is always the mock ("")
+        // Second argument (if present) is times(1)
+        List<Expression> verifyArgs = new ArrayList<>(verifyCall.getArguments());
+        if (verifyArgs.isEmpty()) {
+            this.rewriteFailed = true;
+            return;
+        }
+
+        // Replace the mock placeholder
+        verifyArgs.set(0, invocation.getSelect());
+
+        // If there's a second argument, it's the times() call - replace its argument
+        if (verifyArgs.size() > 1 && verifyArgs.get(1) instanceof J.MethodInvocation) {
+            J.MethodInvocation timesCall = (J.MethodInvocation) verifyArgs.get(1);
+            if (times != null) {
+                // Replace the placeholder argument with the actual times value
+                List<Expression> timesArgs = new ArrayList<>();
+                timesArgs.add(times);
+                timesCall = timesCall.withArguments(timesArgs);
+                verifyArgs.set(1, timesCall);
+            }
+        }
+
+        verifyCall = verifyCall.withArguments(verifyArgs);
+
+        // Replace toString() with the actual method invocation
+        J.MethodInvocation wrappedInvocation = invocation.withSelect(verifyCall);
+
+        // Update the statement in the method body
+        List<Statement> statements = new ArrayList<>(methodBody.getStatements());
+        statements.set(newStatementIdx, wrappedInvocation);
+        methodBody = methodBody.withStatements(statements);
+
+        if (this.blockType.isVerifications()) {
+            setNextStatementCoordinates(++numStatementsAdded);
+        }
+
         visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
         if (!verificationMode.isEmpty()) {
             visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
@@ -487,9 +568,9 @@ class JMockitBlockRewriter {
     private static class MockInvocationResults {
         @Setter(AccessLevel.NONE)
         private final List<Expression> results = new ArrayList<>();
-        private Expression times;
-        private Expression minTimes;
-        private Expression maxTimes;
+        private @Nullable Expression times;
+        private @Nullable Expression minTimes;
+        private @Nullable Expression maxTimes;
 
         private void addResult(Expression result) {
             results.add(result);
