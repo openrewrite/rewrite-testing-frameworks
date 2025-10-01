@@ -15,7 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import lombok.Value;
+import lombok.AllArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
@@ -51,7 +51,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     private int varCounter = 0;
 
-    @Value
+    @AllArgsConstructor
     static class InvokedTypeWrapper {
         String fqn;
         String simple;
@@ -90,7 +90,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     if (whenArg != null) {
                         InvokedTypeWrapper invokedType = getTypeFromInvocation(whenArg);
                         if (invokedType != null) {
-                            list.addAll(mockedStatic(m, (J.MethodInvocation) statement, invokedType.getSimple(), whenArg, ctx));
+                            list.addAll(mockedStatic(m, (J.MethodInvocation) statement, invokedType.simple, whenArg, ctx));
                         }
                     } else {
                         list.add(statement);
@@ -111,16 +111,16 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     if (whenArg != null) {
                         InvokedTypeWrapper invokedType = getTypeFromInvocation(whenArg);
                         if (invokedType != null) {
-                            Optional<String> nameOfWrappingMockedStatic = tryGetMatchedWrappingResourceName(getCursor(), invokedType.getFqn());
+                            Optional<String> nameOfWrappingMockedStatic = tryGetMatchedWrappingResourceName(getCursor(), invokedType.fqn);
                             if (nameOfWrappingMockedStatic.isPresent()) {
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, nameOfWrappingMockedStatic.get(), whenArg, ctx);
                             }
-                            J.Identifier staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType.getFqn());
+                            J.Identifier staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType.fqn);
                             if (staticMockedVariable != null) {
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, staticMockedVariable, whenArg, ctx);
                             }
                             restInTry.set(true);
-                            return tryWithMockedStatic(block, statements, index, (J.MethodInvocation) statement, invokedType.getSimple(), whenArg, ctx);
+                            return tryWithMockedStatic(block, statements, index, (J.MethodInvocation) statement, invokedType.simple, whenArg, ctx);
                         }
                     }
                     return statement;
@@ -272,22 +272,19 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
         });
     }
 
+    private static List<J.Try.Resource> getMatchingFilteredResources(@Nullable List<J.Try.Resource> resources, String className) {
+        if (resources == null) {
+            return emptyList();
+        }
+        return ListUtils.filter(resources,res -> isMockedStaticOfType(className, ((J.VariableDeclarations) res.getVariableDeclarations()).getTypeAsFullyQualified()));
+    }
+
     private static boolean isMockedStaticOfType(String mockedType, @Nullable JavaType comparisonType) {
         if (comparisonType != null && MOCKED_STATIC.matches(comparisonType) && comparisonType instanceof JavaType.Parameterized) {
             JavaType.Parameterized parameterizedType = requireNonNull(TypeUtils.asParameterized(comparisonType));
             return parameterizedType.getTypeParameters().size() == 1 && TypeUtils.isAssignableTo(mockedType, parameterizedType.getTypeParameters().get(0));
         }
         return false;
-    }
-
-    private static List<J.Try.Resource> getMatchingFilteredResources(@Nullable List<J.Try.Resource> resources, String className) {
-        if (resources != null) {
-            return resources.stream().filter(res -> {
-                JavaType.FullyQualified vdsType = ((J.VariableDeclarations) res.getVariableDeclarations()).getTypeAsFullyQualified();
-                return isMockedStaticOfType(className, vdsType);
-            }).collect(toList());
-        }
-        return emptyList();
     }
 
     private static Optional<String> tryGetMatchedWrappingResourceName(Cursor cursor, String className) {
