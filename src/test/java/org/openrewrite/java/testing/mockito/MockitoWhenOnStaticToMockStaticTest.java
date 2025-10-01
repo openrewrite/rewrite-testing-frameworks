@@ -43,6 +43,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             //language=java
             .dependsOn(
               """
+                package org.example;
                 public class A {
                     public static Integer getNumber() {
                         return 42;
@@ -50,6 +51,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                 }
                 """,
               """
+                package org.example;
                 public class B {
                     public static String getString() {
                         return "";
@@ -72,6 +74,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           //language=java
           java(
             """
+              import org.example.A;
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.Mockito.*;
 
@@ -84,6 +88,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               }
               """,
             """
+              import org.example.A;
               import org.mockito.MockedStatic;
 
               import static org.junit.Assert.assertEquals;
@@ -109,6 +114,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           //language=java
           java(
             """
+              import org.example.A;
+              import org.example.B;
               import org.mockito.MockedStatic;
 
               import static org.junit.Assert.assertEquals;
@@ -128,6 +135,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               }
               """,
             """
+              import org.example.A;
+              import org.example.B;
               import org.mockito.MockedStatic;
 
               import static org.junit.Assert.assertEquals;
@@ -156,6 +165,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           //language=java
           java(
             """
+              import org.example.B;
               import org.mockito.MockedConstruction;
               import org.mockito.MockedStatic;
 
@@ -193,6 +203,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           //language=java
           java(
             """
+              import org.example.A;
+
               import static org.junit.Assert.assertEquals;
               import static org.mockito.Mockito.*;
 
@@ -217,6 +229,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               }
               """,
             """
+              import org.example.A;
               import org.mockito.MockedStatic;
 
               import static org.junit.Assert.assertEquals;
@@ -260,6 +273,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         rewriteRun(
           java(
             """
+              import org.example.A;
               import org.junit.Before;
 
               import static org.junit.Assert.assertEquals;
@@ -277,6 +291,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               }
               """,
             """
+              import org.example.A;
               import org.junit.After;
               import org.junit.Before;
               import org.mockito.MockedStatic;
@@ -315,6 +330,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             rewriteRun(
               java(
                 """
+                  import org.example.A;
                   import org.junit.Before;
 
                   import static org.junit.Assert.assertEquals;
@@ -332,6 +348,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.After;
                   import org.junit.Before;
                   import org.mockito.MockedStatic;
@@ -368,6 +385,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             rewriteRun(
               java(
                 """
+                  import org.example.A;
                   import org.junit.Before;
                   import org.junit.After;
 
@@ -391,6 +409,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.Before;
                   import org.mockito.MockedStatic;
                   import org.junit.After;
@@ -428,6 +447,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             rewriteRun(
               java(
                 """
+                  import org.example.A;
                   import org.junit.BeforeClass;
 
                   import static org.mockito.Mockito.*;
@@ -445,6 +465,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.AfterClass;
                   import org.junit.BeforeClass;
                   import org.mockito.MockedStatic;
@@ -481,6 +502,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.junit.AfterClass;
                   import org.junit.BeforeClass;
 
@@ -504,6 +526,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.AfterClass;
                   import org.junit.BeforeClass;
                   import org.mockito.MockedStatic;
@@ -541,6 +564,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.junit.After;
                   import org.junit.BeforeClass;
 
@@ -564,6 +588,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.After;
                   import org.junit.AfterClass;
                   import org.junit.BeforeClass;
@@ -606,6 +631,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.junit.AfterClass;
                   import org.junit.Before;
 
@@ -629,6 +655,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.After;
                   import org.junit.AfterClass;
                   import org.junit.Before;
@@ -671,6 +698,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.junit.AfterClass;
                   import org.junit.BeforeClass;
                   import org.mockito.MockedStatic;
@@ -704,6 +732,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.AfterClass;
                   import org.junit.BeforeClass;
                   import org.mockito.MockedStatic;
@@ -749,6 +778,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.BeforeEach;
 
                   import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -766,6 +796,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterEach;
                   import org.junit.jupiter.api.BeforeEach;
                   import org.mockito.MockedStatic;
@@ -802,6 +833,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterEach;
                   import org.junit.jupiter.api.BeforeEach;
 
@@ -825,6 +857,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterEach;
                   import org.junit.jupiter.api.BeforeEach;
                   import org.mockito.MockedStatic;
@@ -862,6 +895,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.BeforeAll;
 
                   import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -879,6 +913,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterAll;
                   import org.junit.jupiter.api.BeforeAll;
                   import org.mockito.MockedStatic;
@@ -915,6 +950,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterAll;
                   import org.junit.jupiter.api.BeforeAll;
 
@@ -938,6 +974,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterAll;
                   import org.junit.jupiter.api.BeforeAll;
                   import org.mockito.MockedStatic;
@@ -975,6 +1012,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterEach;
                   import org.junit.jupiter.api.BeforeAll;
 
@@ -998,6 +1036,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterAll;
                   import org.junit.jupiter.api.AfterEach;
                   import org.junit.jupiter.api.BeforeAll;
@@ -1040,6 +1079,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterAll;
                   import org.junit.jupiter.api.BeforeEach;
 
@@ -1063,6 +1103,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterAll;
                   import org.junit.jupiter.api.AfterEach;
                   import org.junit.jupiter.api.BeforeEach;
@@ -1105,6 +1146,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterAll;
                   import org.junit.jupiter.api.BeforeAll;
                   import org.mockito.MockedStatic;
@@ -1138,6 +1180,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.junit.jupiter.api.AfterAll;
                   import org.junit.jupiter.api.BeforeAll;
                   import org.mockito.MockedStatic;
@@ -1183,6 +1226,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.testng.annotations.BeforeMethod;
 
                   import static org.mockito.Mockito.*;
@@ -1200,6 +1244,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.mockito.MockedStatic;
                   import org.testng.annotations.AfterMethod;
                   import org.testng.annotations.BeforeMethod;
@@ -1236,6 +1281,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.testng.annotations.AfterMethod;
                   import org.testng.annotations.BeforeMethod;
 
@@ -1259,6 +1305,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.mockito.MockedStatic;
                   import org.testng.annotations.AfterMethod;
                   import org.testng.annotations.BeforeMethod;
@@ -1296,6 +1343,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.testng.annotations.BeforeClass;
 
                   import static org.mockito.Mockito.*;
@@ -1313,6 +1361,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.mockito.MockedStatic;
                   import org.testng.annotations.AfterClass;
                   import org.testng.annotations.BeforeClass;
@@ -1352,6 +1401,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.testng.annotations.AfterMethod;
                   import org.testng.annotations.BeforeClass;
 
@@ -1375,6 +1425,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.mockito.MockedStatic;
                   import org.testng.annotations.AfterClass;
                   import org.testng.annotations.AfterMethod;
@@ -1417,6 +1468,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.testng.annotations.AfterClass;
                   import org.testng.annotations.BeforeMethod;
 
@@ -1440,6 +1492,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.mockito.MockedStatic;
                   import org.testng.annotations.AfterClass;
                   import org.testng.annotations.AfterMethod;
@@ -1482,6 +1535,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.testng.annotations.AfterClass;
                   import org.testng.annotations.BeforeClass;
 
@@ -1505,6 +1559,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.mockito.MockedStatic;
                   import org.testng.annotations.AfterClass;
                   import org.testng.annotations.BeforeClass;
@@ -1542,6 +1597,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               //language=java
               java(
                 """
+                  import org.example.A;
                   import org.mockito.MockedStatic;
                   import org.testng.annotations.AfterClass;
                   import org.testng.annotations.BeforeClass;
@@ -1575,6 +1631,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   }
                   """,
                 """
+                  import org.example.A;
                   import org.mockito.MockedStatic;
                   import org.testng.annotations.AfterClass;
                   import org.testng.annotations.BeforeClass;
@@ -1618,6 +1675,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           //language=java
           java(
             """
+              import org.example.A;
               import org.mockito.MockedStatic;
 
               import static org.mockito.Mockito.*;
@@ -1633,6 +1691,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               }
               """,
             """
+              import org.example.A;
               import org.mockito.MockedStatic;
 
               import static org.mockito.Mockito.*;
@@ -1657,6 +1716,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           //language=java
           java(
             """
+              import org.example.A;
               import org.mockito.MockedStatic;
 
               import static org.mockito.Mockito.*;
@@ -1677,6 +1737,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               }
               """,
             """
+              import org.example.A;
               import org.mockito.MockedStatic;
 
               import static org.mockito.Mockito.*;
@@ -1708,6 +1769,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           //language=java
           java(
             """
+              import org.example.A;
               import org.junit.Before;
               import org.mockito.stubbing.OngoingStubbing;
               import static org.mockito.Mockito.*;
