@@ -189,7 +189,6 @@ class JMockitBlockRewriter {
     }
 
     private void removeBlock() {
-        // Directly manipulate the AST instead of using JavaTemplate
         List<Statement> statements = new ArrayList<>(methodBody.getStatements());
         if (bodyStatementIndex >= 0 && bodyStatementIndex < statements.size()) {
             statements.remove(bodyStatementIndex);

@@ -113,7 +113,6 @@ class SetupStatementsRewriter {
     }
 
     private void rewriteBodyStatement(Statement statement, JavaCoordinates coordinates) {
-        // Directly manipulate the AST instead of using JavaTemplate
         List<Statement> statements = new ArrayList<>(methodBody.getStatements());
 
         if (coordinates.getMode() == JavaCoordinates.Mode.REPLACEMENT) {
