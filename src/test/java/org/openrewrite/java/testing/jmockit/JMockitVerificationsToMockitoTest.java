@@ -947,7 +947,6 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
     void whenTimesOneCustomClass() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java(
             """
               import mockit.Mocked;
