@@ -391,7 +391,6 @@ class JMockitBlockRewriter {
             rewriteCoords) {
         int numStatementsBefore = methodBody.getStatements().size();
         methodBody = JavaTemplate.builder(template)
-                .contextSensitive()
                 .javaParser(getJavaParser(ctx))
                 .staticImports(MOCKITO_ALL_IMPORT)
                 .imports(IN_ORDER_IMPORT_FQN)
