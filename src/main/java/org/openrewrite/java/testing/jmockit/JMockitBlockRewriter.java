@@ -185,10 +185,12 @@ class JMockitBlockRewriter {
     }
 
     private void removeBlock() {
-        methodBody = JavaTemplate.builder("")
-                .javaParser(JavaParser.fromJavaVersion())
-                .build()
-                .apply(new Cursor(visitor.getCursor(), methodBody), nextStatementCoordinates);
+        // Directly manipulate the AST instead of using JavaTemplate
+        List<Statement> statements = new ArrayList<>(methodBody.getStatements());
+        if (bodyStatementIndex >= 0 && bodyStatementIndex < statements.size()) {
+            statements.remove(bodyStatementIndex);
+            methodBody = methodBody.withStatements(statements);
+        }
         setNextStatementCoordinates(0);
     }
 

@@ -1771,4 +1771,50 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void emptyExpectationsBlockDoesNotCrash() {
+        // Regression test for issue #687 - empty Expectations block caused IndexOutOfBoundsException
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import org.junit.jupiter.api.Test;
+
+              class MyTest {
+                  @Mocked
+                  private MyInterface myMock;
+
+                  @Test
+                  void test() {
+                      new Expectations() {{}};
+                  }
+
+                  interface MyInterface {
+                      String doSomething();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+
+              class MyTest {
+                  @Mock
+                  private MyInterface myMock;
+
+                  @Test
+                  void test() {
+                  }
+
+                  interface MyInterface {
+                      String doSomething();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

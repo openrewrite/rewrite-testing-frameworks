@@ -93,7 +93,7 @@ public class JMockitBlockToMockito extends Recipe {
                     bodyStatementIndex++;
                 }
             }
-            return md.withBody(methodBody);
+            return maybeAutoFormat(methodDeclaration, md.withBody(methodBody), ctx);
         }
     }
 }

@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
 
@@ -55,6 +52,12 @@ class SetupStatementsRewriter {
             }
 
             assert nc.getBody() != null;
+
+            // Check if the body has any statements - if empty, skip processing
+            if (nc.getBody().getStatements().isEmpty()) {
+                continue;
+            }
+
             J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
 
             // Account for Expectations which may contain multiple blocks
@@ -110,14 +113,32 @@ class SetupStatementsRewriter {
     }
 
     private void rewriteBodyStatement(Statement statement, JavaCoordinates coordinates) {
-        methodBody = JavaTemplate.builder("#{any()}")
-                .javaParser(JavaParser.fromJavaVersion())
-                .build()
-                .apply(
-                        new Cursor(visitor.getCursor(), methodBody),
-                        coordinates,
-                        statement
-                );
+        // Directly manipulate the AST instead of using JavaTemplate
+        List<Statement> statements = new ArrayList<>(methodBody.getStatements());
+
+        if (coordinates.getMode() == JavaCoordinates.Mode.REPLACEMENT) {
+            // Replace the statement at the specified position
+            for (int i = 0; i < statements.size(); i++) {
+                if (statements.get(i).isScope(coordinates.getTree())) {
+                    statements.set(i, statement);
+                    break;
+                }
+            }
+        } else {
+            // Find the reference statement and insert before/after it
+            for (int i = 0; i < statements.size(); i++) {
+                if (statements.get(i).isScope(coordinates.getTree())) {
+                    if (coordinates.getMode() == JavaCoordinates.Mode.BEFORE) {
+                        statements.add(i, statement);
+                    } else { // AFTER
+                        statements.add(i + 1, statement);
+                    }
+                    break;
+                }
+            }
+        }
+
+        methodBody = methodBody.withStatements(statements);
     }
 
     private boolean isSetupStatement(Statement expectationStatement, Set<String> spies) {
