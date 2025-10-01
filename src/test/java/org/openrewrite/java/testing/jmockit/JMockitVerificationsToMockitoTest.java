@@ -942,4 +942,61 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void whenTimesOneCustomClass() {
+        //language=java
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
+          java(
+            """
+              import mockit.Mocked;
+              import mockit.Verifications;
+              import mockit.Tested;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              class Class1 {
+                  public void method1() {
+                  }
+              }
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  private Class1 myObject1;
+
+                  void test() {
+                      new Verifications() {{
+                          myObject1.method1();
+                          times = 1;
+                      }};
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.verify;
+
+              class Class1 {
+                  public void method1() {
+                  }
+              }
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  private Class1 myObject1;
+
+                  void test() {
+                      verify(myObject1).method1();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
