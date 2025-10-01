@@ -66,8 +66,8 @@ class SetupStatementsRewriter {
                 statementList.add(expectationsBlock);
             }
 
-            // statement needs to be moved directly before expectations class instantiation
-            JavaCoordinates coordinates = nc.getCoordinates().before();
+            // collect setup statements
+            List<Statement> setupStatements = new ArrayList<>();
             List<Statement> newExpectationsBlockStatements = new ArrayList<>();
             for (Statement st : statementList) {
                 for (Statement expectationStatement : ((J.Block) st).getStatements()) {
@@ -75,9 +75,28 @@ class SetupStatementsRewriter {
                         newExpectationsBlockStatements.add(expectationStatement);
                         continue;
                     }
-                    rewriteBodyStatement(expectationStatement, coordinates);
-                    // subsequent setup statements are moved in order
-                    coordinates = expectationStatement.getCoordinates().after();
+                    setupStatements.add(expectationStatement);
+                }
+            }
+
+            // check if setup statement variable names conflict with method body variable names
+            Set<String> setupVariableNames = getVariableNames(setupStatements);
+            Set<String> methodBodyVariableNames = getVariableNames(methodBody.getStatements());
+            boolean hasConflict = setupVariableNames.stream().anyMatch(methodBodyVariableNames::contains);
+
+            // move setup statements before the expectations block
+            JavaCoordinates coordinates = nc.getCoordinates().before();
+            if (!setupStatements.isEmpty()) {
+                if (hasConflict) {
+                    // wrap in a block to avoid variable name conflicts
+                    J.Block setupBlock = expectationsBlock.withStatements(setupStatements);
+                    rewriteBodyStatement(setupBlock, coordinates);
+                } else {
+                    // move statements individually
+                    for (Statement setupStatement : setupStatements) {
+                        rewriteBodyStatement(setupStatement, coordinates);
+                        coordinates = setupStatement.getCoordinates().after();
+                    }
                 }
             }
 
@@ -162,5 +181,18 @@ class SetupStatementsRewriter {
             }
         }
         return true;
+    }
+
+    private static Set<String> getVariableNames(List<Statement> statements) {
+        Set<String> variableNames = new HashSet<>();
+        for (Statement statement : statements) {
+            if (statement instanceof J.VariableDeclarations) {
+                J.VariableDeclarations varDecls = (J.VariableDeclarations) statement;
+                for (J.VariableDeclarations.NamedVariable namedVar : varDecls.getVariables()) {
+                    variableNames.add(namedVar.getSimpleName());
+                }
+            }
+        }
+        return variableNames;
     }
 }
