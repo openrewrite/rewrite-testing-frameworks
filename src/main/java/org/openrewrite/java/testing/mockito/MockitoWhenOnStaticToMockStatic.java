@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 import static org.openrewrite.java.tree.Flag.Static;
@@ -53,7 +52,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     @AllArgsConstructor
     static class InvokedTypeWrapper {
-        String fqn;
+        JavaType fqn;
         String simple;
     }
 
@@ -148,7 +147,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 } else if (whenArg.getSelect() instanceof J.FieldAccess && ((J.FieldAccess) whenArg.getSelect()).getTarget() instanceof J.Identifier) {
                     clazz = (J.Identifier) ((J.FieldAccess) whenArg.getSelect()).getTarget();
                 }
-                return clazz != null && clazz.getType() != null ? new InvokedTypeWrapper(TypeUtils.toString(clazz.getType()), clazz.getSimpleName()) : null;
+                return clazz != null && clazz.getType() != null ? new InvokedTypeWrapper(clazz.getType(), clazz.getSimpleName()) : null;
             }
 
             private J.Try tryWithMockedStatic(J.Block block, List<Statement> statements, Integer index,
@@ -272,14 +271,14 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
         });
     }
 
-    private static List<J.Try.Resource> getMatchingFilteredResources(@Nullable List<J.Try.Resource> resources, String className) {
+    private static List<J.Try.Resource> getMatchingFilteredResources(@Nullable List<J.Try.Resource> resources, JavaType className) {
         if (resources == null) {
             return emptyList();
         }
         return ListUtils.filter(resources,res -> isMockedStaticOfType(className, ((J.VariableDeclarations) res.getVariableDeclarations()).getTypeAsFullyQualified()));
     }
 
-    private static boolean isMockedStaticOfType(String mockedType, @Nullable JavaType comparisonType) {
+    private static boolean isMockedStaticOfType(JavaType mockedType, @Nullable JavaType comparisonType) {
         if (comparisonType != null && MOCKED_STATIC.matches(comparisonType) && comparisonType instanceof JavaType.Parameterized) {
             JavaType.Parameterized parameterizedType = requireNonNull(TypeUtils.asParameterized(comparisonType));
             return parameterizedType.getTypeParameters().size() == 1 && TypeUtils.isAssignableTo(mockedType, parameterizedType.getTypeParameters().get(0));
@@ -287,7 +286,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
         return false;
     }
 
-    private static Optional<String> tryGetMatchedWrappingResourceName(Cursor cursor, String className) {
+    private static Optional<String> tryGetMatchedWrappingResourceName(Cursor cursor, JavaType className) {
         try {
             Cursor foundParentCursor = cursor.dropParentUntil(val -> {
                 if (val instanceof J.Try) {
@@ -346,7 +345,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 .orElse(baseName);
     }
 
-    private static J.@Nullable Identifier findMockedStaticVariable(Cursor scope, String className) {
+    private static J.@Nullable Identifier findMockedStaticVariable(Cursor scope, JavaType className) {
         JavaSourceFile compilationUnit = scope.firstEnclosing(JavaSourceFile.class);
         if (compilationUnit == null) {
             return null;
