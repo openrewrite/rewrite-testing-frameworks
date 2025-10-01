@@ -50,12 +50,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     private int varCounter = 0;
 
-    @AllArgsConstructor
-    static class InvokedTypeWrapper {
-        JavaType fqn;
-        String simple;
-    }
-
     @Override
     public String getDisplayName() {
         return "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic";
@@ -87,9 +81,9 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 for (Statement statement : statements) {
                     J.MethodInvocation whenArg = getWhenArg(statement);
                     if (whenArg != null) {
-                        InvokedTypeWrapper invokedType = getTypeFromInvocation(whenArg);
+                        JavaType.@Nullable Class invokedType = getTypeFromInvocation(whenArg);
                         if (invokedType != null) {
-                            list.addAll(mockedStatic(m, (J.MethodInvocation) statement, invokedType.simple, whenArg, ctx));
+                            list.addAll(mockedStatic(m, (J.MethodInvocation) statement, invokedType.getClassName(), whenArg, ctx));
                         }
                     } else {
                         list.add(statement);
@@ -108,18 +102,18 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
                     J.MethodInvocation whenArg = getWhenArg(statement);
                     if (whenArg != null) {
-                        InvokedTypeWrapper invokedType = getTypeFromInvocation(whenArg);
+                        JavaType.@Nullable Class invokedType = getTypeFromInvocation(whenArg);
                         if (invokedType != null) {
-                            Optional<String> nameOfWrappingMockedStatic = tryGetMatchedWrappingResourceName(getCursor(), invokedType.fqn);
+                            Optional<String> nameOfWrappingMockedStatic = tryGetMatchedWrappingResourceName(getCursor(), invokedType);
                             if (nameOfWrappingMockedStatic.isPresent()) {
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, nameOfWrappingMockedStatic.get(), whenArg, ctx);
                             }
-                            J.Identifier staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType.fqn);
+                            J.Identifier staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType);
                             if (staticMockedVariable != null) {
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, staticMockedVariable, whenArg, ctx);
                             }
                             restInTry.set(true);
-                            return tryWithMockedStatic(block, statements, index, (J.MethodInvocation) statement, invokedType.simple, whenArg, ctx);
+                            return tryWithMockedStatic(block, statements, index, (J.MethodInvocation) statement, invokedType.getClassName(), whenArg, ctx);
                         }
                     }
                     return statement;
@@ -139,7 +133,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 return null;
             }
 
-            private @Nullable InvokedTypeWrapper getTypeFromInvocation(J.MethodInvocation whenArg) {
+            private JavaType.@Nullable Class getTypeFromInvocation(J.MethodInvocation whenArg) {
                 J.Identifier clazz = null;
                 // Having a fieldType implies that something is a field rather than a class itself
                 if (whenArg.getSelect() instanceof J.Identifier && ((J.Identifier) whenArg.getSelect()).getFieldType() == null) {
@@ -147,7 +141,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 } else if (whenArg.getSelect() instanceof J.FieldAccess && ((J.FieldAccess) whenArg.getSelect()).getTarget() instanceof J.Identifier) {
                     clazz = (J.Identifier) ((J.FieldAccess) whenArg.getSelect()).getTarget();
                 }
-                return clazz != null && clazz.getType() != null ? new InvokedTypeWrapper(clazz.getType(), clazz.getSimpleName()) : null;
+                return clazz != null && clazz.getType() != null ? (JavaType.Class) clazz.getType() : null;
             }
 
             private J.Try tryWithMockedStatic(J.Block block, List<Statement> statements, Integer index,
