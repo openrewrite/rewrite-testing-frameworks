@@ -271,8 +271,8 @@ class JMockitBlockRewriter {
 
         // Find the newly added statement
         int newStatementIdx = this.blockType.isVerifications() ?
-            bodyStatementIndex + numStatementsAdded :
-            methodBody.getStatements().size() - 1;
+                bodyStatementIndex + numStatementsAdded :
+                methodBody.getStatements().size() - 1;
 
         Statement newStatement = methodBody.getStatements().get(newStatementIdx);
         if (!(newStatement instanceof J.MethodInvocation)) {
@@ -435,8 +435,7 @@ class JMockitBlockRewriter {
         return templateBuilder.toString();
     }
 
-    private static void appendToTemplate(StringBuilder templateBuilder, boolean buildingResults, String
-            templatePrefix,
+    private static void appendToTemplate(StringBuilder templateBuilder, boolean buildingResults, String templatePrefix,
                                          String templateField) {
         if (!buildingResults) {
             templateBuilder.append(templatePrefix);
@@ -444,47 +443,6 @@ class JMockitBlockRewriter {
             templateBuilder.append(", ");
         }
         templateBuilder.append(templateField);
-    }
-
-    private String getVerifyTemplate(List<Expression> arguments, String
-            verificationMode, List<Object> templateParams) {
-        StringBuilder templateBuilder = new StringBuilder();
-        if (isVerificationsInOrder()) {
-            templateBuilder.append("inOrder");
-            if (this.verificationsInOrderIdx > 0) {
-                templateBuilder.append(this.verificationsInOrderIdx);
-            }
-            templateBuilder.append(".");
-        }
-        templateBuilder.append(VERIFY_TEMPLATE_PREFIX); // eg verify(object
-        if (!verificationMode.isEmpty()) {
-            templateBuilder.append(", ").append(verificationMode).append("(#{any(int)})"); // eg verify(object, times(2)
-        }
-        templateBuilder.append(").#{}("); // eg verify(object, times(2)).method(
-
-        if (arguments.isEmpty()) {
-            templateBuilder.append(");"); // eg verify(object, times(2)).method(); <- no args
-            return templateBuilder.toString();
-        }
-
-        boolean hasArgument = false;
-        for (Expression argument : arguments) { // eg verify(object, times(2).method(anyLong(), anyInt()
-            if (argument instanceof J.Empty) {
-                continue;
-            } else if (argument instanceof J.Literal) {
-                templateBuilder.append(((J.Literal) argument).getValueSource());
-            } else {
-                templateBuilder.append(ANY_TEMPLATE_FIELD);
-                templateParams.add(argument);
-            }
-            hasArgument = true;
-            templateBuilder.append(", ");
-        }
-        if (hasArgument) {
-            templateBuilder.delete(templateBuilder.length() - 2, templateBuilder.length());
-        }
-        templateBuilder.append(");"); // eg verify(object, times(2).method(anyLong(), anyInt());
-        return templateBuilder.toString();
     }
 
     private static @Nullable MockInvocationResults buildMockInvocationResults
