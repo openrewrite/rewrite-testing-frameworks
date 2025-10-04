@@ -35,7 +35,6 @@ import static org.openrewrite.java.testing.jmockit.JMockitUtils.getJavaParser;
 class JMockitBlockRewriter {
 
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
-    private static final String VERIFY_TEMPLATE_PREFIX = "verify(#{any()}";
     private static final String VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX = "verifyNoMoreInteractions(";
     private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX_1 = "InOrder inOrder";
     private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX_2 = " = inOrder(";

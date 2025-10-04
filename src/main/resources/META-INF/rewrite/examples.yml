@@ -15,7 +15,7 @@
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.archunit.ArchUnit0to1Migration
 examples:
-- description: ''
+- description: '`ArchUnit0To1MigrationTest#shouldUseGetClassesInPackageTree`'
   sources:
   - before: |
       import com.tngtech.archunit.core.domain.JavaPackage;
@@ -42,7 +42,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5
 examples:
-- description: ''
+- description: '`ArquillianJUnit4ToArquillianJunit5Test#convert`'
   sources:
   - before: project
     language: mavenProject
@@ -67,7 +67,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.arquillian.ReplaceArquillianInSequenceAnnotation
 examples:
-- description: ''
+- description: '`ReplaceArquillianInSequenceAnnotationTest#replaceInSequenceAnnotation`'
   sources:
   - before: |
       import org.jboss.arquillian.junit.InSequence;
@@ -97,7 +97,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.AdoptAssertJDurationAssertions
 examples:
-- description: ''
+- description: '`AdoptAssertJDurationAssertionsTest#getSecondsToHasSeconds`'
   sources:
   - before: |
       import java.time.Duration;
@@ -126,7 +126,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.AssertJBigIntegerRulesRecipes
 examples:
-- description: ''
+- description: '`AssertJBigIntegerRulesTest#isZero`'
   sources:
   - before: |
       import org.assertj.core.api.Assertions;
@@ -155,7 +155,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.AssertJByteRulesRecipes
 examples:
-- description: ''
+- description: '`AssertJByteRulesTest#isZero`'
   sources:
   - before: |
       import org.assertj.core.api.Assertions;
@@ -178,7 +178,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.AssertJDoubleRulesRecipes
 examples:
-- description: ''
+- description: '`AssertJDoubleRulesTest#isZero`'
   sources:
   - before: |
       import org.assertj.core.api.Assertions;
@@ -205,7 +205,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.AssertJFloatRulesRecipes
 examples:
-- description: ''
+- description: '`AssertJFloatRulesTest#isZero`'
   sources:
   - before: |
       import org.assertj.core.api.Assertions;
@@ -236,7 +236,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.AssertJIntegerRulesRecipes
 examples:
-- description: ''
+- description: '`AssertJIntegerRulesTest#isZero`'
   sources:
   - before: |
       import org.assertj.core.api.Assertions;
@@ -259,7 +259,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.AssertJLongRulesRecipes
 examples:
-- description: ''
+- description: '`AssertJLongRulesTest#isZero`'
   sources:
   - before: |
       import org.assertj.core.api.Assertions;
@@ -282,7 +282,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.AssertJShortRulesRecipes
 examples:
-- description: ''
+- description: '`AssertJShortRulesTest#isZero`'
   sources:
   - before: |
       import org.assertj.core.api.Assertions;
@@ -305,7 +305,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.Assertj
 examples:
-- description: ''
+- description: '`AssertJBestPracticesTest#convertsIsEqualToEmptyString`'
   sources:
   - before: |
       import static org.assertj.core.api.Assertions.assertThat;
@@ -322,7 +322,7 @@ examples:
           }
       }
     language: java
-- description: ''
+- description: '`TestNgToAssertJTest#failWithMessage`'
   sources:
   - before: |
       import static org.testng.Assert.fail;
@@ -349,7 +349,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.CollapseConsecutiveAssertThatStatements
 examples:
-- description: ''
+- description: '`CollapseConsecutiveAssertThatStatementsTest#collapseIfConsecutiveAssertThatPresent`'
   sources:
   - before: |
       import java.util.Arrays;
@@ -383,7 +383,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.FestToAssertj
 examples:
-- description: ''
+- description: '`FestToAssertJTest#documentExample`'
   sources:
   - before: |
       import org.fest.assertions.api.Assertions;
@@ -428,7 +428,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.IsEqualToIgnoringMillisToIsCloseToRecipe
 examples:
-- description: ''
+- description: '`IsEqualToIgnoringMillisToIsCloseToTest#replaceDeprecation`'
   sources:
   - before: |
       import org.assertj.core.api.Assertions;
@@ -455,7 +455,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitAssertArrayEqualsToAssertThat
 examples:
-- description: ''
+- description: '`JUnitAssertArrayEqualsToAssertThatTest#singleStaticMethodNoMessage`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -494,7 +494,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitAssertEqualsToAssertThat
 examples:
-- description: ''
+- description: '`JUnitAssertEqualsToAssertThatTest#singleStaticMethodNoMessage`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -529,7 +529,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitAssertFalseToAssertThat
 examples:
-- description: ''
+- description: '`JUnitAssertFalseToAssertThatTest#singleStaticMethodNoMessage`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -564,7 +564,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitAssertInstanceOfToAssertThat
 examples:
-- description: ''
+- description: '`JUnitAssertInstanceOfToAssertThatTest#convertsIsInstanceOf`'
   sources:
   - before: |
       import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -587,7 +587,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitAssertNotEqualsToAssertThat
 examples:
-- description: ''
+- description: '`JUnitAssertNotEqualsToAssertThatTest#singleStaticMethodNoMessage`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -622,7 +622,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitAssertNotNullToAssertThat
 examples:
-- description: ''
+- description: '`JUnitAssertNotNullToAssertThatTest#singleStaticMethodNoMessage`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -657,7 +657,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitAssertNullToAssertThat
 examples:
-- description: ''
+- description: '`JUnitAssertNullToAssertThatTest#singleStaticMethodNoMessage`'
   sources:
   - before: |2
           import org.junit.jupiter.api.Test;
@@ -692,7 +692,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitAssertSameToAssertThat
 examples:
-- description: ''
+- description: '`JUnitAssertSameToAssertThatTest#singleStaticMethodNoMessage`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -729,7 +729,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitAssertThrowsToAssertExceptionType
 examples:
-- description: ''
+- description: '`JUnitAssertThrowsToAssertExceptionTypeTest#toAssertExceptionOfType`'
   sources:
   - before: |
       import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -758,7 +758,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitAssertTrueToAssertThat
 examples:
-- description: ''
+- description: '`JUnitAssertTrueToAssertThatTest#singleStaticMethodNoMessage`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -793,7 +793,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitFailToAssertJFail
 examples:
-- description: ''
+- description: '`JUnitFailToAssertJFailTest#singleStaticMethodNoMessage`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -822,7 +822,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.JUnitTryFailToAssertThatThrownBy
 examples:
-- description: ''
+- description: '`JUnitTryFailToAssertThatThrownByTest#simpleTryCatchFailBlock`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -863,7 +863,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion
 examples:
-- description: ''
+- description: '`SimplifyAssertJAssertionTest#convertsStringIsEqualToNull`'
   parameters:
   - isEqualTo
   - 'null'
@@ -889,7 +889,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion
 examples:
-- description: ''
+- description: '`SimplifyChainedAssertJAssertionTest#stringIsEmpty`'
   parameters:
   - isEmpty
   - isTrue
@@ -917,7 +917,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
 examples:
-- description: ''
+- description: '`Strings#stringIsEmptyExample`'
   sources:
   - before: |
       import static org.assertj.core.api.Assertions.assertThat;
@@ -942,7 +942,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
 examples:
-- description: ''
+- description: '`SimplifyHasSizeAssertionTest#stringHasSameSizeAs`'
   sources:
   - before: |
       import static org.assertj.core.api.Assertions.assertThat;
@@ -971,7 +971,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.SimplifyRedundantAssertJChains
 examples:
-- description: ''
+- description: '`SimplifyRedundantAssertJChainsTest#simplifyStringAssertions`'
   sources:
   - before: |
       import static org.assertj.core.api.Assertions.assertThat;
@@ -1012,7 +1012,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.StaticImports
 examples:
-- description: ''
+- description: '`StaticImportsTest#useStaticImports`'
   sources:
   - before: |
       import java.util.List;
@@ -1046,7 +1046,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.byteman.BytemanJUnit4ToBytemanJUnit5
 examples:
-- description: ''
+- description: '`BytemanJUnit4ToBytemanJUnit5Test#convertRunWithToWithByteman`'
   sources:
   - before: |
       import org.jboss.byteman.contrib.bmunit.BMRule;
@@ -1090,7 +1090,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.AssertEqualsBooleanToAssertBoolean
 examples:
-- description: ''
+- description: '`AssertEqualsBooleanToAssertBooleanTest#assertEqualsFalseToToAssertFalse`'
   sources:
   - before: |
       import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1123,7 +1123,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.AssertLiteralBooleanRemovedRecipe
 examples:
-- description: ''
+- description: '`AssertLiteralBooleanRemovedTest#assertWithStaticImports`'
   sources:
   - before: |
       import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1147,7 +1147,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipes
 examples:
-- description: ''
+- description: '`AssertLiteralBooleanToFailTest#assertWithStaticImportsWithMessage`'
   sources:
   - before: |
       import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1173,7 +1173,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.AssertNotEqualsBooleanToAssertBoolean
 examples:
-- description: ''
+- description: '`AssertNotEqualsBooleanToAssertBooleanTest#assertNotEqualsFalseToToAssertTrue`'
   sources:
   - before: |
       import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -1206,7 +1206,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.AssertTrueComparisonToAssertEquals
 examples:
-- description: ''
+- description: '`AssertTrueComparisonToAssertEqualsTest#preserveMessage`'
   sources:
   - before: |
       import org.junit.jupiter.api.Assertions;
@@ -1233,7 +1233,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.AssertionsArgumentOrder
 examples:
-- description: ''
+- description: '`AssertionsArgumentOrderTest#junitAssertEqualsHavingPrimitiveArg`'
   sources:
   - before: |
       import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1266,7 +1266,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.RemoveEmptyTests
 examples:
-- description: ''
+- description: '`RemoveEmptyTestsTest#removeEmptyTest`'
   sources:
   - before: |
       import org.junit.Test;
@@ -1284,7 +1284,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.RemoveTestPrefix
 examples:
-- description: ''
+- description: '`RemoveTestPrefixTest#removeTestPrefixes`'
   sources:
   - before: |
       import org.junit.jupiter.api.Nested;
@@ -1353,7 +1353,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.SimplifyTestThrows
 examples:
-- description: ''
+- description: '`SimplifyTestThrowsTest#simplifyExceptions`'
   sources:
   - before: |
       import java.io.IOException;
@@ -1377,7 +1377,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.TestMethodsShouldBeVoid
 examples:
-- description: ''
+- description: '`TestMethodsShouldBeVoidTest#changeReturnTypeToVoid`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -1403,7 +1403,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.TestsShouldIncludeAssertions
 examples:
-- description: ''
+- description: '`TestsShouldIncludeAssertionsTest#noAssertions`'
   parameters:
   - 'null'
   sources:
@@ -1435,7 +1435,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
 examples:
-- description: ''
+- description: '`TestsShouldNotBePublicTest#removePublicClassModifiers`'
   parameters:
   - 'false'
   sources:
@@ -1506,7 +1506,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.datafaker.JavaFakerToDataFaker
 examples:
-- description: ''
+- description: '`JavaFakerToDataFakerTest#javaFakerToDataFaker`'
   sources:
   - before: |
       import com.github.javafaker.Faker;
@@ -1537,7 +1537,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.dbrider.ExecutionListenerToDbRiderAnnotation
 examples:
-- description: ''
+- description: '`ExecutionListenerToDbRiderAnnotationUnitTest#replaceAnnotationIfOnlyDbRiderListenerMergedWithDefaults`'
   sources:
   - before: |
       import org.springframework.test.context.TestExecutionListeners;
@@ -1555,7 +1555,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.easymock.EasyMockToMockito
 examples:
-- description: ''
+- description: '`EasyMockToMockitoTest#replaceEasyMockByMockito`'
   sources:
   - before: |
       import org.easymock.EasyMockRunner;
@@ -1678,7 +1678,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.easymock.EasyMockVerifyToMockitoVerify
 examples:
-- description: ''
+- description: '`EasyMockVerifyToMockitoVerifyTest#replaceEasyMockVerifyByMockitoVerify`'
   sources:
   - before: |
       import static org.easymock.EasyMock.*;
@@ -1746,7 +1746,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.easymock.RemoveExtendsEasyMockSupport
 examples:
-- description: ''
+- description: '`RemoveExtendsEasyMockSupportTest#shouldRemoveEasyMockSupportParentClass`'
   sources:
   - before: |
       import org.easymock.EasyMockSupport;
@@ -1761,7 +1761,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.hamcrest.AssertThatBooleanToAssertJ
 examples:
-- description: ''
+- description: '`AssertThatBooleanToAssertJTest#assertThatBoolean`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -1790,7 +1790,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.hamcrest.HamcrestInstanceOfToJUnit5
 examples:
-- description: ''
+- description: '`HamcrestInstanceOfToJUnit5Test#instanceOf`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -1831,7 +1831,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.hamcrest.HamcrestIsMatcherToAssertJ
 examples:
-- description: ''
+- description: '`HamcrestIsMatcherToAssertJTest#isMatcher`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -1864,7 +1864,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ
 examples:
-- description: ''
+- description: '`TwoArguments#equalToString`'
   parameters:
   - equalTo
   - isEqualTo
@@ -1902,7 +1902,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.hamcrest.HamcrestMatcherToJUnit5
 examples:
-- description: ''
+- description: '`HamcrestMatcherToJUnit5Test#equalToString`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -1935,7 +1935,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ
 examples:
-- description: ''
+- description: '`HamcrestNotMatcherToAssertJTest#notMatcher`'
   parameters:
   - equalTo
   - isNotEqualTo
@@ -1973,7 +1973,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.hamcrest.HamcrestOfMatchersToAssertJ
 examples:
-- description: ''
+- description: '`HamcrestOfMatchersToAssertJTest#allOfMigrate`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -2011,7 +2011,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
 examples:
-- description: ''
+- description: '`MigrateHamcrestToAssertJTest#isEqualTo`'
   sources:
   - before: |
       class Biscuit {
@@ -2065,7 +2065,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5
 examples:
-- description: ''
+- description: '`MigrateHamcrestToJUnitTest#equalToString`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -2102,7 +2102,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
 examples:
-- description: ''
+- description: '`RemoveIsMatcherTest#isMatcher`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -2136,7 +2136,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.AddHamcrestJUnitDependency
 examples:
-- description: ''
+- description: '`AddHamcrestJUnitDependencyTest#shouldAddWhenUsingAssertThat`'
   sources:
   - before: |
       class FooTest {
@@ -2149,7 +2149,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.AddJupiterDependencies
 examples:
-- description: ''
+- description: '`AddJupiterDependenciesTest#addToTestScope`'
   sources:
   - before: project
     language: mavenProject
@@ -2166,7 +2166,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.AddMissingNested
 examples:
-- description: ''
+- description: '`AddMissingNestedTest#oneInnerClass`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -2195,7 +2195,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
 examples:
-- description: ''
+- description: '`AddParameterizedTestAnnotationTest#replaceTestWithParameterizedTest`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -2251,7 +2251,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
 examples:
-- description: ''
+- description: '`AssertThrowsOnLastStatementTest#applyToLastStatementWithDeclaringVariableThreeLines`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -2297,7 +2297,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.AssertToAssertions
 examples:
-- description: ''
+- description: '`AssertToAssertionsTest#stringArgumentIsMethodInvocation`'
   sources:
   - before: |
       import org.junit.Test;
@@ -2340,7 +2340,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.AssertTrueInstanceofToAssertInstanceOf
 examples:
-- description: ''
+- description: '`AssertTrueInstanceofToAssertInstanceOfTest#jUnit5`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -2375,7 +2375,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.CleanupAssertions
 examples:
-- description: ''
+- description: '`CleanupAssertionsTest#assertTrueComparisonNullToAssertNull`'
   sources:
   - before: |
       import org.junit.jupiter.api.Assertions;
@@ -2402,7 +2402,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.CleanupJUnitImports
 examples:
-- description: ''
+- description: '`CleanupJUnitImportsTest#removesUnusedImport`'
   sources:
   - before: |
       import org.junit.Test;
@@ -2422,7 +2422,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.CsvSourceToValueSource
 examples:
-- description: ''
+- description: '`CsvSourceToValueSourceTest#replaceCsvSourceWithValueSourceForStrings`'
   sources:
   - before: |
       import org.junit.jupiter.params.ParameterizedTest;
@@ -2451,7 +2451,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.EnvironmentVariables
 examples:
-- description: ''
+- description: '`EnvironmentVariablesTest#supportedRule`'
   sources:
   - before: |
       import org.junit.jupiter.api.BeforeEach;
@@ -2506,7 +2506,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
 examples:
-- description: ''
+- description: '`ExpectedExceptionToAssertThrowsTest#expectedExceptionRule`'
   sources:
   - before: |
       import org.junit.Rule;
@@ -2550,7 +2550,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.GradleUseJunitJupiter
 examples:
-- description: ''
+- description: '`GradleUseJunitJupiterTest#addWhenMissing`'
   sources:
   - before: |
       plugins {
@@ -2575,7 +2575,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.JUnit4to5Migration
 examples:
-- description: ''
+- description: '`EnclosedToNestedTest#oneInnerClass`'
   sources:
   - before: |
       import org.junit.Test;
@@ -2603,7 +2603,7 @@ examples:
           }
       }
     language: java
-- description: ''
+- description: '`JUnit5MigrationTest#assertThatReceiver`'
   sources:
   - before: |
       import org.junit.Assert;
@@ -2636,7 +2636,7 @@ examples:
           }
       }
     language: java
-- description: ''
+- description: '`JunitMockitoUpgradeIntegrationTest#replaceMockAnnotation`'
   sources:
   - before: |
       package org.openrewrite.java.testing.junit5;
@@ -2712,7 +2712,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.JUnit5BestPractices
 examples:
-- description: ''
+- description: '`JUnit5BestPracticesTest#changeBeforeToBeforeEach`'
   sources:
   - before: |
       import org.junit.Before;
@@ -2735,7 +2735,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.JUnitParamsRunnerToParameterized
 examples:
-- description: ''
+- description: '`JUnitParamsRunnerToParameterizedTest#hasAssociatedMethodSource`'
   sources:
   - before: |
       import org.junit.Test;
@@ -2800,7 +2800,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.MigrateJUnitTestCase
 examples:
-- description: ''
+- description: '`MigrateJUnitTestCaseTest#convertTestCase`'
   sources:
   - before: |
       import junit.framework.TestCase;
@@ -2866,7 +2866,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.ParameterizedRunnerToParameterized
 examples:
-- description: ''
+- description: '`ParameterizedRunnerToParameterizedTest#parameterizedTestToParameterizedTestsWithMethodSource`'
   sources:
   - before: |
       import org.junit.Test;
@@ -2945,7 +2945,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
 examples:
-- description: ''
+- description: '`RemoveDuplicateTestTemplatesTest#removeDuplicate`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -2976,7 +2976,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.RemoveObsoleteRunners
 examples:
-- description: ''
+- description: '`RemoveObsoleteRunnersTest#removesRunWithJunit4`'
   parameters:
   - |-
     List.of(
@@ -2999,7 +2999,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
 examples:
-- description: ''
+- description: '`RemoveTryCatchFailBlocksTest#removeTryCatchBlock`'
   sources:
   - before: |
       import org.junit.jupiter.api.Assertions;
@@ -3032,7 +3032,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.RunnerToExtension
 examples:
-- description: ''
+- description: '`RunnerToExtensionTest#mockito`'
   parameters:
   - List.of("org.mockito.runners.MockitoJUnitRunner")
   - org.mockito.junit.jupiter.MockitoExtension
@@ -3056,7 +3056,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.StaticImports
 examples:
-- description: ''
+- description: '`StaticImportsTest#useAssertionsStaticImport`'
   sources:
   - before: |
       import org.junit.jupiter.api.Assertions;
@@ -3079,7 +3079,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.TemporaryFolderToTempDir
 examples:
-- description: ''
+- description: '`TemporaryFolderToTempDirTest#spockTest`'
   sources:
   - before: |
       import org.junit.Rule
@@ -3123,7 +3123,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.TestRuleToTestInfo
 examples:
-- description: ''
+- description: '`TestRuleToTestInfoTest#ruleToTestInfo`'
   sources:
   - before: |
       import org.junit.Rule;
@@ -3152,7 +3152,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.TimeoutRuleToClassAnnotation
 examples:
-- description: ''
+- description: '`TimeoutRuleToClassAnnotationTest#defaultTimeUnit`'
   sources:
   - before: |
       import org.junit.Rule;
@@ -3183,7 +3183,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
 examples:
-- description: ''
+- description: '`UpdateBeforeAfterAnnotationsTest#beforeToBeforeEach`'
   sources:
   - before: |
       import org.junit.Before;
@@ -3225,7 +3225,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UpdateMockWebServer
 examples:
-- description: ''
+- description: '`UpdateMockWebServerTest#mockWebServerRuleUpdated`'
   sources:
   - before: |
       import okhttp3.mockwebserver.MockWebServer;
@@ -3253,7 +3253,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UpdateTestAnnotation
 examples:
-- description: ''
+- description: '`UpdateTestAnnotationTest#expectedNoneToAssertDoesNotThrow`'
   sources:
   - before: |
       import org.junit.Test;
@@ -3284,7 +3284,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UpgradeToJUnit514
 examples:
-- description: ''
+- description: '`UpgradeToJUnit514Test#migrateOutputDirectoryProvider`'
   sources:
   - before: |
       import org.junit.platform.engine.reporting.OutputDirectoryProvider;
@@ -3311,7 +3311,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UseAssertSame
 examples:
-- description: ''
+- description: '`UseAssertSameTest#assertSameForSimpleBooleanComparison`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -3346,7 +3346,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
 examples:
-- description: ''
+- description: '`UseHamcrestAssertThatTest#assertAssertThatToHamcrestMatcherAssert`'
   sources:
   - before: |
       import static org.hamcrest.CoreMatchers.is;
@@ -3371,7 +3371,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UseWiremockExtension
 examples:
-- description: ''
+- description: '`UseWiremockExtensionTest#optionsArg`'
   sources:
   - before: |
       import com.github.tomakehurst.wiremock.junit.WireMockRule;
@@ -3398,7 +3398,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit6.MigrateMethodOrdererAlphanumeric
 examples:
-- description: ''
+- description: '`MigrateMethodOrdererAlphanumericTest#migrateAlphanumericInTestMethodOrder`'
   sources:
   - before: |
       import org.junit.jupiter.api.MethodOrderer;
@@ -3435,7 +3435,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit6.MinimumJreConditions
 examples:
-- description: ''
+- description: '`MinimumJreConditionsTest#handleTestClassWithMixedConditions`'
   parameters:
   - '17'
   sources:
@@ -3516,7 +3516,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit6.RemoveInterceptDynamicTest
 examples:
-- description: ''
+- description: '`RemoveInterceptDynamicTestTest#removeInterceptDynamicTestMethod`'
   sources:
   - before: |
       import org.junit.jupiter.api.extension.ExtensionContext;
@@ -3557,7 +3557,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.CleanupMockitoImports
 examples:
-- description: ''
+- description: '`CleanupMockitoImportsTest#removesUnusedMockitoImport`'
   sources:
   - before: |
       import org.mockito.Mock;
@@ -3573,7 +3573,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.CloseUnclosedStaticMocks
 examples:
-- description: ''
+- description: '`CloseUnclosedStaticMocksTest#shouldWrapMockStaticInTryWithResources`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -3608,7 +3608,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockUtilsToStatic
 examples:
-- description: ''
+- description: '`MockUtilsToStaticTest#basicInstanceToStaticSwap`'
   sources:
   - before: |
       package mockito.example;
@@ -3635,62 +3635,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.Mockito1to3Migration
 examples:
-- description: ''
-  sources:
-  - before: |
-      package mockito.example;
-
-      import java.util.List;
-      import java.util.Map;
-      import java.util.Set;
-
-      import static org.mockito.ArgumentMatchers.anyListOf;
-      import static org.mockito.ArgumentMatchers.anySetOf;
-      import static org.mockito.ArgumentMatchers.anyMapOf;
-      import static org.mockito.Mockito.mock;
-      import static org.mockito.Mockito.when;
-
-      public class MockitoVarargMatcherTest {
-          public static class Foo {
-              public boolean addList(List<String> strings) { return true; }
-              public boolean addSet(Set<String> strings) { return true; }
-              public boolean addMap(Map<String, String> stringStringMap) { return true; }
-          }
-          public void usesVarargMatcher() {
-              Foo mockFoo = mock(Foo.class);
-              when(mockFoo.addList(anyListOf(String.class))).thenReturn(true);
-              when(mockFoo.addSet(anySetOf(String.class))).thenReturn(true);
-              when(mockFoo.addMap(anyMapOf(String.class, String.class))).thenReturn(true);
-          }
-      }
-    after: |
-      package mockito.example;
-
-      import java.util.List;
-      import java.util.Map;
-      import java.util.Set;
-
-      import static org.mockito.ArgumentMatchers.anyList;
-      import static org.mockito.ArgumentMatchers.anySet;
-      import static org.mockito.ArgumentMatchers.anyMap;
-      import static org.mockito.Mockito.mock;
-      import static org.mockito.Mockito.when;
-
-      public class MockitoVarargMatcherTest {
-          public static class Foo {
-              public boolean addList(List<String> strings) { return true; }
-              public boolean addSet(Set<String> strings) { return true; }
-              public boolean addMap(Map<String, String> stringStringMap) { return true; }
-          }
-          public void usesVarargMatcher() {
-              Foo mockFoo = mock(Foo.class);
-              when(mockFoo.addList(anyList())).thenReturn(true);
-              when(mockFoo.addSet(anySet())).thenReturn(true);
-              when(mockFoo.addMap(anyMap())).thenReturn(true);
-          }
-      }
-    language: java
-- description: ''
+- description: '`Mockito1to3MigrationTest#migrateSomeMethodsAndDependencies`'
   sources:
   - before: |
       plugins {
@@ -3825,11 +3770,66 @@ examples:
       </project>
     path: pom.xml
     language: xml
+- description: '`MockitoMatchersToArgumentMatchersTest#mockitoAnyListOfToListOf`'
+  sources:
+  - before: |
+      package mockito.example;
+
+      import java.util.List;
+      import java.util.Map;
+      import java.util.Set;
+
+      import static org.mockito.ArgumentMatchers.anyListOf;
+      import static org.mockito.ArgumentMatchers.anySetOf;
+      import static org.mockito.ArgumentMatchers.anyMapOf;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      public class MockitoVarargMatcherTest {
+          public static class Foo {
+              public boolean addList(List<String> strings) { return true; }
+              public boolean addSet(Set<String> strings) { return true; }
+              public boolean addMap(Map<String, String> stringStringMap) { return true; }
+          }
+          public void usesVarargMatcher() {
+              Foo mockFoo = mock(Foo.class);
+              when(mockFoo.addList(anyListOf(String.class))).thenReturn(true);
+              when(mockFoo.addSet(anySetOf(String.class))).thenReturn(true);
+              when(mockFoo.addMap(anyMapOf(String.class, String.class))).thenReturn(true);
+          }
+      }
+    after: |
+      package mockito.example;
+
+      import java.util.List;
+      import java.util.Map;
+      import java.util.Set;
+
+      import static org.mockito.ArgumentMatchers.anyList;
+      import static org.mockito.ArgumentMatchers.anySet;
+      import static org.mockito.ArgumentMatchers.anyMap;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      public class MockitoVarargMatcherTest {
+          public static class Foo {
+              public boolean addList(List<String> strings) { return true; }
+              public boolean addSet(Set<String> strings) { return true; }
+              public boolean addMap(Map<String, String> stringStringMap) { return true; }
+          }
+          public void usesVarargMatcher() {
+              Foo mockFoo = mock(Foo.class);
+              when(mockFoo.addList(anyList())).thenReturn(true);
+              when(mockFoo.addSet(anySet())).thenReturn(true);
+              when(mockFoo.addMap(anyMap())).thenReturn(true);
+          }
+      }
+    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.Mockito1to4Migration
 examples:
-- description: ''
+- description: '`Mockito1to4MigrationTest#modifyMockitoDependencies`'
   sources:
   - before: |
       plugins {
@@ -3884,26 +3884,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.Mockito1to5Migration
 examples:
-- description: ''
-  sources:
-  - before: |
-      <project>
-        <modelVersion>4.0.0</modelVersion>
-        <groupId>com.example</groupId>
-        <artifactId>demo</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
-        <dependencies>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-inline</artifactId>
-                <version>3.11.2</version>
-                <scope>test</scope>
-            </dependency>
-        </dependencies>
-      </project>
-    path: pom.xml
-    language: xml
-- description: ''
+- description: '`Mockito1to5MigrationTest#modifyMockitoDependencies`'
   sources:
   - before: |
       plugins {
@@ -3938,11 +3919,30 @@ examples:
           }
       }
     language: java
+- description: '`MockitoInlineToCoreTest#inlineToCore`'
+  sources:
+  - before: |
+      <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <version>3.11.2</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockitoBestPractices
 examples:
-- description: ''
+- description: '`RemoveMockitoSettingsTest#removeMockitoSettings`'
   sources:
   - before: |
       import org.mockito.junit.jupiter.MockitoSettings;
@@ -3956,7 +3956,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockitoJUnitRunnerSilentToExtension
 examples:
-- description: ''
+- description: '`MockitoJunitRunnerSilentToExtensionTest#migrateMockitoRunnerSilentToExtension`'
   sources:
   - before: |
       import org.junit.runner.RunWith;
@@ -3980,7 +3980,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockitoJUnitRunnerToExtension
 examples:
-- description: ''
+- description: '`MockitoJUnitRunnerToExtensionTest#strictMockitoRunnerToExtension`'
   sources:
   - before: |
       import org.junit.runner.RunWith;
@@ -4001,9 +4001,11 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockitoWhenOnStaticToMockStatic
 examples:
-- description: ''
+- description: '`MockitoWhenOnStaticToMockStaticTest#shouldRefactorMockito_When`'
   sources:
   - before: |
+      import org.example.A;
+
       import static org.junit.Assert.assertEquals;
       import static org.mockito.Mockito.*;
 
@@ -4015,6 +4017,7 @@ examples:
           }
       }
     after: |
+      import org.example.A;
       import org.mockito.MockedStatic;
 
       import static org.junit.Assert.assertEquals;
@@ -4034,7 +4037,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
 examples:
-- description: ''
+- description: '`PowerMockitoMockStaticToMockitoTest#prepareForTestAnnotationIsReplacedBySingleField`'
   sources:
   - before: |
       import static org.mockito.Mockito.mockStatic;
@@ -4085,7 +4088,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.RemoveInitMocksIfRunnersSpecified
 examples:
-- description: ''
+- description: '`RemoveInitMocksIfRunnersSpecifiedTest#removeInitMocksInJUnit5`'
   sources:
   - before: |
       import org.junit.jupiter.api.BeforeEach;
@@ -4119,7 +4122,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.RemoveTimesZeroAndOne
 examples:
-- description: ''
+- description: '`RemoveTimesZeroAndOneTest#replaceTimesZero`'
   sources:
   - before: |
       import static org.mockito.Mockito.times;
@@ -4146,7 +4149,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.ReplaceInitMockToOpenMock
 examples:
-- description: ''
+- description: '`ReplaceInitMockToOpenMockTest#replaceInitMocksToOpenMocks`'
   sources:
   - before: |
       import org.mockito.MockitoAnnotations;
@@ -4199,7 +4202,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.ReplacePowerMockito
 examples:
-- description: ''
+- description: '`ReplacePowerMockitoIntegrationTest#thatPowerMockitoMockStaticIsReplacedInTestMethod`'
   sources:
   - before: |
       import static org.testng.Assert.assertEquals;
@@ -4284,7 +4287,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.SimplifyMockitoVerifyWhenGiven
 examples:
-- description: ''
+- description: '`SimplifyMockitoVerifyWhenGivenTest#shouldRemoveUnneccesaryEqFromVerify`'
   sources:
   - before: |
       import static org.mockito.Mockito.verify;
@@ -4312,7 +4315,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.VerifyZeroToNoMoreInteractions
 examples:
-- description: ''
+- description: '`VerifyZeroToNoMoreInteractionsTest#shouldReplaceToNoMoreInteractions`'
   sources:
   - before: |
       import static org.mockito.Mockito.verifyZeroInteractions;
@@ -4335,7 +4338,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.search.FindUnitTests
 examples:
-- description: ''
+- description: '`FindUnitTestsTest#dataTable`'
   sources:
   - before: |
       import foo.Foo;
@@ -4354,7 +4357,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.testcontainers.ExplicitContainerImage
 examples:
-- description: ''
+- description: '`ExplicitContainerImageTest#explicitContainerImage`'
   parameters:
   - org.testcontainers.containers.NginxContainer
   - nginx:1.9.4
@@ -4375,7 +4378,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.testcontainers.TestContainersBestPractices
 examples:
-- description: ''
+- description: '`TestcontainersBestPracticesTest#getHost`'
   sources:
   - before: |
       import org.testcontainers.containers.ContainerState;
@@ -4396,7 +4399,34 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.truth.MigrateTruthToAssertJ
 examples:
-- description: ''
+- description: '`MigrateTruthToAssertJTest#basicAssertThatConversion`'
+  sources:
+  - before: |
+      import static com.google.common.truth.Truth.assertThat;
+
+      class Test {
+          void test() {
+              String actual = "hello";
+              assertThat(actual).isEqualTo("hello");
+              assertThat(actual).isNotEqualTo("world");
+              assertThat(actual).isNotNull();
+              assertThat(actual).contains("ell");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test() {
+              String actual = "hello";
+              assertThat(actual).isEqualTo("hello");
+              assertThat(actual).isNotEqualTo("world");
+              assertThat(actual).isNotNull();
+              assertThat(actual).contains("ell");
+          }
+      }
+    language: java
+- description: '`TruthThrowableAssertionsTest#hasMessageThatContains`'
   sources:
   - before: |
       import static com.google.common.truth.Truth.assertThat;
@@ -4417,38 +4447,11 @@ examples:
           }
       }
     language: java
-- description: ''
-  sources:
-  - before: |
-      import static com.google.common.truth.Truth.assertThat;
-
-      class Test {
-          void test() {
-              String actual = "hello";
-              assertThat(actual).isEqualTo("hello");
-              assertThat(actual).isNotEqualTo("world");
-              assertThat(actual).isNotNull();
-              assertThat(actual).contains("ell");
-          }
-      }
-    after: |
-      import static org.assertj.core.api.Assertions.assertThat;
-
-      class Test {
-          void test() {
-              String actual = "hello";
-              assertThat(actual).isEqualTo("hello");
-              assertThat(actual).isNotEqualTo("world");
-              assertThat(actual).isNotNull();
-              assertThat(actual).contains("ell");
-          }
-      }
-    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.truth.TruthAssertWithMessageToAssertJ
 examples:
-- description: ''
+- description: '`TruthAssertWithMessageToAssertJTest#simpleMessage`'
   sources:
   - before: |
       import static com.google.common.truth.Truth.assertWithMessage;
