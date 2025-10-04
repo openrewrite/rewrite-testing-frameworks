@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import lombok.AllArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
