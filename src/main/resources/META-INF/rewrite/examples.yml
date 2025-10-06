@@ -2193,6 +2193,61 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.AddMissingTestBeforeAfterAnnotations
+examples:
+- description: '`AddMissingTestBeforeAfterAnnotationsTest#addMissingTestBeforeAfterAnnotationsIfOldFound`'
+  sources:
+  - before: |
+      import org.junit.After;
+      import org.junit.Before;
+      import org.junit.Test;
+
+      public class AbstractTest {
+          @Before
+          public void before() {
+          }
+
+          @After
+          public void after() {
+          }
+
+          @Test
+          public void test() {
+          }
+      }
+    language: java
+  - before: |
+      public class A extends AbstractTest {
+          public void before() {
+          }
+
+          public void after() {
+          }
+
+          public void test() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.AfterEach;
+      import org.junit.jupiter.api.BeforeEach;
+      import org.junit.jupiter.api.Test;
+
+      public class A extends AbstractTest {
+          @BeforeEach
+          public void before() {
+          }
+
+          @AfterEach
+          public void after() {
+          }
+
+          @Test
+          public void test() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
 examples:
 - description: '`AddParameterizedTestAnnotationTest#replaceTestWithParameterizedTest`'
@@ -2370,6 +2425,41 @@ examples:
               assertInstanceOf(List.class, list);
           }
       }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.CategoryToTag
+examples:
+- description: '`CategoryToTagTest#categoriesHavingJAssignmentArguments`'
+  sources:
+  - before: |
+      import org.junit.experimental.categories.Category;
+
+      @Category(value = SlowTests.class)
+      public class B {
+
+      }
+      @Category(value = {SlowTests.class, FastTests.class})
+      public class C {
+
+      }
+    after: |
+      import org.junit.jupiter.api.Tag;
+
+      @Tag("SlowTests")
+      public class B {
+
+      }
+
+      @Tag("SlowTests")
+      @Tag("FastTests")
+      public class C {
+
+      }
+    language: java
+  - before: public interface FastTests {}
+    language: java
+  - before: public interface SlowTests {}
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
@@ -3282,6 +3372,61 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
+examples:
+- description: '`UpgradeOkHttpMockWebServerTest#shouldUpgradeMavenDependency`'
+  sources:
+  - before: |
+      import okhttp3.mockwebserver.MockWebServer;
+
+      class Test {
+          void test() {
+              MockWebServer server = new MockWebServer();
+          }
+      }
+    after: |
+      import mockwebserver3.MockWebServer;
+
+      class Test {
+          void test() {
+              MockWebServer server = new MockWebServer();
+          }
+      }
+    language: java
+  - before: project
+    language: mavenProject
+  - before: |
+      <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver</artifactId>
+            <version>4.10.0</version>
+          </dependency>
+        </dependencies>
+      </project>
+    after: |
+      <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver3-junit5</artifactId>
+            <version>5.1.0</version>
+          </dependency>
+        </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UpgradeToJUnit514
 examples:
 - description: '`UpgradeToJUnit514Test#migrateOutputDirectoryProvider`'
@@ -3553,6 +3698,94 @@ examples:
           private static class Method {}
       }
     language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.AnyStringToNullable
+examples:
+- description: '`AnyStringToNullableTest#replaceAnyStringWithNullableStringClass`'
+  sources:
+  - before: |
+      class Example {
+          String greet(String name) {
+              return "Hello " + name;
+          }
+      }
+    language: java
+  - before: |
+      import static org.mockito.Mockito.anyString;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      class MyTest {
+          void test() {
+              Example example = mock(Example.class);
+              when(example.greet(anyString())).thenReturn("Hello world");
+          }
+      }
+    after: |
+      import static org.mockito.ArgumentMatchers.nullable;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      class MyTest {
+          void test() {
+              Example example = mock(Example.class);
+              when(example.greet(nullable(String.class))).thenReturn("Hello world");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.AnyToNullable
+examples:
+- description: '`AnyToNullableTest#replaceAnyClassWithNullableClass`'
+  sources:
+  - before: |
+      class Example {
+          String greet(Object obj) {
+              return "Hello " + obj;
+          }
+      }
+    language: java
+  - before: |
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+      import static org.mockito.Mockito.any;
+
+      class MyTest {
+           void test() {
+              Example example = mock(Example.class);
+              when(example.greet(any(Object.class))).thenReturn("Hello world");
+           }
+      }
+    after: |
+      import static org.mockito.ArgumentMatchers.nullable;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      class MyTest {
+           void test() {
+              Example example = mock(Example.class);
+              when(example.greet(nullable(Object.class))).thenReturn("Hello world");
+           }
+      }
+    language: java
+  - before: |
+      <project>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>com.example</groupId>
+          <artifactId>foo</artifactId>
+          <version>1.0.0</version>
+          <dependencies>
+              <dependency>
+                  <groupId>org.mockito</groupId>
+                  <artifactId>mockito-all</artifactId>
+                  <version>1.10.19</version>
+              </dependency>
+          </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.CleanupMockitoImports
