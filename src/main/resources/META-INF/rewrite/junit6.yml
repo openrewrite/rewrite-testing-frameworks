@@ -45,7 +45,7 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit.JUnit6BestPractices
-displayName: JUnit Jupiter best practices
+displayName: JUnit 6 best practices
 description: Applies best practices to tests.
 tags:
   - testing
