@@ -17,7 +17,7 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.JUnit5BestPractices
-displayName: JUnit Jupiter best practices
+displayName: JUnit 5 best practices
 description: Applies best practices to tests.
 tags:
   - testing
@@ -25,23 +25,7 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.junit5.JUnit4to5Migration
   - org.openrewrite.java.testing.junit5.UpgradeToJUnit514
-  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5
-  - org.openrewrite.java.testing.junit5.StaticImports
-  - org.openrewrite.java.testing.junit5.CleanupAssertions
-  - org.openrewrite.java.testing.junit5.CsvSourceToValueSource
-  - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipes
-  - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanRemovedRecipe
-  - org.openrewrite.java.testing.cleanup.RemoveTestPrefix
-  - org.openrewrite.java.testing.cleanup.SimplifyTestThrows
-  - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
-  - org.openrewrite.java.testing.cleanup.TestMethodsShouldBeVoid
-  - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
-  - org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
-  - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
-  - org.openrewrite.java.testing.junit5.LifecycleNonPrivate
-  - org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
-  - org.openrewrite.java.testing.junit5.AssertTrueInstanceofToAssertInstanceOf
-  - org.openrewrite.java.testing.junit5.UseAssertSame
+  - org.openrewrite.java.testing.junit6.JUnitJupiterBestPractices
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.StaticImports
