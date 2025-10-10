@@ -25,7 +25,7 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.junit5.JUnit4to5Migration
   - org.openrewrite.java.testing.junit5.UpgradeToJUnit514
-  - org.openrewrite.java.testing.junit6.JUnitJupiterBestPractices
+  - org.openrewrite.java.testing.junit.JupiterBestPractices
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.StaticImports
