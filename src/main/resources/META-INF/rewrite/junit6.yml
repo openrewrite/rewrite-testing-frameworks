@@ -16,6 +16,18 @@
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit.JUnit6BestPractices
+displayName: JUnit 6 best practices
+description: Applies best practices to tests.
+tags:
+  - testing
+  - junit
+recipeList:
+  - org.openrewrite.java.testing.junit6.JUnit5to6Migration
+  - org.openrewrite.java.testing.junit.JupiterBestPractices
+
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit6.JUnit5to6Migration
 displayName: JUnit 6 migration from JUnit 5.x
 description: Migrates JUnit 5.x tests to JUnit 6.x.

@@ -1,0 +1,43 @@
+#
+# Copyright 2025 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit.JupiterBestPractices
+displayName: JUnit Jupiter best practices
+description: Applies best practices to tests.
+tags:
+  - testing
+  - junit
+recipeList:
+  # Included by both `JUnit6BestPractices` and `JUnit5BestPractices`, so avoid adding upgrade recipes here to run twice
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5
+  - org.openrewrite.java.testing.junit5.StaticImports
+  - org.openrewrite.java.testing.junit5.CleanupAssertions
+  - org.openrewrite.java.testing.junit5.CsvSourceToValueSource
+  - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanToFailRecipes
+  - org.openrewrite.java.testing.cleanup.AssertLiteralBooleanRemovedRecipe
+  - org.openrewrite.java.testing.cleanup.RemoveTestPrefix
+  - org.openrewrite.java.testing.cleanup.SimplifyTestThrows
+  - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
+  - org.openrewrite.java.testing.cleanup.TestMethodsShouldBeVoid
+  - org.openrewrite.java.testing.junit5.AddParameterizedTestAnnotation
+  - org.openrewrite.java.testing.junit5.RemoveDuplicateTestTemplates
+  - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
+  - org.openrewrite.java.testing.junit5.LifecycleNonPrivate
+  - org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
+  - org.openrewrite.java.testing.junit5.AssertTrueInstanceofToAssertInstanceOf
+  - org.openrewrite.java.testing.junit5.UseAssertSame
