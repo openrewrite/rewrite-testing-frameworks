@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2025 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,14 @@ class TestcontainersBestPracticesTest implements RewriteTest {
         spec
           .recipeFromResource("/META-INF/rewrite/testcontainers.yml",
             "org.openrewrite.java.testing.testcontainers.TestContainersBestPractices")
-          .parser(JavaParser.fromJavaVersion().classpath("testcontainers"));
+          .parser(JavaParser.fromJavaVersion().classpath(
+              "testcontainers",
+              "testcontainers-cassandra",
+              "testcontainers-kafka",
+              "testcontainers-junit-jupiter",
+              "testcontainers-localstack",
+              "testcontainers-mysql",
+              "testcontainers-nginx"));
     }
 
     @DocumentExample
@@ -78,14 +85,30 @@ class TestcontainersBestPracticesTest implements RewriteTest {
                       <dependency>
                           <groupId>org.testcontainers</groupId>
                           <artifactId>testcontainers</artifactId>
-                          <version>1.15.3</version>
+                          <version>1.21.3</version>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.testcontainers</groupId>
+                          <artifactId>mysql</artifactId>
+                          <version>1.21.3</version>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.testcontainers</groupId>
+                          <artifactId>nginx</artifactId>
+                          <version>1.21.3</version>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.testcontainers</groupId>
+                          <artifactId>junit-jupiter</artifactId>
+                          <version>1.21.3</version>
                       </dependency>
                   </dependencies>
               </project>
               """,
             spec -> spec.after(after -> {
-                Matcher matcher = Pattern.compile("<version>(1\\.21\\.\\d+)</version>").matcher(after);
+                Matcher matcher = Pattern.compile("<version>(2\\.\\d+\\.\\d+)</version>").matcher(after);
                 assertTrue(matcher.find());
+                String afterVersion = matcher.group(1);
                 //language=xml
                 return """
                   <project>
@@ -99,9 +122,27 @@ class TestcontainersBestPracticesTest implements RewriteTest {
                               <artifactId>testcontainers</artifactId>
                               <version>%s</version>
                           </dependency>
+                          <dependency>
+                              <groupId>org.testcontainers</groupId>
+                              <artifactId>testcontainers-mysql</artifactId>
+                              <version>%s</version>
+                          </dependency>
+                          <dependency>
+                              <groupId>org.testcontainers</groupId>
+                              <artifactId>testcontainers-nginx</artifactId>
+                              <version>%s</version>
+                          </dependency>
+                          <dependency>
+                              <groupId>org.testcontainers</groupId>
+                              <artifactId>testcontainers-junit-jupiter</artifactId>
+                              <version>%s</version>
+                          </dependency>
                       </dependencies>
                   </project>
-                  """.formatted(matcher.group(1));
+                  """.formatted(afterVersion,
+                                afterVersion,
+                                afterVersion,
+                                afterVersion);
             })
           )
         );
@@ -127,6 +168,40 @@ class TestcontainersBestPracticesTest implements RewriteTest {
                   void foo(String bar) {
                       ComposeContainer compose = new ComposeContainer();
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void changeTypes() {
+        rewriteRun(
+          java(
+            """
+              import org.testcontainers.containers.CassandraContainer;
+              import org.testcontainers.containers.KafkaContainer;
+              import org.testcontainers.containers.localstack.LocalStackContainer;
+              import org.testcontainers.containers.MySQLContainer;
+
+              class A {
+                  private CassandraContainer cassandra = null;
+                  private KafkaContainer kafka = null;
+                  private MySQLContainer mysql = null;
+                  private LocalStackContainer localstack = null;
+              }
+              """,
+            """
+              import org.testcontainers.cassandra.CassandraContainer;
+              import org.testcontainers.kafka.KafkaContainer;
+              import org.testcontainers.localstack.LocalStackContainer;
+              import org.testcontainers.mysql.MySQLContainer;
+
+              class A {
+                  private CassandraContainer cassandra = null;
+                  private KafkaContainer kafka = null;
+                  private MySQLContainer mysql = null;
+                  private LocalStackContainer localstack = null;
               }
               """
           )
