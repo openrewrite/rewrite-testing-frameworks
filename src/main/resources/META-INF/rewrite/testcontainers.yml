@@ -127,6 +127,14 @@ recipeList:
       parseImage: true
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.testcontainers.Testcontainers2
+displayName: Testcontainers 2.0.x.
+description: Apply changes to Testcontainers 2.0.x..
+recipeList:
+  - org.openrewrite.java.testing.testcontainers.TestcontainersNewDependencies
+  - org.openrewrite.java.testing.testcontainers.TestcontainersNewContainerClasses
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.TestcontainersNewDependencies
 displayName: Rename Testcontainers dependencies
 description: Rename Testcontainers dependencies.
