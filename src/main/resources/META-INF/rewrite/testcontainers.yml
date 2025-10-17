@@ -127,30 +127,23 @@ name: org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
 displayName: Migrate to testcontainers-java 2.x
 description: Change dependencies and types to migrate to testcontainers-java 2.x.
 recipeList:
+  - org.openrewrite.java.testing.testcontainers.Testcontainers2Dependencies
+  - org.openrewrite.java.testing.testcontainers.Testcontainers2ContainerClasses
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.testcontainers.Testcontainers2Dependencies
+displayName: Rename Testcontainers dependencies
+description: Change Testcontainers dependencies to adopt the new consistent `testcontainers-` prefix.
+recipeList:
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
-      oldArtifactId: junit-jupiter
-      newArtifactId: testcontainers-junit-jupiter
+      oldArtifactId: activemq
+      newArtifactId: testcontainers-activemq
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
-      oldArtifactId: localstack
-      newArtifactId: testcontainers-localstack
-      newVersion: "2.x"
-  - org.openrewrite.java.dependencies.ChangeDependency:
-      oldGroupId: org.testcontainers
-      oldArtifactId: minio
-      newArtifactId: testcontainers-minio
-      newVersion: "2.x"
-  - org.openrewrite.java.dependencies.ChangeDependency:
-      oldGroupId: org.testcontainers
-      oldArtifactId: mysql
-      newArtifactId: testcontainers-mysql
-      newVersion: "2.x"
-  - org.openrewrite.java.dependencies.ChangeDependency:
-      oldGroupId: org.testcontainers
-      oldArtifactId: postgresql
-      newArtifactId: testcontainers-postgresql
+      oldArtifactId: azure
+      newArtifactId: testcontainers-azure
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
@@ -159,8 +152,93 @@ recipeList:
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
-      oldArtifactId: nginx
-      newArtifactId: testcontainers-nginx
+      oldArtifactId: chromadb
+      newArtifactId: testcontainers-chromadb
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: clickhouse
+      newArtifactId: testcontainers-clickhouse
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: cockroachdb
+      newArtifactId: testcontainers-cockroachdb
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: consul
+      newArtifactId: testcontainers-consul
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: couchbase
+      newArtifactId: testcontainers-couchbase
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: cratedb
+      newArtifactId: testcontainers-cratedb
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: database-commons
+      newArtifactId: testcontainers-database-commons
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: databend
+      newArtifactId: testcontainers-databend
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: db2
+      newArtifactId: testcontainers-db2
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: elasticsearch
+      newArtifactId: testcontainers-elasticsearch
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: gcloud
+      newArtifactId: testcontainers-gcloud
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: grafana
+      newArtifactId: testcontainers-grafana
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: hivemq
+      newArtifactId: testcontainers-hivemq
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: influxdb
+      newArtifactId: testcontainers-influxdb
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: jdbc
+      newArtifactId: testcontainers-jdbc
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: junit-jupiter
+      newArtifactId: testcontainers-junit-jupiter
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: k3s
+      newArtifactId: testcontainers-k3s
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: k6
+      newArtifactId: testcontainers-k6
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
@@ -174,22 +252,280 @@ recipeList:
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
-      oldArtifactId: junit-jupiter
-      newArtifactId: testcontainers-junit-jupiter
+      oldArtifactId: localstack
+      newArtifactId: testcontainers-localstack
       newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: mariadb
+      newArtifactId: testcontainers-mariadb
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: milvus
+      newArtifactId: testcontainers-milvus
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: minio
+      newArtifactId: testcontainers-minio
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: mockserver
+      newArtifactId: testcontainers-mockserver
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: mongodb
+      newArtifactId: testcontainers-mongodb
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: mssqlserver
+      newArtifactId: testcontainers-mssqlserver
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: mysql
+      newArtifactId: testcontainers-mysql
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: neo4j
+      newArtifactId: testcontainers-neo4j
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: nginx
+      newArtifactId: testcontainers-nginx
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: oceanbase
+      newArtifactId: testcontainers-oceanbase
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: ollama
+      newArtifactId: testcontainers-ollama
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: openfga
+      newArtifactId: testcontainers-openfga
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: oracle-free
+      newArtifactId: testcontainers-oracle-free
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: oracle-xe
+      newArtifactId: testcontainers-oracle-xe
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: orientdb
+      newArtifactId: testcontainers-orientdb
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: pinecone
+      newArtifactId: testcontainers-pinecone
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: postgresql
+      newArtifactId: testcontainers-postgresql
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: presto
+      newArtifactId: testcontainers-presto
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: pulsar
+      newArtifactId: testcontainers-pulsar
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: qdrant
+      newArtifactId: testcontainers-qdrant
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: questdb
+      newArtifactId: testcontainers-questdb
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: r2dbc
+      newArtifactId: testcontainers-r2dbc
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: rabbitmq
+      newArtifactId: testcontainers-rabbitmq
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: redpanda
+      newArtifactId: testcontainers-redpanda
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: scylladb
+      newArtifactId: testcontainers-scylladb
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: selenium
+      newArtifactId: testcontainers-selenium
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: solace
+      newArtifactId: testcontainers-solace
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: solr
+      newArtifactId: testcontainers-solr
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: spock
+      newArtifactId: testcontainers-spock
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: tidb
+      newArtifactId: testcontainers-tidb
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: timeplus
+      newArtifactId: testcontainers-timeplus
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: toxiproxy
+      newArtifactId: testcontainers-toxiproxy
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: trino
+      newArtifactId: testcontainers-trino
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: typesense
+      newArtifactId: testcontainers-typesense
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: vault
+      newArtifactId: testcontainers-vault
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: weaviate
+      newArtifactId: testcontainers-weaviate
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: yugabytedb
+      newArtifactId: testcontainers-yugabytedb
+      newVersion: "2.x"
+
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.testcontainers
       artifactId: "*"
       newVersion: "2.x"
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.testcontainers.Testcontainers2ContainerClasses
+displayName: Testcontainers 2 container classes
+description: Change Testcontainers container classes to their new package locations in Testcontainers 2.x.
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.BigQueryEmulatorContainer
+      newFullyQualifiedTypeName: org.testcontainers.gcloud.BigQueryEmulatorContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.BigtableEmulatorContainer
+      newFullyQualifiedTypeName: org.testcontainers.gcloud.BigtableEmulatorContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.BrowserWebDriverContainer
+      newFullyQualifiedTypeName: org.testcontainers.selenium.BrowserWebDriverContainer
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.CassandraContainer
       newFullyQualifiedTypeName: org.testcontainers.cassandra.CassandraContainer
   - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.MySQLContainer
-      newFullyQualifiedTypeName: org.testcontainers.mysql.MySQLContainer
+      oldFullyQualifiedTypeName: org.testcontainers.containers.CockroachContainer
+      newFullyQualifiedTypeName: org.testcontainers.cockroachdb.CockroachContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.DatastoreEmulatorContainer
+      newFullyQualifiedTypeName: org.testcontainers.gcloud.DatastoreEmulatorContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.Db2Container
+      newFullyQualifiedTypeName: org.testcontainers.db2.Db2Container
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.FirestoreEmulatorContainer
+      newFullyQualifiedTypeName: org.testcontainers.gcloud.FirestoreEmulatorContainer
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.KafkaContainer
       newFullyQualifiedTypeName: org.testcontainers.kafka.KafkaContainer
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.localstack.LocalStackContainer
       newFullyQualifiedTypeName: org.testcontainers.localstack.LocalStackContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.MariaDBContainer
+      newFullyQualifiedTypeName: org.testcontainers.mariadb.MariaDBContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.MockServerContainer
+      newFullyQualifiedTypeName: org.testcontainers.mockserver.MockServerContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.MongoDBContainer
+      newFullyQualifiedTypeName: org.testcontainers.mongodb.MongoDBContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.MSSQLServerContainer
+      newFullyQualifiedTypeName: org.testcontainers.mssqlserver.MSSQLServerContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.MySQLContainer
+      newFullyQualifiedTypeName: org.testcontainers.mysql.MySQLContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.Neo4jContainer
+      newFullyQualifiedTypeName: org.testcontainers.neo4j.Neo4jContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.NginxContainer
+      newFullyQualifiedTypeName: org.testcontainers.nginx.NginxContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.OrientDBContainer
+      newFullyQualifiedTypeName: org.testcontainers.orientdb.OrientDBContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.PostgreSQLContainer
+      newFullyQualifiedTypeName: org.testcontainers.postgresql.PostgreSQLContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.PubSubEmulatorContainer
+      newFullyQualifiedTypeName: org.testcontainers.gcloud.PubSubEmulatorContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.PulsarContainer
+      newFullyQualifiedTypeName: org.testcontainers.pulsar.PulsarContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.RabbitMQContainer
+      newFullyQualifiedTypeName: org.testcontainers.rabbitmq.RabbitMQContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.SolrContainer
+      newFullyQualifiedTypeName: org.testcontainers.solr.SolrContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.SpannerEmulatorContainer
+      newFullyQualifiedTypeName: org.testcontainers.gcloud.SpannerEmulatorContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.TiDBContainer
+      newFullyQualifiedTypeName: org.testcontainers.tidb.TiDBContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.ToxiproxyContainer
+      newFullyQualifiedTypeName: org.testcontainers.toxiproxy.ToxiproxyContainer
