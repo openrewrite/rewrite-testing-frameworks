@@ -28,7 +28,7 @@ class ExplicitContainerImageTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "testcontainers-1", "testcontainers-nginx"));
+          .classpathFromResources(new InMemoryExecutionContext(), "testcontainers-1", "nginx"));
     }
 
     @DocumentExample
@@ -84,8 +84,9 @@ class ExplicitContainerImageTest implements RewriteTest {
     @Test
     void explicitContainerImages() {
         rewriteRun(
-          spec -> spec
-            .recipeFromResource("/META-INF/rewrite/testcontainers.yml", "org.openrewrite.java.testing.testcontainers.ExplicitContainerImages"),
+          spec -> spec.recipeFromResource(
+            "/META-INF/rewrite/testcontainers.yml",
+            "org.openrewrite.java.testing.testcontainers.ExplicitContainerImages"),
           //language=java
           java(
             """

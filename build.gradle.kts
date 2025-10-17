@@ -46,13 +46,13 @@ recipeDependencies {
     testParserClasspath("org.powermock:powermock-module-junit4:1.6.5")
 
     testParserClasspath("org.testcontainers:testcontainers:1.+")
+    testParserClasspath("org.testcontainers:nginx:1.+")
+
     testParserClasspath("org.testcontainers:testcontainers:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-cassandra:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-kafka:2.0.1")
-    testParserClasspath("org.testcontainers:testcontainers-junit-jupiter:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-localstack:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-mysql:2.0.1")
-    testParserClasspath("org.testcontainers:testcontainers-nginx:2.0.1")
 
 }
 
