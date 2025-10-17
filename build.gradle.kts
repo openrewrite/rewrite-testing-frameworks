@@ -45,7 +45,6 @@ recipeDependencies {
     testParserClasspath("org.jboss.byteman:byteman-bmunit:4.0.25")
     testParserClasspath("org.powermock:powermock-module-junit4:1.6.5")
 
-    testParserClasspath("org.testcontainers:testcontainers:1.+")
     testParserClasspath("org.testcontainers:nginx:1.+")
 
     testParserClasspath("org.testcontainers:testcontainers:2.0.1")
