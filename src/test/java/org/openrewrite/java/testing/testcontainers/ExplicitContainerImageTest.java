@@ -17,19 +17,26 @@ package org.openrewrite.java.testing.testcontainers;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
 class ExplicitContainerImageTest implements RewriteTest {
+    @Override
+    public void defaults(RecipeSpec spec) {
+        spec.parser(JavaParser.fromJavaVersion()
+          .classpathFromResources(new InMemoryExecutionContext(), "testcontainers-1", "nginx"));
+    }
+
     @DocumentExample
     @Test
     void explicitContainerImage() {
         rewriteRun(
           spec -> spec
-            .recipe(new ExplicitContainerImage("org.testcontainers.containers.NginxContainer", "nginx:1.9.4", null))
-            .parser(JavaParser.fromJavaVersion().classpath("nginx")),
+            .recipe(new ExplicitContainerImage("org.testcontainers.containers.NginxContainer", "nginx:1.9.4", null)),
           //language=java
           java(
             """
@@ -52,13 +59,12 @@ class ExplicitContainerImageTest implements RewriteTest {
     void explicitContainerImageParsed() {
         rewriteRun(
           spec -> spec
-            .recipe(new ExplicitContainerImage("org.testcontainers.containers.NginxContainer", "nginx:1.9.4", true))
-            .parser(JavaParser.fromJavaVersion().classpath("nginx")),
+            .recipe(new ExplicitContainerImage("org.testcontainers.containers.NginxContainer", "nginx:1.9.4", true)),
           //language=java
           java(
             """
               import org.testcontainers.containers.NginxContainer;
-              
+
               class Foo {
                   NginxContainer container = new NginxContainer();
               }
@@ -66,7 +72,7 @@ class ExplicitContainerImageTest implements RewriteTest {
             """
               import org.testcontainers.containers.NginxContainer;
               import org.testcontainers.utility.DockerImageName;
-              
+
               class Foo {
                   NginxContainer container = new NginxContainer(DockerImageName.parse("nginx:1.9.4"));
               }
@@ -78,9 +84,9 @@ class ExplicitContainerImageTest implements RewriteTest {
     @Test
     void explicitContainerImages() {
         rewriteRun(
-          spec -> spec
-            .recipeFromResource("/META-INF/rewrite/testcontainers.yml", "org.openrewrite.java.testing.testcontainers.ExplicitContainerImages")
-            .parser(JavaParser.fromJavaVersion().classpath("nginx")),
+          spec -> spec.recipeFromResource(
+            "/META-INF/rewrite/testcontainers.yml",
+            "org.openrewrite.java.testing.testcontainers.ExplicitContainerImages"),
           //language=java
           java(
             """

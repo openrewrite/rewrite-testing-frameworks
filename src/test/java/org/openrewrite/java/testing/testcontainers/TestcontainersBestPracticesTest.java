@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2025 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,10 @@
  */
 package org.openrewrite.java.testing.testcontainers;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -34,7 +36,13 @@ class TestcontainersBestPracticesTest implements RewriteTest {
         spec
           .recipeFromResource("/META-INF/rewrite/testcontainers.yml",
             "org.openrewrite.java.testing.testcontainers.TestContainersBestPractices")
-          .parser(JavaParser.fromJavaVersion().classpath("testcontainers"));
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(
+            new InMemoryExecutionContext(),
+            "testcontainers-2",
+            "testcontainers-cassandra",
+            "testcontainers-kafka",
+            "testcontainers-localstack",
+            "testcontainers-mysql"));
     }
 
     @DocumentExample
@@ -64,52 +72,10 @@ class TestcontainersBestPracticesTest implements RewriteTest {
     }
 
     @Test
-    void dependencyUpdate() {
-        rewriteRun(
-          pomXml(
-            //language=xml
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>org.openrewrite.example</groupId>
-                  <artifactId>testcontainers</artifactId>
-                  <version>1.0-SNAPSHOT</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.testcontainers</groupId>
-                          <artifactId>testcontainers</artifactId>
-                          <version>1.15.3</version>
-                      </dependency>
-                  </dependencies>
-              </project>
-              """,
-            spec -> spec.after(after -> {
-                Matcher matcher = Pattern.compile("<version>(1\\.21\\.\\d+)</version>").matcher(after);
-                assertTrue(matcher.find());
-                //language=xml
-                return """
-                  <project>
-                      <modelVersion>4.0.0</modelVersion>
-                      <groupId>org.openrewrite.example</groupId>
-                      <artifactId>testcontainers</artifactId>
-                      <version>1.0-SNAPSHOT</version>
-                      <dependencies>
-                          <dependency>
-                              <groupId>org.testcontainers</groupId>
-                              <artifactId>testcontainers</artifactId>
-                              <version>%s</version>
-                          </dependency>
-                      </dependencies>
-                  </project>
-                  """.formatted(matcher.group(1));
-            })
-          )
-        );
-    }
-
-    @Test
     void composeContainer() {
         rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "testcontainers-1")),
           java(
             """
               import org.testcontainers.containers.DockerComposeContainer;
@@ -131,5 +97,117 @@ class TestcontainersBestPracticesTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class V2Migration {
+        @Test
+        void dependencyUpdate() {
+            rewriteRun(
+              pomXml(
+                //language=xml
+                """
+                  <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <groupId>org.openrewrite.example</groupId>
+                      <artifactId>testcontainers</artifactId>
+                      <version>1.0-SNAPSHOT</version>
+                      <dependencies>
+                          <dependency>
+                              <groupId>org.testcontainers</groupId>
+                              <artifactId>testcontainers</artifactId>
+                              <version>1.21.3</version>
+                          </dependency>
+                          <dependency>
+                              <groupId>org.testcontainers</groupId>
+                              <artifactId>mysql</artifactId>
+                              <version>1.21.3</version>
+                          </dependency>
+                          <dependency>
+                              <groupId>org.testcontainers</groupId>
+                              <artifactId>nginx</artifactId>
+                              <version>1.21.3</version>
+                          </dependency>
+                          <dependency>
+                              <groupId>org.testcontainers</groupId>
+                              <artifactId>junit-jupiter</artifactId>
+                              <version>1.21.3</version>
+                          </dependency>
+                      </dependencies>
+                  </project>
+                  """,
+                spec -> spec.after(after -> {
+                    Matcher matcher = Pattern.compile("<version>(2\\.\\d+\\.\\d+)</version>").matcher(after);
+                    assertTrue(matcher.find());
+                    String afterVersion = matcher.group(1);
+                    //language=xml
+                    return """
+                      <project>
+                          <modelVersion>4.0.0</modelVersion>
+                          <groupId>org.openrewrite.example</groupId>
+                          <artifactId>testcontainers</artifactId>
+                          <version>1.0-SNAPSHOT</version>
+                          <dependencies>
+                              <dependency>
+                                  <groupId>org.testcontainers</groupId>
+                                  <artifactId>testcontainers</artifactId>
+                                  <version>%1$s</version>
+                              </dependency>
+                              <dependency>
+                                  <groupId>org.testcontainers</groupId>
+                                  <artifactId>testcontainers-mysql</artifactId>
+                                  <version>%1$s</version>
+                              </dependency>
+                              <dependency>
+                                  <groupId>org.testcontainers</groupId>
+                                  <artifactId>testcontainers-nginx</artifactId>
+                                  <version>%1$s</version>
+                              </dependency>
+                              <dependency>
+                                  <groupId>org.testcontainers</groupId>
+                                  <artifactId>testcontainers-junit-jupiter</artifactId>
+                                  <version>%1$s</version>
+                              </dependency>
+                          </dependencies>
+                      </project>
+                      """.formatted(afterVersion);
+                })
+              )
+            );
+        }
+
+        @Test
+        void changeTypes() {
+            rewriteRun(
+              java(
+                """
+                  import org.testcontainers.containers.CassandraContainer;
+                  import org.testcontainers.containers.KafkaContainer;
+                  import org.testcontainers.containers.localstack.LocalStackContainer;
+                  import org.testcontainers.containers.MySQLContainer;
+
+                  class A {
+                      private CassandraContainer cassandra = null;
+                      private KafkaContainer kafka = null;
+                      private MySQLContainer mysql = null;
+                      private LocalStackContainer localstack = null;
+                  }
+                  """,
+                """
+                  import org.testcontainers.cassandra.CassandraContainer;
+                  import org.testcontainers.kafka.KafkaContainer;
+                  import org.testcontainers.localstack.LocalStackContainer;
+                  import org.testcontainers.mysql.MySQLContainer;
+
+                  class A {
+                      private CassandraContainer cassandra = null;
+                      private KafkaContainer kafka = null;
+                      private MySQLContainer mysql = null;
+                      private LocalStackContainer localstack = null;
+                  }
+                  """
+              )
+            );
+        }
     }
 }

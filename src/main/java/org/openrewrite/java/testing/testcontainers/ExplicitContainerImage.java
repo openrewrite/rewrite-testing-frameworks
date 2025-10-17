@@ -81,7 +81,7 @@ public class ExplicitContainerImage extends Recipe {
                     maybeAddImport("org.testcontainers.utility.DockerImageName");
                     return JavaTemplate.builder("DockerImageName.parse(\"" + image + "\")")
                             .imports("org.testcontainers.utility.DockerImageName")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testcontainers"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testcontainers-1"))
                             .build()
                             .apply(getCursor(), newClass.getCoordinates().replace())
                             .withPrefix(Space.EMPTY);
