@@ -125,66 +125,56 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
 displayName: Migrate to testcontainers-java 2.x
-description: Migrate to testcontainers-java 2.x.
+description: Change dependencies and types to migrate to testcontainers-java 2.x.
 recipeList:
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
       oldArtifactId: junit-jupiter
-      newGroupId: org.testcontainers
       newArtifactId: testcontainers-junit-jupiter
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
       oldArtifactId: localstack
-      newGroupId: org.testcontainers
       newArtifactId: testcontainers-localstack
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
       oldArtifactId: minio
-      newGroupId: org.testcontainers
       newArtifactId: testcontainers-minio
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
       oldArtifactId: mysql
-      newGroupId: org.testcontainers
       newArtifactId: testcontainers-mysql
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
       oldArtifactId: postgresql
-      newGroupId: org.testcontainers
       newArtifactId: testcontainers-postgresql
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
       oldArtifactId: cassandra
-      newGroupId: org.testcontainers
       newArtifactId: testcontainers-cassandra
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
       oldArtifactId: nginx
-      newGroupId: org.testcontainers
       newArtifactId: testcontainers-nginx
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
       oldArtifactId: kafka
-      newGroupId: org.testcontainers
       newArtifactId: testcontainers-kafka
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
       oldArtifactId: ldap
-      newGroupId: org.testcontainers
       newArtifactId: testcontainers-ldap
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
       oldArtifactId: junit-jupiter
-      newGroupId: org.testcontainers
       newArtifactId: testcontainers-junit-jupiter
       newVersion: "2.x"
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
