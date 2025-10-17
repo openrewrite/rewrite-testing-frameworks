@@ -42,6 +42,7 @@ recipeDependencies {
     testParserClasspath("com.github.database-rider:rider-spring:1.18.0")
     testParserClasspath("com.google.guava:guava:33.5.0-jre")
     testParserClasspath("com.google.truth:truth:1.4.5")
+    testParserClasspath("org.easymock:easymock:5.6.0")
     testParserClasspath("org.jboss.byteman:byteman-bmunit:4.0.25")
     testParserClasspath("org.powermock:powermock-module-junit4:1.6.5")
 
@@ -94,7 +95,6 @@ dependencies {
     testRuntimeOnly("net.datafaker:datafaker:latest.release") {
         exclude(group = "org.yaml", module = "snakeyaml")
     }
-    testRuntimeOnly("org.easymock:easymock:latest.release")
     testRuntimeOnly("org.jboss.arquillian.junit:arquillian-junit-core:latest.release")
     testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testRuntimeOnly("org.testng:testng:latest.release")
