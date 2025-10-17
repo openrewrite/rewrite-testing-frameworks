@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.testcontainers;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -34,8 +35,9 @@ class TestcontainersBestPracticesTest implements RewriteTest {
         spec
           .recipeFromResource("/META-INF/rewrite/testcontainers.yml",
             "org.openrewrite.java.testing.testcontainers.TestContainersBestPractices")
-          .parser(JavaParser.fromJavaVersion().classpath(
-              "testcontainers",
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(
+            new InMemoryExecutionContext(),
+              "testcontainers-2",
               "testcontainers-cassandra",
               "testcontainers-kafka",
               "testcontainers-junit-jupiter",
@@ -151,6 +153,8 @@ class TestcontainersBestPracticesTest implements RewriteTest {
     @Test
     void composeContainer() {
         rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "testcontainers-1")),
           java(
             """
               import org.testcontainers.containers.DockerComposeContainer;

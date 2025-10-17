@@ -44,6 +44,16 @@ recipeDependencies {
     testParserClasspath("com.google.truth:truth:1.4.5")
     testParserClasspath("org.jboss.byteman:byteman-bmunit:4.0.25")
     testParserClasspath("org.powermock:powermock-module-junit4:1.6.5")
+
+    testParserClasspath("org.testcontainers:testcontainers:1.+")
+    testParserClasspath("org.testcontainers:testcontainers:2.0.1")
+    testParserClasspath("org.testcontainers:testcontainers-cassandra:2.0.1")
+    testParserClasspath("org.testcontainers:testcontainers-kafka:2.0.1")
+    testParserClasspath("org.testcontainers:testcontainers-junit-jupiter:2.0.1")
+    testParserClasspath("org.testcontainers:testcontainers-localstack:2.0.1")
+    testParserClasspath("org.testcontainers:testcontainers-mysql:2.0.1")
+    testParserClasspath("org.testcontainers:testcontainers-nginx:2.0.1")
+
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
@@ -88,17 +98,6 @@ dependencies {
     testRuntimeOnly("org.easymock:easymock:latest.release")
     testRuntimeOnly("org.jboss.arquillian.junit:arquillian-junit-core:latest.release")
     testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:5.4.0")
-    testRuntimeOnly("org.testcontainers:testcontainers:2.0.1")
-    testRuntimeOnly("org.testcontainers:testcontainers-cassandra:2.0.1")
-    testRuntimeOnly("org.testcontainers:testcontainers-kafka:2.0.1")
-    testRuntimeOnly("org.testcontainers:testcontainers-junit-jupiter:2.0.1")
-    testRuntimeOnly("org.testcontainers:testcontainers-localstack:2.0.1")
-    testRuntimeOnly("org.testcontainers:testcontainers-mysql:2.0.1")
-    testRuntimeOnly("org.testcontainers:testcontainers-nginx:2.0.1")
-    testRuntimeOnly("com.fasterxml.jackson.core:jackson-core:2.17.3")
-    testRuntimeOnly("com.fasterxml.jackson.core:jackson-databind:2.17.3")
-    testRuntimeOnly("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.3")
-    testRuntimeOnly("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.17.3")
     testRuntimeOnly("org.testng:testng:latest.release")
 }
 
