@@ -20,11 +20,7 @@ name: org.openrewrite.java.testing.testcontainers.TestContainersBestPractices
 displayName: Testcontainers best practices
 description: Apply best practices to Testcontainers usage.
 recipeList:
-  # Upgrade to latest version of Testcontainers
-  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
-      groupId: org.testcontainers
-      artifactId: "*"
-      newVersion: 1.21.x
+  - org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImages
   - org.openrewrite.java.testing.testcontainers.GetHostMigration
   - org.openrewrite.java.ChangeType:
@@ -127,9 +123,9 @@ recipeList:
       parseImage: true
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.testcontainers.Testcontainers2
-displayName: Testcontainers 2.0.x.
-description: Apply changes to Testcontainers 2.0.x..
+name: org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
+displayName: Migrate to testcontainers-java 2.x
+description: Change dependencies and types to migrate to testcontainers-java 2.x.
 recipeList:
   - org.openrewrite.java.testing.testcontainers.TestcontainersNewDependencies
   - org.openrewrite.java.testing.testcontainers.TestcontainersNewContainerClasses
@@ -139,6 +135,60 @@ name: org.openrewrite.java.testing.testcontainers.TestcontainersNewDependencies
 displayName: Rename Testcontainers dependencies
 description: Rename Testcontainers dependencies.
 recipeList:
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: junit-jupiter
+      newArtifactId: testcontainers-junit-jupiter
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: localstack
+      newArtifactId: testcontainers-localstack
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: minio
+      newArtifactId: testcontainers-minio
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: mysql
+      newArtifactId: testcontainers-mysql
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: postgresql
+      newArtifactId: testcontainers-postgresql
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: cassandra
+      newArtifactId: testcontainers-cassandra
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: nginx
+      newArtifactId: testcontainers-nginx
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: kafka
+      newArtifactId: testcontainers-kafka
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: ldap
+      newArtifactId: testcontainers-ldap
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: junit-jupiter
+      newArtifactId: testcontainers-junit-jupiter
+      newVersion: "2.x"
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.testcontainers
+      artifactId: "*"
+      newVersion: "2.x"
   - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
       oldGroupId: org.testcontainers
       oldArtifactId: activemq
@@ -589,4 +639,3 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.CockroachContainer
       newFullyQualifiedTypeName: org.testcontainers.cockroachdb.CockroachContainer
----
