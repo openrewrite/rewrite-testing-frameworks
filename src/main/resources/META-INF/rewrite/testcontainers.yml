@@ -127,13 +127,13 @@ name: org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
 displayName: Migrate to testcontainers-java 2.x
 description: Change dependencies and types to migrate to testcontainers-java 2.x.
 recipeList:
-  - org.openrewrite.java.testing.testcontainers.TestcontainersNewDependencies
-  - org.openrewrite.java.testing.testcontainers.TestcontainersNewContainerClasses
+  - org.openrewrite.java.testing.testcontainers.Testcontainers2Dependencies
+  - org.openrewrite.java.testing.testcontainers.Testcontainers2ContainerClasses
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.testcontainers.TestcontainersNewDependencies
+name: org.openrewrite.java.testing.testcontainers.Testcontainers2Dependencies
 displayName: Rename Testcontainers dependencies
-description: Rename Testcontainers dependencies.
+description: Change Testcontainers dependencies to adopt the new consistent `testcontainers-` prefix.
 recipeList:
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
@@ -447,61 +447,10 @@ recipeList:
       newVersion: "2.x"
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.testcontainers.TestcontainersNewContainerClasses
-displayName: New Testcontainers container classes
-description: Replace by new container classes.
+name: org.openrewrite.java.testing.testcontainers.Testcontainers2ContainerClasses
+displayName: Testcontainers 2 container classes
+description: Change Testcontainers container classes to their new package locations in Testcontainers 2.x.
 recipeList:
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.SolrContainer
-      newFullyQualifiedTypeName: org.testcontainers.solr.SolrContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.OrientDBContainer
-      newFullyQualifiedTypeName: org.testcontainers.orientdb.OrientDBContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.Neo4jContainer
-      newFullyQualifiedTypeName: org.testcontainers.neo4j.Neo4jContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.BrowserWebDriverContainer
-      newFullyQualifiedTypeName: org.testcontainers.selenium.BrowserWebDriverContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.MongoDBContainer
-      newFullyQualifiedTypeName: org.testcontainers.mongodb.MongoDBContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.Db2Container
-      newFullyQualifiedTypeName: org.testcontainers.db2.Db2Container
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.TiDBContainer
-      newFullyQualifiedTypeName: org.testcontainers.tidb.TiDBContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.ToxiproxyContainer
-      newFullyQualifiedTypeName: org.testcontainers.toxiproxy.ToxiproxyContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.RabbitMQContainer
-      newFullyQualifiedTypeName: org.testcontainers.rabbitmq.RabbitMQContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.PulsarContainer
-      newFullyQualifiedTypeName: org.testcontainers.pulsar.PulsarContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.PostgreSQLContainer
-      newFullyQualifiedTypeName: org.testcontainers.postgresql.PostgreSQLContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.NginxContainer
-      newFullyQualifiedTypeName: org.testcontainers.nginx.NginxContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.MySQLContainer
-      newFullyQualifiedTypeName: org.testcontainers.mysql.MySQLContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.MSSQLServerContainer
-      newFullyQualifiedTypeName: org.testcontainers.mssqlserver.MSSQLServerContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.MockServerContainer
-      newFullyQualifiedTypeName: org.testcontainers.mockserver.MockServerContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.MariaDBContainer
-      newFullyQualifiedTypeName: org.testcontainers.mariadb.MariaDBContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.localstack.LocalStackContainer
-      newFullyQualifiedTypeName: org.testcontainers.localstack.LocalStackContainer
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.BigQueryEmulatorContainer
       newFullyQualifiedTypeName: org.testcontainers.gcloud.BigQueryEmulatorContainer
@@ -509,17 +458,74 @@ recipeList:
       oldFullyQualifiedTypeName: org.testcontainers.containers.BigtableEmulatorContainer
       newFullyQualifiedTypeName: org.testcontainers.gcloud.BigtableEmulatorContainer
   - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.BrowserWebDriverContainer
+      newFullyQualifiedTypeName: org.testcontainers.selenium.BrowserWebDriverContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.CassandraContainer
+      newFullyQualifiedTypeName: org.testcontainers.cassandra.CassandraContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.CockroachContainer
+      newFullyQualifiedTypeName: org.testcontainers.cockroachdb.CockroachContainer
+  - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.DatastoreEmulatorContainer
       newFullyQualifiedTypeName: org.testcontainers.gcloud.DatastoreEmulatorContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.Db2Container
+      newFullyQualifiedTypeName: org.testcontainers.db2.Db2Container
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.FirestoreEmulatorContainer
       newFullyQualifiedTypeName: org.testcontainers.gcloud.FirestoreEmulatorContainer
   - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.KafkaContainer
+      newFullyQualifiedTypeName: org.testcontainers.kafka.KafkaContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.localstack.LocalStackContainer
+      newFullyQualifiedTypeName: org.testcontainers.localstack.LocalStackContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.MariaDBContainer
+      newFullyQualifiedTypeName: org.testcontainers.mariadb.MariaDBContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.MockServerContainer
+      newFullyQualifiedTypeName: org.testcontainers.mockserver.MockServerContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.MongoDBContainer
+      newFullyQualifiedTypeName: org.testcontainers.mongodb.MongoDBContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.MSSQLServerContainer
+      newFullyQualifiedTypeName: org.testcontainers.mssqlserver.MSSQLServerContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.MySQLContainer
+      newFullyQualifiedTypeName: org.testcontainers.mysql.MySQLContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.Neo4jContainer
+      newFullyQualifiedTypeName: org.testcontainers.neo4j.Neo4jContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.NginxContainer
+      newFullyQualifiedTypeName: org.testcontainers.nginx.NginxContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.OrientDBContainer
+      newFullyQualifiedTypeName: org.testcontainers.orientdb.OrientDBContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.PostgreSQLContainer
+      newFullyQualifiedTypeName: org.testcontainers.postgresql.PostgreSQLContainer
+  - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.PubSubEmulatorContainer
       newFullyQualifiedTypeName: org.testcontainers.gcloud.PubSubEmulatorContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.PulsarContainer
+      newFullyQualifiedTypeName: org.testcontainers.pulsar.PulsarContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.RabbitMQContainer
+      newFullyQualifiedTypeName: org.testcontainers.rabbitmq.RabbitMQContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.SolrContainer
+      newFullyQualifiedTypeName: org.testcontainers.solr.SolrContainer
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.SpannerEmulatorContainer
       newFullyQualifiedTypeName: org.testcontainers.gcloud.SpannerEmulatorContainer
   - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.CockroachContainer
-      newFullyQualifiedTypeName: org.testcontainers.cockroachdb.CockroachContainer
+      oldFullyQualifiedTypeName: org.testcontainers.containers.TiDBContainer
+      newFullyQualifiedTypeName: org.testcontainers.tidb.TiDBContainer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.ToxiproxyContainer
+      newFullyQualifiedTypeName: org.testcontainers.toxiproxy.ToxiproxyContainer
