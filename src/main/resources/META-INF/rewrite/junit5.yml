@@ -137,10 +137,10 @@ preconditions:
       groupId: org.springframework.boot
       artifactId: spring-boot-testcontainers
 recipeList:
+  - org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
   - org.openrewrite.maven.ExcludeDependency:
       groupId: junit
       artifactId: junit
-  - org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
