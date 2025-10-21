@@ -249,6 +249,22 @@ class JUnit5MigrationTest implements RewriteTest {
                       </dependency>
                   </dependencies>
               </project>
+              """,
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example.jackson</groupId>
+                  <artifactId>test-plugins</artifactId>
+                  <version>1.0.0</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.testcontainers</groupId>
+                          <artifactId>testcontainers</artifactId>
+                          <version>2.0.1</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
               """
           )
         );
@@ -271,6 +287,22 @@ class JUnit5MigrationTest implements RewriteTest {
                           <groupId>org.testcontainers</groupId>
                           <artifactId>junit-jupiter</artifactId>
                           <version>1.18.3</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """,
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example.jackson</groupId>
+                  <artifactId>test-plugins</artifactId>
+                  <version>1.0.0</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.testcontainers</groupId>
+                          <artifactId>testcontainers-junit-jupiter</artifactId>
+                          <version>2.0.1</version>
                           <scope>test</scope>
                       </dependency>
                   </dependencies>
@@ -513,24 +545,24 @@ class JUnit5MigrationTest implements RewriteTest {
               """
           ),
           srcTestJava(java("""
-                import org.junit.Test;
+              import org.junit.Test;
 
-                public class MyTest {
-                    @Test
-                    public void hello() {
-                    }
-                }
-                """,
-                """
-                import org.junit.jupiter.api.Test;
+              public class MyTest {
+                  @Test
+                  public void hello() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
 
-                public class MyTest {
-                    @Test
-                    public void hello() {
-                    }
-                }
-                """
-            ))
+              public class MyTest {
+                  @Test
+                  public void hello() {
+                  }
+              }
+              """
+          ))
         );
     }
 

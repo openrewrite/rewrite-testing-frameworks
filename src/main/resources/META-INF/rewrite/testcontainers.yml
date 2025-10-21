@@ -21,11 +21,19 @@ displayName: Testcontainers best practices
 description: Apply best practices to Testcontainers usage.
 recipeList:
   - org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
+displayName: Migrate to testcontainers-java 2.x
+description: Change dependencies and types to migrate to testcontainers-java 2.x.
+recipeList:
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImages
   - org.openrewrite.java.testing.testcontainers.GetHostMigration
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.DockerComposeContainer
       newFullyQualifiedTypeName: org.testcontainers.containers.ComposeContainer
+  - org.openrewrite.java.testing.testcontainers.Testcontainers2Dependencies
+  - org.openrewrite.java.testing.testcontainers.Testcontainers2ContainerClasses
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.GetHostMigration
@@ -121,14 +129,6 @@ recipeList:
       containerClass: org.testcontainers.containers.PulsarContainer
       image: "apachepulsar/pulsar:2.10.0"
       parseImage: true
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
-displayName: Migrate to testcontainers-java 2.x
-description: Change dependencies and types to migrate to testcontainers-java 2.x.
-recipeList:
-  - org.openrewrite.java.testing.testcontainers.Testcontainers2Dependencies
-  - org.openrewrite.java.testing.testcontainers.Testcontainers2ContainerClasses
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.Testcontainers2Dependencies
