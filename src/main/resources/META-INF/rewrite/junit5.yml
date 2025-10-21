@@ -130,13 +130,14 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
-displayName: Exclude JUnit 4, unless Testcontainers is used
-description: Excludes JUnit 4, as it ought not to be necessary in a JUnit 5 project, unless Testcontainers is used.
+displayName: Exclude JUnit 4, unless Spring Boot Testcontainers is used
+description: Excludes JUnit 4, as it ought not to be necessary in a JUnit 5 project, unless Testcontainers 1.x is used.
 preconditions:
   - org.openrewrite.maven.search.DoesNotIncludeDependency:
-      groupId: org.testcontainers
-      artifactId: '*'
+      groupId: org.springframework.boot
+      artifactId: spring-boot-testcontainers
 recipeList:
+  - org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
   - org.openrewrite.maven.ExcludeDependency:
       groupId: junit
       artifactId: junit
