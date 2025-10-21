@@ -544,25 +544,28 @@ class JUnit5MigrationTest implements RewriteTest {
               }
               """
           ),
-          srcTestJava(java("""
-              import org.junit.Test;
-
-              public class MyTest {
-                  @Test
-                  public void hello() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              public class MyTest {
-                  @Test
-                  public void hello() {
-                  }
-              }
+          srcTestJava(
+            java(
               """
-          ))
+                import org.junit.Test;
+
+                public class MyTest {
+                    @Test
+                    public void hello() {
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+
+                public class MyTest {
+                    @Test
+                    public void hello() {
+                    }
+                }
+                """
+            )
+          )
         );
     }
 
