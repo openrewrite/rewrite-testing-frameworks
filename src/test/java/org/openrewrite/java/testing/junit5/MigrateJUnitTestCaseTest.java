@@ -337,4 +337,28 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void testCaseWithConstructorCallingSuperTestName() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class AppTest extends TestCase {
+                  public AppTest(String testName) {
+                      super(testName);
+                  }
+              }
+              """,
+            """
+              public class AppTest {
+                  public AppTest(String testName) {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

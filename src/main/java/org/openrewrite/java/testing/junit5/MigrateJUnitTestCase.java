@@ -83,7 +83,7 @@ public class MigrateJUnitTestCase extends Recipe {
 
                     @SuppressWarnings("ConstantConditions")
                     @Override
-                    public  J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                    public  J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if ((mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase")) ||
                             (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"))) {
@@ -103,6 +103,7 @@ public class MigrateJUnitTestCase extends Recipe {
 
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher OVERRIDE_ANNOTATION_MATCHER = new AnnotationMatcher("@java.lang.Override");
+        private static final MethodMatcher TEST_CASE_SUPER_MATCHER = new MethodMatcher("junit.framework.TestCase <constructor>(..)");
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -134,6 +135,17 @@ public class MigrateJUnitTestCase extends Recipe {
             return md;
         }
 
+        @Override
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            // If the class no longer extends TestCase there should no longer be calls to TestCase.super()
+            // Plenty of edge cases around classes which extend classes which extend TestCase this doesn't account for
+            if (TEST_CASE_SUPER_MATCHER.matches(method)) {
+                //noinspection DataFlowIssue
+                return null;
+            }
+            return super.visitMethodInvocation(method, ctx);
+        }
+
         private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation, ExecutionContext ctx) {
             J.MethodDeclaration md = methodDeclaration;
             if (FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
@@ -162,6 +174,7 @@ public class MigrateJUnitTestCase extends Recipe {
         private J.MethodDeclaration maybeRemoveOverrideAnnotation(J.MethodDeclaration md) {
             return md.withLeadingAnnotations(ListUtils.map(md.getLeadingAnnotations(), annotation -> {
                 if (OVERRIDE_ANNOTATION_MATCHER.matches(annotation)) {
+                    //noinspection DataFlowIssue
                     return null;
                 }
                 return annotation;
