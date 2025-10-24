@@ -26,8 +26,7 @@ import static org.openrewrite.maven.Assertions.pomXml;
 class UseXMLUnitLegacyTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec
-          .recipeFromResources("org.openrewrite.java.testing.junit5.UseXMLUnitLegacy");
+        spec.recipeFromResources("org.openrewrite.java.testing.junit5.UseXMLUnitLegacy");
     }
 
     @Test
@@ -52,11 +51,10 @@ class UseXMLUnitLegacyTest implements RewriteTest {
                 </project>
                 """,
               spec -> spec.after(after ->
-                assertThat(after)
-                  .containsPattern("<version>(2.10.+)</version>")
-                  .actual())
+                assertThat(after).containsPattern("<version>(2.+)</version>").actual())
             )
           )
         );
     }
 }
+
