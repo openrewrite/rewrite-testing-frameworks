@@ -339,7 +339,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
     }
 
     @Test
-    void testCaseWithConstructorCallingSuperTestName() {
+    void caseWithConstructorCallingSuperTestName() {
         //language=java
         rewriteRun(
           java(

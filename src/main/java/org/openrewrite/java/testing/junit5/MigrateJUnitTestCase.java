@@ -83,7 +83,7 @@ public class MigrateJUnitTestCase extends Recipe {
 
                     @SuppressWarnings("ConstantConditions")
                     @Override
-                    public  J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                    public   J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if ((mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase")) ||
                             (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"))) {
@@ -136,7 +136,7 @@ public class MigrateJUnitTestCase extends Recipe {
         }
 
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+        public  J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             // If the class no longer extends TestCase there should no longer be calls to TestCase.super()
             // Plenty of edge cases around classes which extend classes which extend TestCase this doesn't account for
             if (TEST_CASE_SUPER_MATCHER.matches(method)) {
