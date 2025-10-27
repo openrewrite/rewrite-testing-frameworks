@@ -57,4 +57,3 @@ class UseXMLUnitLegacyTest implements RewriteTest {
         );
     }
 }
-
