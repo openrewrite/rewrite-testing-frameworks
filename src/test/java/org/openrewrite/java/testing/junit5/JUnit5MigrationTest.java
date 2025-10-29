@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
@@ -26,6 +27,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.SourceSpecs;
 import org.openrewrite.test.TypeValidation;
 
 import java.util.regex.Pattern;
@@ -42,6 +44,7 @@ class JUnit5MigrationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
+            .logCompilationWarningsAndErrors(true)
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
@@ -844,4 +847,168 @@ class JUnit5MigrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void mixedProjectSetup() {
+        rewriteRun(
+          mavenProject("root",
+            pomXml(
+              //language=xml
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>root</artifactId>
+                    <version>0.0.1</version>
+                    <packaging>pom</packaging>
+
+                    <modules>
+                        <module>common</module>
+                        <module>outsider</module>
+                        <module>child</module>
+                    </modules>
+
+                    <dependencyManagement>
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.example</groupId>
+                                <artifactId>common</artifactId>
+                                <version>0.0.1</version>
+                            </dependency>
+                        </dependencies>
+                    </dependencyManagement>
+                </project>
+                """)
+          ),
+          mavenProject("common",
+            testsInPackage("common", SOME_JUNIT_TEST, SOME_JUPITER_TEST),
+            pomXml(
+              //language=xml
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+
+                  <parent>
+                      <groupId>org.example</groupId>
+                      <artifactId>root</artifactId>
+                      <version>0.0.1</version>
+                  </parent>
+
+                  <artifactId>common</artifactId>
+                  <version>0.0.1</version>
+
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>4.0</version>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom -> {
+                  assertThat(pom).contains("junit-jupiter");
+                  return pom;
+              })
+            )
+          ),
+          mavenProject("child",
+            testsInPackage("child", SOME_JUNIT_TEST, SOME_JUPITER_TEST),
+            pomXml(
+              //language=xml
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+
+                  <parent>
+                      <groupId>org.example</groupId>
+                      <artifactId>root</artifactId>
+                      <version>0.0.1</version>
+                  </parent>
+
+                  <artifactId>child</artifactId>
+                  <version>0.0.1</version>
+
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>4.0</version>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom -> {
+                  assertThat(pom).contains("junit-jupiter");
+                  return pom;
+              })
+            )
+          ),
+          mavenProject("outsider",
+            testsInPackage("outsider", SOME_JUNIT_TEST, SOME_JUPITER_TEST),
+            pomXml(
+              //language=xml
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>org.example</groupId>
+                  <artifactId>outsider</artifactId>
+                  <version>0.0.1</version>
+
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>4.0</version>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom -> {
+                  assertThat(pom).contains("junit-jupiter");
+                  return pom;
+              })
+            )
+          )
+        );
+    }
+
+    static SourceSpecs testsInPackage(String pkg, String before, String after) {
+        return srcTestJava(
+          java(
+            """
+              package org.%s;
+
+              %s
+              """.formatted(pkg, before),
+            """
+              package org.%s;
+
+              %s
+              """.formatted(pkg, after)
+          ));
+    }
+
+    ;
+
+    @Language("java")
+    private static final String SOME_JUPITER_TEST = """
+      import org.junit.jupiter.api.Test;
+
+      class FooTest {
+        @Test
+        void bar() {
+        }
+      }
+      """;
+    @Language("java")
+    private static final String SOME_JUNIT_TEST = """
+      import org.junit.Test;
+
+      class FooTest {
+        @Test
+        void bar() {
+        }
+      }
+      """;
 }
