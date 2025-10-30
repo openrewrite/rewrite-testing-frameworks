@@ -71,13 +71,6 @@ dependencies {
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
-
-    testImplementation("org.openrewrite:rewrite-java-21")
-    testImplementation("org.openrewrite:rewrite-groovy")
-    testImplementation("org.openrewrite:rewrite-test")
-    testImplementation("org.openrewrite:rewrite-kotlin")
-    testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
-
     annotationProcessor("org.openrewrite:rewrite-templating:${rewriteVersion}")
     implementation("org.openrewrite:rewrite-templating:${rewriteVersion}")
     compileOnly("com.google.errorprone:error_prone_core:2.+") {
@@ -85,6 +78,11 @@ dependencies {
         exclude("io.github.eisop","dataflow-errorprone")
     }
 
+    testImplementation("org.openrewrite:rewrite-java-21")
+    testImplementation("org.openrewrite:rewrite-groovy")
+    testImplementation("org.openrewrite:rewrite-test")
+    testImplementation("org.openrewrite:rewrite-kotlin")
+    testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
     testRuntimeOnly(gradleApi())
 
     testRuntimeOnly("com.tngtech.archunit:archunit:0.23.1")
