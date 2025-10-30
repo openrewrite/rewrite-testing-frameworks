@@ -28,7 +28,7 @@ class GradleUseJunitJupiterTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new GradleUseJunitJupiter())
-          .beforeRecipe(withToolingApi());
+          .beforeRecipe(withToolingApi("8.14.3"));
     }
 
     @DocumentExample
