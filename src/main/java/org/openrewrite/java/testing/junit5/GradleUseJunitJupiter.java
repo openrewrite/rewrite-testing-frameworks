@@ -189,9 +189,15 @@ public class GradleUseJunitJupiter extends Recipe {
                     }
                     break;
                 case "withType":
-                    if (m.getSelect() == null ||
-                            !TypeUtils.isOfClassType(m.getSelect().getType(), "org.gradle.api.tasks.TaskContainer") ||
-                            !(m.getArguments().get(0) instanceof J.Identifier && "Test".equals(((J.Identifier) m.getArguments().get(0)).getSimpleName()))) {
+                    if (m.getSelect() == null) {
+                        return m;
+                    }
+                    if (!TypeUtils.isOfClassType(m.getSelect().getType(), "org.gradle.api.tasks.TaskContainer") &&
+                            // With Gradle 9 we saw the type change to Object, so fall back to checking simple name
+                            !(m.getSelect() instanceof J.Identifier && "tasks".equals(((J.Identifier) m.getSelect()).getSimpleName()))) {
+                        return m;
+                    }
+                    if (!(m.getArguments().get(0) instanceof J.Identifier && "Test".equals(((J.Identifier) m.getArguments().get(0)).getSimpleName()))) {
                         return m;
                     }
                     break;
