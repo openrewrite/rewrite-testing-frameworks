@@ -64,7 +64,6 @@ dependencies {
     implementation("org.openrewrite:rewrite-maven")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
-    runtimeOnly("org.openrewrite:rewrite-java-17")
 
     runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:${rewriteVersion}:recipes")
     compileOnly("org.junit.jupiter:junit-jupiter-engine:5.13.3")
@@ -72,13 +71,6 @@ dependencies {
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
-
-    testImplementation("org.openrewrite:rewrite-java-17")
-    testImplementation("org.openrewrite:rewrite-groovy")
-    testImplementation("org.openrewrite:rewrite-test")
-    testImplementation("org.openrewrite:rewrite-kotlin")
-    testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
-
     annotationProcessor("org.openrewrite:rewrite-templating:${rewriteVersion}")
     implementation("org.openrewrite:rewrite-templating:${rewriteVersion}")
     compileOnly("com.google.errorprone:error_prone_core:2.+") {
@@ -86,6 +78,11 @@ dependencies {
         exclude("io.github.eisop","dataflow-errorprone")
     }
 
+    testImplementation("org.openrewrite:rewrite-java-21")
+    testImplementation("org.openrewrite:rewrite-groovy")
+    testImplementation("org.openrewrite:rewrite-test")
+    testImplementation("org.openrewrite:rewrite-kotlin")
+    testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
     testRuntimeOnly(gradleApi())
 
     testRuntimeOnly("com.tngtech.archunit:archunit:0.23.1")
