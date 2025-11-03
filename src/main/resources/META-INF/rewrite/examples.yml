@@ -1010,6 +1010,35 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifySequencedCollectionAssertions
+examples:
+- description: '`SimplifySequencedCollectionAssertionsTest#getLast`'
+  sources:
+  - before: |
+      import java.util.List;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod() {
+              List<String> list = List.of("a", "b", "c");
+              assertThat(list.getLast()).isEqualTo("c");
+          }
+      }
+    after: |
+      import java.util.List;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod() {
+              List<String> list = List.of("a", "b", "c");
+              assertThat(list).last().isEqualTo("c");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.StaticImports
 examples:
 - description: '`StaticImportsTest#useStaticImports`'
