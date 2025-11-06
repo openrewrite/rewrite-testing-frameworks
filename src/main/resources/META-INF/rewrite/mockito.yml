@@ -183,3 +183,6 @@ recipeList:
       groupId: net.bytebuddy
       artifactId: byte-buddy*
       newVersion: 1.11.13
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.Mockito anyObject()
+      newMethodName: any
