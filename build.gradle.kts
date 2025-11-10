@@ -54,7 +54,6 @@ recipeDependencies {
     testParserClasspath("org.testcontainers:testcontainers-kafka:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-localstack:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-mysql:2.0.1")
-    testParserClasspath("org.testcontainers:junit-jupiter:2.0.1")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
