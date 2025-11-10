@@ -19,17 +19,18 @@ import static org.openrewrite.java.Assertions.java;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-public class AddTestcontainersAnnotationsTest implements RewriteTest {
+class AddTestcontainersAnnotationsTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AddTestcontainersAnnotations())
-          .parser(JavaParser.fromJavaVersion().classpath(
-            "junit-4", "testcontainers-1", "junit-jupiter-5"));
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "junit-4", "testcontainers-1", "junit-jupiter-1"));
     }
 
     @DocumentExample
@@ -52,15 +53,15 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
             // after
             """
               import org.junit.Test;
-                import org.testcontainers.containers.GenericContainer;
-                import org.testcontainers.junit.jupiter.Container;
-                import org.testcontainers.junit.jupiter.Testcontainers;
+              import org.testcontainers.containers.GenericContainer;
+              import org.testcontainers.junit.jupiter.Container;
+              import org.testcontainers.junit.jupiter.Testcontainers;
 
               @Testcontainers
               class MyTest {
                   @Container
                   public GenericContainer<?> myContainer = new GenericContainer<>("redis:latest");
-                }
+              }
               """
           )
         );
