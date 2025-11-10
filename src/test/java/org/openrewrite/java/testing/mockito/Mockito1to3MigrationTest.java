@@ -283,4 +283,71 @@ class Mockito1to3MigrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void handlesAnyObjectFromMockitoWildCardImport() {
+        rewriteRun(
+          java(
+            """
+            package com.yourorg;
+            import static org.mockito.Mockito.*;
+
+            public class MyTest {
+                void test() {
+                    Object o = anyObject();
+                }
+            }
+            """,
+            """
+            package com.yourorg;
+            import static org.mockito.Mockito.any;
+
+            public class MyTest {
+                void test() {
+                    Object o = any();
+                }
+            }
+            """
+          )
+        );
+    }
+
+    @Test
+    void handlesAnyObjectFromMockitoWildCardImport_keepsWildCardIfManyUsages() {
+        rewriteRun(
+          java(
+            """
+            package com.yourorg;
+            import java.util.List;
+            import static org.mockito.Mockito.*;
+
+            public class MyTest {
+                void test() {
+                    Object o1 = anyObject();
+                    Object o2 = doNothing().when(new Object());
+                    verify(o2, never());
+                    mock(List.class);
+                    spy(new Object());
+                }
+            }
+            """,
+            """
+            package com.yourorg;
+            import java.util.List;
+            import static org.mockito.Mockito.*;
+
+            public class MyTest {
+                void test() {
+                    Object o1 = any();
+                    Object o2 = doNothing().when(new Object());
+                    verify(o2, never());
+                    mock(List.class);
+                    spy(new Object());
+                }
+            }
+            """
+          )
+        );
+    }
+
 }

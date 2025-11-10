@@ -22,7 +22,9 @@ recipeDependencies {
     parserClasspath("org.jmockit:jmockit:1.22") // last version with NonStrictExpectations
     parserClasspath("org.jmockit:jmockit:1.49")
     parserClasspath("org.junit.jupiter:junit-jupiter-api:5.+")
+    parserClasspath("org.junit.jupiter:junit-jupiter-api:6.+")
     parserClasspath("org.junit.jupiter:junit-jupiter-params:5.+")
+    parserClasspath("org.junit.jupiter:junit-jupiter-params:6.+")
     parserClasspath("org.mockito:mockito-all:1.10.19")
     parserClasspath("org.mockito:mockito-core:3.+")
     parserClasspath("org.mockito:mockito-core:5.+")
@@ -65,7 +67,7 @@ dependencies {
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
 
-    runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:${rewriteVersion}:recipes")
+    runtimeOnly("org.openrewrite.recipe:rewrite-third-party:${rewriteVersion}")
     compileOnly("org.junit.jupiter:junit-jupiter-engine:5.13.3")
     compileOnly("org.assertj:assertj-core:3.+")
 
