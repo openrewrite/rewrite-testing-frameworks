@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import static org.openrewrite.java.Assertions.java;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -27,9 +28,11 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AddTestcontainersAnnotations())
-          .parser(JavaParser.fromJavaVersion().classpath("junit", "testcontainers", "junit-jupiter"));
+          .parser(JavaParser.fromJavaVersion().classpath(
+            "junit-4", "testcontainers-1", "junit-jupiter-5"));
     }
 
+    @DocumentExample
     @Test
     void convertsSingleGenericContainerRule() {
         rewriteRun(
@@ -58,7 +61,9 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
                   @Container
                   public GenericContainer<?> myContainer = new GenericContainer<>("redis:latest");
                 }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -93,7 +98,9 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
                   @Container
                   public GenericContainer<?> postgres = new GenericContainer<>("postgres:latest");
               }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -129,7 +136,9 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
                   @Container
                   public GenericContainer<?> postgres = new GenericContainer<>("postgres:latest");
               }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -145,7 +154,8 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
               public class UberRedisContainer<SELF extends UberRedisContainer<SELF>>
                       extends GenericContainer<SELF> {
               }
-              """),
+              """
+          ),
           // language=java
           java(
             // before
@@ -171,7 +181,9 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
                    @Container
                    public static UberRedisContainer redisContainer = new UberRedisContainer();
                }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -188,7 +200,9 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
                   @Rule
                   public TemporaryFolder tempFolder = new TemporaryFolder();
               }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -203,7 +217,9 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
                   public static GenericContainer<?> c_stat = new GenericContainer<>("redis:latest");
                   public GenericContainer<?> c = new GenericContainer<>("redis:latest");
               }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -222,7 +238,9 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
                   @Container
                   public GenericContainer<?> myContainer = new GenericContainer<>("redis:latest");
               }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -253,7 +271,9 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
                   @Container
                   public GenericContainer<?> redis = new GenericContainer<>("redis:latest");
               }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -284,7 +304,9 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
                   @Deprecated
                   public GenericContainer<?> redis = new GenericContainer<>("redis:latest");
               }
-              """));
+              """
+          )
+        );
     }
 
     @Test
@@ -317,6 +339,8 @@ public class AddTestcontainersAnnotationsTest implements RewriteTest {
                 class MyInnerClass {
                 }
               }
-              """));
+              """
+          )
+        );
     }
 }

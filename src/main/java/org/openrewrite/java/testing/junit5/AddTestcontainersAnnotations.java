@@ -15,10 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -27,6 +23,11 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
+
+import java.util.List;
+
+import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.toList;
 
 /**
  * An OpenRewrite recipe that migrates JUnit 4 Testcontainers {@code @Rule} or {@code @ClassRule}
@@ -96,7 +97,7 @@ public class AddTestcontainersAnnotations extends Recipe {
             return TESTCONTAINERS_ANNOTATION_TEMPLATE.apply(
                     updateCursor(classDecl),
                     classDecl.getCoordinates()
-                            .addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                            .addAnnotation(comparing(J.Annotation::getSimpleName)));
         }
 
         @Override
@@ -115,7 +116,7 @@ public class AddTestcontainersAnnotations extends Recipe {
             List<J.Annotation> annotationsToKeep = varDecls.getLeadingAnnotations().stream()
                     .filter(ann -> !TypeUtils.isAssignableTo(RULE_FQN, ann.getType()))
                     .filter(ann -> !TypeUtils.isAssignableTo(CLASS_RULE_FQN, ann.getType()))
-                    .collect(Collectors.toList());
+                    .collect(toList());
 
             varDecls = varDecls.withLeadingAnnotations(annotationsToKeep);
 
@@ -128,12 +129,10 @@ public class AddTestcontainersAnnotations extends Recipe {
 
             maybeAddImport(CONTAINER_FQN);
 
-            varDecls = CONTAINER_ANNOTATION_TEMPLATE.apply(
+            return CONTAINER_ANNOTATION_TEMPLATE.apply(
                     updateCursor(varDecls),
                     varDecls.getCoordinates()
-                            .addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
-
-            return varDecls;
+                            .addAnnotation(comparing(J.Annotation::getSimpleName)));
         }
     }
 }
