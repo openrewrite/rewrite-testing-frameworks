@@ -37,6 +37,7 @@ recipeDependencies {
     parserClasspath("org.powermock:powermock-core:1.6.5")
     parserClasspath("org.springframework:spring-test:6.1.+")
     parserClasspath("org.testcontainers:testcontainers:1.20.6")
+    parserClasspath("org.testcontainers:junit-jupiter:1.20.6")
     parserClasspath("org.testng:testng:7.+")
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
     parserClasspath("uk.org.webcompere:system-stubs-core:2.1.8")
@@ -56,7 +57,6 @@ recipeDependencies {
     testParserClasspath("org.testcontainers:testcontainers-kafka:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-localstack:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-mysql:2.0.1")
-
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
