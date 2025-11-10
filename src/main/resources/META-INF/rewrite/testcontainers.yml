@@ -27,6 +27,7 @@ name: org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
 displayName: Migrate to testcontainers-java 2.x
 description: Change dependencies and types to migrate to testcontainers-java 2.x.
 recipeList:
+  - org.openrewrite.java.testing.testcontainers.AddTestcontainersAnnotations
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImages
   - org.openrewrite.java.testing.testcontainers.GetHostMigration
   - org.openrewrite.java.ChangeType:
