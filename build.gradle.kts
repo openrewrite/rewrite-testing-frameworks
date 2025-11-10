@@ -11,6 +11,7 @@ recipeDependencies {
     parserClasspath("com.github.stefanbirkner:system-rules:1.19.0")
     parserClasspath("com.github.tomakehurst:wiremock-jre8:2.35.0")
     parserClasspath("com.google.errorprone:error_prone_core:2.+")
+    parserClasspath("com.google.guava:guava:33.5.0-jre")
     parserClasspath("com.squareup.okhttp3:mockwebserver:3.14.9")
     parserClasspath("com.squareup.okhttp3:mockwebserver:4.10.0")
     parserClasspath("junit:junit:4.+")
