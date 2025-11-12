@@ -4617,6 +4617,33 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.AddTestcontainersAnnotations
+examples:
+- description: '`AddTestcontainersAnnotationsTest#convertsSingleGenericContainerRule`'
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import org.junit.Test;
+      import org.testcontainers.containers.GenericContainer;
+
+      class MyTest {
+          @Rule
+          public GenericContainer<?> myContainer = new GenericContainer<>("redis:latest");
+      }
+    after: |
+      import org.junit.Test;
+      import org.testcontainers.containers.GenericContainer;
+      import org.testcontainers.junit.jupiter.Container;
+      import org.testcontainers.junit.jupiter.Testcontainers;
+
+      @Testcontainers
+      class MyTest {
+          @Container
+          public GenericContainer<?> myContainer = new GenericContainer<>("redis:latest");
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.testcontainers.ExplicitContainerImage
 examples:
 - description: '`ExplicitContainerImageTest#explicitContainerImage`'
