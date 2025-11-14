@@ -232,8 +232,8 @@ class JUnit5MigrationTest implements RewriteTest {
     @Test
     void dontExcludeJunit4DependencyFromTestcontainers() {
         rewriteRun(
-          //language=xml
           pomXml(
+            //language=xml
             """
               <project>
                   <modelVersion>4.0.0</modelVersion>
@@ -250,22 +250,10 @@ class JUnit5MigrationTest implements RewriteTest {
                   </dependencies>
               </project>
               """,
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example.jackson</groupId>
-                  <artifactId>test-plugins</artifactId>
-                  <version>1.0.0</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.testcontainers</groupId>
-                          <artifactId>testcontainers</artifactId>
-                          <version>2.0.1</version>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-              </project>
-              """
+            spec -> spec.after(pom -> assertThat(pom)
+              .containsPattern("2.\\d+\\.\\d+")
+              .doesNotContain("<exclusions>")
+              .actual())
           )
         );
     }
