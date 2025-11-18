@@ -262,7 +262,7 @@ recipeList:
       oldGroupId: com.squareup.okhttp3
       oldArtifactId: mockwebserver
       newArtifactId: mockwebserver3-junit5
-      newVersion: 5.1.0
+      newVersion: 5.x
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.CleanupAssertions
