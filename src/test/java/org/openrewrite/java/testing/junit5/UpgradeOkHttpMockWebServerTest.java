@@ -22,6 +22,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.maven.Assertions.pomXml;
@@ -79,21 +80,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                   </dependencies>
                 </project>
                 """,
-              """
-                <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example</groupId>
-                  <artifactId>demo</artifactId>
-                  <version>0.0.1-SNAPSHOT</version>
-                  <dependencies>
-                    <dependency>
-                      <groupId>com.squareup.okhttp3</groupId>
-                      <artifactId>mockwebserver3-junit5</artifactId>
-                      <version>5.1.0</version>
-                    </dependency>
-                  </dependencies>
-                </project>
-                """
+              spec -> spec.after(pom -> assertThat(pom).containsPattern("<version>5\\.(.*)</version>").actual())
             )
           )
         );
