@@ -14,6 +14,7 @@ recipeDependencies {
     parserClasspath("com.google.guava:guava:33.5.0-jre")
     parserClasspath("com.squareup.okhttp3:mockwebserver:3.14.9")
     parserClasspath("com.squareup.okhttp3:mockwebserver:4.10.0")
+    parserClasspath("com.squareup.okio:okio-jvm:3.0.0")
     parserClasspath("junit:junit:4.+")
     parserClasspath("org.apiguardian:apiguardian-api:1.1.2")
     parserClasspath("org.assertj:assertj-core:3.+")
