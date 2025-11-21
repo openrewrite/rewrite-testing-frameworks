@@ -168,6 +168,7 @@ recipeList:
   - org.openrewrite.java.testing.mockito.CleanupMockitoImports
   - org.openrewrite.java.testing.mockito.MockUtilsToStatic
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
+  - org.openrewrite.java.testing.mockito.AddMockitoExtensionIfAnnotationsUsed
   - org.openrewrite.java.testing.mockito.RemoveInitMocksIfRunnersSpecified
   - org.openrewrite.java.testing.mockito.ReplacePowerMockito
   - org.openrewrite.java.dependencies.ChangeDependency:
