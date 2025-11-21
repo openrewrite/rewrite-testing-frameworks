@@ -261,7 +261,7 @@ recipeList:
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: com.squareup.okhttp3
       oldArtifactId: mockwebserver
-      newArtifactId: mockwebserver3-junit5
+      newArtifactId: mockwebserver3
       newVersion: 5.x
 ---
 type: specs.openrewrite.org/v1beta/recipe

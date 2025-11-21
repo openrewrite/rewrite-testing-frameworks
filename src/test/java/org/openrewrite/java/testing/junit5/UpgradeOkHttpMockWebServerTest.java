@@ -23,8 +23,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class UpgradeOkHttpMockWebServerTest implements RewriteTest {
@@ -33,8 +32,148 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockwebserver-4.10"))
-          .recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer");
+            .classpathFromResources(new InMemoryExecutionContext(), "mockwebserver-4.10", "junit-4"))
+          .recipeFromYaml(
+            """
+              ---
+              type: specs.openrewrite.org/v1beta/recipe
+              name: org.openrewrite.test.MigrateMockResponse
+              displayName: Test
+              description: Test.
+              recipeList:
+                - org.openrewrite.java.testing.junit5.UpdateMockWebServerMockResponse
+                - org.openrewrite.java.ChangePackage:
+                    oldPackageName: okhttp3.mockwebserver
+                    newPackageName: mockwebserver3
+                    recursive: true
+              """,
+            "org.openrewrite.test.MigrateMockResponse"
+          );
+//          .recipe(new UpdateMockWebServerMockResponse());
+          //.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer");
+    }
+
+    // TODO: methods receiving MockResponse - maybe add comment instructing to double check?
+    @Test
+    void shouldMigrateMockResponseToBuilder() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import okhttp3.mockwebserver.MockResponse;
+
+              class A {
+                  private MockResponse mockResponse = new MockResponse().setStatus("a");
+                  {
+                      mockResponse.status("b");
+                      mockResponse.setStatus("c");
+                  }
+
+                  void methodA() {
+                      mockResponse.setStatus("d");
+                      mockResponse.status("e");
+                      String status = mockResponse.getStatus();
+                  }
+              }
+              """,
+            """
+              import mockwebserver3.MockResponse;
+
+              class A {
+                  private MockResponse.Builder mockResponse = new MockResponse.Builder().status("a");
+                  {
+                      mockResponse.status("b");
+                      mockResponse.status("c");
+                  }
+
+                  void methodA() {
+                      mockResponse.status("d");
+                      mockResponse.status("e");
+                      String status = mockResponse.getStatus();
+                  }
+              }
+              """
+//        """
+//import okhttp3.mockwebserver.MockResponse;
+////              import okhttp3.mockwebserver.MockWebServer;
+//
+//class A {
+////                  private MockWebServer mockWebServer = new MockWebServer();
+//  private MockResponse mockResponse = new MockResponse().setStatus("a");
+//  {
+//      mockResponse.status("b");
+////                      mockWebServer.enqueue(mockResponse);
+//      mockResponse.setStatus("c");
+//  }
+//
+//  void methodA() {
+//      mockResponse.setStatus("d");
+////                      mockWebServer.enqueue(mockResponse);
+//      mockResponse.status("e");
+//      String status = mockResponse.getStatus();
+//  }
+//}
+//""",
+//          """
+//            import mockwebserver3.MockResponse;
+////              import mockwebserver3.MockWebServer;
+//
+//            class A {
+////                  private MockWebServer mockWebServer = new MockWebServer();
+//                private MockResponse.Builder mockResponse = new MockResponse.Builder().status("a");
+//                {
+//                    mockResponse.status("b");
+////                      mockWebServer.enqueue(mockResponse.build());
+//                    mockResponse.status("c");
+//                }
+//
+//                void methodA() {
+//                    mockResponse.status("d");
+////                      mockWebServer.enqueue(mockResponse.build());
+//                    mockResponse.status("e");
+//                }
+//            }
+//            """
+          )
+        );
+    }
+
+    @Test
+    void wip() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import okhttp3.Headers;
+              import okhttp3.mockwebserver.MockResponse;
+
+              class A {
+                  void someMethod() {
+                      Headers headers = new Headers.Builder().build();
+                      MockResponse a = new MockResponse();
+                      // .status(String): void
+                      // .getStatus(): String
+                      // --
+                      // .setStatus(String): MockResponse[this]
+                      // ---
+                      // .headers(Headers): void
+                      // .setHeaders(Headers): MockResponse
+                      // .getHeaders(): Headers
+                      // ---
+                      // .addHeader(String): MockResponse
+                      // .addHeader(String,Object): MockResponse
+                      // .addHeaderLenient(String,Object): MockResponse
+                      // ---
+                      // .setHeader(String,Object): MockResponse
+                      // .removeHeader(String): MockResponse
+                      // .clearHeaders(): MockResponse
+                      a.header
+                      a.trailers(headers);
+                  }
+              }
+              """
+          )
+        );
     }
 
     @DocumentExample
@@ -42,26 +181,47 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
     void shouldUpgradeMavenDependency() {
         rewriteRun(
           mavenProject("project",
-            //language=java
-            java(
-              """
-                import okhttp3.mockwebserver.MockWebServer;
-
-                class Test {
-                    void test() {
-                        MockWebServer server = new MockWebServer();
-                    }
-                }
-                """,
-              """
-                import mockwebserver3.MockWebServer;
-
-                class Test {
-                    void test() {
-                        MockWebServer server = new MockWebServer();
-                    }
-                }
+            srcTestJava(
+              //language=java
+              java(
                 """
+                  import okhttp3.mockwebserver.MockResponse;
+                  import okhttp3.mockwebserver.MockWebServer;
+                  import okhttp3.mockwebserver.RecordedRequest;
+
+                  class Test {
+                      void test() {
+                          MockWebServer server = new MockWebServer();
+                          server.enqueue(
+                            new MockResponse().setHeader("Content-Type", "application/json")
+//                            new MockResponse()
+//                              .setHeader("Content-Type", "application/json")
+//                              .setResponseCode(200)
+//                              .setBody("{}")
+                          );
+//                          RecordedRequest recordedRequest = server.takeRequest();
+                      }
+                  }
+                  """,
+                """
+                  import mockwebserver3.MockResponse;
+                  import mockwebserver3.MockWebServer;
+                  import mockwebserver3.RecordedRequest;
+
+                  class Test {
+                      void test() {
+                          MockWebServer server = new MockWebServer();
+                          server.enqueue(
+                            new MockResponse()
+//                              .setHeader("Content-Type", "application/json")
+//                              .setResponseCode(200)
+//                              .setBody("{}")
+                          );
+//                          RecordedRequest recordedRequest = server.takeRequest();
+                      }
+                  }
+                  """
+              )
             ),
             //language=xml
             pomXml(
@@ -76,11 +236,18 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       <groupId>com.squareup.okhttp3</groupId>
                       <artifactId>mockwebserver</artifactId>
                       <version>4.10.0</version>
+                      <scope>test</scope>
                     </dependency>
                   </dependencies>
                 </project>
                 """,
-              spec -> spec.after(pom -> assertThat(pom).containsPattern("<version>5\\.(.*)</version>").actual())
+              spec -> spec.after(pom ->
+                assertThat(pom)
+                  .doesNotContain("<artifactId>mockwebserver</artifactId>")
+                  .contains("<artifactId>mockwebserver3</artifactId>")
+                  .containsPattern("<version>5\\.(.*)</version>")
+                  .actual()
+              )
             )
           )
         );
