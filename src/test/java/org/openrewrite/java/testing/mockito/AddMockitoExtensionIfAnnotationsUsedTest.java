@@ -114,4 +114,38 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void interferonWithExistingAnnotations(){
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Disabled;
+              import org.mockito.Captor;
+              import org.mockito.Mock;
+
+              @Disabled
+              class Test {
+                  @Mock
+                  Service service;
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Disabled;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Captor;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @Disabled
+              @ExtendWith(MockitoExtension.class)
+              class Test {
+                  @Mock
+                  Service service;
+              }
+              """
+          )
+        );
+    }
 }
