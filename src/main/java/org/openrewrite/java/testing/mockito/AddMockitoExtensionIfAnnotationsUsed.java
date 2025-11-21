@@ -27,6 +27,7 @@ import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.IsLikelyTest;
 import org.openrewrite.java.tree.J;
 
+import static java.util.Comparator.comparing;
 import static org.openrewrite.Preconditions.*;
 
 public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
@@ -53,15 +54,12 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
                 maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
                 maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
 
-                J.Annotation extendsWith = ((J.ClassDeclaration) JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
+                return JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
                         .imports("org.mockito.junit.jupiter.MockitoExtension")
                         .imports("org.junit.jupiter.api.extension.ExtendWith")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api", "mockito-junit-jupiter"))
                         .build()
-                        .apply(getCursor(), classDecl.getCoordinates().replaceAnnotations()))
-                        .getLeadingAnnotations().get(0);
-
-                return autoFormat(classDecl.withLeadingAnnotations(ListUtils.concat(classDecl.getLeadingAnnotations(), extendsWith)), ctx);
+                        .apply(getCursor(), classDecl.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
             }
         });
     }
