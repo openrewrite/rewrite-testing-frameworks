@@ -42,11 +42,19 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return check(and(
-                new IsLikelyTest().getVisitor(),
-                not(new FindAnnotations("org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)", false).getVisitor()),
-                or(new FindAnnotations("org.mockito.Captor", false).getVisitor(),
-                        new FindAnnotations("org.mockito.Mock", false).getVisitor())), new JavaIsoVisitor<ExecutionContext>() {
+
+        TreeVisitor<?, ExecutionContext> hasExtendedWithAnnotation = new FindAnnotations("org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)", false).getVisitor();
+        @SuppressWarnings("unchecked")
+        TreeVisitor<?, ExecutionContext>[] hasManyMockitoAnnotation = new TreeVisitor[] {
+                // see https://www.baeldung.com/mockito-annotations for examples
+                new FindAnnotations("org.mockito.Captor", false).getVisitor(),
+                new FindAnnotations("org.mockito.Mock", false).getVisitor(),
+                new FindAnnotations("org.mockito.Spy", false).getVisitor(),
+                new FindAnnotations("org.mockito.InjectMocks", false).getVisitor(),
+        };
+
+        return check(and(new IsLikelyTest().getVisitor(), not(hasExtendedWithAnnotation), or(hasManyMockitoAnnotation)),
+                new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
 
