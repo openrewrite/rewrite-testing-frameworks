@@ -61,35 +61,57 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
           java(
             """
               import okhttp3.mockwebserver.MockResponse;
+              import okhttp3.mockwebserver.MockWebServer;
 
               class A {
+                  private MockWebServer mockWebServer = new MockWebServer();
                   private MockResponse mockResponse = new MockResponse().setStatus("a");
                   {
                       mockResponse.status("b");
+                      mockWebServer.enqueue(mockResponse);
                       mockResponse.setStatus("c");
                   }
 
                   void methodA() {
                       mockResponse.setStatus("d");
+                      mockWebServer.enqueue(mockResponse);
                       mockResponse.status("e");
                       String status = mockResponse.getStatus();
+                  }
+
+                  void methodB() {
+                      mockWebServer.enqueue(
+                        new MockResponse()
+                          .setStatus("hi")
+                      );
                   }
               }
               """,
             """
               import mockwebserver3.MockResponse;
+              import mockwebserver3.MockWebServer;
 
               class A {
+                  private MockWebServer mockWebServer = new MockWebServer();
                   private MockResponse.Builder mockResponse = new MockResponse.Builder().status("a");
                   {
                       mockResponse.status("b");
+                      mockWebServer.enqueue(mockResponse.build());
                       mockResponse.status("c");
                   }
 
                   void methodA() {
                       mockResponse.status("d");
+                      mockWebServer.enqueue(mockResponse.build());
                       mockResponse.status("e");
                       String status = mockResponse.getStatus();
+                  }
+
+                  void methodB() {
+                      mockWebServer.enqueue(
+                        new MockResponse.Builder()
+                          .status("hi").build()
+                      );
                   }
               }
               """
