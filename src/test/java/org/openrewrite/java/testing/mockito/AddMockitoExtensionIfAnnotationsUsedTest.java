@@ -31,25 +31,29 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AddMockitoExtensionIfAnnotationsUsed())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources( new InMemoryExecutionContext(),"junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")
             .dependsOn("public class Service {}"));
     }
 
     @DocumentExample
     @Test
-    void addForMock(){
+    void addForMock() {
         rewriteRun(
           //language=java
           java(
             """
+              import org.junit.jupiter.api.Test;
               import org.mockito.Mock;
 
               class Test {
                   @Mock
                   Service service;
+                  @Test
+                  void test() {}
               }
               """,
             """
+              import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
               import org.mockito.junit.jupiter.MockitoExtension;
@@ -58,6 +62,8 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
               class Test {
                   @Mock
                   Service service;
+                  @Test
+                  void test() {}
               }
               """
           )
@@ -65,19 +71,23 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     }
 
     @Test
-    void addForCaptor(){
+    void addForCaptor() {
         rewriteRun(
           //language=java
           java(
             """
+              import org.junit.jupiter.api.Test;
               import org.mockito.Captor;
 
               class Test {
                   @Captor
                   Service service;
+                  @Test
+                  void test() {}
               }
               """,
             """
+              import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Captor;
               import org.mockito.junit.jupiter.MockitoExtension;
@@ -86,6 +96,8 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
               class Test {
                   @Captor
                   Service service;
+                  @Test
+                  void test() {}
               }
               """
           )
@@ -93,7 +105,7 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     }
 
     @Test
-    void dontAddIfPresent(){
+    void dontAddIfPresent() {
         rewriteRun(
           //language=java
           java(
@@ -116,7 +128,29 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     }
 
     @Test
-    void interferonWithExistingAnnotations(){
+    void dontAddIfJunit4() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              class Test {
+                  @Mock
+                  Service service;
+                  @Test
+                  void test() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void notInferWithExistingAnnotations() {
         rewriteRun(
           //language=java
           java(
@@ -129,6 +163,8 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
               class Test {
                   @Mock
                   Service service;
+                  @Test
+                  void test() {}
               }
               """,
             """
@@ -143,6 +179,8 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
               class Test {
                   @Mock
                   Service service;
+                  @Test
+                  void test() {}
               }
               """
           )

@@ -23,6 +23,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindAnnotations;
+import org.openrewrite.java.search.FindTypes;
 import org.openrewrite.java.search.IsLikelyTest;
 import org.openrewrite.java.tree.J;
 
@@ -45,7 +46,7 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
 
         TreeVisitor<?, ExecutionContext> hasExtendedWithAnnotation = new FindAnnotations("org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)", false).getVisitor();
         @SuppressWarnings("unchecked")
-        TreeVisitor<?, ExecutionContext>[] hasManyMockitoAnnotation = new TreeVisitor[] {
+        TreeVisitor<?, ExecutionContext>[] hasAnyMockitoAnnotation = new TreeVisitor[]{
                 // see https://www.baeldung.com/mockito-annotations for examples
                 new FindAnnotations("org.mockito.Captor", false).getVisitor(),
                 new FindAnnotations("org.mockito.Mock", false).getVisitor(),
@@ -53,21 +54,26 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
                 new FindAnnotations("org.mockito.InjectMocks", false).getVisitor(),
         };
 
-        return check(and(new IsLikelyTest().getVisitor(), not(hasExtendedWithAnnotation), or(hasManyMockitoAnnotation)),
+        return check(and(new IsLikelyTest().getVisitor(),
+                        // check to only migrate JUnit 5 tests
+                        new FindTypes("org.junit.jupiter..*", false).getVisitor(),
+                        // prevent addition if present
+                        not(hasExtendedWithAnnotation),
+                        or(hasAnyMockitoAnnotation)),
                 new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                    @Override
+                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
 
-                maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
-                maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
+                        maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
+                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
 
-                return JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
-                        .imports("org.mockito.junit.jupiter.MockitoExtension")
-                        .imports("org.junit.jupiter.api.extension.ExtendWith")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api", "mockito-junit-jupiter"))
-                        .build()
-                        .apply(getCursor(), classDecl.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
-            }
-        });
+                        return JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
+                                .imports("org.mockito.junit.jupiter.MockitoExtension")
+                                .imports("org.junit.jupiter.api.extension.ExtendWith")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api", "mockito-junit-jupiter"))
+                                .build()
+                                .apply(getCursor(), classDecl.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
+                    }
+                });
     }
 }
