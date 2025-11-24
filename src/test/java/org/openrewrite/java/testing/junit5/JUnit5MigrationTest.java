@@ -229,9 +229,11 @@ class JUnit5MigrationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/850")
     @Test
     void dontExcludeJunit4DependencyFromTestcontainers() {
         rewriteRun(
+          // No changes expected when Testcontainers is present - JUnit 4 should not be excluded
           pomXml(
             //language=xml
             """
@@ -249,19 +251,17 @@ class JUnit5MigrationTest implements RewriteTest {
                       </dependency>
                   </dependencies>
               </project>
-              """,
-            spec -> spec.after(pom -> assertThat(pom)
-              .containsPattern("2.\\d+\\.\\d+")
-              .doesNotContain("<exclusions>")
-              .actual())
+              """
           )
         );
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/850")
     @Test
     void dontExcludeJunit4DependencyFromTestcontainersJupiter() {
         rewriteRun(
+          // No changes expected when Testcontainers is present - JUnit 4 should not be excluded
           pomXml(
             //language=xml
             """
@@ -279,13 +279,7 @@ class JUnit5MigrationTest implements RewriteTest {
                       </dependency>
                   </dependencies>
               </project>
-              """,
-            spec -> spec.after(pom -> assertThat(pom)
-              .contains("testcontainers-junit-jupiter")
-              .containsPattern("2.\\d+\\.\\d+")
-              .doesNotContain(">junit-jupiter")
-              .doesNotContain("<exclusions>")
-              .actual())
+              """
           )
         );
     }
