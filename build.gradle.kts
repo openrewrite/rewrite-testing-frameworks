@@ -1,6 +1,13 @@
+@file:Suppress("UnstableApiUsage")
+
+import com.github.gradle.node.NodeExtension
+import com.github.gradle.node.npm.task.NpmTask
+import org.gradle.kotlin.dsl.configure
+
 plugins {
     id("org.openrewrite.build.recipe-library") version "latest.release"
     id("org.openrewrite.build.moderne-source-available-license") version "latest.release"
+    id("com.github.node-gradle.node") version "latest.release"
 }
 
 group = "org.openrewrite.recipe"
@@ -63,6 +70,8 @@ val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 dependencies {
     implementation(platform("org.openrewrite:rewrite-bom:${rewriteVersion}"))
     implementation("org.openrewrite:rewrite-java")
+    implementation("org.openrewrite:rewrite-javascript")
+    implementation("org.openrewrite:rewrite-json")
     implementation("org.openrewrite:rewrite-gradle")
     implementation("org.openrewrite:rewrite-maven")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
@@ -107,4 +116,49 @@ tasks.test {
 
 tasks.withType<JavaCompile> {
     options.compilerArgs.add("-Arewrite.javaParserClasspathFrom=resources")
+}
+
+// Override the defaults because the JavaScript code is one directory down (recipes-testing/).
+extensions.configure<NodeExtension> {
+    workDir.set(projectDir.resolve("recipes-testing"))
+    npmWorkDir.set(projectDir.resolve("recipes-testing"))
+    nodeProjectDir.set(projectDir.resolve("recipes-testing"))
+}
+
+val npmInstall = tasks.named("npmInstall")
+
+val npmBuild = tasks.register<NpmTask>("npmBuild") {
+    inputs.files(npmInstall)
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(file("recipes-testing/package.json"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(fileTree("recipes-testing/src"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.dir(file("recipes-testing/dist/"))
+
+    args = listOf("run", "build")
+}
+
+val npmTest = tasks.register<NpmTask>("npmTest") {
+    inputs.files(npmInstall)
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(fileTree("recipes-testing") {
+        include("*.json")
+        include("jest.config.js")
+    }).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(fileTree("recipes-testing/src"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(fileTree("recipes-testing/test"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    dependsOn(npmBuild)
+
+    args = listOf("run", "test")
+}
+
+tasks.named("check") {
+    dependsOn(npmTest)
+}
+
+tasks.named("build") {
+    dependsOn(npmBuild)
 }
