@@ -32,7 +32,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockwebserver-4.10", "junit-4"))
+            .classpathFromResources(new InMemoryExecutionContext(), "mockwebserver-4.10", "okhttp-4.10", "junit-4"))
           .recipeFromYaml(
             """
               ---
@@ -42,10 +42,13 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
               description: Test.
               recipeList:
                 - org.openrewrite.java.testing.junit5.UpdateMockWebServerMockResponse
-                - org.openrewrite.java.ChangePackage:
-                    oldPackageName: okhttp3.mockwebserver
-                    newPackageName: mockwebserver3
-                    recursive: true
+                - org.openrewrite.java.ChangeType:
+                    oldFullyQualifiedTypeName: okhttp3.mockwebserver.MockWebServer
+                    newFullyQualifiedTypeName: mockwebserver3.MockWebServer
+                #- org.openrewrite.java.ChangePackage:
+                #    oldPackageName: okhttp3.mockwebserver
+                #    newPackageName: mockwebserver3
+                #    recursive: true
               """,
             "org.openrewrite.test.MigrateMockResponse"
           );
@@ -60,16 +63,26 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
           //language=java
           java(
             """
+              import okhttp3.Headers;
               import okhttp3.mockwebserver.MockResponse;
               import okhttp3.mockwebserver.MockWebServer;
 
               class A {
+                  private Headers.Builder headersBuilder = new Headers.Builder();
                   private MockWebServer mockWebServer = new MockWebServer();
-                  private MockResponse mockResponse = new MockResponse().setStatus("a");
+                  private MockResponse mockResponse = new MockResponse()
+                      .setStatus("a")
+                      .setHeaders(headersBuilder.build())
+                      .setHeader("headerA", "someValue");
                   {
                       mockResponse.status("b");
+                      mockResponse.headers(headersBuilder.build());
                       mockWebServer.enqueue(mockResponse);
                       mockResponse.setStatus("c");
+                      mockResponse.setHeaders(headersBuilder.build());
+                      mockResponse.removeHeader("headerA");
+                      mockResponse.clearHeaders();
+                      mockResponse.addHeaderLenient("headerB", "anotherValue");
                   }
 
                   void methodA() {
@@ -83,6 +96,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       mockWebServer.enqueue(
                         new MockResponse()
                           .setStatus("hi")
+                          .setHeaders(headersBuilder.build())
                       );
                   }
               }
@@ -90,14 +104,24 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
             """
               import mockwebserver3.MockResponse;
               import mockwebserver3.MockWebServer;
+              import okhttp3.Headers;
 
               class A {
+                  private Headers.Builder headersBuilder = new Headers.Builder();
                   private MockWebServer mockWebServer = new MockWebServer();
-                  private MockResponse.Builder mockResponse = new MockResponse.Builder().status("a");
+                  private MockResponse.Builder mockResponse = new MockResponse.Builder()
+                      .status("a")
+                      .headers(headersBuilder.build())
+                      .setHeader("headerA", "someValue");
                   {
                       mockResponse.status("b");
+                      mockResponse.headers(headersBuilder.build());
                       mockWebServer.enqueue(mockResponse.build());
                       mockResponse.status("c");
+                      mockResponse.headers(headersBuilder.build());
+                      mockResponse.removeHeader("headerA");
+                      mockResponse.clearHeaders();
+                      mockResponse.addHeaderLenient("headerB", "anotherValue");
                   }
 
                   void methodA() {
@@ -110,52 +134,12 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                   void methodB() {
                       mockWebServer.enqueue(
                         new MockResponse.Builder()
-                          .status("hi").build()
+                          .status("hi")
+                          .headers(headersBuilder.build()).build()
                       );
                   }
               }
               """
-//        """
-//import okhttp3.mockwebserver.MockResponse;
-////              import okhttp3.mockwebserver.MockWebServer;
-//
-//class A {
-////                  private MockWebServer mockWebServer = new MockWebServer();
-//  private MockResponse mockResponse = new MockResponse().setStatus("a");
-//  {
-//      mockResponse.status("b");
-////                      mockWebServer.enqueue(mockResponse);
-//      mockResponse.setStatus("c");
-//  }
-//
-//  void methodA() {
-//      mockResponse.setStatus("d");
-////                      mockWebServer.enqueue(mockResponse);
-//      mockResponse.status("e");
-//      String status = mockResponse.getStatus();
-//  }
-//}
-//""",
-//          """
-//            import mockwebserver3.MockResponse;
-////              import mockwebserver3.MockWebServer;
-//
-//            class A {
-////                  private MockWebServer mockWebServer = new MockWebServer();
-//                private MockResponse.Builder mockResponse = new MockResponse.Builder().status("a");
-//                {
-//                    mockResponse.status("b");
-////                      mockWebServer.enqueue(mockResponse.build());
-//                    mockResponse.status("c");
-//                }
-//
-//                void methodA() {
-//                    mockResponse.status("d");
-////                      mockWebServer.enqueue(mockResponse.build());
-//                    mockResponse.status("e");
-//                }
-//            }
-//            """
           )
         );
     }
