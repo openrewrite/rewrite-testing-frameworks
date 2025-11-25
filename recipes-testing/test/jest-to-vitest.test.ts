@@ -329,6 +329,7 @@ describe('MyTest', () => {
             `import { myFunction } from './myModule';
 
 jest.mock('./myModule');
+jest.setTimeout(30000);
 
 describe('Complex Test', () => {
     beforeEach(() => {
@@ -338,21 +339,31 @@ describe('Complex Test', () => {
 
     afterEach(() => {
         jest.useRealTimers();
+        jest.restoreAllMocks();
     });
 
     test('should handle async operations', async () => {
         const mockCallback = jest.fn();
+        const spy = jest.spyOn(console, 'log');
         await myFunction(mockCallback);
 
         jest.advanceTimersByTime(1000);
+        jest.runOnlyPendingTimers();
 
         expect(mockCallback).toHaveBeenCalled();
+        expect(jest.getTimerCount()).toBe(0);
+    });
+
+    test('should check if function is mocked', () => {
+        const fn = jest.fn();
+        expect(jest.isMockFunction(fn)).toBe(true);
     });
 });`,
             `import { myFunction } from './myModule';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 vi.mock('./myModule');
+vi.setConfig({ testTimeout: 30000});
 
 describe('Complex Test', () => {
     beforeEach(() => {
@@ -362,15 +373,24 @@ describe('Complex Test', () => {
 
     afterEach(() => {
         vi.useRealTimers();
+        vi.restoreAllMocks();
     });
 
     test('should handle async operations', async () => {
         const mockCallback = vi.fn();
+        const spy = vi.spyOn(console, 'log');
         await myFunction(mockCallback);
 
         vi.advanceTimersByTime(1000);
+        vi.runOnlyPendingTimers();
 
         expect(mockCallback).toHaveBeenCalled();
+        expect(vi.getTimerCount()).toBe(0);
+    });
+
+    test('should check if function is mocked', () => {
+        const fn = vi.fn();
+        expect(vi.isMockFunction(fn)).toBe(true);
     });
 });`
         );

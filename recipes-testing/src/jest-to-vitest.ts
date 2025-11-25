@@ -266,7 +266,7 @@ const transformationRules: Record<string, TransformationRule> = {
             return {
                 before: pattern`jest.requireActual(${args})`.configure(JEST_CONFIG),
                 after: template`await vi.importActual(${args})`.configure(VITEST_CONFIG),
-                where: (_node, cursor) => {
+                preMatch: (_node, {cursor}) => {
                     // Check if we're inside an async function or async arrow function
                     const enclosingMethod = cursor.firstEnclosing(
                         (n): n is J.MethodDeclaration => n.kind === J.Kind.MethodDeclaration
