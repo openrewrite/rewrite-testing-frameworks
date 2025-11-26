@@ -360,7 +360,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 assert m.getBody() != null;
                 JavaCoordinates newStatementCoordinates = !m.getBody().getStatements().isEmpty() ? m.getBody().getStatements().get(0).getCoordinates().before() : m.getBody().getCoordinates().lastStatement();
                 m = initMethodStatementTemplate.apply(updateCursor(m), newStatementCoordinates, initStatementParamString);
-                m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), m.getName(), ctx, getCursor().getParentTreeCursor());
+                m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), parameterizedTestMethodParameters.get(parameterizedTestMethodParameters.size() - 1), ctx, getCursor().getParentTreeCursor());
             }
 
             // Change constructor to test init method

@@ -207,7 +207,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           String echo = invocation.getArgument(0);
                           return "BAR" + echo;
                       }).when(mockBar).getMsg(nullable(String.class));
-                      try (MockedConstruction mockConsFoo = mockConstructionWithAnswer(Foo.class, delegatesTo(mockFoo));MockedConstruction mockConsBar = mockConstructionWithAnswer(Bar.class, delegatesTo(mockBar))) {
+                      try (MockedConstruction mockConsFoo = mockConstructionWithAnswer(Foo.class, delegatesTo(mockFoo)); MockedConstruction mockConsBar = mockConstructionWithAnswer(Bar.class, delegatesTo(mockBar))) {
                           assertEquals("FOO", new Foo().getMsg());
                           assertEquals("FOOecho", new Foo().getMsg("echo"));
                           assertEquals("BAR", new Bar().getMsg());
@@ -374,7 +374,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           MockUpClass.Save.msg = "mockMsg";
                           return null;
                       }).when(mockMockUpClass).changeMsg();
-                      try (MockedStatic mockStaticMockUpClass = mockStatic(MockUpClass.class);MockedConstruction mockConsMockUpClass = mockConstructionWithAnswer(MockUpClass.class, delegatesTo(mockMockUpClass))) {
+                      try (MockedStatic mockStaticMockUpClass = mockStatic(MockUpClass.class); MockedConstruction mockConsMockUpClass = mockConstructionWithAnswer(MockUpClass.class, delegatesTo(mockMockUpClass))) {
                           mockStaticMockUpClass.when(() -> MockUpClass.changeText(nullable(String.class))).thenAnswer(invocation -> {
                               String text = invocation.getArgument(0);
                               MockUpClass.Save.text = "mockText";
