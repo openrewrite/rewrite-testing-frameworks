@@ -21,7 +21,9 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
+import org.openrewrite.SourceFile;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.tree.ParseError;
 import org.openrewrite.gradle.GradleParser;
 import org.openrewrite.gradle.IsBuildGradle;
 import org.openrewrite.gradle.marker.GradleProject;
@@ -246,17 +248,29 @@ public class GradleUseJunitJupiter extends Recipe {
     }
 
     private static Optional<J.MethodInvocation> createTaskUseJUnitPlatform(ExecutionContext ctx, boolean forEachInvocation) {
-        return GradleParser.builder()
+        String groovySnippet = "plugins {\n" +
+                "    id 'java'\n" +
+                "}\n" +
+                "tasks.withType(Test)" + (forEachInvocation ? ".configureEach" : "") + " {\n" +
+                "    useJUnitPlatform()\n" +
+                "}";
+        SourceFile sourceFile = GradleParser.builder()
                 .build()
-                .parse(ctx,
-                        "plugins {\n" +
-                                "    id 'java'\n" +
-                                "}\n" +
-                                "tasks.withType(Test)" + (forEachInvocation ? ".configureEach" : "") + " {\n" +
-                                "    useJUnitPlatform()\n" +
-                                "}")
-                .map(G.CompilationUnit.class::cast)
+                .parse(ctx, groovySnippet)
                 .findFirst()
-                .map(it -> (J.MethodInvocation) it.getStatements().get(1));
+                .orElse(null);
+        if (sourceFile == null) {
+            return Optional.empty();
+        }
+        if (sourceFile instanceof ParseError) {
+            ParseError parseError = (ParseError) sourceFile;
+            throw new IllegalStateException(
+                    "Failed to parse Groovy snippet for useJUnitPlatform(). " +
+                    "Snippet: [" + groovySnippet.replace("\n", "\\n") + "]",
+                    parseError.toException()
+            );
+        }
+        G.CompilationUnit cu = (G.CompilationUnit) sourceFile;
+        return Optional.of((J.MethodInvocation) cu.getStatements().get(1));
     }
 }
