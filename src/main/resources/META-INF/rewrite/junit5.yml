@@ -136,6 +136,7 @@ preconditions:
   - org.openrewrite.maven.search.DoesNotIncludeDependency:
       groupId: org.testcontainers
       artifactId: '*'
+      version: 1.x
 recipeList:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: junit
