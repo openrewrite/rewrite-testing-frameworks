@@ -2,18 +2,20 @@ package org.openrewrite.java.testing.junit5;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
+import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.IntStream;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
-import static org.openrewrite.Tree.randomId;
 
 public class UpdateMockWebServerMockResponse extends Recipe {
     private static final String OLD_MOCKRESPONSE_FQN = "okhttp3.mockwebserver.MockResponse";
@@ -87,44 +89,27 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                         List<Integer> indexes = methodInvocationsToAdjust.getOrDefault(mi.getId(), emptyList());
                         if (!indexes.isEmpty()) {
                             methodInvocationsToAdjust.remove(mi.getId());
-                            List<Expression> newArgs = ListUtils.map(mi.getArguments(), (index, arg) -> {
-                                if (indexes.contains(index)) {
-                                    return new J.MethodInvocation(
-                                            arg.getId(),
-                                            Space.EMPTY,
-                                            Markers.EMPTY,
-                                            new JRightPadded<>(arg.withId(randomId()), Space.EMPTY, arg.getMarkers()),
-                                            null,
-                                            new J.Identifier(
-                                                randomId(),
-                                                Space.EMPTY,
-                                                Markers.EMPTY,
-                                                emptyList(),
-                                                "build",
-                                                null,
-                                                null
-                                            ),
-                                            JContainer.build(Space.EMPTY, emptyList(), Markers.EMPTY),
-                                            new JavaType.Method(
-                                                    null,
-                                                    Flag.Public.getBitMask(),
-                                                    TypeUtils.asFullyQualified(arg.getType()),
-                                                    "build",
-                                                    JavaType.buildType(NEW_MOCKRESPONSE_FQN),
-                                                    emptyList(),
-                                                    null,
-                                                    null,
-                                                    null,
-                                                    null,
-                                                    null
-                                            )
-                                    );
+                            StringBuilder sb = new StringBuilder();
+                            for (int i = 0; i < mi.getArguments().size(); i++) {
+                                sb.append("#{any()}");
+                                if (indexes.contains(i)) {
+                                    sb.append(".build()");
                                 }
-                                return arg;
-                            });
-                            J.MethodInvocation updated = mi.withArguments(newArgs);
-                            updated = updated.getPadding().withArguments(JContainer.withElements(mi.getPadding().getArguments(), newArgs));
-                            return updated;
+                                if (i < mi.getArguments().size() - 2) {
+                                    sb.append(", ");
+                                }
+                            }
+                            AutoFormatVisitor<Object> formatVisitor = new AutoFormatVisitor<>(null, true);
+                            return (J.MethodInvocation) formatVisitor.visit(
+                                    JavaTemplate
+                                            .builder(sb.toString())
+                                            .contextSensitive()
+                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
+                                            .build()
+                                            .apply(getCursor(), mi.getCoordinates().replaceArguments(), mi.getArguments().toArray()),
+                                    ctx,
+                                    getCursor().getParent()
+                            );
                         }
                         return mi;
                     }
