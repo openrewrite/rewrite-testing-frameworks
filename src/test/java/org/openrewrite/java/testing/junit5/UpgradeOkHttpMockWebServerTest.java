@@ -42,13 +42,6 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
               description: Test.
               recipeList:
                 - org.openrewrite.java.testing.junit5.UpdateMockWebServerMockResponse
-                - org.openrewrite.java.ChangeType:
-                    oldFullyQualifiedTypeName: okhttp3.mockwebserver.MockWebServer
-                    newFullyQualifiedTypeName: mockwebserver3.MockWebServer
-                #- org.openrewrite.java.ChangePackage:
-                #    oldPackageName: okhttp3.mockwebserver
-                #    newPackageName: mockwebserver3
-                #    recursive: true
               """,
             "org.openrewrite.test.MigrateMockResponse"
           );
@@ -135,7 +128,8 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       mockWebServer.enqueue(
                         new MockResponse.Builder()
                           .status("hi")
-                          .headers(headersBuilder.build()).build()
+                          .headers(headersBuilder.build())
+                          .build()
                       );
                   }
               }
@@ -144,91 +138,51 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
         );
     }
 
-    @Test
-    void wip() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import okhttp3.Headers;
-              import okhttp3.mockwebserver.MockResponse;
-
-              class A {
-                  void someMethod() {
-                      Headers headers = new Headers.Builder().build();
-                      MockResponse a = new MockResponse();
-                      // .status(String): void
-                      // .getStatus(): String
-                      // --
-                      // .setStatus(String): MockResponse[this]
-                      // ---
-                      // .headers(Headers): void
-                      // .setHeaders(Headers): MockResponse
-                      // .getHeaders(): Headers
-                      // ---
-                      // .addHeader(String): MockResponse
-                      // .addHeader(String,Object): MockResponse
-                      // .addHeaderLenient(String,Object): MockResponse
-                      // ---
-                      // .setHeader(String,Object): MockResponse
-                      // .removeHeader(String): MockResponse
-                      // .clearHeaders(): MockResponse
-                      a.header
-                      a.trailers(headers);
-                  }
-              }
-              """
-          )
-        );
-    }
+//    @Test
+//    void wip() {
+//        rewriteRun(
+//          //language=java
+//          java(
+//            """
+//              import okhttp3.Headers;
+//              import okhttp3.mockwebserver.MockResponse;
+//
+//              class A {
+//                  void someMethod() {
+//                      Headers headers = new Headers.Builder().build();
+//                      MockResponse a = new MockResponse();
+//                      // .status(String): void
+//                      // .getStatus(): String
+//                      // --
+//                      // .setStatus(String): MockResponse[this]
+//                      // ---
+//                      // .headers(Headers): void
+//                      // .setHeaders(Headers): MockResponse
+//                      // .getHeaders(): Headers
+//                      // ---
+//                      // .addHeader(String): MockResponse
+//                      // .addHeader(String,Object): MockResponse
+//                      // .addHeaderLenient(String,Object): MockResponse
+//                      // ---
+//                      // .setHeader(String,Object): MockResponse
+//                      // .removeHeader(String): MockResponse
+//                      // .clearHeaders(): MockResponse
+//                      a.header
+//                      a.trailers(headers);
+//                  }
+//              }
+//              """
+//          )
+//        );
+//    }
 
     @DocumentExample
     @Test
     void shouldUpgradeMavenDependency() {
         rewriteRun(
+          spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer"),
           mavenProject("project",
-            srcTestJava(
-              //language=java
-              java(
-                """
-                  import okhttp3.mockwebserver.MockResponse;
-                  import okhttp3.mockwebserver.MockWebServer;
-                  import okhttp3.mockwebserver.RecordedRequest;
-
-                  class Test {
-                      void test() {
-                          MockWebServer server = new MockWebServer();
-                          server.enqueue(
-                            new MockResponse().setHeader("Content-Type", "application/json")
-//                            new MockResponse()
-//                              .setHeader("Content-Type", "application/json")
-//                              .setResponseCode(200)
-//                              .setBody("{}")
-                          );
-//                          RecordedRequest recordedRequest = server.takeRequest();
-                      }
-                  }
-                  """,
-                """
-                  import mockwebserver3.MockResponse;
-                  import mockwebserver3.MockWebServer;
-                  import mockwebserver3.RecordedRequest;
-
-                  class Test {
-                      void test() {
-                          MockWebServer server = new MockWebServer();
-                          server.enqueue(
-                            new MockResponse()
-//                              .setHeader("Content-Type", "application/json")
-//                              .setResponseCode(200)
-//                              .setBody("{}")
-                          );
-//                          RecordedRequest recordedRequest = server.takeRequest();
-                      }
-                  }
-                  """
-              )
-            ),
+            // TODO: handle solely J.NewClass and update declarative recipe to include new one.
             //language=xml
             pomXml(
               """
