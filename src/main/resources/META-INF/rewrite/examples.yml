@@ -2791,25 +2791,19 @@ examples:
     after: |
       package org.openrewrite.java.testing.junit5;
 
-      import org.junit.jupiter.api.AfterEach;
-      import org.junit.jupiter.api.BeforeEach;
       import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.extension.ExtendWith;
       import org.mockito.Mock;
-      import org.mockito.MockitoAnnotations;
+      import org.mockito.junit.jupiter.MockitoExtension;
 
       import java.util.List;
 
       import static org.mockito.Mockito.verify;
 
+      @ExtendWith(MockitoExtension.class)
       public class MockitoTests {
-          private AutoCloseable mocks;
           @Mock
           List<String> mockedList;
-
-          @BeforeEach
-          public void initMocks() {
-              mocks = MockitoAnnotations.openMocks(this);
-          }
 
           @Test
           public void usingAnnotationBasedMock() {
@@ -2819,11 +2813,6 @@ examples:
 
               verify(mockedList).add("one");
               verify(mockedList).clear();
-          }
-
-          @AfterEach
-          void tearDown() throws Exception {
-              mocks.close();
           }
       }
     language: java
@@ -3715,6 +3704,36 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.AddMockitoExtensionIfAnnotationsUsed
+examples:
+- description: '`AddMockitoExtensionIfAnnotationsUsedTest#addForMock`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import org.mockito.Mock;
+
+      class Test {
+          @Mock
+          Service service;
+          @Test
+          void test() {}
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.Mock;
+      import org.mockito.junit.jupiter.MockitoExtension;
+
+      @ExtendWith(MockitoExtension.class)
+      class Test {
+          @Mock
+          Service service;
+          @Test
+          void test() {}
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.AnyStringToNullable
 examples:
 - description: '`AnyStringToNullableTest#replaceAnyStringWithNullableStringClass`'
@@ -3946,13 +3965,16 @@ examples:
     after: |
       import org.junit.jupiter.api.BeforeEach;
       import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.extension.ExtendWith;
       import org.mockito.Mock;
+      import org.mockito.junit.jupiter.MockitoExtension;
 
       import static org.mockito.ArgumentMatchers.anyList;
       import static org.mockito.ArgumentMatchers.any;
       import static org.mockito.ArgumentMatchers.anyString;
       import static org.mockito.Mockito.when;
 
+      @ExtendWith(MockitoExtension.class)
       class MyTest {
           @Mock
           Object objectMock;
