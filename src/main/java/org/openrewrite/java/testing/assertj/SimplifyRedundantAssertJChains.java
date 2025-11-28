@@ -36,6 +36,12 @@ public class SimplifyRedundantAssertJChains extends Recipe {
         return "Removes redundant AssertJ assertions when chained methods already provide the same or stronger guarantees.";
     }
 
+    // Matcher for hasSize() - redundant when followed by assertions that verify exact contents
+    private static final MethodMatcher hasSizeMatcher = new MethodMatcher("org.assertj.core.api..* hasSize(..)");
+
+    // Matchers for assertions that already imply exact size
+    private static final MethodMatcher exactSizeImplyingMatchers = new MethodMatcher("org.assertj.core.api..* containsExactly*(..)");
+
     // Matcher for isNotNull() method - use wildcard to match any AbstractAssert subclass
     private static final MethodMatcher isNotNullMatcher = new MethodMatcher("org.assertj.core.api..* isNotNull()");
 
@@ -54,8 +60,8 @@ public class SimplifyRedundantAssertJChains extends Recipe {
             new MethodMatcher("org.assertj.core.api..* isEqualToIgnoringCase(..)"),
 
             // More assertions that imply non-null - using wildcards consistently
+            exactSizeImplyingMatchers,
             new MethodMatcher("org.assertj.core.api..* containsOnly(..)"),
-            new MethodMatcher("org.assertj.core.api..* containsExactly(..)"),
             new MethodMatcher("org.assertj.core.api..* containsAll(..)"),
             new MethodMatcher("org.assertj.core.api..* containsKey(..)"),
             new MethodMatcher("org.assertj.core.api..* containsKeys(..)"),
@@ -87,23 +93,14 @@ public class SimplifyRedundantAssertJChains extends Recipe {
     // Matcher for isPresent() preceded by another assertion
     private static final MethodMatcher isPresentMatcher = new MethodMatcher("org.assertj.core.api..* isPresent()");
 
-    // Matcher for hasSize() - redundant when followed by assertions that verify exact contents
-    private static final MethodMatcher hasSizeMatcher = new MethodMatcher("org.assertj.core.api..* hasSize(..)");
-
-    // Matchers for assertions that already imply exact size
-    private static final MethodMatcher[] exactSizeImplyingMatchers = {
-            new MethodMatcher("org.assertj.core.api..* containsExactly(..)"),
-            new MethodMatcher("org.assertj.core.api..* containsExactlyInAnyOrder(..)"),
-            new MethodMatcher("org.assertj.core.api..* containsExactlyInAnyOrderElementsOf(..)"),
-            new MethodMatcher("org.assertj.core.api..* containsExactlyElementsOf(..)")
-    };
-
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 Preconditions.or(
+                        new UsesMethod<>(hasSizeMatcher),
                         new UsesMethod<>(isNotNullMatcher),
-                        new UsesMethod<>(hasSizeMatcher)
+                        new UsesMethod<>(isNotEmptyMatcher),
+                        new UsesMethod<>(isPresentMatcher)
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
             @Override
@@ -140,13 +137,9 @@ public class SimplifyRedundantAssertJChains extends Recipe {
                 }
 
                 // Check for hasSize() followed by containsExactly() or similar
-                if (hasSizeMatcher.matches(select)) {
-                    for (MethodMatcher matcher : exactSizeImplyingMatchers) {
-                        if (matcher.matches(mi)) {
-                            // Remove the redundant hasSize()
-                            return mi.withSelect(select.getSelect());
-                        }
-                    }
+                if (hasSizeMatcher.matches(select) && exactSizeImplyingMatchers.matches(mi)) {
+                    // Remove the redundant hasSize()
+                    return mi.withSelect(select.getSelect());
                 }
 
                 return mi;
