@@ -87,9 +87,25 @@ public class SimplifyRedundantAssertJChains extends Recipe {
     // Matcher for isPresent() preceded by another assertion
     private static final MethodMatcher isPresentMatcher = new MethodMatcher("org.assertj.core.api..* isPresent()");
 
+    // Matcher for hasSize() - redundant when followed by assertions that verify exact contents
+    private static final MethodMatcher hasSizeMatcher = new MethodMatcher("org.assertj.core.api..* hasSize(..)");
+
+    // Matchers for assertions that already imply exact size
+    private static final MethodMatcher[] exactSizeImplyingMatchers = {
+            new MethodMatcher("org.assertj.core.api..* containsExactly(..)"),
+            new MethodMatcher("org.assertj.core.api..* containsExactlyInAnyOrder(..)"),
+            new MethodMatcher("org.assertj.core.api..* containsExactlyInAnyOrderElementsOf(..)"),
+            new MethodMatcher("org.assertj.core.api..* containsExactlyElementsOf(..)")
+    };
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(isNotNullMatcher), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(
+                Preconditions.or(
+                        new UsesMethod<>(isNotNullMatcher),
+                        new UsesMethod<>(hasSizeMatcher)
+                ),
+                new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
@@ -121,6 +137,16 @@ public class SimplifyRedundantAssertJChains extends Recipe {
                 if (isPresentMatcher.matches(select) && containsMatcher.matches(mi)) {
                     // Remove the redundant isPresent()
                     return mi.withSelect(select.getSelect());
+                }
+
+                // Check for hasSize() followed by containsExactly() or similar
+                if (hasSizeMatcher.matches(select)) {
+                    for (MethodMatcher matcher : exactSizeImplyingMatchers) {
+                        if (matcher.matches(mi)) {
+                            // Remove the redundant hasSize()
+                            return mi.withSelect(select.getSelect());
+                        }
+                    }
                 }
 
                 return mi;
