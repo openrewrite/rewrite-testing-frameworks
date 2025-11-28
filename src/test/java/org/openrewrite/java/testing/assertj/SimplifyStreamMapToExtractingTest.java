@@ -28,7 +28,13 @@ class SimplifyStreamMapToExtractingTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"))
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3")
+            .dependsOn("""
+              record Row(String value) {
+                  String getValue() { return value; }
+              }
+              """))
           .recipe(new SimplifyStreamMapToExtracting());
     }
 
@@ -44,12 +50,7 @@ class SimplifyStreamMapToExtractingTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  record Row(String value) {
-                      String getValue() { return value; }
-                  }
-
-                  void testMethod() {
-                      List<Row> rows = List.of(new Row("a"), new Row("b"));
+                  void testMethod(List<Row> rows) {
                       assertThat(rows.stream().map(Row::getValue)).contains("a");
                   }
               }
@@ -60,12 +61,7 @@ class SimplifyStreamMapToExtractingTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  record Row(String value) {
-                      String getValue() { return value; }
-                  }
-
-                  void testMethod() {
-                      List<Row> rows = List.of(new Row("a"), new Row("b"));
+                  void testMethod(List<Row> rows) {
                       assertThat(rows).extracting(Row::getValue).contains("a");
                   }
               }
@@ -85,12 +81,7 @@ class SimplifyStreamMapToExtractingTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  record Row(String value) {
-                      String getValue() { return value; }
-                  }
-
-                  void testMethod() {
-                      List<Row> rows = List.of(new Row("a"), new Row("b"));
+                  void testMethod(List<Row> rows) {
                       assertThat(rows.stream().map(r -> r.getValue())).contains("a");
                   }
               }
@@ -101,12 +92,7 @@ class SimplifyStreamMapToExtractingTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  record Row(String value) {
-                      String getValue() { return value; }
-                  }
-
-                  void testMethod() {
-                      List<Row> rows = List.of(new Row("a"), new Row("b"));
+                  void testMethod(List<Row> rows) {
                       assertThat(rows).extracting(r -> r.getValue()).contains("a");
                   }
               }
@@ -126,12 +112,7 @@ class SimplifyStreamMapToExtractingTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  record Row(String value) {
-                      String getValue() { return value; }
-                  }
-
-                  void testMethod() {
-                      List<Row> rows = List.of(new Row("a"), new Row("b"));
+                  void testMethod(List<Row> rows) {
                       assertThat(rows.stream().map(Row::getValue)).containsExactly("a", "b");
                       assertThat(rows.stream().map(Row::getValue)).hasSize(2);
                       assertThat(rows.stream().map(Row::getValue)).isEmpty();
@@ -144,12 +125,7 @@ class SimplifyStreamMapToExtractingTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  record Row(String value) {
-                      String getValue() { return value; }
-                  }
-
-                  void testMethod() {
-                      List<Row> rows = List.of(new Row("a"), new Row("b"));
+                  void testMethod(List<Row> rows) {
                       assertThat(rows).extracting(Row::getValue).containsExactly("a", "b");
                       assertThat(rows).extracting(Row::getValue).hasSize(2);
                       assertThat(rows).extracting(Row::getValue).isEmpty();
@@ -171,8 +147,7 @@ class SimplifyStreamMapToExtractingTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  void testMethod() {
-                      List<String> list = List.of("a", "b");
+                  void testMethod(List<String> list) {
                       assertThat(list).contains("a");
                   }
               }
@@ -192,12 +167,7 @@ class SimplifyStreamMapToExtractingTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  record Row(String value) {
-                      String getValue() { return value; }
-                  }
-
-                  void testMethod() {
-                      List<Row> rows = List.of(new Row("a"), new Row("b"));
+                  void testMethod(List<Row> rows) {
                       assertThat(rows.stream().filter(r -> r.getValue() != null).map(Row::getValue)).contains("a");
                   }
               }
