@@ -48,6 +48,7 @@ recipeList:
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
   - org.openrewrite.java.testing.assertj.SimplifySequencedCollectionAssertions
+  - org.openrewrite.java.testing.assertj.SimplifyStreamMapToExtracting
 
   - tech.picnic.errorprone.refasterrules.AssertJBigDecimalRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJBigIntegerRulesRecipes
