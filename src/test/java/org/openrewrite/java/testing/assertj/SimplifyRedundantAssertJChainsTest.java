@@ -456,6 +456,63 @@ class SimplifyRedundantAssertJChainsTest implements RewriteTest {
     }
 
     @Test
+    void simplifyHasSizeBeforeContainsExactly() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import java.util.*;
+
+              class Test {
+                  void test(List<String> list) {
+                      assertThat(list).hasSize(3).containsExactly("a", "b", "c");
+                      assertThat(list).hasSize(2).containsExactlyInAnyOrder("b", "a");
+                      assertThat(list).hasSize(1).containsExactlyElementsOf(List.of("a"));
+                      assertThat(list).hasSize(2).containsExactlyInAnyOrderElementsOf(Set.of("a", "b"));
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import java.util.*;
+
+              class Test {
+                  void test(List<String> list) {
+                      assertThat(list).containsExactly("a", "b", "c");
+                      assertThat(list).containsExactlyInAnyOrder("b", "a");
+                      assertThat(list).containsExactlyElementsOf(List.of("a"));
+                      assertThat(list).containsExactlyInAnyOrderElementsOf(Set.of("a", "b"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotSimplifyHasSizeBeforeContains() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import java.util.List;
+
+              class Test {
+                  void test(List<String> list) {
+                      // These should NOT be simplified - contains doesn't verify exact size
+                      assertThat(list).hasSize(3).contains("a", "b");
+                      assertThat(list).hasSize(3).containsOnly("a", "b", "c");
+                      assertThat(list).hasSize(3).containsAll(List.of("a", "b"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doesNotSimplifyWhenNotRedundant() {
         rewriteRun(
           //language=java

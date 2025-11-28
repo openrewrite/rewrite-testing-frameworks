@@ -36,6 +36,12 @@ public class SimplifyRedundantAssertJChains extends Recipe {
         return "Removes redundant AssertJ assertions when chained methods already provide the same or stronger guarantees.";
     }
 
+    // Matcher for hasSize() - redundant when followed by assertions that verify exact contents
+    private static final MethodMatcher hasSizeMatcher = new MethodMatcher("org.assertj.core.api..* hasSize(..)");
+
+    // Matchers for assertions that already imply exact size
+    private static final MethodMatcher exactSizeImplyingMatchers = new MethodMatcher("org.assertj.core.api..* containsExactly*(..)");
+
     // Matcher for isNotNull() method - use wildcard to match any AbstractAssert subclass
     private static final MethodMatcher isNotNullMatcher = new MethodMatcher("org.assertj.core.api..* isNotNull()");
 
@@ -54,8 +60,8 @@ public class SimplifyRedundantAssertJChains extends Recipe {
             new MethodMatcher("org.assertj.core.api..* isEqualToIgnoringCase(..)"),
 
             // More assertions that imply non-null - using wildcards consistently
+            exactSizeImplyingMatchers,
             new MethodMatcher("org.assertj.core.api..* containsOnly(..)"),
-            new MethodMatcher("org.assertj.core.api..* containsExactly(..)"),
             new MethodMatcher("org.assertj.core.api..* containsAll(..)"),
             new MethodMatcher("org.assertj.core.api..* containsKey(..)"),
             new MethodMatcher("org.assertj.core.api..* containsKeys(..)"),
@@ -89,7 +95,14 @@ public class SimplifyRedundantAssertJChains extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(isNotNullMatcher), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(
+                Preconditions.or(
+                        new UsesMethod<>(hasSizeMatcher),
+                        new UsesMethod<>(isNotNullMatcher),
+                        new UsesMethod<>(isNotEmptyMatcher),
+                        new UsesMethod<>(isPresentMatcher)
+                ),
+                new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
@@ -120,6 +133,12 @@ public class SimplifyRedundantAssertJChains extends Recipe {
                 // Check for isPresent() followed by contains() (for Optional)
                 if (isPresentMatcher.matches(select) && containsMatcher.matches(mi)) {
                     // Remove the redundant isPresent()
+                    return mi.withSelect(select.getSelect());
+                }
+
+                // Check for hasSize() followed by containsExactly() or similar
+                if (hasSizeMatcher.matches(select) && exactSizeImplyingMatchers.matches(mi)) {
+                    // Remove the redundant hasSize()
                     return mi.withSelect(select.getSelect());
                 }
 
