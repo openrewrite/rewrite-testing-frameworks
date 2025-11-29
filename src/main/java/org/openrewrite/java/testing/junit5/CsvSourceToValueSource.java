@@ -77,6 +77,10 @@ public class CsvSourceToValueSource extends Recipe {
                         for (J.Annotation annotation : m.getLeadingAnnotations()) {
                             Optional<Annotated> annotated = new Annotated.Matcher(CSV_SOURCE_MATCHER).get(annotation, getCursor());
                             if (annotated.isPresent() && annotation.getArguments() != null && annotation.getArguments().size() == 1) {
+                                // Skip if textBlock attribute is used
+                                if (annotated.get().getAttribute("textBlock").isPresent()) {
+                                    return m;
+                                }
                                 // Get the parameter type
                                 String paramType = getParameterType((J.VariableDeclarations) m.getParameters().get(0));
                                 if (paramType == null) {
