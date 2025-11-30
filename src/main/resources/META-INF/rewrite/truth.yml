@@ -214,9 +214,6 @@ recipeList:
       oldFullyQualifiedTypeName: com.google.common.truth.ThrowableSubject
       newFullyQualifiedTypeName: org.assertj.core.api.AbstractThrowableAssert
 
-  # Clean up any remaining Truth imports
-  - org.openrewrite.java.RemoveUnusedImports
-
   # Now change Truth imports to AssertJ
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.google.common.truth.Truth
