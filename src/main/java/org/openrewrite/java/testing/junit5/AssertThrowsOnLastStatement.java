@@ -148,7 +148,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                     J.MethodInvocation mi = (J.MethodInvocation) lambdaStatement;
                     Map<String, Integer> generatedVariableSuffixes = new HashMap<>();
                     return mi.withArguments(ListUtils.map(mi.getArguments(), e -> {
-                        if (e instanceof J.Identifier || e instanceof J.Literal || e instanceof J.Empty || e == null) {
+                        if (e instanceof J.Identifier || e instanceof J.Literal || e instanceof J.Empty || e instanceof J.Lambda) {
                             return e;
                         }
 
