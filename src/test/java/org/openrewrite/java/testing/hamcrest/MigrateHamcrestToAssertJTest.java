@@ -802,6 +802,49 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
             );
         }
 
+        @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/858#issuecomment-3600925842")
+        @Test
+        void allOfWithIsAndNotNullValue() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.allOf;
+                  import static org.hamcrest.Matchers.is;
+                  import static org.hamcrest.Matchers.notNullValue;
+
+                  class ATest {
+                      @Test
+                      void test() {
+                          String str = "str";
+                          assertThat(str, allOf(notNullValue(), is("SQL")));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class ATest {
+                      @Test
+                      void test() {
+                          String str = "str";
+                          assertThat(str)
+                                  .satisfies(
+                                          arg -> assertThat(arg).isNotNull(),
+                                          arg -> assertThat(arg).isEqualTo("SQL")
+                                  );
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
         @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/526")
         @ParameterizedTest
         @ValueSource(

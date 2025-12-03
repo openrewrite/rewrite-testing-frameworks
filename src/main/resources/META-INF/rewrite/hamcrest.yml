@@ -93,16 +93,16 @@ recipeList:
       onlyIfUsing: org.hamcrest.*
       acceptTransitive: true
 
-  # First change `is(..)` to `Matchers.is(..)` for consistent matching
+  # Normalize Hamcrest imports to `org.hamcrest.Matchers` and remove wrapping `is(Matcher)` calls
   - org.openrewrite.java.testing.hamcrest.ConsistentHamcrestMatcherImports
 
-  # Then remove calls to `MatcherAssert.assertThat(String, is(Matcher))`
-  - org.openrewrite.java.testing.hamcrest.HamcrestIsMatcherToAssertJ
-
-  # Then remove calls to `MatcherAssert.assertThat(String, anyOf(..))` and `allOf(..)`
+  # Convert `assertThat(x, allOf(..))` to `assertThat(x).satisfies(..)` and `anyOf` to `satisfiesAnyOf`
   - org.openrewrite.java.testing.hamcrest.HamcrestOfMatchersToAssertJ
 
-  # Then remove calls to `MatcherAssert.assertThat(String, boolean)`
+  # Convert `assertThat(x, is(value))` to `assertThat(x).isEqualTo(value)`
+  - org.openrewrite.java.testing.hamcrest.HamcrestIsMatcherToAssertJ
+
+  # Convert `assertThat(reason, boolean)` to AssertJ
   - org.openrewrite.java.testing.hamcrest.AssertThatBooleanToAssertJ
 
   - org.openrewrite.java.testing.hamcrest.HamcrestMatcherToAssertJ:
