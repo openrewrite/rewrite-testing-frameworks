@@ -30,6 +30,7 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.stream.Collectors.toList;
 import static org.openrewrite.java.testing.jmockit.JMockitBlockType.*;
 import static org.openrewrite.java.testing.jmockit.JMockitUtils.MOCKITO_ALL_IMPORT;
 import static org.openrewrite.java.testing.jmockit.JMockitUtils.getJavaParser;
@@ -198,8 +199,8 @@ class JMockitBlockRewriter {
                 Markers.EMPTY,
                 JRightPadded.build(false),
                 statementsToWrap.stream()
-                        .map(stmt -> JRightPadded.build(stmt))
-                        .collect(java.util.stream.Collectors.toList()),
+                        .map(JRightPadded::build)
+                        .collect(toList()),
                 Space.EMPTY
         );
 
