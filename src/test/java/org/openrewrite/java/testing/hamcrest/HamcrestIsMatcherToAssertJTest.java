@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.hamcrest;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -204,6 +205,50 @@ class HamcrestIsMatcherToAssertJTest implements RewriteTest {
                       int[] str1 = new int[]{1};
                       int[] str2 = new int[]{1};
                       assertThat(str1).containsExactly(str2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/861")
+    @Test
+    void isMatcherWithOtherMethodCallWithArrayArg() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.Arrays;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.is;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String[] arr = new String[]{"a"};
+                      String[] copy = Arrays.copyOf(arr, 5);
+                      String str1 = "Hello";
+                      String str2 = "Hello";
+                      assertThat(str1, is(str2));
+                  }
+              }
+              """,
+              """
+              import org.junit.jupiter.api.Test;
+              import java.util.Arrays;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String[] arr = new String[]{"a"};
+                      String[] copy = Arrays.copyOf(arr, 5);
+                      String str1 = "Hello";
+                      String str2 = "Hello";
+                      assertThat(str1).isEqualTo(str2);
                   }
               }
               """

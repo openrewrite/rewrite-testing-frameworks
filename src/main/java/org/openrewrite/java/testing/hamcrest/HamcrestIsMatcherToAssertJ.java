@@ -20,6 +20,8 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
@@ -39,22 +41,57 @@ public class HamcrestIsMatcherToAssertJ extends Recipe {
         return "Migrate Hamcrest `is(Object)` to AssertJ `Assertions.assertThat(..)`.";
     }
 
-    static final MethodMatcher IS_OBJECT_MATCHER = new MethodMatcher("org.hamcrest.*Matchers is(..)");
+    private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
+    private static final MethodMatcher IS_MATCHER = new MethodMatcher("org.hamcrest.*Matchers is(..)");
+    private static final MethodMatcher IS_WITH_NESTED_MATCHER = new MethodMatcher("org.hamcrest.*Matchers is(org.hamcrest.Matcher)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(IS_OBJECT_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(IS_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (!ASSERT_THAT_MATCHER.matches(mi)) {
+                    return mi;
+                }
 
-                // Switch between one or the other depending on whether actual argument is an array or not
-                List<Expression> arguments = methodInvocation.getArguments();
-                String replacement = 2 <= arguments.size() &&
-                                     TypeUtils.asArray(arguments.get(arguments.size() - 2).getType()) != null ?
-                        "containsExactly" : "isEqualTo";
-                doAfterVisit(new HamcrestMatcherToAssertJ("is", replacement, null).getVisitor());
+                List<Expression> args = mi.getArguments();
+                Expression reasonArgument = args.size() == 3 ? args.get(0) : null;
+                Expression actualArgument = args.get(args.size() - 2);
+                Expression matcherArgument = args.get(args.size() - 1);
 
-                return super.visitMethodInvocation(methodInvocation, ctx);
+                // Only handle is() matcher, but not is(Matcher) which nests another matcher
+                if (!IS_MATCHER.matches(matcherArgument) || IS_WITH_NESTED_MATCHER.matches(matcherArgument)) {
+                    return mi;
+                }
+
+                // Choose assertion based on whether actual argument is an array
+                boolean isArray = TypeUtils.asArray(actualArgument.getType()) != null;
+
+                J.MethodInvocation isInvocation = (J.MethodInvocation) matcherArgument;
+                Expression expectedArgument = isInvocation.getArguments().get(0);
+
+                maybeRemoveImport("org.hamcrest.Matchers.is");
+                maybeRemoveImport("org.hamcrest.CoreMatchers.is");
+                maybeRemoveImport("org.hamcrest.MatcherAssert");
+                maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
+
+                String reason = reasonArgument != null ? ".as(#{any(String)})" : "";
+                // Using `#{any(Object)}` and `#{any(Object[])}` here as the actual types could be from the source path
+                String template = isArray ?
+                        "assertThat(#{any(Object[])})" + reason + ".containsExactly(#{any(Object[])})" :
+                        "assertThat(#{any(Object)})" + reason + ".isEqualTo(#{any(Object)})";
+
+                Object[] templateArgs = reasonArgument != null ?
+                        new Object[]{actualArgument, reasonArgument, expectedArgument} :
+                        new Object[]{actualArgument, expectedArgument};
+
+                return JavaTemplate.builder(template)
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                        .staticImports("org.assertj.core.api.Assertions.assertThat")
+                        .build()
+                        .apply(getCursor(), mi.getCoordinates().replace(), templateArgs);
             }
         });
     }
