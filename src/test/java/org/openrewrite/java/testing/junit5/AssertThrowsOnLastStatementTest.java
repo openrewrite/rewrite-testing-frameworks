@@ -39,8 +39,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     @DocumentExample
     @Test
     void applyToLastStatementWithDeclaringVariableThreeLines() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -89,8 +89,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void applyToLastStatementWithDeclaringVariableThreeLinesHasLineBefore() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -141,8 +141,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void applyToLastStatementNoDeclaringVariableTwoLinesNoLinesAfter() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -185,8 +185,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void applyToLastStatementHasMessage() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -230,8 +230,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void makeNoChangesAsOneLine() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -257,8 +257,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/618")
     @Test
     void bodyNull() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -283,8 +283,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void lastStatementHasArgumentWhichIsMethodCall() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -336,8 +336,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void lastStatementHasArgumentWhichIsChainedMethodCall() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -391,8 +391,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void lastStatementHasArgumentWhichIsExpression() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -444,17 +444,18 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void lastStatementHasArgumentWhichNeedImport() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
-             import java.nio.file.Path;
+              import java.nio.file.Path;
 
-             class Tester {
-                 public static void testThing(Path path) {}
-             }
-             """
+              class Tester {
+                  public static void testThing(Path path) {}
+              }
+              """
           ),
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -507,8 +508,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void lastStatementHasArgumentWhichNeedImportFromSource() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               package org.test.other;
@@ -521,6 +522,7 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
               }
               """
           ),
+          //language=java
           java(
             """
               package org.test;
@@ -575,8 +577,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void uniqueVariableNames() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -627,8 +629,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void variableNameAlreadyExists() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -687,8 +689,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void duplicateVariableNames() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -739,8 +741,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
     @Test
     void lambdaWithSingleStatementStillExtractsVariable() {
-        //language=java
         rewriteRun(
+          //language=java
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -776,6 +778,63 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
                   String getA() { return "A"; }
                   void testThing(String one) {}
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/858")
+    @Test
+    void lastStatementWithLambdaArguments() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "assertj-core-3")),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          assertThat(getB()).satisfies(
+                              arg -> assertThat(arg).isNotNull(),
+                              arg -> assertThat(arg).isEqualTo("expected")
+                          );
+                      });
+                  }
+
+                  void doA() {}
+                  String getB() { return "B"; }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      assertThrows(Exception.class, () ->
+                          assertThat(getB()).satisfies(
+                              arg -> assertThat(arg).isNotNull(),
+                              arg -> assertThat(arg).isEqualTo("expected")
+                          ));
+                  }
+
+                  void doA() {}
+                  String getB() { return "B"; }
               }
               """
           )
