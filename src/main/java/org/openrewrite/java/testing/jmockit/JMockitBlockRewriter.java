@@ -21,7 +21,9 @@ import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Tree;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.marker.Markers;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
 
@@ -70,6 +72,10 @@ class JMockitBlockRewriter {
     // used with bodyStatementIndex to obtain the coordinates of the next statement to be written
     private int numStatementsAdded = 0;
 
+    // Track setup statements that need to be preserved and wrapped in a block
+    private final List<Statement> setupStatementsBeforeFirstMock = new ArrayList<>();
+    private boolean hasSetupStatements = false;
+
     JMockitBlockRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block methodBody,
                          J.NewClass newExpectations, int bodyStatementIndex, JMockitBlockType blockType, int verificationsInOrderIdx) {
         this.visitor = visitor;
@@ -102,6 +108,17 @@ class JMockitBlockRewriter {
         List<J.Identifier> uniqueMocks = new ArrayList<>();
         int methodInvocationIdx = -1;
         for (Statement jmockitBlockStatement : jmockitBlock.getStatements()) {
+            // Track setup statements (variable declarations) that appear before mock invocations
+            if (isSetupStatement(jmockitBlockStatement)) {
+                hasSetupStatements = true;
+                if (methodInvocationIdx == -1) {
+                    // Setup statement before the first mock invocation
+                    setupStatementsBeforeFirstMock.add(jmockitBlockStatement);
+                    continue;
+                }
+                // Setup statement after a mock invocation - will be handled by the group
+            }
+
             if (jmockitBlockStatement instanceof J.MethodInvocation) {
                 J.MethodInvocation invocation = (J.MethodInvocation) jmockitBlockStatement;
                 Expression select = invocation.getSelect();
@@ -130,6 +147,9 @@ class JMockitBlockRewriter {
             removeBlock();
         }
 
+        // Output setup statements that come before the first mock invocation
+        outputSetupStatements(setupStatementsBeforeFirstMock);
+
         List<Object> mocks = new ArrayList<>(uniqueMocks);
         if (isVerificationsInOrder()) {
             rewriteInOrderVerify(mocks);
@@ -141,7 +161,59 @@ class JMockitBlockRewriter {
         if (isFullVerifications()) {
             rewriteFullVerify(mocks);
         }
+
+        // If there were setup statements, wrap the generated statements in a block
+        // to avoid variable name conflicts with the rest of the method
+        if (hasSetupStatements) {
+            wrapStatementsInBlock();
+        }
+
         return methodBody;
+    }
+
+    private void wrapStatementsInBlock() {
+        List<Statement> statements = methodBody.getStatements();
+        if (numStatementsAdded <= 0) {
+            return;
+        }
+
+        // Get the statements that were added (from bodyStatementIndex to bodyStatementIndex + numStatementsAdded - 1)
+        int startIdx = bodyStatementIndex;
+        int endIdx = bodyStatementIndex + numStatementsAdded;
+
+        if (startIdx < 0 || endIdx > statements.size()) {
+            return;
+        }
+
+        // Extract the statements to wrap
+        List<Statement> statementsToWrap = new ArrayList<>();
+        for (int i = startIdx; i < endIdx; i++) {
+            statementsToWrap.add(statements.get(i));
+        }
+
+        // Create a new block containing these statements
+        J.Block wrapperBlock = new J.Block(
+                Tree.randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                JRightPadded.build(false),
+                statementsToWrap.stream()
+                        .map(stmt -> JRightPadded.build(stmt))
+                        .collect(java.util.stream.Collectors.toList()),
+                Space.EMPTY
+        );
+
+        // Replace the statements with the block
+        List<Statement> newStatements = new ArrayList<>();
+        for (int i = 0; i < startIdx; i++) {
+            newStatements.add(statements.get(i));
+        }
+        newStatements.add(wrapperBlock);
+        for (int i = endIdx; i < statements.size(); i++) {
+            newStatements.add(statements.get(i));
+        }
+
+        methodBody = methodBody.withStatements(newStatements);
     }
 
     private boolean isFullVerifications() {
@@ -150,6 +222,11 @@ class JMockitBlockRewriter {
 
     private boolean isVerificationsInOrder() {
         return this.blockType == VerificationsInOrder;
+    }
+
+    private static boolean isSetupStatement(Statement statement) {
+        // Variable declarations are setup statements
+        return statement instanceof J.VariableDeclarations;
     }
 
     private void rewriteMethodInvocation(List<Statement> statementsToRewrite) {
@@ -169,6 +246,8 @@ class JMockitBlockRewriter {
 
         if (!hasResults && !hasTimes && (this.blockType == JMockitBlockType.Expectations || this.blockType.isVerifications())) {
             rewriteVerify(invocation, null, "");
+            // Output setup statements that follow this mock invocation
+            outputSetupStatements(mockInvocationResults.getSetupStatements());
             return;
         }
         if (mockInvocationResults.getTimes() != null) {
@@ -185,6 +264,15 @@ class JMockitBlockRewriter {
         if (mockInvocationResults.getMaxTimes() != null) {
             rewriteVerify(invocation, mockInvocationResults.getMaxTimes(), "atMost");
         }
+
+        // Output setup statements that follow this mock invocation
+        outputSetupStatements(mockInvocationResults.getSetupStatements());
+    }
+
+    private void outputSetupStatements(List<Statement> setupStatements) {
+        for (Statement setupStatement : setupStatements) {
+            insertStatementAtCurrentPosition(setupStatement);
+        }
     }
 
     private void removeBlock() {
@@ -194,6 +282,20 @@ class JMockitBlockRewriter {
             methodBody = methodBody.withStatements(statements);
         }
         setNextStatementCoordinates(0);
+    }
+
+    private void insertStatementAtCurrentPosition(Statement statement) {
+        List<Statement> statements = new ArrayList<>(methodBody.getStatements());
+        int insertIdx = bodyStatementIndex + numStatementsAdded;
+        if (insertIdx < 0) {
+            insertIdx = 0;
+        }
+        if (insertIdx > statements.size()) {
+            insertIdx = statements.size();
+        }
+        statements.add(insertIdx, statement);
+        methodBody = methodBody.withStatements(statements);
+        setNextStatementCoordinates(++numStatementsAdded);
     }
 
     private void rewriteResult(J.MethodInvocation invocation, List<Expression> results, boolean hasTimes) {
@@ -457,6 +559,15 @@ class JMockitBlockRewriter {
                 }
                 continue;
             }
+            // Skip setup statements (variable declarations) - they're tracked separately
+            if (isSetupStatement(expectationStatement)) {
+                resultWrapper.addSetupStatement(expectationStatement);
+                continue;
+            }
+            if (!(expectationStatement instanceof J.Assignment)) {
+                // unhandled statement type, skip it
+                continue;
+            }
             J.Assignment assignment = (J.Assignment) expectationStatement;
             String variableName = getVariableNameFromAssignment(assignment);
             if (variableName == null) {
@@ -525,12 +636,18 @@ class JMockitBlockRewriter {
     private static class MockInvocationResults {
         @Setter(AccessLevel.NONE)
         private final List<Expression> results = new ArrayList<>();
+        @Setter(AccessLevel.NONE)
+        private final List<Statement> setupStatements = new ArrayList<>();
         private @Nullable Expression times;
         private @Nullable Expression minTimes;
         private @Nullable Expression maxTimes;
 
         private void addResult(Expression result) {
             results.add(result);
+        }
+
+        private void addSetupStatement(Statement statement) {
+            setupStatements.add(statement);
         }
 
         private boolean hasAnyTimes() {

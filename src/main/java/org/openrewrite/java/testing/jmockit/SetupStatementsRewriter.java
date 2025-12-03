@@ -87,19 +87,20 @@ class SetupStatementsRewriter {
             Set<String> methodBodyVariableNames = getVariableNames(methodBody.getStatements());
             boolean hasConflict = setupVariableNames.stream().anyMatch(methodBodyVariableNames::contains);
 
+            if (hasConflict) {
+                // When there's a conflict, don't extract setup statements.
+                // Leave them in the expectations block so JMockitBlockRewriter can handle them
+                // and wrap everything in a block to avoid variable name conflicts.
+                continue;
+            }
+
             // move setup statements before the expectations block
             JavaCoordinates coordinates = nc.getCoordinates().before();
             if (!setupStatements.isEmpty()) {
-                if (hasConflict) {
-                    // wrap in a block to avoid variable name conflicts
-                    J.Block setupBlock = expectationsBlock.withStatements(setupStatements);
-                    rewriteBodyStatement(setupBlock, coordinates);
-                } else {
-                    // move statements individually
-                    for (Statement setupStatement : setupStatements) {
-                        rewriteBodyStatement(setupStatement, coordinates);
-                        coordinates = setupStatement.getCoordinates().after();
-                    }
+                // move statements individually
+                for (Statement setupStatement : setupStatements) {
+                    rewriteBodyStatement(setupStatement, coordinates);
+                    coordinates = setupStatement.getCoordinates().after();
                 }
             }
 

@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.jmockit;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.Issue;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -1762,8 +1763,8 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                   void test() {
                       {
                           String s = "setup";
+                          when(myObject.toString()).thenReturn("foo");
                       }
-                      when(myObject.toString()).thenReturn("foo");
                       String s = "test";
                   }
               }
@@ -1814,6 +1815,105 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
 
                   interface MyInterface {
                       String doSomething();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/844")
+    @Test
+    void setupStatementVariableUsedInResultAndTestCode() {
+        // Regression test for issue #844 - variables declared in Expectations block should be accessible
+        // to when() calls when there's a variable name conflict with test code
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Config {
+                  private String value;
+                  private String name;
+
+                  public String getValue() {
+                      return value;
+                  }
+
+                  public void setValue(String value) {
+                      this.value = value;
+                  }
+
+                  public String getName() {
+                      return name;
+                  }
+
+                  public void setName(String name) {
+                      this.name = name;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              @ExtendWith(JMockitExtension.class)
+              public class SameNameTest {
+                  @Mocked
+                  Config config;
+
+                  void testFoo() {
+                      new Expectations() {{
+                          String res = "mockedValue";
+                          config.getValue();
+                          result = res;
+
+                          String name = "mockedName";
+                          config.getName();
+                          result = name;
+                      }};
+
+                      String res = config.getValue();
+                      assertEquals("mockedValue", res);
+
+                      String name = config.getName();
+                      assertEquals("mockedName", name);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              public class SameNameTest {
+                  @Mock
+                  Config config;
+
+                  void testFoo() {
+                      {
+                          String res = "mockedValue";
+                          when(config.getValue()).thenReturn(res);
+
+                          String name = "mockedName";
+
+                          when(config.getName()).thenReturn(name);
+                      }
+
+                      String res = config.getValue();
+                      assertEquals("mockedValue", res);
+
+                      String name = config.getName();
+                      assertEquals("mockedName", name);
                   }
               }
               """
