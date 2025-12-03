@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -457,6 +458,43 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                       @Test
                       void replaceCloseTo() {
                           assertThat(1.0).isCloseTo(2.0, within(1.0));
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/861")
+        @Test
+        void closeToWithIntTolerance() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("closeTo", "isCloseTo", null)),
+              //language=java
+              java(
+                    """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.closeTo;
+
+                  class ATest {
+                      @Test
+                      void replaceCloseTo() {
+                          assertThat(123.123, closeTo(123.123, 1));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+                  import static org.assertj.core.api.Assertions.within;
+
+                  class ATest {
+                      @Test
+                      void replaceCloseTo() {
+                          assertThat(123.123).isCloseTo(123.123, within((double) 1));
                       }
                   }
                   """

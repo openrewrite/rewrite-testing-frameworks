@@ -24,10 +24,8 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -124,15 +122,45 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             if (reasonArgument != null) {
                 templateArguments.add(reasonArgument);
             }
-            for (Expression originalArgument : matcherArgumentMethod.getArguments()) {
+            boolean isCloseTo = CLOSE_TO_MATCHER.matches(matcherArgumentMethod);
+            List<Expression> matcherArgs = matcherArgumentMethod.getArguments();
+            for (int i = 0; i < matcherArgs.size(); i++) {
+                Expression originalArgument = matcherArgs.get(i);
                 if (!(originalArgument instanceof J.Empty)) {
-                    templateArguments.add(originalArgument);
+                    // For closeTo, the tolerance (second argument) type must match the actual value type for within()
+                    if (isCloseTo && i == 1) {
+                        templateArguments.add(ensureMatchingNumericType(originalArgument, actualArgument.getType()));
+                    } else {
+                        templateArguments.add(originalArgument);
+                    }
                 }
             }
             return template.apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
         }
 
         private final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
+
+        private Expression ensureMatchingNumericType(Expression toleranceExpr, JavaType actualType) {
+            JavaType toleranceType = toleranceExpr.getType();
+            // Only cast if the actual value is a double/float and tolerance is an integer type
+            if ((actualType == JavaType.Primitive.Double || TypeUtils.isOfClassType(actualType, "java.lang.Double")) &&
+                    (toleranceType == JavaType.Primitive.Int || toleranceType == JavaType.Primitive.Long)) {
+                // Wrap with (double) cast to ensure correct within() overload is called
+                return new J.TypeCast(
+                        Tree.randomId(),
+                        toleranceExpr.getPrefix(),
+                        Markers.EMPTY,
+                        new J.ControlParentheses<>(
+                                Tree.randomId(),
+                                Space.EMPTY,
+                                Markers.EMPTY,
+                                JRightPadded.build(new J.Primitive(Tree.randomId(), Space.EMPTY, Markers.EMPTY, JavaType.Primitive.Double))
+                        ),
+                        toleranceExpr.withPrefix(Space.SINGLE_SPACE)
+                );
+            }
+            return toleranceExpr;
+        }
 
         private String getArgumentsTemplate(J.MethodInvocation matcherArgument) {
             List<Expression> methodArguments = matcherArgument.getArguments();
