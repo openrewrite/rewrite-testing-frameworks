@@ -635,4 +635,45 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             );
         }
     }
+
+    @Nested
+    class NoArguments {
+        @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/862")
+        @Test
+        void notNullValueWithClassArgument() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("notNullValue", "isNotNull", null)),
+              //language=java
+              java(
+                    """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.notNullValue;
+
+                  class ATest {
+                      @Test
+                      void test() {
+                          String str = "Hello world!";
+                          assertThat(str, notNullValue(String.class));
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class ATest {
+                      @Test
+                      void test() {
+                          String str = "Hello world!";
+                          assertThat(str).isNotNull();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+    }
 }

@@ -27,8 +27,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static java.util.stream.Collectors.joining;
 
@@ -77,6 +76,9 @@ public class HamcrestMatcherToAssertJ extends Recipe {
         private final MethodMatcher matchersMatcher = new MethodMatcher("org.hamcrest.*Matchers " + matcher + "(..)");
         private final MethodMatcher subMatcher = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
 
+        // AssertJ assertions that don't take any arguments - matcher arguments should be ignored
+        private final Set<String> noArgAssertions = new HashSet<>(Arrays.asList("isNotNull", "isNull"));
+
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
@@ -100,11 +102,13 @@ public class HamcrestMatcherToAssertJ extends Recipe {
 
             String actual = typeToIndicator(actualArgument.getType());
             J.MethodInvocation matcherArgumentMethod = (J.MethodInvocation) matcherArgument;
+            boolean isNoArgAssertion = noArgAssertions.contains(assertion);
+            String argsTemplate = isNoArgAssertion ? "" : getArgumentsTemplate(matcherArgumentMethod);
             JavaTemplate template = JavaTemplate.builder(String.format(
                             "assertThat(%s)" +
                             (reasonArgument != null ? ".as(#{any(String)})" : "") +
                             ".%s(%s)",
-                            actual, assertion, getArgumentsTemplate(matcherArgumentMethod)))
+                            actual, assertion, argsTemplate))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                     .staticImports(
                             "org.assertj.core.api.Assertions.assertThat",
@@ -122,16 +126,19 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             if (reasonArgument != null) {
                 templateArguments.add(reasonArgument);
             }
-            boolean isCloseTo = CLOSE_TO_MATCHER.matches(matcherArgumentMethod);
-            List<Expression> matcherArgs = matcherArgumentMethod.getArguments();
-            for (int i = 0; i < matcherArgs.size(); i++) {
-                Expression originalArgument = matcherArgs.get(i);
-                if (!(originalArgument instanceof J.Empty)) {
-                    // For closeTo, the tolerance (second argument) type must match the actual value type for within()
-                    if (isCloseTo && i == 1) {
-                        templateArguments.add(ensureMatchingNumericType(originalArgument, actualArgument.getType()));
-                    } else {
-                        templateArguments.add(originalArgument);
+            // Skip adding matcher arguments for assertions that don't take any arguments
+            if (!isNoArgAssertion) {
+                boolean isCloseTo = CLOSE_TO_MATCHER.matches(matcherArgumentMethod);
+                List<Expression> matcherArgs = matcherArgumentMethod.getArguments();
+                for (int i = 0; i < matcherArgs.size(); i++) {
+                    Expression originalArgument = matcherArgs.get(i);
+                    if (!(originalArgument instanceof J.Empty)) {
+                        // For closeTo, the tolerance (second argument) type must match the actual value type for within()
+                        if (isCloseTo && i == 1) {
+                            templateArguments.add(ensureMatchingNumericType(originalArgument, actualArgument.getType()));
+                        } else {
+                            templateArguments.add(originalArgument);
+                        }
                     }
                 }
             }
@@ -140,7 +147,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
 
         private final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
 
-        private Expression ensureMatchingNumericType(Expression toleranceExpr, JavaType actualType) {
+        private Expression ensureMatchingNumericType(Expression toleranceExpr, @Nullable JavaType actualType) {
             JavaType toleranceType = toleranceExpr.getType();
             // Only cast if the actual value is a double/float and tolerance is an integer type
             if ((actualType == JavaType.Primitive.Double || TypeUtils.isOfClassType(actualType, "java.lang.Double")) &&
@@ -175,14 +182,14 @@ public class HamcrestMatcherToAssertJ extends Recipe {
                     .collect(joining(", "));
         }
 
-        private String typeToIndicator(JavaType type) {
+        private String typeToIndicator(@Nullable JavaType type) {
             if (type instanceof JavaType.Array) {
                 type = ((JavaType.Array) type).getElemType();
                 String str = type instanceof JavaType.Primitive || type.toString().startsWith("java.") ?
                         type.toString().replaceAll("<.*>", "") : "java.lang.Object";
                 return String.format("#{anyArray(%s)}", str);
             }
-            if (type instanceof JavaType.Primitive || type.toString().startsWith("java.")) {
+            if (type instanceof JavaType.Primitive || type != null && type.toString().startsWith("java.")) {
                 return "#{any()}";
             }
             return "#{any(java.lang.Object)}";
