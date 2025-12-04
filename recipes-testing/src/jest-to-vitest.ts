@@ -387,6 +387,9 @@ const transformationRules: Record<string, TransformationRule> = {
     },
 };
 
+// Pre-compute the set of valid transformation rule keys to avoid prototype chain issues
+const transformationRuleKeys = new Set(Object.keys(transformationRules));
+
 class JestToVitestVisitor extends JavaScriptVisitor<ExecutionContext> {
     // Track which imports are needed based on transformations made
     private requiredImports = new Set<string>();
@@ -401,9 +404,9 @@ class JestToVitestVisitor extends JavaScriptVisitor<ExecutionContext> {
         // Get the simple name of the method being invoked
         const simpleName = method.name.simpleName;
 
-        // Look up the transformation rule by name
-        const transformation = transformationRules[simpleName];
-        if (transformation) {
+        // Look up the transformation rule by name (using Set to avoid prototype chain issues)
+        if (transformationRuleKeys.has(simpleName)) {
+            const transformation = transformationRules[simpleName as keyof typeof transformationRules];
             const transformed = await transformation.rule.tryOn(this.cursor, method);
             if (transformed) {
                 // Track the imports needed for this transformation
