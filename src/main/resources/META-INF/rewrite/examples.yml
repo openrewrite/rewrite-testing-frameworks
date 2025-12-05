@@ -1039,6 +1039,33 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifyStreamMapToExtracting
+examples:
+- description: '`SimplifyStreamMapToExtractingTest#streamMapWithMethodReference`'
+  sources:
+  - before: |
+      import java.util.List;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod(List<Row> rows) {
+              assertThat(rows.stream().map(Row::getValue)).contains("a");
+          }
+      }
+    after: |
+      import java.util.List;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod(List<Row> rows) {
+              assertThat(rows).extracting(Row::getValue).contains("a");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.StaticImports
 examples:
 - description: '`StaticImportsTest#useStaticImports`'
