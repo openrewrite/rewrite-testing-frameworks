@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Iterator;
 
+import static java.util.Collections.singleton;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -56,7 +57,7 @@ public class KotlinTestMethodShouldBeUnitTest implements RewriteTest {
         Parser.Input input = Parser.Input.fromString(
           sourcePath, source.getBefore(), parser.getCharset(ctx));
         SourceFile sourceFile = getOnly(
-          parser.parseInputs(Collections.singleton(input), null, ctx).toList());
+          parser.parseInputs(singleton(input), null, ctx).toList());
         new FindMissingTypesVisitor().visit(sourceFile, ctx);
     }
 
