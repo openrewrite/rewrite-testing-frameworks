@@ -130,7 +130,6 @@ public class CloseUnclosedStaticMocks extends Recipe {
             if (getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
                 String mockedClassName = getMockedClassName(mi);
                 if (mockedClassName != null) {
-                    Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                     String varName = generateMockedVarName(mockedClassName);
                     J.Assignment assignment = JavaTemplate.builder(varName + " = #{any()}")
                             .build()
