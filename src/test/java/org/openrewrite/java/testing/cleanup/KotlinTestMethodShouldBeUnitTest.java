@@ -15,10 +15,6 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.openrewrite.kotlin.Assertions.kotlin;
-
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
@@ -33,6 +29,10 @@ import org.openrewrite.test.SourceSpec;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Iterator;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 //
 public class KotlinTestMethodShouldBeUnitTest implements RewriteTest {
@@ -64,7 +64,7 @@ public class KotlinTestMethodShouldBeUnitTest implements RewriteTest {
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method,
-          ExecutionContext ctx) {
+                                                        ExecutionContext ctx) {
             assertNotNull(method.getMethodType());
             return method;
         }
