@@ -17,10 +17,14 @@ package org.openrewrite.java.testing.cleanup;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
@@ -29,6 +33,8 @@ import org.openrewrite.java.tree.TypeUtils;
 import static java.util.Objects.requireNonNull;
 
 public class TestMethodsShouldBeVoid extends Recipe {
+
+    private static final String TEST_ANNOTATION_PATTERN = "org..* *Test*";
 
     @Override
     public String getDisplayName() {
@@ -44,13 +50,13 @@ public class TestMethodsShouldBeVoid extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(TEST_ANNOTATION_PATTERN, true), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
-                // Check if method has a test annotation & body
-                if (!hasTestAnnotation(m) || m.getBody() == null) {
+                // Only consider test methods
+                if (!service(AnnotationService.class).matches(getCursor(), new AnnotationMatcher(TEST_ANNOTATION_PATTERN, true))) {
                     return m;
                 }
 
@@ -65,7 +71,7 @@ public class TestMethodsShouldBeVoid extends Recipe {
                         m.getReturnTypeExpression().getId(),
                         m.getReturnTypeExpression().getPrefix(),
                         m.getReturnTypeExpression().getMarkers(),
-                        JavaType.Primitive.Void
+                        voidType
                 ));
 
                 // Update method type
@@ -76,20 +82,7 @@ public class TestMethodsShouldBeVoid extends Recipe {
                 // Remove return statements that are not in nested classes or lambdas
                 return m.withBody((J.Block) new RemoveDirectReturns().visitBlock(requireNonNull(m.getBody()), ctx));
             }
-
-            private boolean hasTestAnnotation(J.MethodDeclaration method) {
-                for (J.Annotation annotation : method.getLeadingAnnotations()) {
-                    if (TypeUtils.isOfClassType(annotation.getType(), "org.junit.Test") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.RepeatedTest") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.Test") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.TestTemplate") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.params.ParameterizedTest")) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        };
+        });
     }
 
     private static class RemoveDirectReturns extends JavaVisitor<ExecutionContext> {
