@@ -17,8 +17,6 @@ package org.openrewrite.java.testing.cleanup;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.NlsRewrite.Description;
-import org.openrewrite.NlsRewrite.DisplayName;
 import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
@@ -37,8 +35,7 @@ import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
-import java.util.Collections;
-
+import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 import static org.openrewrite.java.testing.cleanup.TestMethodsShouldBeVoid.isIntendedTestMethod;
 
@@ -47,12 +44,12 @@ public class KotlinTestMethodsShouldBeUnit extends Recipe {
   private static JavaType.Class KOTLIN_UNIT = (JavaType.Class) JavaType.buildType("kotlin.Unit");
 
   @Override
-  public @DisplayName String getDisplayName() {
+  public String getDisplayName() {
     return "Kotlin test methods should have unit return type";
   }
 
   @Override
-  public @Description String getDescription() {
+  public String getDescription() {
     return "Kotlin test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestTemplate` " +
         "should have `Unit` return type. Non-void return types can cause test discovery issues, " +
         "and warnings as of JUnit 5.13+. This recipe changes the return type to `Unit` and removes `return` statements.";
@@ -87,7 +84,7 @@ public class KotlinTestMethodsShouldBeUnit extends Recipe {
               returnTypeExpr == null ? Tree.randomId() : returnTypeExpr.getId(),
               returnTypeExpr == null ? Space.SINGLE_SPACE : returnTypeExpr.getPrefix(),
               returnTypeExpr == null ? Markers.EMPTY : returnTypeExpr.getMarkers(),
-              Collections.emptyList(),
+              emptyList(),
               KOTLIN_UNIT.getClassName(),
               KOTLIN_UNIT,
               null);

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
@@ -23,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-public class KotlinTestMethodsShouldBeUnitTest implements RewriteTest {
+class KotlinTestMethodsShouldBeUnitTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
@@ -34,6 +35,7 @@ public class KotlinTestMethodsShouldBeUnitTest implements RewriteTest {
           .recipe(new KotlinTestMethodsShouldBeUnit());
     }
 
+    @DocumentExample
     @Test
     void addUnitReturnTypeToSingleExprTestMethod() {
         //language=kotlin
