@@ -29,24 +29,24 @@ import org.openrewrite.java.tree.TypeUtils;
 import static java.util.Objects.requireNonNull;
 
 public class TestMethodsShouldBeVoid extends Recipe {
-  /**
-   * Returns whether the given method is intended to be a JUnit test method.
-   */
-  static boolean isIntendedTestMethod(J.MethodDeclaration method) {
-    if (method.getBody() == null) {
-      return false;
+    /**
+     * Returns whether the given method is intended to be a JUnit test method.
+     */
+    static boolean isIntendedTestMethod(J.MethodDeclaration method) {
+        if (method.getBody() == null) {
+            return false;
+        }
+        for (J.Annotation annotation : method.getLeadingAnnotations()) {
+            if (TypeUtils.isOfClassType(annotation.getType(), "org.junit.Test") ||
+                    TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.RepeatedTest") ||
+                    TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.Test") ||
+                    TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.TestTemplate") ||
+                    TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.params.ParameterizedTest")) {
+                return true;
+            }
+        }
+        return false;
     }
-    for (J.Annotation annotation : method.getLeadingAnnotations()) {
-      if (TypeUtils.isOfClassType(annotation.getType(), "org.junit.Test") ||
-          TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.RepeatedTest") ||
-          TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.Test") ||
-          TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.TestTemplate") ||
-          TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.params.ParameterizedTest")) {
-        return true;
-      }
-    }
-    return false;
-  }
 
     @Override
     public String getDisplayName() {
@@ -80,10 +80,10 @@ public class TestMethodsShouldBeVoid extends Recipe {
 
                 // Change return type to void
                 m = m.withReturnTypeExpression(new J.Primitive(
-                    m.getReturnTypeExpression().getId(),
-                    m.getReturnTypeExpression().getPrefix(),
-                    m.getReturnTypeExpression().getMarkers(),
-                    voidType
+                        m.getReturnTypeExpression().getId(),
+                        m.getReturnTypeExpression().getPrefix(),
+                        m.getReturnTypeExpression().getMarkers(),
+                        voidType
                 ));
 
                 // Update method type
