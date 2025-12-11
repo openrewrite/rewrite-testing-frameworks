@@ -53,8 +53,7 @@ public class KotlinTestMethodsShouldBeUnit extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new KotlinIsoVisitor<ExecutionContext>() {
             @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method,
-                                                              ExecutionContext ctx) {
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
                 // If the method is not intended to the be a test method, do nothing.
@@ -94,7 +93,7 @@ public class KotlinTestMethodsShouldBeUnit extends Recipe {
                 }
 
                 // Remove return statements that are not in nested classes, objects, or lambdas.
-                return singleExprFunc ? m : m.withBody(new RemoveDirectReturns().visitBlock(body, ctx));
+                return singleExprFunc ? m : m.withBody((J.Block) new RemoveDirectReturns().visit(body, ctx));
             }
         };
     }
@@ -105,8 +104,20 @@ public class KotlinTestMethodsShouldBeUnit extends Recipe {
 
     private static class RemoveDirectReturns extends KotlinVisitor<ExecutionContext> {
         @Override
-        public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
-            return (J.Block) super.visitBlock(block, ctx);
+        public J visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
+            return hasMarker(classDeclaration, KObject.class) ?
+                    classDeclaration : // Retain nested object expressions
+                    super.visitClassDeclaration(classDeclaration, ctx);
+        }
+
+        @Override
+        public J.Lambda visitLambda(J.Lambda lambda, ExecutionContext ctx) {
+            return lambda; // Retain nested returns
+        }
+
+        @Override
+        public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+            return newClass; // Retain nested returns
         }
 
         @Override
@@ -117,23 +128,6 @@ public class KotlinTestMethodsShouldBeUnit extends Recipe {
                     returnExpr.withPrefix(retrn.getPrefix()) :
                     // Remove any other return statements entirely
                     null;
-        }
-
-        @Override
-        public J visitLambda(J.Lambda lambda, ExecutionContext ctx) {
-            return lambda; // Retain nested returns
-        }
-
-        @Override
-        public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
-            return newClass; // Retain nested returns
-        }
-
-        @Override
-        public J visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
-            return hasMarker(classDeclaration, KObject.class) ?
-                    classDeclaration : // Retain nested object expressions
-                    super.visitClassDeclaration(classDeclaration, ctx);
         }
     }
 }
