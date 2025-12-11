@@ -66,6 +66,8 @@ public class TestMethodsShouldBeVoid extends Recipe {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+
+                // If the method is not intended to the be a test method, do nothing.
                 if (!isIntendedTestMethod(m)) {
                     return m;
                 }

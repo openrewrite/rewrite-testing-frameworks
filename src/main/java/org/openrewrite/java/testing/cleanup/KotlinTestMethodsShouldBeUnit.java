@@ -66,7 +66,7 @@ public class KotlinTestMethodsShouldBeUnit extends Recipe {
           ExecutionContext ctx) {
         J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
-        // If the method was intended to be a test method, do nothing.
+        // If the method is not intended to the be a test method, do nothing.
         if (!isIntendedTestMethod(m)) {
           return m;
         }
