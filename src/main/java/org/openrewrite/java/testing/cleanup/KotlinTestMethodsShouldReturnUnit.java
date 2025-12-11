@@ -62,37 +62,36 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
 
                 // If return type is already Unit, do nothing.
                 JavaType.Method methodType = m.getMethodType();
-                if (methodType != null && TypeUtils.isOfType(methodType.getReturnType(), KOTLIN_UNIT)) {
-                    return m;
+                if (methodType != null) {
+                    if (TypeUtils.isOfType(methodType.getReturnType(), KOTLIN_UNIT)) {
+                        return m;
+                    }
+
+                    // Update method and method identifier type.
+                    JavaType.Method newMethodType = methodType.withReturnType(KOTLIN_UNIT);
+                    m = m.withMethodType(newMethodType).withName(m.getName().withType(newMethodType));
                 }
 
-                // If the function is a single expression function, add an explicit Unit return type
-                // Otherwise, there's no need for a return type expression at all.
                 J.Block body = requireNonNull(m.getBody());
                 boolean singleExprFunc = body.getMarkers().findFirst(SingleExpressionBlock.class).isPresent();
-                TypeTree returnTypeExpr = m.getReturnTypeExpression();
                 if (singleExprFunc) {
-                    returnTypeExpr = new J.Identifier(
+                    // Add an explicit Unit return type
+                    TypeTree returnTypeExpr = m.getReturnTypeExpression();
+                    return m.withReturnTypeExpression(new J.Identifier(
                             returnTypeExpr == null ? Tree.randomId() : returnTypeExpr.getId(),
                             returnTypeExpr == null ? Space.SINGLE_SPACE : returnTypeExpr.getPrefix(),
                             returnTypeExpr == null ? Markers.EMPTY : returnTypeExpr.getMarkers(),
                             emptyList(),
                             KOTLIN_UNIT.getClassName(),
                             KOTLIN_UNIT,
-                            null);
-                } else {
-                    returnTypeExpr = null;
-                }
-                m = m.withReturnTypeExpression(returnTypeExpr);
-
-                // Update method and method identifier type.
-                if (methodType != null) {
-                    JavaType.Method newMethodType = methodType.withReturnType(KOTLIN_UNIT);
-                    m = m.withMethodType(newMethodType).withName(m.getName().withType(newMethodType));
+                            null));
                 }
 
-                // Remove return statements that are not in nested classes, objects, or lambdas.
-                return singleExprFunc ? m : m.withBody((J.Block) new RemoveDirectReturns().visit(body, ctx));
+                return m
+                        // Otherwise, there's no need for a return type expression at all.
+                        .withReturnTypeExpression(null)
+                        // Remove return statements that are not in nested classes, objects, or lambdas.
+                        .withBody((J.Block) new RemoveDirectReturns().visit(body, ctx));
             }
         });
     }
@@ -118,7 +117,7 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
         @Override
         public @Nullable J visitReturn(K.Return retrn, ExecutionContext ctx) {
             Expression returnExpr = retrn.getExpression().getExpression();
-            return (returnExpr instanceof Statement) ?
+            return returnExpr instanceof Statement ?
                     // Retain any side effects from statements in return expressions
                     returnExpr.withPrefix(retrn.getPrefix()) :
                     // Remove any other return statements entirely
