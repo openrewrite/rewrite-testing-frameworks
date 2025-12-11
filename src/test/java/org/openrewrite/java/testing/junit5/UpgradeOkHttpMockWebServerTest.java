@@ -67,6 +67,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       .setStatus("a")
                       .setHeaders(headersBuilder.build())
                       .setHeader("headerA", "someValue");
+                  private okhttp3.mockwebserver.MockResponse mockResponse2 = new okhttp3.mockwebserver.MockResponse();
                   {
                       mockResponse.status("b");
                       mockResponse.headers(headersBuilder.build());
@@ -106,6 +107,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       .status("a")
                       .headers(headersBuilder.build())
                       .setHeader("headerA", "someValue");
+                  private mockwebserver3.MockResponse.Builder mockResponse2 = new mockwebserver3.MockResponse.Builder();
                   {
                       mockResponse.status("b");
                       mockResponse.headers(headersBuilder.build());
