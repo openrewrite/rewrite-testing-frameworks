@@ -26,7 +26,6 @@ import org.openrewrite.kotlin.KotlinVisitor;
 import org.openrewrite.kotlin.marker.KObject;
 import org.openrewrite.kotlin.marker.SingleExpressionBlock;
 import org.openrewrite.kotlin.tree.K;
-import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
 import static java.util.Collections.emptyList;
