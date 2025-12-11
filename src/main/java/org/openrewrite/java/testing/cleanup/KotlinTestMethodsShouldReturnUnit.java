@@ -17,7 +17,9 @@ package org.openrewrite.java.testing.cleanup;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.KotlinVisitor;
@@ -29,10 +31,10 @@ import org.openrewrite.marker.Markers;
 
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
-import static org.openrewrite.java.testing.cleanup.TestMethodsShouldBeVoid.isIntendedTestMethod;
 
-public class KotlinTestMethodsShouldBeUnit extends Recipe {
+public class KotlinTestMethodsShouldReturnUnit extends Recipe {
 
+    private static final String TEST_ANNOTATION_PATTERN = "org..* *Test*";
     private static final JavaType.Class KOTLIN_UNIT = (JavaType.Class) JavaType.buildType("kotlin.Unit");
 
     @Override
@@ -43,19 +45,19 @@ public class KotlinTestMethodsShouldBeUnit extends Recipe {
     @Override
     public String getDescription() {
         return "Kotlin test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestTemplate` " +
-                "should have `Unit` return type. Non-void return types can cause test discovery issues, " +
+                "should have `Unit` return type. Other return types can cause test discovery issues, " +
                 "and warnings as of JUnit 5.13+. This recipe changes the return type to `Unit` and removes `return` statements.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org..* *Test*", true), new KotlinIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(TEST_ANNOTATION_PATTERN, true), new KotlinIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
-                // If the method is not intended to the be a test method, do nothing.
-                if (!isIntendedTestMethod(m)) {
+                // Only consider test methods
+                if (!service(AnnotationService.class).matches(getCursor(), new AnnotationMatcher(TEST_ANNOTATION_PATTERN, true))) {
                     return m;
                 }
 

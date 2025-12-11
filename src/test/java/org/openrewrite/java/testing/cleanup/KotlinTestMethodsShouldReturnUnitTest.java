@@ -25,7 +25,7 @@ import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-class KotlinTestMethodsShouldBeUnitTest implements RewriteTest {
+class KotlinTestMethodsShouldReturnUnitTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
@@ -33,7 +33,7 @@ class KotlinTestMethodsShouldBeUnitTest implements RewriteTest {
           .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api-5", "junit-jupiter-params-5"))
-          .recipe(new KotlinTestMethodsShouldBeUnit())
+          .recipe(new KotlinTestMethodsShouldReturnUnit())
           .typeValidationOptions(TypeValidation.all().methodInvocations(false));
     }
 

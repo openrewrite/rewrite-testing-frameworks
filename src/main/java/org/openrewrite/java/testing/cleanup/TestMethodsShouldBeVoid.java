@@ -20,9 +20,11 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
@@ -31,24 +33,8 @@ import org.openrewrite.java.tree.TypeUtils;
 import static java.util.Objects.requireNonNull;
 
 public class TestMethodsShouldBeVoid extends Recipe {
-    /**
-     * Returns whether the given method is intended to be a JUnit test method.
-     */
-    static boolean isIntendedTestMethod(J.MethodDeclaration method) {
-        if (method.getBody() == null) {
-            return false;
-        }
-        for (J.Annotation annotation : method.getLeadingAnnotations()) {
-            if (TypeUtils.isOfClassType(annotation.getType(), "org.junit.Test") ||
-                    TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.RepeatedTest") ||
-                    TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.Test") ||
-                    TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.TestTemplate") ||
-                    TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.params.ParameterizedTest")) {
-                return true;
-            }
-        }
-        return false;
-    }
+
+    private static final String TEST_ANNOTATION_PATTERN = "org..* *Test*";
 
     @Override
     public String getDisplayName() {
@@ -64,13 +50,13 @@ public class TestMethodsShouldBeVoid extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org..* *Test*", true), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(TEST_ANNOTATION_PATTERN, true), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
-                // If the method is not intended to the be a test method, do nothing.
-                if (!isIntendedTestMethod(m)) {
+                // Only consider test methods
+                if (!service(AnnotationService.class).matches(getCursor(), new AnnotationMatcher(TEST_ANNOTATION_PATTERN, true))) {
                     return m;
                 }
 
