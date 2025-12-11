@@ -70,7 +70,7 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
                 // If the function is a single expression function, add an explicit Unit return type
                 // Otherwise, there's no need for a return type expression at all.
                 J.Block body = requireNonNull(m.getBody());
-                boolean singleExprFunc = hasMarker(body, SingleExpressionBlock.class);
+                boolean singleExprFunc = body.getMarkers().findFirst(SingleExpressionBlock.class).isPresent();
                 TypeTree returnTypeExpr = m.getReturnTypeExpression();
                 if (singleExprFunc) {
                     returnTypeExpr = new J.Identifier(
@@ -98,14 +98,10 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
         });
     }
 
-    private static boolean hasMarker(J tree, Class<? extends Marker> marker) {
-        return tree.getMarkers().findFirst(marker).isPresent();
-    }
-
     private static class RemoveDirectReturns extends KotlinVisitor<ExecutionContext> {
         @Override
         public J visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
-            return hasMarker(classDeclaration, KObject.class) ?
+            return classDeclaration.getMarkers().findFirst(KObject.class).isPresent() ?
                     classDeclaration : // Retain nested object expressions
                     super.visitClassDeclaration(classDeclaration, ctx);
         }
