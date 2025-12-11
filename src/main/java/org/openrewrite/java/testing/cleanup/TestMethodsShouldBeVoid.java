@@ -17,10 +17,12 @@ package org.openrewrite.java.testing.cleanup;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
@@ -62,7 +64,7 @@ public class TestMethodsShouldBeVoid extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>("org..* *Test*", true), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
@@ -94,7 +96,7 @@ public class TestMethodsShouldBeVoid extends Recipe {
                 // Remove return statements that are not in nested classes or lambdas
                 return m.withBody((J.Block) new RemoveDirectReturns().visitBlock(requireNonNull(m.getBody()), ctx));
             }
-        };
+        });
     }
 
     private static class RemoveDirectReturns extends JavaVisitor<ExecutionContext> {

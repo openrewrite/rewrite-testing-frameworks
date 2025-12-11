@@ -16,10 +16,8 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.Tree;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.KotlinVisitor;
@@ -51,7 +49,7 @@ public class KotlinTestMethodsShouldBeUnit extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new KotlinIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>("org..* *Test*", true), new KotlinIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
@@ -95,7 +93,7 @@ public class KotlinTestMethodsShouldBeUnit extends Recipe {
                 // Remove return statements that are not in nested classes, objects, or lambdas.
                 return singleExprFunc ? m : m.withBody((J.Block) new RemoveDirectReturns().visit(body, ctx));
             }
-        };
+        });
     }
 
     private static boolean hasMarker(J tree, Class<? extends Marker> marker) {
