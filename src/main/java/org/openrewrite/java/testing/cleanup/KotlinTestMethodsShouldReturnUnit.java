@@ -29,7 +29,6 @@ import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
 
 import static java.util.Collections.emptyList;
-import static java.util.Objects.requireNonNull;
 
 public class KotlinTestMethodsShouldReturnUnit extends Recipe {
 
@@ -55,43 +54,37 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
+                // Skip invalid signatures or already-correct return types
+                JavaType.Method methodType = m.getMethodType();
+                if (m.getBody() == null || methodType == null || TypeUtils.isOfType(methodType.getReturnType(), KOTLIN_UNIT)) {
+                    return m;
+                }
+
                 // Only consider test methods
                 if (!service(AnnotationService.class).matches(getCursor(), new AnnotationMatcher(TEST_ANNOTATION_PATTERN, true))) {
                     return m;
                 }
 
-                // If return type is already Unit, do nothing.
-                JavaType.Method methodType = m.getMethodType();
-                if (methodType != null) {
-                    if (TypeUtils.isOfType(methodType.getReturnType(), KOTLIN_UNIT)) {
-                        return m;
-                    }
+                // Update method and method identifier type.
+                JavaType.Method newMethodType = methodType.withReturnType(KOTLIN_UNIT);
+                m = m.withMethodType(newMethodType).withName(m.getName().withType(newMethodType));
 
-                    // Update method and method identifier type.
-                    JavaType.Method newMethodType = methodType.withReturnType(KOTLIN_UNIT);
-                    m = m.withMethodType(newMethodType).withName(m.getName().withType(newMethodType));
-                }
-
-                J.Block body = requireNonNull(m.getBody());
-                boolean singleExprFunc = body.getMarkers().findFirst(SingleExpressionBlock.class).isPresent();
-                if (singleExprFunc) {
-                    // Add an explicit Unit return type
-                    TypeTree returnTypeExpr = m.getReturnTypeExpression();
+                // Add an explicit Unit return type
+                if (m.getBody().getMarkers().findFirst(SingleExpressionBlock.class).isPresent()) {
                     return m.withReturnTypeExpression(new J.Identifier(
-                            returnTypeExpr == null ? Tree.randomId() : returnTypeExpr.getId(),
-                            returnTypeExpr == null ? Space.SINGLE_SPACE : returnTypeExpr.getPrefix(),
-                            returnTypeExpr == null ? Markers.EMPTY : returnTypeExpr.getMarkers(),
+                            Tree.randomId(),
+                            Space.SINGLE_SPACE,
+                            Markers.EMPTY,
                             emptyList(),
                             KOTLIN_UNIT.getClassName(),
                             KOTLIN_UNIT,
                             null));
                 }
 
-                return m
-                        // Otherwise, there's no need for a return type expression at all.
-                        .withReturnTypeExpression(null)
+                // Otherwise, there's no need for a return type expression at all.
+                return m.withReturnTypeExpression(null)
                         // Remove return statements that are not in nested classes, objects, or lambdas.
-                        .withBody((J.Block) new RemoveDirectReturns().visit(body, ctx));
+                        .withBody((J.Block) new RemoveDirectReturns().visit(m.getBody(), ctx));
             }
         });
     }
