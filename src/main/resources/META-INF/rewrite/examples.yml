@@ -1320,6 +1320,39 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.KotlinTestMethodsShouldReturnUnit
+examples:
+- description: '`KotlinTestMethodsShouldReturnUnitTest#addUnitReturnTypeToSingleExprTestMethod`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test
+
+      class ATest {
+          @Test
+          fun myTest() = run {
+              doSomething()
+          }
+
+          fun doSomething(): Int {
+              return 5
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test
+
+      class ATest {
+          @Test
+          fun myTest(): Unit = run {
+              doSomething()
+          }
+
+          fun doSomething(): Int {
+              return 5
+          }
+      }
+    language: kotlin
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.RemoveEmptyTests
 examples:
 - description: '`RemoveEmptyTestsTest#removeEmptyTest`'
