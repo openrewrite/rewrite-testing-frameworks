@@ -59,10 +59,10 @@ public class TestNgAssertEqualsToAssertThat extends Recipe {
                 Expression actual = args.get(0);
 
                 //always add the import (even if not referenced)
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeRemoveImport("org.testng.Assert");
 
                 // Remove import for "org.testng.Assert" if no longer used.
-                maybeRemoveImport("org.testng.Assert");
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
                 if (args.size() == 2) {
                     return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")

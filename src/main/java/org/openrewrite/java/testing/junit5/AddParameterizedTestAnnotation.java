@@ -79,10 +79,10 @@ public class AddParameterizedTestAnnotation extends Recipe {
                     .imports("org.junit.jupiter.params.ParameterizedTest")
                     .build()
                     .apply(getCursor(), coordinates);
-            maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
+            maybeRemoveImport("org.junit.jupiter.api.Test");
 
             // Remove @Test annotation if present
-            maybeRemoveImport("org.junit.jupiter.api.Test");
+            maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
             return new RemoveAnnotationVisitor(TEST_ANNOTATION_MATCHER).visitMethodDeclaration(m, ctx);
         }
     }

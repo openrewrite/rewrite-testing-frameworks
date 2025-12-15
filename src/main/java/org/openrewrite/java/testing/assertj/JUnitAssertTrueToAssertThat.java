@@ -53,8 +53,8 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
                     return mi;
                 }
 
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
                 maybeRemoveImport("org.junit.jupiter.api.Assertions");
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
                 List<Expression> args = mi.getArguments();
                 Expression actual = args.get(0);

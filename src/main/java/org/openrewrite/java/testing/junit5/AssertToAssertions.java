@@ -63,8 +63,8 @@ public class AssertToAssertions extends Recipe {
                     }
                 }
                 if (hasWildcardAssertImport) {
-                    maybeAddImport("org.junit.jupiter.api.Assertions", "*", false);
                     maybeRemoveImport("org.junit.Assert.*");
+                    maybeAddImport("org.junit.jupiter.api.Assertions", "*", false);
                 }
             }
             return tree;

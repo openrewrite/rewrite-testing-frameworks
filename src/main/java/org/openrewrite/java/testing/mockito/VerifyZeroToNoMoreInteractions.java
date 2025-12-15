@@ -72,8 +72,8 @@ public class VerifyZeroToNoMoreInteractions extends ScanningRecipe<AtomicBoolean
                             return md;
                         }
 
-                        maybeAddImport("org.mockito.Mockito", "verifyNoMoreInteractions");
                         maybeRemoveImport("org.mockito.Mockito.verifyZeroInteractions");
+                        maybeAddImport("org.mockito.Mockito", "verifyNoMoreInteractions");
 
                         ChangeMethodName changeMethodName = new ChangeMethodName(VERIFY_ZERO_INTERACTIONS, "verifyNoMoreInteractions", false, false);
                         return (J.MethodInvocation) changeMethodName.getVisitor().visitNonNull(md, ctx);

@@ -301,8 +301,8 @@ public class JMockitMockUpToMockito extends Recipe {
                 md = md.withBody(residualMd.getBody().withStatements(mdStatements));
             }
 
-            maybeAddImport(MOCKITO_ALL_IMPORT.replace(".*", ""), "*", false);
             maybeRemoveImport(JMOCKIT_MOCK_IMPORT);
+            maybeAddImport(MOCKITO_ALL_IMPORT.replace(".*", ""), "*", false);
             maybeRemoveImport(JMOCKIT_MOCKUP_IMPORT);
 
             doAfterVisit(new LambdaBlockToExpression().getVisitor());

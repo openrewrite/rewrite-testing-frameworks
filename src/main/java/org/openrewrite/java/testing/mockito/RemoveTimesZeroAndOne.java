@@ -54,8 +54,8 @@ public class RemoveTimesZeroAndOne extends Recipe {
                     public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (timesMatcher.matches(mi) && J.Literal.isLiteralValue(mi.getArguments().get(0), 0)) {
-                            maybeAddImport("org.mockito.Mockito", "never");
                             maybeRemoveImport("org.mockito.Mockito.times");
+                            maybeAddImport("org.mockito.Mockito", "never");
                             return JavaTemplate.builder("never()")
                                     .staticImports("org.mockito.Mockito.never")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))

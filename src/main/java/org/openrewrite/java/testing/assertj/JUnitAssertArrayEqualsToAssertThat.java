@@ -57,8 +57,8 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                     return md;
                 }
 
-                maybeAddImport(ASSERTJ, "assertThat", false);
                 maybeRemoveImport(JUNIT);
+                maybeAddImport(ASSERTJ, "assertThat", false);
 
                 List<Expression> args = md.getArguments();
                 Expression expected = args.get(0);

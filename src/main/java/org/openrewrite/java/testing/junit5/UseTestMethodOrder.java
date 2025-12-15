@@ -52,8 +52,8 @@ public class UseTestMethodOrder extends Recipe {
                 Set<J.Annotation> methodOrders = FindAnnotations.find(cd.withBody(null), "@org.junit.FixMethodOrder");
 
                 if (!methodOrders.isEmpty()) {
-                    maybeAddImport("org.junit.jupiter.api.TestMethodOrder");
                     maybeRemoveImport("org.junit.FixMethodOrder");
+                    maybeAddImport("org.junit.jupiter.api.TestMethodOrder");
                     maybeRemoveImport("org.junit.runners.MethodSorters");
 
                     cd = JavaTemplate.builder("@TestMethodOrder(MethodName.class)")
