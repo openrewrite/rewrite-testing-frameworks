@@ -107,8 +107,8 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
             """
               import org.mockito.junit.jupiter.MockitoExtension;
               import org.mockito.Mock;
-              import static org.mockito.Mockito.verifyZeroInteractions;
               import static org.mockito.Mockito.verify;
+              import static org.mockito.Mockito.verifyZeroInteractions;
 
               class MyTest {
                   @Mock
@@ -123,8 +123,8 @@ class VerifyZeroToNoMoreInteractionsTest implements RewriteTest {
             """
               import org.mockito.junit.jupiter.MockitoExtension;
               import org.mockito.Mock;
-              import static org.mockito.Mockito.verifyNoMoreInteractions;
               import static org.mockito.Mockito.verify;
+              import static org.mockito.Mockito.verifyNoMoreInteractions;
 
               class MyTest {
                   @Mock

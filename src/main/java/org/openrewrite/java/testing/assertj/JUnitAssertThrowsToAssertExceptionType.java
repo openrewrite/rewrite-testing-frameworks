@@ -65,9 +65,9 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
 
                 boolean returnActual = hasReturnType.get();
 
-                maybeAddImport(ASSERTIONS_FOR_CLASS_TYPES, "assertThatExceptionOfType");
-                maybeRemoveImport(JUNIT_ASSERTIONS + ".assertThrows");
                 maybeRemoveImport(JUNIT_ASSERTIONS);
+                maybeRemoveImport(JUNIT_ASSERTIONS + ".assertThrows");
+                maybeAddImport(ASSERTIONS_FOR_CLASS_TYPES, "assertThatExceptionOfType");
 
                 List<Expression> args = mi.getArguments();
 

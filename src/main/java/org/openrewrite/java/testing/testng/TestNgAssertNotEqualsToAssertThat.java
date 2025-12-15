@@ -119,10 +119,10 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                 }
 
                 //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeRemoveImport("org.testng.Assert");
 
                 // Remove import for "org.testng.Assert" if no longer used.
-                maybeRemoveImport("org.testng.Assert");
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
                 return method;
             }
