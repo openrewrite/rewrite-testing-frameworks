@@ -78,9 +78,10 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import static org.junit.jupiter.api.Assertions.assertThrows;
               import java.util.concurrent.CompletableFuture;
               import java.util.concurrent.ExecutionException;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
 
               public class MemberReferenceTest {
 
@@ -91,9 +92,10 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
               }
               """,
             """
-              import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
               import java.util.concurrent.CompletableFuture;
               import java.util.concurrent.ExecutionException;
+
+              import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
               public class MemberReferenceTest {
 
@@ -335,9 +337,10 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
             rewriteRun(
               java(
                       """
-                  import static org.junit.jupiter.api.Assertions.assertThrows;
                   import java.util.concurrent.CompletableFuture;
                   import java.util.concurrent.ExecutionException;
+
+                  import static org.junit.jupiter.api.Assertions.assertThrows;
 
                   public class SimpleExpectedExceptionTest {
                       public void throwsExceptionWithSpecificType() {
@@ -347,9 +350,10 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
                   }
                   """.formatted(message),
                       """
-                  import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
                   import java.util.concurrent.CompletableFuture;
                   import java.util.concurrent.ExecutionException;
+
+                  import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
                   public class SimpleExpectedExceptionTest {
                       public void throwsExceptionWithSpecificType() {
