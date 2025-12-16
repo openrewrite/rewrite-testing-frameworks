@@ -1819,4 +1819,32 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void shouldRefactorKotlinMockitoWhenOnStaticMethod() {
+        rewriteRun(
+          spec -> spec
+            .typeValidationOptions(TypeValidation.all().methodInvocations(false)),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.MockedStatic
+              import org.mockito.Mockito.mock
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      val calendarMock: Calendar = mock(Calendar::class.java)
+                      mockStatic(Calendar::class.java).use { mockA1 ->
+                          mockA1.`when`<Calendar>(Calendar::getInstance).thenReturn(calendarMock)
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }
