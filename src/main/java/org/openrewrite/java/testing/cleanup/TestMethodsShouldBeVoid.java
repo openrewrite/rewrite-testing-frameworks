@@ -20,11 +20,9 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
@@ -34,7 +32,7 @@ import static java.util.Objects.requireNonNull;
 
 public class TestMethodsShouldBeVoid extends Recipe {
 
-    private static final String TEST_ANNOTATION_PATTERN = "org..* *Test*";
+    private static final String TEST_ANNOTATION_TYPE_PATTERN = "org..*Test";
 
     @Override
     public String getDisplayName() {
@@ -50,13 +48,11 @@ public class TestMethodsShouldBeVoid extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(TEST_ANNOTATION_PATTERN, true), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(TEST_ANNOTATION_TYPE_PATTERN, true), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-
-                // Only consider test methods
-                if (!service(AnnotationService.class).matches(getCursor(), new AnnotationMatcher(TEST_ANNOTATION_PATTERN, true))) {
+                if (!hasJUnit5MethodAnnotation(m)) {
                     return m;
                 }
 
@@ -104,5 +100,18 @@ public class TestMethodsShouldBeVoid extends Recipe {
                     // Remove any other return statements
                     null;
         }
+    }
+
+    private static boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
+        for (J.Annotation a : method.getLeadingAnnotations()) {
+            if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
+                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
+                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
+                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory") ||
+                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")) {
+                return true;
+            }
+        }
+        return false;
     }
 }

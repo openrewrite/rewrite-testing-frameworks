@@ -170,10 +170,10 @@ public class RemoveTestPrefix extends Recipe {
         private static boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {
             for (J.Annotation a : method.getLeadingAnnotations()) {
                 if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate") ||
                         TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
                         TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")) {
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")) {
                     return true;
                 }
             }
