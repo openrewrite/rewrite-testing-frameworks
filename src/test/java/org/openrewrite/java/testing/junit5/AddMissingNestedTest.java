@@ -15,15 +15,18 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("JUnit3StyleTestMethodInJUnit4Class")
 class AddMissingNestedTest implements RewriteTest {
@@ -33,6 +36,8 @@ class AddMissingNestedTest implements RewriteTest {
         spec.recipe(new AddMissingNested())
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
+          .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"));
     }
 
@@ -244,6 +249,48 @@ class AddMissingNestedTest implements RewriteTest {
                   public abstract class InnerTest {
                       @Test
                       public void test() {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Disabled("Should be enabled when Preconditions.not(new KotlinFileChecker<>()) is removed from the recipe")
+    @Test
+    void doesNotAnnotateKotlinObject() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+
+              class RootTest {
+                  object InnerObject {
+                      @Test
+                      fun test() {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Disabled("Should be enabled when Preconditions.not(new KotlinFileChecker<>()) is removed from the recipe")
+    @Test
+    void doesNotAnnotateKotlinCompanionObject() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+
+              class RootTest {
+                  companion object {
+                      @Test
+                      fun test() {
                       }
                   }
               }

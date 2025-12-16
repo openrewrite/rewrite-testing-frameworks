@@ -20,12 +20,14 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
     @Override
@@ -41,6 +43,11 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               "powermock-api-mockito-1",
               "powermock-core-1",
               "testng-7"
+            ))
+          .parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-jupiter-api-5",
+              "mockito-core-5"
             ))
           .recipe(new PowerMockitoMockStaticToMockito())
           .typeValidationOptions(TypeValidation.builder().cursorAcyclic(false).build());
@@ -709,6 +716,29 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
         rewriteRun(
           groovy(
             "def myFun() { }"
+          )
+        );
+    }
+
+    @Test
+    void shouldNotModifyKotlinFilesUsingMockitoStatic() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.all().methodInvocations(false)),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.mock
+              import org.mockito.Mockito.`when`
+
+              class MyTest {
+                  @Test
+                  fun testSomething() {
+                      val mockList = mock(MutableList::class.java)
+                      `when`(mockList.size).thenReturn(100)
+                  }
+              }
+              """
           )
         );
     }
