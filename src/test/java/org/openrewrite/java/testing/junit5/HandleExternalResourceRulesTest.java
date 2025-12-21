@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -37,9 +38,18 @@ class HandleExternalResourceRulesTest implements RewriteTest {
                 "grpc-testing"));
     }
 
-    @Test
-    void emptyTestClassWithExternalResourceSupport() {
-        rewriteRun(
+    @DocumentExample
+    void emptyTestClassWithExternalResourceRule() {
+              import io.grpc.testing.GrpcCleanupRule;
+
+              public class EmptyTestClassWithExternalResourceRule {
+                  @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
+              }
+              """,
+            """
+              import org.junit.Rule;
+              import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
+              public class EmptyTestClassWithExternalResourceRule {
           // language=java
           java(
             """
@@ -57,26 +67,18 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @Test
+    void emptyTestClassWithExternalResourceSupport() {
+              import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import io.grpc.testing.GrpcCleanupRule;
+              @ExtendWith(ExternalResourceSupport.class)
+              public class EmptyTestClassWithExternalResourceSupport {
+                  @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
     void emptyTestClassWithNonSupportedRule() {
-        rewriteRun(
-          // language=java
-          java(
             // no change expected since since ErrorCollector is not of type ExternalResource
-            """
-              import org.junit.Rule;
               import org.junit.rules.ErrorCollector;
-
               public class EmptyTestClassWithNonSupportedRule {
                   @Rule public final ErrorCollector errorCollector = new ErrorCollector();
-              }
-              """
-          ));
-    }
-
-    @Test
-    void emptyTestClassWithExternalResourceRule() {
-        rewriteRun(
-          // language=java
           java(
             """
               import org.junit.Rule;
@@ -128,7 +130,7 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @Test
-    void testClassWithExternalResourceRuleAndExtendWithAnnotation() {
+    void classWithExternalResourceRuleAndExtendWithAnnotation() {
         rewriteRun(
           // language=java
           java(
@@ -153,7 +155,7 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @Test
-    void testClassWithExternalResourceRuleAndExtendWithAnnotationButNoRule() {
+    void classWithExternalResourceRuleAndExtendWithAnnotationButNoRule() {
         rewriteRun(
           // language=java
           java(
@@ -177,7 +179,7 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @Test
-    void testClassWithExternalResourceRuleAndTestMethod() {
+    void classWithExternalResourceRuleAndTestMethod() {
         rewriteRun(
           // language=java
           java(
@@ -215,7 +217,7 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @Test
-    void testClassWithExternResourceRuleAsInitializer() {
+    void classWithExternResourceRuleAsInitializer() {
         rewriteRun(
           // language=java
           java(
@@ -246,7 +248,7 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @Test
-    void testClassWithMethodReturnTypeExternalResourceRule() {
+    void classWithMethodReturnTypeExternalResourceRule() {
         rewriteRun(
           // language=java
           java(
@@ -291,7 +293,7 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @Test
-    void testClassWithMethodReturnTypeNonExternalResourceRule() {
+    void classWithMethodReturnTypeNonExternalResourceRule() {
         rewriteRun(
           // language=java
           java(
