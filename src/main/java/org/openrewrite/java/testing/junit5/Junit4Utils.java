@@ -16,10 +16,13 @@
 package org.openrewrite.java.testing.junit5;
 
 import lombok.experimental.UtilityClass;
+import org.openrewrite.java.trait.Annotated;
+import org.openrewrite.java.tree.J;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Utility class containing JUnit4 related helper methods used in JUnit4 to JUnit5 migration recipes
@@ -31,6 +34,7 @@ public class Junit4Utils {
     static final String BEFORE = "org.junit.Before";
     static final String BEFORE_CLASS = "org.junit.BeforeClass";
     static final String CLASS_RULE = "org.junit.ClassRule";
+    static final String EXTERNAL_RESOURCE_RULE = "org.junit.rules.ExternalResource";
     static final String FIX_METHOD_ORDER = "org.junit.FixMethodOrder";
     static final String IGNORE = "org.junit.Ignore";
     static final String PARAMETERIZED_PARAMETERS = "org.junit.runners.Parameterized.Parameters";
@@ -57,5 +61,17 @@ public class Junit4Utils {
 
     static Set<String> fieldAnnotations() {
         return new HashSet<>(Arrays.asList(RULE, CLASS_RULE));
+    }
+
+    static boolean hasJunit4Rules(J j) {
+        return matchRule(j, Junit4Utils.RULE) || matchRule(j, Junit4Utils.CLASS_RULE);
+    }
+
+    private static boolean matchRule(J j, String rule) {
+        return new Annotated.Matcher(rule)
+                .<AtomicBoolean>asVisitor((a, found) -> {
+                    found.set(true);
+                    return a.getTree();
+                }).reduce(j, new AtomicBoolean(false)).get();
     }
 }
