@@ -37,6 +37,7 @@ public class Junit4Utils {
     static final String RULE = "org.junit.Rule";
     static final String RUN_WITH = "org.junit.runner.RunWith";
     static final String TEST = "org.junit.Test";
+    static final String RUN_WITH_ANNOTATION = "@" + RUN_WITH;
 
     static Set<String> classAnnotations() {
         return new HashSet<>(Arrays.asList(RUN_WITH, FIX_METHOD_ORDER, IGNORE));
