@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -39,42 +40,6 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @DocumentExample
-    @Test
-    void emptyTestClassWithExternalResourceSupport() {
-        rewriteRun(
-          // language=java
-          java(
-            """
-              import org.junit.Rule;
-              import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import io.grpc.testing.GrpcCleanupRule;
-
-              @ExtendWith(ExternalResourceSupport.class)
-              public class EmptyTestClassWithExternalResourceSupport {
-                  @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
-              }
-              """
-          ));
-    }
-
-    @Test
-    void emptyTestClassWithNonSupportedRule() {
-        rewriteRun(
-          // language=java
-          java(
-            // no change expected since since ErrorCollector is not of type ExternalResource
-            """
-              import org.junit.Rule;
-              import org.junit.rules.ErrorCollector;
-
-              public class EmptyTestClassWithNonSupportedRule {
-                  @Rule public final ErrorCollector errorCollector = new ErrorCollector();
-              }
-              """
-          ));
-    }
-
     @Test
     void emptyTestClassWithExternalResourceRule() {
         rewriteRun(
@@ -103,7 +68,7 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @Test
-    void emptyTestClassWithAnotherExternalResourceRule() {
+    void changeTemporaryFolderIfNotPreviouslyHandled() {
         rewriteRun(
           // language=java
           java(
@@ -124,55 +89,6 @@ class HandleExternalResourceRulesTest implements RewriteTest {
               @ExtendWith(ExternalResourceSupport.class)
               public class EmptyTestClassWithAnotherExternalResourceRule {
                   @Rule public final TemporaryFolder temporaryFolder = new TemporaryFolder();
-              }
-              """
-          ));
-    }
-
-    @Test
-    void classWithExternalResourceRuleAndExtendWithAnnotation() {
-        rewriteRun(
-          // language=java
-          java(
-            // no change expected since the class already has @ExtendWith(ExternalResourceSupport.class))
-            """
-              import org.junit.Rule;
-              import org.junit.jupiter.api.Test;
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
-              import org.junit.rules.TemporaryFolder;
-
-              @ExtendWith(ExternalResourceSupport.class)
-              public class TestClassWithExternalResourceRule {
-                  @Rule public final TemporaryFolder temporaryFolder = new TemporaryFolder();
-                  @Test
-                  public void test() {
-                      temporaryFolder.newFolder();
-                  }
-              }
-              """
-          ));
-    }
-
-    @Test
-    void classWithExternalResourceRuleAndExtendWithAnnotationButNoRule() {
-        rewriteRun(
-          // language=java
-          java(
-            // no change since the class has no rules
-            """
-              import org.junit.Rule;
-              import org.junit.jupiter.api.Test;
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
-              import org.junit.rules.TemporaryFolder;
-
-              @ExtendWith(ExternalResourceSupport.class)
-              public class TestClassWithExternalResourceRuleAndExtendWithAnnotationButNoRule {
-                  public final TemporaryFolder temporaryFolder = new TemporaryFolder();
-                  @Test
-                  public void test() {
-                  }
               }
               """
           ));
@@ -292,28 +208,116 @@ class HandleExternalResourceRulesTest implements RewriteTest {
           ));
     }
 
-    @Test
-    void classWithMethodReturnTypeNonExternalResourceRule() {
-        rewriteRun(
-          // language=java
-          java(
-            //no change expected since the method return type is not an ExternalResourceRule
-            """
-              import org.junit.Rule;
-              import org.junit.jupiter.api.Test;
-              import org.junit.rules.ErrorCollector;
-              public class TestClassWithMethodReturnTypeNonExternalResourceRule {
+    @Nested
+    class NoChange {
+        @Test
+        void targetUsageGrpc() {
+            rewriteRun(
+              // language=java
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
+                  import org.junit.jupiter.api.extension.ExtendWith;
+                  import io.grpc.testing.GrpcCleanupRule;
 
-                  @Rule
-                  public ErrorCollector createErrorCollector() {
-                      return new ErrorCollector();
+                  @ExtendWith(ExternalResourceSupport.class)
+                  public class EmptyTestClassWithExternalResourceSupport {
+                      @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
                   }
+                  """
+              ));
+        }
 
-                  @Test
-                  public void test() {
+        @Test
+        void targetUsageTemporaryFolder() {
+            rewriteRun(
+              // language=java
+              java(
+                // no change expected since the class already has @ExtendWith(ExternalResourceSupport.class))
+                """
+                  import org.junit.Rule;
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.extension.ExtendWith;
+                  import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
+                  import org.junit.rules.TemporaryFolder;
+
+                  @ExtendWith(ExternalResourceSupport.class)
+                  public class TestClassWithExternalResourceRule {
+                      @Rule public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+                      @Test
+                      public void test() {
+                          temporaryFolder.newFolder();
+                      }
                   }
-              }
-              """
-          ));
+                  """
+              ));
+        }
+
+        @Test
+        void classWithExternalResourceRuleAndExtendWithAnnotationButNoRule() {
+            rewriteRun(
+              // language=java
+              java(
+                // no change since the class has no rules
+                """
+                  import org.junit.Rule;
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.extension.ExtendWith;
+                  import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
+                  import org.junit.rules.TemporaryFolder;
+
+                  @ExtendWith(ExternalResourceSupport.class)
+                  public class TestClassWithExternalResourceRuleAndExtendWithAnnotationButNoRule {
+                      public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+                      @Test
+                      public void test() {
+                      }
+                  }
+                  """
+              ));
+        }
+
+        @Test
+        void unsupportedRuleField() {
+            rewriteRun(
+              // language=java
+              java(
+                // no change expected since since ErrorCollector is not of type ExternalResource
+                """
+                  import org.junit.Rule;
+                  import org.junit.rules.ErrorCollector;
+
+                  public class EmptyTestClassWithNonSupportedRule {
+                      @Rule public final ErrorCollector errorCollector = new ErrorCollector();
+                  }
+                  """
+              ));
+        }
+
+        @Test
+        void unsupportedRuleMethod() {
+            rewriteRun(
+              // language=java
+              java(
+                //no change expected since the method return type is not an ExternalResourceRule
+                """
+                  import org.junit.Rule;
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.rules.ErrorCollector;
+                  public class TestClassWithMethodReturnTypeNonExternalResourceRule {
+
+                      @Rule
+                      public ErrorCollector createErrorCollector() {
+                          return new ErrorCollector();
+                      }
+
+                      @Test
+                      public void test() {
+                      }
+                  }
+                  """
+              ));
+        }
     }
 }
