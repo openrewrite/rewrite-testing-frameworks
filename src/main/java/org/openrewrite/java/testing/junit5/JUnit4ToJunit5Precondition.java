@@ -220,7 +220,7 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
         private void markSupportedRunner(
                 J.ClassDeclaration classDecl, ExecutionContext ctx) {
             Cursor classCursor = getCursor();
-            new Annotated.Matcher(Junit4Utils.RUN_WITH_ANNOTATION).asVisitor(a ->
+            new Annotated.Matcher("@org.junit.runner.RunWith").asVisitor(a ->
                             (new JavaIsoVisitor<ExecutionContext>() {
                                 @Override
                                 public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
