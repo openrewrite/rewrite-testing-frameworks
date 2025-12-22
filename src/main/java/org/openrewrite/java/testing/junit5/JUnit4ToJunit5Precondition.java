@@ -56,20 +56,25 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
     private static final String HAS_UNSUPPORTED_RUNNER = "hasUnsupportedRunner";
     private static final String HAS_CLASS_TYPE_SOURCE_ATTRIBUTE = "hasClassTypeSourceAttribute";
 
-    @Option(example = "TODO Provide a usage example for the docs", displayName = "Known migratable classes",
-            description = "A list of classes which are migratable. These are the classes for which recipes already exist. In practical scenarios, these are parent test classes for which we already have JUnit 5 versions.")
+    @Option(displayName = "Known migratable classes",
+            description = "A list of classes which are migratable. These are the classes for which recipes already exist. " +
+                    "In practical scenarios, these are parent test classes for which we already have JUnit 5 versions.",
+            example = "org.example.MigratableBaseTestClass")
     @Nullable Set<String> knownMigratableClasses;
 
-    @Option(example = "TODO Provide a usage example for the docs", displayName = "Supported rules",
-            description = "Rules for which migration recipes exist.")
+    @Option(displayName = "Supported rules",
+            description = "Rules for which migration recipes exist.",
+            example = "org.junit.rules.TemporaryFolder")
     @Nullable Set<String> supportedRules;
 
-    @Option(example = "TODO Provide a usage example for the docs", displayName = "Supported rule types",
-            description = "Recipe exist for rule types and all their inheriting rules (e.g., ExternalRules).")
+    @Option(displayName = "Supported rule types",
+            description = "Recipe exist for rule types and all their inheriting rules (e.g., ExternalRules).",
+            example = "org.junit.rules.ExternalResource")
     @Nullable Set<String> supportedRuleTypes;
 
-    @Option(example = "TODO Provide a usage example for the docs", displayName = "Supported runners",
-            description = "Runners for which migration recipes exist.")
+    @Option(displayName = "Supported runners",
+            description = "Runners for which migration recipes exist.",
+            example = "org.junit.runners.Parameterized")
     @Nullable Set<String> supportedRunners;
 
     @Override
