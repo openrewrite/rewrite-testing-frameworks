@@ -16,17 +16,21 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Comparator.comparing;
 
 /**
  * A recipe that handles the usage of the junit-4 ExternalResourceRule's by adding
@@ -36,9 +40,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class HandleExternalResourceRules extends Recipe {
 
-    private static final String EXTERNAL_RESOURCE_SUPPORT =
-            "org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport";
+    private static final String CLASS_RULE = "org.junit.ClassRule";
+    private static final String EXTERNAL_RESOURCE_RULE = "org.junit.rules.ExternalResource";
+    private static final String EXTERNAL_RESOURCE_SUPPORT = "org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport";
     private static final String EXTEND_WITH = "org.junit.jupiter.api.extension.ExtendWith";
+    private static final String RULE = "org.junit.Rule";
 
     @Override
     public String getDisplayName() {
@@ -52,51 +58,45 @@ public class HandleExternalResourceRules extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new HandleExternalResourceRulesVisitor();
+        return Preconditions.check(
+                Preconditions.or(new UsesType<>(CLASS_RULE, true), new UsesType<>(RULE, true)),
+                new HandleExternalResourceRulesVisitor());
     }
 
     private static class HandleExternalResourceRulesVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-            boolean hasExternalResourceRule =
-                    new ExternalResourceRuleScanner().reduce(classDecl, new AtomicBoolean()).get();
+            if (!new ExternalResourceRuleScanner().reduce(cd, new AtomicBoolean()).get()) {
+                return cd;
+            }
 
             boolean hasExtendWithAnnotation = new Annotated.Matcher(String.format("@%s(%s.class)", EXTEND_WITH, EXTERNAL_RESOURCE_SUPPORT))
                     .<AtomicBoolean>asVisitor((a, flag) -> {
                         flag.set(true);
                         return a.getTree();
-                    }).reduce(classDecl, new AtomicBoolean(false)).get();
+                    }).reduce(cd, new AtomicBoolean(false)).get();
 
             // If the class has a ExternalResourceRule and no @ExtendWith(ExternalResourceSupport.class)
             // annotation, add one
-            if (hasExternalResourceRule && !hasExtendWithAnnotation) {
+            if (!hasExtendWithAnnotation) {
                 maybeAddImport(EXTERNAL_RESOURCE_SUPPORT);
                 maybeAddImport(EXTEND_WITH);
-                JavaTemplate externalResourceSupportTemplate =
-                        JavaTemplate.builder("@ExtendWith(ExternalResourceSupport.class)")
-                                .imports(EXTERNAL_RESOURCE_SUPPORT, EXTEND_WITH)
-                                .javaParser(
-                                        JavaParser.fromJavaVersion()
-                                                .classpathFromResources(ctx,"junit-jupiter-migrationsupport-5", "junit-jupiter-api-5"))
-                                .build();
-                classDecl =
-                        externalResourceSupportTemplate.apply(
-                                updateCursor(classDecl),
-                                classDecl
-                                        .getCoordinates()
-                                        .addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                return JavaTemplate.builder("@ExtendWith(ExternalResourceSupport.class)")
+                        .imports(EXTERNAL_RESOURCE_SUPPORT, EXTEND_WITH)
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "junit-jupiter-migrationsupport-5", "junit-jupiter-api-5"))
+                        .build()
+                        .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
             }
-            return super.visitClassDeclaration(classDecl, ctx);
+
+            return cd;
         }
     }
 
     // Checks for existence of ExternalResourceRule
     private static class ExternalResourceRuleScanner extends JavaIsoVisitor<AtomicBoolean> {
-        private static final String CLASS_RULE = "org.junit.ClassRule";
-        private static final String EXTERNAL_RESOURCE_RULE = "org.junit.rules.ExternalResource";
-        private static final String RULE = "org.junit.Rule";
-
         @Override
         public J.VariableDeclarations visitVariableDeclarations(
                 J.VariableDeclarations variableDeclarations, AtomicBoolean hasExternalResourceRule) {
