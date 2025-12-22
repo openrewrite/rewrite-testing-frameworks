@@ -123,11 +123,6 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
                     SearchResult.found(classDecl) :
                     classDecl;
         }
-
-        boolean extendsSupportedJUnit4BaseTestClass(J.ClassDeclaration classDecl) {
-            return emptySetIfNull(knownMigratableClasses).stream().
-                    anyMatch(testBaseClass -> TypeUtils.isAssignableTo(testBaseClass, classDecl.getType()));
-        }
     }
 
     /**
