@@ -53,8 +53,8 @@ public class UseTestMethodOrder extends Recipe {
 
                 if (!methodOrders.isEmpty()) {
                     maybeRemoveImport("org.junit.FixMethodOrder");
-                    maybeAddImport("org.junit.jupiter.api.TestMethodOrder");
                     maybeRemoveImport("org.junit.runners.MethodSorters");
+                    maybeAddImport("org.junit.jupiter.api.TestMethodOrder");
 
                     cd = JavaTemplate.builder("@TestMethodOrder(MethodName.class)")
                             .javaParser(JavaParser.fromJavaVersion()
