@@ -89,9 +89,9 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
 
     @Override
     public String getDescription() {
-        return "Marks JUnit 4 test classes that can be migrated to JUnit 5 with current recipe " +
-                "capabilities, including detection of unsupported rules, runners, and `@Parameters` annotations with " +
-                "class-type source attributes.";
+        return "Marks JUnit 4 test classes that can be migrated to JUnit 5 with current recipe capabilities, " +
+                "including detection of unsupported rules, runners, and `@Parameters` annotations with class-type " +
+                "source attributes.";
     }
 
     @Override
@@ -178,8 +178,7 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
         private void flagParametersAnnotationWithClassTypeSourceAttribute(
                 J.MethodDeclaration methodDecl, ExecutionContext ctx) {
             Cursor methodCursor = getCursor();
-            new Annotated.Matcher("junitparams.Parameters")
-                    .asVisitor(a ->
+            new Annotated.Matcher("junitparams.Parameters").asVisitor(a ->
                             (new JavaIsoVisitor<ExecutionContext>() {
                                 @Override
                                 public J.Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
@@ -235,8 +234,7 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
 
         private @Nullable String getParentClassName(J.ClassDeclaration classDecl) {
             if (classDecl.getExtends() != null) {
-                JavaType.FullyQualified parentClass =
-                        TypeUtils.asFullyQualified(classDecl.getExtends().getType());
+                JavaType.FullyQualified parentClass = TypeUtils.asFullyQualified(classDecl.getExtends().getType());
                 if (parentClass != null) {
                     return parentClass.getFullyQualifiedName();
                 }
