@@ -850,7 +850,8 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         @ValueSource(
           strings = {
             "java.util.Date",
-            "java.time.Instant"
+            "java.time.Instant",
+            "java.sql.Timestamp"
           }
         )
         void greaterThanOrEqualToDate(String type) {

@@ -96,7 +96,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             if (!matchersMatcher.matches(matcherArgument) || subMatcher.matches(matcherArgument)) {
                 return mi;
             }
-            if (argumentType != null && !TypeUtils.isOfClassType(actualArgument.getType(), argumentType)) {
+            if (argumentType != null && !TypeUtils.isAssignableTo(argumentType, actualArgument.getType())) {
                 return mi;
             }
 
