@@ -19,17 +19,19 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.lang.String.format;
 import static java.util.Comparator.comparing;
 
 /**
@@ -44,6 +46,7 @@ public class HandleExternalResourceRules extends Recipe {
     private static final String EXTERNAL_RESOURCE_RULE = "org.junit.rules.ExternalResource";
     private static final String EXTERNAL_RESOURCE_SUPPORT = "org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport";
     private static final String EXTEND_WITH = "org.junit.jupiter.api.extension.ExtendWith";
+    private static final AnnotationMatcher ANNOTATION_MATCHER = new AnnotationMatcher(format("@%s(%s.class)", EXTEND_WITH, EXTERNAL_RESOURCE_SUPPORT), true);
     private static final String RULE = "org.junit.Rule";
 
     @Override
@@ -60,39 +63,30 @@ public class HandleExternalResourceRules extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 Preconditions.or(new UsesType<>(CLASS_RULE, true), new UsesType<>(RULE, true)),
-                new HandleExternalResourceRulesVisitor());
-    }
+                new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                        J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-    private static class HandleExternalResourceRulesVisitor extends JavaIsoVisitor<ExecutionContext> {
-        @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+                        if (!ExternalResourceRuleScanner.hasExternalResourceRule(cd)) {
+                            return cd;
+                        }
 
-            if (!new ExternalResourceRuleScanner().reduce(cd, new AtomicBoolean()).get()) {
-                return cd;
-            }
+                        // If the class has no @ExtendWith(ExternalResourceSupport.class) annotation, add one
+                        if (!service(AnnotationService.class).matches(updateCursor(cd), ANNOTATION_MATCHER)) {
+                            maybeAddImport(EXTERNAL_RESOURCE_SUPPORT);
+                            maybeAddImport(EXTEND_WITH);
+                            return JavaTemplate.builder("@ExtendWith(ExternalResourceSupport.class)")
+                                    .imports(EXTERNAL_RESOURCE_SUPPORT, EXTEND_WITH)
+                                    .javaParser(JavaParser.fromJavaVersion()
+                                            .classpathFromResources(ctx, "junit-jupiter-migrationsupport-5", "junit-jupiter-api-5"))
+                                    .build()
+                                    .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
+                        }
 
-            boolean hasExtendWithAnnotation = new Annotated.Matcher(String.format("@%s(%s.class)", EXTEND_WITH, EXTERNAL_RESOURCE_SUPPORT))
-                    .<AtomicBoolean>asVisitor((a, flag) -> {
-                        flag.set(true);
-                        return a.getTree();
-                    }).reduce(cd, new AtomicBoolean(false)).get();
-
-            // If the class has a ExternalResourceRule and no @ExtendWith(ExternalResourceSupport.class)
-            // annotation, add one
-            if (!hasExtendWithAnnotation) {
-                maybeAddImport(EXTERNAL_RESOURCE_SUPPORT);
-                maybeAddImport(EXTEND_WITH);
-                return JavaTemplate.builder("@ExtendWith(ExternalResourceSupport.class)")
-                        .imports(EXTERNAL_RESOURCE_SUPPORT, EXTEND_WITH)
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "junit-jupiter-migrationsupport-5", "junit-jupiter-api-5"))
-                        .build()
-                        .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
-            }
-
-            return cd;
-        }
+                        return cd;
+                    }
+                });
     }
 
     // Checks for existence of ExternalResourceRule
@@ -122,8 +116,7 @@ public class HandleExternalResourceRules extends Recipe {
                 J.MethodDeclaration methodDeclaration, AtomicBoolean hasExternalResourceRule) {
             if (hasJunit4Rules(methodDeclaration)) {
                 if (methodDeclaration.getMethodType() != null) {
-                    if (TypeUtils.isAssignableTo(
-                            EXTERNAL_RESOURCE_RULE, methodDeclaration.getMethodType().getReturnType())) {
+                    if (TypeUtils.isAssignableTo(EXTERNAL_RESOURCE_RULE, methodDeclaration.getMethodType().getReturnType())) {
                         hasExternalResourceRule.set(true);
                     }
                 }
@@ -131,7 +124,11 @@ public class HandleExternalResourceRules extends Recipe {
             return methodDeclaration;
         }
 
-        static boolean hasJunit4Rules(J j) {
+        static boolean hasExternalResourceRule(J.ClassDeclaration cd) {
+            return new ExternalResourceRuleScanner().reduce(cd, new AtomicBoolean()).get();
+        }
+
+        private static boolean hasJunit4Rules(J j) {
             return matchRule(j, RULE) || matchRule(j, CLASS_RULE);
         }
 
