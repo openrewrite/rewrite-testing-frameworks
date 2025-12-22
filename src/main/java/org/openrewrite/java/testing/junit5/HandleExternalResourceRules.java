@@ -28,8 +28,6 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.openrewrite.java.testing.junit5.Junit4Utils.EXTERNAL_RESOURCE_RULE;
-
 /**
  * A recipe that handles the usage of the junit-4 ExternalResourceRule's by adding
  * the @ExtendWith(ExternalResourceSupport.class) annotation to the test class.
@@ -95,11 +93,14 @@ public class HandleExternalResourceRules extends Recipe {
 
     // Checks for existence of ExternalResourceRule
     private static class ExternalResourceRuleScanner extends JavaIsoVisitor<AtomicBoolean> {
+        private static final String CLASS_RULE = "org.junit.ClassRule";
+        private static final String EXTERNAL_RESOURCE_RULE = "org.junit.rules.ExternalResource";
+        private static final String RULE = "org.junit.Rule";
 
         @Override
         public J.VariableDeclarations visitVariableDeclarations(
                 J.VariableDeclarations variableDeclarations, AtomicBoolean hasExternalResourceRule) {
-            if (!Junit4Utils.hasJunit4Rules(variableDeclarations)) {
+            if (!hasJunit4Rules(variableDeclarations)) {
                 return variableDeclarations;
             }
             return super.visitVariableDeclarations(variableDeclarations, hasExternalResourceRule);
@@ -119,7 +120,7 @@ public class HandleExternalResourceRules extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(
                 J.MethodDeclaration methodDeclaration, AtomicBoolean hasExternalResourceRule) {
-            if (Junit4Utils.hasJunit4Rules(methodDeclaration)) {
+            if (hasJunit4Rules(methodDeclaration)) {
                 if (methodDeclaration.getMethodType() != null) {
                     if (TypeUtils.isAssignableTo(
                             EXTERNAL_RESOURCE_RULE, methodDeclaration.getMethodType().getReturnType())) {
@@ -128,6 +129,18 @@ public class HandleExternalResourceRules extends Recipe {
                 }
             }
             return methodDeclaration;
+        }
+
+        static boolean hasJunit4Rules(J j) {
+            return matchRule(j, RULE) || matchRule(j, CLASS_RULE);
+        }
+
+        private static boolean matchRule(J j, String rule) {
+            return new Annotated.Matcher(rule)
+                    .<AtomicBoolean>asVisitor((a, found) -> {
+                        found.set(true);
+                        return a.getTree();
+                    }).reduce(j, new AtomicBoolean(false)).get();
         }
     }
 }
