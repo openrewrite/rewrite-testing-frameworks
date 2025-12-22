@@ -130,7 +130,7 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @Test
-    void testClassWithExternalResourceRuleAndExtendWithAnnotation() {
+    void classWithExternalResourceRuleAndExtendWithAnnotation() {
         rewriteRun(
           // language=java
           java(
