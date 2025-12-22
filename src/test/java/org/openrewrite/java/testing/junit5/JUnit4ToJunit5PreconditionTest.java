@@ -67,7 +67,9 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   public @interface Parameters {
                       Class<?> source();
                   }
-                  """));
+                  """
+              )
+          );
     }
 
     @DocumentExample

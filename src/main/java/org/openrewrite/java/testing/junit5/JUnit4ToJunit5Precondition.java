@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
@@ -123,13 +124,10 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
      * A visitor that implements the scanning logic for identifying JUnit 4 test classes that can be
      * migrated to JUnit 5.
      */
+    @RequiredArgsConstructor
     private class JUnit4ToJunit5PreconditionScanner extends JavaIsoVisitor<ExecutionContext> {
 
         private final MigratabilityAccumulator accumulator;
-
-        private JUnit4ToJunit5PreconditionScanner(MigratabilityAccumulator accumulator) {
-            this.accumulator = accumulator;
-        }
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(
@@ -212,22 +210,18 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
             }
         }
 
-        private void markSupportedRunner(
-                J.ClassDeclaration classDecl, ExecutionContext ctx) {
+        private void markSupportedRunner(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             Cursor classCursor = getCursor();
             new Annotated.Matcher("@org.junit.runner.RunWith").asVisitor(a ->
                             (new JavaIsoVisitor<ExecutionContext>() {
                                 @Override
                                 public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
-                                    JavaType.FullyQualified type =
-                                            TypeUtils.asFullyQualified(fieldAccess.getTarget().getType());
-                                    if (type == null) { // missing type attribution, possibly parsing error
-                                        return fieldAccess;
-                                    }
-                                    if (!emptySetIfNull(supportedRunners).contains(type.getFullyQualifiedName())) {
+                                    JavaType.FullyQualified type = TypeUtils.asFullyQualified(fieldAccess.getTarget().getType());
+                                    if (type != null && !emptySetIfNull(supportedRunners).contains(type.getFullyQualifiedName())) {
                                         classCursor.putMessage(HAS_UNSUPPORTED_RUNNER, true);
                                     }
-                                    return SearchResult.found(fieldAccess);
+                                    // missing type attribution, possibly parsing error
+                                    return fieldAccess;
                                 }
                             }).visit(a.getTree(), ctx))
                     .visit(classDecl, ctx);
