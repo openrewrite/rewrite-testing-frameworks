@@ -15,15 +15,16 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import static org.openrewrite.java.Assertions.java;
-
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.Set;
+
+import static org.openrewrite.java.Assertions.java;
 
 class JUnit4ToJunit5PreconditionTest implements RewriteTest {
 
@@ -69,6 +70,7 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   """));
     }
 
+    @DocumentExample
     @Test
     void extendsMigratableBaseTestClass() {
         rewriteRun(
@@ -95,7 +97,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Hello, world!");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -128,7 +131,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Hello, world!");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -161,7 +165,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Hello, world!");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -178,7 +183,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Hello, world!");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -205,7 +211,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Hello, world!");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -225,7 +232,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Hello, world!");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -245,7 +253,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Hello, world!");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -272,7 +281,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Setup method");
                 }
               }
-              """),
+              """
+          ),
           java(
             """
               import org.junit.Test;
@@ -299,7 +309,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Test method");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -317,7 +328,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Setup method");
                 }
               }
-              """),
+              """
+          ),
           java(
             """
               import org.junit.Rule;
@@ -331,7 +343,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Test method");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -349,7 +362,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Setup method");
                 }
               }
-              """),
+              """
+          ),
           java(
             """
               import org.junit.Rule;
@@ -363,7 +377,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Test method");
                 }
               }
-              """),
+              """
+          ),
           java(
             """
               import org.junit.experimental.theories.Theories;
@@ -377,7 +392,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Test method");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -410,7 +426,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Test with supported rule");
                 }
               }
-              """),
+              """
+          ),
           java(
             """
               import org.junit.Rule;
@@ -424,7 +441,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Test with unsupported rule");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -455,7 +473,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Test with another supported runner");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -478,7 +497,8 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
                   System.out.println("Hello, world!");
                 }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -501,6 +521,7 @@ class JUnit4ToJunit5PreconditionTest implements RewriteTest {
             /*~~>*/public class ExternalResourceRule {
                 @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
             }
-            """));
+            """
+          ));
     }
 }

@@ -27,10 +27,14 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.SearchResult;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+
+import static java.util.Collections.emptySet;
+import static java.util.stream.Collectors.toMap;
 
 /**
  * A search recipe that identifies JUnit 4 test classes migratable to JUnit 5 and marks them for
@@ -52,16 +56,19 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
     private static final String HAS_UNSUPPORTED_RUNNER = "hasUnsupportedRunner";
     private static final String HAS_CLASS_TYPE_SOURCE_ATTRIBUTE = "hasClassTypeSourceAttribute";
 
-    @Option(displayName = "Known migratable classes",
+    @Option(example = "TODO Provide a usage example for the docs", displayName = "Known migratable classes",
             description = "A list of classes which are migratable. These are the classes for which recipes already exist. In practical scenarios, these are parent test classes for which we already have JUnit 5 versions.")
     @Nullable Set<String> knownMigratableClasses;
-    @Option(displayName = "Supported rules",
+
+    @Option(example = "TODO Provide a usage example for the docs", displayName = "Supported rules",
             description = "Rules for which migration recipes exist.")
     @Nullable Set<String> supportedRules;
-    @Option(displayName = "Supported rule types",
+
+    @Option(example = "TODO Provide a usage example for the docs", displayName = "Supported rule types",
             description = "Recipe exist for rule types and all their inheriting rules (e.g., ExternalRules).")
     @Nullable Set<String> supportedRuleTypes;
-    @Option(displayName = "Supported runners",
+
+    @Option(example = "TODO Provide a usage example for the docs", displayName = "Supported runners",
             description = "Runners for which migration recipes exist.")
     @Nullable Set<String> supportedRunners;
 
@@ -72,9 +79,9 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
 
     @Override
     public String getDescription() {
-        return "Marks JUnit 4 test classes that can be migrated to JUnit 5 with current recipe "
-                + "capabilities, including detection of unsupported rules, runners, and @Parameters annotations with "
-                + "class-type source attributes.";
+        return "Marks JUnit 4 test classes that can be migrated to JUnit 5 with current recipe " +
+                "capabilities, including detection of unsupported rules, runners, and @Parameters annotations with " +
+                "class-type source attributes.";
     }
 
     @Override
@@ -107,9 +114,9 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
                 return classDecl;
             }
             String fullQualifiedClassName = classDecl.getType().getFullyQualifiedName();
-            return accumulator.isMigratable(fullQualifiedClassName)
-                    ? SearchResult.found(classDecl)
-                    : classDecl;
+            return accumulator.isMigratable(fullQualifiedClassName) ?
+                    SearchResult.found(classDecl) :
+                    classDecl;
         }
 
         boolean extendsSupportedJUnit4BaseTestClass(J.ClassDeclaration classDecl) {
@@ -186,9 +193,9 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
                                     Expression variable = assignment.getVariable();
                                     if (variable instanceof J.Identifier) {
                                         J.Identifier identifier = (J.Identifier) variable;
-                                        if ("source".equals(identifier.getSimpleName())
-                                                && assignment.getAssignment() instanceof J.FieldAccess
-                                                && "class".equals(((J.FieldAccess) assignment.getAssignment()).getSimpleName())) {
+                                        if ("source".equals(identifier.getSimpleName()) &&
+                                                assignment.getAssignment() instanceof J.FieldAccess &&
+                                                "class".equals(((J.FieldAccess) assignment.getAssignment()).getSimpleName())) {
                                             methodCursor.dropParentUntil(J.ClassDeclaration.class::isInstance)
                                                     .putMessage(HAS_CLASS_TYPE_SOURCE_ATTRIBUTE, true);
                                         }
@@ -201,9 +208,9 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
 
         private void flagUnsupportedRule(JavaType javaType) {
             JavaType.FullyQualified ruleType = TypeUtils.asFullyQualified(javaType);
-            if (ruleType != null
-                    && !emptySetIfNull(supportedRules).contains(ruleType.getFullyQualifiedName())
-                    && emptySetIfNull(supportedRuleTypes).stream().noneMatch(s -> TypeUtils.isAssignableTo(s, javaType))) {
+            if (ruleType != null &&
+                    !emptySetIfNull(supportedRules).contains(ruleType.getFullyQualifiedName()) &&
+                    emptySetIfNull(supportedRuleTypes).stream().noneMatch(s -> TypeUtils.isAssignableTo(s, javaType))) {
                 getCursor()
                         .dropParentUntil(J.ClassDeclaration.class::isInstance)
                         .putMessage(HAS_UNSUPPORTED_RULE, true);
@@ -232,9 +239,9 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
         }
 
         private boolean hasUnsupportedFeatures() {
-            return Boolean.TRUE.equals(getCursor().getMessage(HAS_UNSUPPORTED_RULE))
-                    || Boolean.TRUE.equals(getCursor().getMessage(HAS_UNSUPPORTED_RUNNER))
-                    || Boolean.TRUE.equals(getCursor().getMessage(HAS_CLASS_TYPE_SOURCE_ATTRIBUTE));
+            return Boolean.TRUE.equals(getCursor().getMessage(HAS_UNSUPPORTED_RULE)) ||
+                    Boolean.TRUE.equals(getCursor().getMessage(HAS_UNSUPPORTED_RUNNER)) ||
+                    Boolean.TRUE.equals(getCursor().getMessage(HAS_CLASS_TYPE_SOURCE_ATTRIBUTE));
         }
 
         private @Nullable String getParentClassName(J.ClassDeclaration classDecl) {
@@ -266,7 +273,7 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
 
         private final Map<String, String> classToParentMap = new HashMap<>();
         private final Map<String, Boolean> declaredMigratable = emptySetIfNull(knownMigratableClasses).stream()
-                .collect(Collectors.toMap(Function.identity(), key -> Boolean.TRUE));
+                .collect(toMap(Function.identity(), key -> Boolean.TRUE));
 
         /** Registers a class with its parent and whether it is migratable. */
         public void registerClass(String className, @Nullable String parentClassName, boolean isMigratable) {
@@ -301,6 +308,6 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
     }
 
     private static Set<String> emptySetIfNull(@Nullable Set<String> set) {
-        return set == null ? Collections.emptySet() : set;
+        return set == null ? emptySet() : set;
     }
 }
