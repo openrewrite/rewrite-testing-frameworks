@@ -39,17 +39,9 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @DocumentExample
-    void emptyTestClassWithExternalResourceRule() {
-              import io.grpc.testing.GrpcCleanupRule;
-
-              public class EmptyTestClassWithExternalResourceRule {
-                  @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
-              }
-              """,
-            """
-              import org.junit.Rule;
-              import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
-              public class EmptyTestClassWithExternalResourceRule {
+    @Test
+    void emptyTestClassWithExternalResourceSupport() {
+        rewriteRun(
           // language=java
           java(
             """
@@ -67,18 +59,26 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @Test
-    void emptyTestClassWithExternalResourceSupport() {
-              import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import io.grpc.testing.GrpcCleanupRule;
-              @ExtendWith(ExternalResourceSupport.class)
-              public class EmptyTestClassWithExternalResourceSupport {
-                  @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
     void emptyTestClassWithNonSupportedRule() {
+        rewriteRun(
+          // language=java
+          java(
             // no change expected since since ErrorCollector is not of type ExternalResource
+            """
+              import org.junit.Rule;
               import org.junit.rules.ErrorCollector;
+
               public class EmptyTestClassWithNonSupportedRule {
                   @Rule public final ErrorCollector errorCollector = new ErrorCollector();
+              }
+              """
+          ));
+    }
+
+    @Test
+    void emptyTestClassWithExternalResourceRule() {
+        rewriteRun(
+          // language=java
           java(
             """
               import org.junit.Rule;
@@ -130,7 +130,7 @@ class HandleExternalResourceRulesTest implements RewriteTest {
     }
 
     @Test
-    void classWithExternalResourceRuleAndExtendWithAnnotation() {
+    void testClassWithExternalResourceRuleAndExtendWithAnnotation() {
         rewriteRun(
           // language=java
           java(
