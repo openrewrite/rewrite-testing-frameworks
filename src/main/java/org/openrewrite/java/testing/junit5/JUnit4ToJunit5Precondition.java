@@ -151,7 +151,8 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
                 J.MethodDeclaration methodDecl, ExecutionContext ctx) {
             // Flag @Parameters annotations with class-type source attributes
             flagParametersAnnotationWithClassTypeSourceAttribute(methodDecl, ctx);
-            if (hasJunit4Rules(methodDecl) && methodDecl.getMethodType() != null) {
+            if (service(AnnotationService.class).matches(getCursor(), ANY_RULE_ANNOTATION_MATCHER) &&
+                    methodDecl.getMethodType() != null) {
                 flagUnsupportedRule(methodDecl.getMethodType().getReturnType());
             }
             return methodDecl;
@@ -160,10 +161,10 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
         @Override
         public J.VariableDeclarations visitVariableDeclarations(
                 J.VariableDeclarations variableDeclarations, ExecutionContext ctx) {
-            if (!hasJunit4Rules(variableDeclarations)) {
-                return variableDeclarations;
+            if (service(AnnotationService.class).matches(getCursor(), ANY_RULE_ANNOTATION_MATCHER)) {
+                return super.visitVariableDeclarations(variableDeclarations, ctx);
             }
-            return super.visitVariableDeclarations(variableDeclarations, ctx);
+            return variableDeclarations;
         }
 
         @Override
@@ -248,10 +249,6 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
             }
             return null;
         }
-
-        private boolean hasJunit4Rules(J j) {
-            return service(AnnotationService.class).matches(getCursor(), ANY_RULE_ANNOTATION_MATCHER);
-        }
     }
 
     /**
@@ -259,7 +256,7 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
      */
     public class MigratabilityAccumulator {
 
-        private final Map<String, String> classToParentMap = new HashMap<>();
+        private final Map<String, @Nullable String> classToParentMap = new HashMap<>();
         private final Map<String, Boolean> declaredMigratable = emptySetIfNull(knownMigratableClasses).stream()
                 .collect(toMap(Function.identity(), key -> Boolean.TRUE));
 
