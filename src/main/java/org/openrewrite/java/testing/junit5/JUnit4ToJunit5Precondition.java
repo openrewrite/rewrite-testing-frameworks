@@ -19,7 +19,9 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -30,7 +32,6 @@ import org.openrewrite.marker.SearchResult;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static java.util.Collections.emptySet;
@@ -52,6 +53,9 @@ import static java.util.stream.Collectors.toMap;
 @EqualsAndHashCode(callSuper = false)
 @Value
 public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Precondition.MigratabilityAccumulator> {
+
+    private static final AnnotationMatcher ANY_RULE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*Rule", true);
+
     private static final String HAS_UNSUPPORTED_RULE = "hasUnsupportedRule";
     private static final String HAS_UNSUPPORTED_RUNNER = "hasUnsupportedRunner";
     private static final String HAS_CLASS_TYPE_SOURCE_ATTRIBUTE = "hasClassTypeSourceAttribute";
@@ -85,7 +89,7 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
     @Override
     public String getDescription() {
         return "Marks JUnit 4 test classes that can be migrated to JUnit 5 with current recipe " +
-                "capabilities, including detection of unsupported rules, runners, and @Parameters annotations with " +
+                "capabilities, including detection of unsupported rules, runners, and `@Parameters` annotations with " +
                 "class-type source attributes.";
     }
 
@@ -101,28 +105,18 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(MigratabilityAccumulator acc) {
-        return new JUnit4ToJunit5PreconditionVisitor(acc);
-    }
-
-
-    private class JUnit4ToJunit5PreconditionVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final MigratabilityAccumulator accumulator;
-
-        private JUnit4ToJunit5PreconditionVisitor(MigratabilityAccumulator accumulator) {
-            this.accumulator = accumulator;
-        }
-
-        @Override
-        public J.ClassDeclaration visitClassDeclaration(
-                J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            if (classDecl.getType() == null) { // missing type attribution, possibly parsing error.
-                return classDecl;
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                if (classDecl.getType() == null) { // missing type attribution, possibly parsing error.
+                    return classDecl;
+                }
+                String fullQualifiedClassName = classDecl.getType().getFullyQualifiedName();
+                return acc.isMigratable(fullQualifiedClassName) ?
+                        SearchResult.found(classDecl) :
+                        classDecl;
             }
-            String fullQualifiedClassName = classDecl.getType().getFullyQualifiedName();
-            return accumulator.isMigratable(fullQualifiedClassName) ?
-                    SearchResult.found(classDecl) :
-                    classDecl;
-        }
+        };
     }
 
     /**
@@ -256,26 +250,22 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
         }
 
         private boolean hasJunit4Rules(J j) {
-            return matchRule(j, Junit4Utils.RULE) || matchRule(j, Junit4Utils.CLASS_RULE);
-        }
-
-        private boolean matchRule(J j, String rule) {
-            return new Annotated.Matcher(rule)
-                    .<AtomicBoolean>asVisitor((a, found) -> {
-                        found.set(true);
-                        return a.getTree();
-                    }).reduce(j, new AtomicBoolean(false)).get();
+            return service(AnnotationService.class).matches(getCursor(), ANY_RULE_ANNOTATION_MATCHER);
         }
     }
 
-    /** Accumulator to store migratability information of classes. */
+    /**
+     * Accumulator to store migratability information of classes.
+     */
     public class MigratabilityAccumulator {
 
         private final Map<String, String> classToParentMap = new HashMap<>();
         private final Map<String, Boolean> declaredMigratable = emptySetIfNull(knownMigratableClasses).stream()
                 .collect(toMap(Function.identity(), key -> Boolean.TRUE));
 
-        /** Registers a class with its parent and whether it is migratable. */
+        /**
+         * Registers a class with its parent and whether it is migratable.
+         */
         public void registerClass(String className, @Nullable String parentClassName, boolean isMigratable) {
             classToParentMap.put(className, parentClassName);
             if (isMigratable) {
@@ -293,7 +283,9 @@ public class JUnit4ToJunit5Precondition extends ScanningRecipe<JUnit4ToJunit5Pre
             }
         }
 
-        /** Returns true if the class and all of its ancestors are declared migratable. */
+        /**
+         * Returns true if the class and all of its ancestors are declared migratable.
+         */
         public boolean isMigratable(String className) {
             String currentClass = className;
             while (currentClass != null) {
