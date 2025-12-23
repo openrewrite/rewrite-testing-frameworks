@@ -20,11 +20,13 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
@@ -61,6 +63,11 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                     }
                 }
                 """
+            ))
+          .parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-jupiter-api-5",
+              "mockito-core-5"
             ))
           // Known limitation with: /*~~(Identifier type is missing or malformed)~~>*/A
           .afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build())
@@ -1784,6 +1791,57 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
                   void test1() { x.thenReturn(2); }
                   void test2() { x.thenReturn(3); }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldNotModifyKotlinFilesUsingMockitoWhen() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.all().methodInvocations(false)),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.`when`
+              import org.mockito.Mockito.mock
+
+              class MyTest {
+                  @Test
+                  fun testSomething() {
+                      val mockList = mock(MutableList::class.java)
+                      `when`(mockList.size).thenReturn(100)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRefactorKotlinMockitoWhenOnStaticMethod() {
+        rewriteRun(
+          spec -> spec
+            .typeValidationOptions(TypeValidation.all().methodInvocations(false)),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.MockedStatic
+              import org.mockito.Mockito.mock
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      val calendarMock: Calendar = mock(Calendar::class.java)
+                      mockStatic(Calendar::class.java).use { mockA1 ->
+                          mockA1.`when`<Calendar>(Calendar::getInstance).thenReturn(calendarMock)
+                      }
+                  }
               }
               """
           )

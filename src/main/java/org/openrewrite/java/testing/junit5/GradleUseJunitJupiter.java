@@ -263,12 +263,7 @@ public class GradleUseJunitJupiter extends Recipe {
             return Optional.empty();
         }
         if (sourceFile instanceof ParseError) {
-            ParseError parseError = (ParseError) sourceFile;
-            throw new IllegalStateException(
-                    "Failed to parse Groovy snippet for useJUnitPlatform(). " +
-                    "Snippet: [" + groovySnippet.replace("\n", "\\n") + "]",
-                    parseError.toException()
-            );
+            throw ((ParseError) sourceFile).toException();
         }
         G.CompilationUnit cu = (G.CompilationUnit) sourceFile;
         return Optional.of((J.MethodInvocation) cu.getStatements().get(1));
