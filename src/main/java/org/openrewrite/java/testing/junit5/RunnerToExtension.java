@@ -102,8 +102,8 @@ public class RunnerToExtension extends Recipe {
                                 extensionType.getClassName()
                         );
                         maybeRemoveImport("org.junit.runner.RunWith");
-                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                         maybeRemoveImport(runner);
+                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                         maybeAddImport(extension);
                     }
                 }
@@ -123,8 +123,8 @@ public class RunnerToExtension extends Recipe {
                                 extensionType.getClassName()
                         );
                         maybeRemoveImport("org.junit.runner.RunWith");
-                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                         maybeRemoveImport(runner);
+                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                         maybeAddImport(extension);
                     }
                 }

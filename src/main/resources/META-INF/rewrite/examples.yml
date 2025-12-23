@@ -2752,6 +2752,30 @@ examples:
     language: groovy
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.HandleExternalResourceRules
+examples:
+- description: '`HandleExternalResourceRulesTest#emptyTestClassWithExternalResourceRule`'
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import io.grpc.testing.GrpcCleanupRule;
+
+      public class EmptyTestClassWithExternalResourceRule {
+          @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
+      }
+    after: |
+      import org.junit.Rule;
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
+      import io.grpc.testing.GrpcCleanupRule;
+
+      @ExtendWith(ExternalResourceSupport.class)
+      public class EmptyTestClassWithExternalResourceRule {
+          @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.JUnit4to5Migration
 examples:
 - description: '`EnclosedToNestedTest#oneInnerClass`'
