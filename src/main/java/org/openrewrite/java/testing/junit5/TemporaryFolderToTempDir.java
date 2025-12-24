@@ -73,10 +73,10 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
                     "org.junit.rules.TemporaryFolder", "java.io.File", true).getVisitor()
                     .visit(c, ctx);
             maybeRemoveImport("org.junit.ClassRule");
-            maybeAddImport("java.io.File");
             maybeRemoveImport("org.junit.Rule");
-            maybeAddImport("java.nio.file.Files");
+            maybeAddImport("java.io.File");
             maybeRemoveImport("org.junit.rules.TemporaryFolder");
+            maybeAddImport("java.nio.file.Files");
             maybeAddImport("org.junit.jupiter.api.io.TempDir");
         }
         return c;

@@ -4690,25 +4690,6 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.search.FindUnitTests
-examples:
-- description: '`FindUnitTestsTest#dataTable`'
-  sources:
-  - before: |
-      import foo.Foo;
-      import org.junit.jupiter.api.Test;
-
-      public class FooTest {
-         @Test
-         public void test() {
-             Foo foo = new Foo();
-             foo.bar();
-             foo.baz();
-         }
-      }
-    language: java
----
-type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.testcontainers.AddTestcontainersAnnotations
 examples:
 - description: '`AddTestcontainersAnnotationsTest#convertsSingleGenericContainerRule`'
@@ -4774,6 +4755,25 @@ examples:
           String method(ContainerState container) {
               return container.getHost();
           }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.Testcontainers2ContainerClasses
+examples:
+- description: '`ConvertToRawTypeTest#variableDeclaration`'
+  sources:
+  - before: |
+      import org.testcontainers.containers.NginxContainer;
+
+      class Foo {
+          NginxContainer<?> container = new NginxContainer<>();
+      }
+    after: |
+      import org.testcontainers.nginx.NginxContainer;
+
+      class Foo {
+          NginxContainer container = new NginxContainer();
       }
     language: java
 ---
