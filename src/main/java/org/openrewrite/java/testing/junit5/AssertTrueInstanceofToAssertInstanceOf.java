@@ -29,7 +29,7 @@ import org.openrewrite.java.tree.TypedTree;
 public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
     @Override
     public String getDisplayName() {
-        return "assertTrue(x instanceof y) to assertInstanceOf(y.class, x)";
+        return "`assertTrue(x instanceof y)` to `assertInstanceOf(y.class, x)`";
     }
 
     @Override
