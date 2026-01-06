@@ -3986,61 +3986,6 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.Mockito1to3Migration
 examples:
-- description: '`MockitoMatchersToArgumentMatchersTest#mockitoAnyListOfToListOf`'
-  sources:
-  - before: |
-      package mockito.example;
-
-      import java.util.List;
-      import java.util.Map;
-      import java.util.Set;
-
-      import static org.mockito.ArgumentMatchers.anyListOf;
-      import static org.mockito.ArgumentMatchers.anySetOf;
-      import static org.mockito.ArgumentMatchers.anyMapOf;
-      import static org.mockito.Mockito.mock;
-      import static org.mockito.Mockito.when;
-
-      public class MockitoVarargMatcherTest {
-          public static class Foo {
-              public boolean addList(List<String> strings) { return true; }
-              public boolean addSet(Set<String> strings) { return true; }
-              public boolean addMap(Map<String, String> stringStringMap) { return true; }
-          }
-          public void usesVarargMatcher() {
-              Foo mockFoo = mock(Foo.class);
-              when(mockFoo.addList(anyListOf(String.class))).thenReturn(true);
-              when(mockFoo.addSet(anySetOf(String.class))).thenReturn(true);
-              when(mockFoo.addMap(anyMapOf(String.class, String.class))).thenReturn(true);
-          }
-      }
-    after: |
-      package mockito.example;
-
-      import java.util.List;
-      import java.util.Map;
-      import java.util.Set;
-
-      import static org.mockito.ArgumentMatchers.anyList;
-      import static org.mockito.ArgumentMatchers.anySet;
-      import static org.mockito.ArgumentMatchers.anyMap;
-      import static org.mockito.Mockito.mock;
-      import static org.mockito.Mockito.when;
-
-      public class MockitoVarargMatcherTest {
-          public static class Foo {
-              public boolean addList(List<String> strings) { return true; }
-              public boolean addSet(Set<String> strings) { return true; }
-              public boolean addMap(Map<String, String> stringStringMap) { return true; }
-          }
-          public void usesVarargMatcher() {
-              Foo mockFoo = mock(Foo.class);
-              when(mockFoo.addList(anyList())).thenReturn(true);
-              when(mockFoo.addSet(anySet())).thenReturn(true);
-              when(mockFoo.addMap(anyMap())).thenReturn(true);
-          }
-      }
-    language: java
 - description: '`Mockito1to3MigrationTest#migrateSomeMethodsAndDependencies`'
   sources:
   - before: |
@@ -4179,6 +4124,61 @@ examples:
       </project>
     path: pom.xml
     language: xml
+- description: '`MockitoMatchersToArgumentMatchersTest#mockitoAnyListOfToListOf`'
+  sources:
+  - before: |
+      package mockito.example;
+
+      import java.util.List;
+      import java.util.Map;
+      import java.util.Set;
+
+      import static org.mockito.ArgumentMatchers.anyListOf;
+      import static org.mockito.ArgumentMatchers.anySetOf;
+      import static org.mockito.ArgumentMatchers.anyMapOf;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      public class MockitoVarargMatcherTest {
+          public static class Foo {
+              public boolean addList(List<String> strings) { return true; }
+              public boolean addSet(Set<String> strings) { return true; }
+              public boolean addMap(Map<String, String> stringStringMap) { return true; }
+          }
+          public void usesVarargMatcher() {
+              Foo mockFoo = mock(Foo.class);
+              when(mockFoo.addList(anyListOf(String.class))).thenReturn(true);
+              when(mockFoo.addSet(anySetOf(String.class))).thenReturn(true);
+              when(mockFoo.addMap(anyMapOf(String.class, String.class))).thenReturn(true);
+          }
+      }
+    after: |
+      package mockito.example;
+
+      import java.util.List;
+      import java.util.Map;
+      import java.util.Set;
+
+      import static org.mockito.ArgumentMatchers.anyList;
+      import static org.mockito.ArgumentMatchers.anySet;
+      import static org.mockito.ArgumentMatchers.anyMap;
+      import static org.mockito.Mockito.mock;
+      import static org.mockito.Mockito.when;
+
+      public class MockitoVarargMatcherTest {
+          public static class Foo {
+              public boolean addList(List<String> strings) { return true; }
+              public boolean addSet(Set<String> strings) { return true; }
+              public boolean addMap(Map<String, String> stringStringMap) { return true; }
+          }
+          public void usesVarargMatcher() {
+              Foo mockFoo = mock(Foo.class);
+              when(mockFoo.addList(anyList())).thenReturn(true);
+              when(mockFoo.addSet(anySet())).thenReturn(true);
+              when(mockFoo.addMap(anyMap())).thenReturn(true);
+          }
+      }
+    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.Mockito1to4Migration
@@ -4238,25 +4238,6 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.Mockito1to5Migration
 examples:
-- description: '`MockitoInlineToCoreTest#inlineToCore`'
-  sources:
-  - before: |
-      <project>
-        <modelVersion>4.0.0</modelVersion>
-        <groupId>com.example</groupId>
-        <artifactId>demo</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
-        <dependencies>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-inline</artifactId>
-                <version>3.11.2</version>
-                <scope>test</scope>
-            </dependency>
-        </dependencies>
-      </project>
-    path: pom.xml
-    language: xml
 - description: '`Mockito1to5MigrationTest#modifyMockitoDependencies`'
   sources:
   - before: |
@@ -4292,6 +4273,25 @@ examples:
           }
       }
     language: java
+- description: '`MockitoInlineToCoreTest#inlineToCore`'
+  sources:
+  - before: |
+      <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <version>3.11.2</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.MockitoBestPractices
@@ -4780,27 +4780,6 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.truth.MigrateTruthToAssertJ
 examples:
-- description: '`TruthThrowableAssertionsTest#hasMessageThatContains`'
-  sources:
-  - before: |
-      import static com.google.common.truth.Truth.assertThat;
-
-      class Test {
-          void test() {
-              Exception e = new IllegalArgumentException("Invalid argument provided");
-              assertThat(e).hasMessageThat().contains("Invalid");
-          }
-      }
-    after: |
-      import static org.assertj.core.api.Assertions.assertThat;
-
-      class Test {
-          void test() {
-              Exception e = new IllegalArgumentException("Invalid argument provided");
-              assertThat(e).hasMessageContaining("Invalid");
-          }
-      }
-    language: java
 - description: '`MigrateTruthToAssertJTest#basicAssertThatConversion`'
   sources:
   - before: |
@@ -4825,6 +4804,27 @@ examples:
               assertThat(actual).isNotEqualTo("world");
               assertThat(actual).isNotNull();
               assertThat(actual).contains("ell");
+          }
+      }
+    language: java
+- description: '`TruthThrowableAssertionsTest#hasMessageThatContains`'
+  sources:
+  - before: |
+      import static com.google.common.truth.Truth.assertThat;
+
+      class Test {
+          void test() {
+              Exception e = new IllegalArgumentException("Invalid argument provided");
+              assertThat(e).hasMessageThat().contains("Invalid");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test() {
+              Exception e = new IllegalArgumentException("Invalid argument provided");
+              assertThat(e).hasMessageContaining("Invalid");
           }
       }
     language: java
