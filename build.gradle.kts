@@ -33,6 +33,7 @@ recipeDependencies {
     parserClasspath("org.mockito:mockito-junit-jupiter:2.+")
     parserClasspath("org.mockito:mockito-junit-jupiter:3.+")
     parserClasspath("org.mockito:mockito-junit-jupiter:5.+")
+    parserClasspath("org.opentest4j:opentest4j:1.+")
     parserClasspath("org.powermock:powermock-api-mockito:1.6.5")
     parserClasspath("org.powermock:powermock-api-support:1.6.5")
     parserClasspath("org.powermock:powermock-core:1.6.5")
