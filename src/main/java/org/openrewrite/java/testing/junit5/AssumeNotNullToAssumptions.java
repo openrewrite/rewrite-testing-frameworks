@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 
 @RecipeDescriptor(
         name = "Transform `Assume` methods to `Assumptions`",
-        description = "Transform `Assume` methods to without a direct counterpart to equivalent assumptions in `Assumptions`.")
+        description = "Transform `Assume` methods without a direct counterpart to equivalent assumptions in `Assumptions`.")
 public class AssumeNotNullToAssumptions {
 
     @RecipeDescriptor(
