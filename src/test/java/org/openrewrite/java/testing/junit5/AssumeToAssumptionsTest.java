@@ -34,7 +34,7 @@ class AssumeToAssumptionsTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3"));
     }
 
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/54")
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/886")
     @Test
     void assumeToAssumptions() {
         rewriteRun(
@@ -59,6 +59,70 @@ class AssumeToAssumptionsTest implements RewriteTest {
               class Test {
                   void test() {
                       Assumptions.assumeTrue(true, "One is one");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/886")
+    @Test
+    void assumeNotNullToAssumption() {
+        rewriteRun(
+          spec -> spec.recipe(Environment.builder()
+            .scanRuntimeClasspath("org.openrewrite.java.testing")
+            .build()
+            .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices")),
+          //language=java
+          java(
+            """
+              import org.junit.Assume;
+
+              class Test {
+                  void test() {
+                      Assume.assumeNotNull(new Object());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assumptions;
+
+              class Test {
+                  void test() {
+                      Assumptions.assumeTrue(null != new Object());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/886")
+    @Test
+    void assumeNotNullToAssumptionVariadic() {
+        rewriteRun(
+          spec -> spec.recipe(Environment.builder()
+            .scanRuntimeClasspath("org.openrewrite.java.testing")
+            .build()
+            .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices")),
+          //language=java
+          java(
+            """
+              import org.junit.Assume;
+
+              class Test {
+                  void test() {
+                      Assume.assumeNotNull(new Object(), new Object());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assumptions;
+
+              class Test {
+                  void test() {
+                      Arrays.stream(new Object[] {new Object(), new Object()}).forEach(o -> Assumptions.assumeTrue(null != o));
                   }
               }
               """
