@@ -16,9 +16,8 @@
 
 package org.openrewrite.java.testing.mockito;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -26,6 +25,12 @@ import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.FindTypes;
 import org.openrewrite.java.search.IsLikelyTest;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
+import org.openrewrite.kotlin.KotlinIsoVisitor;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
+import org.openrewrite.kotlin.table.KotlinSourceFile;
+import org.openrewrite.kotlin.tree.K;
 
 import static java.util.Comparator.comparing;
 import static org.openrewrite.Preconditions.*;
@@ -60,20 +65,50 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
                         // prevent addition if present
                         not(hasExtendedWithAnnotation),
                         or(hasAnyMockitoAnnotation)),
-                new JavaIsoVisitor<ExecutionContext>() {
+                new TreeVisitor<Tree, ExecutionContext>() {
                     @Override
-                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-
-                        maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
-                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
-
-                        return JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
-                                .imports("org.mockito.junit.jupiter.MockitoExtension")
-                                .imports("org.junit.jupiter.api.extension.ExtendWith")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api", "mockito-junit-jupiter"))
-                                .build()
-                                .apply(getCursor(), classDecl.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
+                    public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx, Cursor parent) {
+                        if (tree instanceof J.CompilationUnit) {
+                            return getJavaVisitor().visit(tree, ctx);
+                        } else if (tree instanceof K.CompilationUnit) {
+                            return getKotlinVisitor().visit(tree, ctx);
+                        }
+                        return super.visit(tree, ctx, parent);
                     }
                 });
+    }
+
+    private JavaIsoVisitor<ExecutionContext> getJavaVisitor() {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
+                maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
+
+                return JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
+                        .imports("org.mockito.junit.jupiter.MockitoExtension")
+                        .imports("org.junit.jupiter.api.extension.ExtendWith")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api", "mockito-junit-jupiter"))
+                        .build()
+                        .apply(getCursor(), classDecl.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
+            }
+        };
+    }
+
+    private KotlinIsoVisitor<ExecutionContext> getKotlinVisitor() {
+        return new KotlinIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
+                maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
+
+                return KotlinTemplate.builder("@ExtendWith(MockitoExtension::class)")
+                        .imports("org.mockito.junit.jupiter.MockitoExtension")
+                        .imports("org.junit.jupiter.api.extension.ExtendWith")
+                        .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api", "mockito-junit-jupiter"))
+                        .build()
+                        .apply(getCursor(), classDecl.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
+            }
+        };
     }
 }
