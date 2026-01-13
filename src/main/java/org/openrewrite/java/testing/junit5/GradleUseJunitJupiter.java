@@ -43,17 +43,11 @@ import static org.openrewrite.internal.ListUtils.concat;
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class GradleUseJunitJupiter extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Gradle `Test` use JUnit Jupiter";
-    }
+    String displayName = "Gradle `Test` use JUnit Jupiter";
 
-    @Override
-    public String getDescription() {
-        return "By default Gradle's `Test` tasks use JUnit 4. " +
+    String description = "By default Gradle's `Test` tasks use JUnit 4. " +
                 "Gradle `Test` tasks must be configured with `useJUnitPlatform()` to run JUnit Jupiter tests. " +
                 "This recipe adds the `useJUnitPlatform()` method call to the `Test` task configuration.";
-    }
 
     private static final String USE_JUNIT_PLATFORM_PATTERN = "org.gradle.api.tasks.testing.Test useJUnitPlatform()";
     private static final MethodMatcher USE_JUNIT_PLATFORM_MATCHER = new MethodMatcher(USE_JUNIT_PLATFORM_PATTERN);

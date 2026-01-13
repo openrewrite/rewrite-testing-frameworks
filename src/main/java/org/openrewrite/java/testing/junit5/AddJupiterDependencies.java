@@ -34,17 +34,11 @@ import java.util.Optional;
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class AddJupiterDependencies extends ScanningRecipe<AddDependency.Accumulator> {
-    @Override
-    public String getDisplayName() {
-        return "Add JUnit Jupiter dependencies";
-    }
+    String displayName = "Add JUnit Jupiter dependencies";
 
-    @Override
-    public String getDescription() {
-        return "Adds JUnit Jupiter dependencies to a Maven or Gradle project. " +
+    String description = "Adds JUnit Jupiter dependencies to a Maven or Gradle project. " +
                "JUnit Jupiter can be added either with the artifact `junit-jupiter`, or both of `junit-jupiter-api` and `junit-jupiter-engine`. " +
                "This adds `junit-jupiter` dependency unless `junit-jupiter-api` or `junit-jupiter-engine` are already present.";
-    }
 
     @Override
     public AddDependency.Accumulator getInitialValue(ExecutionContext ctx) {
