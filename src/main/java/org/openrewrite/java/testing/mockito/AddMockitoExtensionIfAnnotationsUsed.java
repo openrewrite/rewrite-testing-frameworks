@@ -68,12 +68,13 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
                 new TreeVisitor<Tree, ExecutionContext>() {
                     @Override
                     public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx, Cursor parent) {
+                        Tree t = tree;
                         if (tree instanceof J.CompilationUnit) {
-                            return getJavaVisitor().visit(tree, ctx);
+                            t = getJavaVisitor().visit(tree, ctx);
                         } else if (tree instanceof K.CompilationUnit) {
-                            return getKotlinVisitor().visit(tree, ctx);
+                            t = getKotlinVisitor().visit(tree, ctx);
                         }
-                        return super.visit(tree, ctx, parent);
+                        return super.visit(t, ctx, parent);
                     }
                 });
     }
