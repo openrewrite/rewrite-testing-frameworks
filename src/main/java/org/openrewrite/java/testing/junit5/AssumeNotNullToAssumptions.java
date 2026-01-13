@@ -48,26 +48,11 @@ public class AssumeNotNullToAssumptions {
     }
 
     @RecipeDescriptor(
-            name = "Transform two-argument `assumeNotNull` to a stream of `assumeFalse(object == null)`",
-            description = "Transform `Assume.assumeNotNull(object1, object2)` to `Stream.of(object1, object2).forEach(o -> Assumptions.assumeFalse(o == null))`.")
-    static class TwoArgs {
-        @BeforeTemplate
-        void before(Object object1, String object2) {
-            Assume.assumeNotNull(object1, object2);
-        }
-
-        @AfterTemplate
-        void after(Object object1, String object2) {
-            Stream.of(object1, object2).forEach(o -> Assumptions.assumeFalse(o == null));
-        }
-    }
-
-    @RecipeDescriptor(
             name = "Transform variadic `assumeNotNull(objects...)` to a stream of `assumeFalse(object == null)`",
             description = "Transform `Assume.assumeNotNull(objects...)` to `Stream.of(object1, object2).forEach(o -> Assumptions.assumeFalse(o == null))`.")
     static class VarArgs {
         @BeforeTemplate
-        void before(Object objects) {
+        void before(Object[] objects) {
             Assume.assumeNotNull(objects);
         }
 
