@@ -180,6 +180,7 @@ recipeList:
       newParameterNames:
         - assumption
         - message
+  - org.openrewrite.java.testing.junit5.AssumeNotNullToAssumptionsRecipes
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junit.Assume
       newFullyQualifiedTypeName: org.junit.jupiter.api.Assumptions
