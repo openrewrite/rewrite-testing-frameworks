@@ -16,6 +16,7 @@
 
 package org.openrewrite.java.testing.mockito;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -67,14 +68,15 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
                         or(hasAnyMockitoAnnotation)),
                 new TreeVisitor<Tree, ExecutionContext>() {
                     @Override
-                    public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx, Cursor parent) {
-                        Tree t = tree;
+                    public @Nullable Tree preVisit(Tree tree, ExecutionContext ctx) {
+                        stopAfterPreVisit();
                         if (tree instanceof J.CompilationUnit) {
-                            t = getJavaVisitor().visit(tree, ctx);
-                        } else if (tree instanceof K.CompilationUnit) {
-                            t = getKotlinVisitor().visit(tree, ctx);
+                            return getJavaVisitor().visit(tree, ctx);
                         }
-                        return super.visit(t, ctx, parent);
+                        if (tree instanceof K.CompilationUnit) {
+                            return getKotlinVisitor().visit(tree, ctx);
+                        }
+                        return tree;
                     }
                 });
     }
