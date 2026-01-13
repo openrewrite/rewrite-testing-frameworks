@@ -34,15 +34,9 @@ public class ConvertToRawType extends Recipe {
             example = "org.testcontainers.containers.PostgreSQLContainer")
     String fullyQualifiedTypeName;
 
-    @Override
-    public String getDisplayName() {
-        return "Remove parameterized type arguments from a Java class";
-    }
+    String displayName = "Remove parameterized type arguments from a Java class";
 
-    @Override
-    public String getDescription() {
-        return "Convert parameterized types of a specified Java class to their raw types.";
-    }
+    String description = "Convert parameterized types of a specified Java class to their raw types.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

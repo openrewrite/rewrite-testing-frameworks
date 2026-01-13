@@ -34,15 +34,9 @@ public class EnclosedToNested extends Recipe {
     private static final String RUN_WITH = "org.junit.runner.RunWith";
     private static final String RUN_WITH_ENCLOSED = String.format("@%s(%s.class)", RUN_WITH, ENCLOSED);
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit 4 `@RunWith(Enclosed.class)` to JUnit Jupiter `@Nested`";
-    }
+    String displayName = "JUnit 4 `@RunWith(Enclosed.class)` to JUnit Jupiter `@Nested`";
 
-    @Override
-    public String getDescription() {
-        return "Removes the `Enclosed` specification from a class, with `Nested` added to its inner classes by `AddMissingNested`.";
-    }
+    String description = "Removes the `Enclosed` specification from a class, with `Nested` added to its inner classes by `AddMissingNested`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

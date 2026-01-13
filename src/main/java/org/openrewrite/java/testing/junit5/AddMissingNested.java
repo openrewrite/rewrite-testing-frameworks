@@ -53,15 +53,9 @@ public class AddMissingNested extends Recipe {
     private static final TreeVisitor<?, ExecutionContext> PRECONDITION =
             Preconditions.or(TEST_ANNOTATIONS.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new));
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit 5 inner test classes should be annotated with `@Nested`";
-    }
+    String displayName = "JUnit 5 inner test classes should be annotated with `@Nested`";
 
-    @Override
-    public String getDescription() {
-        return "Adds `@Nested` to inner classes that contain JUnit 5 tests.";
-    }
+    String description = "Adds `@Nested` to inner classes that contain JUnit 5 tests.";
 
     @Override
     public Duration getEstimatedEffortPerOccurrence() {

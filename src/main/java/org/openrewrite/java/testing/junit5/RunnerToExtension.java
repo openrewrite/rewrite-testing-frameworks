@@ -53,15 +53,9 @@ public class RunnerToExtension extends Recipe {
         this.extension = extension;
     }
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit 4 `@RunWith` to JUnit Jupiter `@ExtendWith`";
-    }
+    String displayName = "JUnit 4 `@RunWith` to JUnit Jupiter `@ExtendWith`";
 
-    @Override
-    public String getDescription() {
-        return "Replace runners with the JUnit Jupiter extension equivalent.";
-    }
+    String description = "Replace runners with the JUnit Jupiter extension equivalent.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
