@@ -223,4 +223,43 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               """
           ));
     }
+
+    @Test
+    void customType() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Foo {}
+              """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              class ATest {
+                  @Test
+                  void test() {
+                      Object obj = new Foo();
+                      assertTrue(obj instanceof Foo);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+              class ATest {
+                  @Test
+                  void test() {
+                      Object obj = new Foo();
+                      assertInstanceOf(Foo.class, obj);
+                  }
+              }
+              """
+          ));
+    }
 }

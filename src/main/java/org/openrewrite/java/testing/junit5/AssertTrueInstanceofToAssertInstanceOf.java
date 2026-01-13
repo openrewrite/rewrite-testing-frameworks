@@ -98,15 +98,13 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                     .builder("assertInstanceOf(#{any(java.lang.Object)}.class, #{any(java.lang.Object)}" + (reason != null ? ", #{any(java.lang.String)})" : ")"))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-4"))
                     .staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf")
-                    .imports(String.valueOf(clazz.getType()))
                     .build();
 
+                maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
                 J rawClazz = clazz instanceof J.ParameterizedType ? ((J.ParameterizedType) clazz).getClazz() : clazz;
-                J.MethodInvocation methodd = reason != null ?
+                return reason != null ?
                     template.apply(getCursor(), mi.getCoordinates().replace(), rawClazz, expression, reason) :
                     template.apply(getCursor(), mi.getCoordinates().replace(), rawClazz, expression);
-                maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
-                return methodd;
             }
         };
     }
