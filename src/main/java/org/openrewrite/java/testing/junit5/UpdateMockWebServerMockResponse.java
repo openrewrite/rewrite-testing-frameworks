@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -28,22 +29,11 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.style.IntelliJ;
-import org.openrewrite.java.style.WrappingAndBracesStyle;
 import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JContainer;
-import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
-import org.openrewrite.marker.Markers;
-import org.openrewrite.style.LineWrapSetting;
-import org.openrewrite.style.NamedStyles;
-import org.openrewrite.style.Style;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -53,29 +43,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
-import static org.openrewrite.Tree.randomId;
-import static org.openrewrite.java.tree.JavaType.ShallowClass.build;
 
 public class UpdateMockWebServerMockResponse extends Recipe {
     private static final String OLD_PACKAGE_NAME = "okhttp3.mockwebserver";
     private static final String NEW_PACKAGE_NAME = "mockwebserver3";
     private static final String OLD_MOCKRESPONSE_FQN = OLD_PACKAGE_NAME + ".MockResponse";
     private static final String OLD_MOCKRESPONSE_CONSTRUCTOR = OLD_MOCKRESPONSE_FQN + " <constructor>()";
-    private static final String OLD_MOCKRESPONSE_STATUS = OLD_MOCKRESPONSE_FQN + " status(java.lang.String)";
-    private static final String OLD_MOCKRESPONSE_SETSTATUS = OLD_MOCKRESPONSE_FQN + " setStatus(java.lang.String)";
-    private static final String OLD_MOCKRESPONSE_HEADERS = OLD_MOCKRESPONSE_FQN + " headers(okhttp3.Headers)";
-    private static final String OLD_MOCKRESPONSE_SETHEADERS = OLD_MOCKRESPONSE_FQN + " setHeaders(okhttp3.Headers)";
     private static final String NEW_MOCKRESPONSE_FQN = NEW_PACKAGE_NAME + ".MockResponse";
-    // TODO: Rename this given this actually includes '$'
     private static final String NEW_MOCKRESPONSE_FQN_BUILDER = NEW_MOCKRESPONSE_FQN + "$Builder";
-    private static final String NEW_MOCKRESPONSE_BUILDER_FQN = NEW_MOCKRESPONSE_FQN + ".Builder";
-    private static final String OLD_MOCKWEBSERVER_FQN = OLD_PACKAGE_NAME + ".MockWebServer";
-    private static final String NEW_MOCKWEBSERVER_FQN = NEW_PACKAGE_NAME + ".MockWebServer";
 
     private static final JavaType.FullyQualified newMockResponseBuilderType = (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN_BUILDER);
     private static final JavaType.FullyQualified newMockResponseType = (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN);
@@ -135,7 +112,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
             new MethodInvocationReplacement("setThrottleBody(java.lang.Long, java.lang.Long, java.util.concurrent.TimeUnit)", "throttleBody"),
             new MethodInvocationReplacement("setTrailers(okhttp3.Headers)", "trailers")
     );
-
 
     @Override
     public String getDisplayName() {
@@ -210,191 +186,42 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                         false
                 ).getVisitor().visit(j, ctx);
                 j = new JavaIsoVisitor<ExecutionContext>() {
-                    private final MethodMatcher TO_ADJUST_MOCKRESPONSE_BUILDER_STATUS_MATCHER = new MethodMatcher(NEW_MOCKRESPONSE_FQN_BUILDER + " status(java.lang.String)");
-                    private final MethodMatcher TO_ADJUST_MOCKRESPONSE_BUILDER_SETSTATUS_MATCHER = new MethodMatcher(NEW_MOCKRESPONSE_FQN_BUILDER + " setStatus(java.lang.String)");
-                    private final MethodMatcher TO_ADJUST_MOCKRESPONSE_BUILDER_HEADERS_MATCHER = new MethodMatcher(NEW_MOCKRESPONSE_FQN_BUILDER + " headers(okhttp3.Headers)");
-                    private final MethodMatcher TO_ADJUST_MOCKRESPONSE_BUILDER_SETHEADERS_MATCHER = new MethodMatcher(NEW_MOCKRESPONSE_FQN_BUILDER + " setHeaders(okhttp3.Headers)");
-
-                    private boolean returnsVoid(J.MethodInvocation method) {
-                        return method.getMethodType() != null && TypeUtils.isAssignableTo(JavaType.Primitive.Void, method.getMethodType().getReturnType());
-                    }
-
-                    private J.MethodInvocation patchReturnTypeAndName(J.MethodInvocation method, JavaType.FullyQualified newDeclaringType, JavaType newReturnType, String newName) {
-                        assert method.getMethodType() != null;
-                        J.MethodInvocation updated = method.withMethodType(
-                                method.getMethodType()
-                                        .withDeclaringType(newDeclaringType)
-                                        .withReturnType(newReturnType)
-                                        .withName(newName)
-                        );
-                        return updated.withName(
-                                updated.getName()
-                                        .withSimpleName(newName)
-                                        .withType(updated.getMethodType())
-                        );
-                    }
 
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                        final J.MethodInvocation mi =  super.visitMethodInvocation(method, ctx);
-                        J.MethodInvocation replacementMi = methodInvocationReplacements.stream()
-                                .filter(replacement -> replacement.matches(mi))
+                        final J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+
+                        // Handle method name replacements
+                        J.MethodInvocation replacement = methodInvocationReplacements.stream()
+                                .filter(invocationReplacement -> invocationReplacement.matches(mi))
                                 .findFirst()
-                                .map(replacement -> replacement.patchReturnTypeAndName(mi))
+                                .map(invocationReplacement -> invocationReplacement.patchReturnTypeAndName(mi))
                                 .orElse(mi);
-                        if (mi != replacementMi) {
-                            return replacementMi;
+
+                        if (replacement != mi) {
+                            return replacement;
                         }
 
-                        List<Integer> indexes = methodInvocationsToAdjust.remove(mi.getId());
-                        if (indexes != null && !indexes.isEmpty()) {
-                            List<JRightPadded<Expression>> oldPaddedArgs = mi.getPadding().getArguments().getPadding().getElements();
-                            assert mi.getMethodType() != null;
-                            replacementMi = mi.withArguments(ListUtils.map(mi.getArguments(), (index, expr) -> {
-                                if (indexes.contains(index)) {
-                                    return patchReturnTypeAndName(new J.MethodInvocation(
-                                            randomId(),
-                                            Space.EMPTY,
-                                            Markers.EMPTY,
-                                            JRightPadded.build(expr),
-                                            null,
-                                            new J.Identifier(
-                                                    randomId(),
-                                                    Space.EMPTY,
-                                                    Markers.EMPTY,
-                                                    emptyList(),
-                                                    "build",
-                                                    null,
-                                                    null
-                                            ),
-                                            JContainer.empty(),
-                                            new JavaType.Method(
-                                                    null,
-                                                    Flag.Public.getBitMask() | Flag.Final.getBitMask(),
-                                                    newMockResponseBuilderType,
-                                                    "build",
-                                                    newMockResponseType,
-                                                    (List<String>) null,
-                                                    null,
-                                                    null,
-                                                    null,
-                                                    null,
-                                                    null
-                                            )
-                                    ), newMockResponseBuilderType, newMockResponseType, "build");
-                                }
-                                return expr;
-                            }));
-                            replacementMi = mi.withMethodType(mi.getMethodType().withParameterTypes(ListUtils.map(mi.getMethodType().getParameterTypes(), (index, type) -> {
-                                if (indexes.contains(index)) {
-                                    return newMockResponseType;
-                                }
-                                return type;
-                            })));
-                        }
-                        return replacementMi;
-                    }
-                }.visit(j, ctx);
-                // TODO: harvest padding logic from below and then get rid of rest
-                new JavaIsoVisitor<ExecutionContext>() {
-                    @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInv, ExecutionContext ctx) {
-                        J.MethodInvocation mi = super.visitMethodInvocation(methodInv, ctx);
-                        List<Integer> indexes = methodInvocationsToAdjust.remove(mi.getId());
-                        if (indexes != null) {
-                            StringBuilder sb = new StringBuilder();
-                            List<JRightPadded<Expression>> oldArgs = mi.getPadding().getArguments().getPadding().getElements();
-                            for (int i = 0; i < mi.getArguments().size(); i++) {
-//                                sb.append("#{any()}");
-                                if (indexes.contains(i)) {
-                                    sb.append("#{any(mockwebserver3.MockResponse$Builder)}.build()");
-                                } else {
-                                    sb.append("#{any()}");
-                                }
-                                if (i < mi.getArguments().size() - 2) {
-                                    sb.append(", ");
-                                }
+                        // Wrap MockResponse.Builder arguments with .build()
+                        Cursor methodCursor = getCursor();
+                        replacement = mi.withArguments(ListUtils.map(mi.getArguments(), arg -> {
+                            if (TypeUtils.isAssignableTo(NEW_MOCKRESPONSE_FQN_BUILDER, arg.getType())) {
+                                Cursor argCursor = new Cursor(methodCursor, arg);
+                                return JavaTemplate
+                                        .builder("#{any(mockwebserver3.MockResponse$Builder)}.build()")
+                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
+                                        .imports("mockwebserver3.MockResponse", "mockwebserver3.MockResponse.Builder")
+                                        .build()
+                                        .apply(argCursor, arg.getCoordinates().replace(), arg);
                             }
-                            Style s1 = IntelliJ.tabsAndIndents().withContinuationIndent(4);
-                            WrappingAndBracesStyle s2 = IntelliJ.wrappingAndBraces();
-                            s2 = s2.withChainedMethodCalls(
-                                s2.getChainedMethodCalls().withWrap(LineWrapSetting.WrapAlways)
-                            );
-                            AutoFormatVisitor<Object> formatVisitor = new AutoFormatVisitor<>(
-                                    null,
-                                    false,
-                                    new NamedStyles(
-                                        randomId(),
-                                        "test",
-                                        "test",
-                                        "test",
-                                        emptySet(),
-                                        Arrays.asList(s1, s2)
-                                    )
-                            );
-                            J.MethodInvocation mi3 = (J.MethodInvocation) formatVisitor.visit(
-                                    JavaTemplate
-                                            .builder(sb.toString())
-                                            .contextSensitive()
-                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
-                                            .imports("mockwebserver3.MockResponse", "mockwebserver3.MockResponse.Builder", "mockwebserver3.MockWebServer")
-                                            .build()
-                                            .apply(getCursor(), mi.getCoordinates().replaceArguments(), mi.getArguments().toArray()),
-                                    ctx,
-                                    getCursor().getParent()
-                            );
-                            // TODO: Cleanup backpatching of parameter types for method invocations
-                            mi3 = mi3.withMethodType(mi.getMethodType().withParameterTypes(ListUtils.map(mi.getMethodType().getParameterTypes(), (index, x) -> {
-                                if (indexes.contains(index)) {
-                                    return JavaType.buildType(NEW_MOCKRESPONSE_FQN);
-                                }
-                                return x;
-                            })));
-                            mi3 = mi3.withName(mi3.getName().withType(mi3.getMethodType()));
-                            mi3 = mi3.getPadding().withArguments(mi3.getPadding().getArguments().getPadding().withElements(ListUtils.map(mi3.getPadding().getArguments().getPadding().getElements(), (index, x) -> {
-                                JRightPadded<Expression> oldArg = oldArgs.get(index);
-                                if (indexes.contains(index)) {
-                                    // TODO: Cleanup backpatching of parameter types for method invocations
-                                    x = x.withElement(((J.MethodInvocation) x.getElement()).withMethodType(newMethodType(NEW_MOCKRESPONSE_FQN_BUILDER, NEW_MOCKRESPONSE_FQN, "build")));
-                                }
-                                // Below is backpatching prefixes and afters to restore formatting prior to chaining `.build()`
-                                return x
-                                        .withAfter(oldArg.getAfter())
-                                        .withElement(x.getElement().withPrefix(oldArg.getElement().getPrefix()));
-                            })));
-                            // TODO: Cleanup backpatching of parameter types for method invocation's name's type
-                            return mi3.withName(mi3.getName().withType(((JavaType.Method) mi3.getName().getType()).withParameterTypes(mi3.getPadding().getArguments().getElements().stream().map(z -> z.getType()).collect(toList()))));
-                        }
-                        return mi;
+                            return arg;
+                        }));
+
+                        return replacement;
                     }
                 }.visit(j, ctx);
                 return j;
             }
         });
-    }
-
-    // TODO: figure out a nicer way of doing this potentially. This is taken from MethodMatcherTest in openrewrite/rewrite and altered slightly
-    private static JavaType.Method newMethodType(String declaringType, @Nullable String returnType, String method, String... parameterTypes) {
-        List<JavaType> parameterTypeList = Stream.of(parameterTypes)
-                .map(name -> {
-                    JavaType.Primitive primitive = JavaType.Primitive.fromKeyword(name);
-                    return primitive != null ? primitive : JavaType.ShallowClass.build(name);
-                })
-                .map(JavaType.class::cast)
-                .collect(toList());
-
-        return new JavaType.Method(
-                null,
-                1L,
-                build(declaringType),
-                method,
-                returnType == null ? null : build(returnType),
-                null,
-                parameterTypeList,
-                emptyList(),
-                emptyList(),
-                emptyList(),
-                null
-        );
     }
 }
